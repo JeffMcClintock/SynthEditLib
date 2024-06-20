@@ -297,9 +297,9 @@ namespace SE2
 			Size desiredSize(0, 0);
 			if (pluginGraphics_GMPI)
 			{
-				gmpi::drawing::SizeU remainingSizeU{ static_cast<uint32_t>(remainingSize.width), static_cast<uint32_t>(remainingSize.height) };
-				gmpi::drawing::SizeU desiredSizeU{};
-				pluginGraphics_GMPI->measure(remainingSizeU, &desiredSizeU);
+				gmpi::drawing::Size remainingSizeU{ remainingSize.width, remainingSize.height };
+				gmpi::drawing::Size desiredSizeU{};
+				pluginGraphics_GMPI->measure(&remainingSizeU, &desiredSizeU);
 
 				desiredSize.width = static_cast<float>(desiredSizeU.width);
 				desiredSize.height = static_cast<float>(desiredSizeU.height);
@@ -355,9 +355,12 @@ namespace SE2
 //			pluginGraphics->measure(remainingSize, &desired);
 			if (pluginGraphics_GMPI)
 			{
-				gmpi::drawing::SizeU remainingSizeU{ static_cast<uint32_t>(remainingSize.width), static_cast<uint32_t>(remainingSize.height) };
-				gmpi::drawing::SizeU desiredSizeU{};
-				pluginGraphics_GMPI->measure(remainingSizeU, &desiredSizeU);
+				//gmpi::drawing::SizeU remainingSizeU{ static_cast<uint32_t>(remainingSize.width), static_cast<uint32_t>(remainingSize.height) };
+				//gmpi::drawing::SizeU desiredSizeU{};
+				//pluginGraphics_GMPI->measure(remainingSizeU, &desiredSizeU);
+				gmpi::drawing::Size remainingSizeU{ remainingSize.width, remainingSize.height };
+				gmpi::drawing::Size desiredSizeU{};
+				pluginGraphics_GMPI->measure(&remainingSizeU, &desiredSizeU);
 
 				desired.width = static_cast<float>(desiredSizeU.width);
 				desired.height = static_cast<float>(desiredSizeU.height);
@@ -373,7 +376,7 @@ namespace SE2
 			auto relativeRect = GmpiDrawing::Rect(0, 0, desired.width, desired.height);
 			if (pluginGraphics_GMPI)
 			{
-				drawing::RectL gmpiRect{ 0, 0, static_cast<int32_t>(relativeRect.right), static_cast<int32_t>(relativeRect.bottom)};
+				drawing::Rect gmpiRect{ 0, 0, relativeRect.right, relativeRect.bottom};
 				pluginGraphics_GMPI->arrange(&gmpiRect);
 			}
 			else if (pluginGraphics)
@@ -412,7 +415,7 @@ namespace SE2
 
 		if (pluginGraphics_GMPI)
 		{
-			drawing::RectL clientClipArea_gmpi{};
+			drawing::Rect clientClipArea_gmpi{};
 			pluginGraphics_GMPI->getClipArea(&clientClipArea_gmpi);
 
 			GmpiDrawing::Rect clientClipArea{ static_cast<float>(clientClipArea_gmpi.left), static_cast<float>(clientClipArea_gmpi.top), static_cast<float>(clientClipArea_gmpi.right), static_cast<float>(clientClipArea_gmpi.bottom) };
