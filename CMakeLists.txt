@@ -40,8 +40,8 @@ ${se_shared_folder}/lock_free_fifo.h
 )
 
 set(srcs_json
-../Shared/jsoncpp/json/json.h
-../Shared/jsoncpp/jsoncpp.cpp
+Shared/jsoncpp/json/json.h
+Shared/jsoncpp/jsoncpp.cpp
 )
 
 set(srcs_xml
@@ -90,8 +90,8 @@ DspFilters/Types.h
 
 
 set(srcs
-../Shared/AuPreset.h
-../Shared/AuPreset.cpp
+Shared/AuPreset.h
+Shared/AuPreset.cpp
 
 ${gmpi_ui_folder}/backends/DirectXGfx.h
 ${gmpi_ui_folder}/backends/DirectXGfx.cpp
@@ -136,10 +136,10 @@ interThreadQue.cpp
 interThreadQue.h
 QueClient.h
 
-../Shared/VstPreset.h
-../Shared/VstPreset.cpp
-../Shared/Vst2Preset.h
-../Shared/Vst2Preset.cpp
+Shared/VstPreset.h
+Shared/VstPreset.cpp
+Shared/Vst2Preset.h
+Shared/Vst2Preset.cpp
 
 ${VST3_SDK}/public.sdk/source/vst/vstpresetfile.h
 ${VST3_SDK}/public.sdk/source/vst/vstpresetfile.cpp
