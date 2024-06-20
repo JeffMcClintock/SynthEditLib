@@ -1,0 +1,867 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<apis>
+<common_api>
+	<enum name="return code" comment="Most methods return an error code.">
+		<e name="ok" value="0" comment="Success."/>
+		<e name="handled" value="1" comment="Success, no further handing required."/>
+		<e name="fail" value="-1" comment="General failure."/>
+		<e name="unhandled" value="-1" comment="Event not handled."/>
+		<e name="no support" value="-2" comment="Interface not supported."/>
+		<e name="cancel" value="-3" comment="Async operation cancelled."/>
+	</enum>
+
+	<enum name="plugin subtype">
+		<e name="audio" value="0" comment="An audio processor object."/>
+		<e name="editor" value="2" comment="A graphical editor object."/>
+		<e name="controller" value="4" comment="A controller object."/>
+	</enum>
+
+	<enum name="pin direction">
+		<e name="in"/>
+		<e name="out"/>
+	</enum>
+
+	<enum name="pin datatype">
+		<e name="enum"/>
+		<e name="string"/>
+		<e name="midi"/>
+		<e name="float64"/>
+		<e name="bool"/>
+		<e name="audio"/>
+		<e name="float32"/>
+		<e name="int32" value="8"/>
+		<e name="int64"/>
+		<e name="blob"/>
+	</enum>
+
+	<struct name="guid">
+		<var type="u32" name="data1" />
+		<var type="u16" name="data2" />
+		<var type="u16" name="data3" />
+		<var type="u8[8]" name="data4" />
+	</struct>
+
+	<interface name="unknown" guid="00000000-0000-C000-0000-000000000046">
+		<method name="query interface">
+				<arg name="iid" type="guid"/>
+				<out name="interface" type="void*"/>
+		</method>
+		<method name="add ref" returnType="int"/>
+		<method name="release" returnType="int"/>
+	</interface>
+
+	<interface name="string" base="unknown" guid="AB8FFB21-44FF-42B7-8885-29431399E7E4">
+		<method name="set data">
+			<arg name="data" type="char*"/>
+			<arg name="size" type="int"/>
+		</method>
+		<method name="get size" returnType="int"/>
+		<method name="get data" returnType="char*"/>
+	</interface>
+
+	<interface name="plugin factory" base="unknown" guid="31DC1CD9-6BDF-412A-B758-B2E5CD1D8870">
+		<method name="create instance">
+			<arg name="id" type="string"/>
+			<arg name="subtype" type="plugin subtype"/>
+			<out name="interface" type="void*"/>
+		</method>
+		<method name="get plugin information">
+			<arg name="index" type="int"/>
+			<out name="xml" type="string"/>
+		</method>
+	</interface>
+</common_api>
+
+<audio_api>
+	<enum name="event type">
+		<e name="pin set" value="100" comment="A parameter has changed value."/>
+		<e name="pin streaming start" value="101" comment="An input is not silent."/>
+		<e name="pin streaming stop" value="102" comment="An input is silent."/>
+		<e name="MIDI" value="103" comment="A MIDI message."/>
+		<e name="graph start" value="104" comment="Plugin is about to process the very first sample."/>
+	</enum>
+
+	<struct name="event">
+		<var type="int" name="time delta" comment="Relative to block" />
+		<var type="enum" name="event type" comment="See MpEventType enumeration" />
+		<var type="int" name="parm1" comment="Pin index if needed" />
+		<var type="int" name="parm2" comment="Sizeof additional data. Implies extraData is a pointer to the value" />
+		<var type="int" name="parm3" comment="Pin value (if 4 bytes or less)" />
+		<var type="int" name="parm4" comment="Voice ID" />
+		<var type="char*" name="extra data" comment=" Pointer to additional data which is too large to fit" />
+		<var type="event*" name="next" comment="Next event in list" />
+	</struct>
+	
+	<interface name="audio plugin" base="unknown" guid="23835D7E-DCEB-4B08-A9E7-B43F8465939E" comment="Music plugin audio processing interface.">
+		<method name="open" comment="Processing about to start.  Allocate resources here.">
+			<arg name="host" type="unknown"/>
+		</method>
+		<method name="set buffer" comment="Notify plugin of audio buffer address, one pin at a time. Address may change between process() calls.">
+			<arg name="pin id" type="int"/>
+			<mut name="buffer" type="float*"/>
+		</method>
+
+		<method name="process" returnType="void" comment="Process a time slice. No return code, must always succeed.">
+			<arg name="count" type="int"/>
+			<arg name="events" type="event*"/>
+		</method>
+	</interface>
+
+	<interface name="audio plugin host" base="unknown" guid="87CCD426-71D7-414E-A9A6-5ADCA81C7420">
+		<method name="set pin" comment="Plugin sending out control data.">
+			<arg name="timestamp" type="int"/>
+			<arg name="pin id" type="int"/>
+			<arg name="size" type="int"/>
+			<arg name="data" type="void*"/>
+		</method>
+		<method name="set pin streaming" comment="Plugin audio output start/stop (silence detection).">
+			<arg name="timestamp" type="int"/>
+			<arg name="pin id" type="int"/>
+			<arg name="is streaming" type="bool"/>
+		</method>
+		<method name="set latency" comment="PDC (Plugin Delay Compensation) support.">
+			<arg name="latency" type="int"/>
+		</method>
+		<method name="sleep" comment="Plugin indicates no processing needed until input state changes."/>
+		<method name="get block size" returnType="int" comment="Query audio buffer maximum size."/>
+		<method name="get sample rate" returnType="float" comment="Query DAW sample-rate."/>
+		<method name="get handle" returnType="int" comment="Each plugin instance has a host-assigned unique handle shared by UI and Audio class."/>
+	</interface>
+</audio_api>
+<drawing_api>
+	<enum name="font weight">
+		<e name="thin" value="100"/>
+		<e name="extra light" value="200"/>
+		<e name="ultra light" value="200"/>
+		<e name="light" value="300"/>
+		<e name="normal" value="400"/>
+		<e name="regular" value="400"/>
+		<e name="medium" value="500"/>
+		<e name="demi bold" value="600"/>
+		<e name="semi bold" value="600"/>
+		<e name="bold" value="700"/>
+		<e name="extra bold" value="800"/>
+		<e name="ultra bold" value="800"/>
+		<e name="black" value="900"/>
+		<e name="heavy" value="900"/>
+		<e name="extra black" value="950"/>
+		<e name="ultra black" value="950"/>
+	</enum>
+	<enum name="font stretch">
+		<e name="undefined" value="0"/>
+		<e name="ultra condensed" value="1"/>
+		<e name="extra condensed" value="2"/>
+		<e name="condensed" value="3"/>
+		<e name="semi condensed" value="4"/>
+		<e name="normal" value="5"/>
+		<e name="medium" value="5"/>
+		<e name="semi expanded" value="6"/>
+		<e name="expanded" value="7"/>
+		<e name="extra expanded" value="8"/>
+		<e name="ultra expanded" value="9"/>
+	</enum>
+	<enum name="font style">
+		<e name="normal" value="0"/>
+		<e name="oblique" value="1"/>
+		<e name="italic" value="2"/>
+	</enum>
+
+	<enum name="text alignment">
+		<e name="leading" value="0"/>
+		<e name="trailing" value="1"/>
+		<e name="center" value="2"/>
+	</enum>
+
+	<enum name="paragraph alignment">
+		<e name="near" value="0"/>
+		<e name="far" value="1"/>
+		<e name="center" value="2"/>
+	</enum>
+
+	<enum name="word wrapping">
+		<e name="wrap" value="0"/>
+		<e name="no wrap" value="1"/>
+	</enum>
+	<!--
+	<enum name="alpha mode">
+		<e name="unknown" value="0"/>
+		<e name="premultiplied" value="1"/>
+		<e name="straight" value="2"/>
+		<e name="ignore" value="3"/>
+	</enum>
+	-->
+
+	<enum name="bitmap lock flags">
+		<e name="read" value="1"/>
+		<e name="write" />
+		<e name="read write" />
+	</enum>
+
+	<enum name="gamma">
+		<e name="2 2" value="0"/>
+		<e name="1 0" value="1"/>
+	</enum>
+
+	<!--
+	<enum name="opacity mask content">
+		<e name="graphics" value="0"/>
+		<e name="text natural" value="1"/>
+		<e name="text gdi compatible" value="2"/>
+	</enum>
+	-->
+
+	<enum name="extend mode">
+		<e name="clamp" value="0"/>
+		<e name="wrap" value="1"/>
+		<e name="mirror" value="2"/>
+	</enum>
+
+	<enum name="bitmap interpolation mode">
+		<e name="nearest neighbor" value="0"/>
+		<e name="linear" value="1"/>
+	</enum>
+
+	<flags name="draw text options">
+		<e name="none" value="0"/>
+		<e name="no snap" value="1"/>
+		<e name="clip" value="2"/>
+	</flags>
+
+	<enum name="arc size">
+		<e name="small" value="0"/>
+		<e name="large" value="1"/>
+	</enum>
+
+	<enum name="cap style">
+		<e name="flat" value="0"/>
+		<e name="square" value="1"/>
+		<e name="round" value="2"/>
+		<!--
+		<e name="triangle" value="3"/>
+		-->
+	</enum>
+
+	<enum name="dash style">
+		<e name="solid" value="0"/>
+		<e name="dash" value="1"/>
+		<e name="dot" value="2"/>
+		<e name="dash dot" value="3"/>
+		<e name="dash dot dot" value="4"/>
+		<e name="custom" value="5"/>
+	</enum>
+
+	<enum name="line join">
+		<e name="miter" value="0"/>
+		<e name="bevel" value="1"/>
+		<e name="round" value="2"/>
+		<e name="miter or bevel" value="3"/>
+	</enum>
+
+	<!--
+	<enum name="combine mode">
+		<e name="union" value="0"/>
+		<e name="intersect" value="1"/>
+		<e name="xor" value="2"/>
+		<e name="exclude" value="3"/>
+	</enum>
+	-->
+
+	<enum name="figure begin">
+		<e name="filled" value="0"/>
+		<e name="hollow" value="1"/>
+	</enum>
+
+	<enum name="figure end">
+		<e name="open" value="0"/>
+		<e name="closed" value="1"/>
+	</enum>
+
+	<enum name="path segment">
+		<e name="none" value="0"/>
+		<e name="force unstroked" value="1"/>
+		<e name="force round line join" value="2"/>
+	</enum>
+
+	<enum name="sweep direction">
+		<e name="counter clockwise" value="0"/>
+		<e name="clockwise" value="1"/>
+	</enum>
+
+	<enum name="fill mode">
+		<e name="alternate" value="0"/>
+		<e name="winding" value="1"/>
+	</enum>
+	
+	<!--
+<struct name="point 2u">
+    <var name="x" type="u32"/>
+    <var name="y" type="u32"/>
+</struct>
+-->
+
+<struct name="color">
+	<var name="r" type="float"/>
+	<var name="g" type="float"/>
+	<var name="b" type="float"/>
+	<var name="a" type="float"/>
+</struct>
+
+<struct name="point" isSmall="true">
+	<var name="x" type="float"/>
+	<var name="y" type="float"/>
+</struct>
+
+<struct name="point l" isSmall="true">
+	<var name="x" type="int"/>
+	<var name="y" type="int"/>
+</struct>
+
+<struct name="rect">
+    <var name="left" type="float"/>
+    <var name="top" type="float"/>
+    <var name="right" type="float"/>
+    <var name="bottom" type="float"/>
+</struct>
+
+<struct name="rect l">
+    <var name="left" type="int"/>
+    <var name="top" type="int"/>
+    <var name="right" type="int"/>
+    <var name="bottom" type="int"/>
+</struct>
+
+<struct name="size" isSmall="true">
+    <var name="width" type="float"/>
+    <var name="height" type="float"/>
+</struct>
+
+<struct name="size u" isSmall="true">
+    <var name="width" type="u32"/>
+    <var name="height" type="u32"/>
+</struct>
+<struct name="size l" isSmall="true">
+	<var name="width" type="int"/>
+	<var name="height" type="int"/>
+</struct>
+
+<struct name="matrix 3x2">
+    <var name="11" type="float" default="1.f"/>
+    <var name="12" type="float"/>
+    <var name="21" type="float"/>
+    <var name="22" type="float" default="1.f"/>
+    <var name="31" type="float"/>
+    <var name="32" type="float"/>
+</struct>
+
+	<!--
+<struct name="pixel format">
+    <var name="format" type="dxgi format"/>
+    <var name="alphamode" type="alpha_mode"/>
+</struct>
+-->
+
+<struct name="bitmap properties">
+	<!-- <var name="pixelformat" type="pixel format"/> -->
+    <var name="dpix" type="float"/>
+    <var name="dpiy" type="float"/>
+</struct>
+
+<struct name="gradientstop">
+    <var name="position" type="float"/>
+    <var name="color" type="color"/>
+</struct>
+
+<struct name="brush properties">
+    <var name="opacity" type="float"/>
+    <var name="transform" type="matrix 3x2"/>
+</struct>
+
+<struct name="bitmap brush properties">
+    <var name="extend mode x" type="extend mode"/>
+    <var name="extend mode y" type="extend mode"/>
+    <var name="interpolation mode" type="bitmap interpolation mode"/>
+</struct>
+
+<struct name="linear gradient brush properties">
+    <var name="start point" type="point"/>
+    <var name="end point" type="point"/>
+</struct>
+
+<struct name="radial gradient brush properties">
+    <var name="center" type="point"/>
+    <var name="gradient origin offset" type="point"/>
+    <var name="radius x" type="float"/>
+    <var name="radius y" type="float"/>
+</struct>
+
+<struct name="bezier segment">
+    <var name="point1" type="point"/>
+    <var name="point2" type="point"/>
+    <var name="point3" type="point"/>
+</struct>
+
+<struct name="triangle">
+    <var name="point1" type="point"/>
+    <var name="point2" type="point"/>
+    <var name="point3" type="point"/>
+</struct>
+
+<struct name="arc segment">
+    <var name="point" type="point"/>
+    <var name="size" type="size"/>
+    <var name="rotation angle" type="float"/>
+    <var name="sweep direction" type="sweep direction"/>
+    <var name="arc size" type="arc size"/>
+</struct>
+
+<struct name="quadratic bezier segment">
+    <var name="point1" type="point"/>
+    <var name="point2" type="point"/>
+</struct>
+
+<struct name="ellipse">
+    <var name="point" type="point"/>
+    <var name="radius x" type="float"/>
+    <var name="radius y" type="float"/>
+</struct>
+
+<struct name="rounded rect">
+    <var name="rect" type="rect"/>
+    <var name="radius x" type="float"/>
+    <var name="radius y" type="float"/>
+</struct>
+
+<struct name="stroke style properties">
+	<!--
+    <var name="start cap" type="cap style"/>
+    <var name="end cap" type="cap style"/>
+    <var name="dash cap" type="cap style"/>
+	-->
+	<var name="line cap" type="cap style"/>
+	<var name="line join" type="line join"/>
+    <var name="miter limit" type="float"/>
+    <var name="dash style" type="dash style"/>
+	<var name="dash offset" type="float"/>
+	<var name="transform type unused" type="int"/>
+</struct>
+<struct name="font metrics">
+	<var name="ascent" type="float" comment ="Ascent is the distance from the top of font character alignment box to the English baseline."/>
+	<var name="descent" type="float" comment ="Descent is the distance from the bottom of font character alignment box to the English baseline."/>
+	<var name="line Gap" type="float" comment ="Recommended additional white space to add between lines to improve legibility. The recommended line spacing (baseline-to-baseline distance) is the sum of ascent, descent, and lineGap. The line gap is usually positive or zero but can be negative, in which case the recommended line spacing is less than the height of the character alignment box."/>
+	<var name="cap Height" type="float" comment ="Cap height is the distance from the English baseline to the top of a typical English capital. Capital H is often used as a reference character for the purpose of calculating the cap height value."/>
+	<var name="x Height" type="float" comment ="x-height is the distance from the English baseline to the top of lowercase letter x, or a similar lowercase character." />
+	<var name="underline Position" type="float" comment ="Underline position is the position of underline relative to the English baseline. The value is usually made negative in order to place the underline below the baseline."/>
+	<var name="underline Thickness" type="float" />
+	<var name="strikethrough Position" type="float" comment ="Strikethrough position is the position of strikethrough relative to the English baseline. The value is usually made positive in order to place the strikethrough above the baseline."/>
+	<var name="strikethrough Thickness" type="float" />
+
+	<method name="get body height" type="float" returnType="float" />
+</struct>
+
+<interface name="text format" base="unknown" guid ="ED903255-3FE0-4CE4-8CD1-97D72D51B7CB">
+	<set type="text alignment"/>
+	<set type="paragraph alignment"/>
+	<set type="word wrapping"/>
+	<method name="get text extent u">
+		<arg name="utf8 string" type="string"/>
+		<arg name="string length" type="int"/>
+		<out name="size" type="size"/>
+	</method>
+	<get type="font metrics"/>
+	<method name="set line spacing">
+		<arg name="line spacing" type="float"/>
+		<arg name="baseline" type="float"/>
+	</method>
+</interface>
+	
+<interface name="resource" base="unknown" guid="617750C9-14DC-4157-BBD0-FEDF5270D8FD">
+	<get type="factory"/>
+</interface>
+	
+<interface name="bitmap pixels" base="unknown" guid="CCE4F628-289E-4EAB-9837-1755D9E5F793">
+	<get type="u8*" name="address"/>
+	<get type="int" name="bytes per row"/>
+	<get type="int" name="pixel format"/>
+</interface>
+
+<interface name="bitmap" base="resource" guid="EDF250B7-29FE-4FEC-8C6A-FBCB1F0A301A">
+	<!--
+	<get type="size" comment="DEPRECATED: Should be integer size to avoid costly float->int conversions and for Direct2D compatibility."/>
+	<method name="lock pixels old" comment="Deprecated, see lockPixels.">
+		<out name="pixels" type="bitmap pixels"/>
+		<arg name="alpha premultiplied" type="bool"/>
+	</method>
+	<method name="apply alpha correction" comment="Deprecated. DirectX 11 has SRGB support."/>
+	<get type="sizeu"/>
+	<method name="lock pixels" comment="Same as lockPixelsOld() but with option to avoid overhead of copying pixels back into image. See MP1_BITMAP_LOCK_FLAGS. Note: Not supported when Bitmap was created by IMpDeviceContext::CreateCompatibleRenderTarget()">
+		<out name="pixels" type="bitmap pixels"/>
+		<arg name="flags" type="int"/>
+	</method>
+	-->
+
+	<get type="size u" />
+	<method name="lock pixels" comment="Note: Not supported when Bitmap was created by IMpDeviceContext::CreateCompatibleRenderTarget()">
+		<out name="pixels" type="bitmap pixels"/>
+		<arg name="flags" type="int"/>
+	</method>
+</interface>
+
+<interface name="gradientstop collection" base="resource" guid="AEE31225-BFF4-42DE-B8CA-233C5A3441CB">
+	<!--
+    <method name="get gradient stop count"/>
+	-->
+</interface>
+
+<interface name="brush" base="resource">
+	<!--
+    <method name="set opacity">
+        <arg name="opacity" type="float"/>
+    </method>
+	-->
+</interface>
+
+<interface name="bitmap brush" base="brush" guid="10E6068D-75D7-4C36-89AD-1C8878E70988">
+    <method name="set extend mode x">
+        <arg name="extend mode x" type="extend mode"/>
+    </method>
+	<method name="set extend mode y">
+		<arg name="extend mode y" type="extend mode"/>
+	</method>
+	<method name="set interpolation mode">
+		<arg type="bitmap interpolation mode"/>
+	</method>
+</interface>
+
+<interface name="solid color brush" base="brush" guid="BB3FD251-47A0-4273-90AB-A5CDC88F57B9">
+    <method name="set color">
+        <arg name="color" type="color"/>
+    </method>
+	<!--
+    <method name="get color"/>
+	-->
+</interface>
+
+<interface name="linear gradient brush" base="brush" guid="986C3B9A-9D0A-4BF5-B721-0B9611B2798D">
+    <method name="set start point" returnType="void">
+        <arg name="start point" type="point"/>
+    </method>
+    <method name="set end point" returnType="void">
+        <arg name="end point" type="point"/>
+    </method>
+	<!--
+    <method name="get gradientstop collection">
+        <arg name="gradient stop collection" type="gradientstop collection"/>
+    </method>
+	-->
+</interface>
+
+<interface name="radial gradient brush" base="brush" guid="A3436B5B-C3F7-4A27-9BD9-710D653EE560">
+    <method name="set center" returnType="void">
+        <arg name="center" type="point"/>
+    </method>
+    <method name="set gradient origin offset" returnType="void">
+        <arg name="gradient origin offset" type="point"/>
+    </method>
+    <method name="set radius x" returnType="void">
+        <arg name="radius x" type="float"/>
+    </method>
+    <method name="set radius y" returnType="void">
+        <arg name="radius y" type="float"/>
+    </method>
+</interface>
+	
+<interface name="stroke style" base="resource" guid="27D19BF3-9DB2-49CC-A8EE-28E0716EA8B6">
+</interface>
+
+	<!--
+<interface name="geometry" base="resource">
+    <method name="compute length">
+        <arg name="world transform" type="matrix 3x2"/>
+        <arg name="flattening tolerance" type="float"/>
+        <arg name="length" type="float"/>
+    </method>
+</interface>
+
+<interface name="rectanglegeometry" base="geometry">
+    <method name="get rect">
+        <arg name="rect" type="rect"/>
+    </method>
+</interface>
+
+<interface name="roundedrectanglegeometry" base="geometry">
+    <method name="get rounded rect">
+        <arg name="rounded rect" type="rounded rect"/>
+    </method>
+</interface>
+
+<interface name="ellipsegeometry" base="geometry">
+    <method name="get ellipse">
+        <arg name="ellipse" type="ellipse"/>
+    </method>
+</interface>
+-->
+
+<interface name="geometry sink" base="unknown" guid="A935E374-8F14-4824-A5CB-58287E994193">
+	<method name="begin figure" returnType="void">
+		<arg name="start point" type="point"/>
+		<arg name="figure begin" type="figure begin"/>
+	</method>
+	<method name="end figure" returnType="void">
+		<arg name="figure end" type="figure end"/>
+	</method>
+	<method name="set fill mode" returnType="void">
+		<arg name="fill mode" type="fill mode"/>
+	</method>
+	<method name="close"/>
+	<method name="add line" returnType="void">
+        <arg name="point" type="point"/>
+    </method>
+	<method name="add lines" returnType="void">
+		<arg name="points" type="point*"/>
+		<arg name="points count" type="u32"/>
+	</method>
+    <method name="add bezier" returnType="void">
+        <arg name="bezier" type="bezier segment"/>
+    </method>
+	<method name="add beziers" returnType="void">
+		<arg name="beziers" type="bezier segment"/>
+		<arg name="beziers count" type="u32"/>
+	</method>
+    <method name="add quadratic bezier" returnType="void">
+        <arg name="bezier" type="quadratic bezier segment"/>
+    </method>
+    <method name="add quadratic beziers" returnType="void">
+        <arg name="beziers" type="quadratic bezier segment"/>
+        <arg name="beziers count" type="u32"/>
+    </method>
+	<method name="add arc" returnType="void">
+		<arg name="arc" type="arc segment"/>
+	</method>
+</interface>
+
+<interface name="path geometry" base="resource" guid="89C6E868-B8A5-49BF-B771-02FB1EEF38AD">
+    <method name="open">
+        <out name="geometry sink" type="geometry sink"/>
+    </method>
+	<method name="stroke contains point" comment="in DX, these are part of IMpGeometry. But were added later here, and so added last. not a big deal since we support only one type of geometry, not many like DX.">
+		<arg name="point" type="point"/>
+		<arg name="stroke width" type="float"/>
+		<arg type="stroke style"/>
+		<arg name="world transform" type="matrix 3x2"/>
+		<out name="contains" type="bool"/>
+	</method>
+	<method name="fill contains point">
+		<arg name="point" type="point"/>
+		<arg name="world transform" type="matrix 3x2"/>
+		<out name="contains" type="bool"/>
+	</method>
+	<method name="get widened bounds">
+		<arg name="stroke width" type="float"/>
+		<arg type="stroke style"/>
+		<arg name="world transform" type="matrix 3x2"/>
+		<out name="bounds" type="rect"/>
+	</method>
+</interface>
+
+<interface name="factory" base="unknown" guid="481D4609-E28B-4698-BB2D-6480475B8F31">
+	<method name="create path geometry">
+		<out name="path geometry" type="path geometry"/>
+	</method>
+	<method name="create text format">
+		<arg name="font family name" type="string"/>
+		<!--
+	<arg name="unused font collection" type="void*"/>
+	-->
+		<arg type="font weight"/>
+		<arg type="font style"/>
+		<arg type="font stretch"/>
+		<arg name="font height" type="float"/>
+		<out type="text format"/>
+	</method>
+	<method name="create image">
+		<arg name="width" type="int"/>
+		<!-- could be type 'size l' -->
+		<arg name="height" type="int"/>
+		<out type="bitmap"/>
+	</method>
+	<method name="load image u">
+		<arg name="uri" type="string"/>
+		<out type="bitmap"/>
+	</method>
+	<method name="create stroke style">
+		<arg type="stroke style properties"/>
+		<arg name="dashes" type="float*"/>
+		<arg name="dashes count" type="int"/>
+		<out type="stroke style"/>
+	</method>
+	<!--
+// test for winrt. perhaps uri could indicate if image is in resources, and could use stream internally if nesc (i.e. VST2 only.) or just write it to disk temp.
+// LoadStreamImage would be private member, not on store apps.
+-->
+
+</interface>
+<interface name="factory2" base="factory" guid="61568E7F-5256-49C6-95E6-10327EB33EC4">
+	<method name="get font family name">
+		<arg name="font index" type="int"/>
+		<out name="name" type="string"/>
+	</method>
+</interface>	
+	
+<interface name="device context" base="resource" guid="A1D9751D-0C43-4F57-8958-E0BCE359B2FD">
+	<!--
+    <method name="create bitmap">
+        <arg name="size" type="size u"/>
+        <arg name="src data" type="void*"/>
+        <arg name="pitch" type="u32"/>
+        <arg name="bitmap properties" type="bitmap properties"/>
+        <out type="bitmap"/>
+    </method>
+	-->
+	<method name="create bitmap brush">
+        <arg type="bitmap"/>
+        <arg type="bitmap brush properties"/>
+        <arg type="brush properties"/>
+        <out type="bitmap brush"/>
+    </method>
+    <method name="create solid color brush">
+        <arg type="color"/>
+        <arg type="brush properties"/>
+		<out type="solid color brush"/>
+    </method>
+    <method name="create gradientstop collection">
+        <arg name="gradientstops" type="gradientstop"/>
+        <arg name="gradientstops count" type="u32"/>
+		<!--
+        <arg name="color interpolation gamma" type="gamma"/>
+	-->
+		<arg type="extend mode"/>
+		<out type="gradientstop collection"/>
+    </method>
+    <method name="create linear gradient brush">
+        <arg type="linear gradient brush properties"/>
+        <arg type="brush properties"/>
+        <arg type="gradientstop collection"/>
+		<out type="linear gradient brush"/>
+    </method>
+    <method name="create radial gradient brush">
+        <arg type="radial gradient brush properties"/>
+        <arg type="brush properties"/>
+        <arg type="gradientstop collection"/>
+		<out type="radial gradient brush"/>
+    </method>
+	<!-- moved to end in SE
+    <method name="create compatible render target">
+        <arg name="desired size" type="size"/>
+        <arg name="desired pixel size" type="size u"/>
+        <arg name="desired format" type="pixel format"/>
+        <arg name="options" type="compatible render target options"/>
+        <arg name="bitmap render target" type="bitmaprendertarget"/>
+    </method>
+	-->
+    <method name="draw line">
+        <arg name="point0" type="point"/>
+        <arg name="point1" type="point"/>
+        <arg type="brush"/>
+        <arg name="stroke width" type="float"/>
+        <arg type="stroke style"/>
+    </method>
+    <method name="draw rectangle">
+        <arg type="rect"/>
+        <arg type="brush"/>
+        <arg name="stroke width" type="float"/>
+        <arg type="stroke style"/>
+    </method>
+    <method name="fill rectangle">
+        <arg type="rect"/>
+        <arg type="brush"/>
+    </method>
+    <method name="draw rounded rectangle">
+        <arg type="rounded rect"/>
+        <arg type="brush"/>
+        <arg name="stroke width" type="float"/>
+        <arg type="stroke style"/>
+    </method>
+    <method name="fill rounded rectangle">
+        <arg type="rounded rect"/>
+        <arg type="brush"/>
+    </method>
+    <method name="draw ellipse">
+        <arg name="ellipse" type="ellipse"/>
+        <arg type="brush"/>
+        <arg name="stroke width" type="float"/>
+        <arg type="stroke style"/>
+    </method>
+    <method name="fill ellipse">
+        <arg name="ellipse" type="ellipse"/>
+        <arg type="brush"/>
+    </method>
+    <method name="draw geometry">
+        <arg type="path geometry"/>
+        <arg type="brush"/>
+        <arg name="stroke width" type="float"/>
+        <arg type="stroke style"/>
+    </method>
+    <method name="fill geometry">
+        <arg type="path geometry"/>
+        <arg type="brush"/>
+        <arg name="opacity brush" type="brush"/>
+    </method>
+    <method name="draw bitmap">
+        <arg type="bitmap"/>
+        <arg name="destination rectangle" type="rect"/>
+        <arg name="opacity" type="float"/>
+        <arg name="interpolation mode" type="bitmap interpolation mode"/>
+        <arg name="source rectangle" type="rect"/>
+    </method>
+    <method name="draw text u">
+        <arg type="string"/>
+        <arg name="string length" type="u32"/>
+        <arg type="text format"/>
+        <arg name="layout rect" type="rect"/>
+        <arg name="default foreground brush" type="brush"/>
+        <arg name="options" type="int"/>
+		<!--
+        <arg name="measuring mode" type="measuring mode"/>
+-->
+	</method>
+    <method name="set transform">
+        <arg name="transform" type="matrix 3x2"/>
+    </method>
+    <method name="get transform">
+        <out name="transform" type="matrix 3x2"/>
+    </method>
+    <method name="push axis aligned clip">
+        <arg name="clip rect" type="rect"/>
+<!--
+		<arg type="antialias mode"/>
+-->
+    </method>
+	<method name="pop axis aligned clip"/>
+	<method name="get axis aligned clip">
+		<out name="clip rect" type="rect"/>
+	</method>
+	<method name="clear">
+        <arg name="clear color" type="color"/>
+    </method>
+    <method name="begin draw"/>
+    <method name="end draw">
+		<!--
+        <arg name="tag1" type="tag"/>
+        <arg name="tag2" type="tag"/>
+-->
+	</method>
+	<method name="create bitmap render target">
+		<arg name="desired size" type="size u"/>
+		<arg name="enable lock pixels" type="bool"/>
+		<out name="bitmap render target" type="bitmap render target"/>
+	</method>
+</interface>
+
+<interface name="bitmap render target" base="device context" guid="242DC082-399A-4CAF-8782-878134502F99" comment="should all interface return types by iUnknown? (to accomodate upgrades)">
+	<method name="get bitmap">
+		<out type="bitmap"/>
+	</method>
+</interface>
+
+</drawing_api>
+</apis>

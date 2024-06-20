@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE Arpeggiator" name="Arpeggiator" category="MIDI" >
+    <Audio>
+      <Pin name="Clock" datatype="bool"/>
+      <Pin name="Reset" datatype="bool"/>
+      <Pin name="Mode" datatype="enum" default="1" metadata="Off,Up,Down,Up/Down,Random"/>
+      <Pin name="Octave" datatype="enum" default="0" metadata="1=0,2,3,4,5"/>
+      <Pin name="MIDI In" datatype="midi"/>
+      <Pin name="MIDI Out" direction="out" datatype="midi"/>
+    </Audio>
+  </Plugin>
+</PluginList>

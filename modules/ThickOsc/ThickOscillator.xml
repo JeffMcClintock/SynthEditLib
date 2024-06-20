@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PluginList>
+    <Plugin id="SE Thick Oscillator" name="Thick Oscillator" category="Waveform">
+        <Audio>
+            <Pin name="Pitch" datatype="float" rate="audio" default="0.5" metadata="100, 0, 10, 0"/>
+            <Pin name="Harm Slp" datatype="float" default="0.5"/>
+            <Pin name="Waveform" datatype="enum" default="1" metadata="Sine, Saw, Ramp, Triangle, Pulse,White Noise,Pink Noise"/>
+            <Pin name="Audio Out" datatype="float" rate="audio" direction="out"/>
+            <Pin name="Sync" datatype="float" rate="audio" metadata="100, 0, 5, -5"/>
+            <Pin name="Phase Mod" datatype="float" rate="audio" metadata="100, 0, 10, 0"/>
+            <Pin name="Freq Scale" datatype="enum" isMinimised="true" metadata="1 Volt/Octave, 1 Volt/kHz "/>
+            <Pin name="PM Depth" datatype="float" rate="audio" default="0.5" metadata="100, 0, 10, 0"/>
+            <Pin name="Smooth Peaks (Gibbs Effect)" datatype="bool" default="1" isMinimised="true"/>
+            <Pin name="Sync X-Fade (Anti Alias)" datatype="bool" default="1" isMinimised="true"/>
+        </Audio>
+    </Plugin>
+</PluginList>

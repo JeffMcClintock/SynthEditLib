@@ -1,0 +1,542 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document file_format="150000" vst_latencyCompensation="1" vst_preset_count="64">
+    <master_container type="Container" handle="535329077" name="Main" ViewOpenFlags="256" skin="default2">
+        <plugs>
+            <plug idx="7"/>
+        </plugs>
+        <structRect l="0" r="0" t="0" b="0"/>
+        <PatchManager>
+            <ProgramNames/>
+            <Parameters>
+                <param type="10" handle="199151516" private="true" hostControl="49">
+                    <patch-list>
+                        <s repeat="128"></s>
+                    </patch-list>
+                </param>
+                <param type="6" handle="654553960" shortName="Signal Logger Signal" vstParameterNumber="3" module="47304849" moduleParamId="0" RangeMinimum="-12">
+                    <patch-list>
+                        <s>-8.63</s>
+                        <s repeat="127">0</s>
+                    </patch-list>
+                </param>
+                <param type="10" handle="807827976" stateful="false" module="1801739099" moduleParamId="0"/>
+                <param type="6" handle="1559380717" shortName="Signal Logger Signal" vstParameterNumber="0" module="949808120" moduleParamId="0" RangeMinimum="-12">
+                    <patch-list>
+                        <s>9.89</s>
+                        <s repeat="127">0</s>
+                    </patch-list>
+                </param>
+                <param type="6" handle="1824701830" shortName="Signal Logger Signal" vstParameterNumber="1" module="1140254225" moduleParamId="0" RangeMinimum="-12">
+                    <patch-list>
+                        <s>5.05</s>
+                        <s repeat="127">0</s>
+                    </patch-list>
+                </param>
+                <param type="6" handle="1992742694" shortName="Signal Logger Signal" vstParameterNumber="2" module="1595065650" moduleParamId="0" RangeMinimum="-12">
+                    <patch-list>
+                        <s>0.32</s>
+                        <s repeat="127">0</s>
+                    </patch-list>
+                </param>
+            </Parameters>
+        </PatchManager>
+        <modules>
+            <module type="Slider" handle="47304849">
+                <plugs>
+                    <plug parameterId="-1" idx="13"/>
+                    <plug parameterId="-1"/>
+                </plugs>
+                <structRect l="972" r="1056" t="120" b="208"/>
+                <panelRect l="424" r="424" t="208" b="208"/>
+            </module>
+            <module type="VCA" handle="1336461449">
+                <plugs>
+                    <plug default="4" idx="1"/>
+                    <plug default="2" idx="3"/>
+                </plugs>
+                <structRect l="756" r="864" t="276" b="324"/>
+            </module>
+            <module type="VCA" handle="662432593">
+                <plugs>
+                    <plug default="4" idx="1"/>
+                    <plug default="2" idx="3"/>
+                </plugs>
+                <structRect l="756" r="864" t="456" b="504"/>
+            </module>
+            <module type="VCA" handle="298244959">
+                <plugs>
+                    <plug default="4" idx="1"/>
+                    <plug default="2" idx="3"/>
+                </plugs>
+                <structRect l="756" r="864" t="396" b="444"/>
+            </module>
+            <module type="SE Wave Recorder2" handle="1588279710">
+                <plugs>
+                    <plug id="4" idx="4"/>
+                    <plug id="5"/>
+                    <plug id="6" idx="6"/>
+                    <plug id="7"/>
+                </plugs>
+                <structRect l="1195" r="1267" t="232" b="304"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="VCA" handle="994220947">
+                <plugs>
+                    <plug default="4" idx="1"/>
+                    <plug default="2" idx="3"/>
+                </plugs>
+                <structRect l="756" r="864" t="336" b="384"/>
+            </module>
+            <module type="SE Oscillator (naive)" handle="1524668841">
+                <plugs>
+                    <plug default="2"/>
+                    <plug default="0" idx="2"/>
+                </plugs>
+                <structRect l="132" r="216" t="60" b="132"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="Quantiser" handle="1640999414">
+                <structRect l="336" r="420" t="264" b="300"/>
+            </module>
+            <module type="Slider" handle="1595065650">
+                <plugs>
+                    <plug parameterId="-1" idx="13"/>
+                    <plug parameterId="-1"/>
+                </plugs>
+                <structRect l="876" r="960" t="120" b="208"/>
+                <panelRect l="407" r="407" t="256" b="256"/>
+            </module>
+            <module type="Slider" handle="1140254225">
+                <plugs>
+                    <plug parameterId="-1" idx="13"/>
+                    <plug parameterId="-1"/>
+                </plugs>
+                <structRect l="768" r="852" t="120" b="208"/>
+                <panelRect l="323" r="323" t="225" b="225"/>
+            </module>
+            <module type="Slider" handle="949808120">
+                <plugs>
+                    <plug parameterId="-1" idx="13"/>
+                    <plug parameterId="-1"/>
+                </plugs>
+                <structRect l="660" r="744" t="120" b="208"/>
+                <panelRect l="255" r="255" t="149" b="149"/>
+            </module>
+            <module type="SE Signal Logger" handle="1801739099">
+                <plugs>
+                    <plug default="0.01" idx="1"/>
+                    <plug id="2" idx="7"/>
+                    <plug id="3"/>
+                    <plug id="4" idx="9"/>
+                    <plug id="5"/>
+                </plugs>
+                <structRect l="24" r="1728" t="516" b="960"/>
+                <panelRect l="281" r="281" t="144" b="144"/>
+            </module>
+            <module type="Voltage To List2" handle="437790264" muted="true">
+                <structRect l="401" r="473" t="357" b="381"/>
+            </module>
+            <module type="VCA" handle="564098092">
+                <structRect l="276" r="384" t="420" b="468"/>
+            </module>
+            <module type="Fixed Values" handle="1633838619">
+                <plugs>
+                    <plug name="Signal" default="5"/>
+                    <plug idx="1"/>
+                </plugs>
+                <structRect l="180" r="264" t="372" b="396"/>
+            </module>
+            <module type="SE Oscillator (naive)" handle="687041674">
+                <plugs>
+                    <plug default="-6.2"/>
+                </plugs>
+                <structRect l="132" r="216" t="432" b="504"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="VCA" handle="182480058">
+                <plugs>
+                    <plug default="4" idx="1"/>
+                    <plug default="2" idx="3"/>
+                </plugs>
+                <structRect l="192" r="300" t="264" b="312"/>
+            </module>
+            <module type="Fixed Values" handle="1904671539">
+                <plugs>
+                    <plug name="Signal" default="5"/>
+                    <plug idx="1"/>
+                </plugs>
+                <structRect l="120" r="204" t="204" b="228"/>
+            </module>
+            <module type="SE Oscillator (naive)" handle="1907222049">
+                <plugs>
+                    <plug default="-6"/>
+                </plugs>
+                <structRect l="72" r="156" t="264" b="336"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE Unit Converter" handle="1350528193">
+                <plugs>
+                    <plug default="6"/>
+                    <plug default="100" idx="2"/>
+                </plugs>
+                <structRect l="420" r="456" t="252" b="276"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE Audio Player" handle="335262077" muted="true">
+                <plugs>
+                    <plug default="Samples\LANDR-Lonely Dance Slate Mix 1-Balanced-Medium.wav"/>
+                </plugs>
+                <structRect l="288" r="360" t="156" b="204"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE Butterworth LP2" handle="1106024864">
+                <structRect l="516" r="588" t="228" b="312"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+        </modules>
+        <lines>
+            <line type="Line" handle="2146438722" lineType="1" fMod="335262077" tMod="1106024864" fPlg="2"/>
+            <line type="Line" handle="185332324" lineType="1" fMod="1350528193" tMod="1106024864" fPlg="1" tPlg="1"/>
+            <line type="Line" handle="1664443371" lineType="1" fMod="1907222049" tMod="182480058" fPlg="5"/>
+            <line type="Line" handle="1213023414" lineType="1" fMod="687041674" tMod="564098092" fPlg="5"/>
+            <line type="Line" handle="1367588414" lineType="1" fMod="1633838619" tMod="564098092"/>
+            <line type="Line" handle="1334747064" lineType="1" fMod="437790264" tMod="1106024864" fPlg="1" tPlg="2"/>
+            <line type="Line" handle="771149050" lineType="1" fMod="564098092" tMod="437790264" fPlg="2"/>
+            <line type="Line" handle="1417279310" lineType="1" fMod="949808120" tMod="1801739099" fPlg="6" tPlg="6"/>
+            <line type="Line" handle="1205822365" lineType="1" fMod="1140254225" tMod="1801739099" fPlg="6" tPlg="7"/>
+            <line type="Line" handle="1682795259" lineType="1" fMod="1595065650" tMod="1801739099" fPlg="6" tPlg="8"/>
+            <line type="Line" handle="600909952" lineType="1" fMod="182480058" tMod="1640999414" fPlg="2"/>
+            <line type="Line" handle="462672963" lineType="1" fMod="1640999414" tMod="1350528193" fPlg="2"/>
+            <line type="Line" handle="877557574" lineType="1" fMod="1524668841" tMod="1106024864" fPlg="5"/>
+            <line type="Line" handle="611983425" lineType="1" fMod="1904671539" tMod="1640999414"/>
+            <line type="Line" handle="536199863" lineType="1" fMod="1106024864" tMod="1588279710" fPlg="3" tPlg="3"/>
+            <line type="Line" handle="1430673229" lineType="1" fMod="1106024864" tMod="1588279710" fPlg="4" tPlg="4"/>
+            <line type="Line" handle="1248316833" lineType="1" fMod="1106024864" tMod="1588279710" fPlg="5" tPlg="5"/>
+            <line type="Line" handle="1258194570" lineType="1" fMod="1106024864" tMod="1588279710" fPlg="6" tPlg="6"/>
+            <line type="Line" handle="1390973843" lineType="1" fMod="1106024864" tMod="662432593" fPlg="6"/>
+            <line type="Line" handle="474668351" lineType="1" fMod="662432593" tMod="1801739099" fPlg="2" tPlg="9"/>
+            <line type="Line" handle="1212941278" lineType="1" fMod="1106024864" tMod="298244959" fPlg="5"/>
+            <line type="Line" handle="894278530" lineType="1" fMod="1106024864" tMod="994220947" fPlg="4"/>
+            <line type="Line" handle="1921848799" lineType="1" fMod="1106024864" tMod="1336461449" fPlg="3"/>
+            <line type="Line" handle="417309776" lineType="1" fMod="1336461449" tMod="1801739099" fPlg="2" tPlg="6"/>
+            <line type="Line" handle="677249318" lineType="1" fMod="47304849" tMod="1801739099" fPlg="6" tPlg="9"/>
+            <line type="Line" handle="358270897" lineType="1" fMod="298244959" tMod="1801739099" fPlg="2" tPlg="8"/>
+            <line type="Line" handle="408659796" lineType="1" fMod="994220947" tMod="1801739099" fPlg="2" tPlg="7"/>
+        </lines>
+        <PanelWndPosition l="0" r="0" t="0" b="0"/>
+        <PanelLocation l="30" r="530" t="30" b="330"/>
+        <StructLocation l="0" r="1646" t="0" b="1067"/>
+        <PanelScroll x="0" y="0"/>
+        <StructScroll x="1" y="0"/>
+        <PanelWndOffset cx="-99999" cy="-99999"/>
+        <panel_rect l="16" r="312" t="16" b="216"/>
+    </master_container>
+    <PluginList>
+        <Plugin id="Container" class="1" name="Container" flags="384" category="">
+            <Audio>
+                <Pin name="Spare" datatype="float" rate="audio" autoRename="true" autoDuplicate="true" isContainerIoPlug="true"/>
+                <Pin name="Polyphony" datatype="enum" default="6" private="true" isMinimised="true" metadata="range 1,128"/>
+                <Pin name="MIDI Automation" datatype="bool" private="true" isMinimised="true"/>
+                <Pin name="Show Controls" datatype="enum" private="true" isMinimised="true" metadata="Off,On Panel,On Module"/>
+            </Audio>
+            <GUI>
+                <Pin name="Controls on Parent" datatype="bool" direction="out" isMinimised="true"/>
+                <Pin name="Controls on Module" datatype="bool" noAutomation="true"/>
+                <Pin name="Visible" datatype="bool"/>
+                <Pin name="Ignore Program Change" datatype="bool" noAutomation="true"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="Fixed Values" class="1" name="Fixed Values (Volts)" flags="4352" category="Controls">
+            <Audio>
+                <Pin name="Spare Value" datatype="float" rate="audio" direction="out" autoRename="true" settableOutput="true" autoDuplicate="true"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="Quantiser" class="1" name="Quantizer" flags="4352" category="Modifiers">
+            <Audio>
+                <Pin name="Signal In" datatype="float" rate="audio"/>
+                <Pin name="Step Size" datatype="float" rate="audio" default="0.1"/>
+                <Pin name="Signal Out" datatype="float" rate="audio" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Audio Player" name="Audio Player" flags="256" category="Input-Output">
+            <Audio>
+                <Pin name="File Name" datatype="string_utf8" isFilename="true" metadata="wav"/>
+                <Pin name="Gate" datatype="bool" default="1"/>
+                <Pin name="Left Out" datatype="float" rate="audio" direction="out"/>
+                <Pin name="Right Out" datatype="float" rate="audio" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Blob2ToBlob" name="Blob2 To Blob" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Blob2 Val" datatype="blob2"/>
+                <Pin name="Blob Val" datatype="blob" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE BlobToBlob2" name="Blob To Blob2" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Blob Val" datatype="blob"/>
+                <Pin name="Blob2 Val" datatype="blob2" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE BoolToFloat" name="Bool To Float" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Bool Val" datatype="bool"/>
+                <Pin name="Float Val" datatype="float" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE BoolToInt" name="Bool To Int" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Bool Val" datatype="bool"/>
+                <Pin name="Int Val" datatype="int" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE BoolToText" name="Bool To Text" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Bool Val" datatype="bool"/>
+                <Pin name="Text Val" datatype="string" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE BoolToVolts" name="Bool to Volts" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="In" datatype="bool"/>
+                <Pin name="Out" datatype="float" rate="audio" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Butterworth LP2" name="Butterworth Low-pass 2" flags="256" category="Filters">
+            <Audio>
+                <Pin name="Signal" datatype="float" rate="audio"/>
+                <Pin name="Pitch Hz" datatype="float" default="400" metadata="1,20000"/>
+                <Pin name="Poles" datatype="enum" default="4" metadata="1=1,2,3,4,5,6,7,8,9,10,11,12"/>
+                <Pin name="Output" datatype="float" rate="audio" direction="out"/>
+                <Pin name="D1" datatype="float" rate="audio" direction="out"/>
+                <Pin name="D2" datatype="float" rate="audio" direction="out"/>
+                <Pin name="D3" datatype="float" rate="audio" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Float64ToFloat" name="Double To Float" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Double Val" datatype="double"/>
+                <Pin name="Float Val" datatype="float" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Float64ToFloatGui" name="Double To Float" flags="33554816" category="Sub-Controls/Conversion" helpUrl="converters.htm">
+            <GUI>
+                <Pin name="Double Val" datatype="double"/>
+                <Pin name="Float Val" datatype="float" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE FloatToBool" name="Float To Bool" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Float Val" datatype="float"/>
+                <Pin name="Bool Val" datatype="bool" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE FloatToFloat64" name="Float To Double" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Float Val" datatype="float"/>
+                <Pin name="Double Val" datatype="double" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE FloatToFloat64Gui" name="Float To Double" flags="33554816" category="Sub-Controls/Conversion" helpUrl="converters.htm">
+            <GUI>
+                <Pin name="Float Val" datatype="float"/>
+                <Pin name="Double Val" datatype="double" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE FloatToInt" name="Float To Int" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Float Val" datatype="float"/>
+                <Pin name="Int Val" datatype="int" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE FloatToText" name="Float To Text" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Float Val" datatype="float"/>
+                <Pin name="Text Val" datatype="string" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Int64ToInt" name="Int64 To Int" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Int64 Val" datatype="int64"/>
+                <Pin name="Int Val" datatype="int" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Int64ToIntGui" name="Int64 To Int" flags="33554816" category="Sub-Controls/Conversion" helpUrl="converters.htm">
+            <GUI>
+                <Pin name="Int64 Val" datatype="int64"/>
+                <Pin name="Int Val" datatype="int" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE IntToBool" name="Int to Bool" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Int Val" datatype="int"/>
+                <Pin name="Bool Val" datatype="bool" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE IntToFloat" name="Int To Float" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Int Val" datatype="int"/>
+                <Pin name="Float Val" datatype="float" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE IntToInt64" name="Int To Int64" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Int Val" datatype="int"/>
+                <Pin name="Int64 Val" datatype="int64" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE IntToInt64Gui" name="Int To Int64" flags="33554816" category="Sub-Controls/Conversion" helpUrl="converters.htm">
+            <GUI>
+                <Pin name="Int Val" datatype="int"/>
+                <Pin name="Int64 Val" datatype="int64" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE IntToText" name="Int To Text" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Int Val" datatype="int"/>
+                <Pin name="Text Val" datatype="string" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE IntToVolts" name="Int to Volts" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="In" datatype="int"/>
+                <Pin name="Out" datatype="float" rate="audio" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE ListToInt" name="List To Int" flags="33554688" category="Obsolete" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="List Val" datatype="enum"/>
+                <Pin name="Int Val" datatype="int" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Oscillator (naive)" name="Oscillator (naive)" flags="256" category="Waveform">
+            <Audio>
+                <Pin name="Pitch" datatype="float" rate="audio" default="0.5" metadata="100, 0, 10, 0"/>
+                <Pin name="Pulse Width" datatype="float" rate="audio" default="0.5"/>
+                <Pin name="Waveform" datatype="enum" default="1" metadata="Sine,Saw,Pulse,Tri"/>
+                <Pin name="Sync" datatype="float" rate="audio" metadata="100, 0, 5, -5"/>
+                <Pin name="Phase Mod" datatype="float" rate="audio" metadata="100, 0, 10, 0"/>
+                <Pin name="Audio Out" datatype="float" rate="audio" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Signal Logger" name="Signal Logger" flags="384" category="Diagnostic">
+            <Parameters>
+                <Parameter id="0" datatype="blob" name="" persistant="false"/>
+            </Parameters>
+            <Audio>
+                <Pin name="PM Value Out" datatype="blob" direction="out" private="true" parameterId="0"/>
+                <Pin name="Signal" datatype="float" rate="audio" autoDuplicate="true"/>
+            </Audio>
+            <GUI graphicsApi="GmpiGui">
+                <Pin name="PM Value In" datatype="blob" private="true" parameterId="0"/>
+                <Pin name="Zoom-X" datatype="float" default="0.1"/>
+                <Pin name="Zoom-Y" datatype="float" default="1"/>
+                <Pin name="Pan-X" datatype="float"/>
+                <Pin name="Pan-Y" datatype="float"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE Text8ToText" name="Text8 To Text" flags="33554688" category="Debug" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Text Val" datatype="string_utf8"/>
+                <Pin name="Text Val" datatype="string" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE TextToBool" name="Text To Bool" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Text Val" datatype="string"/>
+                <Pin name="Bool Val" datatype="bool" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE TextToFloat" name="Text To Float" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Text Val" datatype="string"/>
+                <Pin name="Float Val" datatype="float" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE TextToInt" name="Text To Int" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Text Val" datatype="string"/>
+                <Pin name="Int Val" datatype="int" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE TextToText8" name="Text To Text8" flags="33554688" category="Debug" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="Text Val" datatype="string"/>
+                <Pin name="Text Val" datatype="string_utf8" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Unit Converter" name="Unit Converter" flags="256" category="Conversion">
+            <Audio>
+                <Pin name="A" datatype="float"/>
+                <Pin name="B" datatype="float" direction="out"/>
+                <Pin name="Mode" datatype="enum" isMinimised="true" metadata="Hz to Octave (Volts), dB to VCA(dB), dB to VCA(exp),ms to ADSR2,ms to Portamento, Octaves to Hz=100, VCA(dB) Volts to dB, VCA(exp) Volts to dB,ADSR2 to ms,Portamento to ms"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Voice Mute" class="2" name="Voice Mute" flags="33554688" category="Debug" simdOverwritesBufferEnd="true">
+            <Audio>
+                <Pin name="Input1" datatype="float" rate="audio"/>
+                <Pin name="VoiceActive" datatype="float" private="true" isPolyphonic="true" hostConnect="Voice/Active"/>
+                <Pin name="Output" datatype="float" rate="audio" direction="out"/>
+                <Pin name="legacyMode" datatype="bool"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE VoltsToBool" name="Volts to Bool" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="In" datatype="float" rate="audio"/>
+                <Pin name="Out" datatype="bool" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE VoltsToInt" name="Volts to Int" flags="33554688" category="Conversion" helpUrl="converters.htm">
+            <Audio>
+                <Pin name="In" datatype="float" rate="audio"/>
+                <Pin name="Out" datatype="int" direction="out"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="SE Wave Recorder2" name="Wave Recorder2" flags="256" category="Input-Output">
+            <Audio>
+                <Pin name="File Name" datatype="string" default="Wavefile" isFilename="true" metadata="wav"/>
+                <Pin name="Format" datatype="enum" isMinimised="true" metadata="16 bit, 32 bit float"/>
+                <Pin name="Time Limit" datatype="float" isMinimised="true"/>
+                <Pin name="Input" datatype="float" rate="audio" linearInput="true" autoDuplicate="true"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="Slider" class="1" name="Slider" flags="4480" category="Controls">
+            <Parameters>
+                <Parameter id="0" datatype="float" name="patchValue"/>
+            </Parameters>
+            <Audio>
+                <Pin name="Channel" datatype="enum" default="-1" private="true" ignorePatchChange="true" metadata="All=-1,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16"/>
+                <Pin name="MIDI In" datatype="midi" private="true"/>
+                <Pin name="MIDI Out" datatype="midi" direction="out" private="true"/>
+                <Pin name="MIDI Controller ID" datatype="enum" default="-1" private="true"/>
+                <Pin name="Ignore Program Change" datatype="bool" private="true"/>
+                <Pin name="MIDI NRPN" datatype="enum" private="true" metadata="range 0,16255"/>
+                <Pin name="Signal Out" datatype="float" rate="audio" direction="out" autoConfigureParameter="true"/>
+                <Pin name="Lo Value" datatype="float" private="true"/>
+                <Pin name="Hi Value" datatype="float" default="10" private="true"/>
+                <Pin name="Appearance" datatype="enum" default="1" isMinimised="true" metadata="None=-1,Plain Slider, Vert Slider, Horiz Slider, Knob, Button, Button (toggle),Plain Button, Small Knob, Small Button, Small Button (Toggle)"/>
+                <Pin name="Show Readout" datatype="bool" default="1" isMinimised="true"/>
+                <Pin name="Show Title On Panel" datatype="bool" default="1" isMinimised="true"/>
+                <Pin name="patchValue" datatype="float" private="true" parameterId="0"/>
+            </Audio>
+            <GUI>
+                <Pin id="13" name="patchValue" datatype="float" direction="out" private="true" parameterId="0"/>
+                <Pin name="Hint" datatype="string" direction="out" isMinimised="true"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="VCA" class="1" name="VCA" flags="4352" category="Modifiers">
+            <Audio>
+                <Pin name="Signal" datatype="float" rate="audio" linearInput="true"/>
+                <Pin name="Volume" datatype="float" rate="audio" default="0.8"/>
+                <Pin name="Output" datatype="float" rate="audio" direction="out"/>
+                <Pin name="Response Curve" datatype="enum" default="1" metadata="Exponential=1,Linear,Decibel,Decibel (old)=0"/>
+            </Audio>
+        </Plugin>
+        <Plugin id="Voltage To List2" class="1" name="Volts To List2" flags="4352" category="Conversion">
+            <Audio>
+                <Pin name="Signal in" datatype="float" rate="audio" linearInput="true"/>
+                <Pin name="List Out" datatype="enum" direction="out"/>
+            </Audio>
+        </Plugin>
+    </PluginList>
+</Document>

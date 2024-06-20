@@ -1,0 +1,286 @@
+// Copyright 2006 Jeff McClintock
+
+#include <memory>
+#include "mp_sdk_gui.h"
+#include <sstream>
+
+using namespace gmpi;
+
+// Only standalone SEM plugins need entrypoint.
+#if defined( SE_EDIT_SUPPORT ) || defined( SE_TARGET_PLUGIN )
+#error Dont't include this.
+//define COMPILE_HOST_SUPPORT
+#endif
+
+//#ifndef COMPILE_HOST_SUPPORT
+
+//---------------FACTORY --------------------
+
+// MpFactory - a singleton object.  The plugin registers it's ID with the factory.
+
+class MpFactory: public IMpFactory2
+{
+	typedef std::map< std::pair<int32_t, std::wstring>, MP_CreateFunc2> MpPluginInfoMap;
+
+public:
+	MpFactory( void ){};
+	virtual ~MpFactory( void ){};
+
+	/* IMpUnknown methods */
+	int32_t queryInterface( const MpGuid& iid, void** returnInterface ) override;
+	GMPI_REFCOUNT_NO_DELETE
+
+	/* IMpFactory methods */
+	int32_t createInstance(
+		const wchar_t* uniqueId,
+		int32_t subType,
+		IMpUnknown* host,
+		void** returnInterface ) override;
+
+	int32_t createInstance2(
+		const wchar_t* uniqueId,
+		int32_t subType,
+		void** returnInterface ) override;
+
+	int32_t getSdkInformation( int32_t& returnSdkVersion, int32_t maxChars, wchar_t* returnCompilerInformation ) override;
+
+	// Registration
+	int32_t RegisterPlugin( const wchar_t* uniqueId, int32_t subType, MP_CreateFunc2 create );
+
+private:
+	// a map of all registered IIDs: public for factory access
+	MpPluginInfoMap m_pluginMap;
+};
+
+
+MpFactory* Factory()
+{
+	static MpFactory* theFactory = 0;
+
+	// Initialize on first use.  Ensures the factory is alive before any other object
+	// including other global static objects (allows plugins to auto-register).
+	if( theFactory == 0 )
+	{
+		theFactory = new MpFactory;
+	}
+
+	return theFactory;
+}
+
+//  Factory lives until plugin dll is unloaded.
+//  this helper destroys the factory automatically.
+class factory_deleter_helper
+{
+public:
+	~factory_deleter_helper()
+	{
+		delete Factory();
+	}
+} grim_reaper;
+
+#if !defined(_M_X64) && defined(_MSC_VER)
+	// Export additional symbol without name decoration.
+	#pragma comment( linker, "/export:MP_GetFactory=_MP_GetFactory@4" )
+#endif
+
+// This is the DLL's main entry point.  It returns the factory.
+extern "C"
+
+#ifdef _WIN32
+	#define VST_EXPORT __declspec (dllexport)
+#else
+
+#if defined (__GNUC__)
+	#define VST_EXPORT	__attribute__ ((visibility ("default")))
+#else
+	#define VST_EXPORT
+#endif
+
+#endif
+
+
+VST_EXPORT
+int32_t MP_GetFactory( void** returnInterface )
+{
+	// call queryInterface() to keep refcounting in sync
+	return Factory()->queryInterface( MP_IID_UNKNOWN, returnInterface );
+}
+
+// register a DSP plugin with the factory
+int32_t RegisterPlugin( int subType, const wchar_t* uniqueId, MP_CreateFunc2 create )
+{
+	return Factory( )->RegisterPlugin( uniqueId, subType, create );
+}
+
+#ifndef IS_SYNTHEDIT_SEM // then this is already defined in SynthEditLib
+
+// register plugin's XML with the factory. Deprecated.
+int32_t RegisterPluginXml( const char* /*xmlFile*/ )
+{
+	// Not supported yet in external plugin. XML read directly from resource by host.
+//	return Factory()->RegisterPluginXml( xmlFile );
+	return gmpi::MP_OK;
+}
+
+#endif
+
+// Factory methods
+
+int32_t MpFactory::RegisterPlugin( const wchar_t* uniqueId, int32_t subType, MP_CreateFunc2 create )
+{
+	auto it = m_pluginMap.find( std::pair<int32_t, std::wstring>( subType, uniqueId ) );
+
+	if( it == m_pluginMap.end( ) )
+	{
+#if defined(_DEBUG)
+		auto res =
+#endif
+			m_pluginMap.insert({ { subType, std::wstring(uniqueId)}, create });
+
+#if defined(_DEBUG)
+		assert( res.second );
+#endif
+	}
+	return gmpi::MP_OK;
+}
+
+int32_t
+MpFactory::queryInterface( const MpGuid& iid, void** returnInterface )
+{
+	if ( iid == MP_IID_FACTORY2 || iid == MP_IID_FACTORY || iid == MP_IID_UNKNOWN )
+	{
+		*returnInterface = this;
+		addRef();
+		return gmpi::MP_OK;
+	}
+
+	*returnInterface = 0;
+	return MP_NOSUPPORT;
+}
+
+int32_t MpFactory::createInstance( const wchar_t* uniqueId, int32_t subType,
+	gmpi::IMpUnknown* host,
+	void** returnInterface )
+{
+	*returnInterface = 0; // if we fail for any reason, default return-val to NULL
+
+	/* search m_pluginMap for the requested IID */
+	auto it = m_pluginMap.find( std::pair<int32_t, std::wstring>( subType, uniqueId ) );
+	if( it == m_pluginMap.end( ) )
+	{
+		return MP_NOSUPPORT;
+	}
+
+	MP_CreateFunc2 create = ( *it ).second;
+
+	if( create == 0 )
+	{
+		return MP_NOSUPPORT;
+	}
+
+	try
+	{
+		auto m = create();
+		*returnInterface = m;
+#ifdef _DEBUG
+		{
+			m->addRef();
+			int refcount = m->release();
+			assert(refcount == 1);
+		}
+#endif
+
+		IMpLegacyInitialization* p = dynamic_cast<IMpLegacyInitialization*>( m );
+		if( p )
+		{
+			p->setHost( host );
+		}
+	}
+
+	// the new function will throw a std::bad_alloc exception if the memory allocation fails.
+	// the constructor will throw a char* if host don't support required interfaces.
+	catch(...)
+	{
+		return MP_FAIL;
+	}
+
+	return gmpi::MP_OK;
+}
+
+int32_t MpFactory::createInstance2( const wchar_t* uniqueId, int32_t subType,
+	void** returnInterface )
+{
+	*returnInterface = 0; // if we fail for any reason, default return-val to NULL
+
+	/* search m_pluginMap for the requested IID */
+	auto it = m_pluginMap.find( std::pair<int32_t, std::wstring>( subType, uniqueId ) );
+	if( it == m_pluginMap.end( ) )
+	{
+		return MP_NOSUPPORT;
+	}
+
+	MP_CreateFunc2 create = ( *it ).second;
+
+	if( create == 0 )
+	{
+		return MP_NOSUPPORT;
+	}
+
+	try
+	{
+		auto m = create();
+		*returnInterface = m;
+#ifdef _DEBUG
+		{
+			m->addRef();
+			int refcount = m->release();
+			assert(refcount == 1);
+		}
+#endif
+	}
+
+	// the new function will throw a std::bad_alloc exception if the memory allocation fails.
+	// the constructor will throw a char* if host don't support required interfaces.
+	catch( ... )
+	{
+		return MP_FAIL;
+	}
+
+	return gmpi::MP_OK;
+}
+
+int32_t MpFactory::getSdkInformation( int32_t& returnSdkVersion, int32_t maxChars, wchar_t* returnCompilerInformation )
+{
+	returnSdkVersion = GMPI_SDK_REVISION;
+
+	std::wostringstream oss;
+
+	// use safe string printf if possible.
+	#if defined(_MSC_VER ) && _MSC_VER >= 1400
+//			_snwprintf_s( returnCompilerInformation, maxChars, _TRUNCATE, L"MS Compiler V%d (DEBUG)", (int) _MSC_VER );
+		oss << L"MS Compiler V" << _MSC_VER;
+	#else
+		#if defined( __GXX_ABI_VERSION )
+//			swprintf( returnCompilerInformation, maxChars, L"GCC Compiler V%d", (int) __GXX_ABI_VERSION );
+			oss << L"GCC Compiler V" << __GXX_ABI_VERSION;
+		#else
+//			wcscpy( returnCompilerInformation, L"Unknown Compiler" );
+			oss << L"Unknown Compiler";
+		#endif
+	#endif
+	#if defined( _DEBUG )
+		oss << L" (Debug)";
+	#else
+		oss << L" (Release)";
+	#endif
+
+#if defined(_MSC_VER )
+	wcscpy_s( returnCompilerInformation, static_cast<rsize_t>(maxChars), oss.str().c_str() );
+#else
+	wcscpy(returnCompilerInformation, oss.str().c_str());
+#endif
+
+	return gmpi::MP_OK;
+}
+
+//#endif	// COMPILE_HOST_SUPPORT

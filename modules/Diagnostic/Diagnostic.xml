@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PluginList>
+    <Plugin id="SE Bad Voltage" name="Bad Voltage" category="Diagnostic" helpUrl="StreamingState.htm">
+        <Audio>
+            <Pin name="Mode" datatype="enum" metadata="NaN,+inf,-inf,zero"/>
+            <Pin name="Output" datatype="float" rate="audio" direction="out"/>
+        </Audio>
+    </Plugin>
+</PluginList>
