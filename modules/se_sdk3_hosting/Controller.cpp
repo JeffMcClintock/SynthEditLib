@@ -26,7 +26,6 @@
 #include "../../UgDatabase.h"
 #include "../../modules/shared/string_utilities.h"
 #include "../shared/unicode_conversion.h"
-#include "../shared/FileWatcher.h"
 #include "PresetReader.h"
 #include "./ProcessorStateManager.h"
 #include "../../mfc_emulation.h"
@@ -133,7 +132,7 @@ void MpController::ScanPresets()
 			}
 		}
 #endif
-		// sort all presets by category.
+		// sort all presets by category/index.
 		std::sort(presets.begin(), presets.end(),
 			[=](const presetInfo& a, const presetInfo& b) -> bool
 			{
@@ -938,7 +937,9 @@ void MpController::OnSetHostControl(int hostControl, int32_t paramField, int32_t
 				}
 				else if (presets[preset].isFactory)
 				{
-					loadFactoryPreset(preset, false);
+					//loadFactoryPreset(preset, false);
+					auto xml = getFactoryPresetXml(WStringToUtf8(presets[preset].filename));
+					setPresetXmlFromSelf(xml);
 				}
 				else
 				{
@@ -1688,7 +1689,7 @@ void MpController::setPreset(DawPreset const* preset)
 		if (parameter->datatype_ != (int)val.dataType)
 			continue;
 
-		if (parameter->ignorePc_ && preset->ignoreProgramChangeActive)
+		if (parameter->ignorePc_ && preset->ignoreProgramChangeActive && !preset->isInitPreset)
 			continue;
 
 		for (int voice = 0; voice < val.rawValues_.size(); ++voice)
@@ -1759,15 +1760,6 @@ void MpController::syncPresetControls(DawPreset const* preset)
 //	_RPTN(0, "syncPresetControls Preset: %s hash %4x\n", preset->name.c_str(), preset->hash);
 
 	const std::string presetName = preset->name.empty() ? "Default" : preset->name;
-	//{
-	//	auto parameterHandle = getParameterHandle(-1, -1 - HC_PROGRAM_NAME);
-	//	if (auto it = ParameterHandleIndex.find(parameterHandle) ; it != ParameterHandleIndex.end())
-	//	{
-	//		const auto raw = (*it).second->getValueRaw(gmpi::FieldType::MP_FT_VALUE, 0);
-	//		auto presetNameW = RawToValue<std::wstring>(raw.data(), raw.size());
-	//		presetName = WStringToUtf8(presetNameW);
-	//	}
-	//}
 
 	// When DAW loads preset XML, try to determine if it's a factory preset, and update browser to suit.
 	int32_t presetIndex = -1; // exact match
@@ -1793,12 +1785,16 @@ void MpController::syncPresetControls(DawPreset const* preset)
 		{
 			presetIndex = idx;
 			presetSameNameIndex = -1;
+			//_RPT0(0, " same HASH!");
 			break;
 		}
 		if (factoryPreset.name == presetName && !factoryPreset.isSession)
 		{
 			presetSameNameIndex = idx;
+			//_RPT0(0, " same name");
 		}
+
+		//_RPT0(0, "\n");
 		
 		++idx;
 	}
@@ -1844,7 +1840,6 @@ void MpController::syncPresetControls(DawPreset const* preset)
 				std::remove_if(presets.begin(), presets.end(), [](presetInfo& preset) { return preset.isSession; })
 				, presets.end()
 			);
-//			session_preset_xml.clear();
 			
 			// preset not available and not the same name as any existing ones, add it to presets as 'session' preset.
 			presetIndex = static_cast<int32_t>(presets.size());
@@ -1944,6 +1939,8 @@ void MpController::SavePresetAs(const std::string& presetName)
 	ExportPresetXml(fullPath.c_str(), presetName);
 
 	setModified(false);
+
+	undoManager.initial(this, getPreset());
 
 	ScanPresets();
 

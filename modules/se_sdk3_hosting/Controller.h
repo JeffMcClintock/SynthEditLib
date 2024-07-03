@@ -169,6 +169,10 @@ protected:
 
 	void OnFileDialogComplete(int mode, int32_t result);
 	virtual void OnStartupTimerExpired();
+	bool ignoreProgramChangeActive()
+	{
+		return startupTimerCounter <= 0;
+	}
 
 public:
 
@@ -229,7 +233,7 @@ public:
 	MpController::presetInfo parsePreset(const std::wstring& filename, const std::string& xml);
 	std::vector< MpController::presetInfo > scanNativePresets();
 	virtual std::vector< MpController::presetInfo > scanFactoryPresets() = 0;
-	virtual void loadFactoryPreset(int index, bool fromDaw) = 0;
+//	virtual void loadFactoryPreset(int index, bool fromDaw) = 0;
 	virtual std::string getFactoryPresetXml(std::string filename) = 0;
 	std::vector<MpController::presetInfo> scanPresetFolder(platform_string PresetFolder, platform_string extension);
 

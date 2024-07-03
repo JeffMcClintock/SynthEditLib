@@ -662,6 +662,7 @@ void UPlug::SetDefault(const char* utf8val)
 	}
 }
 
+#if 0
 // Send an event to pins as if it was connected to a default setter (but don't bother to actually connect it).
 // !! not working polyphonic !! perhaps need to clone events on unconnected inputs too
 void UPlug::SetDefaultDirect(const char* utf8val)
@@ -736,6 +737,7 @@ void UPlug::SetDefaultDirect(const char* utf8val)
 
 	UG->SetPinValue(UG->AudioMaster()->NextGlobalStartClock(), getPlugIndex(), DataType, raw.data(), static_cast<int32_t>(raw.size()));
 }
+#endif
 
 void UPlug::AssignBuffer(float* buffer)
 {

@@ -705,9 +705,10 @@
 		<arg name="font index" type="int"/>
 		<out name="name" type="string"/>
 	</method>
-</interface>	
-	
-<interface name="device context" base="resource" guid="A1D9751D-0C43-4F57-8958-E0BCE359B2FD">
+</interface>
+
+	<!-- was A1D9751D-0C43-4F57-8958-E0BCE359B2FD -->
+	<interface name="device context" base="resource" guid="F38EC187-BA04-4A63-B1D6-22D931E1F308">
 	<!--
     <method name="create bitmap">
         <arg name="size" type="size u"/>

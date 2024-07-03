@@ -98,6 +98,7 @@ DawPreset::DawPreset(const DawPreset& other)
 	category = other.category;
 	resetUndo = other.resetUndo;
 	ignoreProgramChangeActive = other.ignoreProgramChangeActive;
+	isInitPreset = other.isInitPreset;
 }
 
 DawPreset::DawPreset(const std::map<int32_t, paramInfo>& parametersInfo, std::string presetString, int presetIdx) // presetIdx: in the case where file contains many.
@@ -428,6 +429,8 @@ void ProcessorStateMgr::setPresetFromUnownedPtr(DawPreset const* preset)
 
 ProcessorStateMgrVst3::ProcessorStateMgrVst3() : messageQue(0x500000 /*SeAudioMaster::AUDIO_MESSAGE_QUE_SIZE*/)
 {
+	presetMutable.name = "Full Reset";
+	presetMutable.isInitPreset = true;
 }
 
 // parameter changed from any source in real-time thread (GUI/DAW/Meters)
@@ -732,6 +735,8 @@ DawPreset const* ProcessorStateMgrVst3::getPreset()
 		{
 			const std::lock_guard<std::mutex> lock{ presetMutex };
 			preset = new DawPreset(presetMutable);
+			preset->calcHash();
+
 			presetDirty = false;
 		}
 #if 0
@@ -748,7 +753,7 @@ DawPreset const* ProcessorStateMgrVst3::getPreset()
 
 			const auto normalized = pn.second->load(std::memory_order_relaxed);
 
-			// convert nomalised to actual value.
+			// convert normalised to actual value.
 			preset->params[paramHandle].rawValues_[0]
 				= normalizedToRaw(
 					(int32_t)info.dataType

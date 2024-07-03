@@ -16,7 +16,8 @@
 
 #include "GmpiSdkCommon.h"
 #include "GmpiApiEditor.h"
-#include "helpers/GraphicsRedrawClient.h"
+#include "GmpiApiDrawingClient.h"
+
 #include "modules/se_sdk3_hosting/GmpiResourceManager.h"
 #include "plug_description.h"
 
@@ -361,7 +362,7 @@ namespace SE2
 
 		// 'real' GMPI
 		gmpi::shared_ptr<gmpi::api::IEditor> pluginParameters_GMPI;
-		gmpi::shared_ptr<gmpi::api::IDrawingClient> pluginGraphics_GMPI;
+		gmpi::shared_ptr<gmpi::api::IGraphicsClient> pluginGraphics_GMPI;
 
 		GmpiDrawing::Rect pluginGraphicsPos;
 
