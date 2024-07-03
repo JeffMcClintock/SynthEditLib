@@ -11,7 +11,7 @@
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "UgDatabase2.h"
 #include "ProtectedFile.h"
-#include "../SE_DSP_CORE/RawConversions.h"
+#include "RawConversions.h"
 #include "DragLine.h"
 #include "SubViewPanel.h"
 #include "ResizeAdorner.h"
@@ -207,7 +207,7 @@ namespace SE2
 
 		// 'real' GMPI
 		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IEditor::guid)        , pluginParameters_GMPI.asIMpUnknownPtr());
-		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IGraphicsClient::guid), pluginGraphics_GMPI.asIMpUnknownPtr());
+		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IDrawingClient::guid), pluginGraphics_GMPI.asIMpUnknownPtr());
 
 		if(pluginParameters_GMPI)
 		{
@@ -266,9 +266,9 @@ namespace SE2
 	{
 		if (pluginGraphics_GMPI)
 		{
-			gmpi::drawing::SizeU remainingSizeU{ static_cast<uint32_t>(availableSize.width), static_cast<uint32_t>(availableSize.height) };
-			gmpi::drawing::SizeU desiredSizeU{};
-			const auto ret = pluginGraphics_GMPI->measure(remainingSizeU, &desiredSizeU);
+			gmpi::drawing::Size remainingSizeU{ availableSize.width, availableSize.height };
+			gmpi::drawing::Size desiredSizeU{};
+			const auto ret = pluginGraphics_GMPI->measure(&remainingSizeU, &desiredSizeU);
 
 			returnDesiredSize->width = static_cast<float>(desiredSizeU.width);
 			returnDesiredSize->height = static_cast<float>(desiredSizeU.height);
@@ -292,7 +292,7 @@ namespace SE2
 
 		if (pluginGraphics_GMPI)
 		{
-			drawing::RectL clientClipArea_gmpi{};
+			drawing::Rect clientClipArea_gmpi{};
 			pluginGraphics_GMPI->getClipArea(&clientClipArea_gmpi);
 
 			GmpiDrawing::Rect clientClipArea{ static_cast<float>(clientClipArea_gmpi.left), static_cast<float>(clientClipArea_gmpi.top), static_cast<float>(clientClipArea_gmpi.right), static_cast<float>(clientClipArea_gmpi.bottom) };
@@ -317,7 +317,7 @@ namespace SE2
 		if (pluginGraphics_GMPI)
 		{
 			pluginGraphicsPos = GmpiDrawing::Rect(0, 0, finalRect.right - finalRect.left, finalRect.bottom - finalRect.top);
-			drawing::RectL gmpiRect{ 0, 0, static_cast<int32_t>(pluginGraphicsPos.right), static_cast<int32_t>(pluginGraphicsPos.bottom) };
+			drawing::Rect gmpiRect{ 0, 0, pluginGraphicsPos.right, pluginGraphicsPos.bottom };
 			pluginGraphics_GMPI->arrange(&gmpiRect);
 		}
 		else if (pluginGraphics)

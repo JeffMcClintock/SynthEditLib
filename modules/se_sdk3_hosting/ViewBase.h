@@ -4,7 +4,7 @@
 #include "IViewChild.h"
 #include "xplatform.h"
 #include "Drawing.h"
-#include "../SE_DSP_CORE/UgDatabase.h"
+#include "UgDatabase.h"
 #include "mp_gui.h"
 #include "Presenter.h"
 

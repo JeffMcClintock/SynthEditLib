@@ -8,7 +8,7 @@
 using namespace GmpiDrawing;
 using namespace Gmpi::VectorMath;
 
-// perceptualy even colors. (rainbow). Might need the one with purple instead (for BLOBs).
+// perceptually even colors. (rainbow). Might need the one with purple instead (for BLOBs).
 // https://bokeh.github.io/colorcet/
 
 namespace SE2

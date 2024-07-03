@@ -11,7 +11,7 @@
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "UgDatabase2.h"
 #include "ProtectedFile.h"
-#include "../SE_DSP_CORE/RawConversions.h"
+#include "RawConversions.h"
 #include "DragLine.h"
 #include "SubViewPanel.h"
 #include "SubViewCadmium.h"
@@ -292,21 +292,21 @@ namespace SE2
 		{
 			float widthPadding = plugDiameter + clientPadding * 2.0f;
 			float heightPadding = clientPadding * 2.0f;
-			Size remainingSize(availableSize.width - widthPadding, availableSize.height - totalPlugHeight - heightPadding);
+			gmpi::drawing::Size remainingSize(availableSize.width - widthPadding, availableSize.height - totalPlugHeight - heightPadding);
 
-			Size desiredSize(0, 0);
+			gmpi::drawing::Size desiredSize{};
 			if (pluginGraphics_GMPI)
 			{
-				gmpi::drawing::SizeU remainingSizeU{ static_cast<uint32_t>(remainingSize.width), static_cast<uint32_t>(remainingSize.height) };
-				gmpi::drawing::SizeU desiredSizeU{};
-				pluginGraphics_GMPI->measure(remainingSizeU, &desiredSizeU);
+//				gmpi::drawing::Size remainingSize{ remainingSize.width, remainingSize.height };
+//				gmpi::drawing::Size desiredSize{};
+				pluginGraphics_GMPI->measure(&remainingSize, &desiredSize);
 
-				desiredSize.width = static_cast<float>(desiredSizeU.width);
-				desiredSize.height = static_cast<float>(desiredSizeU.height);
+//				desiredSize.width = static_cast<float>(desiredSize.width);
+//				desiredSize.height = static_cast<float>(desiredSize.height);
 			}
 			else
 			{
-				pluginGraphics->measure(remainingSize, &desiredSize);
+				pluginGraphics->measure(*reinterpret_cast<GmpiDrawing_API::MP1_SIZE*>(&remainingSize), reinterpret_cast<GmpiDrawing_API::MP1_SIZE*>(&desiredSize));
 			}
 
 			graphicsSectionDesiredSize.width = desiredSize.width + widthPadding;
@@ -355,9 +355,9 @@ namespace SE2
 //			pluginGraphics->measure(remainingSize, &desired);
 			if (pluginGraphics_GMPI)
 			{
-				gmpi::drawing::SizeU remainingSizeU{ static_cast<uint32_t>(remainingSize.width), static_cast<uint32_t>(remainingSize.height) };
-				gmpi::drawing::SizeU desiredSizeU{};
-				pluginGraphics_GMPI->measure(remainingSizeU, &desiredSizeU);
+				gmpi::drawing::Size remainingSizeU{ remainingSize.width, remainingSize.height };
+				gmpi::drawing::Size desiredSizeU{};
+				pluginGraphics_GMPI->measure(&remainingSizeU, &desiredSizeU);
 
 				desired.width = static_cast<float>(desiredSizeU.width);
 				desired.height = static_cast<float>(desiredSizeU.height);
@@ -373,7 +373,7 @@ namespace SE2
 			auto relativeRect = GmpiDrawing::Rect(0, 0, desired.width, desired.height);
 			if (pluginGraphics_GMPI)
 			{
-				drawing::RectL gmpiRect{ 0, 0, static_cast<int32_t>(relativeRect.right), static_cast<int32_t>(relativeRect.bottom)};
+				drawing::Rect gmpiRect{ 0, 0, relativeRect.right, relativeRect.bottom};
 				pluginGraphics_GMPI->arrange(&gmpiRect);
 			}
 			else if (pluginGraphics)
@@ -412,7 +412,7 @@ namespace SE2
 
 		if (pluginGraphics_GMPI)
 		{
-			drawing::RectL clientClipArea_gmpi{};
+			drawing::Rect clientClipArea_gmpi{};
 			pluginGraphics_GMPI->getClipArea(&clientClipArea_gmpi);
 
 			GmpiDrawing::Rect clientClipArea{ static_cast<float>(clientClipArea_gmpi.left), static_cast<float>(clientClipArea_gmpi.top), static_cast<float>(clientClipArea_gmpi.right), static_cast<float>(clientClipArea_gmpi.bottom) };

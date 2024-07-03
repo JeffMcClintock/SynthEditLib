@@ -3,9 +3,9 @@
 #include <sstream>
 #include <iostream>
 #include "ContainerView.h"
-#include "../SE_DSP_CORE/UgDatabase.h"
-#include "../SE_DSP_CORE/modules/shared/unicode_conversion.h"
-#include "../SE_DSP_CORE/RawConversions.h"
+#include "UgDatabase.h"
+#include "modules/shared/unicode_conversion.h"
+#include "RawConversions.h"
 #include "ModuleView.h"
 #include "ConnectorView.h"
 #include "SubViewPanel.h"

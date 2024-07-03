@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "../Shared/jsoncpp/json/json.h"
+#include "Shared/jsoncpp/json/json.h"
 
 /*
 #include "UgDatabase2.h"
