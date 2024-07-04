@@ -95,6 +95,7 @@ Shared/AuPreset.cpp
 
 ${gmpi_ui_folder}/backends/DirectXGfx.h
 ${gmpi_ui_folder}/backends/DirectXGfx.cpp
+modules/se_sdk3_hosting/IGuiHost2.h
 
 ${se_sdk_hosting_folder}/gmpi_gui_hosting.h
 ${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp

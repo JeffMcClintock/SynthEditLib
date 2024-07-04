@@ -12,7 +12,7 @@
 2. Run plugins playing a note
 3. For each one, rename the output 'C:\temp\cancellation\V13\snapshotA.raw' and 'snapshotB.raw'
 4. In special Jeff build of SynthEdit - run menu 'File/Analyse Cancellation'.
-   ref SE_DSP_CORE\CancellationAnalyse.cpp for filepaths
+   ref SynthEditLib\CancellationAnalyse.cpp for filepaths
 	
 === to match blocksize on Windows to mac ===
 

@@ -1,6 +1,6 @@
 
 #include "GmpiResourceManager_editor.h"
-#include "../SE_DSP_CORE/conversion.h"
+#include "conversion.h"
 #include "ProtectedFile.h"
 #include "SkinMgr.h"
 
