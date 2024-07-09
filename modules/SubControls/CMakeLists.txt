@@ -16,6 +16,8 @@ build_gmpi_plugin(
         OkCancelDialogGui.cpp
         ${se_sdk_folder}/it_enum_list.h
         ${se_sdk_folder}/it_enum_list.cpp
+        ${se_sdk_folder}/TimerManager.h
+        ${se_sdk_folder}/TimerManager.cpp
 )
 
 if(APPLE)

@@ -11,15 +11,25 @@
     </GUI>
   </Plugin>
 
-<Plugin id="SE CPU Family" name="CPU Family" category="Diagnostic">
-	<GUI graphicsApi="GmpiGui"/>
-</Plugin>
-  <Plugin id="SE FileDialog" name="File Dialog" category="Sub-Controls">
-    <GUI>
-      <Pin name="File Name" datatype="string" />
-      <Pin name="File Extension" datatype="string" />
-      <Pin name="Trigger" datatype="bool" direction="out" />
-      <Pin name="Save Mode" datatype="bool" />
-    </GUI>
-  </Plugin>
+	<Plugin id="SE CPU Family" name="CPU Family" category="Diagnostic">
+		<GUI graphicsApi="GmpiGui"/>
+	</Plugin>
+	<Plugin id="SE FileDialog" name="File Dialog" category="Sub-Controls">
+		<GUI>
+			<Pin name="File Name" datatype="string" />
+			<Pin name="File Extension" datatype="string" />
+			<Pin name="Trigger" datatype="bool" direction="out" />
+			<Pin name="Save Mode" datatype="bool" />
+		</GUI>
+	</Plugin>
+
+	<Plugin id="SE Confirmation Dialog" name="Confirmation Dialog" category="Experimental">
+		<GUI>
+			<Pin name="Title" datatype="string" default="Confirm"/>
+			<Pin name="Message" datatype="string"/>
+			<Pin name="Trigger" datatype="bool" direction="out"/>
+			<Pin name="OK" datatype="bool"/>
+			<Pin name="Cancel" datatype="bool"/>
+		</GUI>
+	</Plugin>
 </PluginList>
