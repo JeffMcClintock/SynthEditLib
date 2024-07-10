@@ -1102,6 +1102,14 @@ namespace se // gmpi
 				, factory(pfactory)
 			{
 			}
+
+			// for BitmapRenderTarget which populates context in it's constructor
+			GraphicsContext_RG(GmpiDrawing_API::IMpDeviceContext* legacyContext, Factory* pfactory) :
+				gmpi::directx::GraphicsContext_base(&factory)
+				, legacyContext_(legacyContext)
+				, factory(pfactory)
+			{
+			}
 #if 0
 			// "real" GMPI-UI API
 				// IResource (gmpi_ui)
@@ -1193,7 +1201,7 @@ namespace se // gmpi
 			GraphicsContext(Factory* pfactory) :
 				context_(nullptr)
 				, factory(pfactory)
-				, gmpi_ui_context(nullptr, this, pfactory)
+				, gmpi_ui_context(this, pfactory)
 			{
 				Init();
 			}

@@ -428,7 +428,7 @@ int32_t r;
 				return {};
 			}
 
-			auto gmpi_plugin = plugin.As<gmpi::api::IAudioPlugin>();
+			auto gmpi_plugin = plugin.As<gmpi::api::IProcessor>();
 			if (!gmpi_plugin)
 			{
 				return {};
