@@ -22,7 +22,7 @@ namespace Json
 
 class DrawingFrameCocoa : public gmpi_gui::IMpGraphicsHost, public gmpi::IMpUserInterfaceHost2, public GmpiGuiHosting::PlatformTextEntryObserver
 {
-    gmpi_sdk::mp_shared_ptr<SE2::ContainerView> containerView;
+    gmpi_sdk::mp_shared_ptr<SE2::ViewBase> containerView;
     IGuiHost2* controller;
     int32_t mouseCaptured = 0;
     GmpiGuiHosting::PlatformTextEntry* currentTextEdit = nullptr;
@@ -70,7 +70,7 @@ public:
 // controller->OnDrawingFrameDeleted(); // nulls it's 'OnUnloadPlugin' callback
     }
 
-    inline SE2::ContainerView* getView()
+    inline SE2::ViewBase* getView()
     {
         return containerView.get();
     }

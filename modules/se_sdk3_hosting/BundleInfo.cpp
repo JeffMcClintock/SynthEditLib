@@ -503,10 +503,6 @@ void BundleInfo::initPluginInfoFromWrappedSem()
     HRSRC hRsrc = ::FindResource(hInst,
         MAKEINTRESOURCE(1), // ID
         L"GMPXML");			// type GMPI XML
-#else
-#error implement this for mac
-#endif
-
     if (hRsrc)
     {
         const BYTE* lpRsrc = (BYTE*)LoadResource(hInst, hRsrc);
@@ -526,6 +522,9 @@ void BundleInfo::initPluginInfoFromWrappedSem()
             return;
         }
     }
+#else
+#error implement this for mac
+#endif
 
     // Shell plugins
     // GMPI & sem V3 export function

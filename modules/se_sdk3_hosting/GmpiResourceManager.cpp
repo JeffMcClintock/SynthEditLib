@@ -261,7 +261,7 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 	if( returnUri.empty() )
 	{
 #ifdef _DEBUG
-		_RPT1(0, "GmpiResourceManager::RegisterResourceUri(%s) Not Found\n", resourceName);
+//		_RPT1(0, "GmpiResourceManager::RegisterResourceUri(%s) Not Found\n", resourceName);
 #endif
 		return gmpi::MP_FAIL;
 	}

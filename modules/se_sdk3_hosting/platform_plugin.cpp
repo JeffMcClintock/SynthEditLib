@@ -32,5 +32,5 @@ void SafeMessagebox(
 	int uType = 0
 )
 {
-	_RPTW1(0, L"%s\n", lpText);
+//	_RPTW1(0, L"%s\n", lpText);
 }
