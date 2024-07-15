@@ -105,10 +105,12 @@ ${se_sdk_hosting_folder}/DrawingFrame_win32.h
 ${se_sdk_hosting_folder}/DrawingFrame_win32.cpp
 ${se_sdk_hosting_folder}/Controller.h
 ${se_sdk_hosting_folder}/Controller.cpp
-${se_sdk_hosting_folder}/ContainerView.h
-${se_sdk_hosting_folder}/ContainerView.cpp
 ${se_sdk_hosting_folder}/ViewBase.h
 ${se_sdk_hosting_folder}/ViewBase.cpp
+${se_sdk_hosting_folder}/ContainerView.h
+${se_sdk_hosting_folder}/ContainerView.cpp
+${se_sdk_hosting_folder}/ContainerViewStruct.h
+${se_sdk_hosting_folder}/ContainerViewStruct.cpp
 ${se_sdk_hosting_folder}/SubViewPanel.h
 ${se_sdk_hosting_folder}/SubViewPanel.cpp
 ${se_sdk_hosting_folder}/MpParameter.h

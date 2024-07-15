@@ -550,8 +550,8 @@ namespace GmpiGuiHosting
 		{
 			controller = hostPatchManager;
 
-			//        AddView(new SE2::ContainerView());
-			containerView.Attach(new SE2::ContainerView());
+			//        AddView(new SE2::Container View());
+			containerView.Attach(new SE2::Container View());
 			containerView->setHost(static_cast<gmpi_gui::IMpGraphicsHost*>(this));
 
 			containerView->setDocument(context, hostPatchManager, pviewType);
@@ -580,7 +580,7 @@ namespace GmpiGuiHosting
 			}
 		}
 		/*
-			inline SE2::ContainerView* getView()
+			inline SE2::Container View* getView()
 			{
 				return containerView.get();
 			}

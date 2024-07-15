@@ -7,6 +7,7 @@
 #include "UgDatabase.h"
 #include "mp_gui.h"
 #include "Presenter.h"
+#include "../se_sdk3_hosting/GraphicsRedrawClient.h"
 
 namespace GmpiGuiHosting
 {
@@ -21,7 +22,7 @@ namespace SE2
 	class DragLine;
 
 	// Base of any view that displays modules. Itself behaving as a standard graphics module.
-	class ViewBase : public gmpi_gui::MpGuiGfxBase
+	class ViewBase : public gmpi_gui::MpGuiGfxBase, public IGraphicsRedrawClient, public gmpi_gui_api::IMpKeyClient
 	{
 		friend class ResizeAdorner;
 		friend class ViewChild;
@@ -31,8 +32,9 @@ namespace SE2
 
 	protected:
 bool isIteratingChildren = false;
+		std::string draggingNewModuleId;
+		std::unique_ptr<GmpiSdk::ContextMenuHelper::ContextMenuCallbacks> contextMenuCallbacks;
 		bool isArranged = false;
-		int viewType;
 		std::vector< std::unique_ptr<IViewChild> > children;
 		std::unique_ptr<IPresenter> presenter;
 
@@ -48,24 +50,20 @@ bool isIteratingChildren = false;
 
 		void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
 		class ModuleViewPanel* getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap);
+		void PreGraphicsRedraw() override;
 
 	public:
-		ViewBase();
+		ViewBase(GmpiDrawing::Size size);
 		virtual ~ViewBase() {}
 
+		void setDocument(SE2::IPresenter* presenter);
 		int32_t setHost(gmpi::IMpUnknown* host) override;
 
 		void Init(class IPresenter* ppresentor);
 		void BuildPatchCableNotifier(std::map<int, class ModuleView*>& guiObjectMap);
-		void BuildModules(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap); // , ModuleView* patchAutomatorWrapper);
+		virtual void BuildModules(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap) = 0;
 
-		virtual void Refresh(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap_) = 0;
-		void Unload();
-
-		inline int getViewType()
-		{
-			return viewType;
-		}
+		virtual int getViewType() = 0;
 
 		void OnChildResize(IViewChild* child);
 		void RemoveChild(IViewChild* child);
@@ -84,15 +82,8 @@ bool isIteratingChildren = false;
 		void OnChildDeleted(IViewChild* childObject);
 		void onSubPanelMadeVisible();
 		
-		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override
-		{
-			return gmpi::MP_UNHANDLED;
-		}
-
-		int32_t onContextMenu(int32_t idx) override
-		{
-			return gmpi::MP_UNHANDLED;
-		}
+		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override;
+		int32_t onContextMenu(int32_t idx) override;
 
 		GmpiDrawing_API::IMpFactory* GetDrawingFactory()
 		{
@@ -123,7 +114,6 @@ bool isIteratingChildren = false;
 		int32_t EndCableDrag(GmpiDrawing_API::MP1_POINT point, ConnectorViewBase* dragline);
 		void OnPatchCablesUpdate(RawView patchCablesRaw);
 		void UpdateCablesBounds();
-		virtual void OnPatchCablesVisibilityUpdate() = 0;
 		void RemoveCables(ConnectorViewBase* cable);
 
 		void OnChangedChildHighlight(int phandle, int flags);
@@ -159,13 +149,50 @@ bool isIteratingChildren = false;
 			return getGuiHost()->createPlatformMenu(const_cast<GmpiDrawing_API::MP1_RECT*>(rect), returnMenu);
 		}
 
-		virtual bool isShown() = 0; // Indicates if view should be drawn or not (because of 'Show on Parent' state).
-
 		void autoScrollStart();
 		void autoScrollStop();
 		void DoClose();
 
-		virtual GmpiDrawing::Point MapPointToView(ViewBase* parentView, GmpiDrawing::Point p) = 0;
+		IViewChild* Find(GmpiDrawing::Point& p);
+		void Unload();
+		virtual void Refresh(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap_);
+
+		virtual GmpiDrawing::Point MapPointToView(ViewBase* parentView, GmpiDrawing::Point p)
+		{
+			return p;
+		}
+
+		virtual bool isShown()
+		{
+			return true;
+		}
+
+		virtual void OnPatchCablesVisibilityUpdate();
+
+		int32_t OnKeyPress(wchar_t c) override;
+		void DragNewModule(const char* id);
+
+		int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+		{
+			*returnInterface = nullptr;
+
+			if (iid == IGraphicsRedrawClient::guid)
+			{
+				*returnInterface = static_cast<IGraphicsRedrawClient*>(this);
+				addRef();
+				return gmpi::MP_OK;
+			}
+
+			if (iid == gmpi_gui_api::IMpKeyClient::guid)
+			{
+				*returnInterface = static_cast<gmpi_gui_api::IMpKeyClient*>(this);
+				addRef();
+				return gmpi::MP_OK;
+			}
+
+			return ViewBase::queryInterface(iid, returnInterface);
+		}
+		GMPI_REFCOUNT;
 	};
 
 	class SelectionDragBox : public ViewChild

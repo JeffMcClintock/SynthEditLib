@@ -60,8 +60,8 @@ void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point d
 	}
 }
 
-SubView::SubView(int pparentViewType) :
-	parentViewType(pparentViewType)
+SubView::SubView(int pparentViewType) : ViewBase({1000, 1000})
+	, parentViewType(pparentViewType)
 {
 	if (parentViewType == CF_PANEL_VIEW)
 	{
@@ -187,7 +187,7 @@ int32_t SubView::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_AP
 													// Font variations cause Slider to report different desired size.
 													// However resizing it causes alignment errors on Panel. It shifts left or right.
 													// Avoid resizing unless module clearly needs a different size. Structure view always sizes to fit (else plugs end up with wrapped text)
-				float tolerence = viewType == CF_PANEL_VIEW ? 3.0f : 0.0f;
+				float tolerence = getViewType() == CF_PANEL_VIEW ? 3.0f : 0.0f;
 				if (isArranged || (fabsf(desired.width - savedSize.width) > tolerence || fabsf(desired.height - savedSize.height) > tolerence))
 				{
 					actualSize = desired;
@@ -475,7 +475,7 @@ void SubView::calcBounds(GmpiDrawing::Rect& returnLayoutRect, GmpiDrawing::Rect&
 				// Font variations cause Slider to report different desired size.
 				// However resizing it causes alignment errors on Panel. It shifts left or right.
 				// Avoid resizing unless module clearly needs a different size. Structure view always sizes to fit (else plugs end up with wrapped text)
-				float tolerence = viewType == CF_PANEL_VIEW ? 3.0f : 0.0f;
+				float tolerence = getViewType() == CF_PANEL_VIEW ? 3.0f : 0.0f;
 				if (isArranged || (fabsf(desired.width - savedSize.width) > tolerence || fabsf(desired.height - savedSize.height) > tolerence))
 				{
 					actualSize = desired;

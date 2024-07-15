@@ -1,9 +1,8 @@
 #pragma once
-#include <vector>
-#include <memory>
 #include "ViewBase.h"
-#include "./DrawingFrame_win32.h"
-#include "../se_sdk3_hosting/GraphicsRedrawClient.h"
+//#include <vector>
+//#include <memory>
+//#include "./DrawingFrame_win32.h"
 
 namespace SE2
 {
@@ -13,25 +12,22 @@ namespace SE2
 namespace SE2
 {
 	// The one top-level view.
-	class ContainerViewPanel : public ViewBase
+	class ContainerViewStruct : public ViewBase
 	{
-		std::string skinName_;
-
 	public:
-		ContainerViewPanel(GmpiDrawing::Size size) : ViewBase(size)
+		ContainerViewStruct(GmpiDrawing::Size size) : ViewBase(size)
 		{
 		}
 
 		int getViewType() override
 		{
-			return CF_PANEL_VIEW;
-		}
-		std::string getSkinName() override
-		{
-			return skinName_;
+			return CF_STRUCTURE_VIEW;
 		}
 
-		void Refresh(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap_) override;
+		std::string getSkinName() override
+		{
+			return "default2";
+		}
 		void BuildModules(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap) override;
 		int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override;
 	};

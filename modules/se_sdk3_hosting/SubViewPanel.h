@@ -39,7 +39,13 @@ public:
 	{
 	}
 
-	virtual void Refresh(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap_) override {} // perhaps this should not derive from ViewBase, it does not have its own presenter, don't make sense.
+	int getViewType() override
+	{
+		return CF_PANEL_VIEW;
+	}
+
+	void Refresh(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap_) override {} // perhaps this should not derive from ViewBase, it does not have its own presenter, don't make sense.
+	void BuildModules(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap) override {};
 
 	std::string getSkinName() override
 	{

@@ -4,7 +4,7 @@
 #include <iostream>
 #include "ViewBase.h"
 #include "ConnectorView.h"
-																				#include "ModuleViewStruct.h"
+//																				#include "ModuleViewStruct.h"
 																				#include "ConnectorViewStruct.h"
 #include "modules/se_sdk3_hosting/Presenter.h"
 #include "ResizeAdorner.h"
@@ -20,6 +20,7 @@
 #include "modules/se_sdk3_hosting/DrawingFrame_win32.h"
 #endif
 #include "mfc_emulation.h"
+#include "IGuiHost2.h"
 
 // #define DEBUG_HIT_TEST
 
@@ -31,13 +32,17 @@ using namespace GmpiGuiHosting;
 
 namespace SE2
 {
-	ViewBase::ViewBase() :
-		viewType(CF_PANEL_VIEW)
-		, drawingBounds(0, 0, 1000, 1000)
-		, mouseCaptureObject(nullptr)
+	ViewBase::ViewBase(GmpiDrawing::Size size) :
+		 mouseCaptureObject(nullptr)
 		, elementBeingDragged(nullptr)
 		, patchAutomatorWrapper_(nullptr)
+		, drawingBounds{ 0, 0, size.width, size.height }
 	{
+	}
+
+	void ViewBase::setDocument(SE2::IPresenter* ppresentor)
+	{
+		Init(ppresentor);
 	}
 
 	int32_t ViewBase::setHost(gmpi::IMpUnknown* host)
@@ -86,82 +91,6 @@ namespace SE2
 			patchAutomatorWrapper_->AddConnection(pmPinIdx, patchCableNotifier, pinId);
 			patchCableNotifier->AddConnection(pinId, patchAutomatorWrapper_, pmPinIdx);				// plugin->PM.
 		}
-	}
-
-	void ViewBase::BuildModules(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap)
-	{
-		mouseOverObject = {};
-
-#if _DEBUG
-		{
-			Json::StyledWriter writer;
-			auto factoryXml = writer.write(*context);
-			auto s = factoryXml;
-		}
-#endif
-
-		// Modules.
-		Json::Value& modules_json = (*context)["modules"];
-
-		for(auto& module_json : modules_json)
-		{
-			const auto typeName = module_json["type"].asString();
-
-			std::unique_ptr<ModuleView> module;
-
-			if(viewType == CF_STRUCTURE_VIEW)
-			{
-				if(typeName == "Line")
-				{
-					assert(!isIteratingChildren);
-					children.push_back(std::make_unique<ConnectorView2>(&module_json, this));
-				}
-				else
-				{
-					if(typeName == "SE Structure Group2")
-					{
-						module = std::make_unique<ModuleViewPanel>(&module_json, this, guiObjectMap);
-					}
-					else
-					{
-						module = std::make_unique<ModuleViewStruct>(&module_json, this, guiObjectMap);
-					}
-				}
-			}
-			else
-			{
-				assert(typeName != "Line");  // no lines on GUI.
-				assert(typeName != "SE Structure Group2");
-#ifdef _DEBUG
-				// avoid trying to create unavailable modules
-				static std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
-				const auto typeId = convert.from_bytes(typeName);
-				auto moduleInfo = CModuleFactory::Instance()->GetById(typeId);
-				if (moduleInfo)
-#endif
-				{
-					module = std::make_unique<ModuleViewPanel>(&module_json, this, guiObjectMap);
-				}
-			}
-
-			if(module)
-			{
-				const auto isBackground = !module_json["ignoremouse"].empty();
-
-				if( (module->getSelected() || isBackground) && Presenter()->editEnabled())
-				{
-					assert(!isIteratingChildren);
-					children.push_back(module->createAdorner(this));
-				}
-
-				guiObjectMap.insert({ module->getModuleHandle(), module.get() });
-				assert(!isIteratingChildren);
-				children.push_back(std::move(module));
-			}
-		}
-
-		// get Z-Order same as SE.
-		std::reverse(std::begin(children), std::end(children));
 	}
 
 	ModuleViewPanel* ViewBase::getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap)
@@ -789,30 +718,6 @@ namespace SE2
 		}
 	}
 
-	int32_t ViewBase::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
-	{
-		if(mouseCaptureObject)
-		{
-			mouseCaptureObject->onPointerUp(flags, point);
-		}
-
-#ifdef _DEBUG
-		if(mouseCaptureObject)
-		{
-			_RPT0(_CRT_WARN, "WARNING: GUI MODULE DID NOT RELEASE MOUSECAPTURE!!!\n");
-		}
-#endif
-
-		if(elementBeingDragged)
-		{
-			releaseCapture();
-			elementBeingDragged = nullptr;
-			autoScrollStop();
-		}
-
-		return gmpi::MP_OK;
-	}
-
 	int32_t ViewBase::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point)
 	{
 		if (elementBeingDragged)
@@ -1295,6 +1200,370 @@ namespace SE2
 		patchAutomatorWrapper_ = nullptr;
 	}
 
+	void ViewBase::DragNewModule(const char* id)
+	{
+		draggingNewModuleId = id;
 
+		if (draggingNewModuleId == "") // empty string cancels drag
+		{
+			getGuiHost()->releaseCapture();
+			//::ReleaseCapture();
+			//Cursor = null;
+		}
+		else
+		{
+			getGuiHost()->setCapture();
+			//Cursor = dragNewModuleCursor;
+			//mouseClickTime = DateTime.Now;
+		}
+	}
 
+	void ViewBase::Refresh(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap)
+	{
+		assert(guiObjectMap.empty());
+
+		// Clear out previous view.
+		assert(!isIteratingChildren);
+
+		mouseOverObject = nullptr;
+		elementBeingDragged = nullptr;
+		patchAutomatorWrapper_ = nullptr;
+
+		children.clear();
+
+		if (mouseCaptureObject)
+		{
+			releaseCapture();
+			mouseCaptureObject = {};
+		}
+
+#ifdef _DEBUG
+		debugInitializeCheck_ = false; // satisfy checks in base-class.
+#endif
+
+		//////////////////////////////////////////////
+
+		BuildModules(context, guiObjectMap);
+		BuildPatchCableNotifier(guiObjectMap);
+		ConnectModules(*context, guiObjectMap);
+
+		// remainder should mimic standard GUI module initialization.
+		Presenter()->InitializeGuiObjects();
+		initialize();
+
+		GmpiDrawing::Size avail(drawingBounds.getWidth(), drawingBounds.getHeight()); // relying on frame to have set size already.
+		GmpiDrawing::Size desired;
+		measure(avail, &desired);
+		//		arrange(GmpiDrawing::Rect(0, 0, avail.width, avail.height));
+		arrange(drawingBounds);
+
+		invalidateRect();
+	}
+
+	int32_t ViewBase::populateContextMenu(float x, float y, gmpi::IMpUnknown* contextMenuItemsSink)
+	{
+		GmpiSdk::ContextMenuHelper menu(contextMenuCallbacks, contextMenuItemsSink);
+
+		// Add items for Presenter
+		// Cut, Copy, Paste etc.
+		menu.currentCallback =
+			[this](int32_t idx)
+			{
+				return Presenter()->onContextMenu(idx);
+			};
+
+		auto moduleHandle = mouseOverObject ? mouseOverObject->getModuleHandle() : -1; // -1 = no module under mouse.
+		Presenter()->populateContextMenu(&menu, { x, y }, moduleHandle);
+
+		if (mouseOverObject)
+		{
+			menu.populateFromObject(x, y, mouseOverObject);
+		}
+		return gmpi::MP_OK;
+	}
+
+	int32_t ViewBase::onContextMenu(int32_t idx)
+	{
+		return GmpiSdk::ContextMenuHelper::onContextMenu(contextMenuCallbacks, idx);
+	}
+
+	int32_t ViewBase::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	{
+		if (!draggingNewModuleId.empty())
+		{
+			int32_t isMouseCaptured{};
+			getGuiHost()->getCapture(isMouseCaptured);
+			if (isMouseCaptured)
+			{
+				getGuiHost()->releaseCapture();
+				/*
+								Cursor = null;
+				*/
+				const auto moduleId = Utf8ToWstring(draggingNewModuleId); // TODO why does this get converted to UTF8 then back again?
+				Presenter()->AddModule(moduleId.c_str(), point);
+			}
+			draggingNewModuleId.clear();
+		}
+
+		if (mouseCaptureObject)
+		{
+			mouseCaptureObject->onPointerUp(flags, point);
+		}
+
+#ifdef _DEBUG
+		if (mouseCaptureObject)
+		{
+			_RPT0(_CRT_WARN, "WARNING: GUI MODULE DID NOT RELEASE MOUSECAPTURE!!!\n");
+		}
+#endif
+
+		if (elementBeingDragged)
+		{
+			releaseCapture();
+			elementBeingDragged = nullptr;
+			autoScrollStop();
+		}
+
+		return gmpi::MP_OK;
+	}
+	/*
+	isArranging - Enables 3 pixel resize tolerance to cope with font size variation between GDI and DirectWrite. Not needed when user is dragging stuff.
+	*/
+	void ViewBase::OnChildResize(IViewChild* m)
+	{
+		if (m->isVisable() && dynamic_cast<ConnectorViewBase*>(m) == nullptr)
+		{
+			GmpiDrawing::Size savedSize(m->getLayoutRect().getWidth(), m->getLayoutRect().getHeight());
+			GmpiDrawing::Size desired;
+			GmpiDrawing::Size actualSize;
+			bool changedSize = false;
+			/*
+							if (debug)
+							{
+								_RPT4(_CRT_WARN, "savedSize r[ %f %f %f %f]\n", m->getBounds().left, m->getBounds().top, m->getBounds().left + m->getBounds().getWidth(), m->getBounds().top + m->getBounds().getHeight());
+							}
+			*/
+			// Detect brand-new objects that haven't had size calculated yet.
+			if (savedSize.width == 0 && savedSize.height == 0)
+			{
+				const float defaultDimensions = 100;
+				GmpiDrawing::Size defaultSize(defaultDimensions, defaultDimensions);
+				m->measure(defaultSize, &desired);
+				actualSize = desired;
+				// stick with integer sizes for compatibility.
+				actualSize.height = ceilf(actualSize.height);
+				actualSize.width = ceilf(actualSize.width);
+				changedSize = true;
+			}
+			else
+			{
+#ifdef _DEBUG
+				desired.width = std::numeric_limits<float>::quiet_NaN();
+#endif
+
+				m->measure(savedSize, &desired);
+
+#ifdef _DEBUG
+				assert(!std::isnan(desired.width)); // object does not implement measure()!
+#endif
+				/*
+				if (debug)
+				{
+					_RPT2(_CRT_WARN, "desired s[ %f %f]\n", desired.width, desired.height);
+				}
+*/
+// Font variations cause Slider to report different desired size.
+// However resizing it causes alignment errors on Panel. It shifts left or right.
+// Avoid resizing unless module clearly needs a different size. Structure view always sizes to fit (else plugs end up with wrapped text)
+				float tolerence = getViewType() == CF_PANEL_VIEW ? 3.0f : 0.0f;
+				if (isArranged || (fabsf(desired.width - savedSize.width) > tolerence || fabsf(desired.height - savedSize.height) > tolerence))
+				{
+					actualSize = desired;
+					// stick with integer sizes for compatibility.
+					actualSize.height = ceilf(actualSize.height);
+					actualSize.width = ceilf(actualSize.width);
+					changedSize = true;
+				}
+				else
+				{
+					// Used save size from project, even if it varies a little.
+					actualSize = savedSize;
+				}
+			}
+
+			if (changedSize)
+			{
+				GmpiDrawing::Rect newRect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height);
+				m->OnMoved(newRect);
+			}
+		}
+	}
+
+	int32_t ViewBase::measure(MP1_SIZE availableSize, MP1_SIZE* returnDesiredSize)
+	{
+		GmpiDrawing::Size veryLarge(10000, 10000);
+		GmpiDrawing::Size notused;
+
+		for (auto& c : children)
+		{
+			c->measure(veryLarge, &notused);
+		}
+
+		return gmpi::MP_OK;
+	}
+
+	int32_t ViewBase::arrange(MP1_RECT finalRect)
+	{
+		drawingBounds = finalRect;
+
+		// Modules first, then lines (which rely on module position being finalized).
+		for (auto& m : children)
+		{
+			if (m->isVisable() && dynamic_cast<ConnectorViewBase*>(m.get()) == nullptr)
+			{
+				GmpiDrawing::Size savedSize(m->getLayoutRect().getWidth(), m->getLayoutRect().getHeight());
+				GmpiDrawing::Size desired;
+				GmpiDrawing::Size actualSize;
+				bool changedSize = false;
+				/*
+								if (debug)
+								{
+									_RPT4(_CRT_WARN, "savedSize r[ %f %f %f %f]\n", m->getBounds().left, m->getBounds().top, m->getBounds().left + m->getBounds().getWidth(), m->getBounds().top + m->getBounds().getHeight());
+								}
+				*/
+				// Detect brand-new objects that haven't had size calculated yet.
+				if (savedSize.width == 0 && savedSize.height == 0)
+				{
+					const float defaultDimensions = 100;
+					GmpiDrawing::Size defaultSize(defaultDimensions, defaultDimensions);
+					m->measure(defaultSize, &desired);
+					actualSize = desired;
+					// stick with integer sizes for compatibility.
+					actualSize.height = ceilf(actualSize.height);
+					actualSize.width = ceilf(actualSize.width);
+					changedSize = true;
+				}
+				else
+				{
+#ifdef _DEBUG
+					desired.width = std::numeric_limits<float>::quiet_NaN();
+#endif
+
+					m->measure(savedSize, &desired);
+
+#ifdef _DEBUG
+					assert(!std::isnan(desired.width)); // object does not implement measure()!
+#endif
+					/*
+					if (debug)
+					{
+						_RPT2(_CRT_WARN, "desired s[ %f %f]\n", desired.width, desired.height);
+					}
+*/
+// Font variations cause Slider to report different desired size.
+// However resizing it causes alignment errors on Panel. It shifts left or right.
+// Avoid resizing unless module clearly needs a different size. Structure view always sizes to fit (else plugs end up with wrapped text)
+// Only during this during initial arrange, later when user drags object, use normal sizing logic.
+					float tolerence = getViewType() == CF_PANEL_VIEW ? 3.0f : 0.0f;
+					if (isArranged || (fabsf(desired.width - savedSize.width) > tolerence || fabsf(desired.height - savedSize.height) > tolerence))
+					{
+						actualSize = desired;
+						// stick with integer sizes for compatibility.
+						actualSize.height = ceilf(actualSize.height);
+						actualSize.width = ceilf(actualSize.width);
+						changedSize = true;
+					}
+					else
+					{
+						// Used save size from project, even if it varies a little.
+						actualSize = savedSize;
+					}
+				}
+
+				// Note, due to font width differences, this may result in different size/layout than original GDI graphics. e..g knobs shifting.
+/* currently not used, also adorner could figure this out by itself
+				GmpiDrawing::Size desiredMax(0, 0);
+				m->measure(GmpiDrawing::Size(10000, 10000), &desiredMax);
+
+				m->isResizableX = desired.width != desiredMax.width;
+				m->isResizableY = desired.height != desiredMax.height;
+*/
+/*
+				if (debug)
+				{
+					_RPT4(_CRT_WARN, "arrange r[ %f %f %f %f]\n", m->getBounds().left, m->getBounds().top, m->getBounds().left + actualSize.width, m->getBounds().top + actualSize.height);
+				}
+*/
+				m->arrange(GmpiDrawing::Rect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height));
+
+				// Typically only when new object inserted.
+				if (changedSize) // actualSize != savedSize)
+				{
+					Presenter()->ResizeModule(m->getModuleHandle(), 2, 2, actualSize - savedSize);
+				}
+			}
+		}
+
+		for (auto& m : children)
+		{
+			if (dynamic_cast<ConnectorViewBase*>(m.get()))
+			{
+				m->arrange(GmpiDrawing::Rect(0, 0, 10, 10));
+			}
+		}
+
+		isArranged = true;
+		return gmpi::MP_OK;
+	}
+
+	void ViewBase::OnPatchCablesVisibilityUpdate()
+	{
+		for (auto& o : children)
+		{
+			auto l = dynamic_cast<PatchCableView*>(o.get());
+			if (l)
+			{
+				l->OnVisibilityUpdate();
+			}
+		}
+	}
+
+	void ViewBase::PreGraphicsRedraw()
+	{
+		// Get any meter updates from DSP. ( See also CSynthEditAppBase::OnTimer() )
+		Presenter()->GetPatchManager()->serviceGuiQueue();
+	}
+
+	int32_t ViewBase::OnKeyPress(wchar_t c)
+	{
+		if (c == 0x1B) // <ESC> to cancel cable drag
+		{
+			if (auto cable = dynamic_cast<SE2::ConnectorViewBase*>(mouseCaptureObject); cable)
+			{
+				autoScrollStop();
+				EndCableDrag({ -10000, -10000 }, cable);
+				return gmpi::MP_OK;
+			}
+		}
+
+		return gmpi::MP_UNHANDLED;
+	}
+
+	IViewChild* ViewBase::Find(GmpiDrawing::Point& p)
+	{
+		for (auto it = children.rbegin(); it != children.rend(); ++it)
+		{
+			auto m = (*it).get();
+			if (m)
+			{
+				auto b = m->getLayoutRect();
+				if (p.y < b.bottom && p.y >= b.top && p.x < b.right && p.x >= b.left)
+				{
+					return m;
+				}
+			}
+		}
+
+		return nullptr;
+	}
 }// namespace
