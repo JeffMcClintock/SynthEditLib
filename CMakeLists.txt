@@ -109,16 +109,12 @@ ${se_sdk_hosting_folder}/ViewBase.h
 ${se_sdk_hosting_folder}/ViewBase.cpp
 ${se_sdk_hosting_folder}/ContainerView.h
 ${se_sdk_hosting_folder}/ContainerView.cpp
-${se_sdk_hosting_folder}/ContainerViewStruct.h
-${se_sdk_hosting_folder}/ContainerViewStruct.cpp
 ${se_sdk_hosting_folder}/SubViewPanel.h
 ${se_sdk_hosting_folder}/SubViewPanel.cpp
 ${se_sdk_hosting_folder}/MpParameter.h
 ${se_sdk_hosting_folder}/MpParameter.cpp
 ${se_sdk_hosting_folder}/ConnectorView.h
 ${se_sdk_hosting_folder}/ConnectorView.cpp
-${se_sdk_hosting_folder}/ModuleViewStruct.h
-${se_sdk_hosting_folder}/ModuleViewStruct.cpp
 ${se_sdk_hosting_folder}/ConnectorViewStruct.h
 ${se_sdk_hosting_folder}/ConnectorViewStruct.cpp
 ${se_sdk_hosting_folder}/ModuleView.h
