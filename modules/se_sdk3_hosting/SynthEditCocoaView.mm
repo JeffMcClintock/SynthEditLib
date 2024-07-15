@@ -38,10 +38,10 @@ public:
         controller = hostPatchManager;
         
         const int topViewBounds = 8000; // simply a large enough size.
-        containerView.Attach(new SE2::ContainerView(GmpiDrawing::Size(topViewBounds,topViewBounds)));
+        containerView.Attach(new SE2::ContainerViewPanel({topViewBounds,topViewBounds}));
         containerView->setHost(static_cast<gmpi_gui::IMpGraphicsHost*>(this));
         
-        containerView->setDocument(presenter, pviewType);
+        containerView->setDocument(presenter);
         
 #if defined(SE_TARGET_AU)
         dynamic_cast<SEInstrumentBase*>(controller)->callbackOnUnloadPlugin = [this]

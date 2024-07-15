@@ -13,6 +13,7 @@
 #include "FileFinder.h"
 #include "midi_defs.h"
 #include "ListBuilder.h"
+#include "../../mfc_emulation.h"
 #if !defined(SE_USE_JUCE_UI)
 #include "GuiPatchAutomator3.h"
 #endif
@@ -28,7 +29,7 @@
 #include "../shared/unicode_conversion.h"
 #include "PresetReader.h"
 #include "./ProcessorStateManager.h"
-#include "../../mfc_emulation.h"
+
 #endif
 
 using namespace std;
