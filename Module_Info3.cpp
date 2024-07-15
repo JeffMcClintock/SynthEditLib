@@ -6,7 +6,7 @@
 #include "tinyxml/tinyxml.h"
 #include "./modules/se_sdk3/MpString.h"
 #include "GmpiSdkCommon.h"
-#include "../SynthEdit/SafeMessageBox.h"
+#include "SafeMessageBox.h"
 
 #if !defined( _WIN32 )
 // mac

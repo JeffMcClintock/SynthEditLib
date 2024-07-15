@@ -12,7 +12,7 @@
 #include "conversion.h"
 #include "RawConversions.h"
 #include "mfc_emulation.h"
-#include "../SynthEdit/SafeMessageBox.h"
+#include "SafeMessageBox.h"
 
 
 #include "Module_Info3_internal.h"

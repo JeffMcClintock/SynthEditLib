@@ -15,7 +15,7 @@
 #include "conversion.h"
 #include "UgDatabase.h"
 #include "./modules/shared/xplatform.h"
-#include "../SynthEdit/SafeMessageBox.h"
+#include "SafeMessageBox.h"
 
 #include <assert.h>
 #include "modules/tinyXml2/tinyxml2.h"

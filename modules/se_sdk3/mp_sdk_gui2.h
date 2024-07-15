@@ -672,13 +672,20 @@ namespace GmpiSdk
 		{
 			int32_t ret{ gmpi::MP_UNHANDLED };
 
+			// calling the callback can indirectly delete the callbacks object. e.g. when refreshing the MfcDocPresenter
+			// so make a copy of the callback before calling it.
+			ContextMenuCallbackAndId copyOfItem;
 			if (callbacks && idx >= 0 && idx < callbacks->size())
 			{
-				auto& item = callbacks->at(idx);
-				ret = item.second(item.first);
+				copyOfItem = callbacks->at(idx);
 			}
 
 			callbacks = nullptr;
+
+			if (copyOfItem.second)
+			{
+				ret = copyOfItem.second(copyOfItem.first);
+			}
 
 			return ret;
 		}
