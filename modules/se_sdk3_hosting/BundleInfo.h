@@ -40,7 +40,7 @@ public:
 private:
     pluginInformation info_ = {};
     
-    void initPluginInfoFromWrappedSem();
+//    void initPluginInfoFromWrappedSem();
     void initPluginInfo();
     BundleInfo();
     

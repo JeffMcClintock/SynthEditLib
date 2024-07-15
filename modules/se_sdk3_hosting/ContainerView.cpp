@@ -70,7 +70,7 @@ namespace SE2
 			static std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
 			const auto typeId = convert.from_bytes(typeName);
 			auto moduleInfo = CModuleFactory::Instance()->GetById(typeId);
-			if (moduleInfo)
+//			if (moduleInfo)
 #endif
 			auto module = std::make_unique<ModuleViewPanel>(&module_json, this, guiObjectMap);
 

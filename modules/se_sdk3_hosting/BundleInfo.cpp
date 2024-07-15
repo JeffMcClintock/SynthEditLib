@@ -463,6 +463,7 @@ const BundleInfo::pluginInformation& BundleInfo::getPluginInfo()
     return info_;
 }
 
+#if 0
 void BundleInfo::initPluginInfoFromWrappedSem()
 {
     platform_string pluginPath;
@@ -677,6 +678,7 @@ void BundleInfo::initPluginInfoFromWrappedSem()
         }
     }
 }
+#endif
 
 void BundleInfo::initPluginInfo()
 {
@@ -698,7 +700,8 @@ void BundleInfo::initPluginInfo()
 
     if (doc.Error())
     {
-        return initPluginInfoFromWrappedSem();
+        assert(false);
+        return;// initPluginInfoFromWrappedSem();
     }
 
     {
