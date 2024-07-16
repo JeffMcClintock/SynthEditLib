@@ -33,8 +33,8 @@ class ConfirmationDialogGui final : public SeGuiInvisibleBase, public TimerClien
 
 				if (!nativeDialog.isNull())
 				{
-					const auto title = ToUtf8String(pinTitle.getValue());
-					const auto text = ToUtf8String(pinBodytext.getValue());
+					const auto title = JmUnicodeConversions::WStringToUtf8(pinTitle.getValue());
+					const auto text = JmUnicodeConversions::WStringToUtf8(pinBodytext.getValue());
 					nativeDialog.SetTitle(title.c_str());
 					nativeDialog.SetText(text.c_str());
 

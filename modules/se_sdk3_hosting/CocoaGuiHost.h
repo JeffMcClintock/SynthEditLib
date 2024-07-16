@@ -580,7 +580,7 @@ namespace GmpiGuiHosting
 			}
 		}
 		/*
-			inline SE2::Container View* getView()
+			inline SE2::Conta inerView* getView()
 			{
 				return containerView.get();
 			}
