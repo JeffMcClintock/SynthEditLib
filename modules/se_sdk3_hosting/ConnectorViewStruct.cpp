@@ -4,7 +4,7 @@
 #include "ContainerView.h"
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "modules/shared/VectorMath.h"
-#include "modules/shared/CardinalSpline.h"
+#include "modules/shared/cardinalSpline.h"
 
 using namespace GmpiDrawing;
 using namespace Gmpi::VectorMath;
