@@ -190,7 +190,7 @@ bool isIteratingChildren = false;
 				return gmpi::MP_OK;
 			}
 
-			return ViewBase::queryInterface(iid, returnInterface);
+			return gmpi_gui::MpGuiGfxBase::queryInterface(iid, returnInterface);
 		}
 		GMPI_REFCOUNT;
 	};
