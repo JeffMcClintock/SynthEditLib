@@ -120,7 +120,7 @@ SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES FOLDER "modules")
 
 endmacro()
 
-#more sophistcated
+#more sophisticated
 function(BUILD_GMPI_PLUGIN)
 set(options HAS_DSP HAS_GUI IS_OFFICIAL_MODULE)
 set(oneValueArgs PROJECT_NAME)

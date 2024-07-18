@@ -292,7 +292,7 @@ namespace SE2
 		{
 			float widthPadding = plugDiameter + clientPadding * 2.0f;
 			float heightPadding = clientPadding * 2.0f;
-			gmpi::drawing::Size remainingSize(availableSize.width - widthPadding, availableSize.height - totalPlugHeight - heightPadding);
+			gmpi::drawing::Size remainingSize{ availableSize.width - widthPadding, availableSize.height - totalPlugHeight - heightPadding };
 
 			gmpi::drawing::Size desiredSize{};
 			if (pluginGraphics_GMPI)
