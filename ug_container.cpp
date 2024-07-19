@@ -140,7 +140,7 @@ public:
 
 namespace
 {
-	auto r2 = gmpi::Register<VoiceParameterWatcher>::withXml(
+	auto r2 = sesdk::Register<VoiceParameterWatcher>::withXml(
 R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 <PluginList>

@@ -32,6 +32,6 @@ public:
 
 namespace
 {
-	auto r = Register<IdeLogger>::withId(L"SE IDE Logger");
+	auto r = sesdk::Register<IdeLogger>::withId(L"SE IDE Logger");
 }
 SE_DECLARE_INIT_STATIC_FILE(IdeLogger);

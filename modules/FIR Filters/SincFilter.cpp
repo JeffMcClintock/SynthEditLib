@@ -234,8 +234,8 @@ public:
 namespace
 {
 	bool r[] = {
-		gmpi::Register<SincFilterController>::withId(L"SE Sinc Highpass Filter"),
-		gmpi::Register<SincFilterController>::withId(L"SE Sinc Lowpass Filter"),
+		sesdk::Register<SincFilterController>::withId(L"SE Sinc Highpass Filter"),
+		sesdk::Register<SincFilterController>::withId(L"SE Sinc Lowpass Filter"),
 	};
 }
 #endif

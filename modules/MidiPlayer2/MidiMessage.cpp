@@ -69,5 +69,5 @@ public:
 
 namespace
 {
-	auto r = Register<MidiMessage>::withId(L"SE MidiMessage");
+	auto r = sesdk::Register<MidiMessage>::withId(L"SE MidiMessage");
 }

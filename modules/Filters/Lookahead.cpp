@@ -70,5 +70,5 @@ public:
 
 namespace
 {
-	auto r = Register<Lookahead>::withId(L"SE Lookahead");
+	auto r = sesdk::Register<Lookahead>::withId(L"SE Lookahead");
 }

@@ -69,6 +69,6 @@ public:
 
 namespace
 {
-	auto r = Register<UserSettingTextController>::withId(L"SE UserSettingText");
+	auto r = sesdk::Register<UserSettingTextController>::withId(L"SE UserSettingText");
 }
 SE_DECLARE_INIT_STATIC_FILE(UserSettingText_Controller);

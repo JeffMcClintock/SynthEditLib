@@ -233,5 +233,5 @@ public:
 
 namespace
 {
-	auto r2 = Register<PolyToMonoA>::withId(L"SE Poly to MonoA");
+	auto r2 = sesdk::Register<PolyToMonoA>::withId(L"SE Poly to MonoA");
 }

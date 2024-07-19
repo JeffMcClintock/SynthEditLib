@@ -25,6 +25,6 @@ public:
 
 namespace
 {
-	auto r = Register<UserSettingText>::withId(L"SE UserSettingText");
+	auto r = sesdk::Register<UserSettingText>::withId(L"SE UserSettingText");
 }
 SE_DECLARE_INIT_STATIC_FILE(UserSettingText);

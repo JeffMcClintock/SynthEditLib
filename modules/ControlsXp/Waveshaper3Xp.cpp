@@ -205,6 +205,6 @@ public:
 
 namespace
 {
-	auto r1 = Register<SeWaveshaper3Xp>::withId(L"SE Waveshaper3 XP");
-	auto r2 = Register<SeWaveshaper2Xp>::withId(L"SE Waveshaper2 XP");
+	auto r1 = sesdk::Register<SeWaveshaper3Xp>::withId(L"SE Waveshaper3 XP");
+	auto r2 = sesdk::Register<SeWaveshaper2Xp>::withId(L"SE Waveshaper2 XP");
 }

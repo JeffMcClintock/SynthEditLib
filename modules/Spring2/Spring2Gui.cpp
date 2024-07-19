@@ -66,5 +66,5 @@ public:
 
 namespace
 {
-	auto r = gmpi::Register<Spring3Gui>::withId(L"SE Spring3");
+	auto r = sesdk::Register<Spring3Gui>::withId(L"SE Spring3");
 }

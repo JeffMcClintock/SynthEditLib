@@ -79,5 +79,5 @@ public:
 
 namespace
 {
-	auto r = Register<KeyboardMidi>::withId(L"SE Keyboard (MIDI)");
+	auto r = sesdk::Register<KeyboardMidi>::withId(L"SE Keyboard (MIDI)");
 }

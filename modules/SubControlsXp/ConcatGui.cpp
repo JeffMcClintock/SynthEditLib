@@ -49,5 +49,5 @@ public:
 
 namespace
 {
-	auto r = Register<ConcatGui>::withId(L"SE Concat");
+	auto r = sesdk::Register<ConcatGui>::withId(L"SE Concat");
 }

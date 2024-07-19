@@ -217,6 +217,6 @@ public:
 
 namespace
 {
-	auto r = Register<PatchBrowserGui>::withId(L"SE Patch Browser");
+	auto r = sesdk::Register<PatchBrowserGui>::withId(L"SE Patch Browser");
 }
 SE_DECLARE_INIT_STATIC_FILE(PatchBrowser_Gui);

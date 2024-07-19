@@ -54,7 +54,7 @@ public:
 
 namespace
 {
-	auto r = Register<NoteExpression2>::withId(L"SE Note Expression2");
+	auto r = sesdk::Register<NoteExpression2>::withId(L"SE Note Expression2");
 }
 
 

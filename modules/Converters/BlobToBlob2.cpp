@@ -103,6 +103,6 @@ public:
 
 namespace
 {
-	auto r1 = Register<BlobToBlob2>::withId(L"SE BlobToBlob2");
-	auto r2 = Register<Blob2ToBlob>::withId(L"SE Blob2ToBlob");
+	auto r1 = sesdk::Register<BlobToBlob2>::withId(L"SE BlobToBlob2");
+	auto r2 = sesdk::Register<Blob2ToBlob>::withId(L"SE Blob2ToBlob");
 }

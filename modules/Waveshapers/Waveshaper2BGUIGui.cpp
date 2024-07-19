@@ -221,5 +221,5 @@ public:
 
 namespace
 {
-	auto r = Register<Waveshaper2BGUIGui>::withId(L"SE Waveshaper2B GUI");
+	auto r = sesdk::Register<Waveshaper2BGUIGui>::withId(L"SE Waveshaper2B GUI");
 }

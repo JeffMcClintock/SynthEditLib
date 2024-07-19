@@ -102,5 +102,5 @@ public:
 
 namespace
 {
-	auto r = Register<SilenceGate>::withId(L"SE Silence Gate");
+	auto r = sesdk::Register<SilenceGate>::withId(L"SE Silence Gate");
 }

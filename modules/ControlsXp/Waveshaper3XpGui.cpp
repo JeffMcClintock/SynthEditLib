@@ -664,6 +664,6 @@ private:
 
 namespace
 {
-	auto r1 = Register<SeWaveshaper3XpGui>::withId(L"SE Waveshaper3 XP");
-	auto r2 = Register<SeWaveshaper2XpGuiB>::withId(L"SE Waveshaper2 XP");
+	auto r1 = sesdk::Register<SeWaveshaper3XpGui>::withId(L"SE Waveshaper3 XP");
+	auto r2 = sesdk::Register<SeWaveshaper2XpGuiB>::withId(L"SE Waveshaper2 XP");
 }

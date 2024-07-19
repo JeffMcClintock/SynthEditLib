@@ -376,12 +376,12 @@ class ButterworthHighShelf2 : public ButterworthShelf2< Dsp::SimpleFilter<Dsp::B
 
 namespace
 {
-	auto r1 = Register<ButterworthLp2>::withId(L"SE Butterworth LP2");
-	auto r2 = Register<ButterworthHp2>::withId(L"SE Butterworth HP2");
-	auto r3 = Register<ButterworthBp2>::withId(L"SE Butterworth BP2");
-	auto r4 = Register<ButterworthBr2>::withId(L"SE Butterworth BR2");
-	auto r5 = Register<ButterworthLowShelf2>::withId(L"SE Butterworth LS2");
-	auto r6 = Register<ButterworthHighShelf2>::withId(L"SE Butterworth HS2");
-	auto r7 = Register<ButterworthBandShelf2>::withId(L"SE Butterworth BS2");
+	auto r1 = sesdk::Register<ButterworthLp2>::withId(L"SE Butterworth LP2");
+	auto r2 = sesdk::Register<ButterworthHp2>::withId(L"SE Butterworth HP2");
+	auto r3 = sesdk::Register<ButterworthBp2>::withId(L"SE Butterworth BP2");
+	auto r4 = sesdk::Register<ButterworthBr2>::withId(L"SE Butterworth BR2");
+	auto r5 = sesdk::Register<ButterworthLowShelf2>::withId(L"SE Butterworth LS2");
+	auto r6 = sesdk::Register<ButterworthHighShelf2>::withId(L"SE Butterworth HS2");
+	auto r7 = sesdk::Register<ButterworthBandShelf2>::withId(L"SE Butterworth BS2");
 }
 

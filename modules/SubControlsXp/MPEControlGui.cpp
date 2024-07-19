@@ -66,5 +66,5 @@ public:
 
 namespace
 {
-	auto r = Register<MPEControlGui>::withId(L"SE MPE Control");
+	auto r = sesdk::Register<MPEControlGui>::withId(L"SE MPE Control");
 }

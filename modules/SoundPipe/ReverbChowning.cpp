@@ -84,5 +84,5 @@ public:
 
 namespace
 {
-	auto r = Register<ReverbChowning>::withId(L"SP Reverb JC");
+	auto r = sesdk::Register<ReverbChowning>::withId(L"SP Reverb JC");
 }

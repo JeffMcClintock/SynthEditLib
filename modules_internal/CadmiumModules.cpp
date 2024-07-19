@@ -7,7 +7,7 @@ using namespace gmpi;
 namespace
 {
 	/*
-	auto r1 = Register<SeGuiInvisibleBase>::withXml(
+	auto r1 = sesdk::Register<SeGuiInvisibleBase>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -19,7 +19,7 @@ namespace
 </PluginList>
 )XML");
 */
-	auto r2 = Register<SeGuiInvisibleBase>::withXml(
+	auto r2 = sesdk::Register<SeGuiInvisibleBase>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -32,7 +32,7 @@ namespace
 </PluginList>
 )XML");
 
-	auto r3 = Register<SeGuiInvisibleBase>::withXml(
+	auto r3 = sesdk::Register<SeGuiInvisibleBase>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -46,7 +46,7 @@ namespace
 </PluginList>
 )XML");
 
-	auto r4 = Register<SeGuiInvisibleBase>::withXml(
+	auto r4 = sesdk::Register<SeGuiInvisibleBase>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -59,7 +59,7 @@ namespace
 </PluginList>
 )XML");
 
-	auto r5 = Register<SeGuiInvisibleBase>::withXml(
+	auto r5 = sesdk::Register<SeGuiInvisibleBase>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -72,7 +72,7 @@ namespace
 </PluginList>
 )XML");
 
-	auto r6 = Register<SeGuiInvisibleBase>::withXml(
+	auto r6 = sesdk::Register<SeGuiInvisibleBase>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -84,7 +84,7 @@ namespace
 </PluginList>
 )XML");
 
-	auto r7 = Register<SeGuiInvisibleBase>::withXml(
+	auto r7 = sesdk::Register<SeGuiInvisibleBase>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -98,7 +98,7 @@ namespace
 </PluginList>
 )XML");
 
-	auto r8 = Register<SeGuiInvisibleBase>::withXml(
+	auto r8 = sesdk::Register<SeGuiInvisibleBase>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -110,7 +110,7 @@ namespace
 </PluginList>
 )XML");
 
-	auto r9 = Register<SeGuiInvisibleBase>::withXml(
+	auto r9 = sesdk::Register<SeGuiInvisibleBase>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -124,7 +124,7 @@ namespace
 )XML");
 
 
-    auto rA = Register<SeGuiInvisibleBase>::withXml(
+    auto rA = sesdk::Register<SeGuiInvisibleBase>::withXml(
         R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -179,7 +179,7 @@ private:
 
 namespace
 {
-	auto r20 = Register<Value>::withXml(
+	auto r20 = sesdk::Register<Value>::withXml(
 R"XML(
 <?xml version="1.0" ?>
 <PluginList>

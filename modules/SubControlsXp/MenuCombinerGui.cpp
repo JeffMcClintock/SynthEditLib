@@ -140,5 +140,5 @@ public:
 
 namespace
 {
-	auto r = Register<MenuCombinerGui>::withId(L"SE Menu Combiner");
+	auto r = sesdk::Register<MenuCombinerGui>::withId(L"SE Menu Combiner");
 }

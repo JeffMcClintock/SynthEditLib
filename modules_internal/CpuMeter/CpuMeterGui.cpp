@@ -97,7 +97,7 @@ public:
 
 namespace
 {
-	auto r = gmpi::Register<CpuMeterGui>::withXml(
+	auto r = sesdk::Register<CpuMeterGui>::withXml(
 R"XML(
 <?xml version="1.0" ?>
 <PluginList>

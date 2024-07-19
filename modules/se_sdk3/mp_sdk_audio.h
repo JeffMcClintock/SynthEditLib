@@ -21,7 +21,7 @@ typedef void ( MpBase2::* SubProcess_ptr2)(int sampleFrames);
 #define SET_PROCESS(func)	setSubProcess(static_cast <SubProcess_ptr> (func));
 #define SET_PROCESS2(func)	setSubProcess(static_cast <SubProcess_ptr2> (func));
 
-// Deprecated macros for registering plugin with factory. Prefer: 	auto r = gmpi::Register<MyClass>::withId(L"JM My Name");
+// Deprecated macros for registering plugin with factory. Prefer: 	auto r = sesdk::Register<MyClass>::withId(L"JM My Name");
 #define REGISTER_PLUGIN( className, pluginId ) namespace{ gmpi::IMpUnknown* PASTE_FUNC(create,className)(){ return static_cast<gmpi::IMpPlugin*> (new className(0)); }; int32_t PASTE_FUNC(r,className) = SE_REGISTER_PLUGIN_FUNC( gmpi::MP_SUB_TYPE_AUDIO, pluginId, &PASTE_FUNC(create,className) );}
 #define REGISTER_PLUGIN2( className, pluginId ) namespace{ gmpi::IMpUnknown* PASTE_FUNC(create,className)(){ return static_cast<gmpi::IMpPlugin2*> (new className()); }; int32_t PASTE_FUNC(r,className) = SE_REGISTER_PLUGIN_FUNC( gmpi::MP_SUB_TYPE_AUDIO, pluginId, &PASTE_FUNC(create,className) );}
 // Alias for consistency with "GMPI_REGISTER_GUI"

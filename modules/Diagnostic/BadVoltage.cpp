@@ -72,5 +72,5 @@ public:
 
 namespace
 {
-	auto r = Register<BadVoltage>::withId(L"SE Bad Voltage");
+	auto r = sesdk::Register<BadVoltage>::withId(L"SE Bad Voltage");
 }

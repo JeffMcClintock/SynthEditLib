@@ -72,5 +72,5 @@ private:
 
 namespace
 {
-	auto r = gmpi::Register<PatchMemoryFloatLatchable>::withId(L"SE PatchMemory Float Latchable");
+	auto r = sesdk::Register<PatchMemoryFloatLatchable>::withId(L"SE PatchMemory Float Latchable");
 }

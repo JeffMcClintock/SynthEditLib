@@ -1040,7 +1040,7 @@ using namespace gmpi;
 
 namespace
 {
-	auto r = Register< Oscillator >::withId(L"MY Oscillator");
+	auto r = sesdk::Register< Oscillator >::withId(L"MY Oscillator");
 }
 
 */
@@ -1058,7 +1058,7 @@ namespace gmpi_gui_api
 	class IMpGraphics2;
 }
 
-namespace gmpi
+namespace sesdk // was 'gmpi'
 {
 template< class moduleClass >
 class Register

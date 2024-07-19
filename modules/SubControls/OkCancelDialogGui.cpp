@@ -91,5 +91,5 @@ public:
 
 namespace
 {
-	auto r = Register<ConfirmationDialogGui>::withId(L"SE Confirmation Dialog");
+	auto r = sesdk::Register<ConfirmationDialogGui>::withId(L"SE Confirmation Dialog");
 }

@@ -111,7 +111,7 @@ public:
 
 namespace
 {
-	auto r = Register<MIDI2Converter>::withXml(R"XML(
+	auto r = sesdk::Register<MIDI2Converter>::withXml(R"XML(
 <?xml version="1.0" ?>
 <PluginList>
   <Plugin id="SE MIDI2 Converter" name="MIDI2 Converter" category="MIDI">

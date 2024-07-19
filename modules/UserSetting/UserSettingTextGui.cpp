@@ -27,6 +27,6 @@ public:
 
 namespace
 {
-	auto r = Register<UserSettingTextGui>::withId(L"SE UserSettingText");
+	auto r = sesdk::Register<UserSettingTextGui>::withId(L"SE UserSettingText");
 }
 SE_DECLARE_INIT_STATIC_FILE(UserSettingText_Gui);

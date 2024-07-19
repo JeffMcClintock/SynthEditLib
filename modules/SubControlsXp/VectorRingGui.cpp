@@ -624,11 +624,11 @@ namespace
 {
 	bool r[] =
 	{
-	Register<VectorBar>::withId(L"SE Vector Bar"),
-	Register<VectorRing>::withId(L"SE Vector Ring"),
-	Register<VectorKnob>::withId(L"SE Vector Knob"),
-	Register<VectorPanKnob>::withId(L"SE Vector Pan Knob"),
-	Register<VectorKnob_VCV>::withId(L"SE Vector Knob2"),
-	Register<VectorKnobCGui>::withId(L"SE Vector Knob C"),
+	sesdk::Register<VectorBar>::withId(L"SE Vector Bar"),
+	sesdk::Register<VectorRing>::withId(L"SE Vector Ring"),
+	sesdk::Register<VectorKnob>::withId(L"SE Vector Knob"),
+	sesdk::Register<VectorPanKnob>::withId(L"SE Vector Pan Knob"),
+	sesdk::Register<VectorKnob_VCV>::withId(L"SE Vector Knob2"),
+	sesdk::Register<VectorKnobCGui>::withId(L"SE Vector Knob C"),
 	};
 }

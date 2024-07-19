@@ -102,5 +102,5 @@ public:
 
 namespace
 {
-	auto r = Register<ReverbZita>::withId(L"SP Reverb Zita");
+	auto r = sesdk::Register<ReverbZita>::withId(L"SP Reverb Zita");
 }

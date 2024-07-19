@@ -85,5 +85,5 @@ public:
 
 namespace
 {
-	auto r = Register<PasswordHideGui>::withId(L"SE Password Hide");
+	auto r = sesdk::Register<PasswordHideGui>::withId(L"SE Password Hide");
 }

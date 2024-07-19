@@ -320,5 +320,5 @@ public:
 
 namespace
 {
-	bool r = Register<ListboxGui>::withId(L"SE Listbox");
+	bool r = sesdk::Register<ListboxGui>::withId(L"SE Listbox");
 }

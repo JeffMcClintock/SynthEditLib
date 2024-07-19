@@ -105,5 +105,5 @@ public:
 
 namespace
 {
-	auto r = Register<ReverbSp>::withId(L"SP Reverb SP");
+	auto r = sesdk::Register<ReverbSp>::withId(L"SP Reverb SP");
 }

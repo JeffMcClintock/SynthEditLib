@@ -264,5 +264,5 @@ public:
 
 namespace
 {
-	auto r = Register<Monitor>::withId(L"SE Monitor");
+	auto r = sesdk::Register<Monitor>::withId(L"SE Monitor");
 }

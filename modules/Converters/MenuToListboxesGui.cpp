@@ -230,5 +230,5 @@ public:
 
 namespace
 {
-	auto r = Register<MenuToListboxesGui>::withId(L"SE Menu to Listboxes");
+	auto r = sesdk::Register<MenuToListboxesGui>::withId(L"SE Menu to Listboxes");
 }

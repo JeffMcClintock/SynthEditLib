@@ -159,7 +159,7 @@ public:
 
 namespace
 {
-	auto r = Register<OctavesToHzPassband>::withId(L"SE Octaves to Hz (Passband)");
-	auto r2 = Register<OctavesToHzPassband2>::withId(L"SE Octaves to Hz (Passband)2");
+	auto r = sesdk::Register<OctavesToHzPassband>::withId(L"SE Octaves to Hz (Passband)");
+	auto r2 = sesdk::Register<OctavesToHzPassband2>::withId(L"SE Octaves to Hz (Passband)2");
 }
 

@@ -156,7 +156,7 @@ public:
 
 namespace
 {
-	auto r = gmpi::Register<IntegerCounter>::withXml(
+	auto r = sesdk::Register<IntegerCounter>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -295,7 +295,7 @@ public:
 
 namespace
 {
-	auto r2 = gmpi::Register<StepSequencer2>::withXml(
+	auto r2 = sesdk::Register<StepSequencer2>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -310,7 +310,7 @@ namespace
 </PluginList>
 )XML");
 
-	auto r3 = gmpi::Register<StepSequencer3>::withXml(
+	auto r3 = sesdk::Register<StepSequencer3>::withXml(
 		R"XML(
 <?xml version="1.0" ?>
 <PluginList>

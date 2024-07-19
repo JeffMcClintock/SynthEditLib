@@ -177,7 +177,7 @@ public:
 
 namespace
 {
-	auto r = Register<MidiToGate>::withId(L"SE MIDItoGate");
+	auto r = sesdk::Register<MidiToGate>::withId(L"SE MIDItoGate");
 }
 
 class MidiToGate2 : public MpBase2
@@ -299,5 +299,5 @@ public:
 
 namespace
 {
-	auto r2 = Register<MidiToGate2>::withId(L"SE MIDItoGate2");
+	auto r2 = sesdk::Register<MidiToGate2>::withId(L"SE MIDItoGate2");
 }

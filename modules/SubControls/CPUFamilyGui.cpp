@@ -82,5 +82,5 @@ public:
 
 namespace
 {
-	auto r = Register<CPUFamilyGui>::withId(L"SE CPU Family");
+	auto r = sesdk::Register<CPUFamilyGui>::withId(L"SE CPU Family");
 }

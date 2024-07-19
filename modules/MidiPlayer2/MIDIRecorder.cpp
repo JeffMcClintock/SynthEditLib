@@ -311,5 +311,5 @@ public:
 
 namespace
 {
-	auto r = Register<MIDIRecorder>::withId(L"SE MIDI Recorder");
+	auto r = sesdk::Register<MIDIRecorder>::withId(L"SE MIDI Recorder");
 }

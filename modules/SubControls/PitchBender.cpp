@@ -47,5 +47,5 @@ public:
 
 namespace
 {
-	auto r = Register<PitchBender>::withId(L"SE Pitch Bender");
+	auto r = sesdk::Register<PitchBender>::withId(L"SE Pitch Bender");
 }

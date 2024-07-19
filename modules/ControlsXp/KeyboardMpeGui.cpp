@@ -395,5 +395,5 @@ public:
 
 namespace
 {
-	auto r = Register<KeyboardMpeGui>::withId(L"SE Keyboard (MPE)");
+	auto r = sesdk::Register<KeyboardMpeGui>::withId(L"SE Keyboard (MPE)");
 }

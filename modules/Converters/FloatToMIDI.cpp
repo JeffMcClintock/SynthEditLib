@@ -100,5 +100,5 @@ public:
 
 namespace
 {
-	auto r = Register<FloatToMIDI>::withId(L"SE Float to MIDI");
+	auto r = sesdk::Register<FloatToMIDI>::withId(L"SE Float to MIDI");
 }

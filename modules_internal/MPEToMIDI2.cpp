@@ -285,7 +285,7 @@ public:
 
 namespace
 {
-	auto r = Register<MPEToMIDI2>::withXml(R"XML(
+	auto r = sesdk::Register<MPEToMIDI2>::withXml(R"XML(
 <?xml version="1.0" ?>
 <PluginList>
   <Plugin id="SE MPE to MIDI2" name="MPE to MIDI2" category="MIDI">

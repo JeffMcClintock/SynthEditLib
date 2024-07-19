@@ -126,7 +126,7 @@ private:
 
 namespace
 {
-	auto r3 = gmpi::Register<PatchCableChangeNotifier>::withId(L"SE PatchCableChangeNotifier");
+	auto r3 = sesdk::Register<PatchCableChangeNotifier>::withId(L"SE PatchCableChangeNotifier");
 }
 #endif
 

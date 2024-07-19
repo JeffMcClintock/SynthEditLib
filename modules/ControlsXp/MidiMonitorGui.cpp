@@ -37,6 +37,6 @@ public:
 
 namespace
 {
-	auto r = Register<MidiMonitorGui>::withId(L"SE Midi Monitor");
-	auto r2 = Register<MidiMonitorGui>::withId(L"SE Monitor");
+	auto r = sesdk::Register<MidiMonitorGui>::withId(L"SE Midi Monitor");
+	auto r2 = sesdk::Register<MidiMonitorGui>::withId(L"SE Monitor");
 }

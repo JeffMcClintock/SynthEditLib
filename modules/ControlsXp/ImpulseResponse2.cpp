@@ -125,5 +125,5 @@ public:
 
 namespace
 {
-	auto r = Register<ImpulseResponse2>::withId(L"SE Impulse Response2");
+	auto r = sesdk::Register<ImpulseResponse2>::withId(L"SE Impulse Response2");
 }

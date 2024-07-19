@@ -80,5 +80,5 @@ public:
 
 namespace
 {
-	auto r = Register<ListToAnimationGui>::withId(L"SE List to Animation");
+	auto r = sesdk::Register<ListToAnimationGui>::withId(L"SE List to Animation");
 }

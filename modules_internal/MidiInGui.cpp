@@ -99,7 +99,7 @@ public:
 
 namespace
 {
-	auto r = Register<MidiIn>::withXml(R"XML(
+	auto r = sesdk::Register<MidiIn>::withXml(R"XML(
 <?xml version="1.0" ?>
 <PluginList>
   <Plugin id="MIDI In" name="MIDI In" category="MIDI">
@@ -118,7 +118,7 @@ namespace
 </PluginList>
 )XML");
 
-	auto r2 = Register<MidiInGui>::withId(L"MIDI In");
+	auto r2 = sesdk::Register<MidiInGui>::withId(L"MIDI In");
 }
 
 

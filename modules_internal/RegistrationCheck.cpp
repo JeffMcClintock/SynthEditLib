@@ -65,7 +65,7 @@ public:
 
 namespace
 {
-	auto r2 = Register<RegistrationSerialGeneratorGui>::withXml(
+	auto r2 = sesdk::Register<RegistrationSerialGeneratorGui>::withXml(
 R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -104,7 +104,7 @@ public:
 
 namespace
 {
-	auto r = Register<RegistrationCheck>::withXml(
+	auto r = sesdk::Register<RegistrationCheck>::withXml(
 R"XML(
 <?xml version="1.0" ?>
 <PluginList>
@@ -144,7 +144,7 @@ public:
 
 namespace
 {
-	auto r3 = Register<RegistrationCheckGui>::withXml(
+	auto r3 = sesdk::Register<RegistrationCheckGui>::withXml(
 R"XML(
 <?xml version="1.0" ?>
 <PluginList>

@@ -56,5 +56,5 @@ public:
 
 namespace
 {
-	auto r = Register<StructureGroupGui>::withId(L"SE Structure Group2");
+	auto r = sesdk::Register<StructureGroupGui>::withId(L"SE Structure Group2");
 }

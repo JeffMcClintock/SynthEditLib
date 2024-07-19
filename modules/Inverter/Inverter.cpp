@@ -144,5 +144,5 @@ void Inverter::onSetPins()
 
 namespace
 {
-	auto r = gmpi::Register<Inverter>::withId(L"SynthEdit Inverter2");
+	auto r = sesdk::Register<Inverter>::withId(L"SynthEdit Inverter2");
 }

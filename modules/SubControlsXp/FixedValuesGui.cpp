@@ -30,9 +30,9 @@ public:
 
 namespace
 {
-	auto r = Register<FixedValuesGui<std::wstring>>::withId(L"SE:GUIFixedValues_text");
-	auto r1 = Register<FixedValuesGui<int32_t>>::withId(L"SE:GUIFixedValues_int");
-	auto r2 = Register<FixedValuesGui<float>>::withId(L"SE:GUIFixedValues_float");
-	auto r3 = Register<FixedValuesGui<bool>>::withId(L"SE:GUIFixedValues_bool");
-	auto r4 = Register<FixedValuesGui<int64_t>>::withId(L"SE:GUIFixedValues_int64");
+	auto r  = sesdk::Register<FixedValuesGui<std::wstring>>::withId(L"SE:GUIFixedValues_text");
+	auto r1 = sesdk::Register<FixedValuesGui<int32_t>>::withId(L"SE:GUIFixedValues_int");
+	auto r2 = sesdk::Register<FixedValuesGui<float>>::withId(L"SE:GUIFixedValues_float");
+	auto r3 = sesdk::Register<FixedValuesGui<bool>>::withId(L"SE:GUIFixedValues_bool");
+	auto r4 = sesdk::Register<FixedValuesGui<int64_t>>::withId(L"SE:GUIFixedValues_int64");
 }

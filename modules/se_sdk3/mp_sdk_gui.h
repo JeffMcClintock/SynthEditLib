@@ -27,11 +27,11 @@ return SE_REGISTER_PLUGIN_FUNC(gmpi::MP_SUB_TYPE_GUI, moduleIdentifier,
 namespace
 {
 auto r1 = Register< SimpleGuiConverter<int, bool> >::Gui(L"SE IntToBool GUI");
-auto r2 = Register< BlobToText >::Gui(L"SE BlobToText GUI");
+auto r2 = sesdk::Register< BlobToText >::Gui(L"SE BlobToText GUI");
 }
 
 // This could be done with templated function returning pointer to moduleInfo (or surrogate).
-auto r = Register(BlobToText)->withId(L"SE BlobToText GUI");
+auto r = sesdk::Register(BlobToText)->withId(L"SE BlobToText GUI");
 */
 
 

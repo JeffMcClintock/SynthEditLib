@@ -104,5 +104,5 @@ public:
 
 namespace
 {
-	auto r = Register<MidiMonitor>::withId(L"SE Midi Monitor");
+	auto r = sesdk::Register<MidiMonitor>::withId(L"SE Midi Monitor");
 }
