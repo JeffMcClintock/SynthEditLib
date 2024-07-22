@@ -917,6 +917,9 @@ namespace SE2
 					{
 						releaseCapture();
 					}
+					if (mouseOverObject == dragline)
+						mouseOverObject = {};
+
 					const auto dragLineRect = (*it)->GetClipRect();
 					invalidateRect(&dragLineRect);
 
