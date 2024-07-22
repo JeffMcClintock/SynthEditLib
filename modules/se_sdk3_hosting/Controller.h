@@ -12,7 +12,7 @@
 #include "../se_sdk3/mp_gui.h"
 #include "../shared/FileWatcher.h"
 #include "IGuiHost2.h"
-#include "../../interThreadQue.h"
+#include "interThreadQue.h"
 #include "MpParameter.h"
 #include "ControllerHost.h"
 #include "ProcessorStateManager.h"

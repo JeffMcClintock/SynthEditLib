@@ -5,7 +5,7 @@
 #include <mutex>
 #include <functional>
 #include "TimerManager.h"
-#include "../shared/lock_free_fifo.h"
+#include "lock_free_fifo.h"
 #include "GmpiApiCommon.h"
 #include "RawView.h"
 
