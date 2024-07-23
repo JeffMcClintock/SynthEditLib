@@ -344,8 +344,6 @@ namespace gmpi
 				r.top = r.left = -defaultClipBounds;
 				r.bottom = r.right = defaultClipBounds;
 				clipRectStack.push_back(r);
-
-//				stringConverter = &(mFactory.stringConverter);
 			}
 
 			virtual ~GraphicsContext()

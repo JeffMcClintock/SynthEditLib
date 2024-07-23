@@ -544,7 +544,7 @@ void DrawingFrameBase::OnPaint()
 */
 
 		{
-			GmpiDrawing::Graphics graphics(context.get());
+			GmpiDrawing::Graphics graphics(context);
 
 			graphics.BeginDraw();
 			graphics.SetTransform(viewTransform);
@@ -573,7 +573,7 @@ void DrawingFrameBase::OnPaint()
 				//_RPTW4(_CRT_WARN, L"GmpiDrawing::Rect dirtyRect{%4d,%4d,%4d,%4d};\n", (int)temp.left, (int)temp.top, (int)temp.right, (int)temp.bottom);
 				graphics.PushAxisAlignedClip(temp);
 
-				gmpi_gui_client->OnRender(context.get());
+				gmpi_gui_client->OnRender(context);
 				graphics.PopAxisAlignedClip();
 			}
 			else
@@ -593,7 +593,7 @@ void DrawingFrameBase::OnPaint()
 
 					graphics.PushAxisAlignedClip(temp);
 
-					gmpi_gui_client->OnRender(static_cast<GmpiDrawing_API::IMpDeviceContext*>(context.get()));
+					gmpi_gui_client->OnRender(static_cast<GmpiDrawing_API::IMpDeviceContext*>(context));
 					graphics.PopAxisAlignedClip();
 				}
 			}
@@ -955,13 +955,17 @@ void DrawingFrameBase::CreateDevice()
 
 	CreateDeviceSwapChainBitmap();
 
-	if (DrawingFactory.getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB) // DX_support_sRGB)
+	if (DrawingFactory.getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
 	{
-		context.reset(new se::directx::GraphicsContext2(mpRenderTarget, &DrawingFactory));
+		contextB = nullptr;
+		contextA.reset(new se::directx::UniversalGraphicsContext(DrawingFactory.getInfo(), mpRenderTarget));
+		context = &contextA->sdk3Context;
 	}
 	else
 	{
-		context.reset(new se::directx::GraphicsContext_Win7(mpRenderTarget, &DrawingFactory));
+		contextA = nullptr;
+		contextB.reset(new se::directx::UniversalGraphicsContext_win7(DrawingFactory.getInfo(), mpRenderTarget));
+		context = &contextB->sdk3Context;
 	}
 }
 

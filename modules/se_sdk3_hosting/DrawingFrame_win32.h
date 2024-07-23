@@ -33,7 +33,9 @@ namespace GmpiGuiHosting
 		std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
 		bool firstPresent = false;
 		UpdateRegionWinGdi updateRegion_native;
-		std::unique_ptr<se::directx::GraphicsContext> context;
+		std::unique_ptr<se::directx::UniversalGraphicsContext> contextA;
+		std::unique_ptr<se::directx::UniversalGraphicsContext_win7> contextB;
+		se::directx::GraphicsContext_SDK3* context{};
 		gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> frameUpdateClient;
 
 	protected:
@@ -63,7 +65,7 @@ namespace GmpiGuiHosting
 
 	public:
 		static const int viewDimensions = 7968; // DIPs (divisible by grids 60x60 + 2 24 pixel borders)
-		se::directx::Factory DrawingFactory;
+		se::directx::Factory_SDK3 DrawingFactory;
 
 		DrawingFrameBase() :
 			mpRenderTarget(nullptr)

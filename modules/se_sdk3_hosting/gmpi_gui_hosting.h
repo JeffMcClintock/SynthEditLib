@@ -170,7 +170,7 @@ namespace GmpiGuiHosting
 
 		gmpi_gui::MpCompletionHandler onPopupMenuCompleteEvent;
 		GmpiGui::PopupMenu nativeMenu;
-		GmpiDrawing_API::MP1_POINT menuPosition;
+		GmpiDrawing_API::MP1_POINT menuPosition{};
 
 	public:
 		std::vector<menuInfo2> menuInfoList;

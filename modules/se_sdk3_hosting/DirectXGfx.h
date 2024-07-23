@@ -671,16 +671,18 @@ namespace se // gmpi
 			ID2D1Bitmap* nativeBitmap_;
 			ID2D1DeviceContext* nativeContext_;
 			IWICBitmap* diBitmap_ = {};
-			class Factory* factory;
+			GmpiDrawing_API::IMpFactory* factory;
+			GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat_ = GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB;
 #ifdef _DEBUG
 			std::string debugFilename;
 #endif
-			Bitmap(Factory* pfactory, IWICBitmap* diBitmap);
+			Bitmap(GmpiDrawing_API::IMpFactory* pfactory, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, IWICBitmap* diBitmap);
 
-			Bitmap(Factory* pfactory, ID2D1DeviceContext* nativeContext, ID2D1Bitmap* nativeBitmap) :
+			Bitmap(GmpiDrawing_API::IMpFactory* pfactory, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, ID2D1DeviceContext* nativeContext, ID2D1Bitmap* nativeBitmap) :
 				nativeBitmap_(nativeBitmap)
 				, nativeContext_(nativeContext)
 				, factory(pfactory)
+				, pixelFormat_(pixelFormat)
 			{
 				nativeBitmap->AddRef();
 			}
@@ -915,7 +917,7 @@ namespace se // gmpi
 
 		class Geometry : public GmpiDrawing_API::IMpPathGeometry
 		{
-			friend class GraphicsContext;
+			friend class GraphicsContext_SDK3;
 
 			ID2D1PathGeometry* geometry_;
 
@@ -972,53 +974,47 @@ namespace se // gmpi
 		};
 
 
-		class Factory : public GmpiDrawing_API::IMpFactory2
+		class Factory_base : public GmpiDrawing_API::IMpFactory2
 		{
-			friend class Factory_RG;
-
 		protected:
-			ID2D1Factory1* m_pDirect2dFactory = {};
-			IDWriteFactory* writeFactory = {};
-			IWICImagingFactory* pIWICFactory = {};
-			std::vector<std::wstring> supportedFontFamiliesLowerCase;
-			std::vector<std::string> supportedFontFamilies;
-			std::map<std::wstring, std::wstring> GdiFontConversions;
-			bool DX_support_sRGB = true;
+			gmpi::directx::DxFactoryInfo& info;
 
 		public:
 			static std::wstring_convert<std::codecvt_utf8<wchar_t>> stringConverter; // cached, as constructor is super-slow.
 
-			Factory();
-			~Factory();
-			void Init();
+			Factory_base(gmpi::directx::DxFactoryInfo& pinfo) : info(pinfo) {}
+
+			gmpi::directx::DxFactoryInfo& getInfo() {
+				return info;
+			}
 
 			// for diagnostics only.
 			auto getDirectWriteFactory()
 			{
-				return writeFactory;
+				return info.writeFactory;
 			}
 			auto getWicFactory()
 			{
-				return pIWICFactory;
+				return info.pIWICFactory;
 			}
 			auto getFactory()
 			{
-				return m_pDirect2dFactory;
+				return info.m_pDirect2dFactory;
 			}
 
 			void setSrgbSupport(bool s)
 			{
-				DX_support_sRGB = s;
+				info.DX_support_sRGB = s;
 			}
 			
 			GmpiDrawing_API::IMpBitmapPixels::PixelFormat getPlatformPixelFormat()
 			{
-				return DX_support_sRGB ? GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB : GmpiDrawing_API::IMpBitmapPixels::kBGRA;
+				return info.DX_support_sRGB ? GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB : GmpiDrawing_API::IMpBitmapPixels::kBGRA;
 			}
 
 			ID2D1Factory1* getD2dFactory()
 			{
-				return m_pDirect2dFactory;
+				return info.m_pDirect2dFactory;
 			}
 			std::wstring fontMatch(std::wstring fontName, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, float fontSize);
 
@@ -1032,7 +1028,7 @@ namespace se // gmpi
 
 				ID2D1StrokeStyle* b = nullptr;
 
-				auto hr = m_pDirect2dFactory->CreateStrokeStyle((const D2D1_STROKE_STYLE_PROPERTIES*) strokeStyleProperties, dashes, dashesCount, &b);
+				auto hr = info.m_pDirect2dFactory->CreateStrokeStyle((const D2D1_STROKE_STYLE_PROPERTIES*) strokeStyleProperties, dashes, dashesCount, &b);
 
 				if (hr == 0)
 				{
@@ -1067,23 +1063,29 @@ namespace se // gmpi
 			GMPI_REFCOUNT_NO_DELETE;
 		};
 
+		class Factory_SDK3 : public Factory_base
+		{
+			gmpi::directx::DxFactoryInfo concreteInfo;
+
+		public:
+			Factory_SDK3() : Factory_base(concreteInfo){}
+			~Factory_SDK3();
+			void Init();
+		};
+
 		class Factory_RG : public gmpi::directx::Factory_base
 		{
 		public:
-			Factory_RG(se::directx::Factory* pfactory) : gmpi::directx::Factory_base(
-				  pfactory->supportedFontFamiliesLowerCase
-				, pfactory->supportedFontFamilies
-				, pfactory->GdiFontConversions
-				)
+			Factory_RG(gmpi::directx::DxFactoryInfo& pinfo) : gmpi::directx::Factory_base(pinfo)
 			{
-				writeFactory = pfactory->getDirectWriteFactory();
-				pIWICFactory = pfactory->getWicFactory();
-				DX_support_sRGB = pfactory->DX_support_sRGB;
-				m_pDirect2dFactory = pfactory->getD2dFactory();
+				//writeFactory = pfactory->getDirectWriteFactory();
+				//pIWICFactory = pfactory->getWicFactory();
+				//DX_support_sRGB = pfactory->DX_support_sRGB;
+				//m_pDirect2dFactory = pfactory->getD2dFactory();
 
-				writeFactory->AddRef();
-				pIWICFactory->AddRef();
-				m_pDirect2dFactory->AddRef();
+				//writeFactory->AddRef();
+				//pIWICFactory->AddRef();
+				//m_pDirect2dFactory->AddRef();
 			}
 
 			GMPI_QUERYINTERFACE_METHOD(gmpi::drawing::api::IFactory);
@@ -1094,26 +1096,26 @@ namespace se // gmpi
 		class GraphicsContext_RG : public gmpi::directx::GraphicsContext_base
 		{
 		protected:
-			ID2D1DeviceContext* context_{}; // allows us to queryInterface back to the SynthEdit version.
-			GmpiDrawing_API::IMpDeviceContext* legacyContext_{};
+			ID2D1DeviceContext* context_{};
 			Factory_RG factory;
+			gmpi::api::IUnknown* fallback{};
 
 		public:
-			GraphicsContext_RG(ID2D1DeviceContext* deviceContext, GmpiDrawing_API::IMpDeviceContext* legacyContext, Factory* pfactory) :
-				gmpi::directx::GraphicsContext_base(deviceContext, &factory)
+			GraphicsContext_RG(gmpi::api::IUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* deviceContext) :
+				gmpi::directx::GraphicsContext_base(&factory, deviceContext)
 				, context_(deviceContext)
-				, legacyContext_(legacyContext)
-				, factory(pfactory)
+				, factory(pinfo)
+				, fallback(pfallback)
 			{
 			}
 
-			// for BitmapRenderTarget which populates context in it's constructor
-			GraphicsContext_RG(GmpiDrawing_API::IMpDeviceContext* legacyContext, Factory* pfactory) :
-				gmpi::directx::GraphicsContext_base(&factory)
-				, legacyContext_(legacyContext)
-				, factory(pfactory)
-			{
-			}
+			//// for BitmapRenderTarget which populates context in it's constructor
+			//GraphicsContext_RG(gmpi::api::IUnknown* legacyContext, Factory* pfactory) :
+			//	gmpi::directx::GraphicsContext_base(&factory)
+			//	, legacyContext_(legacyContext)
+			//	, factory(pfactory)
+			//{
+			//}
 #if 0
 			// "real" GMPI-UI API
 				// IResource (gmpi_ui)
@@ -1152,7 +1154,7 @@ namespace se // gmpi
 #endif
 			gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override {
 				*returnInterface = {};
-				if ((*iid) == gmpi::drawing::api::IDeviceContext::guid || (*iid) == gmpi::api::IUnknown::guid) {
+				if ((*iid) == gmpi::drawing::api::IDeviceContext::guid) {
 					*returnInterface = static_cast<gmpi::drawing::api::IDeviceContext*>(this); addRef();
 					return gmpi::ReturnCode::Ok;
 				}
@@ -1161,56 +1163,48 @@ namespace se // gmpi
 					return gmpi::ReturnCode::Ok;
 				}
 
-				// back to Classic SE DeviceContext
-				if ((*iid) == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
-				{
-					*returnInterface = legacyContext_;
-					legacyContext_->addRef();
-					return gmpi::ReturnCode::Ok;
-				}
+				if(fallback)
+					return fallback->queryInterface(iid, returnInterface);
 
 				return gmpi::ReturnCode::NoSupport;
 			}
 			GMPI_REFCOUNT_NO_DELETE;
 		};
 
-		// Classic version (holds a GMPI-UI interface as a member)
-		class GraphicsContext : public GmpiDrawing_API::IMpDeviceContext
+		// Classic version
+		class GraphicsContext_SDK3 : public GmpiDrawing_API::IMpDeviceContext
 		{
 		protected:
 			ID2D1DeviceContext* context_{};
-
-			Factory* factory;
-
-			GraphicsContext_RG gmpi_ui_context;
+			Factory_base factory;
+			gmpi::IMpUnknown* fallback{};
 
 			std::vector<GmpiDrawing_API::MP1_RECT> clipRectStack;
-			std::wstring_convert<std::codecvt_utf8<wchar_t>>* stringConverter; // cached, as constructor is super-slow.
-
-			void Init()
-			{
-				stringConverter = &(factory->stringConverter);
-			}
-
 		public:
-			GraphicsContext(ID2D1DeviceContext* deviceContext, Factory* pfactory) :
+			GraphicsContext_SDK3(gmpi::IMpUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* deviceContext = 0) :
 				context_(deviceContext)
-				, factory(pfactory)
-				, gmpi_ui_context(deviceContext, this, pfactory)
+				, factory(pinfo)
+				, fallback(pfallback)
 			{
-				context_->AddRef();
-				Init();
+				if(context_)
+					context_->AddRef();
+
+				// gmpiContext inits it's clip rect, SDK3 does not.
+				const float defaultClipBounds = 100000.0f;
+				GmpiDrawing_API::MP1_RECT r;
+				r.top = r.left = -defaultClipBounds;
+				r.bottom = r.right = defaultClipBounds;
+				clipRectStack.push_back(r);
 			}
 
-			GraphicsContext(Factory* pfactory) :
-				context_(nullptr)
-				, factory(pfactory)
-				, gmpi_ui_context(this, pfactory)
-			{
-				Init();
-			}
+			//GraphicsContext_SDK3(Factory* pfactory) :
+			//	context_(nullptr)
+			//	, factory(pfactory)
+			//{
+			//	Init();
+			//}
 
-			~GraphicsContext()
+			~GraphicsContext_SDK3()
 			{
 				context_->Release();
 			}
@@ -1222,7 +1216,7 @@ namespace se // gmpi
 
 			void GetFactory(GmpiDrawing_API::IMpFactory** pfactory) override
 			{
-				*pfactory = factory;
+				*pfactory = &factory;
 			}
 
 			void DrawRectangle(const GmpiDrawing_API::MP1_RECT* rect, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override
@@ -1336,13 +1330,8 @@ namespace se // gmpi
 
 			int32_t CreateLinearGradientBrush(const GmpiDrawing_API::MP1_LINEAR_GRADIENT_BRUSH_PROPERTIES* linearGradientBrushProperties, const GmpiDrawing_API::MP1_BRUSH_PROPERTIES* brushProperties, const  GmpiDrawing_API::IMpGradientStopCollection* gradientStopCollection, GmpiDrawing_API::IMpLinearGradientBrush** linearGradientBrush) override
 			{
-				//*linearGradientBrush = nullptr;
-				//gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-				//b2.Attach(new LinearGradientBrush(factory, context_, linearGradientBrushProperties, brushProperties, gradientStopCollection));
-				//return b2->queryInterface(GmpiDrawing_API::SE_IID_LINEARGRADIENTBRUSH_MPGUI, reinterpret_cast<void **>(linearGradientBrush));
-
 				return make_wrapped(
-					new LinearGradientBrush(factory, context_, linearGradientBrushProperties, brushProperties, gradientStopCollection),
+					new LinearGradientBrush(&factory, context_, linearGradientBrushProperties, brushProperties, gradientStopCollection),
 					GmpiDrawing_API::SE_IID_LINEARGRADIENTBRUSH_MPGUI,
 					linearGradientBrush);
 			}
@@ -1351,14 +1340,14 @@ namespace se // gmpi
 			{
 				*returnBrush = nullptr;
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-				b2.Attach(new BitmapBrush(factory, context_, bitmap, bitmapBrushProperties, brushProperties));
+				b2.Attach(new BitmapBrush(&factory, context_, bitmap, bitmapBrushProperties, brushProperties));
 				return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAPBRUSH_MPGUI, reinterpret_cast<void **>(returnBrush));
 			}
 			int32_t CreateRadialGradientBrush(const GmpiDrawing_API::MP1_RADIAL_GRADIENT_BRUSH_PROPERTIES* radialGradientBrushProperties, const GmpiDrawing_API::MP1_BRUSH_PROPERTIES* brushProperties, const GmpiDrawing_API::IMpGradientStopCollection* gradientStopCollection, GmpiDrawing_API::IMpRadialGradientBrush** radialGradientBrush) override
 			{
 				*radialGradientBrush = nullptr;
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-				b2.Attach(new RadialGradientBrush(factory, context_, radialGradientBrushProperties, brushProperties, gradientStopCollection));
+				b2.Attach(new RadialGradientBrush(&factory, context_, radialGradientBrushProperties, brushProperties, gradientStopCollection));
 				return b2->queryInterface(GmpiDrawing_API::SE_IID_RADIALGRADIENTBRUSH_MPGUI, reinterpret_cast<void **>(radialGradientBrush));
 			}
 
@@ -1425,7 +1414,7 @@ namespace se // gmpi
 
 			bool SupportSRGB()
 			{
-				return factory->getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB;
+				return factory.getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB;
 			}
 
 			int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
@@ -1437,45 +1426,39 @@ namespace se // gmpi
 					addRef();
 					return gmpi::MP_OK;
 				}
-				if (iid == *reinterpret_cast<const gmpi::MpGuid*>(&gmpi::drawing::api::IDeviceContext::guid))
-				{
-					return (int32_t)gmpi_ui_context.queryInterface((const gmpi::api::Guid*) &iid, returnInterface);
-				}
+
+				if (fallback)
+					return fallback->queryInterface(iid, returnInterface);
+
 				return gmpi::MP_NOSUPPORT;
 			}
 			GMPI_REFCOUNT_NO_DELETE;
 		};
 
-		class GraphicsContext2 : public GraphicsContext, public GmpiDrawing_API::IMpDeviceContextExt
+		class GraphicsContext2 : public GraphicsContext_SDK3, public GmpiDrawing_API::IMpDeviceContextExt
 		{
 		public:
-			GraphicsContext2(ID2D1DeviceContext* deviceContext, Factory* pfactory) : GraphicsContext(deviceContext, pfactory) {}
-			GraphicsContext2(Factory* pfactory) : GraphicsContext(pfactory) {}
+			GraphicsContext2(gmpi::IMpUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* deviceContext = {}) : GraphicsContext_SDK3(pfallback, pinfo, deviceContext){}
+//			GraphicsContext2(Factory* pfactory) : GraphicsContext_SDK3(pfactory) {}
 
 			int32_t MP_STDCALL CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** returnObject) override;
 
 			int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 			{
-				*returnInterface = 0;
-				if (iid == GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI || iid == gmpi::MP_IID_UNKNOWN)
-				{
-					*returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContext*>(this);
-					addRef();
-					return gmpi::MP_OK;
-				}
+				*returnInterface = nullptr;
 				if (iid == GmpiDrawing_API::IMpDeviceContextExt::guid)
 				{
 					*returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(this);
 					addRef();
 					return gmpi::MP_OK;
 				}
-				return gmpi::MP_NOSUPPORT;
-			}
 
+				return GraphicsContext_SDK3::queryInterface(iid, returnInterface);
+			}
 			GMPI_REFCOUNT_NO_DELETE;
 		};
 
-		class BitmapRenderTarget : public GraphicsContext
+		class BitmapRenderTarget : public GraphicsContext_SDK3
 		{
 			ID2D1BitmapRenderTarget* gpuBitmapRenderTarget = {};
 
@@ -1514,8 +1497,8 @@ namespace se // gmpi
 			}
 #endif
 			// Create on GPU only
-			BitmapRenderTarget(GraphicsContext* g, GmpiDrawing_API::MP1_SIZE desiredSize,Factory* pfactory, bool enableLockPixels = false) :
-				GraphicsContext(pfactory)
+			BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API::MP1_SIZE desiredSize, gmpi::directx::DxFactoryInfo& info, bool enableLockPixels = false) :
+				GraphicsContext_SDK3(nullptr, info)
 			{
 				if (enableLockPixels)
 				{
@@ -1531,8 +1514,8 @@ namespace se // gmpi
 						D2D1_FEATURE_LEVEL_DEFAULT
 					};
 
-					[[maybe_unused]] auto hr = pfactory->getWicFactory()->CreateBitmap((UINT)desiredSize.width, (UINT)desiredSize.height, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &wicBitmap);
-					pfactory->getD2dFactory()->CreateWicBitmapRenderTarget(wicBitmap, props, &wikBitmapRenderTarget);
+					[[maybe_unused]] auto hr = factory.getWicFactory()->CreateBitmap((UINT)desiredSize.width, (UINT)desiredSize.height, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &wicBitmap);
+					factory.getD2dFactory()->CreateWicBitmapRenderTarget(wicBitmap, props, &wikBitmapRenderTarget);
 					wikBitmapRenderTarget->QueryInterface(IID_ID2D1DeviceContext, (void**)&context_);
 				}
 				else
@@ -1570,7 +1553,7 @@ namespace se // gmpi
 				}
 				else
 				{
-					return GraphicsContext::queryInterface(iid, returnInterface);
+					return GraphicsContext_SDK3::queryInterface(iid, returnInterface);
 				}
 			}
 
@@ -1578,19 +1561,19 @@ namespace se // gmpi
 		};
 
 		// Direct2D context tailored to devices without sRGB high-color support. i.e. Windows 7.
-		class GraphicsContext_Win7 : public GraphicsContext
+		class GraphicsContext_Win7 : public GraphicsContext2
 		{
 		public:
 
-			GraphicsContext_Win7(ID2D1DeviceContext* context, Factory* pfactory) :
-				GraphicsContext(context, pfactory)
+			GraphicsContext_Win7(gmpi::IMpUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* context) :
+				GraphicsContext2(pfallback, pinfo, context)
 			{}
 
 			int32_t CreateSolidColorBrush(const GmpiDrawing_API::MP1_COLOR* color, GmpiDrawing_API::IMpSolidColorBrush **solidColorBrush) override
 			{
 				*solidColorBrush = nullptr;
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b;
-				b.Attach(new SolidColorBrush_Win7(context_, color, factory));
+				b.Attach(new SolidColorBrush_Win7(context_, color, &factory));
 				return b->queryInterface(GmpiDrawing_API::SE_IID_SOLIDCOLORBRUSH_MPGUI, reinterpret_cast<void **>(solidColorBrush));
 			}
 
@@ -1611,7 +1594,7 @@ namespace se // gmpi
 					dest.color.b = se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(srce.color.b));
 				}
 
-				return GraphicsContext::CreateGradientStopCollection(stops.data(), gradientStopsCount, gradientStopCollection);
+				return GraphicsContext_SDK3::CreateGradientStopCollection(stops.data(), gradientStopsCount, gradientStopCollection);
 			}
 
 			void Clear(const GmpiDrawing_API::MP1_COLOR* clearColor) override
@@ -1622,6 +1605,71 @@ namespace se // gmpi
 				color.b = se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color.b));
 				context_->Clear((D2D1_COLOR_F*)&color);
 			}
+		};
+
+		struct UniversalGraphicsContext : public gmpi::api::IUnknown
+		{
+			GraphicsContext_RG gmpiContext;
+			GraphicsContext2 sdk3Context;
+
+			UniversalGraphicsContext(gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* nativeContext = {}) :
+				gmpiContext(this, pinfo, nativeContext),
+				sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pinfo, nativeContext)
+			{
+			}
+
+			gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+			{
+				*returnInterface = {};
+				if (*iid == gmpi::drawing::api::IDeviceContext::guid || *iid == gmpi::drawing::api::IResource::guid)
+				{
+					return gmpiContext.queryInterface(iid, returnInterface);
+				}
+				if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
+				{
+					return (gmpi::ReturnCode)sdk3Context.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
+				}
+				if (*iid == gmpi::api::IUnknown::guid)
+				{
+					*returnInterface = this;
+					addRef();
+					return gmpi::ReturnCode::Ok;
+				}
+				return gmpi::ReturnCode::NoSupport;
+			}
+			GMPI_REFCOUNT_NO_DELETE;
+		};
+
+		struct UniversalGraphicsContext_win7 : public gmpi::api::IUnknown
+		{
+			GraphicsContext_RG gmpiContext;
+			GraphicsContext_Win7 sdk3Context;
+
+			UniversalGraphicsContext_win7(gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* nativeContext = {}) :
+				gmpiContext(this, pinfo, nativeContext),
+				sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pinfo, nativeContext)
+			{}
+
+			gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+			{
+				*returnInterface = {};
+				if (*iid == gmpi::drawing::api::IDeviceContext::guid || *iid == gmpi::drawing::api::IResource::guid)
+				{
+					return gmpiContext.queryInterface(iid, returnInterface);
+				}
+				if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
+				{
+					return (gmpi::ReturnCode)sdk3Context.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
+				}
+				if (*iid == gmpi::api::IUnknown::guid)
+				{
+					*returnInterface = this;
+					addRef();
+					return gmpi::ReturnCode::Ok;
+				}
+				return gmpi::ReturnCode::NoSupport;
+			}
+			GMPI_REFCOUNT_NO_DELETE;
 		};
 	} // Namespace
 } // Namespace
