@@ -206,8 +206,8 @@ namespace SE2
 		r = object->queryInterface(gmpi_gui_api::SE_IID_GRAPHICS_MPGUI4, pluginGraphics4.asIMpUnknownPtr());
 
 		// 'real' GMPI
-		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IEditor::guid)        , pluginParameters_GMPI.asIMpUnknownPtr());
-		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IDrawingClient::guid), pluginGraphics_GMPI.asIMpUnknownPtr());
+		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IEditor::guid)        , pluginParameters_GMPI.put_void());
+		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IDrawingClient::guid), pluginGraphics_GMPI.put_void());
 
 		if(pluginParameters_GMPI)
 		{
