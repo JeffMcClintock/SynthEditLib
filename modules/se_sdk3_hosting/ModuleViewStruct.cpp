@@ -263,11 +263,11 @@ namespace SE2
 		});
 
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
-//		constexpr auto plugTextSize = sharedGraphicResources_struct::plugTextSize;
 
 		auto totalPlugHeight = visiblePlugsCount * plugDiameter;
 
         auto drawingFactory = DrawingFactory();
+		assert(!drawingFactory.isNull());
 		auto resources = getDrawingResources(drawingFactory);
 
 		// calc text min width.
@@ -297,12 +297,7 @@ namespace SE2
 			gmpi::drawing::Size desiredSize{};
 			if (pluginGraphics_GMPI)
 			{
-//				gmpi::drawing::Size remainingSize{ remainingSize.width, remainingSize.height };
-//				gmpi::drawing::Size desiredSize{};
 				pluginGraphics_GMPI->measure(&remainingSize, &desiredSize);
-
-//				desiredSize.width = static_cast<float>(desiredSize.width);
-//				desiredSize.height = static_cast<float>(desiredSize.height);
 			}
 			else
 			{

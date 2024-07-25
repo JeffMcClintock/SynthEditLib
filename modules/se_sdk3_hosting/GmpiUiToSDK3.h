@@ -17,14 +17,10 @@ public:
 	GmpiToSDK3Factory(gmpi::drawing::api::IFactory* pnative) : native(pnative) {}
 
 	// IMpFactory
-	int32_t MP_STDCALL CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry** pathGeometry) override
-	{ return gmpi::MP_NOSUPPORT; }
-	int32_t MP_STDCALL CreateTextFormat(const char* fontFamilyName, void* unused /* fontCollection */, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, GmpiDrawing_API::MP1_FONT_STYLE fontStyle, GmpiDrawing_API::MP1_FONT_STRETCH fontStretch, float fontSize, void* unused2 /* localeName */, GmpiDrawing_API::IMpTextFormat** textFormat)  override
-	{ return gmpi::MP_NOSUPPORT; }
-	int32_t MP_STDCALL CreateImage(int32_t width, int32_t height, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override
-	{ return gmpi::MP_NOSUPPORT; }
-	int32_t MP_STDCALL LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override
-	{ return gmpi::MP_NOSUPPORT; }
+	int32_t MP_STDCALL CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry** pathGeometry) override;
+	int32_t MP_STDCALL CreateTextFormat(const char* fontFamilyName, void* unused /* fontCollection */, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, GmpiDrawing_API::MP1_FONT_STYLE fontStyle, GmpiDrawing_API::MP1_FONT_STRETCH fontStretch, float fontSize, void* unused2 /* localeName */, GmpiDrawing_API::IMpTextFormat** textFormat)  override;
+	int32_t MP_STDCALL CreateImage(int32_t width, int32_t height, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override;
+	int32_t MP_STDCALL LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override;
 	int32_t MP_STDCALL CreateStrokeStyle(const GmpiDrawing_API::MP1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, float* dashes, int32_t dashesCount, GmpiDrawing_API::IMpStrokeStyle** strokeStyle) override;
 
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
@@ -42,10 +38,12 @@ public:
 	GMPI_REFCOUNT_NO_DELETE;
 };
 
-class GmpiToSDK3Context : public GmpiDrawing_API::IMpDeviceContext, public GmpiDrawing_API::IMpDeviceContextExt
+class GmpiToSDK3Context_base : public GmpiDrawing_API::IMpDeviceContext, public GmpiDrawing_API::IMpDeviceContextExt
 {
 	friend class GmpiToSDK3Factory;
+	friend class g3_BitmapRenderTarget;
 
+protected:
 	gmpi::drawing::api::IDeviceContext* context_{};
 	GmpiToSDK3Factory factory;
 	gmpi::IMpUnknown* fallback{};
@@ -67,6 +65,11 @@ class GmpiToSDK3Context : public GmpiDrawing_API::IMpDeviceContext, public GmpiD
 		auto native() const {return native_.get();}
 	};
 
+	gmpi::drawing::api::IBrush* toNative(const GmpiDrawing_API::IMpBrush* brush) const
+	{
+		return dynamic_cast<const g3_BrushBase*>(brush)->native();
+	}
+
 	class g3_SolidColorBrush final : public GmpiDrawing_API::IMpSolidColorBrush, public g3_BrushBase
 	{
 		GmpiDrawing_API::MP1_COLOR color_{};
@@ -86,8 +89,109 @@ class GmpiToSDK3Context : public GmpiDrawing_API::IMpDeviceContext, public GmpiD
 			return color_;
 		}
 
+		// IMpResource
 		void MP_STDCALL GetFactory(GmpiDrawing_API::IMpFactory** factory) override{*factory = factory_;}
+
 		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_SOLIDCOLORBRUSH_MPGUI, GmpiDrawing_API::IMpSolidColorBrush);
+		GMPI_REFCOUNT;
+	};
+
+	class g3_GradientStopCollection final : public GmpiDrawing_API::IMpGradientStopCollection
+	{
+		mutable gmpi::shared_ptr<gmpi::drawing::api::IGradientstopCollection> native_;
+		GmpiDrawing_API::IMpFactory* factory_{};
+	public:
+		g3_GradientStopCollection(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IGradientstopCollection* native) : native_(native), factory_(factory) {}
+		auto native() const { return native_.get(); }
+
+		// IMpResource
+		void MP_STDCALL GetFactory(GmpiDrawing_API::IMpFactory** factory) override { *factory = factory_; }
+
+		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_GRADIENTSTOPCOLLECTION_MPGUI, GmpiDrawing_API::IMpGradientStopCollection);
+		GMPI_REFCOUNT;
+	};
+
+	class g3_LinearGradientBrush final : public GmpiDrawing_API::IMpLinearGradientBrush
+	{
+		mutable gmpi::shared_ptr<gmpi::drawing::api::ILinearGradientBrush> native_;
+		GmpiDrawing_API::IMpFactory* factory_{};
+	public:
+		g3_LinearGradientBrush(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::ILinearGradientBrush* native) : native_(native), factory_(factory) {}
+		auto native() const { return native_.get(); }
+
+		// IMpLinearGradientBrush
+		void MP_STDCALL SetStartPoint(GmpiDrawing_API::MP1_POINT startPoint) override
+		{
+			native()->setStartPoint(*(gmpi::drawing::Point*)&startPoint);
+		}
+		void MP_STDCALL SetEndPoint(GmpiDrawing_API::MP1_POINT endPoint) override
+		{
+			native()->setEndPoint(*(gmpi::drawing::Point*)&endPoint);
+		}
+
+		// IMpResource
+		void MP_STDCALL GetFactory(GmpiDrawing_API::IMpFactory** factory) override { *factory = factory_; }
+
+		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_LINEARGRADIENTBRUSH_MPGUI, GmpiDrawing_API::IMpLinearGradientBrush);
+		GMPI_REFCOUNT;
+	};
+
+	class g3_RadialGradientBrush final : public GmpiDrawing_API::IMpRadialGradientBrush
+	{
+		mutable gmpi::shared_ptr<gmpi::drawing::api::IRadialGradientBrush> native_;
+		GmpiDrawing_API::IMpFactory* factory_{};
+	public:
+		g3_RadialGradientBrush(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IRadialGradientBrush* native) : native_(native), factory_(factory) {}
+		auto native() const { return native_.get(); }
+
+		// IMpRadialGradientBrush
+		void MP_STDCALL SetCenter(GmpiDrawing_API::MP1_POINT center) override
+		{
+			native()->setCenter(*(gmpi::drawing::Point*)&center);
+		}
+		void MP_STDCALL SetGradientOriginOffset(GmpiDrawing_API::MP1_POINT gradientOriginOffset) override
+		{
+			native()->setGradientOriginOffset(*(gmpi::drawing::Point*)&gradientOriginOffset);
+		}
+		void MP_STDCALL SetRadiusX(float radiusX) override
+		{
+			native()->setRadiusX(radiusX);
+		}
+		void MP_STDCALL SetRadiusY(float radiusY) override
+		{
+			native()->setRadiusY(radiusY);
+		}
+
+		// IMpResource
+		void MP_STDCALL GetFactory(GmpiDrawing_API::IMpFactory** factory) override { *factory = factory_; }
+
+		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_RADIALGRADIENTBRUSH_MPGUI, GmpiDrawing_API::IMpRadialGradientBrush);
+		GMPI_REFCOUNT;
+	};
+
+	class g3_BitmapBrush final : public GmpiDrawing_API::IMpBitmapBrush
+	{
+		mutable gmpi::shared_ptr<gmpi::drawing::api::IBitmapBrush> native_;
+		GmpiDrawing_API::IMpFactory* factory_{};
+	public:
+		g3_BitmapBrush(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBitmapBrush* native) : native_(native), factory_(factory) {}
+		auto native() const { return native_.get(); }
+
+		// IMpBitmapBrush, methods not supported by GMPI-UI
+		void MP_STDCALL SetExtendModeX(GmpiDrawing_API::MP1_EXTEND_MODE extendModeX) override
+		{
+		}
+		void MP_STDCALL SetExtendModeY(GmpiDrawing_API::MP1_EXTEND_MODE extendModeY) override
+		{
+		}
+		void MP_STDCALL SetInterpolationMode(GmpiDrawing_API::MP1_BITMAP_INTERPOLATION_MODE interpolationMode) override
+		{
+		}
+
+		// IMpResource
+		void MP_STDCALL GetFactory(GmpiDrawing_API::IMpFactory** factory) override { *factory = factory_; }
+
+		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_BITMAPBRUSH_MPGUI, GmpiDrawing_API::IMpBitmapBrush);
 		GMPI_REFCOUNT;
 	};
 
@@ -118,17 +222,11 @@ class GmpiToSDK3Context : public GmpiDrawing_API::IMpDeviceContext, public GmpiD
 		GMPI_REFCOUNT;
 	};
 
-
-	gmpi::drawing::api::IBrush* toNative(const GmpiDrawing_API::IMpBrush* brush) const
-	{
-		return dynamic_cast<const g3_BrushBase*>(brush)->native();
-	}
-
 	gmpi::drawing::api::IStrokeStyle* toNative(const GmpiDrawing_API::IMpStrokeStyle* strokeStyle)
 	{
 		if (strokeStyle)
 		{
-			if (auto g3 = dynamic_cast<const g3_StrokeStyle*>(strokeStyle);g3)
+			if (auto g3 = dynamic_cast<const g3_StrokeStyle*>(strokeStyle); g3)
 			{
 				return g3->native();
 			}
@@ -136,19 +234,243 @@ class GmpiToSDK3Context : public GmpiDrawing_API::IMpDeviceContext, public GmpiD
 		return nullptr;
 	}
 
+	class g3_GeometrySink final : public GmpiDrawing_API::IMpGeometrySink2
+	{
+		mutable gmpi::shared_ptr<gmpi::drawing::api::IGeometrySink> native_;
+		GmpiDrawing_API::IMpFactory* factory_{};
+	public:
+		g3_GeometrySink(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IGeometrySink* native) : native_(native), factory_(factory) {}
+		auto native() const { return native_.get(); }
+
+		// IMpSimplifiedGeometrySink
+		void MP_STDCALL BeginFigure(GmpiDrawing_API::MP1_POINT startPoint, GmpiDrawing_API::MP1_FIGURE_BEGIN figureBegin) override
+		{
+			native()->beginFigure(*(gmpi::drawing::Point*) &startPoint, (gmpi::drawing::FigureBegin) figureBegin);
+		}
+		void MP_STDCALL AddLines(const GmpiDrawing_API::MP1_POINT* points, uint32_t pointsCount) override
+		{
+			native()->addLines((const gmpi::drawing::Point*) points, pointsCount);
+		}
+		void MP_STDCALL AddBeziers(const GmpiDrawing_API::MP1_BEZIER_SEGMENT* beziers, uint32_t beziersCount) override
+		{
+			native()->addBeziers((const gmpi::drawing::BezierSegment*) beziers, beziersCount);
+		}
+		void MP_STDCALL EndFigure(GmpiDrawing_API::MP1_FIGURE_END figureEnd) override
+		{
+			native()->endFigure((gmpi::drawing::FigureEnd) figureEnd);
+		}
+		int32_t MP_STDCALL Close() override
+		{
+			return (int32_t) native()->close();
+		}
+
+		// IMpGeometrySink
+		void MP_STDCALL AddLine(GmpiDrawing_API::MP1_POINT point)  override
+		{
+			native()->addLine(*(gmpi::drawing::Point*)&point);
+		}
+		void MP_STDCALL AddBezier(const GmpiDrawing_API::MP1_BEZIER_SEGMENT* bezier) override
+		{
+			native()->addBezier((const gmpi::drawing::BezierSegment*)bezier);
+		}
+		void MP_STDCALL AddQuadraticBezier(const GmpiDrawing_API::MP1_QUADRATIC_BEZIER_SEGMENT* bezier) override
+		{
+			native()->addQuadraticBezier((const gmpi::drawing::QuadraticBezierSegment*)bezier);
+		}
+		void MP_STDCALL AddQuadraticBeziers(const GmpiDrawing_API::MP1_QUADRATIC_BEZIER_SEGMENT* beziers, uint32_t beziersCount) override
+		{
+			native()->addQuadraticBeziers((const gmpi::drawing::QuadraticBezierSegment*)beziers, beziersCount);
+		}
+		void MP_STDCALL AddArc(const GmpiDrawing_API::MP1_ARC_SEGMENT* arc) override
+		{
+			native()->addArc((const gmpi::drawing::ArcSegment*)arc);
+		}
+
+		// IMpGeometrySink2
+		virtual void MP_STDCALL SetFillMode(GmpiDrawing_API::MP1_FILL_MODE fillMode) override
+		{
+			native()->setFillMode((gmpi::drawing::FillMode) fillMode);
+		}
+
+		int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+		{
+			if (iid == GmpiDrawing_API::SE_IID_GEOMETRYSINK2_MPGUI || iid == GmpiDrawing_API::SE_IID_GEOMETRYSINK_MPGUI || iid == gmpi::MP_IID_UNKNOWN)
+			{
+				*returnInterface = reinterpret_cast<void*>(static_cast<GmpiDrawing_API::IMpGeometrySink2*>(this));
+				addRef();
+				return gmpi::MP_OK;
+			}
+
+			*returnInterface = 0;
+			return gmpi::MP_NOSUPPORT;
+		}
+		GMPI_REFCOUNT;
+	};
+
+	class g3_PathGeometry final : public GmpiDrawing_API::IMpPathGeometry
+	{
+		mutable gmpi::shared_ptr<gmpi::drawing::api::IPathGeometry> native_;
+		GmpiDrawing_API::IMpFactory* factory_{};
+	public:
+		g3_PathGeometry(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IPathGeometry* native) : native_(native), factory_(factory) {}
+		auto native() const { return native_.get(); }
+
+		// IMpPathGeometry
+		int32_t MP_STDCALL Open(GmpiDrawing_API::IMpGeometrySink** geometrySink) override
+		{
+			gmpi::drawing::api::IGeometrySink* nativeGeometrySink{};
+			native()->open(&nativeGeometrySink);
+			*geometrySink = new g3_GeometrySink(factory_, nativeGeometrySink);
+			return gmpi::MP_OK;
+		}
+		int32_t MP_STDCALL StrokeContainsPoint(GmpiDrawing_API::MP1_POINT point, float strokeWidth, GmpiDrawing_API::IMpStrokeStyle* strokeStyle, const GmpiDrawing_API::MP1_MATRIX_3X2* worldTransform, bool* returnContains) override
+		{
+			return (int32_t) native()->strokeContainsPoint(*(gmpi::drawing::Point*)&point, strokeWidth, (gmpi::drawing::api::IStrokeStyle*)strokeStyle, (const gmpi::drawing::Matrix3x2*)worldTransform, returnContains);
+		}
+		int32_t MP_STDCALL FillContainsPoint(GmpiDrawing_API::MP1_POINT point, const GmpiDrawing_API::MP1_MATRIX_3X2* worldTransform, bool* returnContains) override
+		{
+			return (int32_t) native()->fillContainsPoint(*(gmpi::drawing::Point*)&point, (const gmpi::drawing::Matrix3x2*)worldTransform, returnContains);
+		}
+		int32_t MP_STDCALL GetWidenedBounds(float strokeWidth, GmpiDrawing_API::IMpStrokeStyle* strokeStyle, const GmpiDrawing_API::MP1_MATRIX_3X2* worldTransform, GmpiDrawing_API::MP1_RECT* returnBounds) override
+		{
+			return (int32_t) native()->getWidenedBounds(strokeWidth, (gmpi::drawing::api::IStrokeStyle*)strokeStyle, (const gmpi::drawing::Matrix3x2*)worldTransform, (gmpi::drawing::Rect*)returnBounds);
+		}
+
+		// IMpResource
+		void MP_STDCALL GetFactory(GmpiDrawing_API::IMpFactory** factory) override { *factory = factory_; }
+
+		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_PATHGEOMETRY_MPGUI, GmpiDrawing_API::IMpPathGeometry);
+		GMPI_REFCOUNT;
+	};
+
+	auto toNative(const GmpiDrawing_API::IMpPathGeometry* geometry) const
+	{
+		return dynamic_cast<const g3_PathGeometry*>(geometry)->native();
+	}
+
+	class g3_TextFormat final : public GmpiDrawing_API::IMpTextFormat
+	{
+		mutable gmpi::shared_ptr<gmpi::drawing::api::ITextFormat> native_;
+		GmpiDrawing_API::IMpFactory* factory_{};
+	public:
+		g3_TextFormat(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::ITextFormat* native) : native_(native), factory_(factory) {}
+		auto native() const { return native_.get(); }
+
+		// IMpTextFormat
+		int32_t MP_STDCALL SetTextAlignment(GmpiDrawing_API::MP1_TEXT_ALIGNMENT textAlignment) override
+		{
+			return (int32_t)native()->setTextAlignment((gmpi::drawing::TextAlignment)textAlignment);
+		}
+		int32_t MP_STDCALL SetParagraphAlignment(GmpiDrawing_API::MP1_PARAGRAPH_ALIGNMENT paragraphAlignment) override
+		{
+			return (int32_t)native()->setParagraphAlignment((gmpi::drawing::ParagraphAlignment)paragraphAlignment);
+		}
+		int32_t MP_STDCALL SetWordWrapping(GmpiDrawing_API::MP1_WORD_WRAPPING wordWrapping) override
+		{
+			return (int32_t)native()->setWordWrapping((gmpi::drawing::WordWrapping)wordWrapping);
+		}
+		void MP_STDCALL GetTextExtentU(const char* utf8String, int32_t stringLength, GmpiDrawing_API::MP1_SIZE* returnSize) override
+		{
+			(int32_t)native()->getTextExtentU(utf8String, stringLength, (gmpi::drawing::Size*)returnSize);
+		}
+		int32_t MP_STDCALL GetFontMetrics(GmpiDrawing_API::MP1_FONT_METRICS* returnFontMetrics) override
+		{
+			return (int32_t)native()->getFontMetrics((gmpi::drawing::FontMetrics*)returnFontMetrics);
+		}
+		int32_t MP_STDCALL SetLineSpacing(float lineSpacing, float baseline) override
+		{
+			return (int32_t)native()->setLineSpacing(lineSpacing, baseline);
+		}
+		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_TEXTFORMAT_MPGUI, GmpiDrawing_API::IMpTextFormat);
+		GMPI_REFCOUNT;
+	};
+
+	auto toNative(const GmpiDrawing_API::IMpTextFormat* textFormat) const
+	{
+		return dynamic_cast<const g3_TextFormat*>(textFormat)->native();
+	}
+
+	class g3_BitmapPixels final : public GmpiDrawing_API::IMpBitmapPixels
+	{
+		mutable gmpi::shared_ptr<gmpi::drawing::api::IBitmapPixels> native_;
+		GmpiDrawing_API::IMpFactory* factory_{};
+	public:
+		g3_BitmapPixels(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBitmapPixels* native) : native_(native), factory_(factory) {}
+		auto native() const { return native_.get(); }
+
+		// IMpBitmapPixels
+		uint8_t* MP_STDCALL getAddress() const override
+		{
+			uint8_t* returnAddress{};
+			native()->getAddress(&returnAddress);
+			return returnAddress;
+		}
+		int32_t MP_STDCALL getBytesPerRow() const override
+		{
+			int32_t returnBytesPerRow{};
+			native()->getBytesPerRow(&returnBytesPerRow);
+			return returnBytesPerRow;
+		}
+		int32_t MP_STDCALL getPixelFormat() const override
+		{
+			int32_t returnPixelFormat{};
+			native()->getPixelFormat(&returnPixelFormat);
+			return returnPixelFormat;
+		}
+
+		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_BITMAP_PIXELS_MPGUI, GmpiDrawing_API::IMpBitmapPixels);
+		GMPI_REFCOUNT;
+	};
+
+	class g3_Bitmap final : public GmpiDrawing_API::IMpBitmap
+	{
+		mutable gmpi::shared_ptr<gmpi::drawing::api::IBitmap> native_;
+		GmpiDrawing_API::IMpFactory* factory_{};
+	public:
+		g3_Bitmap(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBitmap* native) : native_(native), factory_(factory) {}
+		auto native() const { return native_.get(); }
+
+		// IMpBitmap
+		GmpiDrawing_API::MP1_SIZE MP_STDCALL GetSizeF() override
+		{
+			gmpi::drawing::SizeU sizeU{};
+			native()->getSizeU(&sizeU);
+
+			return { static_cast<float>(sizeU.width), static_cast<float>(sizeU.height) };
+		}
+		int32_t MP_STDCALL lockPixelsOld(GmpiDrawing_API::IMpBitmapPixels** returnPixels, bool alphaPremultiplied = false)
+		{
+			return lockPixels(returnPixels, GmpiDrawing_API::MP1_BITMAP_LOCK_READ | GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE);
+		}
+		void MP_STDCALL ApplyAlphaCorrection() {}
+		int32_t MP_STDCALL GetSize(GmpiDrawing_API::MP1_SIZE_U* returnSize)
+		{
+			return (int32_t) native()->getSizeU((gmpi::drawing::SizeU*)returnSize);
+		}
+		int32_t MP_STDCALL lockPixels(GmpiDrawing_API::IMpBitmapPixels** returnPixels, int32_t flags)
+		{
+			gmpi::drawing::api::IBitmapPixels* pixels{};
+			auto hr = native()->lockPixels(&pixels, flags);
+			if (hr == gmpi::ReturnCode::Ok)
+			{
+				*returnPixels = new g3_BitmapPixels(factory_, pixels);
+			}
+			return (int32_t) hr;
+		}
+
+		// IMpResource
+		void MP_STDCALL GetFactory(GmpiDrawing_API::IMpFactory** factory) override { *factory = factory_; }
+
+		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, GmpiDrawing_API::IMpBitmap);
+		GMPI_REFCOUNT;
+	};
 
 public:
-	GmpiToSDK3Context(gmpi::IMpUnknown* pfallback, gmpi::drawing::api::IDeviceContext* native) :
+	GmpiToSDK3Context_base(gmpi::IMpUnknown* pfallback, gmpi::drawing::api::IDeviceContext* native) :
 		fallback(pfallback)
 		, context_(native)
 		, factory(factoryGetter(native))
 	{
-	}
-
-	// IMpDeviceContextExt
-	int32_t MP_STDCALL CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget) override
-	{
-		return gmpi::MP_NOSUPPORT;
 	}
 
 	// IMpDeviceContext
@@ -185,48 +507,23 @@ public:
 
 	void DrawGeometry(const GmpiDrawing_API::IMpPathGeometry* geometry, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth = 1.0f, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = 0) override
 	{
+		context_->drawGeometry(toNative(geometry), toNative(brush), strokeWidth, toNative(strokeStyle));
 	}
 
 	void FillGeometry(const GmpiDrawing_API::IMpPathGeometry* geometry, const GmpiDrawing_API::IMpBrush* brush, const GmpiDrawing_API::IMpBrush* opacityBrush) override
 	{
-#if 0
-		auto d2d_geometry = ((Geometry*)geometry)->geometry_;
-
-		ID2D1Brush* opacityBrushNative;
-		if (opacityBrush)
-		{
-			opacityBrushNative = ((Brush*)brush)->nativeBrush();
-		}
-		else
-		{
-			opacityBrushNative = nullptr;
-		}
-
-		context_->fillGeometry(d2d_geometry, ((Brush*)brush)->nativeBrush(), opacityBrushNative);
-#endif
+		context_->fillGeometry(toNative(geometry), toNative(brush), toNative(opacityBrush));
 	}
 
 	void DrawTextU(const char* utf8String, int32_t stringLength, const GmpiDrawing_API::IMpTextFormat* textFormat, const GmpiDrawing_API::MP1_RECT* layoutRect, const GmpiDrawing_API::IMpBrush* brush, int32_t flags) override
 	{
+		context_->drawTextU(utf8String, stringLength, toNative(textFormat), (const gmpi::drawing::Rect*)layoutRect, toNative(brush), flags);
 	}
 
 	//	void DrawBitmap( GmpiDrawing_API::IMpBitmap* mpBitmap, GmpiDrawing::Rect destinationRectangle, float opacity, int32_t interpolationMode, GmpiDrawing::Rect sourceRectangle) override
 	void DrawBitmap(const GmpiDrawing_API::IMpBitmap* mpBitmap, const GmpiDrawing_API::MP1_RECT* destinationRectangle, float opacity, /* MP1_BITMAP_INTERPOLATION_MODE*/ int32_t interpolationMode, const GmpiDrawing_API::MP1_RECT* sourceRectangle) override
 	{
-#if 0
-		auto bm = ((Bitmap*)mpBitmap);
-		auto bitmap = bm->GetNativeBitmap(context_);
-		if (bitmap)
-		{
-			context_->drawBitmap(
-				bitmap,
-				(const gmpi::drawing::Rect*)destinationRectangle,
-				opacity,
-				(D2D1_BITMAP_INTERPOLATION_MODE)interpolationMode,
-				(const gmpi::drawing::Rect*)sourceRectangle
-			);
-		}
-#endif
+		context_->drawBitmap(dynamic_cast<const g3_Bitmap*>(mpBitmap)->native(), (const gmpi::drawing::Rect*)destinationRectangle, opacity, (gmpi::drawing::BitmapInterpolationMode)interpolationMode, (const gmpi::drawing::Rect*)sourceRectangle);
 	}
 
 	void SetTransform(const GmpiDrawing_API::MP1_MATRIX_3X2* transform) override
@@ -260,48 +557,90 @@ public:
 
 	int32_t CreateGradientStopCollection(const GmpiDrawing_API::MP1_GRADIENT_STOP* gradientStops, uint32_t gradientStopsCount, /* GmpiDrawing_API::MP1_GAMMA colorInterpolationGamma, GmpiDrawing_API::MP1_EXTEND_MODE extendMode,*/ GmpiDrawing_API::IMpGradientStopCollection** gradientStopCollection) override
 	{
-		return gmpi::MP_NOSUPPORT;
+		*gradientStopCollection = nullptr;
+
+		gmpi::drawing::api::IGradientstopCollection* b{};
+		auto hr = context_->createGradientstopCollection((const gmpi::drawing::Gradientstop*) gradientStops, gradientStopsCount, gmpi::drawing::ExtendMode::Clamp, &b);
+
+		if (hr == gmpi::ReturnCode::Ok)
+		{
+			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
+			b2.Attach(new g3_GradientStopCollection(&factory, b));
+
+			b2->queryInterface(GmpiDrawing_API::SE_IID_GRADIENTSTOPCOLLECTION_MPGUI, reinterpret_cast<void**>(gradientStopCollection));
+		}
+
+		return (int32_t)hr;
 	}
-#if 0
-	template <typename T>
-	int32_t make_wrapped(gmpi::IMpUnknown* object, const gmpi::MpGuid& iid, T** returnObject)
-	{
-		*returnObject = nullptr;
-		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-		b2.Attach(object);
-		return b2->queryInterface(iid, reinterpret_cast<void**>(returnObject));
-	};
-#endif
+
 	int32_t CreateLinearGradientBrush(const GmpiDrawing_API::MP1_LINEAR_GRADIENT_BRUSH_PROPERTIES* linearGradientBrushProperties, const GmpiDrawing_API::MP1_BRUSH_PROPERTIES* brushProperties, const  GmpiDrawing_API::IMpGradientStopCollection* gradientStopCollection, GmpiDrawing_API::IMpLinearGradientBrush** linearGradientBrush) override
 	{
-		//return make_wrapped(
-		//	new LinearGradientBrush(&factory, context_, linearGradientBrushProperties, brushProperties, gradientStopCollection),
-		//	GmpiDrawing_API::SE_IID_LINEARGRADIENTBRUSH_MPGUI,
-		//	linearGradientBrush);
-		return gmpi::MP_NOSUPPORT;
+		*linearGradientBrush = nullptr;
+
+		gmpi::drawing::api::ILinearGradientBrush* b{};
+		auto hr = context_->createLinearGradientBrush(
+			(const gmpi::drawing::LinearGradientBrushProperties*) linearGradientBrushProperties,
+			(const gmpi::drawing::BrushProperties*) brushProperties,
+			dynamic_cast<const g3_GradientStopCollection*>(gradientStopCollection)->native(),
+			&b
+		);
+
+		if (hr == gmpi::ReturnCode::Ok)
+		{
+			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
+			b2.Attach(new g3_LinearGradientBrush(&factory, b));
+
+			b2->queryInterface(GmpiDrawing_API::SE_IID_LINEARGRADIENTBRUSH_MPGUI, reinterpret_cast<void**>(linearGradientBrush));
+		}
+
+		return (int32_t)hr;
 	}
 
 	int32_t CreateBitmapBrush(const GmpiDrawing_API::IMpBitmap* bitmap, const GmpiDrawing_API::MP1_BITMAP_BRUSH_PROPERTIES* bitmapBrushProperties, const GmpiDrawing_API::MP1_BRUSH_PROPERTIES* brushProperties, GmpiDrawing_API::IMpBitmapBrush** returnBrush) override
 	{
-		//*returnBrush = nullptr;
-		//gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-		//b2.Attach(new BitmapBrush(&factory, context_, bitmap, bitmapBrushProperties, brushProperties));
-		//return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAPBRUSH_MPGUI, reinterpret_cast<void**>(returnBrush));
-		return gmpi::MP_NOSUPPORT;
-	}
-	int32_t CreateRadialGradientBrush(const GmpiDrawing_API::MP1_RADIAL_GRADIENT_BRUSH_PROPERTIES* radialGradientBrushProperties, const GmpiDrawing_API::MP1_BRUSH_PROPERTIES* brushProperties, const GmpiDrawing_API::IMpGradientStopCollection* gradientStopCollection, GmpiDrawing_API::IMpRadialGradientBrush** radialGradientBrush) override
-	{
-		//*radialGradientBrush = nullptr;
-		//gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-		//b2.Attach(new RadialGradientBrush(&factory, context_, radialGradientBrushProperties, brushProperties, gradientStopCollection));
-		//return b2->queryInterface(GmpiDrawing_API::SE_IID_RADIALGRADIENTBRUSH_MPGUI, reinterpret_cast<void**>(radialGradientBrush));
-		return gmpi::MP_NOSUPPORT;
+		returnBrush = nullptr;
+
+		gmpi::drawing::api::IBitmapBrush* b{};
+		auto hr = context_->createBitmapBrush(dynamic_cast<const g3_Bitmap*>(bitmap)->native(), (const gmpi::drawing::BrushProperties*)brushProperties, &b);
+
+		if (hr == gmpi::ReturnCode::Ok)
+		{
+			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
+			b2.Attach(new g3_BitmapBrush(&factory, b));
+
+			b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAPBRUSH_MPGUI, reinterpret_cast<void**>(returnBrush));
+		}
+
+		return (int32_t)hr;
 	}
 
-	int32_t CreateCompatibleRenderTarget(const GmpiDrawing_API::MP1_SIZE* desiredSize, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget) override
+	int32_t CreateRadialGradientBrush(const GmpiDrawing_API::MP1_RADIAL_GRADIENT_BRUSH_PROPERTIES* radialGradientBrushProperties, const GmpiDrawing_API::MP1_BRUSH_PROPERTIES* brushProperties, const GmpiDrawing_API::IMpGradientStopCollection* gradientStopCollection, GmpiDrawing_API::IMpRadialGradientBrush** radialGradientBrush) override
 	{
-		return gmpi::MP_NOSUPPORT;
+		*radialGradientBrush = nullptr;
+
+		gmpi::drawing::api::IRadialGradientBrush* b{};
+		auto hr = context_->createRadialGradientBrush(
+			(const gmpi::drawing::RadialGradientBrushProperties*) radialGradientBrushProperties,
+			(const gmpi::drawing::BrushProperties*) brushProperties,
+			dynamic_cast<const g3_GradientStopCollection*>(gradientStopCollection)->native(),
+			&b
+		);
+
+		if (hr == gmpi::ReturnCode::Ok)
+		{
+			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
+			b2.Attach(new g3_RadialGradientBrush(&factory, b));
+
+			b2->queryInterface(GmpiDrawing_API::SE_IID_RADIALGRADIENTBRUSH_MPGUI, reinterpret_cast<void**>(radialGradientBrush));
+		}
+
+		return (int32_t)hr;
 	}
+
+	int32_t CreateCompatibleRenderTarget(const GmpiDrawing_API::MP1_SIZE* desiredSize, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget) override;
+
+	// IMpDeviceContextExt
+	int32_t MP_STDCALL CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget) override;
 
 	void DrawRoundedRectangle(const GmpiDrawing_API::MP1_ROUNDED_RECT* roundedRect, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override
 	{
@@ -344,8 +683,15 @@ public:
 	{
 		return (int32_t) context_->endDraw();
 	}
+};
 
-	int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override {
+class GmpiToSDK3Context final : public GmpiToSDK3Context_base
+{
+public:
+	GmpiToSDK3Context(gmpi::IMpUnknown* pfallback, gmpi::drawing::api::IDeviceContext* native) : GmpiToSDK3Context_base(pfallback, native) {}
+
+	int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+	{
 		*returnInterface = {};
 		if (iid == GmpiDrawing_API::IMpDeviceContextExt::guid)
 		{
@@ -367,6 +713,106 @@ public:
 	}
 	GMPI_REFCOUNT_NO_DELETE;
 };
+
+
+class g3_BitmapRenderTarget final : public GmpiToSDK3Context_base // emulated by careful layout: public IBitmapRenderTarget
+{
+//	mutable gmpi::shared_ptr<gmpi::drawing::api::IBitmapRenderTarget> native_;
+
+	gmpi::drawing::api::IBitmapRenderTarget* makeNative(GmpiToSDK3Context_base* g, const gmpi::drawing::Size* desiredSize) const
+	{
+		gmpi::drawing::api::IBitmapRenderTarget* native{};
+		g->context_->createCompatibleRenderTarget(*desiredSize, &native);
+		return native;
+	}
+public:
+	g3_BitmapRenderTarget(GmpiToSDK3Context_base* g, const gmpi::drawing::Size* desiredSize, GmpiDrawing_API::IMpFactory* pfactory) :
+		GmpiToSDK3Context_base(nullptr, makeNative(g, desiredSize))
+	{
+		context_->queryInterface(&gmpi::drawing::api::IBitmapRenderTarget::guid, (void**)&context_);
+	}
+
+	// HACK, to be ABI compatible with IBitmapRenderTarget we need this virtual function,
+	// and it needs to be in the vtable right after all virtual functions of GraphicsContext
+	virtual gmpi::ReturnCode getBitmap(gmpi::drawing::api::IBitmap** returnBitmap)
+	{
+		gmpi::drawing::api::IBitmapRenderTarget* native{};
+		context_->queryInterface(&gmpi::drawing::api::IBitmapRenderTarget::guid, (void**)&native);
+
+		gmpi::drawing::api::IBitmap* bitmap{};
+		native->getBitmap(&bitmap);
+
+		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
+		b2.Attach(new GmpiToSDK3Context::g3_Bitmap(&factory, bitmap));
+
+		return (gmpi::ReturnCode) b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void**>(returnBitmap));
+	}
+
+	//int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+	//{
+	//	*returnInterface = {};
+	//	if (iid == GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI)
+	//	{
+	//		// non-standard. Forcing this class (which has the correct vtable) to pretend it's the emulated interface.
+	//		*returnInterface = reinterpret_cast<GmpiDrawing_API::IMpBitmapRenderTarget*>(this);
+	//		addRef();
+	//		return gmpi::MP_OK;
+	//	}
+
+	//	return GmpiToSDK3Context_base::queryInterface(iid, returnInterface);
+	//}
+	int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+	{
+		*returnInterface = {};
+		if (iid == GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI)
+		{
+			// non-standard. Forcing this class (which has the correct vtable) to pretend it's the emulated interface.
+			*returnInterface = reinterpret_cast<GmpiDrawing_API::IMpBitmapRenderTarget*>(this);
+			addRef();
+			return gmpi::MP_OK;
+		}
+		if (iid == GmpiDrawing_API::IMpDeviceContextExt::guid)
+		{
+			*returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(this);
+			addRef();
+			return gmpi::MP_OK;
+		}
+		if (iid == GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI || iid == gmpi::MP_IID_UNKNOWN)
+		{
+			*returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContext*>(this);
+			addRef();
+			return gmpi::MP_OK;
+		}
+
+		if (fallback)
+			return fallback->queryInterface(iid, returnInterface);
+
+		return gmpi::MP_NOSUPPORT;
+	}
+	GMPI_REFCOUNT;
+};
+
+inline int32_t GmpiToSDK3Context_base::CreateCompatibleRenderTarget(const GmpiDrawing_API::MP1_SIZE* desiredSize, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget)
+{
+	*bitmapRenderTarget = nullptr;
+
+	gmpi_sdk::mp_shared_ptr<GmpiDrawing_API::IMpDeviceContext> b2;
+	b2.Attach(new g3_BitmapRenderTarget(this, (const gmpi::drawing::Size*) &desiredSize, &factory));
+	return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI, reinterpret_cast<void**>(bitmapRenderTarget));
+}
+
+// IMpDeviceContextExt
+inline int32_t MP_STDCALL GmpiToSDK3Context_base::CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget)
+{
+	*bitmapRenderTarget = nullptr;
+
+	const gmpi::drawing::Size sizef{ static_cast<float>(desiredSize.width), static_cast<float>(desiredSize.height) };
+
+	gmpi_sdk::mp_shared_ptr<GmpiDrawing_API::IMpDeviceContext> b2;
+	b2.Attach(static_cast<GmpiDrawing_API::IMpDeviceContext*>(new g3_BitmapRenderTarget(this, &sizef, &factory/*, enableLockPixels*/)));
+	return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI, reinterpret_cast<void**>(bitmapRenderTarget));
+}
+
 
 inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateStrokeStyle(const GmpiDrawing_API::MP1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, float* dashes, int32_t dashesCount, GmpiDrawing_API::IMpStrokeStyle** strokeStyle)
 {
@@ -400,6 +846,85 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateStrokeStyle(const GmpiDrawing
 	return (int32_t)hr;
 }
 
+inline int32_t MP_STDCALL GmpiToSDK3Factory::CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry** pathGeometry)
+{
+	*pathGeometry = nullptr;
+
+	gmpi::drawing::api::IPathGeometry* b{};
+	auto hr = native->createPathGeometry(&b);
+
+	if (hr == gmpi::ReturnCode::Ok)
+	{
+		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
+		b2.Attach(new GmpiToSDK3Context::g3_PathGeometry(this, b));
+
+		b2->queryInterface(GmpiDrawing_API::SE_IID_PATHGEOMETRY_MPGUI, reinterpret_cast<void**>(pathGeometry));
+	}
+
+	return (int32_t)hr;
+}
+
+int32_t MP_STDCALL GmpiToSDK3Factory::CreateTextFormat(const char* fontFamilyName, void* unused /* fontCollection */, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, GmpiDrawing_API::MP1_FONT_STYLE fontStyle, GmpiDrawing_API::MP1_FONT_STRETCH fontStretch, float fontSize, void* unused2 /* localeName */, GmpiDrawing_API::IMpTextFormat** textFormat)
+{
+	*textFormat = nullptr;
+
+	gmpi::drawing::api::ITextFormat* b{};
+	auto hr = native->createTextFormat(
+		fontFamilyName,
+		(gmpi::drawing::FontWeight) fontWeight,
+		(gmpi::drawing::FontStyle) fontStyle,
+		(gmpi::drawing::FontStretch) fontStretch,
+		fontSize,
+		&b
+	);
+
+	if (hr == gmpi::ReturnCode::Ok)
+	{
+		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
+		b2.Attach(new GmpiToSDK3Context::g3_TextFormat(this, b));
+
+		b2->queryInterface(GmpiDrawing_API::SE_IID_TEXTFORMAT_MPGUI, reinterpret_cast<void**>(textFormat));
+	}
+
+	return (int32_t)hr;
+}
+
+int32_t MP_STDCALL GmpiToSDK3Factory::CreateImage(int32_t width, int32_t height, GmpiDrawing_API::IMpBitmap** returnDiBitmap)
+{
+	*returnDiBitmap = nullptr;
+
+	gmpi::drawing::api::IBitmap* b{};
+	auto hr = native->createImage(width, height, &b);
+
+	if (hr == gmpi::ReturnCode::Ok)
+	{
+		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
+		b2.Attach(new GmpiToSDK3Context::g3_Bitmap(this, b));
+
+		b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void**>(returnDiBitmap));
+	}
+
+	return (int32_t)hr;
+}
+
+int32_t MP_STDCALL GmpiToSDK3Factory::LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnDiBitmap)
+{
+	*returnDiBitmap = nullptr;
+
+	gmpi::drawing::api::IBitmap* b{};
+	auto hr = native->loadImageU(utf8Uri, &b);
+
+	if (hr == gmpi::ReturnCode::Ok)
+	{
+		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
+		b2.Attach(new GmpiToSDK3Context::g3_Bitmap(this, b));
+
+		b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void**>(returnDiBitmap));
+	}
+
+	return (int32_t)hr;
+}
+
 struct UniversalGraphicsContext2 : public gmpi::api::IUnknown
 {
 	gmpi::drawing::api::IDeviceContext* gmpiContext;
@@ -418,7 +943,10 @@ struct UniversalGraphicsContext2 : public gmpi::api::IUnknown
 		{
 			return gmpiContext->queryInterface(iid, returnInterface);
 		}
-		if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
+		if (
+			*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI) ||
+			*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::IMpDeviceContextExt::guid)
+			)
 		{
 			return (gmpi::ReturnCode)sdk3Context.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
 		}

@@ -1551,10 +1551,7 @@ namespace se // gmpi
 					addRef();
 					return gmpi::MP_OK;
 				}
-				else
-				{
-					return GraphicsContext_SDK3::queryInterface(iid, returnInterface);
-				}
+				return GraphicsContext_SDK3::queryInterface(iid, returnInterface);
 			}
 
 			GMPI_REFCOUNT;

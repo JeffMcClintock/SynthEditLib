@@ -954,7 +954,7 @@ void DrawingFrameBase::CreateDevice()
 	//	mpRenderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE); // "The quality of rendering grayscale text is comparable to ClearType but is much faster."}
 
 	CreateDeviceSwapChainBitmap();
-
+/*
 	if (DrawingFactory.getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
 	{
 		contextB = nullptr;
@@ -967,6 +967,7 @@ void DrawingFrameBase::CreateDevice()
 		contextB.reset(new se::directx::UniversalGraphicsContext_win7(DrawingFactory.getInfo(), mpRenderTarget));
 		context = &contextB->sdk3Context;
 	}
+*/
 }
 
 void DrawingFrameBase::CreateDeviceSwapChainBitmap()

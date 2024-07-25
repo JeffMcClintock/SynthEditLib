@@ -42,7 +42,10 @@ public:
 
 	ModuleViewStruct(const wchar_t* typeId, ViewBase* pParent, int handle) : ModuleView(typeId, pParent, handle) {}
 	ModuleViewStruct(Json::Value* context, class ViewBase* pParent, std::map<int, class ModuleView*>& guiObjectMap);
-
+	//~ModuleViewStruct()
+	//{
+	//	int test = 9;
+	//}
 	virtual GmpiDrawing::Rect GetClipRect() override;
 
 	GmpiDrawing::PathGeometry CreateModuleOutline(GmpiDrawing::Factory& factory);
