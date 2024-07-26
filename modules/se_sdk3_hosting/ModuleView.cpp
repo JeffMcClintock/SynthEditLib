@@ -31,7 +31,23 @@ using namespace GmpiDrawing;
 
 namespace SE2
 {
+	// IInputHost
+	gmpi::ReturnCode GmpiUiHelper::setCapture() { return (gmpi::ReturnCode) moduleview.setCapture();}
+	gmpi::ReturnCode GmpiUiHelper::getCapture(bool& returnValue) { int32_t cap{}; moduleview.getCapture(cap); returnValue = cap != 0; return gmpi::ReturnCode::Ok; }
+	gmpi::ReturnCode GmpiUiHelper::releaseCapture() { return (gmpi::ReturnCode) moduleview.releaseCapture(); }
+	gmpi::ReturnCode GmpiUiHelper::getFocus() { return gmpi::ReturnCode::NoSupport; }
+	gmpi::ReturnCode GmpiUiHelper::releaseFocus() { return gmpi::ReturnCode::NoSupport; }
+	// IEditorHost
+	gmpi::ReturnCode GmpiUiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const void* data) { return (gmpi::ReturnCode) moduleview.pinTransmit(pinId, size, data, voice); }
+	int32_t GmpiUiHelper::getHandle() { return moduleview.handle; }
+	// IDrawingHost
+	gmpi::ReturnCode GmpiUiHelper::getDrawingFactory(gmpi::api::IUnknown** returnFactory) { return (gmpi::ReturnCode) moduleview.GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory); }
+	void GmpiUiHelper::invalidateRect(const gmpi::drawing::Rect* invalidRect) { moduleview.invalidateRect((const GmpiDrawing_API::MP1_RECT*) invalidRect); }
+
+	////////////////////////////////////////////////////////
+
 	ModuleView::ModuleView(const wchar_t* typeId, ViewBase* pParent, int handle) : ViewChild(pParent, handle)
+		, uiHelper(*this)
 		, recursionStopper_(0)
 		, initialised_(false)
 		, ignoreMouse(false)
@@ -40,6 +56,7 @@ namespace SE2
 	}
 
 	ModuleView::ModuleView(Json::Value* context, ViewBase* pParent) : ViewChild(context, pParent)
+		, uiHelper(*this)
 		, recursionStopper_(0)
 		, initialised_(false)
 		, ignoreMouse(false)
@@ -208,10 +225,11 @@ namespace SE2
 		// 'real' GMPI
 		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IEditor::guid)       , pluginParameters_GMPI.put_void());
 		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IDrawingClient::guid), pluginGraphics_GMPI.put_void());
-
+		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IInputClient::guid)  , pluginInput_GMPI.put_void());
+		
 		if(pluginParameters_GMPI)
 		{
-			pluginParameters_GMPI->setHost((gmpi::api::IUnknown*) static_cast<gmpi::IMpUserInterfaceHost*>(this));
+			pluginParameters_GMPI->setHost(static_cast<gmpi::api::IEditorHost*>(&uiHelper));
 		}
 		else if (!pluginParameters.isNull())
 		{
@@ -712,7 +730,7 @@ namespace SE2
 			return gmpi::MP_UNHANDLED;
 
 		// pluginGraphics2 supports hit-testing, else need to call onPointerDown() to determin hit on client.
-		if (pluginGraphics2 || parent->getViewType() == CF_STRUCTURE_VIEW) // Since Structure view is "behind" client, it always gets selected.
+		if (pluginGraphics_GMPI || pluginGraphics2 || parent->getViewType() == CF_STRUCTURE_VIEW) // Since Structure view is "behind" client, it always gets selected.
 		{
 			Presenter()->ObjectClicked(handle, gmpi::modifier_keys::getHeldKeys());
 		}
@@ -724,7 +742,7 @@ namespace SE2
 		bool clientHit = false;
 
 		// Mouse over client area?
-		if (pluginGraphics && pluginGraphicsPos.ContainsPoint(moduleLocal))
+		if ((pluginGraphics_GMPI || pluginGraphics) && pluginGraphicsPos.ContainsPoint(moduleLocal))
 		{
 			Point local = PointToPlugin(point);
 
@@ -749,7 +767,7 @@ namespace SE2
 
 			int32_t res = MP_UNHANDLED;
 
-			if (pluginGraphics2) // Client supports proper hit testing.
+			if (pluginGraphics_GMPI || pluginGraphics2) // Client supports proper hit testing.
 			{
 				// In Panel-view, we can assume mouse already hit-tested against client. On Structure-view it could be a click on client OR on pins.
 				clientHit = parent->getViewType() == CF_PANEL_VIEW;
@@ -768,20 +786,30 @@ namespace SE2
 					}
 					else
 					{
-						clientHit = gmpi::MP_OK == pluginGraphics2->hitTest(local);
+						if(pluginInput_GMPI)
+						{
+							clientHit = (gmpi::ReturnCode::Ok == pluginInput_GMPI->hitTest(*(gmpi::drawing::Point*)&local, flags));
+						}
+						else if (pluginGraphics2)
+						{
+							clientHit = gmpi::MP_OK == pluginGraphics2->hitTest(local);
+						}
 					}
 				}
 
 				// In Panel-view, we can assume mouse already hit-tested against client. On Structure-view it could be a click on client OR on pins.
-				// clientHit = parent->getViewType() == CF_PANEL_VIEW || MP_OK == pluginGraphics2->hitTest(local);
-
-				if(clientHit)
-					res = pluginGraphics->onPointerDown(flags, local);// older modules indicate hit via return value.
+				if (clientHit)
+				{
+					if (pluginInput_GMPI)
+						res = (int32_t) pluginInput_GMPI->onPointerDown(*(gmpi::drawing::Point*)&local, flags);
+					if (pluginGraphics)
+						res = pluginGraphics->onPointerDown(flags, local);// older modules indicate hit via return value.
+				}
 			}
 			else
 			{
 				// Old system: Hit-testing inferred from onPointerDown() return value;
-				res = pluginGraphics->onPointerDown(flags, local);// older modules indicate hit via return value.
+				res = pluginGraphics->onPointerDown(flags, local); // older modules indicate hit via return value.
 
 				clientHit = (res == gmpi::MP_OK || res == gmpi::MP_HANDLED);
 
@@ -910,37 +938,50 @@ namespace SE2
 
 	int32_t ModuleView::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 	{
-		if (pluginGraphics)
+		const auto local = PointToPlugin(point);
+
+		if (pluginInput_GMPI)
 		{
-			auto local = PointToPlugin(point);
+			return (int32_t) pluginInput_GMPI->onPointerMove(*(gmpi::drawing::Point*)&local, flags);
+		}
+		else if (pluginGraphics)
+		{
 			return pluginGraphics->onPointerMove(flags, local);
 		}
-		else
-		{
-			return gmpi::MP_UNHANDLED;
-		}
+
+		return gmpi::MP_UNHANDLED;
 	}
 
 	int32_t ModuleView::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 	{
-		if (pluginGraphics)
+		const auto local = PointToPlugin(point);
+
+		if (pluginInput_GMPI)
 		{
-			auto local = PointToPlugin(point);
+			return (int32_t) pluginInput_GMPI->onPointerUp(*(gmpi::drawing::Point*)&local, flags);
+		}
+		else if (pluginGraphics)
+		{
 			return pluginGraphics->onPointerUp(flags, local);
 		}
-		else
-		{
-			return gmpi::MP_UNHANDLED;
-		}
+
+		return gmpi::MP_UNHANDLED;
 	}
 
 	int32_t ModuleView::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point)
 	{
-		if (!pluginGraphics3)
-			return gmpi::MP_UNHANDLED;
-
 		const auto local = PointToPlugin(point);
-		return pluginGraphics3->onMouseWheel(flags, delta, local);
+
+		if (pluginInput_GMPI)
+		{
+			return (int32_t) pluginInput_GMPI->onMouseWheel(*(gmpi::drawing::Point*)&local, flags, delta);
+		}
+		else if (pluginGraphics3)
+		{
+			return pluginGraphics3->onMouseWheel(flags, delta, local);
+		}
+
+		return gmpi::MP_UNHANDLED;
 	}
 
 	// legacy crap forwarded to new members..

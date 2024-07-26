@@ -121,10 +121,43 @@ namespace SE2
 		}
 	};
 
+	class GmpiUiHelper :
+		public gmpi::api::IInputHost,
+		public gmpi::api::IEditorHost,
+		public gmpi::api::IDrawingHost
+	{
+		class ModuleView& moduleview;
+	public:
+		GmpiUiHelper(ModuleView& pmoduleview) : moduleview(pmoduleview) {}
+
+		// IInputHost
+		gmpi::ReturnCode setCapture() override;
+		gmpi::ReturnCode getCapture(bool& returnValue) override;
+		gmpi::ReturnCode releaseCapture() override;
+		gmpi::ReturnCode getFocus() override;
+		gmpi::ReturnCode releaseFocus() override;
+		// IEditorHost
+		gmpi::ReturnCode setPin(int32_t pinId, int32_t voice, int32_t size, const void* data) override;
+		int32_t getHandle() override;
+		// IDrawingHost
+		gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override;
+		void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
+
+		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+		{
+			GMPI_QUERYINTERFACE(gmpi::api::IInputHost);
+			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost);
+			GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
+			return gmpi::ReturnCode::NoSupport;
+		}
+		GMPI_REFCOUNT;
+	};
+
 	class ModuleView : public ViewChild, public gmpi::IMpUserInterfaceHost2, public gmpi::IMpUserInterfaceHost, public gmpi_gui::IMpGraphicsHost
 	{
 	protected:
 		Module_Info* moduleInfo;
+		GmpiUiHelper uiHelper;
 
 	public:
 		static const int SelectionFrameOffset = 1;
@@ -362,6 +395,7 @@ namespace SE2
 
 		// 'real' GMPI
 		gmpi::shared_ptr<gmpi::api::IEditor> pluginParameters_GMPI;
+		gmpi::shared_ptr<gmpi::api::IInputClient> pluginInput_GMPI;
 		gmpi::shared_ptr<gmpi::api::IDrawingClient> pluginGraphics_GMPI;
 
 		GmpiDrawing::Rect pluginGraphicsPos;

@@ -167,6 +167,7 @@ namespace gmpi
 	return gmpi::MP_NOSUPPORT; \
 }
 
+#ifndef GMPI_REFCOUNT
 #define GMPI_REFCOUNT int32_t refCount2_ = 1; \
 	int32_t addRef() override \
 { \
@@ -180,7 +181,7 @@ namespace gmpi
 	return 0; \
 	} \
 	return refCount2_; \
-} \
+}
 
 #define GMPI_REFCOUNT_NO_DELETE	\
 	int32_t addRef() override \
@@ -190,7 +191,8 @@ namespace gmpi
 	int32_t release() override \
 { \
 	return 1; \
-} \
+}
+#endif
 
 #define GMPI_QUERYINTERFACE2( INTERFACE_IID, CLASS_NAME, BASE_CLASS ) \
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override \
@@ -203,7 +205,7 @@ namespace gmpi
 	return gmpi::MP_OK; \
 } \
 return BASE_CLASS::queryInterface(iid, returnInterface); \
-} \
+}
 
 namespace gmpi
 {
