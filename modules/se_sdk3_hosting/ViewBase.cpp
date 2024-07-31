@@ -1257,7 +1257,6 @@ namespace SE2
 		GmpiDrawing::Size avail(drawingBounds.getWidth(), drawingBounds.getHeight()); // relying on frame to have set size already.
 		GmpiDrawing::Size desired;
 		measure(avail, &desired);
-		//		arrange(GmpiDrawing::Rect(0, 0, avail.width, avail.height));
 		arrange(drawingBounds);
 
 		invalidateRect();

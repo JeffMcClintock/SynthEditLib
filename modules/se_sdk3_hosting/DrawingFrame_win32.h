@@ -71,6 +71,7 @@ namespace GmpiGuiHosting
 			, toolTipShown(false)
 			, tooltipWindow(0)
 			, reentrant(false)
+			, DrawingFactory(nullptr)
 		{
 			DrawingFactory.Init();
 		}

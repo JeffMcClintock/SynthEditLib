@@ -24,65 +24,6 @@
 class Module_Info;
 class cpu_accumulator;
 
-#if 0
-class GMPI_UI_Adaptor : public gmpi::drawing::api::IDeviceContext
-{
-	GmpiDrawing_API::IMpDeviceContext* context_ = {};
-
-public:
-	GMPI_UI_Adaptor(GmpiDrawing_API::IMpDeviceContext* context) : context_(context) {}
-
-	// IResource (gmpi_ui)
-	gmpi::ReturnCode getFactory(gmpi::drawing::api::IFactory** factory) override { return gmpi::ReturnCode::Ok; }
-
-	// IDeviceContext (gmpi_ui)
-	gmpi::ReturnCode createBitmapBrush(gmpi::drawing::api::IBitmap* bitmap, /*const BitmapBrushProperties* bitmapBrushProperties,*/ const gmpi::drawing::BrushProperties* brushProperties, gmpi::drawing::api::IBitmapBrush** returnBitmapBrush) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode createSolidColorBrush(const gmpi::drawing::Color* color, const gmpi::drawing::BrushProperties* brushProperties, gmpi::drawing::api::ISolidColorBrush** returnSolidColorBrush) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode createGradientstopCollection(const gmpi::drawing::Gradientstop* gradientstops, uint32_t gradientstopsCount, gmpi::drawing::ExtendMode extendMode, gmpi::drawing::api::IGradientstopCollection** returnGradientstopCollection) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode createLinearGradientBrush(const gmpi::drawing::LinearGradientBrushProperties* linearGradientBrushProperties, const gmpi::drawing::BrushProperties* brushProperties, gmpi::drawing::api::IGradientstopCollection* gradientstopCollection, gmpi::drawing::api::ILinearGradientBrush** returnLinearGradientBrush) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode createRadialGradientBrush(const gmpi::drawing::RadialGradientBrushProperties* radialGradientBrushProperties, const gmpi::drawing::BrushProperties* brushProperties, gmpi::drawing::api::IGradientstopCollection* gradientstopCollection, gmpi::drawing::api::IRadialGradientBrush** returnRadialGradientBrush) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode drawLine(gmpi::drawing::Point point0, gmpi::drawing::Point point1, gmpi::drawing::api::IBrush* brush, float strokeWidth, gmpi::drawing::api::IStrokeStyle* strokeStyle) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode drawRectangle(const gmpi::drawing::Rect* rect, gmpi::drawing::api::IBrush* brush, float strokeWidth, gmpi::drawing::api::IStrokeStyle* strokeStyle) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode fillRectangle(const gmpi::drawing::Rect* rect, gmpi::drawing::api::IBrush* brush) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode drawRoundedRectangle(const gmpi::drawing::RoundedRect* roundedRect, gmpi::drawing::api::IBrush* brush, float strokeWidth, gmpi::drawing::api::IStrokeStyle* strokeStyle) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode fillRoundedRectangle(const gmpi::drawing::RoundedRect* roundedRect, gmpi::drawing::api::IBrush* brush) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode drawEllipse(const gmpi::drawing::Ellipse* ellipse, gmpi::drawing::api::IBrush* brush, float strokeWidth, gmpi::drawing::api::IStrokeStyle* strokeStyle) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode fillEllipse(const gmpi::drawing::Ellipse* ellipse, gmpi::drawing::api::IBrush* brush) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode drawGeometry(gmpi::drawing::api::IPathGeometry* pathGeometry, gmpi::drawing::api::IBrush* brush, float strokeWidth, gmpi::drawing::api::IStrokeStyle* strokeStyle) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode fillGeometry(gmpi::drawing::api::IPathGeometry* pathGeometry, gmpi::drawing::api::IBrush* brush, gmpi::drawing::api::IBrush* opacityBrush) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode drawBitmap(gmpi::drawing::api::IBitmap* bitmap, const gmpi::drawing::Rect* destinationRectangle, float opacity, gmpi::drawing::BitmapInterpolationMode interpolationMode, const gmpi::drawing::Rect* sourceRectangle) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode drawTextU(const char* string, uint32_t stringLength, gmpi::drawing::api::ITextFormat* textFormat, const gmpi::drawing::Rect* layoutRect, gmpi::drawing::api::IBrush* defaultForegroundBrush, int32_t options) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode setTransform(const gmpi::drawing::Matrix3x2* transform) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode getTransform(gmpi::drawing::Matrix3x2* returnTransform) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode pushAxisAlignedClip(const gmpi::drawing::Rect* clipRect) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode popAxisAlignedClip() override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode getAxisAlignedClip(gmpi::drawing::Rect* returnClipRect) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode clear(const gmpi::drawing::Color* clearColor) override
-	{
-		context_->Clear((GmpiDrawing_API::MP1_COLOR*) clearColor);
-		return gmpi::ReturnCode::Ok;
-	}
-	gmpi::ReturnCode beginDraw() override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode endDraw() override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode createCompatibleRenderTarget(gmpi::drawing::Size desiredSize, struct gmpi::drawing::api::IBitmapRenderTarget** returnBitmapRenderTarget) override { return gmpi::ReturnCode::Ok; } // TODO SizeL ???
-
-	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override {
-		*returnInterface = {};
-		if ((*iid) == gmpi::drawing::api::IDeviceContext::guid || (*iid) == gmpi::api::IUnknown::guid) {
-			*returnInterface = static_cast<gmpi::drawing::api::IDeviceContext*>(this); addRef();
-			return gmpi::ReturnCode::Ok;
-		}
-		if ((*iid) == gmpi::drawing::api::IResource::guid) {
-			*returnInterface = static_cast<gmpi::drawing::api::IResource*>(this); addRef();
-			return gmpi::ReturnCode::Ok;
-		}
-		return gmpi::ReturnCode::NoSupport;
-	}
-
-	GMPI_REFCOUNT_NO_DELETE;
-};
-#endif
-
 namespace SE2
 {
 	class ResizeAdorner;

@@ -9,7 +9,7 @@
 
 namespace se
 {
-class GmpiToSDK3Factory : public GmpiDrawing_API::IMpFactory
+class GmpiToSDK3Factory : public GmpiDrawing_API::IMpFactory2
 {
 	gmpi::drawing::api::IFactory* native{};
 
@@ -22,17 +22,19 @@ public:
 	int32_t MP_STDCALL CreateImage(int32_t width, int32_t height, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override;
 	int32_t MP_STDCALL LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override;
 	int32_t MP_STDCALL CreateStrokeStyle(const GmpiDrawing_API::MP1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, float* dashes, int32_t dashesCount, GmpiDrawing_API::IMpStrokeStyle** strokeStyle) override;
+	// IMpFactory2
+	int32_t MP_STDCALL GetFontFamilyName(int32_t fontIndex, gmpi::IString* returnString) override;
 
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{
 		*returnInterface = 0;
 		if (iid == GmpiDrawing_API::SE_IID_FACTORY2_MPGUI || iid == GmpiDrawing_API::SE_IID_FACTORY_MPGUI || iid == gmpi::MP_IID_UNKNOWN)
 		{
-			*returnInterface = reinterpret_cast<GmpiDrawing_API::IMpFactory2*>(this);
+			*returnInterface = static_cast<GmpiDrawing_API::IMpFactory2*>(this);
 			addRef();
 			return gmpi::MP_OK;
 		}
-		return gmpi::MP_NOSUPPORT;
+		return (int32_t) native->queryInterface((const gmpi::api::Guid*) &iid, returnInterface);
 	}
 
 	GMPI_REFCOUNT_NO_DELETE;
@@ -45,15 +47,15 @@ class GmpiToSDK3Context_base : public GmpiDrawing_API::IMpDeviceContext, public 
 
 protected:
 	gmpi::drawing::api::IDeviceContext* context_{};
-	GmpiToSDK3Factory factory;
+	GmpiToSDK3Factory& factory;
 	gmpi::IMpUnknown* fallback{};
 
-	gmpi::drawing::api::IFactory* factoryGetter(gmpi::drawing::api::IResource* resource) const
-	{
-		gmpi::drawing::api::IFactory* f{};
-		resource->getFactory(&f);
-		return f;
-	}
+	//gmpi::drawing::api::IFactory* factoryGetter(gmpi::drawing::api::IResource* resource) const
+	//{
+	//	gmpi::drawing::api::IFactory* f{};
+	//	resource->getFactory(&f);
+	//	return f;
+	//}
 
 	class g3_BrushBase
 	{
@@ -67,7 +69,9 @@ protected:
 
 	gmpi::drawing::api::IBrush* toNative(const GmpiDrawing_API::IMpBrush* brush) const
 	{
-		return dynamic_cast<const g3_BrushBase*>(brush)->native();
+		if(brush)
+			return dynamic_cast<const g3_BrushBase*>(brush)->native();
+		return {};
 	}
 
 	class g3_SolidColorBrush final : public GmpiDrawing_API::IMpSolidColorBrush, public g3_BrushBase
@@ -111,22 +115,23 @@ protected:
 		GMPI_REFCOUNT;
 	};
 
-	class g3_LinearGradientBrush final : public GmpiDrawing_API::IMpLinearGradientBrush
+	class g3_LinearGradientBrush final : public GmpiDrawing_API::IMpLinearGradientBrush, public g3_BrushBase
 	{
-		mutable gmpi::shared_ptr<gmpi::drawing::api::ILinearGradientBrush> native_;
-		GmpiDrawing_API::IMpFactory* factory_{};
+//		mutable gmpi::shared_ptr<gmpi::drawing::api::ILinearGradientBrush> native_;
+//		GmpiDrawing_API::IMpFactory* factory_{};
+		mutable gmpi::drawing::api::ILinearGradientBrush* derivedNative_;
 	public:
-		g3_LinearGradientBrush(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::ILinearGradientBrush* native) : native_(native), factory_(factory) {}
+		g3_LinearGradientBrush(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::ILinearGradientBrush* native) : g3_BrushBase(factory, native), derivedNative_(native) {}
 		auto native() const { return native_.get(); }
 
 		// IMpLinearGradientBrush
 		void MP_STDCALL SetStartPoint(GmpiDrawing_API::MP1_POINT startPoint) override
 		{
-			native()->setStartPoint(*(gmpi::drawing::Point*)&startPoint);
+			derivedNative_->setStartPoint(*(gmpi::drawing::Point*)&startPoint);
 		}
 		void MP_STDCALL SetEndPoint(GmpiDrawing_API::MP1_POINT endPoint) override
 		{
-			native()->setEndPoint(*(gmpi::drawing::Point*)&endPoint);
+			derivedNative_->setEndPoint(*(gmpi::drawing::Point*)&endPoint);
 		}
 
 		// IMpResource
@@ -136,30 +141,29 @@ protected:
 		GMPI_REFCOUNT;
 	};
 
-	class g3_RadialGradientBrush final : public GmpiDrawing_API::IMpRadialGradientBrush
+	class g3_RadialGradientBrush final : public GmpiDrawing_API::IMpRadialGradientBrush, public g3_BrushBase
 	{
-		mutable gmpi::shared_ptr<gmpi::drawing::api::IRadialGradientBrush> native_;
-		GmpiDrawing_API::IMpFactory* factory_{};
+		mutable gmpi::drawing::api::IRadialGradientBrush* derivedNative_;
 	public:
-		g3_RadialGradientBrush(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IRadialGradientBrush* native) : native_(native), factory_(factory) {}
+		g3_RadialGradientBrush(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IRadialGradientBrush* native) : g3_BrushBase(factory, native), derivedNative_(native){}
 		auto native() const { return native_.get(); }
 
 		// IMpRadialGradientBrush
 		void MP_STDCALL SetCenter(GmpiDrawing_API::MP1_POINT center) override
 		{
-			native()->setCenter(*(gmpi::drawing::Point*)&center);
+			derivedNative_->setCenter(*(gmpi::drawing::Point*)&center);
 		}
 		void MP_STDCALL SetGradientOriginOffset(GmpiDrawing_API::MP1_POINT gradientOriginOffset) override
 		{
-			native()->setGradientOriginOffset(*(gmpi::drawing::Point*)&gradientOriginOffset);
+			derivedNative_->setGradientOriginOffset(*(gmpi::drawing::Point*)&gradientOriginOffset);
 		}
 		void MP_STDCALL SetRadiusX(float radiusX) override
 		{
-			native()->setRadiusX(radiusX);
+			derivedNative_->setRadiusX(radiusX);
 		}
 		void MP_STDCALL SetRadiusY(float radiusY) override
 		{
-			native()->setRadiusY(radiusY);
+			derivedNative_->setRadiusY(radiusY);
 		}
 
 		// IMpResource
@@ -224,14 +228,9 @@ protected:
 
 	gmpi::drawing::api::IStrokeStyle* toNative(const GmpiDrawing_API::IMpStrokeStyle* strokeStyle)
 	{
-		if (strokeStyle)
-		{
-			if (auto g3 = dynamic_cast<const g3_StrokeStyle*>(strokeStyle); g3)
-			{
-				return g3->native();
-			}
-		}
-		return nullptr;
+		if (auto g3 = dynamic_cast<const g3_StrokeStyle*>(strokeStyle); g3)
+			return g3->native();
+		return {};
 	}
 
 	class g3_GeometrySink final : public GmpiDrawing_API::IMpGeometrySink2
@@ -343,9 +342,11 @@ protected:
 		GMPI_REFCOUNT;
 	};
 
-	auto toNative(const GmpiDrawing_API::IMpPathGeometry* geometry) const
+	inline gmpi::drawing::api::IPathGeometry* toNative(const GmpiDrawing_API::IMpPathGeometry* geometry) const
 	{
-		return dynamic_cast<const g3_PathGeometry*>(geometry)->native();
+		if (auto g3 = dynamic_cast<const g3_PathGeometry*>(geometry); g3)
+			return g3->native();
+		return {};
 	}
 
 	class g3_TextFormat final : public GmpiDrawing_API::IMpTextFormat
@@ -385,9 +386,11 @@ protected:
 		GMPI_REFCOUNT;
 	};
 
-	auto toNative(const GmpiDrawing_API::IMpTextFormat* textFormat) const
+	inline gmpi::drawing::api::ITextFormat* toNative(const GmpiDrawing_API::IMpTextFormat* textFormat) const
 	{
-		return dynamic_cast<const g3_TextFormat*>(textFormat)->native();
+		if (auto g3 = dynamic_cast<const g3_TextFormat*>(textFormat); g3)
+			return g3->native();
+		return {};
 	}
 
 	class g3_BitmapPixels final : public GmpiDrawing_API::IMpBitmapPixels
@@ -466,10 +469,10 @@ protected:
 	};
 
 public:
-	GmpiToSDK3Context_base(gmpi::IMpUnknown* pfallback, gmpi::drawing::api::IDeviceContext* native) :
+	GmpiToSDK3Context_base(GmpiToSDK3Factory& pfactory, gmpi::IMpUnknown* pfallback, gmpi::drawing::api::IDeviceContext* native) :
 		fallback(pfallback)
 		, context_(native)
-		, factory(factoryGetter(native))
+		, factory(pfactory) //factoryGetter(native))
 	{
 	}
 
@@ -688,7 +691,7 @@ public:
 class GmpiToSDK3Context final : public GmpiToSDK3Context_base
 {
 public:
-	GmpiToSDK3Context(gmpi::IMpUnknown* pfallback, gmpi::drawing::api::IDeviceContext* native) : GmpiToSDK3Context_base(pfallback, native) {}
+	GmpiToSDK3Context(GmpiToSDK3Factory& pfactory, gmpi::IMpUnknown* pfallback, gmpi::drawing::api::IDeviceContext* native) : GmpiToSDK3Context_base(pfactory, pfallback, native) {}
 
 	int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{
@@ -726,8 +729,8 @@ class g3_BitmapRenderTarget final : public GmpiToSDK3Context_base // emulated by
 		return native;
 	}
 public:
-	g3_BitmapRenderTarget(GmpiToSDK3Context_base* g, const gmpi::drawing::Size* desiredSize, GmpiDrawing_API::IMpFactory* pfactory) :
-		GmpiToSDK3Context_base(nullptr, makeNative(g, desiredSize))
+	g3_BitmapRenderTarget(GmpiToSDK3Factory& pfactory, GmpiToSDK3Context_base* g, const gmpi::drawing::Size* desiredSize/*, GmpiDrawing_API::IMpFactory* pfactory*/) :
+		GmpiToSDK3Context_base(pfactory, nullptr, makeNative(g, desiredSize))
 	{
 		context_->queryInterface(&gmpi::drawing::api::IBitmapRenderTarget::guid, (void**)&context_);
 	}
@@ -797,7 +800,7 @@ inline int32_t GmpiToSDK3Context_base::CreateCompatibleRenderTarget(const GmpiDr
 	*bitmapRenderTarget = nullptr;
 
 	gmpi_sdk::mp_shared_ptr<GmpiDrawing_API::IMpDeviceContext> b2;
-	b2.Attach(new g3_BitmapRenderTarget(this, (const gmpi::drawing::Size*) &desiredSize, &factory));
+	b2.Attach(new g3_BitmapRenderTarget(factory, this, (const gmpi::drawing::Size*) &desiredSize/*, &factory*/));
 	return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI, reinterpret_cast<void**>(bitmapRenderTarget));
 }
 
@@ -809,7 +812,7 @@ inline int32_t MP_STDCALL GmpiToSDK3Context_base::CreateBitmapRenderTarget(GmpiD
 	const gmpi::drawing::Size sizef{ static_cast<float>(desiredSize.width), static_cast<float>(desiredSize.height) };
 
 	gmpi_sdk::mp_shared_ptr<GmpiDrawing_API::IMpDeviceContext> b2;
-	b2.Attach(static_cast<GmpiDrawing_API::IMpDeviceContext*>(new g3_BitmapRenderTarget(this, &sizef, &factory/*, enableLockPixels*/)));
+	b2.Attach(static_cast<GmpiDrawing_API::IMpDeviceContext*>(new g3_BitmapRenderTarget(factory, this, &sizef/*, &factory, enableLockPixels*/)));
 	return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI, reinterpret_cast<void**>(bitmapRenderTarget));
 }
 
@@ -864,7 +867,7 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreatePathGeometry(GmpiDrawing_API:
 	return (int32_t)hr;
 }
 
-int32_t MP_STDCALL GmpiToSDK3Factory::CreateTextFormat(const char* fontFamilyName, void* unused /* fontCollection */, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, GmpiDrawing_API::MP1_FONT_STYLE fontStyle, GmpiDrawing_API::MP1_FONT_STRETCH fontStretch, float fontSize, void* unused2 /* localeName */, GmpiDrawing_API::IMpTextFormat** textFormat)
+inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateTextFormat(const char* fontFamilyName, void* unused /* fontCollection */, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, GmpiDrawing_API::MP1_FONT_STYLE fontStyle, GmpiDrawing_API::MP1_FONT_STRETCH fontStretch, float fontSize, void* unused2 /* localeName */, GmpiDrawing_API::IMpTextFormat** textFormat)
 {
 	*textFormat = nullptr;
 
@@ -889,7 +892,7 @@ int32_t MP_STDCALL GmpiToSDK3Factory::CreateTextFormat(const char* fontFamilyNam
 	return (int32_t)hr;
 }
 
-int32_t MP_STDCALL GmpiToSDK3Factory::CreateImage(int32_t width, int32_t height, GmpiDrawing_API::IMpBitmap** returnDiBitmap)
+inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateImage(int32_t width, int32_t height, GmpiDrawing_API::IMpBitmap** returnDiBitmap)
 {
 	*returnDiBitmap = nullptr;
 
@@ -907,7 +910,7 @@ int32_t MP_STDCALL GmpiToSDK3Factory::CreateImage(int32_t width, int32_t height,
 	return (int32_t)hr;
 }
 
-int32_t MP_STDCALL GmpiToSDK3Factory::LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnDiBitmap)
+inline int32_t MP_STDCALL GmpiToSDK3Factory::LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnDiBitmap)
 {
 	*returnDiBitmap = nullptr;
 
@@ -925,14 +928,19 @@ int32_t MP_STDCALL GmpiToSDK3Factory::LoadImageU(const char* utf8Uri, GmpiDrawin
 	return (int32_t)hr;
 }
 
+inline int32_t MP_STDCALL GmpiToSDK3Factory::GetFontFamilyName(int32_t fontIndex, gmpi::IString* returnString)
+{
+	return (int32_t) native->getFontFamilyName(fontIndex, (gmpi::api::IString*) returnString); // relying on IString being binary compatible with gmpi::api::IString
+}
+
 struct UniversalGraphicsContext2 : public gmpi::api::IUnknown
 {
 	gmpi::drawing::api::IDeviceContext* gmpiContext;
 	GmpiToSDK3Context sdk3Context;
 
-	UniversalGraphicsContext2(gmpi::drawing::api::IDeviceContext* nativeContext = {}) :
+	UniversalGraphicsContext2(GmpiToSDK3Factory& factory, gmpi::drawing::api::IDeviceContext* nativeContext = {}) :
 		gmpiContext(nativeContext),
-		sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), nativeContext)
+		sdk3Context(factory, (gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), nativeContext)
 	{
 	}
 

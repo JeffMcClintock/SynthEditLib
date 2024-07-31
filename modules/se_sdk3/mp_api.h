@@ -79,6 +79,7 @@
 	return gmpi::MP_NOSUPPORT; \
 }
 
+#ifndef GMPI_REFCOUNT
 #define GMPI_REFCOUNT int32_t refCount2_ = 1; \
 	virtual int32_t MP_STDCALL addRef() override \
 { \
@@ -92,7 +93,7 @@
 	return 0; \
 	} \
 	return refCount2_; \
-} \
+}
 
 #define GMPI_REFCOUNT_NO_DELETE	\
 	virtual int32_t MP_STDCALL addRef() override \
@@ -102,7 +103,8 @@
 	virtual int32_t MP_STDCALL release() override \
 { \
 	return 1; \
-} \
+}
+#endif
 
 #define GMPI_QUERYINTERFACE2( INTERFACE_IID, CLASS_NAME, BASE_CLASS ) \
 	virtual int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override \
@@ -115,7 +117,7 @@
 	return gmpi::MP_OK; \
 } \
 return BASE_CLASS::queryInterface(iid, returnInterface); \
-} \
+}
 
 /*
 // Same but for stack-based object (no delete when refcount goes zero)

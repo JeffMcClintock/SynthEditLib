@@ -673,9 +673,9 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 
 		void GraphicsContext_SDK3::DrawTextU(const char* utf8String, int32_t stringLength, const GmpiDrawing_API::IMpTextFormat* textFormat, const GmpiDrawing_API::MP1_RECT* layoutRect, const GmpiDrawing_API::IMpBrush* brush, int32_t flags)
 		{
-			// auto widestring = stringConverter->from_bytes(utf8String, utf8String + stringLength);
 			const auto widestring = JmUnicodeConversions::Utf8ToWstring(utf8String, stringLength);
 			
+			assert(dynamic_cast<const TextFormat*>(textFormat));
 			auto DxTextFormat = reinterpret_cast<const TextFormat*>(textFormat);
 			auto b = ((Brush*)brush)->nativeBrush();
 			auto tf = DxTextFormat->native();

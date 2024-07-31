@@ -461,7 +461,7 @@ int32_t r;
 			//				ERROR_CHECK(r,"fail to create plugin\n");
 			if( r == gmpi::MP_OK )
 			{
-				// STEP 5: Ask plugin to provide GIMPI Plugin V1 interface
+				// STEP 5: Ask plugin to provide SDK3 Processor interface
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpPlugin> my_plugin;
 				r = com_object2->queryInterface(gmpi::MP_IID_PLUGIN, my_plugin.asIMpUnknownPtr());
 				//				ERROR_CHECK(r,"plugin does not support GMPI V 1.0 Interface\n");

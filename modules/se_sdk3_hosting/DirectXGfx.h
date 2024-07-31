@@ -978,11 +978,12 @@ namespace se // gmpi
 		{
 		protected:
 			gmpi::directx::DxFactoryInfo& info;
+			gmpi::IMpUnknown* fallback{};
 
 		public:
 			static std::wstring_convert<std::codecvt_utf8<wchar_t>> stringConverter; // cached, as constructor is super-slow.
 
-			Factory_base(gmpi::directx::DxFactoryInfo& pinfo) : info(pinfo) {}
+			Factory_base(gmpi::directx::DxFactoryInfo& pinfo, gmpi::IMpUnknown* pfallback) : info(pinfo), fallback(pfallback) {}
 
 			gmpi::directx::DxFactoryInfo& getInfo() {
 				return info;
@@ -1057,6 +1058,10 @@ namespace se // gmpi
 					addRef();
 					return gmpi::MP_OK;
 				}
+
+				if(fallback)
+					return fallback->queryInterface(iid, returnInterface);
+
 				return gmpi::MP_NOSUPPORT;
 			}
 
@@ -1068,7 +1073,7 @@ namespace se // gmpi
 			gmpi::directx::DxFactoryInfo concreteInfo;
 
 		public:
-			Factory_SDK3() : Factory_base(concreteInfo){}
+			Factory_SDK3(gmpi::IMpUnknown* pfallback) : Factory_base(concreteInfo, pfallback){}
 			~Factory_SDK3();
 			void Init();
 		};
@@ -1076,16 +1081,8 @@ namespace se // gmpi
 		class Factory_RG : public gmpi::directx::Factory_base
 		{
 		public:
-			Factory_RG(gmpi::directx::DxFactoryInfo& pinfo) : gmpi::directx::Factory_base(pinfo)
+			Factory_RG(gmpi::directx::DxFactoryInfo& pinfo) : gmpi::directx::Factory_base(pinfo, nullptr)
 			{
-				//writeFactory = pfactory->getDirectWriteFactory();
-				//pIWICFactory = pfactory->getWicFactory();
-				//DX_support_sRGB = pfactory->DX_support_sRGB;
-				//m_pDirect2dFactory = pfactory->getD2dFactory();
-
-				//writeFactory->AddRef();
-				//pIWICFactory->AddRef();
-				//m_pDirect2dFactory->AddRef();
 			}
 
 			GMPI_QUERYINTERFACE_METHOD(gmpi::drawing::api::IFactory);
@@ -1183,7 +1180,7 @@ namespace se // gmpi
 		public:
 			GraphicsContext_SDK3(gmpi::IMpUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* deviceContext = 0) :
 				context_(deviceContext)
-				, factory(pinfo)
+				, factory(pinfo, nullptr)
 				, fallback(pfallback)
 			{
 				if(context_)
