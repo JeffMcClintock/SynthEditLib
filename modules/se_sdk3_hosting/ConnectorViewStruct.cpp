@@ -666,7 +666,7 @@ namespace SE2
 	{
 //		_RPT0(_CRT_WARN, "ConnectorView2::onPointerDown\n");
 
-	if (imCaptured()) //if (parent->getCapture()) // then we are *already* draging.
+		if (imCaptured()) //if (parent->getCapture()) // then we are *already* draging.
 		{
 			parent->autoScrollStop();
 			parent->releaseCapture();
@@ -676,8 +676,18 @@ namespace SE2
 		}
 		else
 		{
+			const bool wasSelected = getSelected();
+
+			// Change selection, depending on shift etc
+			Presenter()->ObjectClicked(handle, gmpi::modifier_keys::getHeldKeys());
+
 			if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
 			{
+				// if we were not selected, or still are not - don't interact with nodes
+				// if shift or ctlr held - indicates a possible 'is_selected' change, not node editing.
+				if (!wasSelected || !getSelected() || (flags & (gmpi_gui_api::GG_POINTER_KEY_CONTROL | gmpi_gui_api::GG_POINTER_KEY_SHIFT)) != 0)
+					return gmpi::MP_OK;
+
 				// Clicked a node?
 				if (hoverNode >= 0)
 				{
@@ -689,23 +699,20 @@ namespace SE2
 				else
 				{
 					// When already selected, clicks add new nodes.
-					if (getSelected())
-					{
-						assert(hoverSegment >= 0); // shouldn't get mouse-down without previously calling hit-test
+					assert(hoverSegment >= 0); // shouldn't get mouse-down without previously calling hit-test
 
-						Presenter()->InsertNode(handle, hoverSegment + 1, point);
+					Presenter()->InsertNode(handle, hoverSegment + 1, point);
 
-						nodes.insert(nodes.begin() + hoverSegment, point);
+					nodes.insert(nodes.begin() + hoverSegment, point);
 
-						draggingNode = hoverSegment;
-						parent->setCapture(this);
-						CalcBounds();
-						parent->ChildInvalidateRect(bounds_); // sometimes bounds don't change, but still need to draw new node.
+					draggingNode = hoverSegment;
+					parent->setCapture(this);
+					CalcBounds();
+					parent->ChildInvalidateRect(bounds_); // sometimes bounds don't change, but still need to draw new node.
 
-						hitTest(flags, point); // re-hit-test to get new hoverNode.
+					hitTest(flags, point); // re-hit-test to get new hoverNode.
 
-						return gmpi::MP_OK;
-					}
+#if 0 // clicking end, not using yet
 
 					int hitEnd = -1;
 					// Is hit at line end?
@@ -732,6 +739,7 @@ namespace SE2
 					if (hitEnd == -1)
 						return gmpi::MP_OK; // normal hit.
 					// TODO pickup from end, mayby when <ALT> held.
+#endif
 				}
 				return gmpi::MP_OK;
 			}

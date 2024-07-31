@@ -54,7 +54,7 @@ bool isIteratingChildren = false;
 
 	public:
 		ViewBase(GmpiDrawing::Size size);
-		virtual ~ViewBase() {}
+		virtual ~ViewBase() { mouseOverObject = {}; }
 
 		void setDocument(SE2::IPresenter* presenter);
 		int32_t setHost(gmpi::IMpUnknown* host) override;
