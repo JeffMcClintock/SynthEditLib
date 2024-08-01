@@ -47,15 +47,8 @@ class GmpiToSDK3Context_base : public GmpiDrawing_API::IMpDeviceContext, public 
 
 protected:
 	gmpi::drawing::api::IDeviceContext* context_{};
-	GmpiToSDK3Factory& factory;
+	GmpiDrawing_API::IMpFactory2* factory{};
 	gmpi::IMpUnknown* fallback{};
-
-	//gmpi::drawing::api::IFactory* factoryGetter(gmpi::drawing::api::IResource* resource) const
-	//{
-	//	gmpi::drawing::api::IFactory* f{};
-	//	resource->getFactory(&f);
-	//	return f;
-	//}
 
 	class g3_BrushBase
 	{
@@ -469,7 +462,7 @@ protected:
 	};
 
 public:
-	GmpiToSDK3Context_base(GmpiToSDK3Factory& pfactory, gmpi::IMpUnknown* pfallback, gmpi::drawing::api::IDeviceContext* native) :
+	GmpiToSDK3Context_base(GmpiDrawing_API::IMpFactory2* pfactory, gmpi::IMpUnknown* pfallback, gmpi::drawing::api::IDeviceContext* native) :
 		fallback(pfallback)
 		, context_(native)
 		, factory(pfactory) //factoryGetter(native))
@@ -479,7 +472,7 @@ public:
 	// IMpDeviceContext
 	void GetFactory(GmpiDrawing_API::IMpFactory** pfactory) override
 	{
-		*pfactory = &factory;
+		*pfactory = factory;
 	}
 
 	void DrawRectangle(const GmpiDrawing_API::MP1_RECT* rect, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override
@@ -550,7 +543,7 @@ public:
 		if (hr == gmpi::ReturnCode::Ok)
 		{
 			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-			b2.Attach(new g3_SolidColorBrush(&factory, b));
+			b2.Attach(new g3_SolidColorBrush(factory, b));
 
 			b2->queryInterface(GmpiDrawing_API::SE_IID_SOLIDCOLORBRUSH_MPGUI, reinterpret_cast<void**>(solidColorBrush));
 		}
@@ -568,7 +561,7 @@ public:
 		if (hr == gmpi::ReturnCode::Ok)
 		{
 			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-			b2.Attach(new g3_GradientStopCollection(&factory, b));
+			b2.Attach(new g3_GradientStopCollection(factory, b));
 
 			b2->queryInterface(GmpiDrawing_API::SE_IID_GRADIENTSTOPCOLLECTION_MPGUI, reinterpret_cast<void**>(gradientStopCollection));
 		}
@@ -591,7 +584,7 @@ public:
 		if (hr == gmpi::ReturnCode::Ok)
 		{
 			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-			b2.Attach(new g3_LinearGradientBrush(&factory, b));
+			b2.Attach(new g3_LinearGradientBrush(factory, b));
 
 			b2->queryInterface(GmpiDrawing_API::SE_IID_LINEARGRADIENTBRUSH_MPGUI, reinterpret_cast<void**>(linearGradientBrush));
 		}
@@ -609,7 +602,7 @@ public:
 		if (hr == gmpi::ReturnCode::Ok)
 		{
 			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-			b2.Attach(new g3_BitmapBrush(&factory, b));
+			b2.Attach(new g3_BitmapBrush(factory, b));
 
 			b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAPBRUSH_MPGUI, reinterpret_cast<void**>(returnBrush));
 		}
@@ -632,7 +625,7 @@ public:
 		if (hr == gmpi::ReturnCode::Ok)
 		{
 			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-			b2.Attach(new g3_RadialGradientBrush(&factory, b));
+			b2.Attach(new g3_RadialGradientBrush(factory, b));
 
 			b2->queryInterface(GmpiDrawing_API::SE_IID_RADIALGRADIENTBRUSH_MPGUI, reinterpret_cast<void**>(radialGradientBrush));
 		}
@@ -691,7 +684,7 @@ public:
 class GmpiToSDK3Context final : public GmpiToSDK3Context_base
 {
 public:
-	GmpiToSDK3Context(GmpiToSDK3Factory& pfactory, gmpi::IMpUnknown* pfallback, gmpi::drawing::api::IDeviceContext* native) : GmpiToSDK3Context_base(pfactory, pfallback, native) {}
+	GmpiToSDK3Context(GmpiDrawing_API::IMpFactory2* pfactory, gmpi::IMpUnknown* pfallback, gmpi::drawing::api::IDeviceContext* native) : GmpiToSDK3Context_base(pfactory, pfallback, native) {}
 
 	int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{
@@ -729,7 +722,7 @@ class g3_BitmapRenderTarget final : public GmpiToSDK3Context_base // emulated by
 		return native;
 	}
 public:
-	g3_BitmapRenderTarget(GmpiToSDK3Factory& pfactory, GmpiToSDK3Context_base* g, const gmpi::drawing::Size* desiredSize/*, GmpiDrawing_API::IMpFactory* pfactory*/) :
+	g3_BitmapRenderTarget(GmpiDrawing_API::IMpFactory2* pfactory, GmpiToSDK3Context_base* g, const gmpi::drawing::Size* desiredSize/*, GmpiDrawing_API::IMpFactory* pfactory*/) :
 		GmpiToSDK3Context_base(pfactory, nullptr, makeNative(g, desiredSize))
 	{
 		context_->queryInterface(&gmpi::drawing::api::IBitmapRenderTarget::guid, (void**)&context_);
@@ -746,24 +739,11 @@ public:
 		native->getBitmap(&bitmap);
 
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-		b2.Attach(new GmpiToSDK3Context::g3_Bitmap(&factory, bitmap));
+		b2.Attach(new GmpiToSDK3Context::g3_Bitmap(factory, bitmap));
 
 		return (gmpi::ReturnCode) b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void**>(returnBitmap));
 	}
 
-	//int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
-	//{
-	//	*returnInterface = {};
-	//	if (iid == GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI)
-	//	{
-	//		// non-standard. Forcing this class (which has the correct vtable) to pretend it's the emulated interface.
-	//		*returnInterface = reinterpret_cast<GmpiDrawing_API::IMpBitmapRenderTarget*>(this);
-	//		addRef();
-	//		return gmpi::MP_OK;
-	//	}
-
-	//	return GmpiToSDK3Context_base::queryInterface(iid, returnInterface);
-	//}
 	int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{
 		*returnInterface = {};
@@ -938,7 +918,7 @@ struct UniversalGraphicsContext2 : public gmpi::api::IUnknown
 	gmpi::drawing::api::IDeviceContext* gmpiContext;
 	GmpiToSDK3Context sdk3Context;
 
-	UniversalGraphicsContext2(GmpiToSDK3Factory& factory, gmpi::drawing::api::IDeviceContext* nativeContext = {}) :
+	UniversalGraphicsContext2(GmpiDrawing_API::IMpFactory2* factory, gmpi::drawing::api::IDeviceContext* nativeContext = {}) :
 		gmpiContext(nativeContext),
 		sdk3Context(factory, (gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), nativeContext)
 	{

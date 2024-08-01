@@ -644,6 +644,7 @@ namespace SE2
 		if (outlineGeometry.Get() == nullptr)
 		{
             auto factory = g.GetFactory();
+			assert(!factory.isNull());
 			outlineGeometry = CreateModuleOutline(factory);
 		}
 
