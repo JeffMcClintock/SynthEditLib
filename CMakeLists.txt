@@ -88,6 +88,7 @@ DspFilters/State.h
 DspFilters/Types.h
 )
 
+# midistreambuffer.h
 
 set(srcs
 Shared/AuPreset.h
@@ -184,7 +185,6 @@ iseshelldsp.h
 iterator.h
 Logic.h
 MidiEvent.h
-midistreambuffer.h
 MidiToCv2.cpp
 MidiToCv2.h
 midi_defs.cpp
