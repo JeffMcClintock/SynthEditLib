@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
 
-# To build SE 1.5 Modules, point CMake at 'SE15' folder, not here.
+# To build SE Modules, point CMake at 'SE16' folder, not here.
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
-set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS deployment version")
+set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for macOS" FORCE)
 
 project(SynthEditLib)
 
