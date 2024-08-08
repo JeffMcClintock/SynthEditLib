@@ -81,6 +81,7 @@ public:
     std::wstring getResourceFolder();
 	std::wstring getSemFolder();
     std::filesystem::path getSettingsFolder();
+    std::filesystem::path getPlatformPluginsFolder();
 
 	int32_t getPluginId(); // 4-char VST2 code to identify presets.
     const pluginInformation& getPluginInfo();
