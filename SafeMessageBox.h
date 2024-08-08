@@ -1,8 +1,7 @@
 #pragma once
 
 #ifndef _WIN32
-inline static int32_t MB_OK = 0;
-inline static int32_t MB_ICONSTOP = 0x10;
+enum app_messagebox_flags { MB_OK, MB_ICONSTOP = 0x10, MB_ICONEXCLAMATION = 0x30, MB_ICONWARNING = 0x30 };
 #endif
 
 // A safe way to present a messagebox, that will divert to console output on CI (without blocking)
