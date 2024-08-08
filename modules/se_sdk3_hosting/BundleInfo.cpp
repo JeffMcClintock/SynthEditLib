@@ -267,7 +267,17 @@ std::wstring BundleInfo::getUserDocumentFolder()
     
 	return {};
 #endif
+}
 
+std::filesystem::path BundleInfo::getSettingsFolder()
+{
+#ifdef _WIN32
+    wchar_t path[MAX_PATH];
+    SHGetFolderPath(NULL, CSIDL_COMMON_APPDATA, NULL, SHGFP_TYPE_CURRENT, path);
+    return path;
+#else
+    return settingsPath();
+#endif
 }
 
 void BundleInfo::initPresetFolder(const char* manufacturer, const char* product)

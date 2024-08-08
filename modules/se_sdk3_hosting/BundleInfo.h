@@ -9,6 +9,7 @@ BundleInfo::instance()->getResource("whatever");
 
 #include <string>
 #include <vector>
+#include <filesystem>
 #include "ElatencyContraintType.h"
 
 #if !defined( _WIN32 )
@@ -65,17 +66,22 @@ public:
     {
         info_.pluginId = id;
     }
+
     bool ResourceExists(const char* resourceId);
 	std::string getResource(const char* resourceId);
-	std::wstring getImbeddedFileFolder();
-    std::wstring getResourceFolder();
-	std::wstring getSemFolder();
+
+    // special folders
     void initPresetFolder(const char* manufacturer, const char* product);
     std::wstring getPresetFolder()
     {
         return presetFolder;
     }
 	std::wstring getUserDocumentFolder();
+	std::wstring getImbeddedFileFolder();
+    std::wstring getResourceFolder();
+	std::wstring getSemFolder();
+    std::filesystem::path getSettingsFolder();
+
 	int32_t getPluginId(); // 4-char VST2 code to identify presets.
     const pluginInformation& getPluginInfo();
 };
