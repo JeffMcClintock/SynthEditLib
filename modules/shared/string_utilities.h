@@ -128,15 +128,14 @@ T1 GetExtension(const T1& p_filename)
 
 		// path separator? Must be no extension (after the slash).
 		if (c == '\\' || c == '/')
-			return T1();
+			return {};
 
 		if (c == '.')
 			return p_filename.substr(p+1);
 	}
 
-	return T1();
+	return {};
 }
-
 
 inline std::wstring StripExtension( const std::wstring& p_filename)
 {
