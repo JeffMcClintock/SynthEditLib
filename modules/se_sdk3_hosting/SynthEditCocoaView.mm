@@ -29,7 +29,7 @@ class DrawingFrameCocoa : public gmpi_gui::IMpGraphicsHost, public gmpi::IMpUser
     GmpiGuiHosting::UpdateRegionMac dirtyRects;
 
 public:
-    gmpi::cocoa::DrawingFactory drawingFactory;
+    se::cocoa::DrawingFactory drawingFactory;
     NSView* view;
     NSBitmapImageRep* backBuffer{}; // backing buffer with linear colorspace for correct blending.
 
@@ -104,7 +104,7 @@ public:
 #endif
         // context must be disposed (via RIAA) before restoring state, because its destructor also restores state
         {
-	        gmpi::cocoa::GraphicsContext2 context(frame, &drawingFactory);
+	        se::cocoa::GraphicsContext2 context(frame, &drawingFactory);
 
             // draw the absolute minimum.
             for( auto& r : dirtyRects.rects )
@@ -345,10 +345,19 @@ public:
         CGColorSpaceRelease(colorSpace);
     }
     
+    void onResize()
+    {
+        initBackingBitmap();
+        
+        NSSize logicalsize = view.frame.size;
+        GmpiDrawing_API::MP1_RECT finalRect{0,0, (float) logicalsize.width, (float) logicalsize.height};
+        containerView->arrange(finalRect);
+    }
+    
     GMPI_REFCOUNT_NO_DELETE;
 };
 
-GmpiDrawing::Point mouseToGmpi(NSView* view, NSEvent* theEvent)
+GmpiDrawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
 {
     NSPoint localPoint = [view convertPoint: [theEvent locationInWindow] fromView: nil];
     
@@ -535,6 +544,8 @@ GmpiDrawing::Point mouseToGmpi(NSView* view, NSEvent* theEvent)
 - (void) setFrame: (NSRect) newSize
 {
     [super setFrame: newSize];
+    
+    drawingFrame.onResize();
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -599,7 +610,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     ApplyKeyModifiers(flags, theEvent);
     
-    drawingFrame.getView()->onPointerDown(flags, mouseToGmpi(self, theEvent));
+    drawingFrame.getView()->onPointerDown(flags, se_mouseToGmpi(self, theEvent));
     
  // no help to edit box   [super mouseDown:theEvent];
 }
@@ -614,7 +625,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     ApplyKeyModifiers(flags, theEvent);
     
-    drawingFrame.getView()->onPointerDown(flags, mouseToGmpi(self, theEvent));
+    drawingFrame.getView()->onPointerDown(flags, se_mouseToGmpi(self, theEvent));
 }
 
 - (void)rightMouseUp:(NSEvent *)theEvent
@@ -625,7 +636,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     ApplyKeyModifiers(flags, theEvent);
     
-    drawingFrame.getView()->onPointerUp(flags, mouseToGmpi(self, theEvent));
+    drawingFrame.getView()->onPointerUp(flags, se_mouseToGmpi(self, theEvent));
 }
 
 - (void)mouseUp:(NSEvent *)theEvent {
@@ -634,7 +645,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     ApplyKeyModifiers(flags, theEvent);
     
-    drawingFrame.getView()->onPointerUp(flags, mouseToGmpi(self, theEvent));
+    drawingFrame.getView()->onPointerUp(flags, se_mouseToGmpi(self, theEvent));
 }
 
 - (void)mouseDragged:(NSEvent *)theEvent {
@@ -643,7 +654,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     ApplyKeyModifiers(flags, theEvent);
     
-    mousePos = mouseToGmpi(self, theEvent);
+    mousePos = se_mouseToGmpi(self, theEvent);
     drawingFrame.getView()->onPointerMove(flags, mousePos);
     
     [self ToolTipOnMouseActivity];
@@ -660,12 +671,12 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     constexpr float wheelConversion = 120.0f; // on windows the wheel scrolls 120 per knotch
     if(deltaY)
     {
-        drawingFrame.getView()->onMouseWheel(flags, wheelConversion * deltaY, mouseToGmpi(self, theEvent));
+        drawingFrame.getView()->onMouseWheel(flags, wheelConversion * deltaY, se_mouseToGmpi(self, theEvent));
     }
     if(deltaX)
     {
         flags |= gmpi_gui_api::GG_POINTER_SCROLL_HORIZ;
-        drawingFrame.getView()->onMouseWheel(flags, wheelConversion * deltaX, mouseToGmpi(self, theEvent));
+        drawingFrame.getView()->onMouseWheel(flags, wheelConversion * deltaX, se_mouseToGmpi(self, theEvent));
     }
 }
 
@@ -681,7 +692,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     ApplyKeyModifiers(flags, theEvent);
     
-    mousePos = mouseToGmpi(self, theEvent);
+    mousePos = se_mouseToGmpi(self, theEvent);
     
     drawingFrame.getView()->onPointerMove(flags, mousePos);
 
@@ -744,8 +755,17 @@ void* createNativeView(void* parent, class IGuiHost2* controller, int width, int
     return (void*) native;
 }
 
-void onCloseNativeView(void* ptr)
+void onCloseNativeView(void* view_ptr)
 {
-    auto view = (SYNTHEDIT_PLUGIN_COCOA_NSVIEW_WRAPPER_CLASSNAME*) ptr;
+    auto view = (SYNTHEDIT_PLUGIN_COCOA_NSVIEW_WRAPPER_CLASSNAME*) view_ptr;
     [view onClose];
+}
+
+void resizeNativeView(void* view_ptr, int width, int height)
+{
+    auto view = (SYNTHEDIT_PLUGIN_COCOA_NSVIEW_WRAPPER_CLASSNAME*) view_ptr;
+    auto r = [view frame];
+    r.size.width = width;
+    r.size.height = height;
+    [view setFrame:r];
 }

@@ -20,7 +20,7 @@
 investigate CGContextSetShouldSmoothFonts, CGContextSetAllowsFontSmoothing (for less heavy fonts)
 */
 
-namespace gmpi
+namespace se
 {
 	namespace cocoa
 	{
@@ -482,10 +482,10 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
         class CocoaBrushBase
         {
 		protected:
-            gmpi::cocoa::DrawingFactory* factory_;
+            se::cocoa::DrawingFactory* factory_;
             
         public:
-			CocoaBrushBase(gmpi::cocoa::DrawingFactory* pfactory) :
+			CocoaBrushBase(se::cocoa::DrawingFactory* pfactory) :
                 factory_(pfactory)
             {}
             
@@ -517,7 +517,7 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
             }
             
 		public:
-			SolidColorBrush(const GmpiDrawing_API::MP1_COLOR* pcolor, gmpi::cocoa::DrawingFactory* factory) : CocoaBrushBase(factory)
+			SolidColorBrush(const GmpiDrawing_API::MP1_COLOR* pcolor, se::cocoa::DrawingFactory* factory) : CocoaBrushBase(factory)
 				,color(*pcolor)
 			{
                 setNativeColor();
@@ -590,7 +590,7 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
             NSGradient* native2 = {};
             
         public:
-            Gradient(gmpi::cocoa::DrawingFactory* factory, const GmpiDrawing_API::IMpGradientStopCollection* gradientStopCollection)
+            Gradient(se::cocoa::DrawingFactory* factory, const GmpiDrawing_API::IMpGradientStopCollection* gradientStopCollection)
             {
                 auto stops = static_cast<const GradientStopCollection*>(gradientStopCollection);
 
@@ -629,7 +629,7 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
             
 		public:
 			LinearGradientBrush(
-                gmpi::cocoa::DrawingFactory* factory,
+                se::cocoa::DrawingFactory* factory,
                 const GmpiDrawing_API::MP1_LINEAR_GRADIENT_BRUSH_PROPERTIES* linearGradientBrushProperties,
                 const GmpiDrawing_API::MP1_BRUSH_PROPERTIES* brushProperties,
                 const GmpiDrawing_API::IMpGradientStopCollection* gradientStopCollection) :
@@ -721,7 +721,7 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
             GmpiDrawing_API::MP1_RADIAL_GRADIENT_BRUSH_PROPERTIES gradientProperties;
 
 		public:
-			RadialGradientBrush(gmpi::cocoa::DrawingFactory* factory, const GmpiDrawing_API::MP1_RADIAL_GRADIENT_BRUSH_PROPERTIES* radialGradientBrushProperties, const GmpiDrawing_API::MP1_BRUSH_PROPERTIES* brushProperties, const  GmpiDrawing_API::IMpGradientStopCollection* gradientStopCollection) :
+			RadialGradientBrush(se::cocoa::DrawingFactory* factory, const GmpiDrawing_API::MP1_RADIAL_GRADIENT_BRUSH_PROPERTIES* radialGradientBrushProperties, const GmpiDrawing_API::MP1_BRUSH_PROPERTIES* brushProperties, const  GmpiDrawing_API::IMpGradientStopCollection* gradientStopCollection) :
                 CocoaBrushBase(factory)
                 ,Gradient(factory, gradientStopCollection)
                 ,gradientProperties(*radialGradientBrushProperties)
@@ -1284,7 +1284,7 @@ return gmpi::MP_FAIL;
 
         public:
             BitmapBrush(
-                gmpi::cocoa::DrawingFactory* factory,
+                se::cocoa::DrawingFactory* factory,
                 const GmpiDrawing_API::IMpBitmap* bitmap,
                 const GmpiDrawing_API::MP1_BITMAP_BRUSH_PROPERTIES* bitmapBrushProperties,
                 const GmpiDrawing_API::MP1_BRUSH_PROPERTIES* brushProperties
@@ -1541,14 +1541,14 @@ return gmpi::MP_FAIL;
 		{
 		protected:
 			std::wstring_convert<std::codecvt_utf8<wchar_t>>* stringConverter; // cached, as constructor is super-slow.
-            gmpi::cocoa::DrawingFactory* factory;
+            se::cocoa::DrawingFactory* factory;
 			std::vector<GmpiDrawing_API::MP1_RECT> clipRectStack;
 			NSAffineTransform* currentTransform;
 			NSView* view_;
             inline static int logicProFix = -1;
             
 		public:
-			GraphicsContext(NSView* pview, gmpi::cocoa::DrawingFactory* pfactory) :
+			GraphicsContext(NSView* pview, se::cocoa::DrawingFactory* pfactory) :
 				factory(pfactory)
 				, view_(pview)
 			{
@@ -1583,11 +1583,11 @@ return gmpi::MP_FAIL;
 				{
 					[scb->nativeColor() set];
 				}
-				NSBezierPath *bp = [NSBezierPath bezierPathWithRect : gmpi::cocoa::NSRectFromRect(*rect)];
+				NSBezierPath *bp = [NSBezierPath bezierPathWithRect : se::cocoa::NSRectFromRect(*rect)];
 				[bp stroke];
                 */
                 
-                NSBezierPath* path = [NSBezierPath bezierPathWithRect : gmpi::cocoa::NSRectFromRect(*rect)];
+                NSBezierPath* path = [NSBezierPath bezierPathWithRect : se::cocoa::NSRectFromRect(*rect)];
                 applyDashStyleToPath(path, strokeStyle, strokeWidth);
                 auto cocoabrush = dynamic_cast<const CocoaBrushBase*>(brush);
                 if (cocoabrush)
@@ -1598,7 +1598,7 @@ return gmpi::MP_FAIL;
 
 			void MP_STDCALL FillRectangle(const GmpiDrawing_API::MP1_RECT* rect, const GmpiDrawing_API::IMpBrush* brush) override
 			{
-				NSBezierPath* rectPath = [NSBezierPath bezierPathWithRect : gmpi::cocoa::NSRectFromRect(*rect)];
+				NSBezierPath* rectPath = [NSBezierPath bezierPathWithRect : se::cocoa::NSRectFromRect(*rect)];
 
 				auto cocoabrush = dynamic_cast<const CocoaBrushBase*>(brush);
 				if (cocoabrush)
@@ -1935,10 +1935,10 @@ return gmpi::MP_FAIL;
                 GmpiDrawing_API::MP1_SIZE_U imageSize;
                 bm->GetSize(&imageSize);
                 
-                auto destRect = gmpi::cocoa::NSRectFromRect(*destinationRectangle);
+                auto destRect = se::cocoa::NSRectFromRect(*destinationRectangle);
                 
 #if USE_BACKING_BUFFER
-                auto sourceRect = gmpi::cocoa::NSRectFromRect(*sourceRectangle);
+                auto sourceRect = se::cocoa::NSRectFromRect(*sourceRectangle);
                 
                 // mirror source rectangle
                 sourceRect.origin.y = imageSize.height - (sourceRect.origin.y + sourceRect.size.height);
@@ -1957,7 +1957,7 @@ return gmpi::MP_FAIL;
                 sourceRectangleFlipped.bottom = imageSize.height - sourceRectangle->top;
                 sourceRectangleFlipped.top = imageSize.height - sourceRectangle->bottom;
                 
-                auto sourceRect = gmpi::cocoa::NSRectFromRect(sourceRectangleFlipped);
+                auto sourceRect = se::cocoa::NSRectFromRect(sourceRectangleFlipped);
 
 #endif
 				if (bitmap)
@@ -1970,7 +1970,7 @@ return gmpi::MP_FAIL;
                     [bm->additiveBitmap_ drawInRect : destRect fromRect : sourceRect operation : NSCompositingOperationPlusLighter fraction : opacity respectFlipped : TRUE hints : nil];
 
                 #else // imagerep (don't work due to flip
-                    auto rect = gmpi::cocoa::NSRectFromRect(*destinationRectangle);
+                    auto rect = se::cocoa::NSRectFromRect(*destinationRectangle);
                     
                     // Create a flipped coordinate system (imagerep don't understand flipped)
                     [[NSGraphicsContext currentContext] saveGraphicsState];
@@ -2077,7 +2077,7 @@ return gmpi::MP_FAIL;
 
 			void MP_STDCALL DrawRoundedRectangle(const GmpiDrawing_API::MP1_ROUNDED_RECT* roundedRect, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override
 			{
-				NSRect r = gmpi::cocoa::NSRectFromRect(roundedRect->rect);
+				NSRect r = se::cocoa::NSRectFromRect(roundedRect->rect);
 				NSBezierPath* path = [NSBezierPath bezierPathWithRoundedRect : r xRadius : roundedRect->radiusX yRadius : roundedRect->radiusY];
                 applyDashStyleToPath(path, strokeStyle, strokeWidth);
                 
@@ -2090,7 +2090,7 @@ return gmpi::MP_FAIL;
 
 			void MP_STDCALL FillRoundedRectangle(const GmpiDrawing_API::MP1_ROUNDED_RECT* roundedRect, const GmpiDrawing_API::IMpBrush* brush) override
 			{
-				NSRect r = gmpi::cocoa::NSRectFromRect(roundedRect->rect);
+				NSRect r = se::cocoa::NSRectFromRect(roundedRect->rect);
 				NSBezierPath* rectPath = [NSBezierPath bezierPathWithRoundedRect : r xRadius:roundedRect->radiusX yRadius: roundedRect->radiusY];
 
 				auto cocoabrush = dynamic_cast<const CocoaBrushBase*>(brush);
@@ -2200,14 +2200,14 @@ return gmpi::MP_FAIL;
         class GraphicsContext2 : public GraphicsContext, public GmpiDrawing_API::IMpDeviceContextExt
         {
         public:
-            GraphicsContext2(NSView* pview, gmpi::cocoa::DrawingFactory* pfactory) : GraphicsContext(pview, pfactory){}
+            GraphicsContext2(NSView* pview, se::cocoa::DrawingFactory* pfactory) : GraphicsContext(pview, pfactory){}
 
             int32_t MP_STDCALL CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** returnObject) override;
 
             int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
             {
                 *returnInterface = 0;
-                if (iid == GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI || iid == MP_IID_UNKNOWN)
+                if (iid == GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI || iid == gmpi::MP_IID_UNKNOWN)
                 {
                     *returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContext*>(this);
                     addRef();
@@ -2219,7 +2219,7 @@ return gmpi::MP_FAIL;
                     addRef();
                     return gmpi::MP_OK;
                 }
-                return MP_NOSUPPORT;
+                return gmpi::MP_NOSUPPORT;
             }
 
             GMPI_REFCOUNT_NO_DELETE;
@@ -2231,7 +2231,7 @@ return gmpi::MP_FAIL;
 			NSImage* image = {};
 
 		public:
-			bitmapRenderTarget(gmpi::cocoa::DrawingFactory* pfactory, const GmpiDrawing_API::MP1_SIZE* desiredSize) :
+			bitmapRenderTarget(se::cocoa::DrawingFactory* pfactory, const GmpiDrawing_API::MP1_SIZE* desiredSize) :
 				GraphicsContext(nullptr, pfactory)
 			{
 				NSRect r = NSMakeRect(0.0, 0.0, desiredSize->width, desiredSize->height);
