@@ -2,7 +2,6 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include "../../modules/shared/xp_simd.h"
 #include "VoiceMute.h"
 
 SE_DECLARE_INIT_STATIC_FILE(VoiceMute)
