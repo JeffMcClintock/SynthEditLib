@@ -8,7 +8,7 @@
 
 #include <string.h>
 #include <assert.h>
-#include "../shared/xp_simd.h"
+
 
 #define _USE_MATH_DEFINES
 #include <math.h>

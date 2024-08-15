@@ -113,20 +113,20 @@ namespace SE2
 				const int gridSize = 12; // *about that, dpi_ / 96;
 				const int gridBoarder = 2; // 2 grids
 				const int largeGridRatio = 5; // small grids per big grid.
-				int startX = FastRealToIntTruncateTowardZero(cliprect.left) / gridSize;
+				int startX = static_cast<int32_t>(cliprect.left) / gridSize;
 				startX = (std::max)(startX, gridBoarder);
 				startX = startX * gridSize - 1;
 
-				int startY = FastRealToIntTruncateTowardZero(cliprect.top) / gridSize;
+				int startY = static_cast<int32_t>(cliprect.top) / gridSize;
 				startY = (std::max)(startY, gridBoarder);
 				startY = startY * gridSize - 1;
 
 				constexpr int largeGridSize = gridSize * largeGridRatio;
-				const int lastgrid = gridSize * gridBoarder + largeGridSize * ((FastRealToIntTruncateTowardZero(drawingBounds.getWidth()) - 2 * gridSize * gridBoarder) / largeGridSize);
-				//				const int lastYgrid = gridSize * gridBoarder + largeGridSize * (FastRealToIntTruncateTowardZero(drawingBounds.getHeight() / largeGridSize - 1));
+				const int lastgrid = gridSize * gridBoarder + largeGridSize * ((static_cast<int32_t>(drawingBounds.getWidth()) - 2 * gridSize * gridBoarder) / largeGridSize);
+				//				const int lastYgrid = gridSize * gridBoarder + largeGridSize * (static_cast<int32_t>(drawingBounds.getHeight() / largeGridSize - 1));
 
-				int endX = (std::min)(lastgrid, FastRealToIntTruncateTowardZero(cliprect.right));
-				int endY = (std::min)(lastgrid, FastRealToIntTruncateTowardZero(cliprect.bottom));
+				int endX = (std::min)(lastgrid, static_cast<int32_t>(cliprect.right));
+				int endY = (std::min)(lastgrid, static_cast<int32_t>(cliprect.bottom));
 
 				int thickLineCounter = ((startX + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
 				for (int x = startX; x < endX; x += gridSize)

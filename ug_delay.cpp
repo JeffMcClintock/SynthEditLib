@@ -1,6 +1,6 @@
 
 #include <math.h>
-#include "modules/shared/xp_simd.h"
+
 #include "ug_delay.h"
 
 #include "SeAudioMaster.h"
@@ -502,7 +502,7 @@ void ug_delay::CalcModulation( float p_modulation )
 {
 float d = (m_modulation_input_offset - p_modulation ) * buffer_size;
 
-read_offset = FastRealToIntTruncateTowardZero(d)); // fast float-to-int using SSE. truncation toward zero.
+read_offset = static_cast<int32_t>(d)); // fast float-to-int using SSE. truncation toward zero.
 
 read_offset_fine = d - (float) read_offset;
 

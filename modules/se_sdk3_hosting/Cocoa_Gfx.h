@@ -8,7 +8,6 @@
 #include <map>
 #include <mach-o/dyld.h>
 #include "../se_sdk3/Drawing.h"
-#include "../shared/xp_simd.h"
 #include "./Gfx_base.h"
 #include "BundleInfo.h"
 #include "mfc_emulation.h"
@@ -1223,8 +1222,8 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
 			{
 				NSSize s = [nativeBitmap_ size];
 
-				returnSize->width = FastRealToIntTruncateTowardZero(0.5f + s.width);
-				returnSize->height = FastRealToIntTruncateTowardZero(0.5f + s.height);
+				returnSize->width = static_cast<int32_t>(0.5f + s.width);
+				returnSize->height = static_cast<int32_t>(0.5f + s.height);
 
 				/* hmm, assumes image representation at index 0 is actual size. size is already set correctly in constructor.
 				 * 

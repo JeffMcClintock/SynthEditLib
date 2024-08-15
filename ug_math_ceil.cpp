@@ -3,7 +3,7 @@
 #include "ug_math_ceil.h"
 #include "module_register.h"
 #include "./modules/shared/xplatform.h"
-#include "./modules/shared/xp_simd.h"
+
 
 SE_DECLARE_INIT_STATIC_FILE(ug_math_ceil)
 
@@ -29,13 +29,13 @@ void ug_math_ceil::sub_process(int start_pos, int sampleframes)
 		float temp = *in * 10.0f + very_small_number;
 		if( temp < 0.0f )
 		{
-//			*out++ = 0.1f * (float)FastRealToIntTruncateTowardZero(temp)); // fast float-to-int using SSE. truncation toward zero.
-			*out++ = 0.1f * (float)FastRealToIntTruncateTowardZero(temp);
+//			*out++ = 0.1f * (float)static_cast<int32_t>(temp)); // fast float-to-int using SSE. truncation toward zero.
+			*out++ = 0.1f * (float)static_cast<int32_t>(temp);
 		}
 		else
 		{
-//			*out++ = 0.1f * (1.0f + (float) FastRealToIntTruncateTowardZero(temp)) );
-			*out++ = 0.1f * (1.0f + (float)FastRealToIntTruncateTowardZero(temp));
+//			*out++ = 0.1f * (1.0f + (float) static_cast<int32_t>(temp)) );
+			*out++ = 0.1f * (1.0f + (float)static_cast<int32_t>(temp));
 		}
 		++in;
 	}

@@ -1,7 +1,7 @@
 #ifndef SVFILTER_H_INCLUDED
 #define SVFILTER_H_INCLUDED
 
-#include "../shared/xp_simd.h"
+
 #include "../shared/FilterBase.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -34,7 +34,7 @@ protected:
 
 			pitch *= 120.0f;
 
-			int table_floor = FastRealToIntTruncateTowardZero(pitch); // fast float-to-int using SSE. truncation toward zero.
+			int table_floor = static_cast<int32_t>(pitch); // fast float-to-int using SSE. truncation toward zero.
 			float fraction = pitch - (float)table_floor;
 
 			// Linear interpolator.

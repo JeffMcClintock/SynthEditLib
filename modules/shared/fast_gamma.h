@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include <math.h>
-#include "./xp_simd.h"
 
 /*
 #include "../shared/fast_gamma.h"
@@ -132,7 +131,7 @@ namespace se_sdk
 		// straight multiply by 255.
 		inline static unsigned char fastNormalisedToPixel(float normalised)
 		{
-			return static_cast<unsigned char>(FastRealToIntTruncateTowardZero(0.5f + normalised * 255.0f));
+			return static_cast<unsigned char>(static_cast<int32_t>(0.5f + normalised * 255.0f));
 		}
 		inline static unsigned char normalisedToPixel(double normalised)
 		{

@@ -2,7 +2,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <math.h>
-#include "modules/shared/xp_simd.h"
+
 #include <algorithm>
 #include "ug_vca.h"
 

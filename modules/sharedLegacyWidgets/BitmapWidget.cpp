@@ -4,7 +4,7 @@
 #include <algorithm>
 #include "../shared/xplatform_modifier_keys.h"
 #include "../se_sdk3/MpString.h"
-#include "../shared/xp_simd.h"
+
 
 using namespace std;
 using namespace gmpi;
@@ -78,7 +78,7 @@ bool BitmapWidget::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point
 
 //			int last_frame_idx = ( (int)imageSize.height ) / (int) bitmapMetadata_->frameSize.height - 1;
 			// scale pos (0-100) by number of frames (rounding to nearest)
-			int draw_at = FastRealToIntTruncateTowardZero( 0.5f + animationPosition * last_frame_idx );
+			int draw_at = static_cast<int32_t>( 0.5f + animationPosition * last_frame_idx );
 
 			draw_at *= (int) bitmapMetadata_->frameSize.height;
 			// when used with stepped switch, need to keep increasing position till

@@ -1,5 +1,5 @@
 #include "../se_sdk3/mp_sdk_audio.h"
-#include "../shared/xp_simd.h"
+
 #include "../shared/expression_evaluate.h"
 #include "../shared/unicode_conversion.h"
 
@@ -52,7 +52,7 @@ public:
 
 		index *= (float)tableSize;
 
-		int i = FastRealToIntTruncateTowardZero(index); // fast float-to-int using SSE. truncation toward zero.
+		int i = static_cast<int32_t>(index); // fast float-to-int using SSE. truncation toward zero.
 
 		if (i >= 0 && i < tableSize)
 		{

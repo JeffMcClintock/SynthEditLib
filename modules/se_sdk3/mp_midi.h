@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <functional>
 #include <math.h>
-#include "../shared/xp_simd.h"
 
 /*
 #include "../se_sdk3/mp_midi.h"
@@ -29,7 +28,7 @@ namespace gmpi
 			// convert a normalized float to 7-bit
 			inline uint8_t floatToU7(float f)
 			{
-				return static_cast<uint8_t>(FastRealToIntTruncateTowardZero(0.5f + f * 127.f));
+				return static_cast<uint8_t>(static_cast<int32_t>(0.5f + f * 127.f));
 			}
 
 			// converts a 14-bit bipolar controler to a normalized value (between 0.0 and 1.0)

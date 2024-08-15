@@ -2,7 +2,7 @@
 #define RMS_H_INCLUDED
 
 #include "../SvFilterClassic/SvFilter2.h"
-#include "../shared/xp_simd.h"
+
 
 class Rms : public SvFilter2
 {
@@ -34,7 +34,7 @@ public:
 #if 0
 		//0.039 CPU.
 		float index = v * (float)(tableEntries / 2); // table covers 20V, hence division by 2.
-		int table_floor = FastRealToIntTruncateTowardZero(index);
+		int table_floor = static_cast<int32_t>(index);
 
 		if (table_floor <= 0) // indicated index *might* be less than zero. e.g. Could be 0.1 which is valid, or -0.1 which is not.
 		{

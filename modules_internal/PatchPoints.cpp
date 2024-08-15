@@ -1,7 +1,7 @@
 #include "../modules/se_sdk3/mp_sdk_audio.h"
 #include "../modules/se_sdk3/mp_sdk_gui2.h"
 #include "../modules/shared/RawView.h"
-#include "../modules/shared/xp_simd.h"
+
 #include "../modules/shared/xplatform.h"
 #include "../iseshelldsp.h"
 #include "../ug_plugin3.h"

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <numeric>
 #include "Sinc.h"
-#include "../shared/xp_simd.h"
+
 #include "./SincFilter.h"
 #include "mp_sdk_gui2.h"
 

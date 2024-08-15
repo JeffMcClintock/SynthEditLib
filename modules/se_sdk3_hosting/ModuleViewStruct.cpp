@@ -17,7 +17,6 @@
 #include "SubViewCadmium.h"
 #include "../SynthEdit/cpu_accumulator.h"
 #include "ResizeAdorner.h"
-#include "modules/shared/xp_simd.h"
 #include "modules/shared/GraphHelpers.h"
 #include "IGuiHost2.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
@@ -311,7 +310,7 @@ namespace SE2
 		returnDesiredSize->height = (std::max)((float)plugDiameter, totalPlugHeight + graphicsSectionDesiredSize.height);
 
 		// snap width to grid size.
-		int width = FastRealToIntTruncateTowardZero(ceilf((std::max)(minTextAndPlugsWidth, graphicsSectionDesiredSize.width)));
+		int width = static_cast<int32_t>(ceilf((std::max)(minTextAndPlugsWidth, graphicsSectionDesiredSize.width)));
 
 		returnDesiredSize->width = (float) (((plugDiameter - 1 + width) / plugDiameter) * plugDiameter);
 

@@ -2,7 +2,7 @@
 #include "ULookup.h"
 #include <assert.h>
 #include <math.h>
-#include "modules/shared/xp_simd.h"
+
 #include "./modules/shared/xplatform.h"
 #include "ug_base.h"
 

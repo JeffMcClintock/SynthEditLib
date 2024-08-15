@@ -1,5 +1,5 @@
 
-#include "modules/shared/xp_simd.h"
+
 #include "ug_patch_automator.h"
 #include "ug_container.h"
 #include "midi_defs.h"
@@ -357,7 +357,7 @@ void ug_patch_automator::UpdateSongPosition(double qnEventTime, double ppqPos)
 		return;
 
 	double samplesTillEvent = (qnEventTime - timeInfo.ppqPos) / incrementPerSample;
-	int samplesTillEvent_i = FastRealToIntTruncateTowardZero(ceil(samplesTillEvent));
+	int samplesTillEvent_i = static_cast<int32_t>(ceil(samplesTillEvent));
 	assert(samplesTillEvent_i >= 0);
 	double fraction = static_cast<double>(samplesTillEvent_i) - samplesTillEvent;
 
@@ -368,7 +368,7 @@ void ug_patch_automator::UpdateSongPosition(double qnEventTime, double ppqPos)
 	auto patch_manager = patch_control_container->get_patch_manager();
 	patch_manager->vst_Automation2(t, ControllerType::SongPosition << 24, &barSongPosition, sizeof(barSongPosition));
 
-	lastWholeQuarterNoteSent = FastRealToIntFloor(ppqPos);
+	lastWholeQuarterNoteSent = static_cast<int32_t>(ppqPos);
 
 #ifdef _DEBUG
 	debugTimingPrint();
@@ -389,7 +389,7 @@ void ug_patch_automator::process_timing(int /*start_pos*/, int sampleframes)
 	}
 	else
 	{
-		int ppqPosNewFloor = FastRealToIntFloor(ppqPosNew);
+		int ppqPosNewFloor = static_cast<int32_t>(ppqPosNew);
 
 		// Does QNP increase by 1 or more quarter notes during this block?
 		// If so send out update on next precise sample after quarter note.

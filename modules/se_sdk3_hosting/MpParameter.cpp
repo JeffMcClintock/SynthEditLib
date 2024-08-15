@@ -1,7 +1,7 @@
 #include "MpParameter.h"
 #include <sstream>
 #include <iomanip>
-#include "xp_simd.h"
+
 #include "Controller.h"
 #include "../se_sdk2/se_datatypes.h"
 #include "RawConversions.h"
@@ -79,13 +79,13 @@ bool MpParameter_base::setParameterRaw(gmpi::FieldType paramField, int32_t size,
 		case DT_INT:
 		{
 // -ves fail			newRawValue = ToRaw4((int32_t)(0.5 + realWorld));
-			newRawValue = ToRaw4((int32_t) FastRealToIntFloor(0.5 + realWorld));
+			newRawValue = ToRaw4((int32_t) static_cast<int32_t>(0.5 + realWorld));
 			break;
 		}
 		case DT_INT64:
 		{
 			// -ves fail			newRawValue = ToRaw4((int64_t)(0.5 + realWorld));
-			newRawValue = ToRaw4((int64_t)FastRealToIntFloor(0.5 + realWorld));
+			newRawValue = ToRaw4((int64_t)static_cast<int32_t>(0.5 + realWorld));
 			break;
 		}
 		case DT_BOOL:
@@ -510,7 +510,7 @@ std::wstring MpParameter_base::normalisedToString(double normalized) const
 		it_enum_list it(enumList_);
 
 		const int maxindex = it.size() - 1;
-		int enumIndex = FastRealToIntFloor(0.5 + normalized * maxindex);
+		int enumIndex = static_cast<int32_t>(0.5 + normalized * maxindex);
 		enumIndex = (std::min)(enumIndex, maxindex);
 
 		if (it.FindIndex(enumIndex))
@@ -604,7 +604,7 @@ double MpParameter_base::RealToNormalized(double real) const
 			if (!enumList_.empty())
 			{
 				it_enum_list it(enumList_);
-				const int i = FastRealToIntFloor(0.5 + real);
+				const int i = static_cast<int32_t>(0.5 + real);
                 const int maxindex = it.size() - 1;
                 if(maxindex < 1)
                 {

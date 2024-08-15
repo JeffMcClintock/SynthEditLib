@@ -2,7 +2,7 @@
 #define OSCILLATORNAIVE_H_INCLUDED
 
 #include "../se_sdk3/mp_sdk_audio.h"
-#include "../shared/xp_simd.h"
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <algorithm>
@@ -64,7 +64,7 @@ public:
 		{
 			//	float index = 12.0f * (pitch * 10.0f - (float)pitchTableLowVolts);
 			float index = pitch * 120.0f - (float)(12 * pitchTableLowVolts);
-			int table_floor = FastRealToIntTruncateTowardZero(index);
+			int table_floor = static_cast<int32_t>(index);
 			float fraction = index - (float)table_floor;
 
 			/*
@@ -121,7 +121,7 @@ public:
 		inline static float Calculate(double accumulator, float* ignored)
 		{
 			float saw = (float)accumulator;
-			int temp = FastRealToIntTruncateTowardZero(saw);
+			int temp = static_cast<int32_t>(saw);
 			saw -= 0.5f + temp;
 			return saw;
 		}
@@ -133,7 +133,7 @@ public:
 		inline static float Calculate(double accumulator, float* pulseWidth)
 		{
 			float tri = 0.25f + (float)accumulator;
-			int temp = FastRealToIntTruncateTowardZero(tri);
+			int temp = static_cast<int32_t>(tri);
 			tri = 2.0f * (tri - temp);
 			if (tri > 1.0f)
 				tri = 1.5f - tri;
@@ -153,7 +153,7 @@ public:
 		inline static float Calculate(double accumulator, float* pulseWidth)
 		{
 			float tri = 0.25f + (float)accumulator;
-			int temp = FastRealToIntTruncateTowardZero(tri);
+			int temp = static_cast<int32_t>(tri);
 			tri = 2.0f * (tri - temp);
 			if (tri > 1.0f)
 				tri = 1.5f - tri;
@@ -225,8 +225,8 @@ public:
 			++audioOut;
 		}
 
-		// Keep accumulator from losing precision due to getting too large, but also keep safely above zero, so FastRealToIntTruncateTowardZero() behaves ok.
-		int accumulator_floor = FastRealToIntTruncateTowardZero(accumulator);
+		// Keep accumulator from losing precision due to getting too large, but also keep safely above zero, so static_cast<int32_t>() behaves ok.
+		int accumulator_floor = static_cast<int32_t>(accumulator);
 		accumulator -= (std::max)( 0, accumulator_floor - 20);
 	}
 

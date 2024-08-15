@@ -1,7 +1,7 @@
 #include <algorithm>
 #include "math.h"
 #include "./BpmClock3.h"
-#include "../shared/xp_simd.h"
+
 SE_DECLARE_INIT_STATIC_FILE(BpmClock3)
 
 REGISTER_PLUGIN( BpmClock3, L"SE BPM Clock3" );
@@ -43,7 +43,7 @@ void BpmClock3::subProcess2( int bufferOffset, int sampleFrames )
 		}
 
 //		int samplesTillTransition = _mm_cvtsd_si32(_mm_set_sd(samplesTillTransitionD));
-		int samplesTillTransition = FastRealToIntTruncateTowardZero(samplesTillTransitionD);
+		int samplesTillTransition = static_cast<int32_t>(samplesTillTransitionD);
 
 		int todo = (std::max)( 0, (std::min)( samplesTillTransition, s ) );
 		if( static_count > 0 )

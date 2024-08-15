@@ -5,7 +5,7 @@
 #include "../shared/string_utilities.h"
 #include "../shared/it_enum_list.h"
 #include "../shared/ImageCache.h"
-#include "../shared/xp_simd.h"
+
 
 using namespace std;
 using namespace gmpi;

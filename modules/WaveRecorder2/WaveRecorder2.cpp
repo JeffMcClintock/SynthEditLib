@@ -2,7 +2,7 @@
 #include <locale>
 #include "./WaveRecorder2.h"
 #include "../shared/string_utilities.h"
-#include "../shared/xp_simd.h"
+
 #include "../se_sdk3/PinIterator.h"
 #include "../shared/xplatform.h"
 
@@ -108,7 +108,7 @@ void WaveRecorder2::subProcess16bit(int sampleFrames)
 		{
 			float sample = scale_factor * (std::min)(1.0f, (std::max)(-1.0f, *AudioInPtrs[i]++));
 			
-			*buffer++ = (short) FastRealToIntTruncateTowardZero(sample); // fast float-to-int using SSE. truncation toward zero.
+			*buffer++ = (short) static_cast<int32_t>(sample); // fast float-to-int using SSE. truncation toward zero.
 		}
 	}
 

@@ -6,7 +6,7 @@
 
 #include "SeAudioMaster.h"
 #include "module_register.h"
-#include "modules/shared/xp_simd.h"
+
 
 SE_DECLARE_INIT_STATIC_FILE(ug_switch)
 

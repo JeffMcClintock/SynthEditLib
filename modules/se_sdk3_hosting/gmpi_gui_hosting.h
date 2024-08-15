@@ -334,10 +334,10 @@ namespace GmpiGuiHosting
 
 				rects.push_back(
 					GmpiDrawing::Rect(
-						static_cast<float>(FastRealToIntTruncateTowardZero(r2.left)),
-						static_cast<float>(FastRealToIntTruncateTowardZero(r2.top)),
-						static_cast<float>(FastRealToIntTruncateTowardZero(r2.right) + 1),
-						static_cast<float>(FastRealToIntTruncateTowardZero(r2.bottom) + 1)
+						static_cast<float>(static_cast<int32_t>(r2.left)),
+						static_cast<float>(static_cast<int32_t>(r2.top)),
+						static_cast<float>(static_cast<int32_t>(r2.right) + 1),
+						static_cast<float>(static_cast<int32_t>(r2.bottom) + 1)
 				)
 				);
 			}

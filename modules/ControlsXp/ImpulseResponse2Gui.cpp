@@ -70,7 +70,7 @@ class ImpulseResponseGui : public gmpi_gui::MpGuiGfxBase, public FontCacheClient
 				const float bin = hz * hz2bin - 1.0f;
 				const float safeBin = std::clamp(bin, 0.f, (float)spectrumCount - 1.0f);
 
-				const int index = FastRealToIntTruncateTowardZero(safeBin);
+				const int index = static_cast<int32_t>(safeBin);
 				const float fraction = safeBin - (float)index;
 				pixelToBin.push_back({ index, fraction });
 			}

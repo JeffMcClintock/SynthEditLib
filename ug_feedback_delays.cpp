@@ -4,7 +4,7 @@
 #include "module_register.h"
 #include "./cancellation.h"
 #include "SeAudioMaster.h"
-#include "modules/shared/xp_simd.h"
+
 
 SE_DECLARE_INIT_STATIC_FILE(ug_feedback_delays)
 

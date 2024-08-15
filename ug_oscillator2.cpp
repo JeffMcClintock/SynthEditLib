@@ -206,7 +206,7 @@ unsigned int ug_oscillator2::calc_increment(float p_pitch)// Re-calc increment f
 			constexpr float c = table_size / (octave_hi-octave_low); // scale from volts to table index.
 			float tableIdx = octavesFloat * c;
 
-			int i = FastRealToIntTruncateTowardZero(tableIdx); // fast float-to-int using SSE. truncation toward zero.
+			int i = static_cast<int32_t>(tableIdx); // fast float-to-int using SSE. truncation toward zero.
 			float idx_frac = tableIdx - (float) i;
 
 			i = min( i, ((int)table_size) ); // not absolutely correct as we don't clamp fractional part, but fine in practice.
@@ -216,7 +216,7 @@ unsigned int ug_oscillator2::calc_increment(float p_pitch)// Re-calc increment f
 
 			//increment = FrequencyToIntIncrement( SampleRate(), Hz); // speed up by removing division!!!!
 			Hz = hz_to_inc_const * Hz + 0.5f;
-			increment = FastRealToIntTruncateTowardZero(Hz);
+			increment = static_cast<int32_t>(Hz);
 #if 0
 			// CPU 0.07%
 			const int ensurePositive = 20;
@@ -226,12 +226,12 @@ unsigned int ug_oscillator2::calc_increment(float p_pitch)// Re-calc increment f
 			//index = ( index > 0.0f ) ? tableSize * index : 0.0f;
 
 			// Split off octave.
-			int octave = FastRealToIntTruncateTowardZero(&octavesFloat);
+			int octave = static_cast<int32_t>(&octavesFloat);
 
 			// Fractional part withing octave used to lookup value.
 			float tableIndex = 512.0f * ( octavesFloat - (float) octave );
 
-			int i = FastRealToIntTruncateTowardZero(&tableIndex);
+			int i = static_cast<int32_t>(&tableIndex);
 			float idx_frac = tableIndex - (float) i;
 
 			const float* l_table = freq_lookup_table_float->table;
@@ -240,7 +240,7 @@ unsigned int ug_oscillator2::calc_increment(float p_pitch)// Re-calc increment f
 			float inc = 0.5f + p[0] + idx_frac * (p[1] - p[0]);
 
 			// Problem can only handle 31 bits, else overflows.
-			increment = FastRealToIntTruncateTowardZero(&inc);
+			increment = static_cast<int32_t>(&inc);
 
 			int shift = octave - 8 - ensurePositive;
 			if( shift < 0 )
@@ -920,11 +920,11 @@ unsigned int ug_oscillator2::calc_phase( float phase, float modulation_depth)
 	// convert phase to 32 bit counter offset
 	// Get fractional part of phase.
 	float a =  phase * modulation_depth;
-	int b = FastRealToIntTruncateTowardZero(a);
+	int b = static_cast<int32_t>(a);
 
 	// Multiply by UINT_MAX. (note float-int conversion can't handle unsigned int, so mutiply by INT_MAX then after conversion by 2).
 	float new_phase_count2 = (a - (float) b) * INT_MAX;
-	unsigned int c = FastRealToIntTruncateTowardZero(new_phase_count2) << 1;
+	unsigned int c = static_cast<int32_t>(new_phase_count2) << 1;
 //	assert( abs((int) (c - count_delta[0])) < 3 );
 
 	// calculate change in counter offset
@@ -1153,7 +1153,7 @@ float ug_oscillator2::pulse_get_sample2( float* wavedata, const unsigned int p_c
 	float out = p[0] + (p[1] - p[0]) * ((*(float*)&itemp) - 1.f);
 
 	pulseWidth = ( 1.f - pulseWidth ) * (INT_MAX >> 1);
-	int pulse_width = FastRealToIntTruncateTowardZero(pulseWidth);
+	int pulse_width = static_cast<int32_t>(pulseWidth);
 
 	// read offset ramp signal and combine to form pulse wave
 	unsigned int c2 = p_count - ( pulse_width << 1 );	// unsigned 'wraps' value in correct range

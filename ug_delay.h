@@ -2,15 +2,15 @@
 //
 #pragma once
 #include "ug_base.h"
-#include "modules/shared/xp_simd.h"
+
 
 #define interpolationExtraSamples 1
 
 inline void CalculateModulation(float modulationOffset, float*& modulation, int buffer_size, int padded_buffer_size, int& read_offset_int, float&read_offset_fine)
 {
 	float readOffset = ( modulationOffset - *modulation ) * buffer_size + ( padded_buffer_size - buffer_size );
-//	read_offset_int = FastRealToIntTruncateTowardZero(readOffset)); // fast float-to-int using SSE. truncation toward zero.
-	read_offset_int = FastRealToIntTruncateTowardZero(readOffset);
+//	read_offset_int = static_cast<int32_t>(readOffset)); // fast float-to-int using SSE. truncation toward zero.
+	read_offset_int = static_cast<int32_t>(readOffset);
 
 	read_offset_fine = readOffset - (float) read_offset_int;
 

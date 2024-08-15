@@ -1,7 +1,7 @@
 #ifndef KORGFILTER_H_INCLUDED
 #define KORGFILTER_H_INCLUDED
 
-#include "../shared/xp_simd.h"
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <algorithm>

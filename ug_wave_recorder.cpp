@@ -364,7 +364,7 @@ void ug_wave_recorder::sub_process_to_file_mono(int start_pos, int sampleframes)
 		//		*write_pos++ = (short) (*p_left++ * scale_factor); // convert each sample from float to short (16 bit)
 
 		float sample = scale_factor * (std::min)(1.0f, (std::max)(-1.0f, *p_left++));
-		*write_pos++ = (short)FastRealToIntTruncateTowardZero(sample); // fast float-to-int using SSE. truncation toward zero.
+		*write_pos++ = (short)static_cast<int32_t>(sample); // fast float-to-int using SSE. truncation toward zero.
 	}
 	wo_pointer = write_pos;
 }
@@ -381,12 +381,12 @@ void ug_wave_recorder::sub_process_to_file_stereo(int start_pos, int sampleframe
 		//short samp = (short) (*p_left++ * scale_factor); // convert each sample from float to short (16 bit)
 		//*write_pos++ = samp;
 		float sample = scale_factor * (std::min)(1.0f, (std::max)(-1.0f, *p_left++));
-		*write_pos++ = (short)FastRealToIntTruncateTowardZero(sample); // fast float-to-int using SSE. truncation toward zero.
+		*write_pos++ = (short)static_cast<int32_t>(sample); // fast float-to-int using SSE. truncation toward zero.
 
 		//samp = (short)(*p_right++ * scale_factor);
 		//*write_pos++ = samp;
 		sample = scale_factor * (std::min)(1.0f, (std::max)(-1.0f, *p_right++));
-		*write_pos++ = (short)FastRealToIntTruncateTowardZero(sample); // fast float-to-int using SSE. truncation toward zero.
+		*write_pos++ = (short)static_cast<int32_t>(sample); // fast float-to-int using SSE. truncation toward zero.
 	}
 	wo_pointer = write_pos;
 }

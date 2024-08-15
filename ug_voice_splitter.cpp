@@ -3,7 +3,7 @@
 
 #include "SeAudioMaster.h"
 #include "module_register.h"
-#include "modules/shared/xp_simd.h"
+
 #include "modules/se_sdk3/mp_sdk_audio.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_voice_splitter);

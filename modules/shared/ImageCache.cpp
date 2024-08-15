@@ -1,7 +1,7 @@
 #include "ImageCache.h"
 #include "../shared/string_utilities.h"
 #include "../se_sdk3/MpString.h"
-#include "../shared/xp_simd.h"
+
 
 using namespace std;
 using namespace gmpi;

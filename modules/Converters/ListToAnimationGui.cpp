@@ -56,7 +56,7 @@ class ListToAnimationGui : public SeGuiInvisibleBase
  	void onSetOutput()
 	{
 		int lastIndex = static_cast<int32_t>(listValues.size()) - 1;
-		int index = FastRealToIntFloor(0.5f + pinAnimationPosition * lastIndex);
+		int index = static_cast<int32_t>(0.5f + pinAnimationPosition * lastIndex);
 		index = (std::max)(0, (std::min)(index, lastIndex));
 
 		currentValue = listValues[index];

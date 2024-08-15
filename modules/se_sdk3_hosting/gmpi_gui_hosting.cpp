@@ -4,7 +4,7 @@
 #define NOMINMAX
 #endif
 #include "windows.h"
-#include "../shared/xp_simd.h"
+
 
 #define IDC_EDIT1 1044
 
@@ -374,12 +374,12 @@ int32_t PGCC_PlatformTextEntry::ShowAsync(gmpi_gui::ICompletionCallback* returnC
 	clientOffset.x = clientOffset.y = 0;
 	ClientToScreen(parentWnd, &clientOffset);
 
-	dialogX = clientOffset.x + FastRealToIntFloor(0.5f + editrect_s.left);
-	dialogY = clientOffset.y + FastRealToIntFloor(0.5f + editrect_s.top);
-	dialogW = FastRealToIntFloor(0.5f + editrect_s.getWidth());
-	dialogH = FastRealToIntFloor(0.5f + editrect_s.getHeight());
+	dialogX = clientOffset.x + static_cast<int32_t>(0.5f + editrect_s.left);
+	dialogY = clientOffset.y + static_cast<int32_t>(0.5f + editrect_s.top);
+	dialogW = static_cast<int32_t>(0.5f + editrect_s.getWidth());
+	dialogH = static_cast<int32_t>(0.5f + editrect_s.getHeight());
 
-	const int gdiFontSize = -FastRealToIntFloor(0.5f + dpiScale * textHeight); // for height in pixels, pass negative value.
+	const int gdiFontSize = -static_cast<int32_t>(0.5f + dpiScale * textHeight); // for height in pixels, pass negative value.
 	dialogFont = CreateFont(gdiFontSize, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, 0, 0, 0, 0, 0, NULL);
 
 	// Get my HInstance

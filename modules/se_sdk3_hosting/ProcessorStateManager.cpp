@@ -1,7 +1,7 @@
 #include "./ProcessorStateManager.h"
 #include "conversion.h"
 #include "RawConversions.h"
-#include "xp_simd.h"
+
 #include "PresetReader.h"
 #include "my_msg_que_input_stream.h"
 #include "my_msg_que_output_stream.h"
@@ -48,13 +48,13 @@ std::string normalizedToRaw(int32_t datatype, float fnormalized, double maximum,
 	case DT_INT:
 	{
 		// -ves fail			newRawValue = ToRaw4((int32_t)(0.5 + realWorld));
-		newRawValue = ToRaw4((int32_t)FastRealToIntFloor(0.5 + realWorld));
+		newRawValue = ToRaw4((int32_t)static_cast<int32_t>(0.5 + realWorld));
 		break;
 	}
 	case DT_INT64:
 	{
 		// -ves fail			newRawValue = ToRaw4((int64_t)(0.5 + realWorld));
-		newRawValue = ToRaw4((int64_t)FastRealToIntFloor(0.5 + realWorld));
+		newRawValue = ToRaw4((int64_t)static_cast<int32_t>(0.5 + realWorld));
 		break;
 	}
 	case DT_BOOL:

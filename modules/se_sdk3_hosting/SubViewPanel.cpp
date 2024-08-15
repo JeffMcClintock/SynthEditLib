@@ -2,7 +2,7 @@
 #include "SubViewPanel.h"
 #include <cmath>
 #include "../shared/xplatform.h"
-#include "../shared/xp_simd.h"
+
 #include "ConnectorView.h"
 
 using namespace gmpi;
@@ -233,8 +233,8 @@ int32_t SubView::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_AP
 	// ref control_group_auto_size::RecalcBounds()
 	if( offset_.width == -99999.f )
 	{
-		offset_.width = static_cast<float>(-FastRealToIntFloor(viewBounds.left));
-		offset_.height = static_cast<float>(-FastRealToIntFloor(viewBounds.top));
+		offset_.width = static_cast<float>(-static_cast<int32_t>(viewBounds.left));
+		offset_.height = static_cast<float>(-static_cast<int32_t>(viewBounds.top));
 
 		// avoid 'show on module' structure view messing up panel view's offset.
 		if (parentViewType == CF_PANEL_VIEW)
@@ -250,8 +250,8 @@ int32_t SubView::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_AP
 	{
 		// if top-left coords have changed last opened.
 		// then shift sub-panel to compensate (panel view only).
-		int32_t parentAdjustX(FastRealToIntFloor(offset_.width + viewBounds.left));
-		int32_t parentAdjustY(FastRealToIntFloor(offset_.height + viewBounds.top));
+		int32_t parentAdjustX(static_cast<int32_t>(offset_.width + viewBounds.left));
+		int32_t parentAdjustY(static_cast<int32_t>(offset_.height + viewBounds.top));
 
 		if (parentAdjustX != 0 || parentAdjustY != 0)
 		{

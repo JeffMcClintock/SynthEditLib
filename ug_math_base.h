@@ -1,6 +1,6 @@
 #pragma once
 #include "ug_base.h"
-#include "modules/shared/xp_simd.h"
+
 
 #define PN_INPUT1	0
 #define PN_INPUT2	1

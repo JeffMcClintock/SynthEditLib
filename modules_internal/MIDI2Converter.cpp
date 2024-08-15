@@ -25,7 +25,7 @@
 */
 #include "mp_sdk_audio.h"
 #include "mp_midi.h"
-#include "../shared/xp_simd.h"
+
 
 SE_DECLARE_INIT_STATIC_FILE(MIDI2Converter)
 

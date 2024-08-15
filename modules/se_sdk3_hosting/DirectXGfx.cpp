@@ -3,7 +3,7 @@
 #include <sstream>
 #include "./DirectXGfx.h"
 #include "../shared/xplatform.h"
-#include "../shared/xp_simd.h"
+
 #include "../shared/fast_gamma.h"
 #include "../shared/unicode_conversion.h"
 #include "../se_sdk3_hosting/gmpi_gui_hosting.h"
@@ -904,7 +904,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 							float originalPixel = p * overAlphaNorm; // un-premultiply.
 
 							// To linear
-							auto cf = se_sdk::FastGamma::sRGB_to_float(static_cast<unsigned char>(FastRealToIntTruncateTowardZero(originalPixel + 0.5f)));
+							auto cf = se_sdk::FastGamma::sRGB_to_float(static_cast<unsigned char>(static_cast<int32_t>(originalPixel + 0.5f)));
 
 							cf *= AlphaNorm;						// pre-multiply (correctly).
 
@@ -973,12 +973,12 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 						pixel = powf(pixel, 1.0f / gamma); // linear -> sRGB space.
 						pixel *= bitmapAlphaCorrected; // premultiply
 						pixel = pixel * 255.0f + 0.5f; // back to 8-bit
-						sourcePixels[c] = (std::min)(255, FastRealToIntTruncateTowardZero(pixel));
+						sourcePixels[c] = (std::min)(255, static_cast<int32_t>(pixel));
 					}
 
 					bitmapAlphaCorrected = bitmapAlphaCorrected * 255.0f + 0.5f; // back to 8-bit
 		//			int alphaVal = (int)(bitmapAlphaCorrected * 255.0f + 0.5f);
-					sourcePixels[3] = FastRealToIntTruncateTowardZero(bitmapAlphaCorrected);
+					sourcePixels[3] = static_cast<int32_t>(bitmapAlphaCorrected);
 				}
 				sourcePixels += sizeof(uint32_t);
 			}

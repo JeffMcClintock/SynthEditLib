@@ -15,7 +15,7 @@
 #include "DragLine.h"
 #include "SubViewPanel.h"
 #include "ResizeAdorner.h"
-#include "modules/shared/xp_simd.h"
+
 #include "modules/shared/GraphHelpers.h"
 #include "IGuiHost2.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"

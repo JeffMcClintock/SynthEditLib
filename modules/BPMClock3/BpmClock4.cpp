@@ -1,7 +1,7 @@
 #include <algorithm>
 #include "math.h"
 #include "./BpmClock4.h"
-#include "../shared/xp_simd.h"
+
 
 REGISTER_PLUGIN2(BpmClock4, L"SE BPM Clock4");
 
@@ -40,7 +40,7 @@ void BpmClock4::subProcess2(int sampleFrames)
 	{
 		double samplesTillTransitionD = (nextTransition - accumulator) / increment;
 
-		int samplesTillTransition = FastRealToIntTruncateTowardZero(samplesTillTransitionD);
+		int samplesTillTransition = static_cast<int32_t>(samplesTillTransitionD);
 
 		int todo = (std::max)( 0, (std::min)( samplesTillTransition, s ) );
 
@@ -135,7 +135,7 @@ double BpmClock4::CalcAccumulatorError(double HostSongPosition, double accumulat
 	double syncBarStart = hostBarStart;
 
 	// Calulate where we are in respect to sync marker (e.g. every 3rd bar).
-	auto estimatedHostBarIndex = FastRealToIntFloor( 0.5 + hostBarStart / quarterNotesPerBar); // assume all bars within song are same length, can get confused with mixed time-signatures but that only matters when syning period more than one bar.
+	auto estimatedHostBarIndex = static_cast<int32_t>( 0.5 + hostBarStart / quarterNotesPerBar); // assume all bars within song are same length, can get confused with mixed time-signatures but that only matters when syning period more than one bar.
 	auto barWithinSyncBars = estimatedHostBarIndex % syncBars; // e.g. 2nd bar out of 3.
 	syncBarStart -= barWithinSyncBars * quarterNotesPerBar;
 

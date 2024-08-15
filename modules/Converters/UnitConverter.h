@@ -51,7 +51,7 @@ public:
 		const int maxTableIndex = LOOKUP_SIZE;
 
 		float index = v * 100.0f;
-		int table_floor = FastRealToIntTruncateTowardZero(index); // fast float-to-int using SSE. truncation toward zero.
+		int table_floor = static_cast<int32_t>(index); // fast float-to-int using SSE. truncation toward zero.
 		float fraction = index - (float)table_floor;
 
 		if( table_floor <= 0 ) // indicated index *might* be less than zero. e.g. Could be 0.1 which is valid, or -0.1 which is not.

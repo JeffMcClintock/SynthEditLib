@@ -8,7 +8,7 @@
 #include <commctrl.h>
 #include "./DrawingFrame_win32.h"
 #include "../shared/xp_dynamic_linking.h"
-#include "../shared/xp_simd.h"
+
 #include "IGuiHost2.h"
 #include "unicode_conversion.h"
 
@@ -558,10 +558,10 @@ void DrawingFrameBase::OnPaint()
 				// Snap to whole DIPs.
 				GmpiDrawing::Rect temp;
 				/*
-				temp.left = static_cast<float>(FastRealToIntTruncateTowardZero(r2.left));
-				temp.top = static_cast<float>(FastRealToIntTruncateTowardZero(r2.top));
-				temp.right = static_cast<float>(FastRealToIntTruncateTowardZero(r2.right) + 1);
-				temp.bottom = static_cast<float>(FastRealToIntTruncateTowardZero(r2.bottom) + 1);
+				temp.left = static_cast<float>(static_cast<int32_t>(r2.left));
+				temp.top = static_cast<float>(static_cast<int32_t>(r2.top));
+				temp.right = static_cast<float>(static_cast<int32_t>(r2.right) + 1);
+				temp.bottom = static_cast<float>(static_cast<int32_t>(r2.bottom) + 1);
 				*/
 				// attempt to avoid drawing one extra pixel
 				temp.left = floorf(r2.left);
@@ -1063,10 +1063,10 @@ void DrawingFrame::ReSize(int left, int top, int right, int bottom)
 inline GmpiDrawing::RectL RectToIntegerLarger(GmpiDrawing_API::MP1_RECT f)
 {
 	GmpiDrawing::RectL r;
-	r.left = FastRealToIntTruncateTowardZero(f.left);
-	r.top = FastRealToIntTruncateTowardZero(f.top);
-	r.right = FastRealToIntTruncateTowardZero(f.right) + 1;
-	r.bottom = FastRealToIntTruncateTowardZero(f.bottom) + 1;
+	r.left = static_cast<int32_t>(f.left);
+	r.top = static_cast<int32_t>(f.top);
+	r.right = static_cast<int32_t>(f.right) + 1;
+	r.bottom = static_cast<int32_t>(f.bottom) + 1;
 
 	return r;
 }

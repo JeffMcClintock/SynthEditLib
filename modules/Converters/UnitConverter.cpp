@@ -2,7 +2,7 @@
 #include <math.h>
 #include <algorithm>
 #include "../shared/fastmaths.h"
-#include "../shared/xp_simd.h"
+
 
 #if GMPI_USE_SSE
 #include "fastmath/fmath.h"

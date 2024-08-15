@@ -7,7 +7,7 @@
 #include <stdio.h>  // for GCC.
 #include "FreqAnalyserGui.h"
 #include <algorithm>
-#include "../shared/xp_simd.h"
+
 #include "../shared/GraphHelpers.h"
 
 using namespace se_sdk;
@@ -342,7 +342,7 @@ int32_t FreqAnalyserGui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCont
 					const float bin = hz * hz2bin;// -1.0f;
 					const float safeBin = std::clamp(bin, 0.f, (float)spectrumCount - 1.0f);
 
-					const int index = FastRealToIntTruncateTowardZero(safeBin);
+					const int index = static_cast<int32_t>(safeBin);
 					const float fraction = safeBin - (float)index;
 					pixelToBin.push_back({ index, fraction });
 

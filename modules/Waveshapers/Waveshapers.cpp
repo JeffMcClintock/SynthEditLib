@@ -13,7 +13,7 @@
 #include "./waveshapers.h"
 #include "../shared/expression_evaluate.h"
 #include "../shared/unicode_conversion.h"
-#include "../shared/xp_simd.h"
+
 
 SE_DECLARE_INIT_STATIC_FILE(Waveshapers);
 SE_DECLARE_INIT_STATIC_FILE(Waveshaper2B);
@@ -95,7 +95,7 @@ inline float fastInterpolationClipped( float index, int tableSize, float* lookup
 
 	index *= (float)tableSize;
 
-	int i = FastRealToIntTruncateTowardZero(index); // fast float-to-int using SSE. truncation toward zero.
+	int i = static_cast<int32_t>(index); // fast float-to-int using SSE. truncation toward zero.
 
 	if (i >= 0 && i < tableSize)
 	{

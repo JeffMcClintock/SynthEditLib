@@ -7,7 +7,7 @@
 #include <stdio.h>  // for GCC.
 #include "Scope3Gui.h"
 #include <algorithm>
-#include "../shared/xp_simd.h"
+
 #ifndef _WIN32
 #include <sys/time.h>                // for gettimeofday()
 #endif
@@ -88,7 +88,7 @@ void Scope3Gui::DrawTrace(Factory& factory, Graphics& g, float* capturedata, Gmp
 	auto sink = geometry.Open();
 
 #if 0 // not very efficient, draws too much detail on small scopes.
-	int step = (std::max)( 1, FastRealToIntTruncateTowardZero( SCOPE_BUFFER_SIZE / width ) );
+	int step = (std::max)( 1, static_cast<int32_t>( SCOPE_BUFFER_SIZE / width ) );
 	float xinc = (width * step) / SCOPE_BUFFER_SIZE;
 
 	float x = 0;
@@ -128,7 +128,7 @@ void Scope3Gui::DrawTrace(Factory& factory, Graphics& g, float* capturedata, Gmp
 
 		for (int i = 0; i < width; ++i)
 		{
-			int index = FastRealToIntFloor(indexf);
+			int index = static_cast<int32_t>(indexf);
 			float frac = indexf - index;
 
 			float y1 = capturedata[index];
@@ -207,10 +207,10 @@ void Scope3Gui::DrawTrace(Factory& factory, Graphics& g, float* capturedata, Gmp
 
 void line(GmpiDrawing::Point from, GmpiDrawing::Point to, int32_t* image, int width, int32_t color)
 {
-	int x0 = FastRealToIntTruncateTowardZero(from.x);
-	int y0 = FastRealToIntTruncateTowardZero(from.y);
-	int x1 = FastRealToIntTruncateTowardZero(to.x);
-	int y1 = FastRealToIntTruncateTowardZero(to.y);
+	int x0 = static_cast<int32_t>(from.x);
+	int y0 = static_cast<int32_t>(from.y);
+	int x1 = static_cast<int32_t>(to.x);
+	int y1 = static_cast<int32_t>(to.y);
 
 	bool steep = false;
 	if (std::abs(x0 - x1)<std::abs(y0 - y1)) {
@@ -286,7 +286,7 @@ int32_t Scope3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 	float height = r.bottom - r.top;
 	float width = r.right - r.left;
 
-	int widthi = FastRealToIntFloor(width + 0.5f);
+	int widthi = static_cast<int32_t>(width + 0.5f);
 
 	float scale = height * 0.46f;;
 	float mid_y = floorf(0.5f + height * 0.5f);

@@ -2,7 +2,7 @@
 #include <algorithm>
 #include "../shared/ImageMetadata.h"
 #include "../shared/ImageCache.h"
-#include "../shared/xp_simd.h"
+
 //#ifdef _DEBUG
 #include <iostream>
 //#endif
@@ -368,7 +368,7 @@ public:
                 angle = (std::max)(angle, 0.f);
                 angle = (std::min)(angle, 1.f);
 				float frame_number = 0.5f + angle * (last_frame_idx + 1.f);
-				draw_at = FastRealToIntTruncateTowardZero(frame_number);
+				draw_at = static_cast<int32_t>(frame_number);
 
 				if (draw_at > last_frame_idx) // last frame should be first repeated
 					draw_at = 0;
@@ -380,7 +380,7 @@ public:
 			else // normal knob
 			{
 				// scale pos by number of frames (rounding to nearest)
-				draw_at = FastRealToIntTruncateTowardZero(0.5f + animationPosition * last_frame_idx);
+				draw_at = static_cast<int32_t>(0.5f + animationPosition * last_frame_idx);
 				draw_at *= bitmapMetadata_->frameSize.height;
 			}
 		}
@@ -388,7 +388,7 @@ public:
 
 		case ABM_SLIDER:
 		{
-			draw_at = FastRealToIntTruncateTowardZero(animationPosition * (bitmapMetadata_->handle_range_hi - bitmapMetadata_->handle_range_lo));
+			draw_at = static_cast<int32_t>(animationPosition * (bitmapMetadata_->handle_range_hi - bitmapMetadata_->handle_range_lo));
 			// draw slider knob
 			if (bitmapMetadata_->orientation == (int)ImageMetadata::MouseResponse::Vertical || bitmapMetadata_->orientation == (int)ImageMetadata::MouseResponse::ReverseVertical) // bitmap->GetMouseMode() == 0) // vertical
 			{
@@ -403,7 +403,7 @@ public:
 
 		case ABM_BAR_GRAPH:
 		{
-			draw_at = FastRealToIntTruncateTowardZero(animationPosition * (bitmapMetadata_->line_end_length + 1));
+			draw_at = static_cast<int32_t>(animationPosition * (bitmapMetadata_->line_end_length + 1));
 			draw_at *= bitmapMetadata_->handle_range_hi;
 			draw_at += bitmapMetadata_->handle_range_lo - 1;
 		}

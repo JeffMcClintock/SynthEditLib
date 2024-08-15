@@ -9,7 +9,7 @@
 ---------------------------------------------------------------------------*/
 #include <math.h>
 #include "./SoftDistortion.h"
-#include "../shared/xp_simd.h"
+
 
 const int TBL_SIZE = 1024;
 const int TBL_SIZE_M_1 = TBL_SIZE - 1;
@@ -79,7 +79,7 @@ void SoftDistortion::subProcess( int bufferOffset, int sampleFrames )
 	{
 		float fltidx = ( n[s] * x[s] + 1.f ) * HALF_TBL_SIZE;
 
-		int idx = FastRealToIntTruncateTowardZero(fltidx);
+		int idx = static_cast<int32_t>(fltidx);
 		float fract = fltidx - (float) idx;
 
 		if( idx < 0 ) idx = 0;

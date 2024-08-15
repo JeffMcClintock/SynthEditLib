@@ -1,5 +1,5 @@
 #include "./Converters.h"
-#include "../shared/xp_simd.h"
+
 
 SE_DECLARE_INIT_STATIC_FILE(Converters);
 
@@ -183,7 +183,7 @@ public:
 
 		for (int s = sampleFrames; s > 0; --s)
 		{
-			int v = FastRealToIntFloor(*voltsIn * 10.0f + 0.5f);
+			int v = static_cast<int32_t>(*voltsIn * 10.0f + 0.5f);
 			if (state != v)
 			{
 				state = v;

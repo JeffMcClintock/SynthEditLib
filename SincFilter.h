@@ -3,7 +3,7 @@
 
 #include <string.h>
 #include <assert.h>
-#include "modules/shared/xp_simd.h"
+
 
 /* 
 #include "SincFilter.h"

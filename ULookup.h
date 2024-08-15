@@ -3,7 +3,7 @@
 #pragma once
 #include "sample.h"
 #include <assert.h>
-#include "modules/shared/xp_simd.h"
+
 #include <algorithm>
 #include <string>
 
@@ -13,7 +13,7 @@ inline float fastInterpolationNoClip( float index, int tableSize, float* lookupT
 	assert( index <= 1.0f && index >= 0.0f );
 
 	index *= (float) tableSize;
-	int i = FastRealToIntTruncateTowardZero(index); // fast float-to-int using SSE. truncation toward zero.
+	int i = static_cast<int32_t>(index); // fast float-to-int using SSE. truncation toward zero.
 	float idx_frac = index - (float) i;
 	float* p = lookupTable + i;
 	return p[0] + idx_frac * (p[1] - p[0]);
@@ -29,7 +29,7 @@ inline float fastInterpolationClipped( float index, int tableSize, float* lookup
 
 	index *= (float) tableSize;
 
-	int i = FastRealToIntTruncateTowardZero(index); // fast float-to-int using SSE. truncation toward zero.
+	int i = static_cast<int32_t>(index); // fast float-to-int using SSE. truncation toward zero.
 
 	if( i >= 0 && i < tableSize )
 	{
@@ -53,7 +53,7 @@ inline float fastInterpolationClipped2( float index, int tableSize, float* looku
 	shr ecx, 31
 	sub eax, ecx
 
-	int i = FastRealToIntTruncateTowardZero(index )); // fast float-to-int using SSE. truncation toward zero.
+	int i = static_cast<int32_t>(index )); // fast float-to-int using SSE. truncation toward zero.
 	i += (*(int*)&index) >> 31; // taking sign bit off floating point value to round to -ve inf.
 
 */
@@ -63,7 +63,7 @@ inline float fastInterpolationClipped2( float index, int tableSize, float* looku
 		return lookupTable[0];
 	}
 
-	int i = FastRealToIntTruncateTowardZero(index); // fast float-to-int using SSE. truncation toward zero.
+	int i = static_cast<int32_t>(index); // fast float-to-int using SSE. truncation toward zero.
 
 	if (i >= 0 && i < tableSize)
 	{
@@ -87,7 +87,7 @@ inline float fastInterpolationClippedLow( float index, int tableSize, float* loo
 
 	index *= (float)tableSize;
 
-	int i = FastRealToIntTruncateTowardZero(index); // fast float-to-int using SSE. truncation toward zero.
+	int i = static_cast<int32_t>(index); // fast float-to-int using SSE. truncation toward zero.
 
 	if (i >= 0 /*&& i < tableSize */)
 	{

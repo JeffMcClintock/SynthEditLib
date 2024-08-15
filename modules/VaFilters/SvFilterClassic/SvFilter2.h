@@ -5,7 +5,7 @@
 #include <math.h>
 #include <algorithm>
 #include "../../shared/FilterBase.h"
-#include "../../shared/xp_simd.h"
+
 
 #undef min
 #undef max
@@ -30,7 +30,7 @@ inline float ComputeIncrement2( const float* pitchTable, float pitch )
 
 	pitch *= 120.0f;
 
-	int table_floor = FastRealToIntTruncateTowardZero(pitch); // fast float-to-int using SSE. truncation toward zero.
+	int table_floor = static_cast<int32_t>(pitch); // fast float-to-int using SSE. truncation toward zero.
 	float fraction = pitch - (float) table_floor;
 
 	// Linear interpolator.
@@ -101,7 +101,7 @@ public:
 		q = std::min( q, 0.9992f );
 		returnQuality = 2.f - 2.f * q; // map to 0 - 2.0 range
 
-		const int tableFloor = FastRealToIntTruncateTowardZero(q * 512.f); // fast float-to-int using SSE. truncation toward zero.
+		const int tableFloor = static_cast<int32_t>(q * 512.f); // fast float-to-int using SSE. truncation toward zero.
 		returnMaxStableF1 = stabilityTable[ tableFloor ];
 	}
 	inline static void IncrementPointer( float*& pitch )
