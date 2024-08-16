@@ -60,7 +60,7 @@ protected:
 		auto native() const {return native_.get();}
 	};
 
-	gmpi::drawing::api::IBrush* toNative(const GmpiDrawing_API::IMpBrush* brush) const
+	inline static gmpi::drawing::api::IBrush* toGMPI(const GmpiDrawing_API::IMpBrush* brush)
 	{
 		if(brush)
 			return dynamic_cast<const g3_BrushBase*>(brush)->native();
@@ -219,7 +219,7 @@ protected:
 		GMPI_REFCOUNT;
 	};
 
-	gmpi::drawing::api::IStrokeStyle* toNative(const GmpiDrawing_API::IMpStrokeStyle* strokeStyle)
+	inline static gmpi::drawing::api::IStrokeStyle* toGMPI(const GmpiDrawing_API::IMpStrokeStyle* strokeStyle)
 	{
 		if (auto g3 = dynamic_cast<const g3_StrokeStyle*>(strokeStyle); g3)
 			return g3->native();
@@ -317,7 +317,7 @@ protected:
 		}
 		int32_t MP_STDCALL StrokeContainsPoint(GmpiDrawing_API::MP1_POINT point, float strokeWidth, GmpiDrawing_API::IMpStrokeStyle* strokeStyle, const GmpiDrawing_API::MP1_MATRIX_3X2* worldTransform, bool* returnContains) override
 		{
-			return (int32_t) native()->strokeContainsPoint(*(gmpi::drawing::Point*)&point, strokeWidth, (gmpi::drawing::api::IStrokeStyle*)strokeStyle, (const gmpi::drawing::Matrix3x2*)worldTransform, returnContains);
+			return (int32_t) native()->strokeContainsPoint(*(gmpi::drawing::Point*)&point, strokeWidth, toGMPI(strokeStyle), (const gmpi::drawing::Matrix3x2*)worldTransform, returnContains);
 		}
 		int32_t MP_STDCALL FillContainsPoint(GmpiDrawing_API::MP1_POINT point, const GmpiDrawing_API::MP1_MATRIX_3X2* worldTransform, bool* returnContains) override
 		{
@@ -325,7 +325,7 @@ protected:
 		}
 		int32_t MP_STDCALL GetWidenedBounds(float strokeWidth, GmpiDrawing_API::IMpStrokeStyle* strokeStyle, const GmpiDrawing_API::MP1_MATRIX_3X2* worldTransform, GmpiDrawing_API::MP1_RECT* returnBounds) override
 		{
-			return (int32_t) native()->getWidenedBounds(strokeWidth, (gmpi::drawing::api::IStrokeStyle*)strokeStyle, (const gmpi::drawing::Matrix3x2*)worldTransform, (gmpi::drawing::Rect*)returnBounds);
+			return (int32_t) native()->getWidenedBounds(strokeWidth, toGMPI(strokeStyle), (const gmpi::drawing::Matrix3x2*)worldTransform, (gmpi::drawing::Rect*)returnBounds);
 		}
 
 		// IMpResource
@@ -335,7 +335,7 @@ protected:
 		GMPI_REFCOUNT;
 	};
 
-	inline gmpi::drawing::api::IPathGeometry* toNative(const GmpiDrawing_API::IMpPathGeometry* geometry) const
+	inline static gmpi::drawing::api::IPathGeometry* toGMPI(const GmpiDrawing_API::IMpPathGeometry* geometry)
 	{
 		if (auto g3 = dynamic_cast<const g3_PathGeometry*>(geometry); g3)
 			return g3->native();
@@ -379,7 +379,7 @@ protected:
 		GMPI_REFCOUNT;
 	};
 
-	inline gmpi::drawing::api::ITextFormat* toNative(const GmpiDrawing_API::IMpTextFormat* textFormat) const
+	inline static gmpi::drawing::api::ITextFormat* toGMPI(const GmpiDrawing_API::IMpTextFormat* textFormat)
 	{
 		if (auto g3 = dynamic_cast<const g3_TextFormat*>(textFormat); g3)
 			return g3->native();
@@ -477,12 +477,12 @@ public:
 
 	void DrawRectangle(const GmpiDrawing_API::MP1_RECT* rect, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override
 	{
-		context_->drawRectangle((const gmpi::drawing::Rect*)rect, toNative(brush), strokeWidth, toNative(strokeStyle));
+		context_->drawRectangle((const gmpi::drawing::Rect*)rect, toGMPI(brush), strokeWidth, toGMPI(strokeStyle));
 	}
 
 	void FillRectangle(const GmpiDrawing_API::MP1_RECT* rect, const GmpiDrawing_API::IMpBrush* brush) override
 	{
-		context_->fillRectangle((const gmpi::drawing::Rect*)rect, toNative(brush));
+		context_->fillRectangle((const gmpi::drawing::Rect*)rect, toGMPI(brush));
 	}
 
 	void Clear(const GmpiDrawing_API::MP1_COLOR* clearColor) override
@@ -495,25 +495,25 @@ public:
 		context_->drawLine(
 			*((gmpi::drawing::Point*)&point0),
 			*((gmpi::drawing::Point*)&point1),
-			toNative(brush),
+			toGMPI(brush),
 			strokeWidth,
-			toNative(strokeStyle)
+			toGMPI(strokeStyle)
 		);
 	}
 
 	void DrawGeometry(const GmpiDrawing_API::IMpPathGeometry* geometry, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth = 1.0f, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = 0) override
 	{
-		context_->drawGeometry(toNative(geometry), toNative(brush), strokeWidth, toNative(strokeStyle));
+		context_->drawGeometry(toGMPI(geometry), toGMPI(brush), strokeWidth, toGMPI(strokeStyle));
 	}
 
 	void FillGeometry(const GmpiDrawing_API::IMpPathGeometry* geometry, const GmpiDrawing_API::IMpBrush* brush, const GmpiDrawing_API::IMpBrush* opacityBrush) override
 	{
-		context_->fillGeometry(toNative(geometry), toNative(brush), toNative(opacityBrush));
+		context_->fillGeometry(toGMPI(geometry), toGMPI(brush), toGMPI(opacityBrush));
 	}
 
 	void DrawTextU(const char* utf8String, int32_t stringLength, const GmpiDrawing_API::IMpTextFormat* textFormat, const GmpiDrawing_API::MP1_RECT* layoutRect, const GmpiDrawing_API::IMpBrush* brush, int32_t flags) override
 	{
-		context_->drawTextU(utf8String, stringLength, toNative(textFormat), (const gmpi::drawing::Rect*)layoutRect, toNative(brush), flags);
+		context_->drawTextU(utf8String, stringLength, toGMPI(textFormat), (const gmpi::drawing::Rect*)layoutRect, toGMPI(brush), flags);
 	}
 
 	//	void DrawBitmap( GmpiDrawing_API::IMpBitmap* mpBitmap, GmpiDrawing::Rect destinationRectangle, float opacity, int32_t interpolationMode, GmpiDrawing::Rect sourceRectangle) override
@@ -640,21 +640,21 @@ public:
 
 	void DrawRoundedRectangle(const GmpiDrawing_API::MP1_ROUNDED_RECT* roundedRect, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override
 	{
-		context_->drawRoundedRectangle((const gmpi::drawing::RoundedRect*)roundedRect, toNative(brush), strokeWidth, toNative(strokeStyle));
+		context_->drawRoundedRectangle((const gmpi::drawing::RoundedRect*)roundedRect, toGMPI(brush), strokeWidth, toGMPI(strokeStyle));
 	}
 	void FillRoundedRectangle(const GmpiDrawing_API::MP1_ROUNDED_RECT* roundedRect, const GmpiDrawing_API::IMpBrush* brush) override
 	{
-		context_->fillRoundedRectangle((const gmpi::drawing::RoundedRect*)roundedRect, toNative(brush));
+		context_->fillRoundedRectangle((const gmpi::drawing::RoundedRect*)roundedRect, toGMPI(brush));
 	}
 
 	void DrawEllipse(const GmpiDrawing_API::MP1_ELLIPSE* ellipse, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override
 	{
-		context_->drawEllipse((const gmpi::drawing::Ellipse*)ellipse, toNative(brush), strokeWidth, toNative(strokeStyle));
+		context_->drawEllipse((const gmpi::drawing::Ellipse*)ellipse, toGMPI(brush), strokeWidth, toGMPI(strokeStyle));
 	}
 
 	void FillEllipse(const GmpiDrawing_API::MP1_ELLIPSE* ellipse, const GmpiDrawing_API::IMpBrush* brush) override
 	{
-		context_->fillEllipse((const gmpi::drawing::Ellipse*)ellipse, toNative(brush));
+		context_->fillEllipse((const gmpi::drawing::Ellipse*)ellipse, toGMPI(brush));
 	}
 
 	void PushAxisAlignedClip(const GmpiDrawing_API::MP1_RECT* clipRect/*, GmpiDrawing_API::MP1_ANTIALIAS_MODE antialiasMode*/) override
