@@ -3,7 +3,6 @@
 #pragma once
 
 #include "ug_base.h"
-#include "modules/shared/xp_simd.h"
 
 class ug_adder2 : public ug_base
 {
