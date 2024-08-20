@@ -150,7 +150,7 @@ namespace SE2
 
 		std::string getToolTip(GmpiDrawing_API::MP1_POINT point) override
 		{
-			return std::string();
+			return {};
 		}
 		void receiveMessageFromAudio(void*) override
 		{
@@ -159,7 +159,7 @@ namespace SE2
 		class IPresenter* Presenter();
 		GmpiDrawing::Point getConnectionPoint(CableType cableType, int pinIndex) override
 		{
-			return GmpiDrawing::Point();
+			return {};
 		}
 
 		bool imCaptured();

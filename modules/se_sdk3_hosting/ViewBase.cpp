@@ -1551,6 +1551,39 @@ namespace SE2
 		return gmpi::MP_UNHANDLED;
 	}
 
+	class ModulePicker : public ViewChild
+	{
+	public:
+		ModulePicker(ViewBase* pParent, int pHandle) : ViewChild(pParent, pHandle) {}
+
+		void OnRender(GmpiDrawing::Graphics& g) override
+		{
+			auto brush = g.CreateSolidColorBrush(GmpiDrawing::Color(0, 0, 0, 0.75f));
+			GmpiDrawing::Rect r(0, 0, bounds_.getWidth(), bounds_.getHeight());
+			g.FillRectangle(r, brush);
+		}
+		int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override { return {}; }
+		int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override { return {}; }
+		int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override { return {}; }
+		int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override { return {}; }
+		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override { return {}; }
+		int32_t onContextMenu(int32_t idx) override { return {}; }
+
+		void OnMoved(GmpiDrawing::Rect& newRect) override{}
+		void OnNodesMoved(std::vector<GmpiDrawing::Point>& newNodes) override{}
+	};
+
+	void ViewBase::DoModulePicker(GmpiDrawing_API::MP1_POINT currentPointerPos)
+	{
+		auto picker = new SE2::ModulePicker(this, -1);
+		picker->bounds_.left = currentPointerPos.x;
+		picker->bounds_.top = currentPointerPos.y;
+		picker->bounds_.right = currentPointerPos.x + 80;
+		picker->bounds_.bottom = currentPointerPos.y + 100;
+
+		children.push_back(std::unique_ptr<IViewChild>(picker));
+	}
+
 	IViewChild* ViewBase::Find(GmpiDrawing::Point& p)
 	{
 		for (auto it = children.rbegin(); it != children.rend(); ++it)

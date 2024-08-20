@@ -27,6 +27,7 @@
 	}
 
 */
+
 float SincFilter::ProcessIISingle_pt2(const float* __restrict pSignal, const float* __restrict pCoefs_f, int todo, int histSize) const
 {
 	// Operate on as many as we can up to end of buffer (but no more than num coefs)

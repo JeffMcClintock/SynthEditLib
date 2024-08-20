@@ -170,6 +170,7 @@ bool isIteratingChildren = false;
 		virtual void OnPatchCablesVisibilityUpdate();
 
 		int32_t OnKeyPress(wchar_t c) override;
+		void DoModulePicker(GmpiDrawing_API::MP1_POINT currentPointerPos);
 		void DragNewModule(const char* id);
 
 		int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override

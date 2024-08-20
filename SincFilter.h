@@ -108,11 +108,11 @@ public:
 	int readahead = 4;
 
 	std::vector<float> hist_;
-	int writeIndex_;
-	int readIndex_;
+	int writeIndex_{};
+	int readIndex_{};
 	const SincFilterCoefs* coefs = {};
 
-    SincFilter() : writeIndex_(0)
+    SincFilter()
     {
     }
 
