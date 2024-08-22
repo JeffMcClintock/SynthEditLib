@@ -80,7 +80,6 @@ namespace SE2
 		Json::Value* datacontext = {};
 		int handle = -1;
 		class ViewBase* parent = {};
-		bool isOpen = {};
 
 		std::unique_ptr<GmpiSdk::ContextMenuHelper::ContextMenuCallbacks> contextMenuCallbacks;
 

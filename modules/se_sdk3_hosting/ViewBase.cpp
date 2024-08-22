@@ -530,6 +530,9 @@ namespace SE2
 #endif
 		}
 
+		if (modulePicker && hitObject != modulePicker)
+			DismissModulePicker();
+
 		// Mouse 'hit' module, but module did not capture it. Drag module if selected.
 		if(hitObject)
 		{
@@ -1551,37 +1554,91 @@ namespace SE2
 		return gmpi::MP_UNHANDLED;
 	}
 
-	class ModulePicker : public ViewChild
+	class ModulePicker : public ViewChild, public gmpi::api::ITextEditCallback
 	{
+		gmpi::shared_ptr<gmpi_gui::IMpPlatformText> textEdit;
+		std::string searchString;
+
 	public:
-		ModulePicker(ViewBase* pParent, int pHandle) : ViewChild(pParent, pHandle) {}
+		ModulePicker(ViewBase* pParent, int pHandle) :
+			ViewChild(pParent, pHandle)
+		{}
 
 		void OnRender(GmpiDrawing::Graphics& g) override
 		{
 			auto brush = g.CreateSolidColorBrush(GmpiDrawing::Color(0, 0, 0, 0.75f));
 			GmpiDrawing::Rect r(0, 0, bounds_.getWidth(), bounds_.getHeight());
 			g.FillRectangle(r, brush);
+
+			brush.SetColor(GmpiDrawing::Color(1, 1, 1, 1));
+			auto textFormat = g.GetFactory().CreateTextFormat2(12.0f);
+			g.DrawTextU(searchString.c_str(), textFormat, r, brush);
 		}
 		int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override { return {}; }
 		int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override { return {}; }
-		int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override { return {}; }
+		int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
+		{
+			parent->releaseCapture();
+			parent->RemoveChild(this);
+			delete this;
+			return {};
+		}
 		int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override { return {}; }
 		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override { return {}; }
 		int32_t onContextMenu(int32_t idx) override { return {}; }
 
 		void OnMoved(GmpiDrawing::Rect& newRect) override{}
 		void OnNodesMoved(std::vector<GmpiDrawing::Point>& newNodes) override{}
+
+		void init()
+		{
+			const Rect r{bounds_.left + 200, bounds_.top, bounds_.left + 400, bounds_.top + 30};
+			parent->ChildCreatePlatformTextEdit(&r, textEdit.put());
+			textEdit->ShowAsync( (gmpi_gui::ICompletionCallback*) static_cast<gmpi::api::ITextEditCallback*>(this)); // unsafe cast, but have modified GmpiGuiHosting::PGCC_PlatformTextEntry to query it.
+		}
+		void onChanged(const char* text) override
+		{
+			searchString = text;
+			parent->invalidateRect(&bounds_);
+		}
+		void onComplete(ReturnCode result) override
+		{
+			textEdit = nullptr; // release it.
+			parent->DismissModulePicker();
+		}
+
+		GMPI_QUERYINTERFACE_METHOD(gmpi::api::ITextEditCallback);
+		GMPI_REFCOUNT_NO_DELETE;
 	};
 
-	void ViewBase::DoModulePicker(GmpiDrawing_API::MP1_POINT currentPointerPos)
+	bool ViewBase::DoModulePicker(GmpiDrawing_API::MP1_POINT currentPointerPos)
 	{
-		auto picker = new SE2::ModulePicker(this, -1);
-		picker->bounds_.left = currentPointerPos.x;
-		picker->bounds_.top = currentPointerPos.y;
-		picker->bounds_.right = currentPointerPos.x + 80;
-		picker->bounds_.bottom = currentPointerPos.y + 100;
+		if(modulePicker)
+			return false;
 
+		auto picker = new SE2::ModulePicker(this, -1);
+		modulePicker = picker;
+
+		assert(!isIteratingChildren);
 		children.push_back(std::unique_ptr<IViewChild>(picker));
+
+		GmpiDrawing::Size desiredMax{};
+		picker->measure(GmpiDrawing::Size(100, 80), &desiredMax);
+		picker->arrange(GmpiDrawing::Rect(currentPointerPos.x, currentPointerPos.y, currentPointerPos.x + desiredMax.width, currentPointerPos.y + desiredMax.height));
+
+		picker->init();
+
+		const auto invalidRect = modulePicker->GetClipRect();
+		getGuiHost()->invalidateRect(&invalidRect);
+		return true;
+	}
+
+	void ViewBase::DismissModulePicker()
+	{
+		const auto invalidRect = modulePicker->GetClipRect();
+		RemoveChild(modulePicker);
+		modulePicker = nullptr;
+		getGuiHost()->invalidateRect(&invalidRect);
 	}
 
 	IViewChild* ViewBase::Find(GmpiDrawing::Point& p)

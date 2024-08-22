@@ -39,9 +39,10 @@ bool isIteratingChildren = false;
 		std::unique_ptr<IPresenter> presenter;
 
 		GmpiDrawing::Rect drawingBounds;
-		IViewChild* mouseCaptureObject;
-		IViewChild* elementBeingDragged;
+		IViewChild* mouseCaptureObject = {};
+		IViewChild* elementBeingDragged = {};
 		IViewChild* mouseOverObject = {};
+		IViewChild* modulePicker = {};
 
 #ifdef _WIN32
 		GmpiGuiHosting::DrawingFrameBase* frameWindow = {};
@@ -170,7 +171,8 @@ bool isIteratingChildren = false;
 		virtual void OnPatchCablesVisibilityUpdate();
 
 		int32_t OnKeyPress(wchar_t c) override;
-		void DoModulePicker(GmpiDrawing_API::MP1_POINT currentPointerPos);
+		bool DoModulePicker(GmpiDrawing_API::MP1_POINT currentPointerPos);
+		void DismissModulePicker();
 		void DragNewModule(const char* id);
 
 		int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
