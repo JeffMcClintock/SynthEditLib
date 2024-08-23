@@ -8,6 +8,7 @@
 #include "mp_gui.h"
 #include "Presenter.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
+#include "GmpiApiDrawing.h"
 
 namespace GmpiGuiHosting
 {
@@ -170,8 +171,12 @@ bool isIteratingChildren = false;
 
 		virtual void OnPatchCablesVisibilityUpdate();
 
+		// gmpi_gui_api::IMpKeyClient
 		int32_t OnKeyPress(wchar_t c) override;
-		bool DoModulePicker(GmpiDrawing_API::MP1_POINT currentPointerPos);
+
+		gmpi::ReturnCode onKey(int32_t key, gmpi::drawing::Point* pointerPosOrNull);
+
+		bool DoModulePicker(gmpi::drawing::Point currentPointerPos);
 		void DismissModulePicker();
 		void DragNewModule(const char* id);
 

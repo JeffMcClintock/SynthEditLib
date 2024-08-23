@@ -1539,31 +1539,54 @@ namespace SE2
 		Presenter()->GetPatchManager()->serviceGuiQueue();
 	}
 
-	int32_t ViewBase::OnKeyPress(wchar_t c)
+	int32_t ViewBase::OnKeyPress(wchar_t c) // SDK3 version, forward to new version.
 	{
-		if (c == 0x1B) // <ESC> to cancel cable drag
+		return (int32_t) onKey(c, nullptr);
+	}
+
+	gmpi::ReturnCode ViewBase::onKey(int32_t key, gmpi::drawing::Point* pointerPosOrNull)
+	{
+		switch (key)
 		{
+		case 0x1B: // <ESC> to cancel cable drag
 			if (auto cable = dynamic_cast<SE2::ConnectorViewBase*>(mouseCaptureObject); cable)
 			{
 				autoScrollStop();
 				EndCableDrag({ -10000, -10000 }, cable);
-				return gmpi::MP_OK;
+				return gmpi::ReturnCode::Handled;
 			}
+			break;
+
+		case 'n':
+		case 'N':
+			if (pointerPosOrNull)
+			{
+				if (DoModulePicker(*pointerPosOrNull))
+					return gmpi::ReturnCode::Handled;
+			}
+			break;
+
+		default:
+			break;
 		}
 
-		return gmpi::MP_UNHANDLED;
+		return gmpi::ReturnCode::Unhandled;
 	}
 
-	class ModulePicker : public ViewChild, public gmpi::api::ITextEditCallback
+	class ModulePicker : public ViewChild, public gmpi::api::IKeyListenerCallback
 	{
-		gmpi::shared_ptr<gmpi_gui::IMpPlatformText> textEdit;
+//		gmpi::shared_ptr<gmpi_gui::IMpPlatformText> textEdit;
+		gmpi::shared_ptr<gmpi::api::IKeyListener> listener;
 		std::string searchString;
 
 	public:
 		ModulePicker(ViewBase* pParent, int pHandle) :
 			ViewChild(pParent, pHandle)
 		{}
-
+		~ModulePicker()
+		{
+			int i = 9;
+		}
 		void OnRender(GmpiDrawing::Graphics& g) override
 		{
 			auto brush = g.CreateSolidColorBrush(GmpiDrawing::Color(0, 0, 0, 0.75f));
@@ -1592,10 +1615,17 @@ namespace SE2
 
 		void init()
 		{
-			const Rect r{bounds_.left + 200, bounds_.top, bounds_.left + 400, bounds_.top + 30};
-			parent->ChildCreatePlatformTextEdit(&r, textEdit.put());
-			textEdit->ShowAsync( (gmpi_gui::ICompletionCallback*) static_cast<gmpi::api::ITextEditCallback*>(this)); // unsafe cast, but have modified GmpiGuiHosting::PGCC_PlatformTextEntry to query it.
+//			const gmpi::drawing::Rect r{bounds_.left + 200, bounds_.top, bounds_.left + 400, bounds_.top + 30};
+			//parent->ChildCreatePlatformTextEdit(&r, textEdit.put());
+			//textEdit->ShowAsync((gmpi_gui::ICompletionCallback*) static_cast<gmpi::api::ITextEditCallback*>(this)); // unsafe cast, but have modified GmpiGuiHosting::PGCC_PlatformTextEntry to query it.
+			gmpi::shared_ptr<gmpi::api::IDialogHost> host;
+			parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid, host.put_void()); // ->ChildCreatePlatformTextEdit(&r, textEdit.put());
+
+			host->createKeyListener(listener.asIUnknownPtr());
+
+			listener->showAsync((const gmpi::drawing::Rect*) &bounds_, static_cast<gmpi::api::IKeyListenerCallback*>(this));
 		}
+/*
 		void onChanged(const char* text) override
 		{
 			searchString = text;
@@ -1606,12 +1636,25 @@ namespace SE2
 			textEdit = nullptr; // release it.
 			parent->DismissModulePicker();
 		}
+*/
+		// IKeyListenerCallback
+		void onKey(int32_t key) override
+		{
+			searchString += (char) key;
+			parent->invalidateRect(&bounds_);
+		}
+		void onLostFocus(gmpi::ReturnCode result) override
+		{
+			//textEdit = nullptr; // release it.
+			listener = nullptr; // release it.
+			parent->DismissModulePicker();
+		}
 
-		GMPI_QUERYINTERFACE_METHOD(gmpi::api::ITextEditCallback);
+		GMPI_QUERYINTERFACE_METHOD(gmpi::api::IKeyListenerCallback);
 		GMPI_REFCOUNT_NO_DELETE;
 	};
 
-	bool ViewBase::DoModulePicker(GmpiDrawing_API::MP1_POINT currentPointerPos)
+	bool ViewBase::DoModulePicker(gmpi::drawing::Point currentPointerPos)
 	{
 		if(modulePicker)
 			return false;

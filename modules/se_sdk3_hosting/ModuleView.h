@@ -16,7 +16,7 @@
 
 #include "GmpiSdkCommon.h"
 #include "GmpiApiEditor.h"
-#include "helpers/GraphicsRedrawClient.h"
+#include "helpers/NativeUi.h"
 
 #include "modules/se_sdk3_hosting/GmpiResourceManager.h"
 #include "plug_description.h"
