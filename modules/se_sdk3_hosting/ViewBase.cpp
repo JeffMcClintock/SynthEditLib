@@ -1625,23 +1625,25 @@ namespace SE2
 
 			listener->showAsync((const gmpi::drawing::Rect*) &bounds_, static_cast<gmpi::api::IKeyListenerCallback*>(this));
 		}
-/*
-		void onChanged(const char* text) override
-		{
-			searchString = text;
-			parent->invalidateRect(&bounds_);
-		}
-		void onComplete(ReturnCode result) override
-		{
-			textEdit = nullptr; // release it.
-			parent->DismissModulePicker();
-		}
-*/
+
 		// IKeyListenerCallback
-		void onKey(int32_t key) override
+		void onKeyDown(int32_t key) override
 		{
-			searchString += (char) key;
+			searchString += (char)key;
 			parent->invalidateRect(&bounds_);
+		}
+		void onKeyUp(int32_t key) override
+		{
+			_RPTWN(0, L"key up %c\n", (wchar_t) key);
+
+			if(key == 0x1B) // <ESC> to cancel
+			{
+				parent->DismissModulePicker();
+			}
+			else if(key == 0x0D || key == L'\t') // <ENTER> or <TAB> to select
+			{
+				parent->DismissModulePicker();
+			}
 		}
 		void onLostFocus(gmpi::ReturnCode result) override
 		{
