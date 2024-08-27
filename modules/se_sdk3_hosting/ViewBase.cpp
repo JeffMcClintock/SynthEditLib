@@ -21,6 +21,7 @@
 #endif
 #include "mfc_emulation.h"
 #include "IGuiHost2.h"
+#include "helpers/Timer.h"
 
 // #define DEBUG_HIT_TEST
 
@@ -1573,29 +1574,162 @@ namespace SE2
 		return gmpi::ReturnCode::Unhandled;
 	}
 
-	class ModulePicker : public ViewChild, public gmpi::api::IKeyListenerCallback
+	class editorLogic
+	{
+		int timerCounter = 0;
+	
+	public:
+		std::wstring text;
+		std::string textu;
+		int cursorPos{};
+		std::function<void()> redraw;
+
+		void onKey(int32_t key)
+		{
+			bool changed = false;
+
+			switch (key)
+			{
+			case 0:
+				break;
+
+			case 0x08: // <BACKSPACE>
+				if (cursorPos > 0)
+				{
+					text.erase(cursorPos - 1, 1);
+					cursorPos--;
+					changed = true;
+				}
+				break;
+
+			case 0x25: // <LEFT>
+				if(cursorPos > 0)
+				{
+					cursorPos--;
+					changed = true;
+				}
+				break;
+
+			case 0x27: // <RIGHT>
+				if(cursorPos < text.size())
+				{
+					cursorPos++;
+					changed = true;
+				}
+				break;
+
+			case 0x2E: // <DEL>
+				if(cursorPos < text.size())
+				{
+					text.erase(cursorPos, 1);
+					changed = true;
+				}
+				break;
+
+			default:
+				if (key >= 0x20 /*&& key <= 0x7E*/)
+				{
+					text.insert(cursorPos, 1, (wchar_t)key);
+					cursorPos++;
+					changed = true;
+				}
+				break;
+			}
+
+			if(changed)
+			{
+				timerCounter = 0; // blink cursor ON
+				textu = WStringToUtf8(text);
+				redraw();
+			}
+		}
+
+		bool cursorBlinkState() const
+		{
+			return (timerCounter & 0x8) == 0; // approx 2Hz blink.
+		}
+
+		void onTimer() // call with 62ms timer plse.
+		{
+			const auto blickBefore = cursorBlinkState();
+
+			++timerCounter;
+
+			if(blickBefore != cursorBlinkState()) // cursor state changed?
+			{
+				redraw();
+			}
+		}
+	};
+
+	class ModulePicker : public ViewChild, public gmpi::api::IKeyListenerCallback, public gmpi::TimerClient
 	{
 //		gmpi::shared_ptr<gmpi_gui::IMpPlatformText> textEdit;
 		gmpi::shared_ptr<gmpi::api::IKeyListener> listener;
-		std::string searchString;
+		editorLogic editor;
+
+		std::wstring glyfSource;
+		std::vector<float> glyfBounds;
+		float cursorHeight{};
+
+		bool onTimer() override
+		{
+			editor.onTimer();
+			return true;
+		}
 
 	public:
 		ModulePicker(ViewBase* pParent, int pHandle) :
 			ViewChild(pParent, pHandle)
-		{}
-		~ModulePicker()
 		{
-			int i = 9;
+			editor.redraw = [this]()
+			{
+				parent->invalidateRect(&bounds_);
+			};
 		}
+		~ModulePicker()
+		{}
 		void OnRender(GmpiDrawing::Graphics& g) override
 		{
+			auto textFormat = g.GetFactory().CreateTextFormat2(12.0f);
+
+			// calculate the width of each character in the string, so as to know where to draw the cursor.
+			if (glyfSource != editor.text || glyfBounds.empty())
+			{
+				glyfSource = editor.text;
+				glyfBounds.clear();
+
+				std::wstring wide;
+
+				glyfBounds.push_back(0.0f);
+				for(auto c : glyfSource)
+				{
+					wide += c;
+					auto utf8 = WStringToUtf8(wide);
+					auto bounds = textFormat.GetTextExtentU(utf8);
+					glyfBounds.push_back(bounds.width);
+				}
+			}
+
 			auto brush = g.CreateSolidColorBrush(GmpiDrawing::Color(0, 0, 0, 0.75f));
 			GmpiDrawing::Rect r(0, 0, bounds_.getWidth(), bounds_.getHeight());
 			g.FillRectangle(r, brush);
 
 			brush.SetColor(GmpiDrawing::Color(1, 1, 1, 1));
-			auto textFormat = g.GetFactory().CreateTextFormat2(12.0f);
-			g.DrawTextU(searchString.c_str(), textFormat, r, brush);
+
+			g.DrawTextU(editor.textu.c_str(), textFormat, r, brush);
+
+			if (editor.cursorBlinkState())
+			{
+				if (!cursorHeight)
+				{
+					auto bounds = textFormat.GetTextExtentU("|");
+					cursorHeight = bounds.height;
+				}
+
+				const auto cursorX = glyfBounds[std::clamp(editor.cursorPos, 0, -1 + (int) glyfBounds.size())];
+				g.DrawLine(GmpiDrawing::Point(cursorX, 0), GmpiDrawing::Point(cursorX, cursorHeight), brush, 1.0f);
+			}
 		}
 		int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override { return {}; }
 		int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override { return {}; }
@@ -1624,13 +1758,14 @@ namespace SE2
 			host->createKeyListener(listener.asIUnknownPtr());
 
 			listener->showAsync((const gmpi::drawing::Rect*) &bounds_, static_cast<gmpi::api::IKeyListenerCallback*>(this));
+
+			startTimer(62);
 		}
 
 		// IKeyListenerCallback
 		void onKeyDown(int32_t key) override
 		{
-			searchString += (char)key;
-			parent->invalidateRect(&bounds_);
+			editor.onKey(key);
 		}
 		void onKeyUp(int32_t key) override
 		{

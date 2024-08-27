@@ -8,6 +8,9 @@ set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for
 project(SynthEditLib)
 
 set(sdk_srcs
+${gmpi_ui_folder}/helpers/Timer.h
+${gmpi_ui_folder}/helpers/Timer.cpp
+
 ${se_sdk_folder}/mp_sdk_common.h
 ${se_sdk_folder}/mp_sdk_audio.h
 ${se_sdk_folder}/mp_sdk_audio.cpp
