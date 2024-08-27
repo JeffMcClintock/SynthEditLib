@@ -1582,47 +1582,68 @@ namespace SE2
 		std::wstring text;
 		std::string textu;
 		int cursorPos{};
+		int selectedFrom = -1;
+		int selectedTo = -1;
 		std::function<void()> redraw;
 
-		void onKey(int32_t key)
+		void onKey(int32_t key, int32_t flags)
 		{
-			bool changed = false;
+			const auto text_b4{ text };
+			const auto cursorPos_b4{ cursorPos };
+			const auto selectedFrom_b4{ selectedFrom };
+			const auto selectedTo_b4{ selectedTo };
 
 			switch (key)
 			{
 			case 0:
 				break;
 
-			case 0x08: // <BACKSPACE>
-				if (cursorPos > 0)
-				{
-					text.erase(cursorPos - 1, 1);
-					cursorPos--;
-					changed = true;
-				}
-				break;
-
 			case 0x25: // <LEFT>
-				if(cursorPos > 0)
-				{
-					cursorPos--;
-					changed = true;
-				}
+				cursorPos = (std::max)(cursorPos - 1, 0);
+				selectedFrom = cursorPos;
+
+				if(!(flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT))
+					selectedTo = cursorPos;
 				break;
 
 			case 0x27: // <RIGHT>
-				if(cursorPos < text.size())
-				{
-					cursorPos++;
-					changed = true;
-				}
+				cursorPos = (std::min)(cursorPos + 1, (int)text.size());
+				selectedTo = cursorPos;
+
+				if (!(flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT))
+					selectedFrom = cursorPos;
 				break;
 
 			case 0x2E: // <DEL>
-				if(cursorPos < text.size())
+				if (selectedFrom == selectedTo)
 				{
-					text.erase(cursorPos, 1);
-					changed = true;
+					if (cursorPos < text.size())
+					{
+						text.erase(cursorPos, 1);
+					}
+				}
+				else
+				{
+					text.erase(selectedFrom, selectedTo - selectedFrom);
+					cursorPos = selectedFrom;
+					selectedTo = selectedFrom;
+				}
+				break;
+
+			case 0x08: // <BACKSPACE>
+				if (selectedFrom == selectedTo)
+				{
+					if (cursorPos > 0)
+					{
+						text.erase(cursorPos - 1, 1);
+						cursorPos--;
+					}
+				}
+				else
+				{
+					text.erase(selectedFrom, selectedTo - selectedFrom);
+					cursorPos = selectedFrom;
+					selectedTo = selectedFrom;
 				}
 				break;
 
@@ -1631,10 +1652,11 @@ namespace SE2
 				{
 					text.insert(cursorPos, 1, (wchar_t)key);
 					cursorPos++;
-					changed = true;
 				}
 				break;
 			}
+
+			const bool changed = text != text_b4 || cursorPos != cursorPos_b4 || selectedFrom != selectedFrom_b4 || selectedTo != selectedTo_b4;
 
 			if(changed)
 			{
@@ -1715,6 +1737,14 @@ namespace SE2
 			GmpiDrawing::Rect r(0, 0, bounds_.getWidth(), bounds_.getHeight());
 			g.FillRectangle(r, brush);
 
+			if (editor.selectedFrom != editor.selectedTo)
+			{
+				brush.SetColor(GmpiDrawing::Color(1, 1, 1, 0.3));
+				auto bounds = textFormat.GetTextExtentU(editor.textu.substr(0, editor.selectedFrom));
+				auto bounds2 = textFormat.GetTextExtentU(editor.textu.substr(0, editor.selectedTo));
+				g.FillRectangle(GmpiDrawing::Rect(bounds.width, 0, bounds2.width, bounds.height), brush);
+			}
+
 			brush.SetColor(GmpiDrawing::Color(1, 1, 1, 1));
 
 			g.DrawTextU(editor.textu.c_str(), textFormat, r, brush);
@@ -1763,11 +1793,11 @@ namespace SE2
 		}
 
 		// IKeyListenerCallback
-		void onKeyDown(int32_t key) override
+		void onKeyDown(int32_t key, int32_t flags) override
 		{
-			editor.onKey(key);
+			editor.onKey(key, flags);
 		}
-		void onKeyUp(int32_t key) override
+		void onKeyUp(int32_t key, int32_t flags) override
 		{
 			_RPTWN(0, L"key up %c\n", (wchar_t) key);
 
@@ -1780,7 +1810,7 @@ namespace SE2
 				parent->DismissModulePicker();
 			}
 		}
-		void onLostFocus(gmpi::ReturnCode result) override
+		void onLostFocus(gmpi::ReturnCode /*result*/) override
 		{
 			//textEdit = nullptr; // release it.
 			listener = nullptr; // release it.
