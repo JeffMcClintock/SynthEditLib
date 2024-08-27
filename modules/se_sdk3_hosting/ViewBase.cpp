@@ -1574,129 +1574,117 @@ namespace SE2
 		return gmpi::ReturnCode::Unhandled;
 	}
 
-	class editorLogic
+
+namespace keyEditorLogic
+{
+struct State
+{
+	int timerCounter = 0;
+	std::wstring text;
+	int cursorPos{};
+	int selectedFrom = -1;
+	int selectedTo = -1;
+};
+
+State processKey(const State& inState, int32_t key, int32_t flags)
+{
+	State outState{ inState };
+
+	switch (key)
 	{
-		int timerCounter = 0;
-	
-	public:
-		std::wstring text;
-		std::string textu;
-		int cursorPos{};
-		int selectedFrom = -1;
-		int selectedTo = -1;
-		std::function<void()> redraw;
+	case 0:
+		break;
 
-		void onKey(int32_t key, int32_t flags)
+	case 0x25: // <LEFT>
+		outState.cursorPos = (std::max)(outState.cursorPos - 1, 0);
+		outState.selectedFrom = outState.cursorPos;
+
+		if(!(flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT))
+			outState.selectedTo = outState.cursorPos;
+		break;
+
+	case 0x27: // <RIGHT>
+		outState.cursorPos = (std::min)(outState.cursorPos + 1, (int)outState.text.size());
+		outState.selectedTo = outState.cursorPos;
+
+		if (!(flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT))
+			outState.selectedFrom = outState.cursorPos;
+		break;
+
+	case 0x2E: // <DEL>
+		if (outState.selectedFrom == outState.selectedTo)
 		{
-			const auto text_b4{ text };
-			const auto cursorPos_b4{ cursorPos };
-			const auto selectedFrom_b4{ selectedFrom };
-			const auto selectedTo_b4{ selectedTo };
-
-			switch (key)
+			if (outState.cursorPos < outState.text.size())
 			{
-			case 0:
-				break;
-
-			case 0x25: // <LEFT>
-				cursorPos = (std::max)(cursorPos - 1, 0);
-				selectedFrom = cursorPos;
-
-				if(!(flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT))
-					selectedTo = cursorPos;
-				break;
-
-			case 0x27: // <RIGHT>
-				cursorPos = (std::min)(cursorPos + 1, (int)text.size());
-				selectedTo = cursorPos;
-
-				if (!(flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT))
-					selectedFrom = cursorPos;
-				break;
-
-			case 0x2E: // <DEL>
-				if (selectedFrom == selectedTo)
-				{
-					if (cursorPos < text.size())
-					{
-						text.erase(cursorPos, 1);
-					}
-				}
-				else
-				{
-					text.erase(selectedFrom, selectedTo - selectedFrom);
-					cursorPos = selectedFrom;
-					selectedTo = selectedFrom;
-				}
-				break;
-
-			case 0x08: // <BACKSPACE>
-				if (selectedFrom == selectedTo)
-				{
-					if (cursorPos > 0)
-					{
-						text.erase(cursorPos - 1, 1);
-						cursorPos--;
-					}
-				}
-				else
-				{
-					text.erase(selectedFrom, selectedTo - selectedFrom);
-					cursorPos = selectedFrom;
-					selectedTo = selectedFrom;
-				}
-				break;
-
-			default:
-				if (key >= 0x20 /*&& key <= 0x7E*/)
-				{
-					text.insert(cursorPos, 1, (wchar_t)key);
-					cursorPos++;
-				}
-				break;
-			}
-
-			const bool changed = text != text_b4 || cursorPos != cursorPos_b4 || selectedFrom != selectedFrom_b4 || selectedTo != selectedTo_b4;
-
-			if(changed)
-			{
-				timerCounter = 0; // blink cursor ON
-				textu = WStringToUtf8(text);
-				redraw();
+				outState.text.erase(outState.cursorPos, 1);
 			}
 		}
-
-		bool cursorBlinkState() const
+		else
 		{
-			return (timerCounter & 0x8) == 0; // approx 2Hz blink.
+			outState.text.erase(outState.selectedFrom, outState.selectedTo - outState.selectedFrom);
+			outState.cursorPos = outState.selectedFrom;
+			outState.selectedTo = outState.selectedFrom;
 		}
+		break;
 
-		void onTimer() // call with 62ms timer plse.
+	case 0x08: // <BACKSPACE>
+		if (outState.selectedFrom == outState.selectedTo)
 		{
-			const auto blickBefore = cursorBlinkState();
-
-			++timerCounter;
-
-			if(blickBefore != cursorBlinkState()) // cursor state changed?
+			if (outState.cursorPos > 0)
 			{
-				redraw();
+				outState.text.erase(outState.cursorPos - 1, 1);
+				outState.cursorPos--;
 			}
 		}
-	};
+		else
+		{
+			outState.text.erase(outState.selectedFrom, outState.selectedTo - outState.selectedFrom);
+			outState.cursorPos = outState.selectedFrom;
+			outState.selectedTo = outState.selectedFrom;
+		}
+		break;
+
+	default:
+		if (key >= 0x20 /*&& key <= 0x7E*/)
+		{
+			outState.text.insert(outState.cursorPos, 1, (wchar_t)key);
+			outState.cursorPos++;
+		}
+		break;
+	}
+
+	return outState;
+}
+
+bool cursorBlinkState(const State& inState)
+{
+	return (inState.timerCounter & 0x8) == 0; // approx 2Hz blink.
+}
+
+} // namespace
 
 	class ModulePicker : public ViewChild, public gmpi::api::IKeyListenerCallback, public gmpi::TimerClient
 	{
 //		gmpi::shared_ptr<gmpi_gui::IMpPlatformText> textEdit;
 		gmpi::shared_ptr<gmpi::api::IKeyListener> listener;
-		editorLogic editor;
+		keyEditorLogic::State state;
 
 		std::wstring glyfSource;
 		std::vector<float> glyfBounds;
 		float cursorHeight{};
 
+		// call with 62ms timer plse.
 		bool onTimer() override
 		{
-			editor.onTimer();
+			const auto blickBefore = cursorBlinkState(state);
+
+			++state.timerCounter;
+
+			if (blickBefore != cursorBlinkState(state)) // cursor state changed?
+			{
+				parent->invalidateRect(&bounds_);
+			}
+
 			return true;
 		}
 
@@ -1704,21 +1692,18 @@ namespace SE2
 		ModulePicker(ViewBase* pParent, int pHandle) :
 			ViewChild(pParent, pHandle)
 		{
-			editor.redraw = [this]()
-			{
-				parent->invalidateRect(&bounds_);
-			};
 		}
 		~ModulePicker()
 		{}
+
 		void OnRender(GmpiDrawing::Graphics& g) override
 		{
 			auto textFormat = g.GetFactory().CreateTextFormat2(12.0f);
 
 			// calculate the width of each character in the string, so as to know where to draw the cursor.
-			if (glyfSource != editor.text || glyfBounds.empty())
+			if (glyfSource != state.text || glyfBounds.empty())
 			{
-				glyfSource = editor.text;
+				glyfSource = state.text;
 				glyfBounds.clear();
 
 				std::wstring wide;
@@ -1737,19 +1722,19 @@ namespace SE2
 			GmpiDrawing::Rect r(0, 0, bounds_.getWidth(), bounds_.getHeight());
 			g.FillRectangle(r, brush);
 
-			if (editor.selectedFrom != editor.selectedTo)
+			if (state.selectedFrom != state.selectedTo)
 			{
 				brush.SetColor(GmpiDrawing::Color(1, 1, 1, 0.3));
-				auto bounds = textFormat.GetTextExtentU(editor.textu.substr(0, editor.selectedFrom));
-				auto bounds2 = textFormat.GetTextExtentU(editor.textu.substr(0, editor.selectedTo));
+				auto bounds = textFormat.GetTextExtentU(WStringToUtf8(state.text.substr(0, state.selectedFrom)));
+				auto bounds2 = textFormat.GetTextExtentU(WStringToUtf8(state.text.substr(0, state.selectedTo)));
 				g.FillRectangle(GmpiDrawing::Rect(bounds.width, 0, bounds2.width, bounds.height), brush);
 			}
 
 			brush.SetColor(GmpiDrawing::Color(1, 1, 1, 1));
 
-			g.DrawTextU(editor.textu.c_str(), textFormat, r, brush);
+			g.DrawTextU(WStringToUtf8(state.text).c_str(), textFormat, r, brush);
 
-			if (editor.cursorBlinkState())
+			if (cursorBlinkState(state))
 			{
 				if (!cursorHeight)
 				{
@@ -1757,7 +1742,7 @@ namespace SE2
 					cursorHeight = bounds.height;
 				}
 
-				const auto cursorX = glyfBounds[std::clamp(editor.cursorPos, 0, -1 + (int) glyfBounds.size())];
+				const auto cursorX = glyfBounds[std::clamp(state.cursorPos, 0, -1 + (int) glyfBounds.size())];
 				g.DrawLine(GmpiDrawing::Point(cursorX, 0), GmpiDrawing::Point(cursorX, cursorHeight), brush, 1.0f);
 			}
 		}
@@ -1779,7 +1764,6 @@ namespace SE2
 
 		void init()
 		{
-//			const gmpi::drawing::Rect r{bounds_.left + 200, bounds_.top, bounds_.left + 400, bounds_.top + 30};
 			//parent->ChildCreatePlatformTextEdit(&r, textEdit.put());
 			//textEdit->ShowAsync((gmpi_gui::ICompletionCallback*) static_cast<gmpi::api::ITextEditCallback*>(this)); // unsafe cast, but have modified GmpiGuiHosting::PGCC_PlatformTextEntry to query it.
 			gmpi::shared_ptr<gmpi::api::IDialogHost> host;
@@ -1795,8 +1779,16 @@ namespace SE2
 		// IKeyListenerCallback
 		void onKeyDown(int32_t key, int32_t flags) override
 		{
-			editor.onKey(key, flags);
+			auto newState = processKey(state, key, flags);
+
+			if (newState != state)
+			{
+				state = newState;
+				state.timerCounter = 0; // blink cursor ON
+				parent->invalidateRect(&bounds_);
+			}
 		}
+
 		void onKeyUp(int32_t key, int32_t flags) override
 		{
 			_RPTWN(0, L"key up %c\n", (wchar_t) key);
@@ -1812,7 +1804,6 @@ namespace SE2
 		}
 		void onLostFocus(gmpi::ReturnCode /*result*/) override
 		{
-			//textEdit = nullptr; // release it.
 			listener = nullptr; // release it.
 			parent->DismissModulePicker();
 		}
