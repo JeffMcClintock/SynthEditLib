@@ -1209,19 +1209,15 @@ namespace SE2
 
 	void ViewBase::DragNewModule(const char* id)
 	{
-		draggingNewModuleId = id;
-
-		if (draggingNewModuleId == "") // empty string cancels drag
+		if (id)
 		{
-			getGuiHost()->releaseCapture();
-			//::ReleaseCapture();
-			//Cursor = null;
-		}
-		else
-		{
+			draggingNewModuleId = id;
 			getGuiHost()->setCapture();
-			//Cursor = dragNewModuleCursor;
-			//mouseClickTime = DateTime.Now;
+		}
+		else // nullptr cancels drag
+		{
+			draggingNewModuleId.clear();
+			getGuiHost()->releaseCapture();
 		}
 	}
 
@@ -1302,9 +1298,6 @@ namespace SE2
 			if (isMouseCaptured)
 			{
 				getGuiHost()->releaseCapture();
-				/*
-								Cursor = null;
-				*/
 				const auto moduleId = Utf8ToWstring(draggingNewModuleId); // TODO why does this get converted to UTF8 then back again?
 				Presenter()->AddModule(moduleId.c_str(), point);
 			}
@@ -1549,11 +1542,16 @@ namespace SE2
 	{
 		switch (key)
 		{
-		case 0x1B: // <ESC> to cancel cable drag
+		case 0x1B: // <ESC> to cancel cable or module drag
 			if (auto cable = dynamic_cast<SE2::ConnectorViewBase*>(mouseCaptureObject); cable)
 			{
 				autoScrollStop();
 				EndCableDrag({ -10000, -10000 }, cable);
+				return gmpi::ReturnCode::Handled;
+			}
+			else if (!draggingNewModuleId.empty())
+			{
+				DragNewModule(nullptr);
 				return gmpi::ReturnCode::Handled;
 			}
 			break;
@@ -1722,6 +1720,7 @@ bool cursorBlinkState(const State& inState)
 			GmpiDrawing::Rect r(0, 0, bounds_.getWidth(), bounds_.getHeight());
 			g.FillRectangle(r, brush);
 
+			// highlight background of currently selected text
 			if (state.selectedFrom != state.selectedTo)
 			{
 				brush.SetColor(GmpiDrawing::Color(1, 1, 1, 0.3));
@@ -1732,8 +1731,10 @@ bool cursorBlinkState(const State& inState)
 
 			brush.SetColor(GmpiDrawing::Color(1, 1, 1, 1));
 
+			// draw text
 			g.DrawTextU(WStringToUtf8(state.text).c_str(), textFormat, r, brush);
 
+			// draw blinking cursor
 			if (cursorBlinkState(state))
 			{
 				if (!cursorHeight)
