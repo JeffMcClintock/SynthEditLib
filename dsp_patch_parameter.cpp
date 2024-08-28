@@ -342,7 +342,7 @@ void dsp_patch_parameter_base::SendValuePt2( timestamp_t unadjusted_timestamp, V
 		}
 	}
 
-	shellDsp_->onSetParameter(Handle(), raw, voiceId);
+	shellDsp_->onSetParameter(Handle(), gmpi::FieldType::MP_FT_VALUE, raw, voiceId);
 }
 
 void dsp_patch_parameter_base::SendValuePoly(timestamp_t unadjusted_timestamp, int physicalVoiceNumber, RawView value, bool isInitialUpdate)
@@ -699,7 +699,7 @@ void dsp_patch_parameter_base::UpdateOutputParameter(int voiceId, UPlug* p_plug)
 
 	// This does seem to double up on dsp_patch_parameter_base::SendValuePt2(), but not always (AI Master)
 	const auto raw = GetValueRaw2(0, voiceId);
-	shellDsp_->onSetParameter(Handle(), raw, voiceId);
+	shellDsp_->onSetParameter(Handle(), gmpi::FieldType::MP_FT_VALUE, raw, voiceId);
 }
 
 void dsp_patch_parameter_base::vst_automate2(timestamp_t timestamp, int voice, const void* data, int size, [[maybe_unused]] int32_t flags)

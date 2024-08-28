@@ -12,7 +12,7 @@ MpParameterJuce::MpParameterJuce(SeJuceController* controller, int ParameterInde
 }
 
 // After we recieve a preset, need to update native params value to DAW ASAP
-// Note there is not gaurentee what thread this happens on.
+// Note there is not guarantee what thread this happens on.
 // Note that the parameter is not updated fully yet, that happens asyncronously on UI thread.
 void MpParameterJuce::updateDawUnsafe(const std::string& rawValue)
 {
@@ -271,51 +271,52 @@ void SeJuceController::ParamGrabbed(MpParameter_native* param)
 
 void SeJuceController::ParamToProcessorAndHost(MpParameterJuce* param)
 {
-	// also need to notify JUCE and DAW.
-#if 0
-	switch (fieldId)
+    // JUCE does not provide for thread-safe notification to the processor, so handle this via the message queue.
+
+    // NOTE: juceParameter->setValueNotifyingHost() also updates the DSP via the timer, but *only* if it detects a change in the value (which is often won't)
+    ParamToDsp(param);
+
+    // update JUCE parameter
+    auto juceParameter = processor->getParameters()[param->getNativeTag()];
+    if (juceParameter)
+    {
+        const bool handleGrabMyself = !param->isGrabbed();
+        if (handleGrabMyself)
+        {
+            juceParameter->beginChangeGesture();
+        }
+
+        juceParameter->setValueNotifyingHost(param->getDawNormalized());
+
+        if (handleGrabMyself)
+        {
+            juceParameter->endChangeGesture();
+        }
+    }
+}
+
+void SeJuceController::ParamToDsp(MpParameter* param, int32_t voiceId)
+{
+	MpController::ParamToDsp(param, voiceId);
+
+	if (param->stateful_)
 	{
-	case gmpi::MP_FT_GRAB:
-		{
-			auto juceParameter = processor->getParameters()[param->getNativeTag()];
-			if (juceParameter)
-			{
-				if (param->isGrabbed())
-					juceParameter->beginChangeGesture();
-				else
-					juceParameter->endChangeGesture();
-			}
-		}
-		break;
-	case gmpi::MP_FT_VALUE:
-	case gmpi::MP_FT_NORMALIZED:
-		{
-#endif
-			// JUCE does not provide for thread-safe notification to the processor, so handle this via the message queue.
+		const auto field = gmpi::MP_FT_VALUE;
+		const auto rawValue = param->getValueRaw(field, voiceId);
+		const int32_t messageSize = 2 * sizeof(int32_t) + static_cast<int32_t>(rawValue.size());
 
-			// NOTE: juceParameter->setValueNotifyingHost() also updates the DSP via the timer, but *only* if it detects a change in the value (which is often won't)
-			ParamToDsp(param);
+		my_msg_que_output_stream strm(ControllerToStateMgrQue(), param->parameterHandle_, "ppc");
+		strm << messageSize;
+		strm << voiceId;
+		strm << field;
+		strm << static_cast<int32_t>(rawValue.size());
+		strm.Write(
+			rawValue.data(),
+			static_cast<int32_t>(rawValue.size())
+		);
 
-			// update JUCE parameter
-			auto juceParameter = processor->getParameters()[param->getNativeTag()];
-			if (juceParameter)
-			{
-				const bool handleGrabMyself = !param->isGrabbed();
-				if (handleGrabMyself)
-				{
-					juceParameter->beginChangeGesture();
-				}
-
-				juceParameter->setValueNotifyingHost(param->getDawNormalized());
-
-				if (handleGrabMyself)
-				{
-					juceParameter->endChangeGesture();
-				}
-			}
-	//	}
-	//	break;
-	//}
+		strm.Send();
+	}
 }
 
 // ensure GUI reflects the value of all parameters

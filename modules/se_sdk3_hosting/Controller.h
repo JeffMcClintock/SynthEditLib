@@ -237,7 +237,7 @@ public:
 	virtual std::string getFactoryPresetXml(std::string filename) = 0;
 	std::vector<MpController::presetInfo> scanPresetFolder(platform_string PresetFolder, platform_string extension);
 
-	void ParamToDsp(MpParameter* param, int32_t voice = 0);
+	virtual void ParamToDsp(MpParameter* param, int32_t voice = 0);
 	void SerialiseParameterValueToDsp(my_msg_que_output_stream& stream, MpParameter* param, int32_t voice = 0);
 	void UpdateProgramCategoriesHc(MpParameter * param);
 	MpParameter* createHostParameter(int32_t hostControl);

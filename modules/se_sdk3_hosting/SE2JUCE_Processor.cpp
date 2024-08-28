@@ -355,6 +355,8 @@ void SE2JUCE_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
         getTotalNumInputChannels(),
         getTotalNumOutputChannels()
     );
+
+    dawStateManager.ProcessorWatchdog();
 }
 
 //==============================================================================
