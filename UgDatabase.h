@@ -11,8 +11,6 @@
 
 #define ModuleFactory() CModuleFactory::Instance()
 
-std::wstring uniformDefaultString(std::wstring defaultValue, EPlugDataType dataType);
-
 struct IOFlags
 {
 	const char* name;

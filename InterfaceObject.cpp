@@ -11,6 +11,47 @@
 
 using namespace std;
 
+// numerical values of zero are returned as empty string, to keep XML compact and consistant (no false warnings about "0" not equal "" or "0.0" whatever)
+std::wstring uniformDefaultString(std::wstring defaultValue, EPlugDataType dataType)
+{
+	if (defaultValue.empty())
+		return {};
+
+	switch (dataType)
+	{
+	case DT_MIDI2:
+		return {};
+		break;
+
+	default:
+		return defaultValue;
+		break;
+
+	case DT_FLOAT:
+	case DT_DOUBLE:
+	case DT_FSAMPLE:
+	{
+		const auto v = StringToFloat(defaultValue); // won't cope with large 64bit doubles.
+		if (v != 0.0f)
+			return FloatToString(v);
+	}
+	break;
+
+	case DT_INT:
+	case DT_INT64:
+	case DT_BOOL:
+	case DT_ENUM:
+	{
+		const auto v = StringToInt(defaultValue);
+		if (v)
+			return IntToString(v);
+	}
+	break;
+	}
+
+	return {};
+}
+
 SafeInterfaceObjectArray::~SafeInterfaceObjectArray()
 {
 	// delete contained objects
@@ -24,7 +65,7 @@ InterfaceObject::InterfaceObject( void* addr, const wchar_t* p_name, EDirection 
 	Direction( p_direction ),
 	Name( p_name ),
 	Flags(flags),
-	DefaultVal( def_val ),
+	DefaultVal(uniformDefaultString(def_val, p_datatype)),
 	subtype(defid)
 	,sample_ptr(p_sample_ptr)
 	,address(addr)
@@ -77,7 +118,7 @@ InterfaceObject::InterfaceObject( int p_id, pin_description2& p_plugs_info ) :
 	Direction( p_plugs_info.direction )
 	,Name( p_plugs_info.name.c_str() )
 	,Flags(p_plugs_info.flags)
-	,DefaultVal( p_plugs_info.default_value.c_str() )
+	,DefaultVal(uniformDefaultString(p_plugs_info.default_value, p_plugs_info.datatype))
 	,subtype( p_plugs_info.meta_data.c_str() )
 	,datatype(p_plugs_info.datatype)
 	,classname(p_plugs_info.classname)
@@ -117,7 +158,7 @@ InterfaceObject::InterfaceObject( int p_id, pin_description& p_plugs_info ) :
 	Direction( p_plugs_info.direction )
 	,Name( p_plugs_info.name )
 	,Flags(p_plugs_info.flags)
-	,DefaultVal( p_plugs_info.default_value )
+	,DefaultVal(uniformDefaultString(p_plugs_info.default_value, p_plugs_info.datatype))
 	,subtype( p_plugs_info.meta_data )
 	,datatype(p_plugs_info.datatype)
 	,sample_ptr(0)

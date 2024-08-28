@@ -18,6 +18,8 @@ public:
 	~SafeInterfaceObjectArray();
 };
 
+std::wstring uniformDefaultString(std::wstring defaultValue, EPlugDataType dataType);
+
 // Describe plug or parameter of a unit_gen
 class InterfaceObject
 {

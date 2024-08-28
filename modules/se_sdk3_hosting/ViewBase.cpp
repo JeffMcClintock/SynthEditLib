@@ -438,7 +438,11 @@ namespace SE2
 	int32_t ViewBase::releaseCapture()
 	{
 		mouseCaptureObject = nullptr;
-		return getGuiHost()->releaseCapture();
+		auto r = getGuiHost()->releaseCapture();
+
+		calcMouseOverObject(0);
+
+		return r;
 	}
 
 	int32_t ViewBase::getToolTip(MP1_POINT point, gmpi::IString* returnString)
@@ -684,6 +688,10 @@ namespace SE2
 
 	void ViewBase::calcMouseOverObject(int32_t flags)
 	{
+		// when one object has captured mouse, don't highlight other objects.
+		if (mouseCaptureObject)
+			return;
+
 		IViewChild* hitObject{};
 
 		isIteratingChildren = true;
