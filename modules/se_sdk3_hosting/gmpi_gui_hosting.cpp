@@ -211,6 +211,7 @@ void UpdateRegionWinGdi::copyDirtyRects(HWND window, GmpiDrawing::SizeL swapChai
 
 void UpdateRegionWinGdi::optimizeRects()
 {
+#ifdef _DEBUG
     for (int i1 = 0; i1 < rects.size(); ++i1)
     {
         auto area1 = rects[i1].getWidth() * rects[i1].getHeight();
@@ -230,6 +231,7 @@ void UpdateRegionWinGdi::optimizeRects()
 
             if (unionarea <= area1 + area2)
             {
+				assert(false); // Windows already does optimization.
                 rects[i1] = unionrect;
                 area1 = unionarea;
                 rects.erase(rects.begin() + i2);
@@ -240,6 +242,7 @@ void UpdateRegionWinGdi::optimizeRects()
             }
         }
     }
+#endif
 }
 
 UpdateRegionWinGdi::UpdateRegionWinGdi()
