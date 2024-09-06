@@ -114,6 +114,7 @@ public:
 class MpController : public IGuiHost2, public interThreadQueUser, public TimerClient
 {
 	friend class UndoManager;
+	friend class SubPresetManager;
 	static const int UI_MESSAGE_QUE_SIZE2 = 0x500000; // 5MB. see also AUDIO_MESSAGE_QUE_SIZE
 
 public:

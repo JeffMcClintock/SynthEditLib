@@ -1166,13 +1166,22 @@ namespace SE2
 	void ViewBase::OnChangedChildPosition(int phandle, GmpiDrawing::Rect& newRect)
 	{
 		// Update module (and adorner position)
+		bool needToUpdateCables = false;
 		for(auto& m : children)
 		{
 			if(m->getModuleHandle() == phandle)
 			{
+				const auto originalSize = m->getLayoutRect().getSize();
 				m->OnMoved(newRect);
+				const auto newSize = m->getLayoutRect().getSize();
+
+				// handle the case only of a container changing size becuase it's embedded sub-view changed siae (and we need to update any connected lines)
+				needToUpdateCables |= originalSize != newSize;
 			}
 		}
+
+		if(needToUpdateCables)
+			UpdateCablesBounds();
 	}
 
 	void ViewBase::OnChangedChildNodes(int phandle, std::vector<GmpiDrawing::Point>& nodes)

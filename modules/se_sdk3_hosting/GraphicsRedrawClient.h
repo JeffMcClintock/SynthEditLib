@@ -8,6 +8,7 @@
 #ifndef GraphicsRedrawClient_h
 #define GraphicsRedrawClient_h
 
+#include "mp_sdk_common.h"
 
 // notify a plugin when it's time to display a new frame.
 // Supports the client optimizing how often it checks the DSP queue

@@ -549,6 +549,7 @@ void DrawingFrameBase::OnPaint()
 			graphics.BeginDraw();
 			graphics.SetTransform(viewTransform);
 
+#if 0
 			if (false) // Draw entire update area as one big rect. didn't help
 			{
 				auto r = updateRegion_native.getBoundingRect();
@@ -577,6 +578,7 @@ void DrawingFrameBase::OnPaint()
 				graphics.PopAxisAlignedClip();
 			}
 			else
+#endif
 			{
 				// GLITCHES, WITH TEXT OVERDRAWN WITH GARBARGE INSTRUCTURE VIEW
 				// clip and draw each react individually (causes some objects to redraw several times)

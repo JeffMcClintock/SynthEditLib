@@ -312,10 +312,10 @@ namespace GmpiGuiHosting
 		{
 			return rects;
 		}
-		inline GmpiDrawing::RectL& getBoundingRect()
-		{
-			return bounds;
-		}
+		//inline GmpiDrawing::RectL& getBoundingRect()
+		//{
+		//	return bounds;
+		//}
 	};
 /*
 	// generic GMPI update region
