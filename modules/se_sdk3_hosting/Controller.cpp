@@ -44,6 +44,8 @@ MpController::~MpController()
 
 void MpController::ScanPresets()
 {
+	assert(this->isInitialized);
+
 	presets.clear(); // fix crash on JUCE
 	presets = scanNativePresets(); // Scan VST3 presets (both VST2 and VST3)
 
@@ -1640,6 +1642,15 @@ void MpController::OnEndPresetChange()
 void MpController::setPreset(DawPreset const* preset)
 {
 //	_RPTN(0, "MpController::setPreset. IPC %d\n", (int)preset->ignoreProgramChangeActive);
+#if 0 //def _DEBUG
+    auto xml = preset->toString(0);
+    static int count = 0;
+    count++;
+    std::string filename("/Users/jeffmcclintock/log");
+    filename += std::to_string(count) + ".txt";
+    std::ofstream out(filename.c_str());
+    out << xml;
+#endif
 
 	constexpr int patch = 0;
 	constexpr bool updateProcessor = false;
@@ -1972,7 +1983,14 @@ void MpController::DeletePreset(int presetIndex)
 void MpController::ExportPresetXml(const char* filename, std::string presetNameOverride)
 {
 	ofstream myfile;
-	myfile.open(filename);
+
+#ifdef _WIN32
+	auto unicode_filename = Utf8ToWstring(filename);
+#else
+	auto unicode_filename = filename;
+#endif
+
+	myfile.open(unicode_filename);
 
 	myfile << getPreset(presetNameOverride)->toString(BundleInfo::instance()->getPluginId());
 
