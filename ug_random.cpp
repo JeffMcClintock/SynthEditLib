@@ -113,7 +113,7 @@ public:
 
 namespace
 {
-	auto r = Register<RandomFloat>::withXml(
+	auto r = sesdk::Register<RandomFloat>::withXml(
 R"XML(
 <?xml version="1.0" ?>
 <PluginList>
