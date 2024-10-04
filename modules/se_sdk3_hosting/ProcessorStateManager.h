@@ -89,8 +89,9 @@ public:
 	ProcessorStateMgr() {}
 	virtual void init(tinyxml2::XMLNode* parameters_xml);
 
-	void setPresetFromXml(const std::string& presetString);
+	virtual void setPresetFromXml(const std::string& presetString);
 	void setPresetFromUnownedPtr(DawPreset const* preset);
+	void setMissedPreset(DawPreset const* preset);
 
 	void enableIgnoreProgramChange()
 	{
@@ -119,6 +120,7 @@ public:
 	ProcessorStateMgrVst3();
 
 	void init(tinyxml2::XMLNode* parameters_xml) override;
+	void setPresetFromXml(const std::string& presetString) override;
 
 	// Processor informing me of self-initiated parameter changes
 	// from the real-time thread

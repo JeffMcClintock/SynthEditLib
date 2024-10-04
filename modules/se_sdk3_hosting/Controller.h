@@ -147,6 +147,7 @@ private:
 
 protected:
 	std::map<int32_t, paramInfo> parametersInfo;		// for parsing xml presets
+	std::string full_reset_preset_name;
 	::UndoManager undoManager;
 
     bool isInitialized = {};
@@ -195,6 +196,7 @@ public:
 	void SavePresetAs(const std::string& presetName);
 	void DeletePreset(int presetIndex);
 	void UpdatePresetBrowser();
+	std::pair<bool, bool> CategorisePresetName(const std::string& name);
 
 	void Initialize();
 

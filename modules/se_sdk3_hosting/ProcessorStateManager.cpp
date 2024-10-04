@@ -422,9 +422,19 @@ void DawPreset::calcHash()
 #endif
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// used when the Controller passes a preset that is not currently owned by this. From Undo/Redo.
 void ProcessorStateMgr::setPresetFromUnownedPtr(DawPreset const* preset)
 {
+	// probably OK to 
 	setPreset(retainPreset(new DawPreset(*preset)));
+}
+
+// A missed preset happens when the Processor starts for the first time, and needs to action a preset that was set earlier (often it's the initial preset).
+// assume preset is already owned by this, so no need to retain it.
+void ProcessorStateMgr::setMissedPreset(DawPreset const* preset)
+{
+	// set the preset without modifying it's IPC flag. Since it may have been several seconds since the preset was set from the DAW, it's possible that the IPC flag has expired.
+	callback(preset);
 }
 
 ProcessorStateMgrVst3::ProcessorStateMgrVst3() :
@@ -633,6 +643,53 @@ void ProcessorStateMgr::setPresetFromXml(const std::string& presetString)
 	setPreset(retainPreset(preset));
 }
 
+// apply the new preset, respecting IPC flag.
+void ProcessorStateMgrVst3::setPresetFromXml(const std::string& presetString)
+{
+	auto preset = new DawPreset(parametersInfo, presetString);
+
+	// bring current preset up-to-date
+	serviceQueue(messageQueFromProcessor);
+	serviceQueue(messageQueFromController);
+
+	{
+		const std::lock_guard<std::mutex> lock{ presetMutex };
+
+		if (ignoreProgramChange)
+		{
+			// merge the new preset with the current one.
+			for (auto& p : preset->params)
+			{
+				paramInfo& info = parametersInfo[p.first];
+				if (info.ignoreProgramChange)
+				{
+					auto it = presetMutable.params.find(p.first);
+					assert(it != presetMutable.params.end());
+					if (it != presetMutable.params.end())
+					{
+						p.second.rawValues_ = it->second.rawValues_;
+					}
+				}
+			}
+		}
+
+		// replace the current preset.
+		presetMutable = *preset;
+		currentPreset.store(preset, std::memory_order_release);
+
+		// empty the FIFOs otherwise it might apply stale changes to the new preset.
+		messageQueFromProcessor.clear();
+		messageQueFromController.clear();
+	}
+
+	ProcessorStateMgr::setPreset(retainPreset(preset));
+
+#if 0 //def _DEBUG
+	auto temp = RawView(preset->params[1329619189].rawValues_[0]);
+	_RPTN(0, "setPresetFromXml AIP2 = %f\n", (float)temp);
+#endif
+}
+
 void ProcessorStateMgrVst3::setPreset(DawPreset const* preset)
 {
 	{
@@ -678,9 +735,10 @@ DawPreset const* ProcessorStateMgrVst3::getPreset()
 		currentPreset.store(preset, std::memory_order_release);
 	}
 
-	assert(currentPreset.load(std::memory_order_relaxed) != nullptr);
+	auto preset = currentPreset.load(std::memory_order_relaxed);
+	assert(preset);
 
-	return currentPreset.load(std::memory_order_relaxed);
+	return preset;
 }
 
 DawPreset const* ProcessorStateMgr::retainPreset(DawPreset const* preset)
@@ -844,6 +902,9 @@ void ProcessorStateMgrVst3::init(tinyxml2::XMLNode* parameters_xml)
 
 		for (auto& v : p.second.defaultRaw)
 			presetMutableParam.rawValues_.push_back({ v.data(), v.size() });
+
+		if (p.second.hostControl == HC_PROGRAM_NAME)
+			presetMutable.name = WStringToUtf8(RawToValue<std::wstring>(p.second.defaultRaw[0].data(), p.second.defaultRaw[0].size()));
 	}
 
 	StartTimer(177);
