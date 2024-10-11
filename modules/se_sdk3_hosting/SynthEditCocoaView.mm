@@ -95,11 +95,11 @@ public:
 
         dirtyRects.optimizeRects();
 
-        if(-1 == gmpi::cocoa::GraphicsContext2::logicProFix)
+        if(-1 == se::cocoa::GraphicsContext2::logicProFix)
         {
-            gmpi::cocoa::GraphicsContext2::logicProFix = 0;
+            se::cocoa::GraphicsContext2::logicProFix = 0;
             
-            gmpi::cocoa::GraphicsContext2 context(frame, &drawingFactory);
+            se::cocoa::GraphicsContext2 context(frame, &drawingFactory);
             
             GmpiDrawing::Graphics g(static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(&context));
             auto tf = g.GetFactory().CreateTextFormat(16, "Arial", GmpiDrawing::FontWeight::Normal);
@@ -124,7 +124,7 @@ public:
                 pixels += stride;
             }
             
-            gmpi::cocoa::GraphicsContext2::logicProFix = (int) (bestRow != 17 && bestRow != 33); // SD / HD (will be 18 / 35 for buggy situation)
+            se::cocoa::GraphicsContext2::logicProFix = (int) (bestRow != 17 && bestRow != 33); // SD / HD (will be 18 / 35 for buggy situation)
         }
         
         // context must be disposed (via RIAA) before restoring state, because its destructor also restores state
