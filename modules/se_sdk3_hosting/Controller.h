@@ -95,7 +95,6 @@ class UndoManager
 public:
 	bool enabled = {};
 
-
 	void initial(MpController* controller, std::unique_ptr<const DawPreset> preset);
 
 	void snapshot(class MpController* controller, std::string description);
@@ -142,7 +141,10 @@ private:
 	// Ignore-Program-Change support
 	static const int ignoreProgramChangeStartupTimeMs = 2000;
 	static const int startupTimerInit = ignoreProgramChangeStartupTimeMs / timerPeriodMs;
+	static const int dspWatchdogTimerInit = 1000 / timerPeriodMs; // 1 second
+	
 	int startupTimerCounter = startupTimerInit;
+	int dspWatchdogCounter = dspWatchdogTimerInit;
 	bool presetsFolderChanged = false;
 
 protected:
@@ -171,6 +173,7 @@ protected:
 
 	void OnFileDialogComplete(int mode, int32_t result);
 	virtual void OnStartupTimerExpired();
+
 	bool ignoreProgramChangeActive()
 	{
 		return startupTimerCounter <= 0;

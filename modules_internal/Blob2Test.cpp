@@ -32,9 +32,9 @@ class Blob2Test final : public MpBase2
 public:
 	Blob2Test()
 	{
-		initializePin(pinTrigger);
-		initializePin(pinValueIn);
-		initializePin(pinValueOut);
+		initializePin(1, pinTrigger);
+		initializePin(3, pinValueIn);
+		initializePin(99999, pinValueOut);
 	}
 
 	void onSetPins() override
@@ -127,9 +127,10 @@ namespace
 <PluginList>
     <Plugin id="SE Blob2 Test" name="Blob2 Test" category="Debug">
         <Audio>
-            <Pin name="Trigger" datatype="bool"/>
-            <Pin name="Blob2" datatype="blob2"/>
-            <Pin name="Blob2" datatype="blob2" direction="out"/>
+			<!-- TESTING NON-SEQUENTIAL PIN IDs -->
+            <Pin id="1" name="Trigger" datatype="bool"/>
+            <Pin id="3" name="Blob2" datatype="blob2"/>
+            <Pin id="99999" name="Blob2" datatype="blob2" direction="out"/>
         </Audio>
     </Plugin>
 </PluginList>

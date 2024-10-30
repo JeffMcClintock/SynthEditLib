@@ -195,7 +195,7 @@ void MpController::ScanPresets()
 
 void MpController::UpdatePresetBrowser()
 {
-	// Update preset browser
+	// Update preset browser indirectly by updating teh relevant host-controls
 	for (auto& p : parameters_)
 	{
 		if (p->getHostControl() == HC_PROGRAM_CATEGORIES_LIST || p->getHostControl() == HC_PROGRAM_NAMES_LIST)
@@ -1122,20 +1122,10 @@ int32_t MpController::sendSdkMessageToAudio(int32_t handle, int32_t id, int32_t 
 	return gmpi::MP_OK;
 }
 
-#if 0
-// these can't update processor with normal handle-based method becuase their handles are assigned at runtime, only in the controller.
-void MpController::HostControlToDsp(MpParameter* param, int32_t voice)
+void MpController::ParamToDsp(MpParameter* param, int32_t voice)
 {
-	assert(param->getHostControl() >= 0);
+	assert(dynamic_cast<SeParameter_vst3_hostControl*>(param) == nullptr); // These have (not) "unique" handles that may map to totally random DSP parameters.
 
-	my_msg_que_output_stream s(getQueueToDsp(), UniqueSnowflake::APPLICATION, "hstc");
-
-	SerialiseParameterValueToDsp(s, param);
-}
-#endif
-
-void MpController::SerialiseParameterValueToDsp(my_msg_que_output_stream& stream, MpParameter* param, int32_t voice)
-{
 	//---send a binary message
 	bool isVariableSize = param->datatype_ == DT_TEXT || param->datatype_ == DT_BLOB;
 
@@ -1153,6 +1143,31 @@ void MpController::SerialiseParameterValueToDsp(my_msg_que_output_stream& stream
 		recievingMessageLength += (int)sizeof(int32_t);
 	}
 
+	constexpr int headerSize = sizeof(int32_t) * 2;
+	const int totalMessageLength = recievingMessageLength + headerSize;
+
+	if (totalMessageLength >= getQueueToDsp()->totalSpace())
+	{
+		_RPT0(0, "ERROR: MESSAGE TOO BIG FOR QUEUE\n");
+		return;
+	}
+
+	{
+		int timeout = 20;
+		while (timeout-- > 0 && totalMessageLength > getQueueToDsp()->freeSpace())
+		{
+			this_thread::sleep_for(chrono::milliseconds(20));
+		}
+
+		if (timeout <= 0)
+		{
+			_RPT0(0, "ERROR: TIMOUT WAITING FOR QUEUE\n");
+			return;
+		}
+	}
+
+	my_msg_que_output_stream stream(getQueueToDsp(), param->parameterHandle_, "ppc\0"); // "ppc"
+
 	stream << recievingMessageLength;
 	stream << due_to_program_change;
 
@@ -1169,14 +1184,6 @@ void MpController::SerialiseParameterValueToDsp(my_msg_que_output_stream& stream
 	stream.Write(raw.data(), (unsigned int)raw.size());
 
 	stream.Send();
-}
-
-void MpController::ParamToDsp(MpParameter* param, int32_t voice)
-{
-	assert(dynamic_cast<SeParameter_vst3_hostControl*>(param) == nullptr); // These have (not) "unique" handles that may map to totally random DSP parameters.
-
-	my_msg_que_output_stream s(getQueueToDsp(), param->parameterHandle_, "ppc\0"); // "ppc"
-	SerialiseParameterValueToDsp(s, param, voice);
 }
 
 void MpController::UpdateProgramCategoriesHc(MpParameter* param)
@@ -1266,6 +1273,14 @@ MpParameter* MpController::createHostParameter(int32_t hostControl)
 	}
 	break;
 
+	case HC_PROCESSOR_OFFLINE:
+	{
+		auto param = new SeParameter_vst3_hostControl(this, hostControl);
+		p = param;
+		p->datatype_ = DT_BOOL;
+	}
+	break;
+
 
 	/* what would it do?
 	case HC_MIDI_CHANNEL:
@@ -1311,7 +1326,7 @@ int32_t MpController::getParameterHandle(int32_t moduleHandle, int32_t modulePar
 
 	if (hostControl >= 0)
 	{
-		// why not just shove it in with negative handle? !!! A: becuase of potential attachment to container.
+		// why not just shove it in with negative handle? !!! A: because of potential attachment to container.
 		for (auto& p : parameters_)
 		{
 			if (p->getHostControl() == hostControl && (moduleHandle == -1 || moduleHandle == p->ModuleHandle()))
@@ -1354,6 +1369,20 @@ void MpController::initializeGui(gmpi::IMpParameterObserver* gui, int32_t parame
 
 bool MpController::onQueMessageReady(int recievingHandle, int recievingMessageId, class my_input_stream& p_stream)
 {
+	// Processor watchdog.
+	if (dspWatchdogCounter <= 0)
+	{
+		for (auto& p : parameters_)
+		{
+			if (p->getHostControl() == HC_PROCESSOR_OFFLINE)
+			{
+				p->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, RawView(false));
+				break;
+			}
+		}
+	}
+	dspWatchdogCounter = dspWatchdogTimerInit;
+
 	auto it = ParameterHandleIndex.find(recievingHandle);
 	if (it != ParameterHandleIndex.end())
 	{
@@ -1396,11 +1425,11 @@ bool MpController::onQueMessageReady(int recievingHandle, int recievingMessageId
 		}
 		break;
 
-#if defined(_DEBUG) && defined(_WIN32)
+#if defined(_DEBUG) && defined(_WIN32) && 0 // BPM etc spam this
 		default:
 		{
 			const char* msgstr = (const char*)&recievingMessageId;
-			_RPT1(_CRT_WARN, "MpController::onQueMessageReady() Unhandled message id %c%c%c%c\n", msgstr[3], msgstr[2], msgstr[1], msgstr[0] );
+			_RPT1(_CRT_WARN, "\nMpController::onQueMessageReady() Unhandled message id %c%c%c%c\n", msgstr[3], msgstr[2], msgstr[1], msgstr[0] );
 		}
 		break;
 #endif
@@ -1417,7 +1446,19 @@ bool MpController::OnTimer()
 	{
 		OnStartupTimerExpired();
 	}
-	
+
+	if (dspWatchdogCounter-- == 0)
+	{
+		for (auto& p : parameters_)
+		{
+			if (p->getHostControl() == HC_PROCESSOR_OFFLINE)
+			{
+				p->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, RawView(true));
+				break;
+			}
+		}
+	}
+
 	if (presetsFolderChanged)
 	{
 		presetsFolderChanged = false;
@@ -2009,6 +2050,8 @@ void MpController::DeletePreset(int presetIndex)
 #endif
 
 	ScanPresets();
+
+	// update the relevant host-controls
 	UpdatePresetBrowser();
 }
 

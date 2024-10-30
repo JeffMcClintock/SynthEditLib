@@ -212,7 +212,18 @@
       <Pin id="1" name="Value Out" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
-  <Plugin id="SE TextToBlob GUI" name="Text to Blob" category="Sub-Controls/Conversion" graphicsApi="none" helpUrl="converters.htm">
+  <Plugin id="SE BlobSize GUI" name="Blob Size" category="Sub-Controls/Conversion" graphicsApi="none" helpUrl="converters.htm">
+    <GUI>
+      <Pin id="0" name="Value In" direction="in" datatype="blob"/>
+      <Pin id="1" name="Value Out" direction="out" datatype="int"/>
+    </GUI>
+  </Plugin>
+  <Plugin id="SE BlobSize" name="Blob Size" category="Conversion" graphicsApi="none" helpUrl="converters.htm">
+      <Audio>
+      <Pin name="Value In" direction="in" datatype="blob"/>
+      <Pin name="Value Out" direction="out" datatype="int"/>
+    </Audio>
+  </Plugin>  <Plugin id="SE TextToBlob GUI" name="Text to Blob" category="Sub-Controls/Conversion" graphicsApi="none" helpUrl="converters.htm">
     <GUI>
       <Pin id="0" name="Value In" direction="in" datatype="string"/>
       <Pin id="1" name="Value Out" direction="out" datatype="blob"/>
