@@ -57,6 +57,7 @@ modules/tinyXml2/tinyxml2.cpp
 )
 
 set(srcs_modules_internal
+modules_internal/Blob2Test.cpp
 modules_internal/VoiceMute/VoiceMute.h
 modules_internal/VoiceMute/VoiceMute.cpp
 modules_internal/CpuMeter/CpuMeterGui.cpp

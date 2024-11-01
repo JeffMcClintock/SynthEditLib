@@ -17,6 +17,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 using namespace gmpi;
 
+SE_DECLARE_INIT_STATIC_FILE(Blob2Test)
+
 class Blob2Test final : public MpBase2
 {
 	BoolInPin pinTrigger;
@@ -122,7 +124,7 @@ public:
 
 namespace
 {
-	auto r = Register<Blob2Test>::withXml(R"XML(
+	auto r = sesdk::Register<Blob2Test>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
 <PluginList>
     <Plugin id="SE Blob2 Test" name="Blob2 Test" category="Debug">
