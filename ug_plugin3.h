@@ -19,7 +19,6 @@ public:
 #endif
 
 	// IUnknown methods
-	//GMPI_QUERYINTERFACE1(gmpi::MP_IID_HOST, gmpi::IMpHost)
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{
 		*returnInterface = 0;

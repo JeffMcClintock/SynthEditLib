@@ -2,9 +2,10 @@
 #include "ug_base.h"
 #include "GmpiApiAudio.h"
 #include "../Extensions/EmbeddedFile.h"
+#include "Extensions/PinCount.h"
 
 class ug_gmpi :
-	public ug_base, public gmpi::api::IProcessorHost, public synthedit::IEmbeddedFileSupport
+	public ug_base, public gmpi::api::IProcessorHost, public synthedit::IEmbeddedFileSupport, public synthedit::IPinCount
 {
 public:
 	ug_gmpi(class Module_Info* p_moduleType, gmpi::api::IProcessor* p_plugin);
@@ -21,6 +22,9 @@ public:
 	// IEmbeddedFileSupport
 	gmpi::ReturnCode resolveFilename(const char* fileName, gmpi::api::IString* returnFullUri)  override;
 	gmpi::ReturnCode openUri(const char* fullUri, gmpi::api::IUnknown** returnStream)  override;
+
+	// IPinCount
+	int32_t getAutoduplicatePinCount() override;
 
 	// IUnknown methods
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override;

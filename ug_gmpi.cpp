@@ -119,6 +119,26 @@ gmpi::ReturnCode ug_gmpi::openUri(const char* fullUri, gmpi::api::IUnknown** ret
 
 	return *returnStream ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Fail;
 }
+#include <numeric>
+
+int32_t ug_gmpi::getAutoduplicatePinCount()
+{
+	if (auto& pindesc = getModuleType()->plugs; !pindesc.empty())
+	{
+		if (auto& last = pindesc.rbegin()->second; last->autoDuplicate())
+		{
+			const auto pinID = last->getPlugDescID();
+
+			return std::accumulate(
+				std::begin(plugs),
+				std::end(plugs),
+				0,
+				[pinID](int sum, const auto& p) { return sum + (p->UniqueId() == pinID); }
+			);
+		}
+	}
+	return 0;
+}
 
 gmpi::ReturnCode ug_gmpi::queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
 {
@@ -138,6 +158,13 @@ gmpi::ReturnCode ug_gmpi::queryInterface(const gmpi::api::Guid* iid, void** retu
 		return gmpi::ReturnCode::Ok;
 	}
 
+	if (*iid == synthedit::IPinCount::guid)
+	{
+		*returnInterface = static_cast<synthedit::IPinCount*>(this);
+		addRef();
+		return gmpi::ReturnCode::Ok;
+	}
+
 	return gmpi::ReturnCode::NoSupport;
 }
 
@@ -145,11 +172,6 @@ void ug_gmpi::OnBufferReassigned()
 {
 	localBufferOffset_ = -1; // invalidate it so that buffers get re-sent to plugin. (editor changed a default)
 }
-
-//void ug_gmpi::AttachGmpiPlugin(gmpi::api::IProcessor* p_plugin)
-//{
-//	plugin_ = p_plugin;
-//}
 
 void ug_gmpi::setupBuffers(int bufferOffset)
 {
