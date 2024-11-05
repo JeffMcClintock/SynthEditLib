@@ -14,7 +14,7 @@ list_function::list_function(std::function<state_t(const List&)> pfunction)
 {
 }
 
-bool list_function::operator==(const list_function& other)
+bool list_function::operator==(const list_function& other) const
 {
     // TODO: how to compare functions?
     return false;
@@ -445,7 +445,7 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 					{
 //						_RPTN(0, "setParameterValue(%f)\n", *floatp);
 // stack overflow, calls step()	
-					patchManager->setParameterValue({*floatp}, parameterHandle);
+					patchManager->setParameterValue(RawView{*floatp}, parameterHandle);
 						// better?
 						// scheduler.UpdateState(stateIndex, { *floatp }); // and have it figure out that that state is a parameter
 					}

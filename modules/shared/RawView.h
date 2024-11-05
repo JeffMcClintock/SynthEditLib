@@ -21,12 +21,12 @@ public:
 //		value = std::make_shared<std::string>(reinterpret_cast<const char*>(data), size);
 	}
 
-	template <typename T> RawData(const T& v)
+	template <typename T>
+	explicit RawData(const T& v)
 	{
         const auto data = (const char*)&v;
         const auto size = sizeof(v);
         
-//		value = std::make_shared<std::string>(data, size);
 		value.assign(data, size);
 	}
 
@@ -81,7 +81,7 @@ public:
 	RawView(const void* data, size_t size) : data_(data), size_(size) {}
 
 	template <typename T>
-	RawView(const T& v) : data_(&v), size_(sizeof(v)) {}
+	explicit RawView(const T& v) : data_(&v), size_(sizeof(v)) {}
 
 	// Overloaded constructors for non POD data.
 	RawView(const std::string& v) : data_(v.data()), size_(v.size() * sizeof(v[0])) {}

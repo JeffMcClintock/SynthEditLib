@@ -29,6 +29,10 @@ struct RendererX
 		function(function)
 	{}
 */
+	bool operator==(const RendererX& rhs) const
+	{
+		return false; // !!!! this->function == rhs.function;
+	}
 };
 
 class vBrush
@@ -58,6 +62,11 @@ public:
 		color = rhs.color;
 
 		return *this;
+	}
+
+	bool operator==(const vBrush& rhs) const
+	{
+		return this->color == rhs.color;
 	}
 
 	// hacky should return a read-only object
@@ -106,6 +115,11 @@ public:
 		radius = rhs.radius;
 
 		return *this;
+	}
+
+	bool operator==(const vCircleGeometry& rhs) const
+	{
+		return this->center == rhs.center && this->radius == rhs.radius;
 	}
 
 	GmpiDrawing::PathGeometry& native(GmpiDrawing::Graphics& g) const override
@@ -159,6 +173,11 @@ public:
 		return *this;
 	}
 
+	bool operator==(const vSquareGeometry& rhs) const
+	{
+		return this->center == rhs.center && this->size == rhs.size;
+	}
+
 	GmpiDrawing::PathGeometry& native(GmpiDrawing::Graphics& g) const override
 	{
 		// TODO cache it based on factory.
@@ -198,7 +217,7 @@ public:
     
     list_function(std::function<state_t(const List&)>);
 
-    bool operator==(const list_function& other);
+    bool operator==(const list_function& other) const;
 };
 
 using state_data_t = std::variant<
@@ -243,8 +262,36 @@ struct state_t
     state_t(){}
     state_t(state_data_t pvalue) : value(pvalue) {}
 
+	bool operator==(const state_t& other) const
+	{
+		return value == other.value;
+	}
+	//bool operator!=(const state_t& other) const
+	//{
+	//	return !(value == other.value);
+	//}
+
     state_data_t value;
 };
+
+// operator== for List (needs definition of state_t to be visible for operator==)
+inline bool operator==(const List& lhs, const List& rhs)
+{
+	if (lhs.size() != rhs.size())
+	{
+		return false;
+	}
+
+	for (size_t i = 0; i < lhs.size(); ++i)
+	{
+		if (!(lhs[i] == rhs[i]))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
 
 // depends on circular definitions of 'state_t' and 'list_function' and 'List'
 // so it's here rather than a member of list_function

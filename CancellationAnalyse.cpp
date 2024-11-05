@@ -15,6 +15,11 @@ struct moduleIdentity
 	{
 		return c1.handle == this->handle ? c1.voice < this->voice : c1.handle < this->handle;
 	}
+
+	bool operator== (const moduleIdentity& c1) const
+	{
+		return c1.handle == this->handle && c1.voice == this->voice;
+	}
 };
 
 struct pin_an
