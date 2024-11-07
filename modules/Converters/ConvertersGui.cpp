@@ -108,5 +108,5 @@ public:
 
 namespace
 {
-	auto r2 = gmpi::Register<BlobSizeGui>::withId(L"SE BlobSize GUI");
+	auto r2 = sesdk::Register<BlobSizeGui>::withId(L"SE BlobSize GUI");
 }

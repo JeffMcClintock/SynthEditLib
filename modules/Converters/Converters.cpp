@@ -307,5 +307,5 @@ public:
 
 namespace
 {
-	auto r = gmpi::Register<BlobSize>::withId(L"SE BlobSize");
+	auto r = sesdk::Register<BlobSize>::withId(L"SE BlobSize");
 }

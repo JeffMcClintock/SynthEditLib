@@ -477,7 +477,7 @@ namespace SE2
 #endif
 		// handle edge-case of mouse clicking without any prior 'OnMove' (e.g. after clicking to make a pop-up menu disappear).
 		// ensures that 'mouseOverObject' is correct.
-		if (lastMovePoint != point)
+		if (lastMovePoint.x != point.x || lastMovePoint.y != point.y)
 		{
 			// clear out click-related flags.
 			const auto simulatedFlags = flags &
@@ -967,7 +967,7 @@ namespace SE2
 			if(l)
 			{
 				//				_RPT2(_CRT_WARN, "Ers Cable %x -> %x\n", l->fromModuleHandle(), l->toModuleHandle());
-				if (mouseOverObject == *it)
+				if (mouseOverObject == (*it).get())
 				{
 					mouseOverObject = {};
 				}
@@ -1060,7 +1060,7 @@ namespace SE2
 	{
 		for(auto it = children.begin(); it != children.end(); ++it)
 		{
-			if(*it == child)
+			if (child == (*it).get())
 			{
 				auto c = std::move(*it);
 				assert(!isIteratingChildren);
@@ -1075,7 +1075,7 @@ namespace SE2
 	{
 		for(auto it = children.begin(); it != children.end(); ++it)
 		{
-			if(*it == child)
+			if (child == (*it).get())
 			{
 				assert(!isIteratingChildren);
 				auto c = std::move(*it);
@@ -1152,7 +1152,7 @@ namespace SE2
 
 						assert(!isIteratingChildren);
 						it = children.erase(it);
-						if(mouseOverObject == m)
+						if (mouseOverObject == m.get())
 						{
 							mouseOverObject = {};
 						}
@@ -1599,6 +1599,8 @@ struct State
 	int cursorPos{};
 	int selectedFrom = -1;
 	int selectedTo = -1;
+
+	auto operator<=>(const State&) const = default;
 };
 
 State processKey(const State& inState, int32_t key, int32_t flags)
