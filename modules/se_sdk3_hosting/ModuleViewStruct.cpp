@@ -602,14 +602,14 @@ namespace SE2
 
 		// percent printout
 		std::wostringstream oss;
-		oss << setiosflags(ios_base::fixed) << setprecision(4) << cpuInfo->cpu_average << L" %";
+		oss << setiosflags(ios_base::fixed) << setprecision(4) << cpuInfo->cpuRunningMedianSlow << L" %";
 		bg.SetColor(Color::Black);
 		g.DrawTextW(oss.str().c_str(), textFormat, Rect(child_rect.right - 40, rectBottom, child_rect.right, rectBottom - 12), bg);
 
 		g.PopAxisAlignedClip();
 	}
 
-	// give the desired color, the opacity and the background color. Cacl the brighter original color.
+	// give the desired color, the opacity and the background color. Calc the brighter original color.
 	Color calcColor(Color original, Color background, float opacity)
 	{
 		Color ret;
