@@ -685,6 +685,13 @@ void SeAudioMaster::setParameterNormalizedDsp( int delta, int paramIndex, float 
 	Patchmanager_->setParameterNormalized( timestamp, paramIndex, value, flags );
 }
 
+void SeAudioMaster::setParameterNormalizedDaw(int delta, int32_t paramHandle, float value, int32_t flags)
+{
+	timestamp_t timestamp = Patchmanager_->Container()->CalculateOversampledTimestamp(main_container, SampleClock() + delta);
+
+	Patchmanager_->setParameterNormalizedDaw(timestamp, paramHandle, value, flags);
+}
+
 void SeAudioMaster::setInputSilent(int input, bool isSilent)
 {
 	audioInModule->setInputSilent(input, isSilent);
@@ -2238,21 +2245,23 @@ void SeAudioMaster::UnRegisterDspMsgHandle(int p_handle)
 
 void AudioMasterBase::CpuFunc()
 {
+	const auto cpu_block_rate_f = static_cast<float>(cpu_block_rate);
+
 	// include active modules's CPU in parent containers.
 	for (auto it = activeModules.inclusiveBegin(); it != activeModules.inclusiveEnd(); ++it)
 	{
-		((ug_base*)*it)->SumCpu();
+		((ug_base*)*it)->SumCpu(cpu_block_rate_f);
 	}
 
 	for (auto m : nonExecutingModules)
 	{
-		m->SumCpu();
+		m->SumCpu(cpu_block_rate_f);
 	}
 
 	// pass container's CPU to any parent. Containers are never on active list.
 	for (auto ug : m_cpu_parents)
 	{
-		ug->OnCpuMeasure();
+		ug->OnCpuMeasure(cpu_block_rate_f);
 	}
 
 	// Debug Windows.

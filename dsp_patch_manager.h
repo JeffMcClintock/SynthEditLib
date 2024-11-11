@@ -55,6 +55,7 @@ public:
 
 	class dsp_patch_parameter_base* GetHostControl(int32_t hostControl, int32_t attachedToContainerHandle = -1) override;
 	void setParameterNormalized( timestamp_t p_clock, int vstParameterIndex, float newValue, int32_t flags ) override; // VST3.
+	void setParameterNormalizedDaw(timestamp_t p_clock, int32_t paramHandle, float newValue, int32_t flags) override;  // JUCE
 
 	void setPreset(struct DawPreset const* preset) override;
 	void setPresetState( const std::string& chunk, bool overrideIgnoreProgramChange = false) override;

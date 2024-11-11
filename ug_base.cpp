@@ -153,7 +153,7 @@ UPlug* ug_base::GetPlugById(int id)
 	}
 
 	// handle awkward SDK3 autoduplicating pins,where ID is relative to first autoduplicating pin.
-	// Note that this->pins store only index and *original* ID (of the first autoduplicating pin)
+	// Note that pins store only index and *original* ID (of the first autoduplicating pin)
 	if (auto& pindesc = getModuleType()->plugs; !pindesc.empty())
 	{
 		if (auto& last = pindesc.rbegin()->second; last->autoDuplicate())
@@ -2545,27 +2545,29 @@ void ug_base::SetUnusedPlugs2()
 	}
 }
 
-void ug_base::SumCpu()
+void ug_base::SumCpu(float cpu_block_rate)
 {
-	if (cpuMeasuedCycles == 0.0f && cpuPeakCycles == 0.0f) // attempt to save cache thrashing on parent object members.
+	if (cpuCycleTotal == 0.0f && cpuPeakCycles == 0.0f) // attempt to save cache thrashing on parent object members.
 	{
 		return;
 	}
 
 	// Parent containers record sum of all modules within.
-	if( cpuParent )
+	if (cpuParent)
 	{
-		cpuParent->cpuMeasuedCycles += cpuMeasuedCycles;
+		cpuParent->cpuCycleTotal += cpuCycleTotal;
 	}
 
+	const float averageCpu = cpuCycleTotal / cpu_block_rate;
+
 	// If debugger window open, pass it the cpu too. (via the main clone).
-	if( m_debugger )
+	if (m_debugger)
 	{
-		CloneOf()->m_debugger->AddCpu( cpuMeasuedCycles, cpuPeakCycles);
+		CloneOf()->m_debugger->AddCpu(cpuCycleTotal, cpuPeakCycles);
 	}
-	
+
 	// Clear out total ready for next round.
-	cpuPeakCycles = cpuMeasuedCycles = 0.0f;
+	cpuPeakCycles = cpuCycleTotal = 0.0f;
 }
 
 void ug_base::ClearBypassRoutes(int32_t inPlugIdx, int32_t outPlugIdx)

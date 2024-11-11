@@ -329,6 +329,7 @@ public:
 	// editor only
 	std::list<class UgDebugInfo*> m_debuggers;
 	std::vector<class ug_base*> m_cpu_parents;
+	int cpu_block_rate = 1;
 };
 
 class SeAudioMaster : public EventProcessor, public interThreadQueUser, public AudioMasterBase
@@ -361,6 +362,7 @@ public:
         Patchmanager_->setPresetState(chunk);
     }
 	void setParameterNormalizedDsp( int timestamp, int paramIndex, float value, int32_t flags);
+	void setParameterNormalizedDaw(int timestamp, int32_t paramHandle, float value, int32_t flags);
 
 	// plugin-specific
 	void SetupVstIO();
@@ -563,7 +565,6 @@ public:
 	bool synth_thread_running;
 	bool synth_thread_started;
 	static int profileBlockSize;
-	int cpu_block_rate = 1;
 	std::atomic<audioMasterState> state = audioMasterState::Stopped;
 
 protected:
