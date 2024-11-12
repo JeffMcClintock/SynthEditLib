@@ -20,6 +20,7 @@ int getFieldDatatype( ParameterFieldType fieldType )
 
 	case FT_GRAB:
 	case FT_PRIVATE:
+	case FT_STATEFUL:
 	case FT_HOST_PARAMETER:
 	case FT_IGNORE_PROGRAM_CHANGE:
 		return DT_BOOL;
@@ -69,6 +70,7 @@ int getFieldSize( ParameterFieldType fieldType )
 	case FT_GRAB:
 	case FT_IGNORE_PROGRAM_CHANGE:
 	case FT_PRIVATE:
+	case FT_STATEFUL:
 	case FT_HOST_PARAMETER:
 		return RawSize( (bool) 0 );
 		break;

@@ -916,7 +916,6 @@ std::string XmlStringFromController( int v )
 	return LookupEnum( controllerInfo, CONTROLLER_INFO_COUNT, v );
 }
 
-
 static const TextToIntStruct2 parameterFieldInfo[] =
 {
 	"Value",				FT_VALUE
@@ -935,6 +934,7 @@ static const TextToIntStruct2 parameterFieldInfo[] =
 	, "Default",			FT_DEFAULT
 	, "Grab",				FT_GRAB
 	, "Normalized",			FT_NORMALIZED
+//	, "Persistant",			FT_STATEFUL // not modifiable by module
 };
 const int PFI_COUNT = (sizeof(parameterFieldInfo) / sizeof(TextToIntStruct));
 bool XmlStringToParameterField( string s, int& returnValue )
