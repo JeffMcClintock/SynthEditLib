@@ -4,6 +4,7 @@
 #include "../shared/xplatform.h"
 
 #include "ConnectorView.h"
+#include "ModuleView.h"
 
 using namespace gmpi;
 using namespace std;
@@ -77,6 +78,56 @@ SubView::SubView(int pparentViewType) : ViewBase({1000, 1000})
 	}
 
 	offset_.height = offset_.width = -99999; // un-initialized
+}
+
+void SubView::BuildModules(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap)
+{
+	mouseOverObject = {};
+
+#if _DEBUG
+	{
+		Json::StyledWriter writer;
+		auto factoryXml = writer.write(*context);
+		auto s = factoryXml;
+	}
+#endif
+
+	// Modules.
+	Json::Value& modules_json = (*context)["modules"];
+
+	for (auto& module_json : modules_json)
+	{
+		const auto typeName = module_json["type"].asString();
+
+		assert(typeName != "Line");  // no lines on GUI.
+		assert(typeName != "SE Structure Group2");
+#ifdef _DEBUG
+		// avoid trying to create unavailable modules
+		static std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
+		const auto typeId = convert.from_bytes(typeName);
+		auto moduleInfo = CModuleFactory::Instance()->GetById(typeId);
+		//			if (moduleInfo)
+#endif
+		auto module = std::make_unique<SE2::ModuleViewPanel>(&module_json, this, guiObjectMap);
+
+		if (module)
+		{
+			const auto isBackground = !module_json["ignoremouse"].empty();
+
+			if ((module->getSelected() || isBackground) && Presenter()->editEnabled())
+			{
+				assert(!isIteratingChildren);
+				children.push_back(module->createAdorner(this));
+			}
+
+			guiObjectMap.insert({ module->getModuleHandle(), module.get() });
+			assert(!isIteratingChildren);
+			children.push_back(std::move(module));
+		}
+	}
+
+	// get Z-Order same as SE.
+	std::reverse(std::begin(children), std::end(children));
 }
 
 void SubView::onValueChanged()
