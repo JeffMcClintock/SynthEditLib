@@ -18,7 +18,7 @@
 
 // visible on structure view
 #define CF_STRUCTURE_VIEW           0x0100
-#define CF_DUMMY_VIEW				0x0200
+// #define CF_DUMMY_VIEW				0x0200
 #define CF_AUTOMATION_VIEW          0x0800
 #define CF_OLD_STYLE_LISTINTERFACE  0x1000
 

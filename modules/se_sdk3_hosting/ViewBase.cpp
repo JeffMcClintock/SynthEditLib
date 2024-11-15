@@ -1089,21 +1089,6 @@ namespace SE2
 	// Selected or dragged.
 	void ViewBase::OnChangedChildSelected(int phandle, bool selected)
 	{
-		//if (!Presenter()->editEnabled())
-		//	return;
-/*
-		// Adorners
-		if (!selected)
-		{
-			for (auto it = children.begin(); it != children.end(); ++it)
-			{
-				auto& m = *it;
-				if (m->getModuleHandle() == phandle)
-				{
-				}
-			}
-		}
-*/
 		for(auto it = children.begin(); it != children.end(); ++it)
 		{
 			auto& m = *it;
@@ -1119,10 +1104,6 @@ namespace SE2
 					{
 						// Add resize adorner.
 						std::unique_ptr<IViewChild> adorner = moduleview->createAdorner(this);
-						//if (getViewType() == CF_PANEL_VIEW)
-						//	adorner = std::make_unique<ResizeAdorner>(this, moduleview);
-						//else
-						//	adorner = std::make_unique<ResizeAdornerStructure>(this, moduleview);
 
 						GmpiDrawing::Size unused(0, 0);
 						adorner->measure(GmpiDrawing::Size(0, 0), &unused); // provide for resizbility calc.

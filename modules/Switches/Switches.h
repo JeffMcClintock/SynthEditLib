@@ -55,8 +55,7 @@ template<class T>
 class SwitchOneToMany : public MpBase2
 {
 public:
-	SwitchOneToMany() : 
-		prevOutput(-1)
+	SwitchOneToMany()
 	{
 		// Register pins.
 		initializePin(pinChoice);
@@ -90,18 +89,18 @@ public:
 	{
 		if (prevOutput > -1)
 		{
-			T initVal = {};
-			pinOutputs[prevOutput] = initVal;
+			pinOutputs[prevOutput] = T{};
 		}
 
-		if(pinChoice < pinOutputs.size() ) // cope with zero outputs situation.
+		if (pinChoice >= 0 && pinChoice < pinOutputs.size()) // cope with zero outputs situation.
+		{
 			pinOutputs[pinChoice] = pinInput;
-
-		prevOutput = pinChoice;
+			prevOutput = pinChoice;
+		}
 	}
 
 private:
-	int prevOutput;
+	int prevOutput = -1;
 	IntInPin pinChoice;
 	MpControlPin<T, gmpi::MP_IN> pinInput;
 	std::vector< MpControlPin<T, gmpi::MP_OUT> > pinOutputs;

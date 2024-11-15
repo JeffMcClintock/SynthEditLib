@@ -602,7 +602,7 @@ namespace SE2
 
 		// percent printout
 		std::wostringstream oss;
-		oss << setiosflags(ios_base::fixed) << setprecision(4) << cpuInfo->cpuRunningMedianSlow << L" %";
+	oss << setiosflags(ios_base::fixed) << setprecision(4) << cpuInfo->cpuRunningMedianSlow * 100.0f << L" %";
 		bg.SetColor(Color::Black);
 		g.DrawTextW(oss.str().c_str(), textFormat, Rect(child_rect.right - 40, rectBottom, child_rect.right, rectBottom - 12), bg);
 
