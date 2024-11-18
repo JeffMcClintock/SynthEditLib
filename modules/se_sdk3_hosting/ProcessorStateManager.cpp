@@ -47,13 +47,13 @@ std::string normalizedToRaw(int32_t datatype, float fnormalized, double maximum,
 	case DT_INT:
 	{
 		// -ves fail			newRawValue = ToRaw4((int32_t)(0.5 + realWorld));
-		newRawValue = ToRaw4((int32_t)static_cast<int32_t>(0.5 + realWorld));
+		newRawValue = ToRaw4(static_cast<int32_t>(round(realWorld)));
 		break;
 	}
 	case DT_INT64:
 	{
 		// -ves fail			newRawValue = ToRaw4((int64_t)(0.5 + realWorld));
-		newRawValue = ToRaw4((int64_t)static_cast<int32_t>(0.5 + realWorld));
+		newRawValue = ToRaw4(static_cast<int64_t>(round(realWorld)));
 		break;
 	}
 	case DT_BOOL:

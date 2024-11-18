@@ -510,7 +510,7 @@ std::wstring MpParameter_base::normalisedToString(double normalized) const
 		it_enum_list it(enumList_);
 
 		const int maxindex = it.size() - 1;
-		int enumIndex = static_cast<int32_t>(0.5 + normalized * maxindex);
+		int enumIndex = static_cast<int>(roundf(normalized * maxindex));
 		enumIndex = (std::min)(enumIndex, maxindex);
 
 		if (it.FindIndex(enumIndex))
@@ -604,7 +604,7 @@ double MpParameter_base::RealToNormalized(double real) const
 			if (!enumList_.empty())
 			{
 				it_enum_list it(enumList_);
-				const int i = static_cast<int32_t>(0.5 + real);
+				const int i = static_cast<int>(round(real));
                 const int maxindex = it.size() - 1;
                 if(maxindex < 1)
                 {
