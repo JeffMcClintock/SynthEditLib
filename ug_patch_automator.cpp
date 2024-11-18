@@ -368,7 +368,7 @@ void ug_patch_automator::UpdateSongPosition(double qnEventTime, double ppqPos)
 	auto patch_manager = patch_control_container->get_patch_manager();
 	patch_manager->vst_Automation2(t, ControllerType::SongPosition << 24, &barSongPosition, sizeof(barSongPosition));
 
-	lastWholeQuarterNoteSent = static_cast<int32_t>(ppqPos);
+	lastWholeQuarterNoteSent = static_cast<int32_t>(floorf(ppqPos));
 
 #ifdef _DEBUG
 	debugTimingPrint();
@@ -389,7 +389,7 @@ void ug_patch_automator::process_timing(int /*start_pos*/, int sampleframes)
 	}
 	else
 	{
-		int ppqPosNewFloor = static_cast<int32_t>(ppqPosNew);
+		int ppqPosNewFloor = static_cast<int32_t>(floorf(ppqPosNew));
 
 		// Does QNP increase by 1 or more quarter notes during this block?
 		// If so send out update on next precise sample after quarter note.

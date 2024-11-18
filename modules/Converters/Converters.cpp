@@ -183,7 +183,7 @@ public:
 
 		for (int s = sampleFrames; s > 0; --s)
 		{
-			int v = static_cast<int32_t>(*voltsIn * 10.0f + 0.5f);
+			int v = static_cast<int32_t>(roundf(*voltsIn * 10.0f));
 			if (state != v)
 			{
 				state = v;
