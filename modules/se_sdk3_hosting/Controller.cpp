@@ -1799,15 +1799,23 @@ void MpController::setPreset(DawPreset const* preset)
 			// (would need to pass 'updateProcessor')
 			{
 				// calls controller_->updateGuis(this, voice)
-				parameter->setParameterRaw(gmpi::MP_FT_VALUE, (int32_t)raw.size(), raw.data(), voice);
+				const auto changed = parameter->setParameterRaw(gmpi::MP_FT_VALUE, (int32_t)raw.size(), raw.data(), voice);
 
 				// updated cached value.
 				parameter->upDateImmediateValue();
 
+				// Param will be updated in DSP independantly, but we still need to notify the DAW for non-private parameters.
+				if (changed)
+				{
+					parameter->updateDaw();
+				}
+
+#if 0 //?
 				if (updateProcessor) // For non-private parameters, update DAW.
 				{
 					parameter->updateProcessor(gmpi::MP_FT_VALUE, voice);
 				}
+#endif
 			}
 		}
 	}
