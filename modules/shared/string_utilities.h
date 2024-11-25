@@ -212,3 +212,28 @@ inline S ToNativeSlashes(S path)
 	return path;
 }
 
+inline std::wstring SanitizeFileName(std::wstring name)
+{
+	const std::wstring forbidden(L"<>:\"/\\|?*^"); // see also std::string version
+
+	const auto new_end = std::remove_if(name.begin(), name.end(),
+		[forbidden](std::wstring::value_type c)
+		{ return forbidden.find(c) != std::string::npos; });
+
+	name.erase(new_end, name.end());
+
+	return name;
+}
+
+inline std::string SanitizeFileName(std::string name)
+{
+	const std::string forbidden("<>:\"/\\|?*^"); // see also std::wstring version
+
+	const auto new_end = std::remove_if(name.begin(), name.end(),
+		[forbidden](std::string::value_type c)
+		{ return forbidden.find(c) != std::string::npos; });
+
+	name.erase(new_end, name.end());
+
+	return name;
+}

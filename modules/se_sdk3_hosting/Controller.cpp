@@ -1674,6 +1674,8 @@ std::unique_ptr<const DawPreset> MpController::getPreset(std::string presetNameO
 		preset->name = presetNameOverride;
 	}
 
+	preset->name = SanitizeFileName(preset->name);
+
 #if 0 // ??
 	{
 		char buffer[20];
