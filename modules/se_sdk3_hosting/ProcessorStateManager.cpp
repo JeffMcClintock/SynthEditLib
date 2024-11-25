@@ -307,13 +307,6 @@ void DawPreset::initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, 
 				[values, info](int /*voiceId*/, int /*preset*/, const char* xmlvalue) mutable
 				{
 					values.rawValues_.push_back(ParseToRaw((int)info.dataType, xmlvalue));
-					//						const auto raw = ParseToRaw(parameter.dataType, xmlvalue);
-					//						if (parameter->setParameterRaw(gmpi::MP_FT_VALUE, (int32_t)raw.size(), raw.data(), voiceId))
-					{
-						// updated cached value.
-//							parameter->upDateImmediateValue();
-//							parameter->updateProcessor(gmpi::MP_FT_VALUE, voiceId);
-					}
 				}
 			);
 		}
