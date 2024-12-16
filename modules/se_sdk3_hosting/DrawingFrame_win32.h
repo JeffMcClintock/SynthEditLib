@@ -63,6 +63,8 @@ namespace GmpiGuiHosting
 
 	public:
 		static const int viewDimensions = 7968; // DIPs (divisible by grids 60x60 + 2 24 pixel borders)
+		inline static bool m_disable_gpu = false;
+		
 		se::directx::Factory_SDK3 DrawingFactory;
 
 		DrawingFrameBase() :

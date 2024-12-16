@@ -705,7 +705,10 @@ void DrawingFrameBase::CreateDevice()
 	ComPtr<ID3D11Device> D3D11Device;
 	
 	HRESULT r = DXGI_ERROR_UNSUPPORTED;
-#if 1 // Disable for D2D software-renderer.
+
+	// Disable D2D, use software-renderer.
+	if (!m_disable_gpu)
+	{
 	do {
 	r = D3D11CreateDevice(nullptr,
 		D3D_DRIVER_TYPE_HARDWARE,
@@ -721,10 +724,11 @@ void DrawingFrameBase::CreateDevice()
 	((flags) &= (0xffffffff ^ (D3D11_CREATE_DEVICE_DEBUG)));
 
 	} while (r == 0x887a002d); // The application requested an operation that depends on an SDK component that is missing or mismatched. (no DEBUG LAYER).
+	}
 
-#endif
 	if (DXGI_ERROR_UNSUPPORTED == r)
 	{
+		do {
 		r = D3D11CreateDevice(nullptr,
 			D3D_DRIVER_TYPE_WARP,
 			nullptr,
@@ -734,6 +738,10 @@ void DrawingFrameBase::CreateDevice()
 			D3D11Device.GetAddressOf(),
 			&currentDxFeatureLevel,
 			nullptr);
+
+			CLEAR_BITS(flags, D3D11_CREATE_DEVICE_DEBUG);
+
+		} while (r == 0x887a002d); // The application requested an operation that depends on an SDK component that is missing or mismatched. (no DEBUG LAYER).
 	}
 
 	// query for the device object’s IDXGIDevice interface
@@ -748,12 +756,14 @@ void DrawingFrameBase::CreateDevice()
 	ComPtr<IDXGIOutput> currentOutput;
 	adapter->EnumOutputs(0, &currentOutput);
 
+	if (currentOutput)
+	{
 	ComPtr<IDXGIOutput6> output6;
 	currentOutput.As(&output6);
 
 	DXGI_OUTPUT_DESC1 desc1; // DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709 (standard  sRGB or SDR displays with Advanced Color capabilities) (0). bits 8
 	output6->GetDesc1(&desc1);
-
+	}
 #endif
 
 	// adapter’s parent object is the DXGI factory
@@ -815,7 +825,7 @@ void DrawingFrameBase::CreateDevice()
 			DX_support_sRGB &= ((driverSrgbSupport & srgbflags) == srgbflags);
 		}
 
-		/* Surfeace Studio returns only L1
+		/* Surface Studio returns only L1
 		D3D11_FEATURE_DATA_D3D11_OPTIONS1 Options1{};
 		hr = D3D11Device->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS1, &Options1, sizeof(Options1));
 		if (SUCCEEDED(hr))
