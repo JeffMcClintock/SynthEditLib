@@ -1310,8 +1310,14 @@ MpParameter* MpController::createHostParameter(int32_t hostControl)
 
 	// generate unique parameter handle, assume all other parameters already registered.
 	p->parameterHandle_ = 0;
-	if (!ParameterHandleIndex.empty())
-		p->parameterHandle_ = ParameterHandleIndex.rbegin()->first + 1;
+
+	auto it = max_element(ParameterHandleIndex.begin(), ParameterHandleIndex.end(),
+		[](const auto& i, const auto& j) {
+			return i.first < j.first;
+		});
+
+	if(it != ParameterHandleIndex.end())
+		p->parameterHandle_ = it->first + 1;
 
 	ParameterHandleIndex.insert({ p->parameterHandle_, p });
 	parameters_.push_back(std::unique_ptr<MpParameter>(p));
@@ -1909,8 +1915,8 @@ void MpController::syncPresetControls(DawPreset const* preset)
 			auto unmodifiedPreset = std::make_unique<DawPreset>(parametersInfo, newXml);
 			undoManager.initial(this, std::move(unmodifiedPreset));
 
-			undoManager.snapshot(this, "Load Session Preset");
-			setModified(true);
+//			undoManager.snapshot(this, "Load Session Preset");
+//			setModified(true);
 		}
 		else
 		{

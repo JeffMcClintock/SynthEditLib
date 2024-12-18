@@ -279,12 +279,25 @@ void SE2JUCE_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
 
     OnLatencyChanged();
 
-	// JUCE standalone likes to set the state before prepareToPlay is called. (and therefore before the generator is available to accept the preset).
+#if 0
+    // didn't work when parameters have since changed on th editor.
     if (processor.missedPreset)
     {
-        dawStateManager.setMissedPreset(processor.missedPreset); // actually a a safely owned ptr, but who cares.
+        dawStateManager.setMissedPreset(processor.missedPreset);
 
         assert(!processor.missedPreset);
+    }
+#endif
+
+	// Some DAWs can set the state before prepareToPlay is called. (and therefore before the generator is available to accept the preset).
+    // Bring processor up-to-date with state.
+    {
+        //controller.timerCallback();
+        //auto preset = controller.getPreset();
+        //dawStateManager.setPresetFromUnownedPtr(preset.get());
+
+        auto preset = dawStateManager.getPreset();
+        processor.setPresetUnsafe(preset);
     }
 }
 

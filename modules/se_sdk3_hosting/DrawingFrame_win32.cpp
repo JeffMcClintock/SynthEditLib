@@ -720,10 +720,10 @@ void DrawingFrameBase::CreateDevice()
 		&currentDxFeatureLevel,
 		nullptr);
 
-		//CLEAR_BITS(flags, D3D11_CREATE_DEVICE_DEBUG);
-	((flags) &= (0xffffffff ^ (D3D11_CREATE_DEVICE_DEBUG)));
+			// Clear D3D11_CREATE_DEVICE_DEBUG
+			((flags) &= (0xffffffff ^ (D3D11_CREATE_DEVICE_DEBUG)));
 
-	} while (r == 0x887a002d); // The application requested an operation that depends on an SDK component that is missing or mismatched. (no DEBUG LAYER).
+		} while (r == 0x887a002d); // The application requested an operation that depends on an SDK component that is missing or mismatched. (no DEBUG LAYER).
 	}
 
 	if (DXGI_ERROR_UNSUPPORTED == r)
@@ -739,7 +739,8 @@ void DrawingFrameBase::CreateDevice()
 			&currentDxFeatureLevel,
 			nullptr);
 
-			CLEAR_BITS(flags, D3D11_CREATE_DEVICE_DEBUG);
+			// Clear D3D11_CREATE_DEVICE_DEBUG
+			((flags) &= (0xffffffff ^ (D3D11_CREATE_DEVICE_DEBUG)));
 
 		} while (r == 0x887a002d); // The application requested an operation that depends on an SDK component that is missing or mismatched. (no DEBUG LAYER).
 	}
@@ -811,6 +812,7 @@ void DrawingFrameBase::CreateDevice()
 			assuming the underlying Device does as well.
 	*/
 
+	// https://learn.microsoft.com/en-us/windows/win32/direct3darticles/high-dynamic-range
 	const DXGI_FORMAT bestFormat = DXGI_FORMAT_R16G16B16A16_FLOAT; // Proper gamma-correct blending.
 	const DXGI_FORMAT fallbackFormat = DXGI_FORMAT_B8G8R8A8_UNORM; // shitty linear blending.
 
@@ -890,18 +892,25 @@ void DrawingFrameBase::CreateDevice()
 
 	DrawingFactory.setSrgbSupport(DX_support_sRGB);
 
-	/* Channel9 HDR support
-	get IDXGISwapChain4 interface
-	sc->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709)
-	*/
-#ifdef _DEBUG
+#if 0
+	// By default, a swap chain created with a floating point pixel format is treated as if it uses the
+	// DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709 color space.
+	// That's the same pixel format and color space used by the DWM.
 
+	// from D2d Advanced Color Images sample: https://learn.microsoft.com/en-us/samples/microsoft/windows-universal-samples/d2dadvancedcolorimages/
 	ComPtr<IDXGISwapChain3> advancedSwapChain;
 	m_swapChain->QueryInterface(advancedSwapChain.ReleaseAndGetAddressOf());
-	UINT colorSpaceSupport = 0;
-	if (advancedSwapChain)
+	if (DX_support_sRGB && advancedSwapChain)
 	{
-		advancedSwapChain->CheckColorSpaceSupport(DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709, &colorSpaceSupport);
+		constexpr auto colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709; // linear sRGB
+		UINT colorSpaceSupport = 0;
+		advancedSwapChain->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport);
+
+		if ((colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) == DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)
+		{
+			// Set the swap chain's color space.
+			auto resd = advancedSwapChain->SetColorSpace1(colorSpace);
+		}
 	}
 #endif
 

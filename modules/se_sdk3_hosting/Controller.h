@@ -157,7 +157,7 @@ protected:
 
 	std::vector< std::unique_ptr<MpParameter> > parameters_;
 	std::map< std::pair<int, int>, int > moduleParameterIndex;		// Module Handle/ParamID to Param Handle.
-	std::map< int, MpParameter* > ParameterHandleIndex;				// Param Handle to Parameter*.
+	std::unordered_map< int, MpParameter* > ParameterHandleIndex;	// Param Handle to Parameter*.
 	std::vector<gmpi::IMpParameterObserver*> m_guis2;
 	SE2::IPresenter* presenter_ = nullptr;
 
