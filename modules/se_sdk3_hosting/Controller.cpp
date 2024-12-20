@@ -31,6 +31,7 @@
 #include "./ProcessorStateManager.h"
 
 #endif
+#include "conversion.h"
 
 #ifdef _DEBUG
 // #define DEBUG_UNDO
