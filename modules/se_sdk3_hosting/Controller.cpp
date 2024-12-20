@@ -32,6 +32,10 @@
 
 #endif
 
+#ifdef _DEBUG
+// #define DEBUG_UNDO
+#endif
+
 using namespace std;
 
 MpController::~MpController()
@@ -510,51 +514,6 @@ std::vector< MpController::presetInfo > MpController::scanNativePresets()
 	return scanPresetFolder(PresetFolder, extension);
 }
 
-void MpController::FileToString(const platform_string& path, std::string& buffer)
-{
-#if 0
-	FILE* fp = fopen(path.c_str(), "rb");
-
-	if(fp != NULL)
-	{
-		/* Go to the end of the file. */
-		if(fseek(fp, 0L, SEEK_END) == 0) {
-			/* Get the size of the file. */
-			auto bufsize = ftell(fp);
-			if(bufsize == -1) { /* Error */ }
-
-			/* Allocate our buffer to that size. */
-			buffer.resize(bufsize);
-
-			/* Go back to the start of the file. */
-			if(fseek(fp, 0L, SEEK_SET) == 0) { /* Error */ }
-
-			/* Read the entire file into memory. */
-			size_t newLen = fread((void*)buffer.data(), sizeof(char), bufsize, fp);
-			if(newLen == 0) {
-				fputs("Error reading file", stderr);
-			}
-		}
-		fclose(fp);
-	}
-#else
-	// fast file read.
-	std::ifstream t(path, std::ifstream::in | std::ifstream::binary);
-	t.seekg(0, std::ios::end);
-	const size_t size = t.tellg();
-	if (t.fail())
-	{
-		buffer.clear();
-	}
-	else
-	{
-		buffer.resize(size);
-		t.seekg(0);
-		t.read((char*)buffer.data(), buffer.size());
-	}
-#endif
-}
-
 MpController::presetInfo MpController::parsePreset(const std::wstring& filename, const std::string& xml)
 {
 	// file name overrides the name from XML
@@ -724,7 +683,7 @@ void MpController::setParameterValue(RawView value, int32_t parameterHandle, gmp
 
 void UndoManager::debug()
 {
-#ifdef _DEBUG
+#ifdef DEBUG_UNDO
 	_RPT0(0, "\n======UNDO=======\n");
 	for (int i = 0 ; i < size() ; ++i)
 	{
@@ -741,7 +700,7 @@ void UndoManager::setPreset(MpController* controller, DawPreset const* preset)
 //	controller->dawStateManager.setPreset(preset);
 	controller->setPresetFromSelf(preset);
 
-#ifdef _DEBUG
+#ifdef DEBUG_UNDO
 	_RPT0(0, "UndoManager::setPreset\n");
 	debug();
 #endif
@@ -754,7 +713,7 @@ void UndoManager::initial(MpController* controller, std::unique_ptr<const DawPre
 
 	UpdateGui(controller);
 
-#ifdef _DEBUG
+#ifdef DEBUG_UNDO
 	_RPT0(0, "UndoManager::initial (2)\n");
 	debug();
 #endif
@@ -806,7 +765,7 @@ DawPreset const* UndoManager::push(std::string description, std::unique_ptr<cons
 	undoPosition = size();
 	history.push_back({ description, std::move(preset) });
 
-#ifdef _DEBUG
+#ifdef DEBUG_UNDO
 	_RPT0(0, "UndoManager::push\n");
 	debug();
 #endif
@@ -828,7 +787,7 @@ void UndoManager::snapshot(MpController* controller, std::string description)
 	if(!couldUndo || couldRedo || wasModified != isPresetModified()) // enable undo button
 		UpdateGui(controller);
 
-#ifdef _DEBUG
+#ifdef DEBUG_UNDO
 	_RPT0(0, "UndoManager::snapshot\n");
 	debug();
 #endif
@@ -852,7 +811,7 @@ void UndoManager::undo(MpController* controller)
 
 	UpdateGui(controller);
 
-#ifdef _DEBUG
+#ifdef DEBUG_UNDO
 	_RPT0(0, "UndoManager::undo\n");
 	debug();
 #endif
@@ -876,7 +835,7 @@ void UndoManager::redo(MpController* controller)
 
 	UpdateGui(controller);
 
-#ifdef _DEBUG
+#ifdef DEBUG_UNDO
 	_RPT0(0, "UndoManager::redo\n");
 	debug();
 #endif
