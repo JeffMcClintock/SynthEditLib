@@ -18,6 +18,108 @@ namespace se // gmpi
 {
 	namespace directx
 	{
+		// Helper for managing lifetime of Direct2D interface pointers
+		template<class wrappedObjT>
+		class ComWrapper
+		{
+			mutable wrappedObjT* obj = {};
+
+		public:
+			ComWrapper() {}
+
+			explicit ComWrapper(wrappedObjT* newobj)
+			{
+				Assign(newobj);
+			}
+			ComWrapper(const ComWrapper<wrappedObjT>& value)
+			{
+				Assign(value.obj);
+			}
+			// Attach object without incrementing ref count. For objects created with new.
+			void Attach(wrappedObjT* newobj)
+			{
+				wrappedObjT* old = obj;
+				obj = newobj;
+
+				if (old)
+				{
+					old->Release();
+				}
+			}
+
+			~ComWrapper()
+			{
+				if (obj)
+				{
+					obj->Release();
+				}
+			}
+			inline operator wrappedObjT* ()
+			{
+				return obj;
+			}
+			const wrappedObjT* operator=(wrappedObjT* value)
+			{
+				Assign(value);
+				return value;
+			}
+			ComWrapper<wrappedObjT>& operator=(ComWrapper<wrappedObjT>& value)
+			{
+				Assign(value.get());
+				return *this;
+			}
+			bool operator==(const wrappedObjT* other) const
+			{
+				return obj == other;
+			}
+			bool operator==(const ComWrapper<wrappedObjT>& other) const
+			{
+				return obj == other.obj;
+			}
+			wrappedObjT* operator->() const
+			{
+				return obj;
+			}
+
+			wrappedObjT*& get()
+			{
+				return obj;
+			}
+
+			wrappedObjT** getAddressOf()
+			{
+				assert(obj == 0); // Free it before you re-use it!
+				return &obj;
+			}
+			wrappedObjT** put()
+			{
+				if (obj)
+				{
+					obj->Release();
+					obj = {};
+				}
+
+				return &obj;
+			}
+
+			bool isNull() const
+			{
+				return obj == nullptr;
+			}
+
+		private:
+			// Attach object and increment ref count.
+			inline void Assign(wrappedObjT* newobj)
+			{
+				Attach(newobj);
+				if (newobj)
+				{
+					newobj->AddRef();
+				}
+			}
+		};
+
+
 		inline void SafeRelease(IUnknown* object)
 		{
 			if (object)
@@ -87,8 +189,19 @@ namespace se // gmpi
 
 		class SolidColorBrush final : /* Simulated: public GmpiDrawing_API::IMpSolidColorBrush,*/ public Brush
 		{
+#if	ENABLE_HDR_SUPPORT
+			float whiteMult = 1.0f;
+#endif
 		public:
-			SolidColorBrush(ID2D1SolidColorBrush* b, GmpiDrawing_API::IMpFactory *factory) : Brush(b, factory) {}
+			SolidColorBrush(ID2D1SolidColorBrush* b, GmpiDrawing_API::IMpFactory *factory
+#if	ENABLE_HDR_SUPPORT
+				, float pwhiteMult
+#endif
+			) : Brush(b, factory)
+#if	ENABLE_HDR_SUPPORT
+				, whiteMult(pwhiteMult)
+#endif
+			{}
 
 			inline ID2D1SolidColorBrush* nativeSolidColorBrush()
 			{
@@ -99,17 +212,43 @@ namespace se // gmpi
 			virtual void SetColor(const GmpiDrawing_API::MP1_COLOR* color) // simulated: override
 			{
 //				D2D1::ConvertColorSpace(D2D1::ColorF*) color);
-				nativeSolidColorBrush()->SetColor((D2D1::ColorF*) color);
+#if	ENABLE_HDR_SUPPORT
+				const D2D1_COLOR_F c
+				{
+					color->r * whiteMult,
+					color->g * whiteMult,
+					color->b * whiteMult,
+					color->a
+				};
+#else
+				const D2D1_COLOR_F c
+				{
+					color->r,
+					color->g,
+					color->b,
+					color->a
+				};
+#endif
+
+				nativeSolidColorBrush()->SetColor(c);
 			}
 			GmpiDrawing_API::MP1_COLOR GetColor() // simulated:  override
 			{
 				auto b = nativeSolidColorBrush()->GetColor();
-				//		return GmpiDrawing::Color(b.r, b.g, b.b, b.a);
+
+#if	ENABLE_HDR_SUPPORT
+				GmpiDrawing_API::MP1_COLOR c;
+				c.a = b.a;
+				c.r = b.r / whiteMult;
+				c.g = b.g / whiteMult;
+				c.b = b.b / whiteMult;
+#else
 				GmpiDrawing_API::MP1_COLOR c;
 				c.a = b.a;
 				c.r = b.r;
 				c.g = b.g;
 				c.b = b.b;
+#endif
 				return c;
 			}
 
@@ -671,14 +810,17 @@ namespace se // gmpi
 			ID2D1Bitmap* nativeBitmap_;
 			ID2D1DeviceContext* nativeContext_;
 			IWICBitmap* diBitmap_ = {};
-			GmpiDrawing_API::IMpFactory* factory;
+			class Factory_base* factory;
 			GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat_ = GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB;
+#if	ENABLE_HDR_SUPPORT
+			se::directx::ComWrapper<ID2D1Bitmap1> nativeBitmap_HDR_;
+#endif
 #ifdef _DEBUG
 			std::string debugFilename;
 #endif
-			Bitmap(GmpiDrawing_API::IMpFactory* pfactory, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, IWICBitmap* diBitmap);
+			Bitmap(Factory_base* pfactory, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, IWICBitmap* diBitmap);
 
-			Bitmap(GmpiDrawing_API::IMpFactory* pfactory, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, ID2D1DeviceContext* nativeContext, ID2D1Bitmap* nativeBitmap) :
+			Bitmap(Factory_base* pfactory, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, ID2D1DeviceContext* nativeContext, ID2D1Bitmap* nativeBitmap) :
 				nativeBitmap_(nativeBitmap)
 				, nativeContext_(nativeContext)
 				, factory(pfactory)
@@ -989,6 +1131,17 @@ namespace se // gmpi
 				return info;
 			}
 
+#if	ENABLE_HDR_SUPPORT
+			bool isHdr() const
+			{
+				return info.whiteMult != 1.0f;
+			}
+			float getWhiteMult() const
+			{
+				return info.whiteMult;
+			}
+#endif
+
 			// for diagnostics only.
 			auto getDirectWriteFactory()
 			{
@@ -1105,7 +1258,9 @@ namespace se // gmpi
 				, fallback(pfallback)
 			{
 			}
-
+#if	ENABLE_HDR_SUPPORT
+			float whiteMult = 1.0f; // cached for speed.
+#endif
 			//// for BitmapRenderTarget which populates context in it's constructor
 			//GraphicsContext_RG(gmpi::api::IUnknown* legacyContext, Factory* pfactory) :
 			//	gmpi::directx::GraphicsContext_base(&factory)
@@ -1144,6 +1299,9 @@ namespace se // gmpi
 			{
 				context_->Clear((D2D1_COLOR_F*)clearColor);
 				return gmpi::ReturnCode::Ok;
+#if	ENABLE_HDR_SUPPORT
+				whiteMult = factory->whiteMult;
+#endif
 			}
 			gmpi::ReturnCode beginDraw() override { return gmpi::ReturnCode::Ok; }
 			gmpi::ReturnCode endDraw() override { return gmpi::ReturnCode::Ok; }
@@ -1192,19 +1350,27 @@ namespace se // gmpi
 				r.top = r.left = -defaultClipBounds;
 				r.bottom = r.right = defaultClipBounds;
 				clipRectStack.push_back(r);
+
+#if	ENABLE_HDR_SUPPORT
+				whiteMult = pinfo.whiteMult;
+#endif
 			}
 
-			//GraphicsContext_SDK3(Factory* pfactory) :
-			//	context_(nullptr)
-			//	, factory(pfactory)
-			//{
-			//	Init();
-			//}
+#if	ENABLE_HDR_SUPPORT
+			float whiteMult = 1.0f; // cached for speed.
+#endif
 
 			~GraphicsContext_SDK3()
 			{
 				context_->Release();
 			}
+
+#if	ENABLE_HDR_SUPPORT
+			bool isHdr() const
+			{
+				return factory.isHdr();
+			}
+#endif
 
 			ID2D1DeviceContext* native()
 			{
@@ -1234,7 +1400,24 @@ namespace se // gmpi
 				_RPT0(_CRT_WARN, "context_->Clear(c);\n");
 				_RPT0(_CRT_WARN, "}\n");
 #endif
-				context_->Clear((D2D1_COLOR_F*)clearColor);
+#if	ENABLE_HDR_SUPPORT
+				const D2D1_COLOR_F c
+				{
+					clearColor->r * whiteMult,
+					clearColor->g * whiteMult,
+					clearColor->b * whiteMult,
+					clearColor->a
+				};
+#else
+				const D2D1_COLOR_F c
+				{
+					clearColor->r,
+					clearColor->g,
+					clearColor->b,
+					clearColor->a
+				};
+#endif
+				context_->Clear(&c);
 			}
 
 			void DrawLine(GmpiDrawing_API::MP1_POINT point0, GmpiDrawing_API::MP1_POINT point1, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override
