@@ -15,6 +15,10 @@ build_gmpi_plugin(
         FreqAnalyser.h
         FreqAnalyserGui.cpp
         FreqAnalyserGui.h
+        FreqAnalyser3.cpp
+        FreqAnalyser3Gui.cpp
+        SpectrumAnalyserBase.h
+        SpectrumAnalyserBase.cpp
         ../ImpulseResponse/Impulse.h
         ../ImpulseResponse/Impulse.cpp
         ImpulseResponse2.cpp

@@ -1057,6 +1057,7 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
     INIT_STATIC_FILE(ButterworthBP2);
 	INIT_STATIC_FILE(Converters);
 	INIT_STATIC_FILE(FreqAnalyser2);
+	INIT_STATIC_FILE(FreqAnalyser3);
 	INIT_STATIC_FILE(IdeLogger);
 	INIT_STATIC_FILE(ImpulseResponse);
 	INIT_STATIC_FILE(ImpulseResponse2);
@@ -1112,6 +1113,7 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(PlainImage_Gui)
 	INIT_STATIC_FILE(Scope3XP_Gui);
 	INIT_STATIC_FILE(FreqAnalyser2_Gui);
+	INIT_STATIC_FILE(FreqAnalyser3_Gui);
 	INIT_STATIC_FILE(PatchMemoryBoolOut_Gui);
 	INIT_STATIC_FILE(VoltMeter_Gui);
 	INIT_STATIC_FILE(FloatToTextGUI_Gui);
