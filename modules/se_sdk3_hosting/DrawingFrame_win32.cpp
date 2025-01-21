@@ -537,11 +537,6 @@ void DrawingFrameBase::OnPaint()
 		{
 			CreateDevice();
 		}
-/* didn't help
-		ID2D1Multithread* m_D2DMultithread;
-		DrawingFactory.getD2dFactory()->QueryInterface(IID_PPV_ARGS(&m_D2DMultithread));
-		m_D2DMultithread->Enter();
-*/
 
 		{
 			GmpiDrawing::Graphics graphics(context);
@@ -620,8 +615,6 @@ void DrawingFrameBase::OnPaint()
 			/*const auto r =*/ graphics.EndDraw();
 
 		}
-
-		//	frontBufferDirtyRects.insert(frontBufferDirtyRects.end(), dirtyRects.begin(), dirtyRects.end());
 
 		// Present the backbuffer (if it has some new content)
 		if (firstPresent)
@@ -771,17 +764,17 @@ void DrawingFrameBase::CreateDevice()
 			GetWindowRect(getWindowHandle(), &m_windowBounds);
 
 			// Get the retangle bounds of the app window
-			GmpiDrawing::RectL appWindowRect = { m_windowBounds.left, m_windowBounds.top, m_windowBounds.right, m_windowBounds.bottom };
+			gmpi::drawing::RectL appWindowRect = { m_windowBounds.left, m_windowBounds.top, m_windowBounds.right, m_windowBounds.bottom };
 
 			// Get the rectangle bounds of current output
 			DXGI_OUTPUT_DESC desc;
 			auto hr = currentOutput->GetDesc(&desc);
-			RECT r = desc.DesktopCoordinates;
-			GmpiDrawing::RectL outputRect = { r.left, r.top, r.right, r.bottom };
+			RECT desktopRect = desc.DesktopCoordinates;
+			gmpi::drawing::RectL outputRect = { desktopRect.left, desktopRect.top, desktopRect.right, desktopRect.bottom };
 
 			// Compute the intersection
-			const auto intersectRect = Intersect(appWindowRect, outputRect);
-			int intersectArea = intersectRect.getWidth() * intersectRect.getHeight();
+			const auto intersectRect = gmpi::drawing::intersectRect(appWindowRect, outputRect);
+			int intersectArea = getWidth(intersectRect) * getHeight(intersectRect);
 			if (intersectArea > bestIntersectArea)
 			{
 				bestOutput = currentOutput;
@@ -1057,17 +1050,16 @@ void DrawingFrameBase::CreateDevice()
 
 	CreateDeviceSwapChainBitmap();
 /*
-	if (DrawingFactory.getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
+	drawing::api::IBitmapPixels::PixelFormat pixelFormat;
+	DrawingFactory.getPlatformPixelFormat(&pixelFormat);
+
+	if (pixelFormat == gmpi::drawing::api::IBitmapPixels::kBGRA_SRGB)
 	{
-		contextB = nullptr;
-		contextA.reset(new se::directx::UniversalGraphicsContext(DrawingFactory.getInfo(), mpRenderTarget));
-		context = &contextA->sdk3Context;
+		context.reset(new gmpi::directx::GraphicsContext(mpRenderTarget, &DrawingFactory));
 	}
 	else
 	{
-		contextA = nullptr;
-		contextB.reset(new se::directx::UniversalGraphicsContext_win7(DrawingFactory.getInfo(), mpRenderTarget));
-		context = &contextB->sdk3Context;
+		context.reset(new gmpi::directx::GraphicsContext_Win7(mpRenderTarget, &DrawingFactory));
 	}
 */
 }

@@ -25,7 +25,7 @@ void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height)
 
 			if (distance >= bin_per_pixel)
 			{
-				_RPTN(0, "bin_per_pixel %d: %d\n", (int)bin_per_pixel, i);
+				// _RPTN(0, "bin_per_pixel %d: %d\n", (int)bin_per_pixel, i);
 				if (bin_per_pixel == 1)
 				{
 					smoothedZoneHigh = i;
