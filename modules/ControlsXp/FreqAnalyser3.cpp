@@ -214,5 +214,5 @@ protected:
 
 namespace
 {
-	auto r = Register<FreqAnalyser3>::withId(L"SE Freq Analyser3");
+	auto r = sesdk::Register<FreqAnalyser3>::withId(L"SE Freq Analyser3");
 }

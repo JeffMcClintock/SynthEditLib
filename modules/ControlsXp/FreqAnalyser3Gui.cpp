@@ -7,7 +7,6 @@
 #include <stdio.h>  // for GCC.
 #include <algorithm>
 #include "../se_sdk3/mp_sdk_gui2.h"
-#include "../shared/xp_simd.h"
 #include "../shared/GraphHelpers.h"
 #include "../shared/FontCache.h"
 #include "./SpectrumAnalyserBase.h"
@@ -78,7 +77,7 @@ public:
 			const float bin = prequelDummyValues + hz * hz2bin;
 			const float safeBin = std::clamp(bin, 0.f, (float)numValues - 1.0f);
 
-			const int index = FastRealToIntTruncateTowardZero(safeBin);
+			const int index = static_cast<int>(safeBin);
 			const float fraction = safeBin - (float)index;
 			pixelToBin.push_back(
 				{
