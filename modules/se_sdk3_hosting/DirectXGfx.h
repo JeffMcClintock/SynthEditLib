@@ -807,10 +807,10 @@ namespace se // gmpi
 		class Bitmap : public GmpiDrawing_API::IMpBitmap
 		{
 		public:
-			ID2D1Bitmap* nativeBitmap_;
-			ID2D1DeviceContext* nativeContext_;
+			ID2D1Bitmap* nativeBitmap_ = {};
+			ID2D1DeviceContext* nativeContext_ = {};
 			IWICBitmap* diBitmap_ = {};
-			class Factory_base* factory;
+			class Factory_base* factory = {};
 			GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat_ = GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB;
 #if	ENABLE_HDR_SUPPORT
 			se::directx::ComWrapper<ID2D1Bitmap1> nativeBitmap_HDR_;
