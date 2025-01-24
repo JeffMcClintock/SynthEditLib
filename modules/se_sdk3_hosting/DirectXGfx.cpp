@@ -18,6 +18,27 @@ namespace se //gmpi
 	{
 		std::wstring_convert<std::codecvt_utf8<wchar_t>> Factory_base::stringConverter;
 
+		int32_t Factory_base::CreateStrokeStyle(const GmpiDrawing_API::MP1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, float* dashes, int32_t dashesCount, GmpiDrawing_API::IMpStrokeStyle** returnValue)
+		{
+			*returnValue = nullptr;
+
+			ID2D1StrokeStyle* b = nullptr;
+
+			auto hr = info.m_pDirect2dFactory->CreateStrokeStyle((const D2D1_STROKE_STYLE_PROPERTIES*)strokeStyleProperties, dashes, dashesCount, &b);
+
+			if (hr == 0)
+			{
+				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> wrapper;
+				wrapper.Attach(new StrokeStyle(b, this));
+
+				//					auto wrapper = gmpi_sdk::make_shared_ptr<StrokeStyle>(b, this);
+
+				return wrapper->queryInterface(GmpiDrawing_API::SE_IID_STROKESTYLE_MPGUI, reinterpret_cast<void**>(returnValue));
+			}
+
+			return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
+		}
+
 		int32_t Geometry::Open(GmpiDrawing_API::IMpGeometrySink** geometrySink)
 		{
 			ID2D1GeometrySink* sink = nullptr;
@@ -440,7 +461,7 @@ namespace se //gmpi
 			if (hr == 0)
 			{
 				gmpi_sdk::mp_shared_ptr<Bitmap> b2;
-				b2.Attach(new Bitmap(this, getPlatformPixelFormat(), wicBitmap));
+				b2.Attach(new Bitmap(getInfo(), getPlatformPixelFormat(), wicBitmap));
 
 				b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, (void**)returnDiBitmap);
 			}
@@ -642,7 +663,7 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 				else
 #endif
 				{
-					auto bitmap = new Bitmap(this, getPlatformPixelFormat(), wicBitmap);
+					auto bitmap = new Bitmap(getInfo(), getPlatformPixelFormat(), wicBitmap);
 #ifdef _DEBUG
 					bitmap->debugFilename = utf8Uri;
 #endif
@@ -730,7 +751,7 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 
 		void Bitmap::GetFactory(GmpiDrawing_API::IMpFactory** pfactory)
 		{
-			*pfactory = factory;
+			*pfactory = &factory;
 		}
 
 		int32_t Bitmap::lockPixels(GmpiDrawing_API::IMpBitmapPixels** returnInterface, int32_t flags)
@@ -870,16 +891,18 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 			}
 
 #if	ENABLE_HDR_SUPPORT
-			if (factory->isHdr())
+			if (factory.isHdr())
 			{
 				// https://walbourn.github.io/windows-imaging-component-and-windows-8/
 
 				if (!nativeBitmap_HDR_)
 				{
+					assert(diBitmap_); // gonna need a wix bitmap as the source. 
+
 					// Create a WIC bitmap to draw on.
 					const auto bitmapSize = nativeBitmap_->GetPixelSize();
 					se::directx::ComWrapper<IWICBitmap> diBitmap_HDR_;
-					HRESULT hr = factory->getWicFactory()->CreateBitmap(
+					HRESULT hr = factory.getWicFactory()->CreateBitmap(
 						static_cast<UINT>(bitmapSize.width),
 						static_cast<UINT>(bitmapSize.height),
 						GUID_WICPixelFormat64bppPRGBAHalf,
@@ -896,7 +919,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 							D2D1::PixelFormat(DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED)
 						);
 
-						hr = factory->getFactory()->CreateWicBitmapRenderTarget(
+						hr = factory.getFactory()->CreateWicBitmapRenderTarget(
 							diBitmap_HDR_,
 							renderTargetProperties,
 							pWICRenderTarget.put()
@@ -913,7 +936,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 								// Convert original image to D2D format
 								D2D1_BITMAP_PROPERTIES props;
 								props.dpiX = props.dpiY = 96;
-								if (factory->getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
+								if (factory.getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
 								{
 									props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
 								}
@@ -940,9 +963,9 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 									// SDR white level scaling is performing by multiplying RGB color values in linear gamma.
 									// We implement this with a Direct2D matrix effect.
 									D2D1_MATRIX_5X4_F matrix = D2D1::Matrix5x4F(
-										factory->getWhiteMult(), 0, 0, 0,  // [R] Multiply each color channel
-										0, factory->getWhiteMult(), 0, 0,  // [G] by the scale factor in 
-										0, 0, factory->getWhiteMult(), 0,  // [B] linear gamma space.
+										factory.getWhiteMult(), 0, 0, 0,  // [R] Multiply each color channel
+										0, factory.getWhiteMult(), 0, 0,  // [G] by the scale factor in 
+										0, 0, factory.getWhiteMult(), 0,  // [B] linear gamma space.
 										0, 0, 0, 1,		 // [A] Preserve alpha values.
 										0, 0, 0, 0);	 //     No offset.
 
@@ -993,11 +1016,11 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 			return nativeBitmap_;
 		}
 
-		Bitmap::Bitmap(Factory_base* pfactory, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, IWICBitmap* diBitmap) :
+		Bitmap::Bitmap(gmpi::directx::DxFactoryInfo& factoryInfo, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, IWICBitmap* diBitmap) :
 			nativeBitmap_(0)
 			, nativeContext_(0)
 			, diBitmap_(diBitmap)
-			, factory(pfactory)
+			, factory(factoryInfo, nullptr)
 			, pixelFormat_(pixelFormat)
 		{
 			diBitmap->AddRef();
@@ -1313,7 +1336,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 				if (hr == S_OK)
 				{
 					gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-					b2.Attach(new Bitmap(&factory, factory.getPlatformPixelFormat(), context_, nativeBitmap));
+					b2.Attach(new Bitmap(factory.getInfo(), factory.getPlatformPixelFormat(), context_, nativeBitmap));
 					nativeBitmap->Release();
 
 					b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void**>(returnBitmap));
@@ -1322,7 +1345,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 			else if (wikBitmapRenderTarget)
 			{
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-				b2.Attach(new Bitmap(&factory, factory.getPlatformPixelFormat(), wicBitmap));
+				b2.Attach(new Bitmap(factory.getInfo(), factory.getPlatformPixelFormat(), wicBitmap)); //temp factory about to go out of scope (when using a bitmap render target)
 
 				b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void**>(returnBitmap));
 

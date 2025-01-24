@@ -168,6 +168,93 @@ namespace se // gmpi
 			}
 		};
 
+		class Factory_base : public GmpiDrawing_API::IMpFactory2
+		{
+		protected:
+			gmpi::directx::DxFactoryInfo& info;
+			gmpi::IMpUnknown* fallback{};
+
+		public:
+			static std::wstring_convert<std::codecvt_utf8<wchar_t>> stringConverter; // cached, as constructor is super-slow.
+
+			Factory_base(gmpi::directx::DxFactoryInfo& pinfo, gmpi::IMpUnknown* pfallback) : info(pinfo), fallback(pfallback) {}
+
+			gmpi::directx::DxFactoryInfo& getInfo() {
+				return info;
+			}
+
+#if	ENABLE_HDR_SUPPORT
+			bool isHdr() const
+			{
+				return info.whiteMult != 1.0f;
+			}
+			float getWhiteMult() const
+			{
+				return info.whiteMult;
+			}
+#endif
+
+			// for diagnostics only.
+			auto getDirectWriteFactory()
+			{
+				return info.writeFactory;
+			}
+			auto getWicFactory()
+			{
+				return info.pIWICFactory;
+			}
+			auto getFactory()
+			{
+				return info.m_pDirect2dFactory;
+			}
+
+			void setSrgbSupport(bool s)
+			{
+				info.DX_support_sRGB = s;
+			}
+
+			GmpiDrawing_API::IMpBitmapPixels::PixelFormat getPlatformPixelFormat()
+			{
+				return info.DX_support_sRGB ? GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB : GmpiDrawing_API::IMpBitmapPixels::kBGRA;
+			}
+
+			ID2D1Factory1* getD2dFactory()
+			{
+				return info.m_pDirect2dFactory;
+			}
+			std::wstring fontMatch(std::wstring fontName, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, float fontSize);
+
+			int32_t CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry** pathGeometry) override;
+			int32_t CreateTextFormat(const char* fontFamilyName, void* unused /* fontCollection */, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, GmpiDrawing_API::MP1_FONT_STYLE fontStyle, GmpiDrawing_API::MP1_FONT_STRETCH fontStretch, float fontSize, void* unused2 /* localeName */, GmpiDrawing_API::IMpTextFormat** textFormat) override;
+			int32_t CreateImage(int32_t width, int32_t height, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override;
+			int32_t LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override;
+			int32_t CreateStrokeStyle(const GmpiDrawing_API::MP1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, float* dashes, int32_t dashesCount, GmpiDrawing_API::IMpStrokeStyle** returnValue) override;
+
+			IWICBitmap* CreateDiBitmapFromNative(ID2D1Bitmap* D2D_Bitmap);
+
+			// IMpFactory2
+			int32_t GetFontFamilyName(int32_t fontIndex, gmpi::IString* returnString) override;
+
+			int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+			{
+				*returnInterface = 0;
+				if (iid == GmpiDrawing_API::SE_IID_FACTORY2_MPGUI || iid == GmpiDrawing_API::SE_IID_FACTORY_MPGUI || iid == gmpi::MP_IID_UNKNOWN)
+				{
+					*returnInterface = reinterpret_cast<GmpiDrawing_API::IMpFactory2*>(this);
+					addRef();
+					return gmpi::MP_OK;
+				}
+
+				if (fallback)
+					return fallback->queryInterface(iid, returnInterface);
+
+				return gmpi::MP_NOSUPPORT;
+			}
+
+			GMPI_REFCOUNT_NO_DELETE;
+		};
+
+
 		class Brush : /* public GmpiDrawing_API::IMpBrush,*/ public GmpiDXResourceWrapper<GmpiDrawing_API::IMpBrush, ID2D1Brush> // Resource
 		{
 		public:
@@ -810,7 +897,8 @@ namespace se // gmpi
 			ID2D1Bitmap* nativeBitmap_ = {};
 			ID2D1DeviceContext* nativeContext_ = {};
 			IWICBitmap* diBitmap_ = {};
-			class Factory_base* factory = {};
+			// class Factory_base* factory = {};
+			se::directx::Factory_base factory;
 			GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat_ = GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB;
 #if	ENABLE_HDR_SUPPORT
 			se::directx::ComWrapper<ID2D1Bitmap1> nativeBitmap_HDR_;
@@ -818,12 +906,12 @@ namespace se // gmpi
 #ifdef _DEBUG
 			std::string debugFilename;
 #endif
-			Bitmap(Factory_base* pfactory, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, IWICBitmap* diBitmap);
+			Bitmap(gmpi::directx::DxFactoryInfo& factoryInfo, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, IWICBitmap* diBitmap);
 
-			Bitmap(Factory_base* pfactory, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, ID2D1DeviceContext* nativeContext, ID2D1Bitmap* nativeBitmap) :
+			Bitmap(gmpi::directx::DxFactoryInfo& factoryInfo, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, ID2D1DeviceContext* nativeContext, ID2D1Bitmap* nativeBitmap) :
 				nativeBitmap_(nativeBitmap)
 				, nativeContext_(nativeContext)
-				, factory(pfactory)
+				, factory(factoryInfo, nullptr)
 				, pixelFormat_(pixelFormat)
 			{
 				nativeBitmap->AddRef();
@@ -1113,112 +1201,6 @@ namespace se // gmpi
 
 			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_PATHGEOMETRY_MPGUI, GmpiDrawing_API::IMpPathGeometry);
 			GMPI_REFCOUNT;
-		};
-
-
-		class Factory_base : public GmpiDrawing_API::IMpFactory2
-		{
-		protected:
-			gmpi::directx::DxFactoryInfo& info;
-			gmpi::IMpUnknown* fallback{};
-
-		public:
-			static std::wstring_convert<std::codecvt_utf8<wchar_t>> stringConverter; // cached, as constructor is super-slow.
-
-			Factory_base(gmpi::directx::DxFactoryInfo& pinfo, gmpi::IMpUnknown* pfallback) : info(pinfo), fallback(pfallback) {}
-
-			gmpi::directx::DxFactoryInfo& getInfo() {
-				return info;
-			}
-
-#if	ENABLE_HDR_SUPPORT
-			bool isHdr() const
-			{
-				return info.whiteMult != 1.0f;
-			}
-			float getWhiteMult() const
-			{
-				return info.whiteMult;
-			}
-#endif
-
-			// for diagnostics only.
-			auto getDirectWriteFactory()
-			{
-				return info.writeFactory;
-			}
-			auto getWicFactory()
-			{
-				return info.pIWICFactory;
-			}
-			auto getFactory()
-			{
-				return info.m_pDirect2dFactory;
-			}
-
-			void setSrgbSupport(bool s)
-			{
-				info.DX_support_sRGB = s;
-			}
-			
-			GmpiDrawing_API::IMpBitmapPixels::PixelFormat getPlatformPixelFormat()
-			{
-				return info.DX_support_sRGB ? GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB : GmpiDrawing_API::IMpBitmapPixels::kBGRA;
-			}
-
-			ID2D1Factory1* getD2dFactory()
-			{
-				return info.m_pDirect2dFactory;
-			}
-			std::wstring fontMatch(std::wstring fontName, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, float fontSize);
-
-			int32_t CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry** pathGeometry) override;
-			int32_t CreateTextFormat(const char* fontFamilyName, void* unused /* fontCollection */, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, GmpiDrawing_API::MP1_FONT_STYLE fontStyle, GmpiDrawing_API::MP1_FONT_STRETCH fontStretch, float fontSize, void* unused2 /* localeName */, GmpiDrawing_API::IMpTextFormat** textFormat) override;
-			int32_t CreateImage(int32_t width, int32_t height, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override;
-			int32_t LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override;
-			int32_t CreateStrokeStyle(const GmpiDrawing_API::MP1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, float* dashes, int32_t dashesCount, GmpiDrawing_API::IMpStrokeStyle** returnValue) override
-			{
-				*returnValue = nullptr;
-
-				ID2D1StrokeStyle* b = nullptr;
-
-				auto hr = info.m_pDirect2dFactory->CreateStrokeStyle((const D2D1_STROKE_STYLE_PROPERTIES*) strokeStyleProperties, dashes, dashesCount, &b);
-
-				if (hr == 0)
-				{
-					gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> wrapper;
-					wrapper.Attach(new StrokeStyle(b, this));
-
-//					auto wrapper = gmpi_sdk::make_shared_ptr<StrokeStyle>(b, this);
-
-					return wrapper->queryInterface(GmpiDrawing_API::SE_IID_STROKESTYLE_MPGUI, reinterpret_cast<void**>(returnValue));
-				}
-
-				return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
-			}
-
-			IWICBitmap* CreateDiBitmapFromNative(ID2D1Bitmap* D2D_Bitmap);
-
-			// IMpFactory2
-			int32_t GetFontFamilyName(int32_t fontIndex, gmpi::IString* returnString) override;
-
-			int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
-			{
-				*returnInterface = 0;
-				if ( iid == GmpiDrawing_API::SE_IID_FACTORY2_MPGUI || iid == GmpiDrawing_API::SE_IID_FACTORY_MPGUI || iid == gmpi::MP_IID_UNKNOWN)
-				{
-					*returnInterface = reinterpret_cast<GmpiDrawing_API::IMpFactory2*>(this);
-					addRef();
-					return gmpi::MP_OK;
-				}
-
-				if(fallback)
-					return fallback->queryInterface(iid, returnInterface);
-
-				return gmpi::MP_NOSUPPORT;
-			}
-
-			GMPI_REFCOUNT_NO_DELETE;
 		};
 
 		class Factory_SDK3 : public Factory_base

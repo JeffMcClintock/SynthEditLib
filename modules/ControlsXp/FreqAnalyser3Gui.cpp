@@ -25,13 +25,10 @@ class FreqAnalyser3Gui :
 	GmpiDrawing::Bitmap cachedBackground_;
 	float GraphXAxisYcoord;
 	float currentBackgroundSampleRate = 0.f;
+	GmpiDrawing::PathGeometry peakPath;
 	GmpiDrawing::PathGeometry geometry;
 	GmpiDrawing::PathGeometry lineGeometry;
-
-//	std::vector<GmpiDrawing::Point> graphValues;
-//	std::vector<GmpiDrawing::Point> responseOptimized;
-//	float samplerate = 44100;
-//	int spectrumCount = 0;
+	int peakResetCounter = 0;
 
 public:
 	FreqAnalyser3Gui();
@@ -52,6 +49,7 @@ public:
 	void updatePaths(const std::vector<GmpiDrawing::Point>& graphValuesOptimized, const std::vector<GmpiDrawing::Point>& peakHoldValuesOptimized) override
 	{
 		geometry = nullptr;
+		peakPath = nullptr;
 		invalidateRect();
 	}
 
@@ -108,7 +106,6 @@ public:
 FreqAnalyser3Gui::FreqAnalyser3Gui()
 {
 	initializePin(pinSpectrum, static_cast<MpGuiBaseMemberPtr2>(&FreqAnalyser3Gui::onValueChanged));
-//	initializePin(pinMode, static_cast<MpGuiBaseMemberPtr2>(&FreqAnalyser3Gui::onModeChanged));
 	initializePin(pinDbHigh, static_cast<MpGuiBaseMemberPtr2>(&FreqAnalyser3Gui::onModeChanged));
 	initializePin(pinDbLow, static_cast<MpGuiBaseMemberPtr2>(&FreqAnalyser3Gui::onModeChanged));
 }
@@ -117,6 +114,13 @@ void FreqAnalyser3Gui::onValueChanged()
 {
 	graphValues.clear();
 	geometry = nullptr;
+
+	if (peakResetCounter-- < 0)
+	{
+		clearPeaks();
+		peakResetCounter = 60;
+	}
+
 	invalidateRect();
 }
 
@@ -412,6 +416,9 @@ int32_t FreqAnalyser3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCon
 		lineGeometry = factory.CreatePathGeometry();
 		auto lineSink = lineGeometry.Open();
 
+		peakPath = factory.CreatePathGeometry();
+		auto peakSink = peakPath.Open();
+
 		sink.BeginFigure(leftBorder, GraphXAxisYcoord, FigureBegin::Filled);
 		float inverseN = 2.0f / rawSpectrum.size();
 		const float dbc = 20.0f * log10f(inverseN);
@@ -423,6 +430,7 @@ int32_t FreqAnalyser3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCon
             
             assert(graphValuesOptimized.size() > 1);
                        
+			// Main graph
             bool first = true;
 			for (auto& p : graphValuesOptimized)
 			{
@@ -443,16 +451,37 @@ int32_t FreqAnalyser3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCon
 
             // complete filled area down to axis
 			sink.AddLine(GmpiDrawing::Point(graphValuesOptimized.back().x + leftBorder, GraphXAxisYcoord));
+
+			// peak graph
+			first = true;
+			for (auto& p : peakHoldValuesOptimized)
+			{
+				Point point(p.x + leftBorder, p.y);
+				if (first)
+				{
+					peakSink.BeginFigure(point);
+					first = false;
+				}
+				else
+				{
+					peakSink.AddLine(point);
+				}
+			}
 		}
 
 		lineSink.EndFigure(FigureEnd::Open);
 		lineSink.Close();
+		peakSink.EndFigure(FigureEnd::Open);
+		peakSink.Close();
 		sink.EndFigure();
 		sink.Close();
 	}
 
 	if (geometry && lineGeometry)
 	{
+		auto peakColor = Color::FromArgb(0xFF45A1A1);
+		auto peakBrush = g.CreateSolidColorBrush(peakColor);
+		
 		auto graphColor = Color::FromArgb(0xFF65B1D1);
 		auto brush2 = g.CreateSolidColorBrush(graphColor);
 		const float penWidth = 1;
@@ -465,6 +494,7 @@ int32_t FreqAnalyser3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCon
 
 		g.FillGeometry(geometry, g.CreateSolidColorBrush(fill));
 		g.DrawGeometry(lineGeometry, brush2, penWidth);
+		g.DrawGeometry(peakPath, peakBrush, penWidth);
 	}
 
 	return gmpi::MP_OK;
