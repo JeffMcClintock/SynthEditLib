@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <cctype>
 #include <sys/stat.h> // mkdir
+#include <filesystem>
 #include "conversion.h"
 #include "ug_event.h"
 #include "modules/se_sdk3/it_enum_list.h"
@@ -1031,48 +1032,12 @@ void FileToString(const platform_string& path, std::string& buffer)
 // Works only if user has permissions.
 bool CreateFolderRecursive(std::wstring folderPath)
 {
-	vector<wstring> paths;
+	std::filesystem::path path(folderPath);
 
-	while (folderPath.size() > 2)  // C:
-	{
-		paths.push_back(folderPath);
+	assert(!folderPath.empty());
+	assert(path.is_absolute());
 
-		auto p = folderPath.find_last_of(L"\\/");
-
-		if (p != string::npos)
-		{
-			folderPath = Left(folderPath, p);
-		}
-	}
-
-	// If root folder is a network location, ignore that
-	if (!paths.empty() && paths.back().find(L"\\\\") == 0)
-	{
-		paths.pop_back();
-	}
-
-	for (auto it = paths.rbegin(); it != paths.rend(); ++it)
-	{
-#ifdef _WIN32
-		// Create folder if not already.
-		const int r =_wmkdir((*it).c_str());
-		if (r)
-		{
-			if (GetLastError() != ERROR_ALREADY_EXISTS)
-				return false;
-		}
-#else
-        const auto res = mkdir(WStringToUtf8(*it).c_str(), 0775);
-        if(res && EEXIST != errno)
-        {
-             // 13  EACCES            /* Permission denied
-            _RPT2(0, "mkdir FAIL %d (%s)\n", errno, WStringToUtf8(*it).c_str());
-            break;
-        }
-#endif
-	}
-
-	return true;
+	return std::filesystem::create_directories(path);
 }
 
 void Scramble(std::string& s)
