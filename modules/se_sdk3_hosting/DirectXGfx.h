@@ -20,18 +20,18 @@ namespace se // gmpi
 	{
 		// Helper for managing lifetime of Direct2D interface pointers
 		template<class wrappedObjT>
-		class ComWrapper
+		class ComPtr
 		{
 			mutable wrappedObjT* obj = {};
 
 		public:
-			ComWrapper() {}
+			ComPtr() {}
 
-			explicit ComWrapper(wrappedObjT* newobj)
+			explicit ComPtr(wrappedObjT* newobj)
 			{
 				Assign(newobj);
 			}
-			ComWrapper(const ComWrapper<wrappedObjT>& value)
+			ComPtr(const ComPtr<wrappedObjT>& value)
 			{
 				Assign(value.obj);
 			}
@@ -47,7 +47,7 @@ namespace se // gmpi
 				}
 			}
 
-			~ComWrapper()
+			~ComPtr()
 			{
 				if (obj)
 				{
@@ -63,7 +63,7 @@ namespace se // gmpi
 				Assign(value);
 				return value;
 			}
-			ComWrapper<wrappedObjT>& operator=(ComWrapper<wrappedObjT>& value)
+			ComPtr<wrappedObjT>& operator=(ComPtr<wrappedObjT>& value)
 			{
 				Assign(value.get());
 				return *this;
@@ -72,7 +72,7 @@ namespace se // gmpi
 			{
 				return obj == other;
 			}
-			bool operator==(const ComWrapper<wrappedObjT>& other) const
+			bool operator==(const ComPtr<wrappedObjT>& other) const
 			{
 				return obj == other.obj;
 			}
@@ -901,7 +901,7 @@ namespace se // gmpi
 			se::directx::Factory_base factory;
 			GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat_ = GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB;
 #if	ENABLE_HDR_SUPPORT
-			se::directx::ComWrapper<ID2D1Bitmap1> nativeBitmap_HDR_;
+			se::directx::ComPtr<ID2D1Bitmap1> nativeBitmap_HDR_;
 #endif
 #ifdef _DEBUG
 			std::string debugFilename;

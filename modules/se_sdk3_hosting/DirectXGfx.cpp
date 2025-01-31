@@ -901,7 +901,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 
 					// Create a WIC bitmap to draw on.
 					const auto bitmapSize = nativeBitmap_->GetPixelSize();
-					se::directx::ComWrapper<IWICBitmap> diBitmap_HDR_;
+					se::directx::ComPtr<IWICBitmap> diBitmap_HDR_;
 					HRESULT hr = factory.getWicFactory()->CreateBitmap(
 						static_cast<UINT>(bitmapSize.width),
 						static_cast<UINT>(bitmapSize.height),
@@ -913,7 +913,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 					if (SUCCEEDED(hr))
 					{
 						// Create a WIC render target.
-						se::directx::ComWrapper<ID2D1RenderTarget> pWICRenderTarget;
+						se::directx::ComPtr<ID2D1RenderTarget> pWICRenderTarget;
 						D2D1_RENDER_TARGET_PROPERTIES renderTargetProperties = D2D1::RenderTargetProperties(
 							D2D1_RENDER_TARGET_TYPE_DEFAULT,
 							D2D1::PixelFormat(DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED)
@@ -928,7 +928,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 						if (SUCCEEDED(hr))
 						{
 							// Create a device context from the WIC render target.
-							se::directx::ComWrapper<ID2D1DeviceContext> pDeviceContext;
+							se::directx::ComPtr<ID2D1DeviceContext> pDeviceContext;
 							hr = pWICRenderTarget->QueryInterface(IID_PPV_ARGS(pDeviceContext.put()));
 
 							if (SUCCEEDED(hr))
@@ -946,7 +946,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 								}
 								props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
 
-								se::directx::ComWrapper<ID2D1Bitmap> pSourceBitmap;
+								se::directx::ComPtr<ID2D1Bitmap> pSourceBitmap;
 								hr = pDeviceContext->CreateBitmapFromWicBitmap(
 									diBitmap_,
 									&props,
@@ -954,7 +954,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 								);
 
 								// create whitescale effect
-								se::directx::ComWrapper<ID2D1Effect> m_whiteScaleEffect;
+								se::directx::ComPtr<ID2D1Effect> m_whiteScaleEffect;
 								{
 									// White level scale is used to multiply the color values in the image; this allows the user
 									// to adjust the brightness of the image on an HDR display.
