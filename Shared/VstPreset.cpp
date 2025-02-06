@@ -220,17 +220,19 @@ namespace VstPresetUtil
 
 	inline std::string WStringToMultibyte(const std::wstring& p_cstring)
 	{
+		std::string res;
 #if defined(_WIN32)
 		size_t bytes_required = 1 + WideCharToMultiByte(CP_ACP, 0, p_cstring.c_str(), -1, 0, 0, NULL, NULL);
 #else
-		size_t bytes_required = 1 + wcstombs(0, p_cstring.c_str(), 0);
+		const size_t bytes_required = wcstombs(0, p_cstring.c_str(), 0);
+		if (static_cast<std::size_t>(-1) == bytes_required) // invalid chars
+			return res;
 #endif
 
-		std::string res;
 		res.resize(bytes_required);
 
 #if defined(_WIN32)
-		WideCharToMultiByte(CP_ACP, 0, p_cstring.c_str(), -1, (LPSTR) res.data(), (int)bytes_required, NULL, NULL);
+		WideCharToMultiByte(CP_ACP, 0, p_cstring.c_str(), -1, (LPSTR)res.data(), (int)bytes_required, NULL, NULL);
 #else
 		wcstombs((char*)res.data(), p_cstring.c_str(), bytes_required);
 #endif
