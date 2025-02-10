@@ -1123,6 +1123,8 @@ public:
 
 } // namespace
 
+using namespace sesdk; // allow legacy code to omit th enamespace, while still allowing a way to resolve conflicts with (real) GMPI
+
 // Helper for old hosts calling new-style plugins. Deprecated, use IMpLegacyInitialization instead.
 class IoldSchoolInitialisation
 {
