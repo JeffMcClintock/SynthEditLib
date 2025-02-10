@@ -538,6 +538,13 @@ void DrawingFrameBase::OnPaint()
 			CreateDevice();
 		}
 
+		assert(context);
+		if (!context)
+		{
+			reentrant = false;
+			return;
+		}
+
 		{
 			GmpiDrawing::Graphics graphics(context);
 

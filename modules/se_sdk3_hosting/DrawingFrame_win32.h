@@ -28,7 +28,7 @@ namespace SE2
 namespace GmpiGuiHosting
 {
 	// Base class for DrawingFrame (VST3 Plugins) and MyFrameWndDirectX (SynthEdit 1.4+ Panel View).
-	class DrawingFrameBase : public gmpi_gui::IMpGraphicsHost, public gmpi::IMpUserInterfaceHost2, public TimerClient
+	class DrawingFrameBase : public gmpi_gui::IMpGraphicsHost, public gmpi::IMpUserInterfaceHost2, public se_sdk::TimerClient
 	{
 		std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
 		bool firstPresent = false;

@@ -4,6 +4,7 @@
 #include "unicode_conversion.h"
 #include "RawConversions.h"
 #include "BundleInfo.h"
+#include "../tinyXml2/tinyxml2.h"
 
 //==============================================================================
 SE2JUCE_Processor::SE2JUCE_Processor(std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter) :
@@ -33,30 +34,10 @@ SE2JUCE_Processor::SE2JUCE_Processor(std::function<juce::AudioParameterFloatAttr
 
     processor.connectPeer(&controller);
 
-    // Initialize the DAW state manager
+    // STATE MANAGER
     {
-        {
-            TiXmlDocument doc;
-            {
-                const auto xml = BundleInfo::instance()->getResource("parameters.se.xml");
-                doc.Parse(xml.c_str());
-                assert(!doc.Error());
-            }
-
-            TiXmlHandle hDoc(&doc);
-
-            auto controllerE = hDoc.FirstChildElement("Controller").Element();
-            assert(controllerE);
-
-            auto patchManagerE = controllerE->FirstChildElement();
-            assert(strcmp(patchManagerE->Value(), "PatchManager") == 0);
-
-            auto parameters_xml = patchManagerE->FirstChildElement("Parameters");
-
-            dawStateManager.init(parameters_xml);
-        }
-
-        dawStateManager.callback = [this](DawPreset const* preset)
+        dawStateManager.callback =
+            [this](const DawPreset* preset)
             {
                 // update Processor when preset changes
                 processor.setPresetUnsafe(preset);
@@ -64,6 +45,23 @@ SE2JUCE_Processor::SE2JUCE_Processor(std::function<juce::AudioParameterFloatAttr
                 // update Controller when preset changes
                 controller.setPresetUnsafe(preset);
             };
+
+        tinyxml2::XMLDocument doc;
+        {
+            const auto xml = BundleInfo::instance()->getResource("parameters.se.xml");
+            doc.Parse(xml.c_str());
+            assert(!doc.Error());
+        }
+
+        auto controllerE = doc.FirstChildElement("Controller");
+        assert(controllerE);
+
+        auto patchManagerE = controllerE->FirstChildElement();
+        assert(strcmp(patchManagerE->Value(), "PatchManager") == 0);
+
+        auto parameters_xml = patchManagerE->FirstChildElement("Parameters");
+
+        dawStateManager.init(parameters_xml);
     }
 
     controller.Initialize(this);

@@ -11,7 +11,7 @@ namespace SE2
 }
 
 // sub-view shown on Panel.
-class SubViewCadmium : public SE2::ViewBase, public gmpi::IMpParameterObserver, public TimerClient
+class SubViewCadmium : public SE2::ViewBase, public gmpi::IMpParameterObserver, public se_sdk::TimerClient
 {
 	BoolGuiPin showControlsLegacy;
 	BoolGuiPin showControls;

@@ -111,7 +111,7 @@ public:
 	bool isPresetModified();
 };
 
-class MpController : public IGuiHost2, public interThreadQueUser, public TimerClient
+class MpController : public IGuiHost2, public interThreadQueUser, public se_sdk::TimerClient
 {
 	friend class UndoManager;
 	friend class SubPresetManager;

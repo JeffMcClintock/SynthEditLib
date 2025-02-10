@@ -5,7 +5,7 @@
 #include "PresetReader.h"
 #include "my_msg_que_input_stream.h"
 #include "my_msg_que_output_stream.h"
-#include "tinyXml2/tinyxml2.h"
+#include "modules/tinyXml2/tinyxml2.h"
 #include "HostControls.h"
 
 #ifndef GMPI_VST3_WRAPPER
@@ -210,12 +210,12 @@ void DawPreset::initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, 
 
 		const char* temp{};
 		//presetXmlElement->QueryStringAttribute("category", &category);
-		if (tinyxml2::XML_SUCCESS != presetXmlElement->QueryStringAttribute("category", &temp))
+		if (tinyxml2::XML_SUCCESS == presetXmlElement->QueryStringAttribute("category", &temp))
 		{
 			category = temp;
 		}
 		//presetXmlElement->QueryStringAttribute("name", &name);
-		if (tinyxml2::XML_SUCCESS != presetXmlElement->QueryStringAttribute("name", &temp))
+		if (tinyxml2::XML_SUCCESS == presetXmlElement->QueryStringAttribute("name", &temp))
 		{
 			name = temp;
 		}

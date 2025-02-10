@@ -101,7 +101,7 @@ public:
 
 // additional support for retrieving the preset from the processor in a thread-safe manner.
 // Also used by SE2JUCE
-class ProcessorStateMgrVst3 : public ProcessorStateMgr, public TimerClient
+class ProcessorStateMgrVst3 : public ProcessorStateMgr, public se_sdk::TimerClient
 {
 	DawPreset presetMutable;
 	lock_free_fifo messageQueFromProcessor; // from real-time thread

@@ -8,6 +8,9 @@ This class provides a programmable timer for creating animation effects.
 NOTE: all instances of the module share the same timer, and therefore the same timer interval.
 */
 
+// place this in a namespace to prevent ambiguity with GMPI-UI TimerClient
+namespace se_sdk
+{
 class TimerClient
 {
 public:
@@ -22,8 +25,9 @@ public:
 	void SetTimerIntervalMs( int periodMilliSeconds );
 	void StartTimer();
 };
+}
 
-typedef std::vector<class TimerClient*> clientContainer_t;
+typedef std::vector<class se_sdk::TimerClient*> clientContainer_t;
 
 namespace se_sdk_timers
 {
@@ -59,13 +63,13 @@ class TimerManager
 public:
 	TimerManager();
 	static TimerManager* Instance();
-	void RegisterClient(TimerClient* client, int periodMilliSeconds);
+	void RegisterClient(se_sdk::TimerClient* client, int periodMilliSeconds);
 
-	void RegisterClient(TimerClient* client)
+	void RegisterClient(se_sdk::TimerClient* client)
 	{
 		RegisterClient(client, interval_);
 	}
-	void UnRegisterClient( TimerClient* client );
+	void UnRegisterClient(se_sdk::TimerClient* client );
 	void SetInterval( int intervalMs );
 	~TimerManager();
     void OnTimer(se_sdk_timers::timer_id_t timerId);
@@ -73,3 +77,5 @@ public:
 private:
 	int interval_;
 };
+
+using namespace se_sdk; // allow legacy code to use TimerClient without namespace prefix.

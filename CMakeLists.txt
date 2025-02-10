@@ -5,6 +5,8 @@ cmake_minimum_required(VERSION 3.15)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS deployment version")
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for macOS" FORCE)
 
+set(DSP_CORE ${CMAKE_CURRENT_SOURCE_DIR})
+
 project(SynthEditLib)
 
 set(sdk_srcs
@@ -93,6 +95,8 @@ DspFilters/Types.h
 )
 
 # midistreambuffer.h
+# ${se_sdk_hosting_folder}/DrawingFrame_win32.h
+# ${se_sdk_hosting_folder}/DrawingFrame_win32.cpp
 
 set(srcs
 Shared/AuPreset.h
@@ -106,8 +110,8 @@ ${se_sdk_hosting_folder}/gmpi_gui_hosting.h
 ${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp
 ${se_sdk_hosting_folder}/DirectXGfx.h
 ${se_sdk_hosting_folder}/DirectXGfx.cpp
-${se_sdk_hosting_folder}/DrawingFrame_win32.h
-${se_sdk_hosting_folder}/DrawingFrame_win32.cpp
+Shared/DrawingFrame2_win.h
+Shared/DrawingFrame2_win.cpp
 ${se_sdk_hosting_folder}/Controller.h
 ${se_sdk_hosting_folder}/Controller.cpp
 ${se_sdk_hosting_folder}/ViewBase.h

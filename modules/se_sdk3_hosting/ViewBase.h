@@ -9,10 +9,11 @@
 #include "Presenter.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
 #include "GmpiApiDrawing.h"
+#include "Shared/DrawingFrame2_win.h"
 
 namespace GmpiGuiHosting
 {
-	class DrawingFrameBase;
+//	class DrawingFrameBase;
 	class ConnectorViewBase;
 }
 
@@ -46,7 +47,7 @@ bool isIteratingChildren = false;
 		IViewChild* modulePicker = {};
 
 #ifdef _WIN32
-		GmpiGuiHosting::DrawingFrameBase* frameWindow = {};
+		DrawingFrame2* frameWindow = {};
 #endif
 		class ModuleViewPanel* patchAutomatorWrapper_;
 

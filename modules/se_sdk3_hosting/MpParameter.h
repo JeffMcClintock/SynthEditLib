@@ -7,7 +7,7 @@
 #include "../shared/xplatform.h"
 #include "../se_sdk3/mp_sdk_common.h"
 
-class MpParameter : public TimerClient
+class MpParameter : public se_sdk::TimerClient
 {
 	bool m_grabbed = false;				// true = grabbed by user clicking the GUI
 	int m_grabbed_by_MIDI_timer = 0;	// greater than zero = grabbed by internal MIDI automation

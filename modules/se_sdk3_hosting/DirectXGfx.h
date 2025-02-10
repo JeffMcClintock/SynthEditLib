@@ -18,6 +18,15 @@ namespace se // gmpi
 {
 	namespace directx
 	{
+		inline HRESULT check_hresult(HRESULT const result)
+		{
+			if (result < 0)
+			{
+				throw result;
+			}
+			return result;
+		}
+
 		// Helper for managing lifetime of Direct2D interface pointers
 		template<class wrappedObjT>
 		class ComPtr

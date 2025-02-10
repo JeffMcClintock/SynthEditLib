@@ -62,7 +62,7 @@ void SynthEditEditor::parentHierarchyChanged()
 
 		{
 			auto cv =
-				new SynthEdit2::ContainerView(
+				new SE2::ContainerViewPanel(
 					GmpiDrawing::Size(static_cast<float>(drawingframe.viewDimensions), static_cast<float>(drawingframe.viewDimensions))
 				);
 
@@ -70,7 +70,7 @@ void SynthEditEditor::parentHierarchyChanged()
 
 			cv->release();
 
-			cv->setDocument(presenter, CF_PANEL_VIEW);
+			cv->setDocument(presenter);
 		}
 
 		presenter->RefreshView();

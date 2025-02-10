@@ -16,7 +16,7 @@ SE_DECLARE_INIT_STATIC_FILE(CpuMeterGui);
 using namespace gmpi;
 using namespace GmpiDrawing;
 
-class CpuMeterGui : public gmpi_gui::MpGuiGfxBase, public TimerClient
+class CpuMeterGui : public gmpi_gui::MpGuiGfxBase, public se_sdk::TimerClient
 {
 	float peakCpu = 0.0f;
 

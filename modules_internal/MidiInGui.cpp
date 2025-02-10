@@ -32,7 +32,7 @@
 using namespace gmpi;
 using namespace GmpiDrawing;
 
-class MidiInGui final : public gmpi_gui::MpGuiGfxBase, public TimerClient
+class MidiInGui final : public gmpi_gui::MpGuiGfxBase, public se_sdk::TimerClient
 {
  	void onActivity()
 	{

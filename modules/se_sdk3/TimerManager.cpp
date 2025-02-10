@@ -194,7 +194,7 @@ TimerManager::~TimerManager()
 	}
 }
 
-void TimerManager::RegisterClient(TimerClient* client, int periodMilliSeconds)
+void TimerManager::RegisterClient(se_sdk::TimerClient* client, int periodMilliSeconds)
 {
 	for (auto& timer : timers)
 	{
@@ -217,7 +217,7 @@ void TimerManager::RegisterClient(TimerClient* client, int periodMilliSeconds)
 	timers.back().Start();
 }
 
-void TimerManager::UnRegisterClient( TimerClient* client )
+void TimerManager::UnRegisterClient(se_sdk::TimerClient* client )
 {
 	for (auto it_timers = timers.begin() ; it_timers != timers.end() ; ++it_timers)
 	{
@@ -238,27 +238,27 @@ void TimerManager::UnRegisterClient( TimerClient* client )
 	}
 }
 
-void TimerClient::StartTimer(int periodMilliSeconds)
+void se_sdk::TimerClient::StartTimer(int periodMilliSeconds)
 {
 	TimerManager::Instance()->RegisterClient(this, periodMilliSeconds);
 }
 
-void TimerClient::SetTimerIntervalMs( int periodMilliSeconds )
+void se_sdk::TimerClient::SetTimerIntervalMs( int periodMilliSeconds )
 {
 	TimerManager::Instance()->SetInterval( periodMilliSeconds );
 }
 
-void TimerClient::StartTimer()
+void se_sdk::TimerClient::StartTimer()
 {
 	TimerManager::Instance()->RegisterClient(this);
 }
 
-void TimerClient::StopTimer()
+void se_sdk::TimerClient::StopTimer()
 {
 	TimerManager::Instance()->UnRegisterClient( this );
 }
 
-TimerClient::~TimerClient()
+se_sdk::TimerClient::~TimerClient()
 {
 	StopTimer();
 }
