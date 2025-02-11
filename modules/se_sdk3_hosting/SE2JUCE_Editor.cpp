@@ -51,35 +51,36 @@ void SynthEditEditor::parentHierarchyChanged()
 	const auto r = getBounds();
 
 #ifdef _WIN32
-	auto hwnd = (HWND)getWindowHandle();
-	if (hwnd && !drawingframe.getHWND())
+	auto parentHwnd = (HWND)getWindowHandle();
+	if (parentHwnd && !drawingframe.getHWND())
 	{
-		HDC hdc = ::GetDC(hwnd);
+		HDC hdc = ::GetDC(parentHwnd);
 		const int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
-		::ReleaseDC(hwnd, hdc);
+		::ReleaseDC(parentHwnd, hdc);
+
+		GmpiDrawing_API::MP1_SIZE_L overrideSize{ (r.getWidth() * dpi) / 96, (r.getHeight() * dpi) / 96 };
+
+		drawingframe.open(
+			parentHwnd,
+			&overrideSize
+		);
 
 		auto presenter = new JsonDocPresenter(dynamic_cast<IGuiHost2*>(&controller));
 
 		{
 			auto cv =
 				new SE2::ContainerViewPanel(
-					GmpiDrawing::Size(static_cast<float>(drawingframe.viewDimensions), static_cast<float>(drawingframe.viewDimensions))
-				);
+					GmpiDrawing::Size(static_cast<float>(drawingframe.swapChainWidth), static_cast<float>(drawingframe.swapChainHeight)));
 
-			drawingframe.AddView(cv);
+            gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx;
+            gfx.Attach(cv);
 
-			cv->release();
+            drawingframe.attachClient(gfx);
 
 			cv->setDocument(presenter);
 		}
 
 		presenter->RefreshView();
-
-		drawingframe.open(
-			hwnd,
-			(r.getWidth() * dpi) / 96,
-			(r.getHeight() * dpi) / 96
-		);
 	}
 #else
 	if (!drawingframe.getView())
@@ -101,6 +102,7 @@ void SynthEditEditor::resized()
 
 #ifdef _WIN32
 
+#if 0
 LRESULT CALLBACK DrawingFrameWindowProc(HWND hwnd,
 	UINT message,
 	WPARAM wParam,
@@ -127,8 +129,10 @@ bool registeredWindowClass = false;
 WNDCLASS windowClass;
 wchar_t gClassName[100];
 
-void JuceDrawingFrame::open(void* parentWnd, int width, int height)
+void JuceDrawingFrame::open(void* pParentWnd, int width, int height)
 {
+	parentWnd = (HWND)pParentWnd;
+
 	RECT r{0, 0, width ,height };
 	/* while constructing editor, JUCE main window is a small fixed size, so no point querying it. easier to just pass in required size.
     GetClientRect(parentWnd, &r);
@@ -176,13 +180,15 @@ void JuceDrawingFrame::open(void* parentWnd, int width, int height)
         SetWindowLongPtr(windowHandle, GWLP_USERDATA, (__int3264)(LONG_PTR)this);
         //		RegisterDragDrop(windowHandle, new CDropTarget(this));
 
-        CreateRenderTarget();
+		CreateSwapPanel();
 
         initTooltip();
 
-		StartTimer(15); // 16.66 = 60Hz. 16ms timer seems to miss v-sync. Faster timers offer no improvement to framerate.
+		startTimer(15); // 16.66 = 60Hz. 16ms timer seems to miss v-sync. Faster timers offer no improvement to framerate.
     }
 }
+#endif
+
 #else
 
 // macOS

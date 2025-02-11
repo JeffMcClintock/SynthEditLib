@@ -4,7 +4,6 @@
 #include <iostream>
 #include "ViewBase.h"
 #include "ConnectorView.h"
-//																				#include "ModuleViewStruct.h"
 																				#include "ConnectorViewStruct.h"
 #include "modules/se_sdk3_hosting/Presenter.h"
 #include "ResizeAdorner.h"
@@ -16,9 +15,6 @@
 #include "DragLine.h"
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "IPluginGui.h"
-#ifdef _WIN32
-#include "modules/se_sdk3_hosting/DrawingFrame_win32.h"
-#endif
 #include "mfc_emulation.h"
 #include "IGuiHost2.h"
 #include "helpers/Timer.h"

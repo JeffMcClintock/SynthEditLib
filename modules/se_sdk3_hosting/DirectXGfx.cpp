@@ -1367,7 +1367,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 			context_->PushAxisAlignedClip((D2D1_RECT_F*)clipRect, D2D1_ANTIALIAS_MODE_ALIASED /*, (D2D1_ANTIALIAS_MODE)antialiasMode*/);
 
 			// Transform to original position.
-			GmpiDrawing::Matrix3x2 currentTransform;
+			GmpiDrawing::Matrix3x2 currentTransform{};
 			context_->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(&currentTransform));
 			auto r2 = currentTransform.TransformRect(*clipRect);
 			clipRectStack.push_back(r2);

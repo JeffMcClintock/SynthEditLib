@@ -2,7 +2,6 @@
 #include <vector>
 #include <memory>
 #include "ViewBase.h"
-//#include "./DrawingFrame_win32.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
 
 namespace SE2

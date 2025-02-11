@@ -1,20 +1,14 @@
 #pragma once
-
 #include <JuceHeader.h>
 
 #ifdef _WIN32
-#include "./DrawingFrame_win32.h"
+#include "Shared/DrawingFrame2_win.h"
 
-class JuceDrawingFrame : public GmpiGuiHosting::DrawingFrameBase, public juce::HWNDComponent
+class JuceDrawingFrame : public DrawingFrameHwndBase, public juce::HWNDComponent
 {
-    GmpiDrawing::Point cubaseBugPreviousMouseMove = { -1,-1 };
 public:
-    HWND getWindowHandle() override
-    {
-        return (HWND) getHWND();
-    }
-
-    void open(void* pParentWnd, int width, int height);
+    void setWindowHandle(HWND hwnd) override { setHWND((void*)hwnd); }
+    HWND getWindowHandle() override { return (HWND) getHWND(); }
 };
 #else
 

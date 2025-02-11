@@ -111,6 +111,11 @@ namespace se // gmpi
 				return &obj;
 			}
 
+			void** put_void()
+			{
+				return (void**) put();
+			}
+
 			bool isNull() const
 			{
 				return obj == nullptr;
