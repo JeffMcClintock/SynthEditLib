@@ -565,6 +565,8 @@ bool ProcessorStateMgrVst3::OnTimer()
 // must be called under presetMutex lock.
 void ProcessorStateMgrVst3::serviceQueue(lock_free_fifo& fifo)
 {
+	assert(!presetMutable.params.empty());
+
 	if (fifo.readyBytes() == 0)
 		return;
 
@@ -666,21 +668,17 @@ void ProcessorStateMgrVst3::setPresetFromXml(const std::string& presetString)
 	{
 		const std::lock_guard<std::mutex> lock{ presetMutex };
 
-		if (ignoreProgramChange)
+		// On very first load of JUCE standalone, the initial preset will be empty because JUCE found no previously saved state.
+		// In this case, we need to fill the preset with default values, otherwise subsequent changes to any parameter will crash.
+		// This is also a safeguard in case the preset is corrupted or not the latest schema.
+		for (auto& p : presetMutable.params)
 		{
-			// merge the new preset with the current one.
-			for (auto& p : preset->params)
+			paramInfo& info = parametersInfo[p.first];
+
+			const auto foundIt = preset->params.find(p.first) != preset->params.end();
+			if (!foundIt || (ignoreProgramChange && info.ignoreProgramChange)) // if preset is missing a value, or if ignore-program change is active, overwrite with existing value.
 			{
-				paramInfo& info = parametersInfo[p.first];
-				if (info.ignoreProgramChange)
-				{
-					auto it = presetMutable.params.find(p.first);
-					assert(it != presetMutable.params.end());
-					if (it != presetMutable.params.end())
-					{
-						p.second.rawValues_ = it->second.rawValues_;
-					}
-				}
+				preset->params[p.first] = p.second;
 			}
 		}
 
