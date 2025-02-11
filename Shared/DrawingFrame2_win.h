@@ -3,12 +3,16 @@
 #include <chrono>
 #include <functional>
 #include <d3d11_4.h>
+#include <span>
 #include "TimerManager.h"
 #include "GraphicsRedrawClient.h"
 #include "DirectXGfx.h"
 #include "legacy_sdk_gui2.h"
 #include "helpers/NativeUi.h"
 #include "helpers/Timer.h"
+
+// GMPI-UI to replace custom code.
+#include "backends/DrawingFrameWin.h"
 
 namespace SE2
 {
@@ -52,8 +56,12 @@ public:
     GMPI_REFCOUNT_NO_DELETE;
 };
 
-// SDK3 Graphics support
-struct DrawingFrameBase2 : public gmpi_gui::legacy::IMpGraphicsHost, public gmpi::legacy::IMpUserInterfaceHost2, public gmpi::api::IDialogHost
+// SDK3 Graphics support on Direct2D. Used by SE2JUCE, VST3 and SynthEdit2::HostedView
+struct DrawingFrameBase2 :
+    public gmpi::hosting::tempSharedD2DBase,
+    public gmpi_gui::legacy::IMpGraphicsHost,
+    public gmpi::legacy::IMpUserInterfaceHost2,
+    public gmpi::api::IDialogHost
 {
     std::unique_ptr<UniversalFactory> DrawingFactory;
 
@@ -69,12 +77,8 @@ struct DrawingFrameBase2 : public gmpi_gui::legacy::IMpGraphicsHost, public gmpi
     GmpiDrawing::Matrix3x2 DipsToWindow;
     GmpiDrawing::Matrix3x2 WindowToDips;
 
-    se::directx::ComPtr<::IDXGISwapChain2> swapChain;
-    se::directx::ComPtr<::ID2D1DeviceContext> d2dDeviceContext;
     UINT swapChainWidth = 0;
     UINT swapChainHeight = 0;
-    bool reentrant = false;
-    bool firstPresent = false;
 
     GmpiDrawing_API::MP1_POINT currentPointerPos = {-1, -1};
 //    std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
@@ -109,7 +113,7 @@ struct DrawingFrameBase2 : public gmpi_gui::legacy::IMpGraphicsHost, public gmpi
     void calcViewTransform();
 
     virtual void OnPaint() = 0; // Derived should call Paint with the dirty area
-    void Paint(const std::vector<GmpiDrawing::RectL>& dirtyRects);
+    void Paint(const std::span<gmpi::drawing::RectL> dirtyRects);
 
     virtual void Closed()
     {
@@ -227,6 +231,7 @@ struct DrawingFrameBase2 : public gmpi_gui::legacy::IMpGraphicsHost, public gmpi
     GMPI_REFCOUNT_NO_DELETE;
 };
 
+// Used in SE2JUCE
 class DrawingFrameHwndBase : public DrawingFrameBase2, public gmpi::TimerClient
 {
 protected:
@@ -239,7 +244,8 @@ protected:
     int toolTiptimer = 0;
     std::wstring toolTipText;
     // Paint() uses Direct-2d which block on vsync. Therefore all invalid rects should be applied in one "hit", else windows message queue chokes calling WM_PAINT repeately and blocking on every rect.
-    GmpiGuiHosting::UpdateRegionWinGdi updateRegion_native;
+//    GmpiGuiHosting::UpdateRegionWinGdi updateRegion_native;
+	gmpi::hosting::UpdateRegionWinGdi updateRegion_native;
     std::vector<GmpiDrawing::RectL> backBufferDirtyRects;
 
     void initTooltip();
@@ -289,6 +295,7 @@ public:
     int32_t createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override;
 };
 
+/*
 // This is used in VST3. Native HWND window frame, owned by this.
 class DrawingFrame2 : public DrawingFrameHwndBase
 {
@@ -304,3 +311,4 @@ public:
         return windowHandle;
     }
 };
+*/

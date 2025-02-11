@@ -806,7 +806,7 @@ void DrawingFrameBase2::CreateSwapPanel()
     };
 
     // Create the Direct3D device.
-    /* winrt::com_ptr */ se::directx::ComPtr<::ID3D11Device> d3dDevice;
+    /* winrt::com_ptr */ gmpi::directx::ComPtr<::ID3D11Device> d3dDevice;
     D3D_FEATURE_LEVEL supportedFeatureLevel;
     /* winrt::check_hresult */ se::directx::check_hresult(::D3D11CreateDevice(
         nullptr,
@@ -822,12 +822,12 @@ void DrawingFrameBase2::CreateSwapPanel()
     );
 
     // Get the Direct3D device.
-    /* winrt::com_ptr */ se::directx::ComPtr<::IDXGIDevice> dxgiDevice; // {d3dDevice.as<::IDXGIDevice>() };
+    /* winrt::com_ptr */ gmpi::directx::ComPtr<::IDXGIDevice> dxgiDevice; // {d3dDevice.as<::IDXGIDevice>() };
 
 	d3dDevice->QueryInterface(dxgiDevice.getAddressOf());
 
     // Get the DXGI adapter.
-    /* winrt::com_ptr */ se::directx::ComPtr< ::IDXGIAdapter > dxgiAdapter;
+    /* winrt::com_ptr */ gmpi::directx::ComPtr< ::IDXGIAdapter > dxgiAdapter;
     dxgiDevice->GetAdapter(dxgiAdapter.put());
 
     // Support for HDR displays.
@@ -836,8 +836,8 @@ void DrawingFrameBase2::CreateSwapPanel()
 
     {
         UINT i = 0;
-        /* winrt::com_ptr */ se::directx::ComPtr<IDXGIOutput> currentOutput;
-        /* winrt::com_ptr */ se::directx::ComPtr<IDXGIOutput> bestOutput;
+        /* winrt::com_ptr */ gmpi::directx::ComPtr<IDXGIOutput> currentOutput;
+        /* winrt::com_ptr */ gmpi::directx::ComPtr<IDXGIOutput> bestOutput;
         int bestIntersectArea = -1;
 
         // get bounds of window having handle: getWindowHandle()
@@ -867,7 +867,7 @@ void DrawingFrameBase2::CreateSwapPanel()
 
         // Having determined the output (display) upon which the app is primarily being 
         // rendered, retrieve the HDR capabilities of that display by checking the color space.
-        /* winrt::com_ptr */ se::directx::ComPtr<IDXGIOutput6> output6;
+        /* winrt::com_ptr */ gmpi::directx::ComPtr<IDXGIOutput6> output6;
         //bestOutput.as(output6);
         bestOutput->QueryInterface(output6.getAddressOf());
 
@@ -938,14 +938,14 @@ void DrawingFrameBase2::CreateSwapPanel()
     DrawingFactory = std::make_unique<UniversalFactory>();
 
     // Creating the Direct2D Device
-    /* winrt::com_ptr */ se::directx::ComPtr<::ID2D1Device> d2dDevice;
+    /* winrt::com_ptr */ gmpi::directx::ComPtr<::ID2D1Device> d2dDevice;
     DrawingFactory->getD2dFactory()->CreateDevice(dxgiDevice.get(), d2dDevice.put());
 
     // and context.
     d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_ENABLE_MULTITHREADED_OPTIMIZATIONS, d2dDeviceContext.put());
 
     // Get the DXGI factory.
-    /* winrt::com_ptr */ se::directx::ComPtr< ::IDXGIFactory2 > dxgiFactory;
+    /* winrt::com_ptr */ gmpi::directx::ComPtr< ::IDXGIFactory2 > dxgiFactory;
 //    dxgiFactory.capture(dxgiAdapter, &IDXGIAdapter::GetParent);
     dxgiAdapter->GetParent(__uuidof(dxgiFactory), reinterpret_cast<void**>(dxgiFactory.getAddressOf()));
 
@@ -988,17 +988,8 @@ void DrawingFrameBase2::CreateSwapPanel()
     //swapChainDesc.SampleDesc.Quality = 0;
     //swapChainDesc.Flags = 0;
 
-#if 0
-    // Create a swap chain by calling IDXGIFactory2::CreateSwapChainForComposition.
-    dxgiFactory->CreateSwapChainForComposition(
-        d3dDevice.get(),
-        &swapChainDesc,
-        nullptr,
-        swapChain1.put());
-#endif
-
     // customization point.
-    se::directx::ComPtr<::IDXGISwapChain1> swapChain1;
+    gmpi::directx::ComPtr<::IDXGISwapChain1> swapChain1;
     auto swapchainresult = createNativeSwapChain(
 		dxgiFactory.get(),
         d3dDevice.get(),
@@ -1044,10 +1035,10 @@ void DrawingFrameBase2::CreateSwapPanel()
             dpi
         );
 
-    /* winrt::com_ptr */ se::directx::ComPtr<::IDXGISurface> dxgiBackBuffer;
+    /* winrt::com_ptr */ gmpi::directx::ComPtr<::IDXGISurface> dxgiBackBuffer;
     swapChain->GetBuffer(0, __uuidof(dxgiBackBuffer), dxgiBackBuffer.put_void());
 
-    /* winrt::com_ptr */ se::directx::ComPtr< ::ID2D1Bitmap1 > targetBitmap;
+    /* winrt::com_ptr */ gmpi::directx::ComPtr< ::ID2D1Bitmap1 > targetBitmap;
     /* winrt::check_hresult */ se::directx::check_hresult(
         d2dDeviceContext->CreateBitmapFromDxgiSurface(
             dxgiBackBuffer.get(),
@@ -1667,7 +1658,7 @@ void DrawingFrameHwndBase::OnPaint()
     Paint(dirtyRects);
 }
 
-void DrawingFrameBase2::Paint(const std::vector<GmpiDrawing::RectL>& dirtyRects)
+void DrawingFrameBase2::Paint(const std::span<gmpi::drawing::RectL> dirtyRects)
 {
     // prevent infinite assert dialog boxes when assert happens during painting.
     if (!isInit.load(std::memory_order_relaxed) || reentrant || !gmpi_gui_client || dirtyRects.empty())

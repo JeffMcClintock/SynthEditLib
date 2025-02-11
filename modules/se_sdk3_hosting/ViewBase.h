@@ -47,7 +47,7 @@ bool isIteratingChildren = false;
 		IViewChild* modulePicker = {};
 
 #ifdef _WIN32
-		DrawingFrame2* frameWindow = {};
+		DrawingFrameBase2* frameWindow = {};
 #endif
 		class ModuleViewPanel* patchAutomatorWrapper_;
 

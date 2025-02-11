@@ -45,7 +45,7 @@ namespace SE2
 	int32_t ViewBase::setHost(gmpi::IMpUnknown* host)
 	{
 #if defined(_WIN32)
-		frameWindow = dynamic_cast<DrawingFrame2* /*GmpiGuiHosting::DrawingFrameBase* */>(host);
+		frameWindow = dynamic_cast<DrawingFrameBase2*>(host);
 #endif
 		return gmpi_gui::MpGuiGfxBase::setHost(host);
 	}

@@ -17,10 +17,10 @@
 #include "ControllerHost.h"
 #include "ProcessorStateManager.h"
 
-namespace SynthEdit2
-{
-	class IPresenter;
-}
+//namespace SynthEdit2
+//{
+//	class IPresenter;
+//}
 
 // Manages SEM plugin's controllers.
 class ControllerManager : public gmpi::IMpParameterObserver

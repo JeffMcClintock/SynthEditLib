@@ -12,6 +12,10 @@ project(SynthEditLib)
 set(sdk_srcs
 ${gmpi_ui_folder}/helpers/Timer.h
 ${gmpi_ui_folder}/helpers/Timer.cpp
+${gmpi_ui_folder}/backends/DrawingFrameWin.h
+${gmpi_ui_folder}/backends/DrawingFrameWin.cpp
+${gmpi_ui_folder}/backends/DrawingFrameCommon.h
+${gmpi_ui_folder}/backends/DrawingFrameCommon.cpp
 
 ${se_sdk_folder}/mp_sdk_common.h
 ${se_sdk_folder}/mp_sdk_audio.h

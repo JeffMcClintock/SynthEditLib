@@ -3,6 +3,7 @@
 #include "modules/se_sdk3/Drawing_API.h"
 #include "modules/se_sdk3/Drawing.h"
 
+#if 0
 namespace SynthEdit2
 {
 	/*
@@ -56,3 +57,4 @@ namespace SynthEdit2
 	};
 	*/
 }
+#endif
