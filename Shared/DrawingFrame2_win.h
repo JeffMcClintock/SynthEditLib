@@ -61,8 +61,9 @@ struct DrawingFrameBase2 : public gmpi_gui::legacy::IMpGraphicsHost, public gmpi
     gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gmpi_gui_client; // usually a ContainerView at the topmost level
     gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2B> pluginParameters2B;
 
-    GmpiDrawing::Size scrollPos = {};
     std::atomic<bool> isInit;
+
+    GmpiDrawing::Size scrollPos = {};
     float zoomFactor = {};
     GmpiDrawing::Matrix3x2 viewTransform;
     GmpiDrawing::Matrix3x2 DipsToWindow;
@@ -72,13 +73,11 @@ struct DrawingFrameBase2 : public gmpi_gui::legacy::IMpGraphicsHost, public gmpi
     se::directx::ComPtr<::ID2D1DeviceContext> d2dDeviceContext;
     UINT swapChainWidth = 0;
     UINT swapChainHeight = 0;
-    bool dirty = false;
     bool reentrant = false;
-    bool isCaptured = false;
     bool firstPresent = false;
 
     GmpiDrawing_API::MP1_POINT currentPointerPos = {-1, -1};
-    std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
+//    std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
     GmpiGui::PopupMenu contextMenu;
 
     bool isMouseOver() const { return currentPointerPos.x >= 0 && currentPointerPos.y >= 0; }
@@ -111,16 +110,6 @@ struct DrawingFrameBase2 : public gmpi_gui::legacy::IMpGraphicsHost, public gmpi
 
     virtual void OnPaint() = 0; // Derived should call Paint with the dirty area
     void Paint(const std::vector<GmpiDrawing::RectL>& dirtyRects);
-
-    bool OnTimer()
-    {
-        if (dirty)
-        {
-            OnPaint();
-            dirty = false;
-        }
-        return true;
-    }
 
     virtual void Closed()
     {

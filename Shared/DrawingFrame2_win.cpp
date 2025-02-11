@@ -1147,9 +1147,6 @@ void DrawingFrameBase2::calcViewTransform()
     viewTransform = GmpiDrawing::Matrix3x2::Scale(GmpiDrawing::Size(zoomFactor, zoomFactor));
     viewTransform *= GmpiDrawing::Matrix3x2::Translation(scrollPos);
 
-    WindowToDips = DipsToWindow;
-    WindowToDips.Invert();
-
     invalidateRect(nullptr);
 }
 
