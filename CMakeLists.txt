@@ -613,12 +613,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
   $<$<CONFIG:Release>:NDEBUG>
 )
 
-# on mac use older C++ for OS Compatibility
-if(APPLE)
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
-else()
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
-endif()
 
 if(APPLE)
 

@@ -87,7 +87,6 @@ struct DrawingFrameBase2 :
     bool isMouseOver() const { return currentPointerPos.x >= 0 && currentPointerPos.y >= 0; }
 
     // override these please.
-    virtual HWND getWindowHandle() = 0;
     virtual float getRasterizationScale() = 0; // DPI scaling
     virtual HRESULT createNativeSwapChain
     (
@@ -101,12 +100,6 @@ struct DrawingFrameBase2 :
     virtual void autoScrollStop() {}
 
     void CreateSwapPanel();
-    // to help re-create device when lost.
-    void ReleaseDevice()
-    {
-        swapChain = nullptr;
-        d2dDeviceContext = nullptr;
-    }
 
     void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx);
     void detachClient();
@@ -244,7 +237,6 @@ protected:
     int toolTiptimer = 0;
     std::wstring toolTipText;
     // Paint() uses Direct-2d which block on vsync. Therefore all invalid rects should be applied in one "hit", else windows message queue chokes calling WM_PAINT repeately and blocking on every rect.
-//    GmpiGuiHosting::UpdateRegionWinGdi updateRegion_native;
 	gmpi::hosting::UpdateRegionWinGdi updateRegion_native;
     std::vector<GmpiDrawing::RectL> backBufferDirtyRects;
 
@@ -253,10 +245,8 @@ protected:
     void ShowToolTip();
     void TooltipOnMouseActivity();
     void OnSize(UINT width, UINT height);
-    HMODULE getDllHandle();
 
 public:
-  
     void open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZE_L* overrideSize = {});
 	virtual void setWindowHandle(HWND hwnd) = 0; // privides the new hwnd to the derived class
 
@@ -295,7 +285,6 @@ public:
     int32_t createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override;
 };
 
-/*
 // This is used in VST3. Native HWND window frame, owned by this.
 class DrawingFrame2 : public DrawingFrameHwndBase
 {
@@ -311,4 +300,3 @@ public:
         return windowHandle;
     }
 };
-*/

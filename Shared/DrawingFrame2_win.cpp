@@ -15,19 +15,6 @@
 // Windows 32
 #include "modules/se_sdk3_hosting/gmpi_gui_hosting.h"
 
-// copied from MP_GetDllHandle
-HMODULE local44_GetDllHandle_randomshit()
-{
-    HMODULE hmodule = 0;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)&local44_GetDllHandle_randomshit, &hmodule);
-    return (HMODULE)hmodule;
-}
-HMODULE DrawingFrameHwndBase::getDllHandle()
-{
-    return local44_GetDllHandle_randomshit();
-}
-
-
 #if 0
 using namespace winrt;
 
@@ -969,15 +956,13 @@ void DrawingFrameBase2::CreateSwapPanel()
     // get size of XAML component
     const auto dpi_scale = getRasterizationScale(); //  static_cast<float>(swapChainHost.XamlRoot().RasterizationScale());
     const auto dpi = 96.0f * dpi_scale;
-//    const auto sz = getSwapChainSizePixels(); // swapChainHost.ActualSize()* dpi_scale;
 
     DipsToWindow = GmpiDrawing::Matrix3x2::Scale(dpi_scale, dpi_scale);
     WindowToDips = DipsToWindow;
     WindowToDips.Invert();
 
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
-    // can leave 0 for default    swapChainDesc.Width = static_cast<UINT>(sz.x);
-// can leave 0 for default    swapChainDesc.Height = static_cast<UINT>(sz.y);
+    // can leave size 0 to size automatically
     swapChainDesc.Format = DX_support_sRGB ? bestFormat : fallbackFormat;
     swapChainDesc.Stereo = false;
     swapChainDesc.SampleDesc.Count = 1; // Don't use multi-sampling.
@@ -985,8 +970,6 @@ void DrawingFrameBase2::CreateSwapPanel()
     swapChainDesc.BufferCount = 2;
     swapChainDesc.Scaling = DXGI_SCALING_STRETCH; // DXGI_SCALING_NONE;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // We recommend using this swap effect for all applications.
-    //swapChainDesc.SampleDesc.Quality = 0;
-    //swapChainDesc.Flags = 0;
 
     // customization point.
     gmpi::directx::ComPtr<::IDXGISwapChain1> swapChain1;
@@ -1050,7 +1033,8 @@ void DrawingFrameBase2::CreateSwapPanel()
     d2dDeviceContext->SetTarget(targetBitmap.get());
     d2dDeviceContext->SetDpi(dpi, dpi);
 
-    OnPaint();
+ // fails dues to isInit   OnPaint();
+    InvalidateRect(getWindowHandle(), nullptr, false);
 }
 
 #if 0
@@ -1151,6 +1135,7 @@ gmpi::ReturnCode DrawingFrameBase2::createKeyListener(gmpi::api::IUnknown** retu
 
 float DrawingFrameHwndBase::getRasterizationScale()
 {
+#if 0
     int dpiX(96), dpiY(96);
     {
         HDC hdc = ::GetDC(getWindowHandle());
@@ -1160,6 +1145,16 @@ float DrawingFrameHwndBase::getRasterizationScale()
     }
 
     return dpiX / 96.f;
+#else
+    // This is not recommended. Instead, DisplayProperties::LogicalDpi should be used for packaged Microsoft Store apps and GetDpiForWindow should be used for Win32 apps.
+    /*
+    float dpiX{ 96.f }, dpiY{ 96.f };
+    DrawingFactory->getD2dFactory()->GetDesktopDpi(&dpiX, &dpiY);
+    */
+
+    const auto dpiX = GetDpiForWindow(getWindowHandle());
+    return dpiX / 96.f;
+#endif
 }
 
 HRESULT DrawingFrameHwndBase::createNativeSwapChain
