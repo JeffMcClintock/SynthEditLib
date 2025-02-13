@@ -1122,6 +1122,9 @@ void DrawingFrameBase2::calcViewTransform()
     viewTransform = GmpiDrawing::Matrix3x2::Scale(GmpiDrawing::Size(zoomFactor, zoomFactor));
     viewTransform *= GmpiDrawing::Matrix3x2::Translation(scrollPos);
 
+    WindowToDips = DipsToWindow;
+    WindowToDips.Invert();
+
     invalidateRect(nullptr);
 }
 
@@ -1653,7 +1656,7 @@ void DrawingFrameHwndBase::OnPaint()
     Paint(dirtyRects);
 }
 
-void DrawingFrameBase2::Paint(const std::span<gmpi::drawing::RectL> dirtyRects)
+void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyRects)
 {
     // prevent infinite assert dialog boxes when assert happens during painting.
     if (!isInit.load(std::memory_order_relaxed) || reentrant || !gmpi_gui_client || dirtyRects.empty())

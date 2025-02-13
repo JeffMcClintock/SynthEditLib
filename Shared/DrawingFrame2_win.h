@@ -106,7 +106,7 @@ struct DrawingFrameBase2 :
     void calcViewTransform();
 
     virtual void OnPaint() = 0; // Derived should call Paint with the dirty area
-    void Paint(const std::span<gmpi::drawing::RectL> dirtyRects);
+    void Paint(const std::span<const gmpi::drawing::RectL> dirtyRects);
 
     virtual void Closed()
     {
