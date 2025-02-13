@@ -1689,10 +1689,18 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 		graphics.BeginDraw();
 		graphics.SetTransform(viewTransform);
 
+auto reverseTransform = viewTransform;
+reverseTransform.Invert();
+
 		{
-			// clip and draw each react individually (causes some objects to redraw several times)
+			// clip and draw each rect individually (causes some objects to redraw several times)
 			for (auto& r : dirtyRects)
 			{
+GmpiDrawing::Rect dirtyRect{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
+auto dirtyRect2 = reverseTransform.TransformRect(dirtyRect);
+graphics.PushAxisAlignedClip(dirtyRect2);
+
+/*
 				auto r2 = WindowToDips.TransformRect(GmpiDrawing::Rect(static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)));
 
 				// Snap to whole DIPs.
@@ -1703,6 +1711,7 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 				temp.bottom = ceilf(r2.bottom);
 
 				graphics.PushAxisAlignedClip(temp);
+*/
 
 				gmpi_gui_client->OnRender(legacyContext);
 				graphics.PopAxisAlignedClip();
