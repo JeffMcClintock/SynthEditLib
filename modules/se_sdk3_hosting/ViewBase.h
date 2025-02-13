@@ -9,7 +9,7 @@
 #include "Presenter.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
 #include "GmpiApiDrawing.h"
-#include "Shared/DrawingFrame2_win.h"
+// #include "Shared/DrawingFrame2_win.h"
 
 namespace GmpiGuiHosting
 {

@@ -12,8 +12,6 @@ project(SynthEditLib)
 set(sdk_srcs
 ${gmpi_ui_folder}/helpers/Timer.h
 ${gmpi_ui_folder}/helpers/Timer.cpp
-${gmpi_ui_folder}/backends/DrawingFrameWin.h
-${gmpi_ui_folder}/backends/DrawingFrameWin.cpp
 ${gmpi_ui_folder}/backends/DrawingFrameCommon.h
 ${gmpi_ui_folder}/backends/DrawingFrameCommon.cpp
 
@@ -98,6 +96,16 @@ DspFilters/State.h
 DspFilters/Types.h
 )
 
+IF(WIN32)
+set(sdk_srcs
+  sdk_srcs
+  ${gmpi_ui_folder}/backends/DrawingFrameWin.h
+  ${gmpi_ui_folder}/backends/DrawingFrameWin.cpp
+  Shared/DrawingFrame2_win.h
+  Shared/DrawingFrame2_win.cpp
+)
+endif()
+
 # midistreambuffer.h
 # ${se_sdk_hosting_folder}/DrawingFrame_win32.h
 # ${se_sdk_hosting_folder}/DrawingFrame_win32.cpp
@@ -114,8 +122,6 @@ ${se_sdk_hosting_folder}/gmpi_gui_hosting.h
 ${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp
 ${se_sdk_hosting_folder}/DirectXGfx.h
 ${se_sdk_hosting_folder}/DirectXGfx.cpp
-Shared/DrawingFrame2_win.h
-Shared/DrawingFrame2_win.cpp
 ${se_sdk_hosting_folder}/Controller.h
 ${se_sdk_hosting_folder}/Controller.cpp
 ${se_sdk_hosting_folder}/ViewBase.h

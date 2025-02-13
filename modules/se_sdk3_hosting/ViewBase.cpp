@@ -1766,7 +1766,7 @@ bool cursorBlinkState(const State& inState)
 			gmpi::shared_ptr<gmpi::api::IDialogHost> host;
 			parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid, host.put_void()); // ->ChildCreatePlatformTextEdit(&r, textEdit.put());
 
-			host->createKeyListener(listener.asIUnknownPtr());
+            host->createKeyListener((gmpi::api::IUnknown**) listener.put());
 
 			listener->showAsync((const gmpi::drawing::Rect*) &bounds_, static_cast<gmpi::api::IKeyListenerCallback*>(this));
 
@@ -1788,8 +1788,9 @@ bool cursorBlinkState(const State& inState)
 
 		void onKeyUp(int32_t key, int32_t flags) override
 		{
+#ifdef _WIN32
 			_RPTWN(0, L"key up %c\n", (wchar_t) key);
-
+#endif
 			if(key == 0x1B) // <ESC> to cancel
 			{
 				parent->DismissModulePicker();
