@@ -18,6 +18,7 @@ namespace GmpiGuiHosting
 }
 
 class IGuiHost2;
+struct DrawingFrameBase2;
 
 namespace SE2
 {

@@ -46,6 +46,16 @@ ${se_shared_folder}/xplatform_modifier_keys.cpp
 ${se_shared_folder}/lock_free_fifo.h
 )
 
+IF(WIN32)
+set(sdk_srcs
+  ${sdk_srcs}
+  ${gmpi_ui_folder}/backends/DrawingFrameWin.h
+  ${gmpi_ui_folder}/backends/DrawingFrameWin.cpp
+  Shared/DrawingFrame2_win.h
+  Shared/DrawingFrame2_win.cpp
+)
+endif()
+
 set(srcs_json
 Shared/jsoncpp/json/json.h
 Shared/jsoncpp/jsoncpp.cpp
@@ -95,16 +105,6 @@ DspFilters/PoleFilter.h
 DspFilters/State.h
 DspFilters/Types.h
 )
-
-IF(WIN32)
-set(sdk_srcs
-  sdk_srcs
-  ${gmpi_ui_folder}/backends/DrawingFrameWin.h
-  ${gmpi_ui_folder}/backends/DrawingFrameWin.cpp
-  Shared/DrawingFrame2_win.h
-  Shared/DrawingFrame2_win.cpp
-)
-endif()
 
 # midistreambuffer.h
 # ${se_sdk_hosting_folder}/DrawingFrame_win32.h

@@ -19,6 +19,9 @@
 #include "IGuiHost2.h"
 #include "helpers/Timer.h"
 
+#ifdef _WIN32
+#include "Shared/DrawingFrame2_win.h"
+#endif
 // #define DEBUG_HIT_TEST
 
 using namespace std;
