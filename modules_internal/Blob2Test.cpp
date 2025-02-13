@@ -100,7 +100,10 @@ public:
 				{
 					// write new data to output blob (ASCII representation of incrementing integer)
 					// warning: assumes there is enough room in buffer
-					_itoa(value, outputValues[i], 10);
+//					_itoa(value, outputValues[i], 10);
+					const std::string valueStr = std::to_string(value);
+					std::strncpy(outputValues[i], valueStr.c_str(), sizeof(outputValues[i]) - 1);
+					outputValues[i][sizeof(outputValues[i]) - 1] = '\0'; // Ensure null-termination
 
 					// associate the memory with the blob view
 					blob_ptr->set(outputValues[i], strlen(outputValues[i]));
