@@ -70,7 +70,7 @@ void SynthEditEditor::parentHierarchyChanged()
 		{
 			auto cv =
 				new SE2::ContainerViewPanel(
-					GmpiDrawing::Size(static_cast<float>(drawingframe.swapChainWidth), static_cast<float>(drawingframe.swapChainHeight)));
+					GmpiDrawing::Size(static_cast<float>(drawingframe.swapChainSize.width), static_cast<float>(drawingframe.swapChainSize.height)));
 
             gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx;
             gfx.Attach(cv);

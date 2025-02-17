@@ -21,6 +21,31 @@ namespace SE2
 
 class CSynthEditDocBase;
 
+// utilities for working with legacy graphics api.
+inline GmpiDrawing::Rect toLegacy(gmpi::drawing::Rect r)
+{
+    return { r.left, r.top, r.right, r.bottom };
+}
+inline GmpiDrawing::Matrix3x2 toLegacy(gmpi::drawing::Matrix3x2 m)
+{
+    return { m._11, m._12, m._21, m._22, m._31, m._32 };
+}
+inline gmpi::drawing::Rect fromLegacy(GmpiDrawing_API::MP1_RECT r)
+{
+    return { r.left, r.top, r.right, r.bottom };
+}
+// mixing new matrix with old rect (for convinience)
+inline GmpiDrawing_API::MP1_RECT operator*(GmpiDrawing_API::MP1_RECT rect, gmpi::drawing::Matrix3x2 transform)
+{
+    return {
+        rect.left * transform._11 + rect.top * transform._21 + transform._31,
+        rect.left * transform._12 + rect.top * transform._22 + transform._32,
+        rect.right * transform._11 + rect.bottom * transform._21 + transform._31,
+        rect.right * transform._12 + rect.bottom * transform._22 + transform._32
+    };
+}
+
+
 class UniversalFactory : public gmpi::directx::Factory
 {
     se::directx::Factory_base sdk3Factory;
@@ -71,14 +96,8 @@ struct DrawingFrameBase2 :
 
     std::atomic<bool> isInit;
 
-    GmpiDrawing::Size scrollPos = {};
+    gmpi::drawing::Size scrollPos = {};
     float zoomFactor = {};
-    GmpiDrawing::Matrix3x2 viewTransform;
-    GmpiDrawing::Matrix3x2 DipsToWindow;
-    GmpiDrawing::Matrix3x2 WindowToDips;
-
-    UINT swapChainWidth = 0;
-    UINT swapChainHeight = 0;
 
     GmpiDrawing_API::MP1_POINT currentPointerPos = {-1, -1};
 //    std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
@@ -229,7 +248,7 @@ class DrawingFrameHwndBase : public DrawingFrameBase2, public gmpi::TimerClient
 {
 protected:
     HWND parentWnd = {};
-    GmpiDrawing::Point cubaseBugPreviousMouseMove = { -1,-1 };
+    gmpi::drawing::Point cubaseBugPreviousMouseMove = { -1,-1 };
     bool isTrackingMouse = false;
     bool toolTipShown = false;
     HWND tooltipWindow = {};

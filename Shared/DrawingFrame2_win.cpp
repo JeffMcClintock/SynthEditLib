@@ -954,12 +954,11 @@ void DrawingFrameBase2::CreateSwapPanel()
     DrawingFactory->setSrgbSupport(DX_support_sRGB, whiteMult);
 
     // get size of XAML component
-    const auto dpi_scale = getRasterizationScale(); //  static_cast<float>(swapChainHost.XamlRoot().RasterizationScale());
+    const auto dpi_scale = getRasterizationScale();
     const auto dpi = 96.0f * dpi_scale;
 
-    DipsToWindow = GmpiDrawing::Matrix3x2::Scale(dpi_scale, dpi_scale);
-    WindowToDips = DipsToWindow;
-    WindowToDips.Invert();
+    DipsToWindow = gmpi::drawing::makeScale(dpi_scale, dpi_scale);
+    WindowToDips = gmpi::drawing::invert(DipsToWindow);
 
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
     // can leave size 0 to size automatically
@@ -1001,8 +1000,8 @@ void DrawingFrameBase2::CreateSwapPanel()
 	swapChain1->QueryInterface(swapChain.getAddressOf());
 
     swapChain->GetDesc1(&swapChainDesc); // get actual width and height
-    swapChainWidth = swapChainDesc.Width;
-	swapChainHeight = swapChainDesc.Height;
+    swapChainSize.width = swapChainDesc.Width;
+    swapChainSize.height = swapChainDesc.Height;
 
     DXGI_MATRIX_3X2_F scale{};
     scale._22 = scale._11 = 1.f / dpi_scale;
@@ -1045,7 +1044,7 @@ void DrawingFrameBase2::Paint()
 
     // draw one frame
 //    const auto viewSize = getSwapChainSizePixels(); // swapChainHost.ActualSize();
-    GmpiDrawing::Rect dirtyRect{ 0, 0, static_cast<float>(swapChainWidth), static_cast<float>(swapChainHeight) };
+    GmpiDrawing::Rect dirtyRect{ 0, 0, static_cast<float>(swapChainSize.width), static_cast<float>(swapChainSize.height) };
 
     {
         se::directx::UniversalGraphicsContext context(DrawingFactory->getInfo(), d2dDeviceContext.get());
@@ -1095,7 +1094,7 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
 
     if(swapChain)
     {
-        const auto availablePt = WindowToDips.TransformPoint({ static_cast<float>(swapChainWidth) , static_cast<float>(swapChainHeight) });
+        const auto availablePt = gmpi::drawing::transformPoint( WindowToDips, { static_cast<float>(swapChainSize.width) , static_cast<float>(swapChainSize.height) });
 		GmpiDrawing_API::MP1_SIZE availableDips{ availablePt.x, availablePt.y };
         GmpiDrawing_API::MP1_SIZE desired{};
         gmpi_gui_client->measure(availableDips, &desired);
@@ -1120,11 +1119,10 @@ void DrawingFrameBase2::OnScrolled(double x, double y, double zoom)
 
 void DrawingFrameBase2::calcViewTransform()
 {
-    viewTransform = GmpiDrawing::Matrix3x2::Scale(GmpiDrawing::Size(zoomFactor, zoomFactor));
-    viewTransform *= GmpiDrawing::Matrix3x2::Translation(scrollPos);
+    viewTransform = gmpi::drawing::makeScale({zoomFactor, zoomFactor});
+    viewTransform *= gmpi::drawing::makeTranslation({scrollPos.width, scrollPos.height});
 
-    WindowToDips = DipsToWindow;
-    WindowToDips.Invert();
+    WindowToDips = gmpi::drawing::invert(DipsToWindow);
 
     invalidateRect(nullptr);
 }
@@ -1295,8 +1293,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
     case WM_RBUTTONDOWN:
     case WM_RBUTTONUP:
     {
-        GmpiDrawing::Point p(static_cast<float>(GET_X_LPARAM(lParam)), static_cast<float>(GET_Y_LPARAM(lParam)));
-        p = WindowToDips.TransformPoint(p);
+        gmpi::drawing::Point p{ static_cast<float>(GET_X_LPARAM(lParam)), static_cast<float>(GET_Y_LPARAM(lParam)) };
+        p *= WindowToDips;
 
         // Cubase sends spurious mouse move messages when transport running.
         // This prevents tooltips working.
@@ -1310,7 +1308,7 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         }
         else
         {
-            cubaseBugPreviousMouseMove = GmpiDrawing::Point(-1, -1);
+            cubaseBugPreviousMouseMove = { -1, -1 };
         }
 
         TooltipOnMouseActivity();
@@ -1360,7 +1358,7 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         {
         case WM_MOUSEMOVE:
         {
-            r = gmpi_gui_client->onPointerMove(flags, p);
+            r = gmpi_gui_client->onPointerMove(flags, {p.x, p.y});
 
             // get notified when mouse leaves window
             if (!isTrackingMouse)
@@ -1382,14 +1380,14 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_MBUTTONDOWN:
-            r = gmpi_gui_client->onPointerDown(flags, p);
+            r = gmpi_gui_client->onPointerDown(flags, { p.x, p.y });
             ::SetFocus(hwnd);
             break;
 
         case WM_MBUTTONUP:
         case WM_RBUTTONUP:
         case WM_LBUTTONUP:
-            r = gmpi_gui_client->onPointerUp(flags, p);
+            r = gmpi_gui_client->onPointerUp(flags, { p.x, p.y });
             break;
         }
     }
@@ -1407,8 +1405,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         POINT pos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         MapWindowPoints(NULL, getWindowHandle(), &pos, 1); // !!! ::ScreenToClient() might be more correct. ref MyFrameWndDirectX::OnMouseWheel
 
-        GmpiDrawing::Point p(static_cast<float>(pos.x), static_cast<float>(pos.y));
-        p = WindowToDips.TransformPoint(p);
+        gmpi::drawing::Point p(static_cast<float>(pos.x), static_cast<float>(pos.y));
+        p *= WindowToDips;
 
         //The wheel rotation will be a multiple of WHEEL_DELTA, which is set at 120. This is the threshold for action to be taken, and one such action (for example, scrolling one increment) should occur for each delta.
         const auto zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
@@ -1432,7 +1430,7 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         //	flags |= gmpi_gui_api::GG_POINTER_KEY_ALT;
         //}
 
-        /*auto r =*/ gmpi_gui_client->onMouseWheel(flags, zDelta, p);
+        /*auto r =*/ gmpi_gui_client->onMouseWheel(flags, zDelta, { p.x, p.y });
     }
     break;
 
@@ -1545,7 +1543,7 @@ void DrawingFrameHwndBase::ReSize(int left, int top, int right, int bottom)
     const auto width = right - left;
     const auto height = bottom - top;
 
-    if (d2dDeviceContext && (swapChainWidth != width || swapChainHeight != height))
+    if (d2dDeviceContext && (swapChainSize.width != width || swapChainSize.height != height))
     {
         SetWindowPos(
             getWindowHandle()
@@ -1603,10 +1601,10 @@ bool DrawingFrameHwndBase::onTimer()
         {
             ScreenToClient(hwnd, &P);
 
-            const auto point = WindowToDips.TransformPoint(GmpiDrawing::Point(static_cast<float>(P.x), static_cast<float>(P.y)));
+            const auto point = gmpi::drawing::transformPoint(WindowToDips, { static_cast<float>(P.x), static_cast<float>(P.y) });
 
             gmpi_sdk::MpString text;
-            gmpi_gui_client->getToolTip(point, &text);
+            gmpi_gui_client->getToolTip({point.x, point.y}, & text);
             if (!text.str().empty())
             {
                 toolTipText = JmUnicodeConversions::Utf8ToWstring(text.str());
@@ -1649,7 +1647,7 @@ void DrawingFrameHwndBase::TooltipOnMouseActivity()
 void DrawingFrameHwndBase::OnPaint()
 {
     // First clear update region (else windows will pound on this repeatedly).
-    updateRegion_native.copyDirtyRects(getWindowHandle(), { static_cast<int32_t>(swapChainWidth) , static_cast<int32_t>(swapChainHeight) });
+    updateRegion_native.copyDirtyRects(getWindowHandle(), { static_cast<int32_t>(swapChainSize.width) , static_cast<int32_t>(swapChainSize.height) });
     ValidateRect(getWindowHandle(), NULL); // Clear invalid region for next frame.
 
     auto& dirtyRects = updateRegion_native.getUpdateRects();
@@ -1688,18 +1686,18 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 		GmpiDrawing::Graphics graphics(legacyContext);
 
 		graphics.BeginDraw();
-		graphics.SetTransform(viewTransform);
+		const auto viewTransformL = toLegacy(viewTransform);
+		graphics.SetTransform(viewTransformL);
 
-auto reverseTransform = viewTransform;
-reverseTransform.Invert();
+auto reverseTransform = gmpi::drawing::invert(viewTransform);
 
 		{
 			// clip and draw each rect individually (causes some objects to redraw several times)
 			for (auto& r : dirtyRects)
 			{
-GmpiDrawing::Rect dirtyRect{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
-auto dirtyRect2 = reverseTransform.TransformRect(dirtyRect);
-graphics.PushAxisAlignedClip(dirtyRect2);
+gmpi::drawing::Rect dirtyRect{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
+auto dirtyRect2 = dirtyRect * reverseTransform;
+graphics.PushAxisAlignedClip(toLegacy(dirtyRect2));
 
 /*
 				auto r2 = WindowToDips.TransformRect(GmpiDrawing::Rect(static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)));
@@ -1846,7 +1844,7 @@ void DrawingFrameHwndBase::invalidateRect(const GmpiDrawing_API::MP1_RECT* inval
     {
         //_RPT4(_CRT_WARN, "invalidateRect r[ %d %d %d %d]\n", (int)invalidRect->left, (int)invalidRect->top, (int)invalidRect->right, (int)invalidRect->bottom);
         //r = RectToIntegerLarger(DipsToWindow.TransformRect(*invalidRect));
-		const auto actualRect = DipsToWindow.TransformRect(*invalidRect);
+		const auto actualRect = fromLegacy(*invalidRect) * DipsToWindow;
         r.left   = static_cast<int32_t>(floorf(actualRect.left));
         r.top    = static_cast<int32_t>(floorf(actualRect.top));
         r.right  = static_cast<int32_t>( ceilf(actualRect.right));
@@ -1906,14 +1904,14 @@ int32_t DrawingFrameHwndBase::releaseCapture()
 
 int32_t DrawingFrameHwndBase::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
 {
-    auto nativeRect = DipsToWindow.TransformRect(*rect);
+    auto nativeRect = *rect * DipsToWindow;
     *returnMenu = new GmpiGuiHosting::PGCC_PlatformMenu(getWindowHandle(), &nativeRect, DipsToWindow._22);
     return gmpi::MP_OK;
 }
 
 int32_t DrawingFrameHwndBase::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
 {
-    auto nativeRect = DipsToWindow.TransformRect(*rect);
+    auto nativeRect = *rect * DipsToWindow;
     *returnTextEdit = new GmpiGuiHosting::PGCC_PlatformTextEntry(getWindowHandle(), &nativeRect, DipsToWindow._22);
 
     return gmpi::MP_OK;
