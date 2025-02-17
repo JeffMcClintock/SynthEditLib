@@ -1095,10 +1095,11 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
 
     if(swapChain)
     {
-        GmpiDrawing_API::MP1_SIZE available{ static_cast<float>(swapChainWidth) , static_cast<float>(swapChainHeight) };
+        const auto availablePt = WindowToDips.TransformPoint({ static_cast<float>(swapChainWidth) , static_cast<float>(swapChainHeight) });
+		GmpiDrawing_API::MP1_SIZE availableDips{ availablePt.x, availablePt.y };
         GmpiDrawing_API::MP1_SIZE desired{};
-        gmpi_gui_client->measure(available, &desired);
-        gmpi_gui_client->arrange({ 0, 0, available.width, available.height });
+        gmpi_gui_client->measure(availableDips, &desired);
+        gmpi_gui_client->arrange({ 0, 0, availableDips.width, availableDips.height });
     }
 }
 
