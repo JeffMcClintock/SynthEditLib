@@ -97,7 +97,7 @@ struct DrawingFrameBase2 :
     std::atomic<bool> isInit;
 
     gmpi::drawing::Size scrollPos = {};
-    float zoomFactor = {};
+    float zoomFactor = 1.0f;
 
     GmpiDrawing_API::MP1_POINT currentPointerPos = {-1, -1};
 //    std::chrono::time_point<std::chrono::steady_clock> frameCountTime;

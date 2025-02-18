@@ -1122,7 +1122,7 @@ void DrawingFrameBase2::calcViewTransform()
     viewTransform = gmpi::drawing::makeScale({zoomFactor, zoomFactor});
     viewTransform *= gmpi::drawing::makeTranslation({scrollPos.width, scrollPos.height});
 
-    WindowToDips = gmpi::drawing::invert(DipsToWindow);
+//?    WindowToDips = gmpi::drawing::invert(DipsToWindow);
 
     invalidateRect(nullptr);
 }
@@ -1529,6 +1529,8 @@ void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZ
 
         CreateSwapPanel();
 
+        calcViewTransform();
+
         initTooltip();
 
         // starting Timer last to avoid first event getting 'in-between' other init events.
@@ -1695,9 +1697,11 @@ auto reverseTransform = gmpi::drawing::invert(viewTransform);
 			// clip and draw each rect individually (causes some objects to redraw several times)
 			for (auto& r : dirtyRects)
 			{
-gmpi::drawing::Rect dirtyRect{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
-auto dirtyRect2 = dirtyRect * reverseTransform;
-graphics.PushAxisAlignedClip(toLegacy(dirtyRect2));
+                const gmpi::drawing::Rect dirtyRectPixels{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
+                const auto dirtyRectDips = dirtyRectPixels * WindowToDips;
+                const auto dirtyRectDipsPanZoomed = dirtyRectDips * reverseTransform; // Apply Pan and Zoom
+
+                graphics.PushAxisAlignedClip(toLegacy(dirtyRectDipsPanZoomed));
 
 /*
 				auto r2 = WindowToDips.TransformRect(GmpiDrawing::Rect(static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)));
