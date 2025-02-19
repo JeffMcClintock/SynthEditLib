@@ -106,7 +106,6 @@ struct DrawingFrameBase2 :
     bool isMouseOver() const { return currentPointerPos.x >= 0 && currentPointerPos.y >= 0; }
 
     // override these please.
-    virtual float getRasterizationScale() = 0; // DPI scaling
     virtual HRESULT createNativeSwapChain
     (
         IDXGIFactory2* factory,
@@ -243,7 +242,7 @@ struct DrawingFrameBase2 :
     GMPI_REFCOUNT_NO_DELETE;
 };
 
-// Used in SE2JUCE
+// Used in SE2JUCE, VST3
 class DrawingFrameHwndBase : public DrawingFrameBase2, public gmpi::TimerClient
 {
 protected:

@@ -1465,42 +1465,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
     return TRUE;
 }
 
-bool registeredWindowClass = false;
-WNDCLASS windowClass;
-wchar_t gClassName[100];
-
 void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZE_L* overrideSize)
 {
-    parentWnd = (HWND)pParentWnd;
-
-    if (!registeredWindowClass)
-    {
-        registeredWindowClass = true;
-        OleInitialize(0);
-
-        swprintf(gClassName, sizeof(gClassName) / sizeof(gClassName[0]), L"GMPIGUI%p", getDllHandle());
-
-        windowClass.style = CS_GLOBALCLASS;// | CS_DBLCLKS;//|CS_OWNDC; // add Private-DC constant 
-
-        windowClass.lpfnWndProc = DrawingFrame2WindowProc;
-        windowClass.cbClsExtra = 0;
-        windowClass.cbWndExtra = 0;
-        windowClass.hInstance = getDllHandle();
-        windowClass.hIcon = 0;
-
-        windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-#if DEBUG_DRAWING
-        windowClass.hbrBackground = GetSysColorBrush(COLOR_BTNFACE);
-#else
-        windowClass.hbrBackground = 0;
-#endif
-        windowClass.lpszMenuName = 0;
-        windowClass.lpszClassName = gClassName;
-        RegisterClass(&windowClass);
-
-        //		bSwapped_mouse_buttons = GetSystemMetrics(SM_SWAPBUTTON) > 0;
-    }
-
     RECT r{};
     if (overrideSize)
     {
@@ -1514,24 +1480,34 @@ void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZ
         GetClientRect(parentWnd, &r);
     }
 
-    int style = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS;// | WS_OVERLAPPEDWINDOW;
-    int extended_style = 0;
-
-    const auto windowHandle = CreateWindowEx(extended_style, gClassName, L"",
-        style, 0, 0, r.right - r.left, r.bottom - r.top,
-        parentWnd, NULL, getDllHandle(), NULL);
+    parentWnd = (HWND)pParentWnd;
+    const auto windowClass = gmpi::hosting::RegisterWindowsClass(getDllHandle(), DrawingFrame2WindowProc);
+    const auto windowHandle = gmpi::hosting::CreateHostingWindow(getDllHandle(), windowClass, parentWnd, r, (LONG_PTR)static_cast<DrawingFrameHwndBase*>(this));
 
     if (windowHandle)
     {
 		setWindowHandle(windowHandle);
-        SetWindowLongPtr(windowHandle, GWLP_USERDATA, (__int3264)(LONG_PTR)this);
-        //		RegisterDragDrop(windowHandle, new CDropTarget(this));
 
         CreateSwapPanel();
 
         calcViewTransform();
 
         initTooltip();
+
+        if (gmpi_gui_client)
+        {
+            const auto scale = getRasterizationScale();
+
+            const gmpi::drawing::Size available{
+                static_cast<float>((r.right - r.left) * scale),
+                static_cast<float>((r.bottom - r.top) * scale)
+            };
+
+            gmpi::drawing::Size desired{};
+            gmpi_gui_client->measure(*(GmpiDrawing_API::MP1_SIZE*)&available, (GmpiDrawing_API::MP1_SIZE*)&desired);
+            const gmpi::drawing::Rect finalRect{ 0, 0, available.width, available.height };
+            gmpi_gui_client->arrange(*(GmpiDrawing_API::MP1_RECT*) &finalRect);
+        }
 
         // starting Timer last to avoid first event getting 'in-between' other init events.
         startTimer(15); // 16.66 = 60Hz. 16ms timer seems to miss v-sync. Faster timers offer no improvement to framerate.
