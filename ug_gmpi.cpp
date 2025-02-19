@@ -6,6 +6,7 @@
 #include "CVoiceList.h"
 #include "ProtectedFile.h"
 #include "mfc_emulation.h"
+#include "RefCountMacros.h"
 
 ug_gmpi::ug_gmpi(class Module_Info* p_moduleType, gmpi::api::IProcessor* p_plugin) : plugin_(p_plugin)
 {
@@ -143,28 +144,9 @@ int32_t ug_gmpi::getAutoduplicatePinCount()
 gmpi::ReturnCode ug_gmpi::queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
 {
 	*returnInterface = {};
-
-	if (*iid == gmpi::api::IProcessorHost::guid || *iid == gmpi::api::IUnknown::guid)
-	{
-		*returnInterface = static_cast<gmpi::api::IProcessorHost*>(this);
-		addRef();
-		return gmpi::ReturnCode::Ok;
-	}
-
-	if (*iid == synthedit::IEmbeddedFileSupport::guid)
-	{
-		*returnInterface = static_cast<synthedit::IEmbeddedFileSupport*>(this);
-		addRef();
-		return gmpi::ReturnCode::Ok;
-	}
-
-	if (*iid == synthedit::IPinCount::guid)
-	{
-		*returnInterface = static_cast<synthedit::IPinCount*>(this);
-		addRef();
-		return gmpi::ReturnCode::Ok;
-	}
-
+	GMPI_QUERYINTERFACE(gmpi::api::IProcessorHost);
+	GMPI_QUERYINTERFACE(synthedit::IEmbeddedFileSupport);
+	GMPI_QUERYINTERFACE(synthedit::IPinCount);
 	return gmpi::ReturnCode::NoSupport;
 }
 

@@ -26,9 +26,6 @@ public:
 	// IPinCount
 	int32_t getAutoduplicatePinCount() override;
 
-	// IUnknown methods
-	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override;
-
 	// ug_base overides
 	ug_base* Create() override;
 	ug_base* Clone(CUGLookupList& UGLookupList) override;
@@ -51,5 +48,7 @@ protected:
 	int localBufferOffset_ = 0;
 	void setupBuffers(int bufferOffset);
 
+	// IUnknown methods
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override;
 	GMPI_REFCOUNT_NO_DELETE
 };

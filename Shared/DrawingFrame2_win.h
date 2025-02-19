@@ -51,7 +51,6 @@ class UniversalFactory : public gmpi::directx::Factory
     se::directx::Factory_base sdk3Factory;
 
 public:
-
 	UniversalFactory() : gmpi::directx::Factory(nullptr), sdk3Factory(info, (gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this))
 	{
 	}
@@ -233,6 +232,7 @@ struct DrawingFrameBase2 :
     }
     gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
     {
+        *returnInterface = {};
         GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
         GMPI_QUERYINTERFACE(gmpi_gui::legacy::IMpGraphicsHost);
         GMPI_QUERYINTERFACE(gmpi::legacy::IMpUserInterfaceHost2);

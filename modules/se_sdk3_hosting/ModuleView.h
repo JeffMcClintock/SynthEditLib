@@ -86,6 +86,7 @@ namespace SE2
 
 		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
+			*returnInterface = {};
 			GMPI_QUERYINTERFACE(gmpi::api::IInputHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
