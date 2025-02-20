@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.15)
 
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS deployment version")
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for macOS" FORCE)
+set(CMAKE_CXX_STANDARD 20)
 
 set(DSP_CORE ${CMAKE_CURRENT_SOURCE_DIR})
 
