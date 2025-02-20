@@ -102,6 +102,8 @@ struct DrawingFrameBase2 :
 //    std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
     GmpiGui::PopupMenu contextMenu;
 
+    DrawingFrameBase2();
+
     bool isMouseOver() const { return currentPointerPos.x >= 0 && currentPointerPos.y >= 0; }
 
     // override these please.
@@ -112,11 +114,12 @@ struct DrawingFrameBase2 :
         DXGI_SWAP_CHAIN_DESC1* desc,
         IDXGISwapChain1** returnSwapChain
     ) = 0;
+    void OnSwapChainCreated(bool DX_support_sRGB, float whiteMult) override;
 
     virtual void autoScrollStart() {}
     virtual void autoScrollStop() {}
 
-    void CreateSwapPanel();
+    void CreateSwapPanel(ID2D1Factory1* d2dFactory);
 
     void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx);
     void detachClient();

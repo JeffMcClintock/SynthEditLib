@@ -777,7 +777,12 @@ void DrawingFrameBase2::OnPointer(bool down, int32_t flags, Microsoft::UI::Xaml:
 }
 #endif
 
-void DrawingFrameBase2::CreateSwapPanel()
+DrawingFrameBase2::DrawingFrameBase2()
+{
+    DrawingFactory = std::make_unique<UniversalFactory>();
+}
+
+void DrawingFrameBase2::CreateSwapPanel(ID2D1Factory1* d2dFactory)
 {
     uint32_t creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
@@ -922,11 +927,9 @@ void DrawingFrameBase2::CreateSwapPanel()
         }
     }
 
-    DrawingFactory = std::make_unique<UniversalFactory>();
-
     // Creating the Direct2D Device
     /* winrt::com_ptr */ gmpi::directx::ComPtr<::ID2D1Device> d2dDevice;
-    DrawingFactory->getD2dFactory()->CreateDevice(dxgiDevice.get(), d2dDevice.put());
+    d2dFactory->CreateDevice(dxgiDevice.get(), d2dDevice.put());
 
     // and context.
     d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_ENABLE_MULTITHREADED_OPTIMIZATIONS, d2dDeviceContext.put());
@@ -951,7 +954,9 @@ void DrawingFrameBase2::CreateSwapPanel()
         }
     }
 
-    DrawingFactory->setSrgbSupport(DX_support_sRGB, whiteMult);
+    // Drawing Factory->setSrgbSupport(DX_support_sRGB, whiteMult);
+    // customisation point.
+    OnSwapChainCreated(DX_support_sRGB, whiteMult);
 
     // get size of XAML component
     const auto dpi_scale = getRasterizationScale();
@@ -1034,6 +1039,23 @@ void DrawingFrameBase2::CreateSwapPanel()
 
  // fails dues to isInit   OnPaint();
     InvalidateRect(getWindowHandle(), nullptr, false);
+}
+
+void DrawingFrameBase2::OnSwapChainCreated(bool DX_support_sRGB, float whiteMult)
+{
+    DrawingFactory->setSrgbSupport(DX_support_sRGB, whiteMult);
+
+    //	drawing::api::IBitmapPixels::PixelFormat pixelFormat;
+    //	DrawingFactory.getPlatformPixelFormat(&pixelFormat);
+
+    //if (DX_support_sRGB) //pixelFormat == gmpi::drawing::api::IBitmapPixels::kBGRA_SRGB)
+    //{
+    //    context.reset(new gmpi::directx::GraphicsContext(d2dDeviceContext, &DrawingFactory));
+    //}
+    //else
+    //{
+    //    context.reset(new gmpi::directx::GraphicsContext_Win7(d2dDeviceContext, &DrawingFactory));
+    //}
 }
 
 #if 0
@@ -1488,7 +1510,7 @@ void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZ
     {
 		setWindowHandle(windowHandle);
 
-        CreateSwapPanel();
+        CreateSwapPanel(DrawingFactory->getD2dFactory());
 
         calcViewTransform();
 
@@ -1552,7 +1574,7 @@ void DrawingFrameHwndBase::ReSize(int left, int top, int right, int bottom)
         d2dDeviceContext->SetTarget(nullptr);
         if (S_OK == swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0))
         {
-            CreateSwapPanel();
+            CreateSwapPanel(DrawingFactory->getD2dFactory());
         }
         else
         {
@@ -1647,7 +1669,7 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 
 	if (!d2dDeviceContext) // not quite right, also need to re-create any resources (brushes etc) else most object draw blank. Could refresh the view in this case.
 	{
-		CreateSwapPanel();
+		CreateSwapPanel(DrawingFactory->getD2dFactory());
 	}
 
 	assert(d2dDeviceContext);
@@ -1794,7 +1816,7 @@ void DrawingFrameHwndBase::OnSize(UINT width, UINT height)
 
     if (S_OK == swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0))
     {
-        CreateSwapPanel();
+        CreateSwapPanel(DrawingFactory->getD2dFactory());
     }
     else
     {
