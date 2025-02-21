@@ -18,7 +18,7 @@
 #include "Module_Info3_internal.h"
 #include "IPluginGui.h"
 #include "tinyxml/tinyxml.h"
-#include "version.h"
+//#include "version.h"
 #include "HostControls.h"
 #include "midi_defs.h"
 #include "./modules/shared/xplatform.h"

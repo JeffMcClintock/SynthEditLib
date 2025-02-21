@@ -8,7 +8,7 @@
 #include "my_msg_que_output_stream.h"
 #include "module_info.h"
 #include "ULookup.h"
-#include "version.h"
+#include "se_file_format_version.h"
 #include "Sdk3CloneIterator.h"
 #include "./modules/shared/xplatform.h"
 #include "conversion.h"

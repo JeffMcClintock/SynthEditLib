@@ -107,10 +107,6 @@ DspFilters/State.h
 DspFilters/Types.h
 )
 
-# midistreambuffer.h
-# ${se_sdk_hosting_folder}/DrawingFrame_win32.h
-# ${se_sdk_hosting_folder}/DrawingFrame_win32.cpp
-
 set(srcs
 Shared/AuPreset.h
 Shared/AuPreset.cpp

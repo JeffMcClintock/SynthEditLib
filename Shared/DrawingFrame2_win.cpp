@@ -782,6 +782,7 @@ DrawingFrameBase2::DrawingFrameBase2()
     DrawingFactory = std::make_unique<UniversalFactory>();
 }
 
+// TODO !!! complete merge with tempSharedD2DBase::CreateSwapPanel()
 void DrawingFrameBase2::CreateSwapPanel(ID2D1Factory1* d2dFactory)
 {
     uint32_t creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
