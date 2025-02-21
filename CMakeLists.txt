@@ -171,6 +171,10 @@ ${VST3_SDK}/base/source/fstring.cpp
 ${VST3_SDK}/base/source/fdebug.h
 ${VST3_SDK}/base/source/fdebug.cpp
 ${VST3_SDK}/base/source/baseiids.cpp
+${VST3_SDK}/base/source/updatehandler.h
+${VST3_SDK}/base/source/updatehandler.cpp
+${VST3_SDK}/base/thread/include/flock.h
+${VST3_SDK}/base/thread/source/flock.cpp
 
 UgDebugInfo.cpp
 
