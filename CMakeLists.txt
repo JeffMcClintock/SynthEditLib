@@ -156,9 +156,19 @@ Shared/VstPreset.cpp
 Shared/Vst2Preset.h
 Shared/Vst2Preset.cpp
 
+${VST3_SDK}/pluginterfaces/base/funknown.h
+${VST3_SDK}/pluginterfaces/base/funknown.cpp
+${VST3_SDK}/pluginterfaces/base/coreiids.cpp
 ${VST3_SDK}/public.sdk/source/vst/vstpresetfile.h
 ${VST3_SDK}/public.sdk/source/vst/vstpresetfile.cpp
 ${VST3_SDK}/public.sdk/source/vst/vstinitiids.cpp
+${VST3_SDK}/base/source/fbuffer.h
+${VST3_SDK}/base/source/fbuffer.cpp
+${VST3_SDK}/base/source/fstring.h
+${VST3_SDK}/base/source/fstring.cpp
+${VST3_SDK}/base/source/fdebug.h
+${VST3_SDK}/base/source/fdebug.cpp
+${VST3_SDK}/base/source/baseiids.cpp
 
 UgDebugInfo.cpp
 
