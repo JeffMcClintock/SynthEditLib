@@ -158,6 +158,8 @@ Shared/Vst2Preset.cpp
 
 ${VST3_SDK}/pluginterfaces/base/funknown.h
 ${VST3_SDK}/pluginterfaces/base/funknown.cpp
+${VST3_SDK}/base/source/fobject.h
+${VST3_SDK}/base/source/fobject.cpp
 ${VST3_SDK}/pluginterfaces/base/coreiids.cpp
 ${VST3_SDK}/public.sdk/source/vst/vstpresetfile.h
 ${VST3_SDK}/public.sdk/source/vst/vstpresetfile.cpp
