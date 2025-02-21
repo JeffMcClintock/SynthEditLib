@@ -405,7 +405,7 @@ UPlug.h
 USampBlock.h
 variable_policies.cpp
 variable_policies.h
-version.h
+se_file_format_version.h
 conversion.h
 conversion.cpp
 )
