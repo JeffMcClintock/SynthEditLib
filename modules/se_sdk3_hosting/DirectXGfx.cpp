@@ -828,65 +828,69 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 
 		ID2D1Bitmap* Bitmap::GetNativeBitmap(ID2D1DeviceContext* nativeContext)
 		{
-			// Check for loss of surface.
-			if (nativeContext != nativeContext_ && diBitmap_ != nullptr)
+			// Check for loss of surface. If so recreate device-bitmap
+			if (nativeContext != nativeContext_)
 			{
-				if (nativeBitmap_)
-				{
-					nativeBitmap_->Release();
-					nativeBitmap_ = nullptr;
-				}
-#if	ENABLE_HDR_SUPPORT
-				if (nativeBitmap_HDR_)
-				{
-					nativeBitmap_HDR_ = {};
-				}
-#endif
-
 				nativeContext_ = nativeContext;
-#if 0 //defined(_DEBUG)
-				// moved failure to cheCking error code on CreateBitmapFromWicBitmap()
-				{
-					auto maxSize = nativeContext_->GetMaximumBitmapSize();
-					UINT imageW, imageH;
-					diBitmap_->GetSize(&imageW, &imageH);
 
-					if (imageW > maxSize || imageH > maxSize)
+				if (diBitmap_)
+				{
+					if (nativeBitmap_)
 					{
-						assert(false); // IMAGE TOO BIG!
-						return nullptr;
+						nativeBitmap_->Release();
+						nativeBitmap_ = nullptr;
 					}
-				}
+#if	ENABLE_HDR_SUPPORT
+					if (nativeBitmap_HDR_)
+					{
+						nativeBitmap_HDR_ = {};
+					}
 #endif
-				D2D1_BITMAP_PROPERTIES props;
-				props.dpiX = props.dpiY = 96;
-				if (/*factory >getPlatformPixelFormat()*/ pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB) //  graphics->SupportSRGB())
-				{
-					props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB; // no good with DXGI_FORMAT_R16G16B16A16_FLOAT: nativeContext_->GetPixelFormat().format;
-				}
-				else
-				{
-					props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM; // no good with DXGI_FORMAT_R16G16B16A16_FLOAT: nativeContext_->GetPixelFormat().format;
-				}
-				props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
 
-				try
-				{
-					// Convert to D2D format and cache.
-					auto hr = nativeContext_->CreateBitmapFromWicBitmap(
-						diBitmap_,
-						&props, //NULL,
-						&nativeBitmap_
-					);
+#if 0 //defined(_DEBUG)
+					// moved failure to cheCking error code on CreateBitmapFromWicBitmap()
+					{
+						auto maxSize = nativeContext_->GetMaximumBitmapSize();
+						UINT imageW, imageH;
+						diBitmap_->GetSize(&imageW, &imageH);
 
-					if (hr) // Common failure is bitmap too big for D2D.
+						if (imageW > maxSize || imageH > maxSize)
+						{
+							assert(false); // IMAGE TOO BIG!
+							return nullptr;
+						}
+					}
+#endif
+					D2D1_BITMAP_PROPERTIES props;
+					props.dpiX = props.dpiY = 96;
+					if (/*factory >getPlatformPixelFormat()*/ pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB) //  graphics->SupportSRGB())
+					{
+						props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB; // no good with DXGI_FORMAT_R16G16B16A16_FLOAT: nativeContext_->GetPixelFormat().format;
+					}
+					else
+					{
+						props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM; // no good with DXGI_FORMAT_R16G16B16A16_FLOAT: nativeContext_->GetPixelFormat().format;
+					}
+					props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
+
+					try
+					{
+						// Convert to D2D format and cache.
+						auto hr = nativeContext_->CreateBitmapFromWicBitmap(
+							diBitmap_,
+							&props, //NULL,
+							&nativeBitmap_
+						);
+
+						if (hr) // Common failure is bitmap too big for D2D.
+						{
+							return nullptr;
+						}
+					}
+					catch (...)
 					{
 						return nullptr;
 					}
-				}
-				catch (...)
-				{
-					return nullptr;
 				}
 			}
 
@@ -897,7 +901,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 
 				if (!nativeBitmap_HDR_)
 				{
-					assert(diBitmap_); // gonna need a wix bitmap as the source. 
+					// assert(diBitmap_); // gonna need a wix bitmap as the source. 
 
 					// Create a WIC bitmap to draw on.
 					const auto bitmapSize = nativeBitmap_->GetPixelSize();
@@ -925,13 +929,14 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 							pWICRenderTarget.put()
 						);
 
+						// Create a device context from the WIC render target.
+						gmpi::directx::ComPtr<ID2D1DeviceContext> pDeviceContext;
+						hr = pWICRenderTarget->QueryInterface(IID_PPV_ARGS(pDeviceContext.put()));
+
 						if (SUCCEEDED(hr))
 						{
-							// Create a device context from the WIC render target.
-							gmpi::directx::ComPtr<ID2D1DeviceContext> pDeviceContext;
-							hr = pWICRenderTarget->QueryInterface(IID_PPV_ARGS(pDeviceContext.put()));
-
-							if (SUCCEEDED(hr))
+							// if bitmap was loaded from disk, we have the origninal in WIX format.
+							if (diBitmap_)
 							{
 								// Convert original image to D2D format
 								D2D1_BITMAP_PROPERTIES props;
@@ -996,6 +1001,18 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 									// End drawing.
 									hr = pDeviceContext->EndDraw();
 								}
+							}
+							else
+							{
+								// Bitmap was created in-memory. No source WIX bitmap available.
+								// Just clear the bitmap to orange.
+								pDeviceContext->BeginDraw();
+								auto color = D2D1::ColorF(D2D1::ColorF::Orange);
+								color.r *= factory.getWhiteMult();
+								color.g *= factory.getWhiteMult();
+								color.b *= factory.getWhiteMult();
+								pDeviceContext->Clear(color);
+								pDeviceContext->EndDraw();
 							}
 						}
 					}
