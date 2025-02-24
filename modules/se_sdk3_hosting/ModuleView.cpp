@@ -254,6 +254,11 @@ namespace SE2
 				}
 			}
 		}
+
+		if (pluginGraphics_GMPI)
+		{
+			pluginGraphics_GMPI->open(static_cast<gmpi::api::IDrawingHost*>(&uiHelper));
+		}
 	}
 
 	void ModuleView::initialize()
