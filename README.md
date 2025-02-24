@@ -10,20 +10,42 @@ JUCE Projects
 
 (SynthEdit GUIs are supported on macOS and Windows, but not Linux or IOS)
 
-Note that using SE2JUCE is a complex, advanced proceedure that involves programming in C++ and having an understanding of CMake and JUCE.
-Also SE2JUCE requires you to have access to the source-code of any SEMs you wish to use. This may not be possible in some cases,
+Note that using SynthEditlib with JUCE is a complex, advanced proceedure that involves programming in C++ and having an understanding of CMake and JUCE.
+You need to have access to the source-code of any SEMs you wish to use. This may not be possible in some cases,
  especially with 3rd-party modules. 3rd-party module creators have no obligation to share their source-code.
 
 # Prerequisites
 
-Install SynthEdit 1.5. https://synthedit.com/downloads/?url=/downloads
+Install SynthEdit 1.6 https://synthedit.com/downloads/?url=/downloads
 
 Install Visual Studio or your IDE of choice. https://visualstudio.microsoft.com/vs/
 
 Install CMake. https://cmake.org/download/
 
-# Getting Started with the PD303 example
-clone SE2JUCE repo. https://github.com/JeffMcClintock/SE2JUCE
+# Getting Started
+Move your synthedit project file into a folder structure like /MyProject/SE_Project/MyProject.se1
+
+In SynthEdit open project from /MyProject/SE_Project/MyProject.se1
+
+Choose menu "File/Export Juce" This will copy the project and its skin to the '/MyProject/Resources' folder of the JUCE project.
+
+close SE
+
+Open CMake GUI
+
+Under "where is the source code" enter the location of /MyProject folder
+
+Under "where to build the binaries" enter something like .../MyProject/build (or anywhere you prefer to put the temporary files created during the build).
+
+Click 'Configure", and choose whatever IDE you prefer. Ignore the error message.
+
+tick 'JUCE_COPY_PLUGIN_AFTER_BUILD'
+
+click 'generate'
+
+click 'open project' (your IDE should open)
+
+build and try out the plugin
 
 get JUCE. https://juce.com/get-juce/download
 
