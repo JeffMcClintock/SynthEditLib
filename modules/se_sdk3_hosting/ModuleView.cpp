@@ -93,6 +93,9 @@ namespace SE2
 
 	ModuleViewPanel::ModuleViewPanel(Json::Value* context, class ViewBase* pParent, std::map<int, class ModuleView*>& guiObjectMap) : ModuleView(context, pParent)
 	{
+		if (!moduleInfo) // missing module
+			return;
+
 		auto& module_element = *context;
 
 		ignoreMouse = !module_element["ignoremouse"].empty();

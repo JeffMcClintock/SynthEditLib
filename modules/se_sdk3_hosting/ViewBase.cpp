@@ -374,6 +374,10 @@ namespace SE2
 					// When output pin is the default value (0), module won't ever send anything (then to-pin NEVER gets updated).
 					// In this case send pin's default value. ('from' module can still override it later during initialisation).
 					auto moduleInfo = to->getModuleType();
+					
+					if (!moduleInfo) // skip missing modules
+						continue;
+
 					if(moduleInfo->UniqueId() == L"Container")
 					{
 						moduleInfo = containerXmoduleInfo;
