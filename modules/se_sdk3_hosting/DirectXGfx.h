@@ -783,9 +783,6 @@ namespace se // gmpi
 			ID2D1DeviceContext* nativeContext_ = {};
 			se::directx::Factory_base factory;
 			GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat_ = GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB;
-#if	ENABLE_HDR_SUPPORT
-			gmpi::directx::ComPtr<ID2D1Bitmap1> nativeBitmap_HDR_;
-#endif
 #ifdef _DEBUG
 			std::string debugFilename;
 #endif
@@ -843,13 +840,8 @@ namespace se // gmpi
 			{
 				*returnInterface = 0;
 
-				{
-					// invalidate device bitmaps (they will be automatically recreated as needed)
-#if	ENABLE_HDR_SUPPORT
-					nativeBitmap_HDR_ = {};
-#endif
-					nativeBitmap_ = {};
-				}
+				// invalidate device bitmap (will be automatically recreated as needed)
+				nativeBitmap_ = {};
 
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
 				b2.Attach(new bitmapPixels(diBitmap_, alphaPremultiplied, GmpiDrawing_API::MP1_BITMAP_LOCK_READ | GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE));

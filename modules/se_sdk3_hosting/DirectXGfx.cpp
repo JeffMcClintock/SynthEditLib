@@ -803,20 +803,10 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 // clean this up				diBitmap_ = factory->CreateDiBitmapFromNative(nativeBitmap_);
 #endif
 			}
-/*
-			if (!nativeBitmap_)
-			{
-				// need to access native bitmap already to lazy-load it. Only can be done from RenderContext.
-				assert(false && "Can't lock pixels before native bitmap created in OnRender()");
-				return gmpi::MP_FAIL;
-			}
-*/
+
 			if (0 != (flags & GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE))
 			{
-				// invalidate device bitmaps (they will be automatically recreated as needed)
-#if	ENABLE_HDR_SUPPORT
-				nativeBitmap_HDR_ = {};
-#endif
+				// invalidate device bitmap (will be automatically recreated as needed)
 				nativeBitmap_ = {};
 			}
 
@@ -835,9 +825,6 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 
 				// invalidate stale bitmaps.
 				nativeBitmap_ = nullptr;
-#if	ENABLE_HDR_SUPPORT
-				nativeBitmap_HDR_ = {};
-#endif
 			}
 
 			if (!nativeBitmap_ && diBitmap_)
@@ -879,10 +866,10 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 			{
 				// https://walbourn.github.io/windows-imaging-component-and-windows-8/
 
-				if (!nativeBitmap_HDR_)
+				if (!nativeBitmap_)
 				{
+#if 0
 					const auto bitmapSize = nativeBitmap_->GetPixelSize();
-
 					if (!diBitmap_ && nativeBitmap_) // no WIX bitmap available, use device bitmap;
 					{
 						const auto sizeU = nativeBitmap_->GetPixelSize();
@@ -911,14 +898,19 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 
 						nativeBitmap_HDR_ = temp.as<ID2D1Bitmap1>();
 #ifdef _DEBUG
-						auto test1 = nativeBitmap_HDR_->GetPixelSize();
-						auto test2 = nativeBitmap_HDR_->GetPixelFormat();
+						auto test1 = native Bitmap_HDR_->GetPixelSize();
+						auto test2 = native Bitmap_HDR_->GetPixelFormat();
 						float dpiX2, dpiY2;
-						nativeBitmap_HDR_->GetDpi(&dpiX2, &dpiY2);
+						native Bitmap_HDR_->GetDpi(&dpiX2, &dpiY2);
 #endif
 					}
 					else// gonna need a wix bitmap as the source. 
+#endif
+					if (diBitmap_)
 					{
+//						const auto bitmapSize = diBitmap_->GetSize() nativeBitmap_->GetPixelSize();
+						gmpi::drawing::SizeU bitmapSize{};
+						diBitmap_->GetSize(&bitmapSize.width, &bitmapSize.height);
 
 						// Create a WIC bitmap to draw on.
 						gmpi::directx::ComPtr<IWICBitmap> diBitmap_HDR_;
@@ -951,8 +943,8 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 
 							if (SUCCEEDED(hr))
 							{
-								// if bitmap was loaded from disk, we have the origninal in WIX format.
-								if (diBitmap_)
+								// if bitmap was loaded from disk, we have the original in WIX format.
+//								if (diBitmap_)
 								{
 									// Convert original image to D2D format
 									D2D1_BITMAP_PROPERTIES props;
@@ -1018,6 +1010,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 										hr = pDeviceContext->EndDraw();
 									}
 								}
+#if 0
 								else
 								{
 									// TODO !!! drawing on BitmapRender Targets in HDR mode. (Scope3 background)
@@ -1035,6 +1028,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 
 									pDeviceContext->EndDraw();
 								}
+#endif
 							}
 						}
 
@@ -1042,13 +1036,13 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 						{
 							auto hr = nativeContext_->CreateBitmapFromWicBitmap(
 								diBitmap_HDR_,
-								nativeBitmap_HDR_.put()
+								nativeBitmap_.put()
 							);
 						}
 					}
 				}
 
-				return nativeBitmap_HDR_.get();
+				return nativeBitmap_.get();
 			}
 #endif
 
