@@ -53,34 +53,25 @@ Optional:
 * add VST2 headers to JUCE if you need to make VST2 plugins.
 * get AAX SDK if you need it. https://www.avid.com/alliance-partner-program/aax-connectivity-toolkit
 
-clone SE2JUCE_Projects repo. This provides an example plugin you can copy. https://github.com/JeffMcClintock/SE2JUCE_Projects
+# Azure pipelines (advanced)
+SynthEdit will create some scripts in the pipelines folder for building your plugin on Azure devops.
+You will need an Azure devops account to do this.
+You will need your code stored online in a git repo.
 
-(to export your own plugin, copy the entire PD303 folder, rename it and edit the two cmakelists.txt files, changing the plugin name etc)
+On the Azure website, go to 'pipelines' and create a new pipeline. Choose your git repo and select the 'Existing Azure Pipelines YAML file' option.
+Select 'MyPlugin/pipelines/P_00.yml' as the script file.
+From the 'Run' dropdown select "Save".
+Next to "Run Pipeline", click the 3 vertical dots at the right 'Rename' it to e.g. "00 MyPlugin Start Build"
 
-Open SynthEdit
+Repeat these steps for each of the 5 pipeline scripts.
 
-open project from SE2JUCE_Plugins/PD303/SE_Project/PD303.se1
+# Notes about pipelines
+When you run the pipelines they will complain about "TODO inset UUID of overall project here".
+You need to find the UUID and number of the previous pipeline and insert that. The easiest way is to use the task wizard at right
+ to insert a 'Download Artifacts' task and copy the values off that.
 
-Choose menu "File/Export Juce" This will copy the project and its skin to the 'Resources' folder of the JUCE project.
+The macOS build will expect a user guide to be in teh main folder /MyPlugin/MyPluginUserGuide.pdf
 
-close SE
-
-Open CMake GUI
-
-Under "where is the source code" enter the location of SE2JUCE_Plugins folder
-
-Under "where to build the binaries" enter something like ...\Documents\SE2JUCE_Projects_Build (or anywhere you prefer to put the temporary files created during the build).
-
-Click 'Configure", and choose whatever IDE you prefer. Ignore the error message.
-
-Look for the variables 'JUCE_FOLDER_HERE' and 'SE2JUCE_FOLDER_HERE'. Browse for your actual JUCE folder, and the correct SE2JUCE folder
-tick 'JUCE_COPY_PLUGIN_AFTER_BUILD'
-
-click 'generate'
-
-click 'open project' (your IDE should open)
-
-build and try out the plugin
 
 # Missing modules
 

@@ -1032,6 +1032,8 @@ bool CModuleFactory::debugInitCheck(const char* modulename)
 // without this the linker will decide that they can be discarded, since they are not explicity referenced elsewhere.
 // This can also be run harmlessly in builds where it is not needed.
 // see also SE_DECLARE_INIT_STATIC_FILE
+// see also ExtraModules.cpp
+
 #if defined(_DEBUG)
 // has extra debugging check
 #define INIT_STATIC_FILE(filename) void se_static_library_init_##filename(); se_static_library_init_##filename(); staticInitCheck.push_back( #filename );
