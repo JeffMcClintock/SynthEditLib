@@ -646,21 +646,18 @@ namespace se // gmpi
 
 		class bitmapPixels : public GmpiDrawing_API::IMpBitmapPixels
 		{
-			bool alphaPremultiplied;
-			IWICBitmap* bitmap;
+			bool alphaPremultiplied = false;
+			IWICBitmap* bitmap = {};
 			UINT bytesPerRow{};
 			BYTE* ptr{};
-			IWICBitmapLock* pBitmapLock;
-			ID2D1Bitmap* nativeBitmap_;
-			int flags;
+			IWICBitmapLock* pBitmapLock = {};
+			int flags = 0;
 			IMpBitmapPixels::PixelFormat pixelFormat = kBGRA; // default to non-SRGB Win7 (not tested)
 
 		public:
-			bitmapPixels(ID2D1Bitmap* nativeBitmap, IWICBitmap* inBitmap, bool _alphaPremultiplied, int32_t pflags)
+			bitmapPixels(IWICBitmap* inBitmap, bool _alphaPremultiplied, int32_t pflags)
 			{
-				nativeBitmap_ = nativeBitmap;
 				assert(inBitmap);
-
 				UINT w, h;
 				inBitmap->GetSize(&w, &h);
 
@@ -701,26 +698,6 @@ namespace se // gmpi
 
 			~bitmapPixels()
 			{
-				if (!alphaPremultiplied)
-					premultiplyAlpha();
-
-				if (nativeBitmap_)
-				{
-#if 1
-					if (0 != (flags & GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE))
-					{
-						D2D1_RECT_U r;
-						r.left = r.top = 0;
-						bitmap->GetSize(&r.right, &r.bottom);
-
-						nativeBitmap_->CopyFromMemory(&r, ptr, bytesPerRow);
-					}
-#else
-					nativeBitmap_->Release();
-					nativeBitmap_ = nullptr;
-#endif
-				}
-
 				SafeRelease(pBitmapLock);
 				SafeRelease(bitmap);
 			}
@@ -801,10 +778,9 @@ namespace se // gmpi
 		class Bitmap : public GmpiDrawing_API::IMpBitmap
 		{
 		public:
-			ID2D1Bitmap* nativeBitmap_ = {};
+			gmpi::directx::ComPtr<ID2D1Bitmap> nativeBitmap_;
+			gmpi::directx::ComPtr<IWICBitmap> diBitmap_;
 			ID2D1DeviceContext* nativeContext_ = {};
-			IWICBitmap* diBitmap_ = {};
-			// class Factory_base* factory = {};
 			se::directx::Factory_base factory;
 			GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat_ = GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB;
 #if	ENABLE_HDR_SUPPORT
@@ -816,24 +792,11 @@ namespace se // gmpi
 			Bitmap(gmpi::directx::DxFactoryInfo& factoryInfo, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, IWICBitmap* diBitmap);
 
 			Bitmap(gmpi::directx::DxFactoryInfo& factoryInfo, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, ID2D1DeviceContext* nativeContext, ID2D1Bitmap* nativeBitmap) :
-				nativeBitmap_(nativeBitmap)
-				, nativeContext_(nativeContext)
+				  nativeContext_(nativeContext)
 				, factory(factoryInfo, nullptr)
 				, pixelFormat_(pixelFormat)
 			{
-				nativeBitmap->AddRef();
-			}
-
-			~Bitmap()
-			{
-				if (nativeBitmap_)
-				{
-					nativeBitmap_->Release();
-				}
-				if (diBitmap_)
-				{
-					diBitmap_->Release();
-				}
+				nativeBitmap_ = nativeBitmap;
 			}
 
 			ID2D1Bitmap* GetNativeBitmap(ID2D1DeviceContext* nativeContext);
@@ -880,8 +843,16 @@ namespace se // gmpi
 			{
 				*returnInterface = 0;
 
+				{
+					// invalidate device bitmaps (they will be automatically recreated as needed)
+#if	ENABLE_HDR_SUPPORT
+					nativeBitmap_HDR_ = {};
+#endif
+					nativeBitmap_ = {};
+				}
+
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-				b2.Attach(new bitmapPixels(nativeBitmap_, diBitmap_, alphaPremultiplied, GmpiDrawing_API::MP1_BITMAP_LOCK_READ | GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE));
+				b2.Attach(new bitmapPixels(diBitmap_, alphaPremultiplied, GmpiDrawing_API::MP1_BITMAP_LOCK_READ | GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE));
 
 				return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_PIXELS_MPGUI, (void**)(returnInterface));
 			}
@@ -1247,6 +1218,8 @@ namespace se // gmpi
 
 #if	ENABLE_HDR_SUPPORT
 			float whiteMult = 1.0f; // cached for speed.
+#else
+			inline constexpr float whiteMult = 1.0f;
 #endif
 
 			~GraphicsContext_SDK3()

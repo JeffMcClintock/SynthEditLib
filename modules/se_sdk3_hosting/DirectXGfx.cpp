@@ -759,12 +759,11 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 			*returnInterface = nullptr;
 
 			// If image was not loaded from a WicBitmap (i.e. was created from device context), then need to write it to WICBitmap first.
-			if (diBitmap_ == nullptr)
+			if (diBitmap_.isNull())
 			{
-
-				if(!nativeBitmap_)
+				if(nativeBitmap_.isNull())
 				{
-					return gmpi::MP_FAIL; // seems not possible
+					return gmpi::MP_FAIL; // TODO: create WIC from D2DBitmap not implemented.
 				}
 
 return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
@@ -812,16 +811,17 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 				return gmpi::MP_FAIL;
 			}
 */
-#if	ENABLE_HDR_SUPPORT
-			// invalidate HDR bitmap
-			if (nativeBitmap_HDR_ && 0 != (flags & GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE))
+			if (0 != (flags & GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE))
 			{
+				// invalidate device bitmaps (they will be automatically recreated as needed)
+#if	ENABLE_HDR_SUPPORT
 				nativeBitmap_HDR_ = {};
-			}
 #endif
+				nativeBitmap_ = {};
+			}
 
 			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-			b2.Attach(new bitmapPixels(nativeBitmap_, diBitmap_, true, flags));
+			b2.Attach(new bitmapPixels(diBitmap_, true, flags));
 
 			return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_PIXELS_MPGUI, (void**)(returnInterface));
 		}
@@ -833,64 +833,44 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 			{
 				nativeContext_ = nativeContext;
 
-				if (diBitmap_)
-				{
-					if (nativeBitmap_)
-					{
-						nativeBitmap_->Release();
-						nativeBitmap_ = nullptr;
-					}
+				// invalidate stale bitmaps.
+				nativeBitmap_ = nullptr;
 #if	ENABLE_HDR_SUPPORT
-					if (nativeBitmap_HDR_)
-					{
-						nativeBitmap_HDR_ = {};
-					}
+				nativeBitmap_HDR_ = {};
 #endif
+			}
 
-#if 0 //defined(_DEBUG)
-					// moved failure to cheCking error code on CreateBitmapFromWicBitmap()
-					{
-						auto maxSize = nativeContext_->GetMaximumBitmapSize();
-						UINT imageW, imageH;
-						diBitmap_->GetSize(&imageW, &imageH);
+			if (!nativeBitmap_ && diBitmap_)
+			{
+				D2D1_BITMAP_PROPERTIES props;
+				props.dpiX = props.dpiY = 96;
+				if (/*factory >getPlatformPixelFormat()*/ pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB) //  graphics->SupportSRGB())
+				{
+					props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB; // no good with DXGI_FORMAT_R16G16B16A16_FLOAT: nativeContext_->GetPixelFormat().format;
+				}
+				else
+				{
+					props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM; // no good with DXGI_FORMAT_R16G16B16A16_FLOAT: nativeContext_->GetPixelFormat().format;
+				}
+				props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
 
-						if (imageW > maxSize || imageH > maxSize)
-						{
-							assert(false); // IMAGE TOO BIG!
-							return nullptr;
-						}
-					}
-#endif
-					D2D1_BITMAP_PROPERTIES props;
-					props.dpiX = props.dpiY = 96;
-					if (/*factory >getPlatformPixelFormat()*/ pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB) //  graphics->SupportSRGB())
-					{
-						props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB; // no good with DXGI_FORMAT_R16G16B16A16_FLOAT: nativeContext_->GetPixelFormat().format;
-					}
-					else
-					{
-						props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM; // no good with DXGI_FORMAT_R16G16B16A16_FLOAT: nativeContext_->GetPixelFormat().format;
-					}
-					props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
+				try
+				{
+					// Convert to D2D format and cache.
+					auto hr = nativeContext_->CreateBitmapFromWicBitmap(
+						diBitmap_,
+						&props,
+						nativeBitmap_.put()
+					);
 
-					try
-					{
-						// Convert to D2D format and cache.
-						auto hr = nativeContext_->CreateBitmapFromWicBitmap(
-							diBitmap_,
-							&props, //NULL,
-							&nativeBitmap_
-						);
-
-						if (hr) // Common failure is bitmap too big for D2D.
-						{
-							return nullptr;
-						}
-					}
-					catch (...)
+					if (hr) // Common failure is bitmap too big for D2D.
 					{
 						return nullptr;
 					}
+				}
+				catch (...)
+				{
+					return nullptr;
 				}
 			}
 
@@ -1072,17 +1052,14 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 			}
 #endif
 
-			return nativeBitmap_;
+			return nativeBitmap_.get();
 		}
 
 		Bitmap::Bitmap(gmpi::directx::DxFactoryInfo& factoryInfo, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, IWICBitmap* diBitmap) :
-			nativeBitmap_(0)
-			, nativeContext_(0)
-			, diBitmap_(diBitmap)
-			, factory(factoryInfo, nullptr)
+			  factory(factoryInfo, nullptr)
 			, pixelFormat_(pixelFormat)
 		{
-			diBitmap->AddRef();
+			diBitmap_ = diBitmap;
 
 			// on Windows 7, leave image as-is
 			if (/*factory->getPlatformPixelFormat()*/pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
