@@ -1191,9 +1191,6 @@ namespace se // gmpi
 				, factory(pinfo, nullptr)
 				, fallback(pfallback)
 			{
-				//if(context_)
-				//	context_->AddRef();
-
 				// gmpiContext inits it's clip rect, SDK3 does not.
 				const float defaultClipBounds = 100000.0f;
 				GmpiDrawing_API::MP1_RECT r;
@@ -1493,8 +1490,6 @@ namespace se // gmpi
 		class BitmapRenderTarget : public GraphicsContext_SDK3
 		{
 			gmpi::directx::ComPtr<IWICBitmap> wicBitmap;
-			gmpi::directx::ComPtr<ID2D1BitmapRenderTarget> gpuBitmapRenderTarget;
-
 			ID2D1DeviceContext* originalContext{};
 
 		public:

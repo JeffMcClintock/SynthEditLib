@@ -777,7 +777,7 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 			}
 			else
 			{
-
+nativeContext_->Flush(); // has an effect on corruption. not sure where to put this.
 				// https://walbourn.github.io/windows-imaging-component-and-windows-8/
 
 				gmpi::drawing::SizeU bitmapSize{};
@@ -898,6 +898,7 @@ hr = pDeviceContext->Flush();
 
 				}
 			}
+nativeContext_->Flush(); // has an effect on corruption. not sure where to put this.
 
 			return nativeBitmap_.get();
 		}
@@ -918,7 +919,6 @@ hr = pDeviceContext->Flush();
 		// WIX premultiplies images automatically on load, but wrong (assumes linear not SRGB space). Fix it.
 		void Bitmap::ApplyPreMultiplyCorrection()
 		{
-			return;
 #if 1
 			GmpiDrawing::Bitmap bitmap(this);
 
@@ -1210,46 +1210,19 @@ hr = pDeviceContext->Flush();
 			GraphicsContext_SDK3(nullptr, info)
 			, originalContext(g->native())
 		{
-			if (enableLockPixels) // TODO !!! wrong gamma.
-			{
-				// Create a WIC render target. Modifyable by CPU (lock pixels). More expensive.
-				const bool use8bit = true;
+			if (enableLockPixels)
+				whiteMult = 1.0f;
 
-				// Create a WIC bitmap to draw on.
-				[[maybe_unused]] auto hr =
-					factory.getWicFactory()->CreateBitmap(
-						  static_cast<UINT>(desiredSize.width)
-						, static_cast<UINT>(desiredSize.height)
-						, use8bit ? GUID_WICPixelFormat32bppPBGRA : GUID_WICPixelFormat64bppPRGBAHalf // GUID_WICPixelFormat128bppPRGBAFloat // GUID_WICPixelFormat64bppPRGBAHalf // GUID_WICPixelFormat128bppPRGBAFloat
-						, use8bit ? WICBitmapCacheOnDemand : WICBitmapNoCache
-						, wicBitmap.put()
-					);
-
-				D2D1_RENDER_TARGET_PROPERTIES renderTargetProperties = D2D1::RenderTargetProperties(
-					D2D1_RENDER_TARGET_TYPE_DEFAULT,
-					D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_UNKNOWN)
-					//D2D1::PixelFormat(DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED)
-				);
-
-				gmpi::directx::ComPtr<ID2D1RenderTarget> wikBitmapRenderTarget;
-				factory.getD2dFactory()->CreateWicBitmapRenderTarget(
-					wicBitmap,
-					renderTargetProperties,
-					wikBitmapRenderTarget.put()
-				);
-
-				// wikBitmapRenderTarget->QueryInterface(IID_ID2D1DeviceContext, (void**)&context_);
-				// hr = wikBitmapRenderTarget->QueryInterface(IID_PPV_ARGS(&context_));
-				context_ = wikBitmapRenderTarget.as<ID2D1DeviceContext>();
-
-//context_->AddRef(); //?????
-			}
-			else
-			{
-				// Create a render target on the GPU. Not modifyable by CPU.
-				/* auto hr = */ g->native()->CreateCompatibleRenderTarget(*(D2D1_SIZE_F*)&desiredSize, gpuBitmapRenderTarget.put());
-				gpuBitmapRenderTarget->QueryInterface(IID_ID2D1DeviceContext, (void**)&context_);
-			}
+			createBitmapRenderTarget(
+				  static_cast<UINT>(desiredSize.width)
+				, static_cast<UINT>(desiredSize.height)
+				, enableLockPixels
+				, originalContext
+				, factory.getFactory()
+				, factory.getWicFactory()
+				, wicBitmap
+				, context_
+			);
 
 			clipRectStack.push_back({ 0, 0, desiredSize.width, desiredSize.height });
 		}
@@ -1260,33 +1233,30 @@ hr = pDeviceContext->Flush();
 
 			HRESULT hr{ E_FAIL };
 
-			if (gpuBitmapRenderTarget)
+			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
+			if (wicBitmap)
 			{
-				ID2D1Bitmap* nativeBitmap{};
-				hr = gpuBitmapRenderTarget->GetBitmap(&nativeBitmap);
-
-				if (hr == S_OK)
-				{
-					gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-					b2.Attach(new Bitmap(factory.getInfo(), factory.getPlatformPixelFormat(), /*context_*/originalContext, nativeBitmap));
-					nativeBitmap->Release();
-
-					b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void**>(returnBitmap));
-				}
-			}
-			else // if (wikBitmapRenderTarget)
-			{
-// Flush the device context to ensure all drawing commands are completed. testing
+				// Flush the device context to ensure all drawing commands are completed. testing
 //hr = context_->Flush();
 				context_ = nullptr;
 
-				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
 				b2.Attach(new Bitmap(factory.getInfo(), factory.getPlatformPixelFormat(), wicBitmap)); //temp factory about to go out of scope (when using a bitmap render target)
-
-				b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void**>(returnBitmap));
 
 				hr = S_OK;
 			}
+			else // if (wikBitmapRenderTarget)
+			{
+				gmpi::directx::ComPtr<ID2D1Bitmap> nativeBitmap;
+				hr = context_.as<ID2D1BitmapRenderTarget>()->GetBitmap(nativeBitmap.put());
+
+				if (hr == S_OK)
+				{
+					b2.Attach(new Bitmap(factory.getInfo(), factory.getPlatformPixelFormat(), /*context_*/originalContext, nativeBitmap.get()));
+				}
+			}
+
+			if (hr == S_OK)
+				b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void**>(returnBitmap));
 
 			return hr == S_OK ? gmpi::MP_OK : gmpi::MP_FAIL;
 		}
