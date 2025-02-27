@@ -777,10 +777,13 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 			}
 			else
 			{
+
 				// https://walbourn.github.io/windows-imaging-component-and-windows-8/
 
 				gmpi::drawing::SizeU bitmapSize{};
 				diBitmap_->GetSize(&bitmapSize.width, &bitmapSize.height);
+
+				gmpi::directx::ComPtr<ID2D1RenderTarget> pWICRenderTarget;
 
 				// Create a WIC bitmap to draw on.
 				gmpi::directx::ComPtr<IWICBitmap> diBitmap_HDR_;
@@ -801,7 +804,6 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 //						D2D1::PixelFormat(DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED)
 					);
 
-					gmpi::directx::ComPtr<ID2D1RenderTarget> pWICRenderTarget;
 					hr = factory.getFactory()->CreateWicBitmapRenderTarget(
 						diBitmap_HDR_,
 						renderTargetProperties,
@@ -876,11 +878,15 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 							// Draw the effect onto the device context.
 							pDeviceContext->DrawImage(m_whiteScaleEffect.get());
 
+// Flush the device context to ensure all drawing commands are completed. testing
+hr = pDeviceContext->Flush();
 							// End drawing.
 							hr = pDeviceContext->EndDraw();
+
 						}
 					}
 				}
+ nativeContext_->Flush(); // has an effect on corruption. not sure where to put this.
 
 				if (SUCCEEDED(hr))
 				{
@@ -888,6 +894,8 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 						diBitmap_HDR_,
 						nativeBitmap_.put()
 					);
+
+
 				}
 			}
 
@@ -1268,6 +1276,8 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 			}
 			else // if (wikBitmapRenderTarget)
 			{
+// Flush the device context to ensure all drawing commands are completed. testing
+//hr = context_->Flush();
 				context_ = nullptr;
 
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
