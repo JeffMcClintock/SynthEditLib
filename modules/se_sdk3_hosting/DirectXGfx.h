@@ -137,8 +137,6 @@ namespace se // gmpi
 			int32_t LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override;
 			int32_t CreateStrokeStyle(const GmpiDrawing_API::MP1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, float* dashes, int32_t dashesCount, GmpiDrawing_API::IMpStrokeStyle** returnValue) override;
 
-			IWICBitmap* CreateDiBitmapFromNative(ID2D1Bitmap* D2D_Bitmap);
-
 			// IMpFactory2
 			int32_t GetFontFamilyName(int32_t fontIndex, gmpi::IString* returnString) override;
 
@@ -1182,7 +1180,7 @@ namespace se // gmpi
 		class GraphicsContext_SDK3 : public GmpiDrawing_API::IMpDeviceContext
 		{
 		protected:
-			ID2D1DeviceContext* context_{};
+			gmpi::directx::ComPtr<ID2D1DeviceContext> context_;
 			Factory_base factory;
 			gmpi::IMpUnknown* fallback{};
 
@@ -1193,8 +1191,8 @@ namespace se // gmpi
 				, factory(pinfo, nullptr)
 				, fallback(pfallback)
 			{
-				if(context_)
-					context_->AddRef();
+				//if(context_)
+				//	context_->AddRef();
 
 				// gmpiContext inits it's clip rect, SDK3 does not.
 				const float defaultClipBounds = 100000.0f;
@@ -1216,7 +1214,7 @@ namespace se // gmpi
 
 			~GraphicsContext_SDK3()
 			{
-				context_->Release();
+//				context_->Release();
 			}
 
 #if	ENABLE_HDR_SUPPORT
@@ -1494,84 +1492,17 @@ namespace se // gmpi
 
 		class BitmapRenderTarget : public GraphicsContext_SDK3
 		{
-			ID2D1BitmapRenderTarget* gpuBitmapRenderTarget = {};
+			gmpi::directx::ComPtr<IWICBitmap> wicBitmap;
+			gmpi::directx::ComPtr<ID2D1BitmapRenderTarget> gpuBitmapRenderTarget;
 
-			IWICBitmap* wicBitmap{};
-			ID2D1RenderTarget* wikBitmapRenderTarget{};
 			ID2D1DeviceContext* originalContext{};
 
 		public:
-#if 0
+
 			// Create on GPU only
-			BitmapRenderTarget(GraphicsContext* g, const GmpiDrawing_API::MP1_SIZE* desiredSize, Factory* pfactory) :
-				GraphicsContext(pfactory)
-			{
-#if 1
-				// Create a render target on the GPU. Not modifyable by CPU.
-				/* auto hr = */ g->native()->CreateCompatibleRenderTarget(*(D2D1_SIZE_F*)desiredSize, &gpuBitmapRenderTarget);
-				gpuBitmapRenderTarget->QueryInterface(IID_ID2D1DeviceContext, (void**)&context_);
-#else
-				// Create a WIC render target. Modifyable by CPU (lock pixels).
+			BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API::MP1_SIZE desiredSize, gmpi::directx::DxFactoryInfo& info, bool enableLockPixels = false);
 
-				// First create the WIC bitmap
-				D2D1_RENDER_TARGET_PROPERTIES props{
-					D2D1_RENDER_TARGET_TYPE_DEFAULT,
-					{DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED },
-					{},
-					{},
-					D2D1_RENDER_TARGET_USAGE_NONE,
-					D2D1_FEATURE_LEVEL_DEFAULT
-				};
-
-				auto hr = pfactory->getWicFactory()->CreateBitmap((UINT)desiredSize->width, (UINT)desiredSize->height, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &wicBitmap);
-				pfactory->getD2dFactory()->CreateWicBitmapRenderTarget(wicBitmap, props, &wikBitmapRenderTarget);
-				wikBitmapRenderTarget->QueryInterface(IID_ID2D1DeviceContext, (void**)&context_);
-#endif
-
-				clipRectStack.push_back({ 0, 0, desiredSize->width, desiredSize->height });
-			}
-#endif
-			// Create on GPU only
-			BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API::MP1_SIZE desiredSize, gmpi::directx::DxFactoryInfo& info, bool enableLockPixels = false) :
-				GraphicsContext_SDK3(nullptr, info)
-				, originalContext(g->native())
-			{
-				if (enableLockPixels) // TODO !!! wrong gamma.
-				{
-					// Create a WIC render target. Modifyable by CPU (lock pixels). More expensive.
-
-					// First create the WIC bitmap
-					D2D1_RENDER_TARGET_PROPERTIES props{
-						D2D1_RENDER_TARGET_TYPE_DEFAULT,
-						{DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED },
-						{},
-						{},
-						D2D1_RENDER_TARGET_USAGE_NONE,
-						D2D1_FEATURE_LEVEL_DEFAULT
-					};
-
-					[[maybe_unused]] auto hr = factory.getWicFactory()->CreateBitmap((UINT)desiredSize.width, (UINT)desiredSize.height, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &wicBitmap);
-					factory.getD2dFactory()->CreateWicBitmapRenderTarget(wicBitmap, props, &wikBitmapRenderTarget);
-					wikBitmapRenderTarget->QueryInterface(IID_ID2D1DeviceContext, (void**)&context_);
-				}
-				else
-				{
-					// Create a render target on the GPU. Not modifyable by CPU.
-					/* auto hr = */ g->native()->CreateCompatibleRenderTarget(*(D2D1_SIZE_F*)&desiredSize, &gpuBitmapRenderTarget);
-					gpuBitmapRenderTarget->QueryInterface(IID_ID2D1DeviceContext, (void**)&context_);
-				}
-
-				clipRectStack.push_back({ 0, 0, desiredSize.width, desiredSize.height });
-			}
-
-			~BitmapRenderTarget()
-			{
-				if (gpuBitmapRenderTarget)
-					gpuBitmapRenderTarget->Release();
-
-				if (wikBitmapRenderTarget)
-					wikBitmapRenderTarget->Release();
-			}
+			~BitmapRenderTarget(){}
 
 			// HACK, to be ABI compatible with IMpBitmapRenderTarget we need this virtual function,
 			// and it needs to be in the vtable right after all virtual functions of GraphicsContext

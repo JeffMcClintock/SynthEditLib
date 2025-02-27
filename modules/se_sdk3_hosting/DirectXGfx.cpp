@@ -471,84 +471,6 @@ namespace se //gmpi
 			return gmpi::MP_OK;
 		}
 
-		IWICBitmap* Factory_base::CreateDiBitmapFromNative(ID2D1Bitmap* D2D_Bitmap)
-		{
-			return {};
-#if 0
-
-/*
-The reason it doesn't work is that you are trying to use a resource created with one context/rendertarget with a different context/rendertarget.
-There are only a few situations in which that is possible and this isn't one of them.
-If all you want to do is save the bitmap to a file using WIC, follow this sample: http://code.msdn.microsoft.com/windowsapps/SaveAsImageFile-68073cb0 .
-If you really want a WIC render target you can do it with ID2D1Bitmap1::Map by copying the data out and then creating a new bitmap using an overload that
-lets you specify the initial data. If the original ID2D1Bitmap1 wasn't created with the D2D1_BITMAP_OPTIONS_CPU_READ flag then you'll need to
-create an intermediate bitmap rendertarget that has that flag set and render the original bitmap to it or else using ID2D1DeviceContext::CreateBitmapFromDxgiSurface
-[you should be able to QueryInterface (or use ComPtr<T>::As) to get an IDxgiSurface interface from an ID2D1Bitmap1].
-Once you have a bitmap with that flag set then you can use Map on it, copy out its data,
-and then use http://msdn.microsoft.com/en-us/library/dd371803(v=vs.85).aspx to create the bitmap with initial data (i.e. the data you copied out).
-Make sure that you call Unmap when you are done reading the data and that you free any memory you copied (preferably you'd use a std::unique_ptr to store the copied data.
-You might even be able to get away with just using the data pointer that you get from calling Map directly rather than copying the data out.
-If so that'd be far more efficient so do that.)
-*/
-
-			/*
-			probly need to:
-			cast bitmap to rendertarget,
-			copy bits out with ID2D1Bitmap::CopyFromRenderTarget 
-			create a new IWICBitmap
-			create a WicBitmapRenderTarget
-			create a 2nd bitmap FROM THE wic render target
-			copy bits into new bitmap
-			draw new bitmap on rendertarget.
-			*/
-
-			// Don't work, can't draw from bitmap belonging to different render target. !!!
-			auto size = D2D_Bitmap->GetSize();
-
-			// Create a WIC bitmap.
-			IWICBitmap* wicBitmap = nullptr;
-			auto hr = pIWICFactory->CreateBitmap((UINT) size.width, (UINT) size.height, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &wicBitmap); // pre-muliplied alpha
-
-			// Get a rendertarget on wic bitmap.
-			D2D1_RENDER_TARGET_PROPERTIES props;
-			memset(&props, 0, sizeof(props));
-			props.type = D2D1_RENDER_TARGET_TYPE_SOFTWARE;
-			props.dpiX = 0.0f;
-			props.dpiY = 0.0f;
-			props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM; // DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-			props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
-
-			ID2D1RenderTarget* wicRenderTarget = nullptr;
-			hr = m_pDirect2dFactory->CreateWicBitmapRenderTarget(
-				wicBitmap,
-				&props,
-				&wicRenderTarget);
-
-			// Draw pixels to wic bitmap.
-			wicRenderTarget->BeginDraw();
-
-			GmpiDrawing::Rect r(0,0, size.width, size.height);
-
-			wicRenderTarget->DrawBitmap(D2D_Bitmap, (D2D1_RECT_F*)&r, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, (D2D1_RECT_F*)&r);
-			
-			ID2D1SolidColorBrush *solidColorBrush;
-			D2D1_COLOR_F color;
-			D2D1_RECT_F rect;
-			rect.left = rect.top = 0;
-			rect.right = rect.bottom = 10;
-			color.r = color.g = color.b = color.a = 0.8f;
-			wicRenderTarget->CreateSolidColorBrush(color, &solidColorBrush);
-			wicRenderTarget->FillRectangle(rect, solidColorBrush);
-
-			auto r2 = wicRenderTarget->EndDraw();
-
-			// release render target.
-			SafeRelease(wicRenderTarget);
-
-			return wicBitmap;
-#endif
-		}
-
 		int32_t Factory_base::GetFontFamilyName(int32_t fontIndex, gmpi::IString* returnString)
 		{
 			if (fontIndex < 0 || fontIndex >= info.supportedFontFamilies.size())
@@ -799,24 +721,47 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 
 			if (!factory.isHdr())
 			{
+#if 0
+				// format of the device bitmap we are creating;
 				D2D1_BITMAP_PROPERTIES props;
 				props.dpiX = props.dpiY = 96;
 				props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
-				if (pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
+
+				// get the WIC bitmap format.
+				WICPixelFormatGUID wicFormat{};
+				diBitmap_->GetPixelFormat(&wicFormat);
+
+				if (std::memcmp(&wicFormat, &GUID_WICPixelFormat32bppPBGRA, sizeof(wicFormat)) == 0)
 				{
-					props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+					// 8-bit pixels. SRGB usually, otherwise not for fallback option.
+					if (pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
+					{
+						props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+					}
+					else
+					{
+						props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
+					}
+				}
+				else if (std::memcmp(&wicFormat, &GUID_WICPixelFormat64bppPRGBAHalf, sizeof(wicFormat)) == 0)
+				{
+					props.pixelFormat.format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+				}
+				else if (std::memcmp(&wicFormat, &GUID_WICPixelFormat128bppPRGBAFloat, sizeof(wicFormat)) == 0)
+				{
+					props.pixelFormat.format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 				}
 				else
 				{
-					props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
+					assert(false); // unrecognised format
 				}
-
+#endif
 				try
 				{
 					// Convert to D2D format and cache.
 					auto hr = nativeContext_->CreateBitmapFromWicBitmap(
 						diBitmap_,
-						&props,
+//						&props,
 						nativeBitmap_.put()
 					);
 
@@ -840,22 +785,23 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 				// Create a WIC bitmap to draw on.
 				gmpi::directx::ComPtr<IWICBitmap> diBitmap_HDR_;
 				HRESULT hr = factory.getWicFactory()->CreateBitmap(
-					static_cast<UINT>(bitmapSize.width),
-					static_cast<UINT>(bitmapSize.height),
-					GUID_WICPixelFormat64bppPRGBAHalf,
-					WICBitmapNoCache,
-					diBitmap_HDR_.put()
+					  static_cast<UINT>(bitmapSize.width)
+					, static_cast<UINT>(bitmapSize.height)
+					, GUID_WICPixelFormat64bppPRGBAHalf
+					, WICBitmapNoCache
+					, diBitmap_HDR_.put()
 				);
 
 				if (SUCCEEDED(hr))
 				{
 					// Create a WIC render target.
-					gmpi::directx::ComPtr<ID2D1RenderTarget> pWICRenderTarget;
 					D2D1_RENDER_TARGET_PROPERTIES renderTargetProperties = D2D1::RenderTargetProperties(
 						D2D1_RENDER_TARGET_TYPE_DEFAULT,
-						D2D1::PixelFormat(DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED)
+						D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_UNKNOWN)
+//						D2D1::PixelFormat(DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED)
 					);
 
+					gmpi::directx::ComPtr<ID2D1RenderTarget> pWICRenderTarget;
 					hr = factory.getFactory()->CreateWicBitmapRenderTarget(
 						diBitmap_HDR_,
 						renderTargetProperties,
@@ -863,12 +809,14 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 					);
 
 					// Create a device context from the WIC render target.
-					gmpi::directx::ComPtr<ID2D1DeviceContext> pDeviceContext;
-					hr = pWICRenderTarget->QueryInterface(IID_PPV_ARGS(pDeviceContext.put()));
+					//gmpi::directx::ComPtr<ID2D1DeviceContext> pDeviceContext;
+					//hr = pWICRenderTarget->QueryInterface(IID_PPV_ARGS(pDeviceContext.put()));
+					auto pDeviceContext = pWICRenderTarget.as<ID2D1DeviceContext>();
 
 					if (SUCCEEDED(hr))
 					{
 						// Convert original image to D2D format
+#if 0
 						D2D1_BITMAP_PROPERTIES props;
 						props.dpiX = props.dpiY = 96;
 						if (factory.getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
@@ -880,11 +828,11 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 							props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
 						}
 						props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
-
+#endif
 						gmpi::directx::ComPtr<ID2D1Bitmap> pSourceBitmap;
 						hr = pDeviceContext->CreateBitmapFromWicBitmap(
 							diBitmap_,
-							&props,
+//							&props,
 							pSourceBitmap.getAddressOf()
 						);
 
@@ -962,6 +910,7 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 		// WIX premultiplies images automatically on load, but wrong (assumes linear not SRGB space). Fix it.
 		void Bitmap::ApplyPreMultiplyCorrection()
 		{
+			return;
 #if 1
 			GmpiDrawing::Bitmap bitmap(this);
 
@@ -1249,6 +1198,54 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 			return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI, reinterpret_cast<void**>(returnObject));
 		}
 
+		BitmapRenderTarget::BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API::MP1_SIZE desiredSize, gmpi::directx::DxFactoryInfo& info, bool enableLockPixels) :
+			GraphicsContext_SDK3(nullptr, info)
+			, originalContext(g->native())
+		{
+			if (enableLockPixels) // TODO !!! wrong gamma.
+			{
+				// Create a WIC render target. Modifyable by CPU (lock pixels). More expensive.
+				const bool use8bit = true;
+
+				// Create a WIC bitmap to draw on.
+				[[maybe_unused]] auto hr =
+					factory.getWicFactory()->CreateBitmap(
+						  static_cast<UINT>(desiredSize.width)
+						, static_cast<UINT>(desiredSize.height)
+						, use8bit ? GUID_WICPixelFormat32bppPBGRA : GUID_WICPixelFormat64bppPRGBAHalf // GUID_WICPixelFormat128bppPRGBAFloat // GUID_WICPixelFormat64bppPRGBAHalf // GUID_WICPixelFormat128bppPRGBAFloat
+						, use8bit ? WICBitmapCacheOnDemand : WICBitmapNoCache
+						, wicBitmap.put()
+					);
+
+				D2D1_RENDER_TARGET_PROPERTIES renderTargetProperties = D2D1::RenderTargetProperties(
+					D2D1_RENDER_TARGET_TYPE_DEFAULT,
+					D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_UNKNOWN)
+					//D2D1::PixelFormat(DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED)
+				);
+
+				gmpi::directx::ComPtr<ID2D1RenderTarget> wikBitmapRenderTarget;
+				factory.getD2dFactory()->CreateWicBitmapRenderTarget(
+					wicBitmap,
+					renderTargetProperties,
+					wikBitmapRenderTarget.put()
+				);
+
+				// wikBitmapRenderTarget->QueryInterface(IID_ID2D1DeviceContext, (void**)&context_);
+				// hr = wikBitmapRenderTarget->QueryInterface(IID_PPV_ARGS(&context_));
+				context_ = wikBitmapRenderTarget.as<ID2D1DeviceContext>();
+
+//context_->AddRef(); //?????
+			}
+			else
+			{
+				// Create a render target on the GPU. Not modifyable by CPU.
+				/* auto hr = */ g->native()->CreateCompatibleRenderTarget(*(D2D1_SIZE_F*)&desiredSize, gpuBitmapRenderTarget.put());
+				gpuBitmapRenderTarget->QueryInterface(IID_ID2D1DeviceContext, (void**)&context_);
+			}
+
+			clipRectStack.push_back({ 0, 0, desiredSize.width, desiredSize.height });
+		}
+
 		int32_t BitmapRenderTarget::GetBitmap(GmpiDrawing_API::IMpBitmap** returnBitmap)
 		{
 			*returnBitmap = nullptr;
@@ -1269,8 +1266,10 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 					b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void**>(returnBitmap));
 				}
 			}
-			else if (wikBitmapRenderTarget)
+			else // if (wikBitmapRenderTarget)
 			{
+				context_ = nullptr;
+
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
 				b2.Attach(new Bitmap(factory.getInfo(), factory.getPlatformPixelFormat(), wicBitmap)); //temp factory about to go out of scope (when using a bitmap render target)
 
