@@ -1498,6 +1498,7 @@ namespace se // gmpi
 
 			IWICBitmap* wicBitmap{};
 			ID2D1RenderTarget* wikBitmapRenderTarget{};
+			ID2D1DeviceContext* originalContext{};
 
 		public:
 #if 0
@@ -1533,8 +1534,9 @@ namespace se // gmpi
 			// Create on GPU only
 			BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API::MP1_SIZE desiredSize, gmpi::directx::DxFactoryInfo& info, bool enableLockPixels = false) :
 				GraphicsContext_SDK3(nullptr, info)
+				, originalContext(g->native())
 			{
-				if (enableLockPixels)
+				if (enableLockPixels) // TODO !!! wrong gamma.
 				{
 					// Create a WIC render target. Modifyable by CPU (lock pixels). More expensive.
 

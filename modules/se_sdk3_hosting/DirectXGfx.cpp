@@ -758,50 +758,11 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 		{
 			*returnInterface = nullptr;
 
-			// If image was not loaded from a WicBitmap (i.e. was created from device context), then need to write it to WICBitmap first.
+			// If image was not loaded from a WicBitmap (i.e. was created from device context) you can't read it.
 			if (diBitmap_.isNull())
 			{
-				if(nativeBitmap_.isNull())
-				{
-					return gmpi::MP_FAIL; // TODO: create WIC from D2DBitmap not implemented.
-				}
-
-return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
-#if 0
-
-				const auto size = nativeBitmap_->GetPixelSize();
-				D2D1_BITMAP_PROPERTIES1 props = {};
-				props.pixelFormat = nativeBitmap_->GetPixelFormat();
-				nativeBitmap_->GetDpi(&props.dpiX, &props.dpiY);
-				props.bitmapOptions = D2D1_BITMAP_OPTIONS_CPU_READ | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
-
-				HRESULT res;
-				ID2D1Bitmap1* tempBitmap = {};
-				res = nativeContext_->CreateBitmap(size, nullptr, 0, props, &tempBitmap);
-
-				D2D1_POINT_2U destPoint = {};
-				D2D1_RECT_U srcRect = {0,0,size.width, size.height};
-				res = tempBitmap->CopyFromBitmap(&destPoint, nativeBitmap_, &srcRect);
-
-				{
-					D2D1_MAPPED_RECT map;
-					tempBitmap->Map(D2D1_MAP_OPTIONS_READ, &map);
-
-// move to factory				res = pIWICFactory->CreateBitmap(size.width, size.height, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &diBitmap_); // pre-muliplied alpha
-
-//					diBitmap_->CopyPixels()
-
-					tempBitmap->Unmap();
-				}
-
-				tempBitmap->Release();
-
-				return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented.
-/*
-				assert(nativeBitmap_);
-*/
-// clean this up				diBitmap_ = factory->CreateDiBitmapFromNative(nativeBitmap_);
-#endif
+				_RPT0(0, "Bitmap::lockPixels() - no WIC bitmap. Use IMpDeviceContextExt to create a WIC render target instead.\n");
+				return gmpi::MP_FAIL;
 			}
 
 			if (0 != (flags & GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE))
@@ -823,23 +784,32 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 			{
 				nativeContext_ = nativeContext;
 
-				// invalidate stale bitmaps.
+				// invalidate stale bitmap.
 				nativeBitmap_ = nullptr;
+
+				assert(diBitmap_); // oops where you gonna get the bitmap from now?
+			}
+			else if (nativeBitmap_)
+			{
+				return nativeBitmap_.get();
 			}
 
-			if (!nativeBitmap_ && diBitmap_)
+			if (diBitmap_.isNull())
+				return nullptr;
+
+			if (!factory.isHdr())
 			{
 				D2D1_BITMAP_PROPERTIES props;
 				props.dpiX = props.dpiY = 96;
-				if (/*factory >getPlatformPixelFormat()*/ pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB) //  graphics->SupportSRGB())
+				props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
+				if (pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
 				{
-					props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB; // no good with DXGI_FORMAT_R16G16B16A16_FLOAT: nativeContext_->GetPixelFormat().format;
+					props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
 				}
 				else
 				{
-					props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM; // no good with DXGI_FORMAT_R16G16B16A16_FLOAT: nativeContext_->GetPixelFormat().format;
+					props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
 				}
-				props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
 
 				try
 				{
@@ -860,191 +830,118 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 					return nullptr;
 				}
 			}
-
-#if	ENABLE_HDR_SUPPORT
-			if (factory.isHdr())
+			else
 			{
 				// https://walbourn.github.io/windows-imaging-component-and-windows-8/
 
-				if (!nativeBitmap_)
+				gmpi::drawing::SizeU bitmapSize{};
+				diBitmap_->GetSize(&bitmapSize.width, &bitmapSize.height);
+
+				// Create a WIC bitmap to draw on.
+				gmpi::directx::ComPtr<IWICBitmap> diBitmap_HDR_;
+				HRESULT hr = factory.getWicFactory()->CreateBitmap(
+					static_cast<UINT>(bitmapSize.width),
+					static_cast<UINT>(bitmapSize.height),
+					GUID_WICPixelFormat64bppPRGBAHalf,
+					WICBitmapNoCache,
+					diBitmap_HDR_.put()
+				);
+
+				if (SUCCEEDED(hr))
 				{
-#if 0
-					const auto bitmapSize = nativeBitmap_->GetPixelSize();
-					if (!diBitmap_ && nativeBitmap_) // no WIX bitmap available, use device bitmap;
+					// Create a WIC render target.
+					gmpi::directx::ComPtr<ID2D1RenderTarget> pWICRenderTarget;
+					D2D1_RENDER_TARGET_PROPERTIES renderTargetProperties = D2D1::RenderTargetProperties(
+						D2D1_RENDER_TARGET_TYPE_DEFAULT,
+						D2D1::PixelFormat(DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED)
+					);
+
+					hr = factory.getFactory()->CreateWicBitmapRenderTarget(
+						diBitmap_HDR_,
+						renderTargetProperties,
+						pWICRenderTarget.put()
+					);
+
+					// Create a device context from the WIC render target.
+					gmpi::directx::ComPtr<ID2D1DeviceContext> pDeviceContext;
+					hr = pWICRenderTarget->QueryInterface(IID_PPV_ARGS(pDeviceContext.put()));
+
+					if (SUCCEEDED(hr))
 					{
-						const auto sizeU = nativeBitmap_->GetPixelSize();
-#ifdef _DEBUG
-						float dpiX, dpiY;
-						nativeBitmap_->GetDpi(&dpiX, &dpiY);
-						const auto pixelFormat = nativeBitmap_->GetPixelFormat();
-#endif
+						// Convert original image to D2D format
+						D2D1_BITMAP_PROPERTIES props;
+						props.dpiX = props.dpiY = 96;
+						if (factory.getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
+						{
+							props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+						}
+						else
+						{
+							props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
+						}
+						props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
 
-						// copy the DD bitmap to the HDR bitmap.
-						const D2D1_SIZE_F sizeF = D2D1::SizeF((float)sizeU.width, (float)sizeU.height);
-
-						gmpi::directx::ComPtr<ID2D1BitmapRenderTarget> hdrRenderTarget;
-
-						nativeContext_->CreateCompatibleRenderTarget(
-							nativeBitmap_->GetSize(),
-							hdrRenderTarget.put());
-
-						hdrRenderTarget->SetDpi(96.0f, 96.0f); // otherwise draws too big.
-						hdrRenderTarget->BeginDraw();
-						hdrRenderTarget->DrawBitmap(nativeBitmap_, D2D1::RectF(0, 0, bitmapSize.width, bitmapSize.height));
-						hdrRenderTarget->EndDraw();
-
-						gmpi::directx::ComPtr<ID2D1Bitmap> temp;
-						hdrRenderTarget->GetBitmap(temp.put());
-
-						nativeBitmap_HDR_ = temp.as<ID2D1Bitmap1>();
-#ifdef _DEBUG
-						auto test1 = native Bitmap_HDR_->GetPixelSize();
-						auto test2 = native Bitmap_HDR_->GetPixelFormat();
-						float dpiX2, dpiY2;
-						native Bitmap_HDR_->GetDpi(&dpiX2, &dpiY2);
-#endif
-					}
-					else// gonna need a wix bitmap as the source. 
-#endif
-					if (diBitmap_)
-					{
-//						const auto bitmapSize = diBitmap_->GetSize() nativeBitmap_->GetPixelSize();
-						gmpi::drawing::SizeU bitmapSize{};
-						diBitmap_->GetSize(&bitmapSize.width, &bitmapSize.height);
-
-						// Create a WIC bitmap to draw on.
-						gmpi::directx::ComPtr<IWICBitmap> diBitmap_HDR_;
-						HRESULT hr = factory.getWicFactory()->CreateBitmap(
-							static_cast<UINT>(bitmapSize.width),
-							static_cast<UINT>(bitmapSize.height),
-							GUID_WICPixelFormat64bppPRGBAHalf,
-							WICBitmapNoCache,
-							diBitmap_HDR_.put()
+						gmpi::directx::ComPtr<ID2D1Bitmap> pSourceBitmap;
+						hr = pDeviceContext->CreateBitmapFromWicBitmap(
+							diBitmap_,
+							&props,
+							pSourceBitmap.getAddressOf()
 						);
 
-						if (SUCCEEDED(hr))
+						// create whitescale effect
+						gmpi::directx::ComPtr<ID2D1Effect> m_whiteScaleEffect;
 						{
-							// Create a WIC render target.
-							gmpi::directx::ComPtr<ID2D1RenderTarget> pWICRenderTarget;
-							D2D1_RENDER_TARGET_PROPERTIES renderTargetProperties = D2D1::RenderTargetProperties(
-								D2D1_RENDER_TARGET_TYPE_DEFAULT,
-								D2D1::PixelFormat(DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED)
-							);
+							// White level scale is used to multiply the color values in the image; this allows the user
+							// to adjust the brightness of the image on an HDR display.
+							pDeviceContext->CreateEffect(CLSID_D2D1ColorMatrix, m_whiteScaleEffect.getAddressOf());
 
-							hr = factory.getFactory()->CreateWicBitmapRenderTarget(
-								diBitmap_HDR_,
-								renderTargetProperties,
-								pWICRenderTarget.put()
-							);
+							// SDR white level scaling is performing by multiplying RGB color values in linear gamma.
+							// We implement this with a Direct2D matrix effect.
+							D2D1_MATRIX_5X4_F matrix = D2D1::Matrix5x4F(
+								factory.getWhiteMult(), 0, 0, 0,  // [R] Multiply each color channel
+								0, factory.getWhiteMult(), 0, 0,  // [G] by the scale factor in 
+								0, 0, factory.getWhiteMult(), 0,  // [B] linear gamma space.
+								0, 0, 0, 1,		 // [A] Preserve alpha values.
+								0, 0, 0, 0);	 //     No offset.
 
-							// Create a device context from the WIC render target.
-							gmpi::directx::ComPtr<ID2D1DeviceContext> pDeviceContext;
-							hr = pWICRenderTarget->QueryInterface(IID_PPV_ARGS(pDeviceContext.put()));
+							m_whiteScaleEffect->SetValue(D2D1_COLORMATRIX_PROP_COLOR_MATRIX, matrix);
 
-							if (SUCCEEDED(hr))
+							// increase the bit-depth of the filter, else it does a shitty 8-bit conversion. Which results in serious degredation of the image.
+							if (nativeContext->IsBufferPrecisionSupported(D2D1_BUFFER_PRECISION_16BPC_FLOAT))
 							{
-								// if bitmap was loaded from disk, we have the original in WIX format.
-//								if (diBitmap_)
-								{
-									// Convert original image to D2D format
-									D2D1_BITMAP_PROPERTIES props;
-									props.dpiX = props.dpiY = 96;
-									if (factory.getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
-									{
-										props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-									}
-									else
-									{
-										props.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
-									}
-									props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
-
-									gmpi::directx::ComPtr<ID2D1Bitmap> pSourceBitmap;
-									hr = pDeviceContext->CreateBitmapFromWicBitmap(
-										diBitmap_,
-										&props,
-										pSourceBitmap.getAddressOf()
-									);
-
-									// create whitescale effect
-									gmpi::directx::ComPtr<ID2D1Effect> m_whiteScaleEffect;
-									{
-										// White level scale is used to multiply the color values in the image; this allows the user
-										// to adjust the brightness of the image on an HDR display.
-										pDeviceContext->CreateEffect(CLSID_D2D1ColorMatrix, m_whiteScaleEffect.getAddressOf());
-
-										// SDR white level scaling is performing by multiplying RGB color values in linear gamma.
-										// We implement this with a Direct2D matrix effect.
-										D2D1_MATRIX_5X4_F matrix = D2D1::Matrix5x4F(
-											factory.getWhiteMult(), 0, 0, 0,  // [R] Multiply each color channel
-											0, factory.getWhiteMult(), 0, 0,  // [G] by the scale factor in 
-											0, 0, factory.getWhiteMult(), 0,  // [B] linear gamma space.
-											0, 0, 0, 1,		 // [A] Preserve alpha values.
-											0, 0, 0, 0);	 //     No offset.
-
-										m_whiteScaleEffect->SetValue(D2D1_COLORMATRIX_PROP_COLOR_MATRIX, matrix);
-
-										// increase the bit-depth of the filter, else it does a shitty 8-bit conversion. Which results in serious degredation of the image.
-										if (nativeContext->IsBufferPrecisionSupported(D2D1_BUFFER_PRECISION_16BPC_FLOAT))
-										{
-											auto hr = m_whiteScaleEffect->SetValue(D2D1_PROPERTY_PRECISION, D2D1_BUFFER_PRECISION_16BPC_FLOAT);
-										}
-										else if (nativeContext->IsBufferPrecisionSupported(D2D1_BUFFER_PRECISION_32BPC_FLOAT))
-										{
-											auto hr = m_whiteScaleEffect->SetValue(D2D1_PROPERTY_PRECISION, D2D1_BUFFER_PRECISION_32BPC_FLOAT);
-										}
-									}
-
-									if (SUCCEEDED(hr))
-									{
-										// Set the effect input.
-										m_whiteScaleEffect->SetInput(0, pSourceBitmap.get());
-
-										// Begin drawing on the device context.
-										pDeviceContext->BeginDraw();
-
-										// Draw the effect onto the device context.
-										pDeviceContext->DrawImage(m_whiteScaleEffect.get());
-
-										// End drawing.
-										hr = pDeviceContext->EndDraw();
-									}
-								}
-#if 0
-								else
-								{
-									// TODO !!! drawing on BitmapRender Targets in HDR mode. (Scope3 background)
-
-									// Bitmap was created in-memory. No source WIX bitmap available.
-									// Just clear the bitmap to orange.
-									pDeviceContext->BeginDraw();
-
-									auto color = D2D1::ColorF(D2D1::ColorF::Orange);
-									color.r *= factory.getWhiteMult();
-									color.g *= factory.getWhiteMult();
-									color.b *= factory.getWhiteMult();
-
-									pDeviceContext->Clear(color);
-
-									pDeviceContext->EndDraw();
-								}
-#endif
+								auto hr = m_whiteScaleEffect->SetValue(D2D1_PROPERTY_PRECISION, D2D1_BUFFER_PRECISION_16BPC_FLOAT);
+							}
+							else if (nativeContext->IsBufferPrecisionSupported(D2D1_BUFFER_PRECISION_32BPC_FLOAT))
+							{
+								auto hr = m_whiteScaleEffect->SetValue(D2D1_PROPERTY_PRECISION, D2D1_BUFFER_PRECISION_32BPC_FLOAT);
 							}
 						}
 
 						if (SUCCEEDED(hr))
 						{
-							auto hr = nativeContext_->CreateBitmapFromWicBitmap(
-								diBitmap_HDR_,
-								nativeBitmap_.put()
-							);
+							// Set the effect input.
+							m_whiteScaleEffect->SetInput(0, pSourceBitmap.get());
+
+							// Begin drawing on the device context.
+							pDeviceContext->BeginDraw();
+
+							// Draw the effect onto the device context.
+							pDeviceContext->DrawImage(m_whiteScaleEffect.get());
+
+							// End drawing.
+							hr = pDeviceContext->EndDraw();
 						}
 					}
 				}
 
-				return nativeBitmap_.get();
+				if (SUCCEEDED(hr))
+				{
+					auto hr = nativeContext_->CreateBitmapFromWicBitmap(
+						diBitmap_HDR_,
+						nativeBitmap_.put()
+					);
+				}
 			}
-#endif
 
 			return nativeBitmap_.get();
 		}
@@ -1366,7 +1263,7 @@ return gmpi::MP_FAIL; // creating WIC from D2DBitmap not implemented fully.
 				if (hr == S_OK)
 				{
 					gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-					b2.Attach(new Bitmap(factory.getInfo(), factory.getPlatformPixelFormat(), context_, nativeBitmap));
+					b2.Attach(new Bitmap(factory.getInfo(), factory.getPlatformPixelFormat(), /*context_*/originalContext, nativeBitmap));
 					nativeBitmap->Release();
 
 					b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void**>(returnBitmap));
