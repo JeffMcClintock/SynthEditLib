@@ -121,9 +121,9 @@ HRESULT DrawingFrameHwndBase::createNativeSwapChain
     );
 }
 
-void DrawingFrameBase2::OnSwapChainCreated(bool DX_support_sRGB, float whiteMult)
+void DrawingFrameBase2::OnSwapChainCreated(bool DX_support_sRGB)
 {
-    DrawingFactory->setSrgbSupport(DX_support_sRGB, whiteMult);
+    DrawingFactory->setSrgbSupport(DX_support_sRGB);
 
     const auto dpiScale = lowDpiMode ? 1.0f : getRasterizationScale();
 
@@ -613,8 +613,22 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 		return;
 	}
 
+    gmpi::directx::ComPtr <ID2D1DeviceContext> deviceContext;
+
+    gmpi::directx::ComPtr<ID2D1Bitmap> pSourceBitmap;
+	if (hdrWhiteScaleEffect) // draw onto intermediate buffer, then pass that through an effect to scale white.
+    {
+        d2dDeviceContext->BeginDraw();
+        deviceContext = hdrRenderTarget.as<ID2D1DeviceContext>();
+    }
+    else // draw directly on the swapchain bitmap.
+    {
+        deviceContext = d2dDeviceContext;
+    }
+
+    // draw onto the intermediate buffer.
 	{
-		se::directx::UniversalGraphicsContext context(DrawingFactory->getInfo(), d2dDeviceContext.get());
+        se::directx::UniversalGraphicsContext context(DrawingFactory->getInfo(), deviceContext);
 
 		auto legacyContext = static_cast<GmpiDrawing_API::IMpDeviceContext*>(&context.sdk3Context);
 		GmpiDrawing::Graphics graphics(legacyContext);
@@ -685,8 +699,17 @@ auto reverseTransform = gmpi::drawing::invert(viewTransform);
 		}
 #endif
 		/*const auto r =*/ graphics.EndDraw();
-
 	}
+
+    // draw the intermediate buffer onto the swapchain.
+    if(hdrWhiteScaleEffect)
+	{
+		// Draw the bitmap to the screen
+		const D2D1_RECT_F destRect = D2D1::RectF(0, 0, static_cast<float>(swapChainSize.width), static_cast<float>(swapChainSize.height));
+        d2dDeviceContext->DrawImage(hdrWhiteScaleEffect.get());
+
+        d2dDeviceContext->EndDraw();
+    }
 
 	// Present the backbuffer (if it has some new content)
 	if (firstPresent)

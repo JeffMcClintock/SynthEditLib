@@ -90,17 +90,6 @@ namespace se // gmpi
 				return info;
 			}
 
-#if	ENABLE_HDR_SUPPORT
-			bool isHdr() const
-			{
-				return info.whiteMult != 1.0f;
-			}
-			float getWhiteMult() const
-			{
-				return info.whiteMult;
-			}
-#endif
-
 			// for diagnostics only.
 			auto getDirectWriteFactory()
 			{
@@ -181,18 +170,9 @@ namespace se // gmpi
 
 		class SolidColorBrush final : /* Simulated: public GmpiDrawing_API::IMpSolidColorBrush,*/ public Brush
 		{
-#if	ENABLE_HDR_SUPPORT
-			float whiteMult = 1.0f;
-#endif
 		public:
 			SolidColorBrush(ID2D1SolidColorBrush* b, GmpiDrawing_API::IMpFactory *factory
-#if	ENABLE_HDR_SUPPORT
-				, float pwhiteMult
-#endif
 			) : Brush(b, factory)
-#if	ENABLE_HDR_SUPPORT
-				, whiteMult(pwhiteMult)
-#endif
 			{}
 
 			inline ID2D1SolidColorBrush* nativeSolidColorBrush()
@@ -203,49 +183,15 @@ namespace se // gmpi
 			// IMPORTANT: Virtual functions must 100% match simulated interface (GmpiDrawing_API::IMpSolidColorBrush)
 			virtual void SetColor(const GmpiDrawing_API::MP1_COLOR* color) // simulated: override
 			{
-//				D2D1::ConvertColorSpace(D2D1::ColorF*) color);
-#if	ENABLE_HDR_SUPPORT
-				const D2D1_COLOR_F c
-				{
-					color->r * whiteMult,
-					color->g * whiteMult,
-					color->b * whiteMult,
-					color->a
-				};
-#else
-				const D2D1_COLOR_F c
-				{
-					color->r,
-					color->g,
-					color->b,
-					color->a
-				};
-#endif
-
-				nativeSolidColorBrush()->SetColor(c);
+				nativeSolidColorBrush()->SetColor(*(const D2D1_COLOR_F*)color);
 			}
 			GmpiDrawing_API::MP1_COLOR GetColor() // simulated:  override
 			{
-				auto b = nativeSolidColorBrush()->GetColor();
-
-#if	ENABLE_HDR_SUPPORT
-				GmpiDrawing_API::MP1_COLOR c;
-				c.a = b.a;
-				c.r = b.r / whiteMult;
-				c.g = b.g / whiteMult;
-				c.b = b.b / whiteMult;
-#else
-				GmpiDrawing_API::MP1_COLOR c;
-				c.a = b.a;
-				c.r = b.r;
-				c.g = b.g;
-				c.b = b.b;
-#endif
-				return c;
+				const auto c = nativeSolidColorBrush()->GetColor();
+				return *(GmpiDrawing_API::MP1_COLOR*)&c;
 			}
 
 			//	GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_SOLIDCOLORBRUSH_MPGUI, GmpiDrawing_API::IMpSolidColorBrush);
-
 			int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 			{
 				*returnInterface = 0;
@@ -1108,16 +1054,6 @@ namespace se // gmpi
 				, fallback(pfallback)
 			{
 			}
-#if	ENABLE_HDR_SUPPORT
-			float whiteMult = 1.0f; // cached for speed.
-#endif
-			//// for BitmapRenderTarget which populates context in it's constructor
-			//GraphicsContext_RG(gmpi::api::IUnknown* legacyContext, Factory* pfactory) :
-			//	gmpi::directx::GraphicsContext_base(&factory)
-			//	, legacyContext_(legacyContext)
-			//	, factory(pfactory)
-			//{
-			//}
 #if 0
 			// "real" GMPI-UI API
 				// IResource (gmpi_ui)
@@ -1149,9 +1085,6 @@ namespace se // gmpi
 			{
 				context_->Clear((D2D1_COLOR_F*)clearColor);
 				return gmpi::ReturnCode::Ok;
-#if	ENABLE_HDR_SUPPORT
-				whiteMult = factory->whiteMult;
-#endif
 			}
 			gmpi::ReturnCode beginDraw() override { return gmpi::ReturnCode::Ok; }
 			gmpi::ReturnCode endDraw() override { return gmpi::ReturnCode::Ok; }
@@ -1197,29 +1130,9 @@ namespace se // gmpi
 				r.top = r.left = -defaultClipBounds;
 				r.bottom = r.right = defaultClipBounds;
 				clipRectStack.push_back(r);
-
-#if	ENABLE_HDR_SUPPORT
-				whiteMult = pinfo.whiteMult;
-#endif
 			}
 
-#if	ENABLE_HDR_SUPPORT
-			float whiteMult = 1.0f; // cached for speed.
-#else
-			inline constexpr float whiteMult = 1.0f;
-#endif
-
-			~GraphicsContext_SDK3()
-			{
-//				context_->Release();
-			}
-
-#if	ENABLE_HDR_SUPPORT
-			bool isHdr() const
-			{
-				return factory.isHdr();
-			}
-#endif
+			~GraphicsContext_SDK3(){}
 
 			ID2D1DeviceContext* native()
 			{
@@ -1249,24 +1162,7 @@ namespace se // gmpi
 				_RPT0(_CRT_WARN, "context_->Clear(c);\n");
 				_RPT0(_CRT_WARN, "}\n");
 #endif
-#if	ENABLE_HDR_SUPPORT
-				const D2D1_COLOR_F c
-				{
-					clearColor->r * whiteMult,
-					clearColor->g * whiteMult,
-					clearColor->b * whiteMult,
-					clearColor->a
-				};
-#else
-				const D2D1_COLOR_F c
-				{
-					clearColor->r,
-					clearColor->g,
-					clearColor->b,
-					clearColor->a
-				};
-#endif
-				context_->Clear(&c);
+				native()->Clear(*(D2D1_COLOR_F*)clearColor);
 			}
 
 			void DrawLine(GmpiDrawing_API::MP1_POINT point0, GmpiDrawing_API::MP1_POINT point1, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override

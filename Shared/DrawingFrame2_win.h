@@ -103,16 +103,18 @@ struct DrawingFrameBase2 :
     GmpiGui::PopupMenu contextMenu;
 
     DrawingFrameBase2();
+    ~DrawingFrameBase2()
+    {
+        ReleaseDevice();
+    }
 
     bool isMouseOver() const { return currentPointerPos.x >= 0 && currentPointerPos.y >= 0; }
 
     // override these please.
-    void OnSwapChainCreated(bool DX_support_sRGB, float whiteMult) override;
+    void OnSwapChainCreated(bool DX_support_sRGB) override;
 
     virtual void autoScrollStart() {}
     virtual void autoScrollStop() {}
-
-//    void CreateSwapPanel(ID2D1Factory1* d2dFactory);
 
     void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx);
     void detachClient();
@@ -126,8 +128,7 @@ struct DrawingFrameBase2 :
         detachClient();
 
         DrawingFactory = {};
-        d2dDeviceContext = {};
-        swapChain = {};
+        ReleaseDevice();
     }
 
     // gmpi::api::IDialogHost

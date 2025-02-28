@@ -713,7 +713,6 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 				  nativeContext
 				, nativeBitmap_
 				, diBitmap_
-				, factory.getWhiteMult()
 				, factory.getFactory()
 				, factory.getWicFactory()
 			);
@@ -848,38 +847,13 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 		{
 			*solidColorBrush = nullptr;
 
-//			HRESULT hr = context_->CreateSolidColorBrush(*(D2D1_COLOR_F*)color, &b);
-
-#if	ENABLE_HDR_SUPPORT
-			const D2D1_COLOR_F c
-			{
-				color->r * whiteMult,
-				color->g * whiteMult,
-				color->b * whiteMult,
-				color->a
-			};
-#else
-			const D2D1_COLOR_F c
-			{
-				color->r,
-				color->g,
-				color->b,
-				color->a
-			};
-#endif
-
 			ID2D1SolidColorBrush* b = nullptr;
-			HRESULT hr = context_->CreateSolidColorBrush(c, &b);
+			HRESULT hr = context_->CreateSolidColorBrush(*(D2D1_COLOR_F*)color, &b);
 
 			if (hr == 0)
 			{
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-				b2.Attach(new SolidColorBrush(b, &factory
-
-#if	ENABLE_HDR_SUPPORT
-					, whiteMult
-#endif
-				));
+				b2.Attach(new SolidColorBrush(b, &factory));
 
 				b2->queryInterface(GmpiDrawing_API::SE_IID_SOLIDCOLORBRUSH_MPGUI, reinterpret_cast<void **>(solidColorBrush));
 			}
@@ -900,48 +874,28 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 			*gradientStopCollection = nullptr;
 
 			HRESULT hr = 0;
-
 #if 1
-			std::vector<D2D1_GRADIENT_STOP> stops(gradientStopsCount);
-			for (uint32_t i = 0; i < gradientStopsCount; ++i)
+			// New way. Gamma-correct gradients without banding. White->Black mid color seems wrong (too light).
+			// requires ID2D1DeviceContext, not merely ID2D1RenderTarget
+			ID2D1GradientStopCollection1* native2 = nullptr;
+
+			hr = context_->CreateGradientStopCollection(
+				(const D2D1_GRADIENT_STOP*)gradientStops,
+				gradientStopsCount,
+				D2D1_COLOR_SPACE_SRGB,
+				D2D1_COLOR_SPACE_SRGB,
+				//D2D1_BUFFER_PRECISION_8BPC_UNORM_SRGB, // Buffer precision. fails in HDR
+				D2D1_BUFFER_PRECISION_16BPC_FLOAT, // the same in normal, correct in HDR
+				D2D1_EXTEND_MODE_CLAMP,
+				D2D1_COLOR_INTERPOLATION_MODE_STRAIGHT,
+				&native2);
+
+			if (hr == 0)
 			{
-				stops[i].color = D2D1::ColorF(
-#if	ENABLE_HDR_SUPPORT
-					gradientStops[i].color.r * whiteMult,
-					gradientStops[i].color.g * whiteMult,
-					gradientStops[i].color.b * whiteMult,
-#else
-					gradientStops[i].color.r,
-					gradientStops[i].color.g,
-					gradientStops[i].color.b,
-#endif
-					gradientStops[i].color.a
-				);
-				stops[i].position = gradientStops[i].position;
-			}
-			{
-				// New way. Gamma-correct gradients without banding. White->Black mid color seems wrong (too light).
-				// requires ID2D1DeviceContext, not merely ID2D1RenderTarget
-				ID2D1GradientStopCollection1* native2 = nullptr;
+				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> wrapper;
+				wrapper.Attach(new GradientStopCollection1(native2, &factory));
 
-				hr = context_->CreateGradientStopCollection(
-					stops.data(), // (D2D1_GRADIENT_STOP*)gradientStops,
-					gradientStopsCount,
-					D2D1_COLOR_SPACE_SRGB,
-					D2D1_COLOR_SPACE_SRGB,
-					//D2D1_BUFFER_PRECISION_8BPC_UNORM_SRGB, // Buffer precision. fails in HDR
-					D2D1_BUFFER_PRECISION_16BPC_FLOAT, // the same in normal, correct in HDR
-					D2D1_EXTEND_MODE_CLAMP,
-					D2D1_COLOR_INTERPOLATION_MODE_STRAIGHT,
-					&native2);
-
-				if (hr == 0)
-				{
-					gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> wrapper;
-					wrapper.Attach(new GradientStopCollection1(native2, &factory));
-
-					wrapper->queryInterface(GmpiDrawing_API::SE_IID_GRADIENTSTOPCOLLECTION_MPGUI, reinterpret_cast<void**>(gradientStopCollection));
-				}
+				wrapper->queryInterface(GmpiDrawing_API::SE_IID_GRADIENTSTOPCOLLECTION_MPGUI, reinterpret_cast<void**>(gradientStopCollection));
 			}
 #else
 			{
@@ -1026,9 +980,6 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 			GraphicsContext_SDK3(nullptr, info)
 			, originalContext(g->native())
 		{
-			if (enableLockPixels)
-				whiteMult = 1.0f;
-
 			createBitmapRenderTarget(
 				  static_cast<UINT>(desiredSize.width)
 				, static_cast<UINT>(desiredSize.height)
