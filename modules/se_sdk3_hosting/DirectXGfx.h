@@ -1325,7 +1325,7 @@ namespace se // gmpi
 #endif
 				auto hr = context_->EndDraw();
 
-				return hr == S_OK ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
+				return hr == S_OK ? gmpi::MP_OK : gmpi::MP_FAIL;
 			}
 
 //			int32_t GetUpdateRegion(GmpiDrawing_API::IUpdateRegion** returnUpdateRegion) override;

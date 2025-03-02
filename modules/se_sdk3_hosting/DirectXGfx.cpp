@@ -591,6 +591,13 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 #endif
 					gmpi_sdk::mp_shared_ptr<GmpiDrawing_API::IMpBitmap> b2;
 					b2.Attach(bitmap);
+
+					// on Windows 7, leave image as-is
+					if (getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
+					{
+						bitmap->ApplyPreMultiplyCorrection();
+					}
+
 					b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, (void**)returnDiBitmap);
 				}
 			}
@@ -724,11 +731,13 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 		{
 			diBitmap_ = diBitmap;
 
+			/* moved (only for bitmaps loaded off disk, not render targets.
 			// on Windows 7, leave image as-is
 			if (pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
 			{
 				ApplyPreMultiplyCorrection();
 			}
+			*/
 		}
 
 		// WIX premultiplies images automatically on load, but wrong (assumes linear not SRGB space). Fix it.
@@ -1003,10 +1012,6 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
 			if (wicBitmap)
 			{
-				// Flush the device context to ensure all drawing commands are completed. testing
-//hr = context_->Flush();
-				context_ = nullptr;
-
 				b2.Attach(new Bitmap(factory.getInfo(), factory.getPlatformPixelFormat(), wicBitmap)); //temp factory about to go out of scope (when using a bitmap render target)
 
 				hr = S_OK;
