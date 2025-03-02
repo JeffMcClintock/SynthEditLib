@@ -10,6 +10,8 @@ class Scope3Gui :
 	public gmpi_gui::MpGuiGfxBase, public TimerClient, public FontCacheClient
 {
 	GmpiDrawing::Bitmap cachedBackground_;
+	bool timerRuning = false;
+
 #ifdef DRAW_LINES_ON_BITMAP
 	GmpiDrawing::Bitmap foreground_;
 #endif

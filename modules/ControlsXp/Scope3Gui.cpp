@@ -53,7 +53,6 @@ void Scope3Gui::onValueChanged( int voiceId )
 	VoiceLastUpdated[voiceId] = std::chrono::steady_clock::now(); // timeGetTime();
 
 	invalidateRect();
-	StartTimer(100);
 }
 
 void Scope3Gui::onVoicesActiveChanged( int voiceId )
@@ -511,9 +510,21 @@ int32_t Scope3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 
 	g.PopAxisAlignedClip();
 
-	if( !voicesStillActive )
+	if (voicesStillActive)
 	{
-		StopTimer();
+		if (!timerRuning)
+		{
+			StartTimer(100);
+			timerRuning = true;
+		}
+	}
+	else
+	{
+		if (timerRuning)
+		{
+			timerRuning = false;
+			StopTimer();
+		}
 	}
 
 	return gmpi::MP_OK;
