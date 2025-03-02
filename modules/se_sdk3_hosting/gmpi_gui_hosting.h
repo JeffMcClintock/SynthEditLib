@@ -59,65 +59,6 @@ namespace GmpiGuiHosting
 		}
 	};
 
-	/*
-	class UpdateRegionDefault : public GmpiDrawing_API::IUpdateRegion
-	{
-		GmpiDrawing::Rect everything;
-		GmpiDrawing_API::MP1_RECT* rects[2];
-
-	public:
-		UpdateRegionDefault() :
-			everything(0.0f,0.f,30000.f,30000.f)
-		{
-			rects[0] = &everything;
-			rects[1] = nullptr;
-		}
-
-		bool isVisible(GmpiDrawing_API::MP1_RECT* rect) override
-		{
-			return true;
-		}
-		int32_t getUpdateRects(GmpiDrawing_API::MP1_RECT*** rect) override
-		{
-			*rect = &(rects[0]);
-			return gmpi::MP_OK;
-		}
-
-		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_UPDATE_REGION_MPGUI, GmpiDrawing_API::IUpdateRegion);
-		GMPI_REFCOUNT_NO_DELETE;
-	};
-	*/
-
-	/*
-	class GgFactory : public GmpiDrawing_API::IMpFactory
-	{
-	public:
-		static GgFactory* GetInstance();
-
-		int32_t CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry **pathGeometry) override;
-		int32_t CreateTextFormat(const char* fontFamilyName, void* unused / * fontCollection * /, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, GmpiDrawing_API::MP1_FONT_STYLE fontStyle, GmpiDrawing_API::MP1_FONT_STRETCH fontStretch, float fontSize, void* unused2 / * localeName * /, GmpiDrawing_API::IMpTextFormat** textFormat) override
-		{
-			assert(false);
-			return gmpi::MP_FAIL;
-		}
-		int32_t CreateImage(int32_t width, int32_t height, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override
-		{
-			assert(false);
-			return gmpi::MP_FAIL;
-		}
-		int32_t LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnDiBitmap) override
-		{
-			assert(false);
-			return gmpi::MP_FAIL;
-		}
-		
-
-
-		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_FACTORY_MPGUI, GmpiDrawing_API::IMpFactory);
-		GMPI_REFCOUNT_NO_DELETE;
-	};
-	*/
-
 	// Context Menus.
 	struct menuInfo
 	{

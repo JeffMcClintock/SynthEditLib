@@ -456,7 +456,7 @@ namespace se //gmpi
 		{
 			IWICBitmap* wicBitmap = nullptr;
 			auto hr = info.pIWICFactory->CreateBitmap(width, height, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &wicBitmap); // pre-muliplied alpha
-	// nuh	auto hr = pIWICFactory->CreateBitmap(width, height, GUID_WICPixelFormat32bppBGRA, WICBitmapCacheOnLoad, &wicBitmap);
+	// nuh	auto hr =      pIWICFactory->CreateBitmap(width, height, GUID_WICPixelFormat32bppBGRA, WICBitmapCacheOnLoad, &wicBitmap);
 
 			if (hr == 0)
 			{
@@ -725,7 +725,7 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 			diBitmap_ = diBitmap;
 
 			// on Windows 7, leave image as-is
-			if (/*factory->getPlatformPixelFormat()*/pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
+			if (pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
 			{
 				ApplyPreMultiplyCorrection();
 			}

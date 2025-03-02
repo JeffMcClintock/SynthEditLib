@@ -642,6 +642,9 @@ namespace se // gmpi
 
 			~bitmapPixels()
 			{
+				if (!alphaPremultiplied)
+					premultiplyAlpha();
+
 				SafeRelease(pBitmapLock);
 				SafeRelease(bitmap);
 			}
@@ -651,14 +654,6 @@ namespace se // gmpi
 			int32_t getPixelFormat() const override
 			{
 				return pixelFormat;
-/*
-				nativeBitmap_->GetPixelFormat().format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB ? kBGRA_SRGB : kRGBA;
-
-				WICPixelFormatGUID pixelFormat = 0;
-				bitmap->GetPixelFormat(&pixelFormat);
-
-				return pixelFormat == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB ? kBGRA_SRGB : kRGBA;
-*/
 			}
 
 			inline uint8_t fast8bitScale(uint8_t a, uint8_t b)
