@@ -16,6 +16,11 @@ namespace se // gmpi
 {
 	namespace directx
 	{
+		inline int32_t toReturnCode(HRESULT r)
+		{
+			return r == 0 ? gmpi::MP_OK : gmpi::MP_FAIL;
+		}
+
 		inline HRESULT check_hresult(HRESULT const result)
 		{
 			if (result < 0)
@@ -89,15 +94,15 @@ namespace se // gmpi
 			// for diagnostics only.
 			auto getDirectWriteFactory()
 			{
-				return info.writeFactory;
+				return info.writeFactory.get();
 			}
 			auto getWicFactory()
 			{
-				return info.pIWICFactory;
+				return info.wicFactory.get();
 			}
 			auto getFactory()
 			{
-				return info.m_pDirect2dFactory;
+				return info.d2dFactory.get();
 			}
 
 			void setSrgbSupport(bool s)
@@ -112,7 +117,7 @@ namespace se // gmpi
 
 			ID2D1Factory1* getD2dFactory()
 			{
-				return info.m_pDirect2dFactory;
+				return info.d2dFactory;
 			}
 
 			int32_t CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry** pathGeometry) override;
@@ -626,12 +631,6 @@ namespace se // gmpi
 				return pixelFormat;
 			}
 
-			inline uint8_t fast8bitScale(uint8_t a, uint8_t b)
-			{
-				int t = (int)a * (int)b;
-				return (uint8_t)((t + 1 + (t >> 8)) >> 8); // fast way to divide by 255
-			}
-
 			void premultiplyAlpha()
 			{
 				UINT w, h;
@@ -650,9 +649,9 @@ namespace se // gmpi
 					}
 					else
 					{
-						pixel[0] = fast8bitScale(pixel[0], pixel[3]);
-						pixel[1] = fast8bitScale(pixel[1], pixel[3]);
-						pixel[2] = fast8bitScale(pixel[2], pixel[3]);
+						pixel[0] = gmpi::directx::fast8bitScale(pixel[0], pixel[3]);
+						pixel[1] = gmpi::directx::fast8bitScale(pixel[1], pixel[3]);
+						pixel[2] = gmpi::directx::fast8bitScale(pixel[2], pixel[3]);
 					}
 
 					pixel += sizeof(uint32_t);
@@ -861,7 +860,7 @@ namespace se // gmpi
 			int32_t Close() override
 			{
 				auto hr = geometrysink_->Close();
-				return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
+				return toReturnCode(hr);
 			}
 			void AddLine(GmpiDrawing_API::MP1_POINT point) override
 			{
@@ -960,7 +959,6 @@ namespace se // gmpi
 
 		public:
 			Factory_SDK3(gmpi::IMpUnknown* pfallback) : Factory_base(concreteInfo, pfallback){}
-			~Factory_SDK3();
 			void Init();
 		};
 
