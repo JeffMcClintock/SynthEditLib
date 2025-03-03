@@ -6,11 +6,11 @@
 
 #include <d2d1_2.h>
 #include <dwrite.h>
-#include <codecvt>
 #include <Wincodec.h>
-#include "./gmpi_gui_hosting.h"
+#include "fast_gamma.h"
+#include "Drawing_API.h"
 #include "GmpiApiDrawing.h"
-#include "backends/DirectXGfx.h" // GMPI-UI DIrectX implementation
+#include "backends/DirectXGfx.h" // GMPI-UI DirectX implementation
 
 namespace se // gmpi
 {

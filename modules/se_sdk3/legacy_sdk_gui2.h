@@ -25,7 +25,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-//#include "mp_sdk_gui2.h"
+#include "mp_sdk_gui2.h"
 #include "legacy_api.h"
 
 // Classes required to build a GUI module.

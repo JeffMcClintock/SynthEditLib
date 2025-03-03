@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <math.h>
-
+#include <stdint.h>
 /*
 #include "../shared/fast_gamma.h"
 using namespace se_sdk;

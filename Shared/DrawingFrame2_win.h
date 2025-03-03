@@ -10,6 +10,7 @@
 #include "legacy_sdk_gui2.h"
 #include "helpers/NativeUi.h"
 #include "helpers/Timer.h"
+#include "mp_gui.h"
 
 // GMPI-UI to replace custom code.
 #include "backends/DrawingFrameWin.h"
