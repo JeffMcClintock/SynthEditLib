@@ -346,7 +346,7 @@ namespace se //gmpi
 				  nativeContext
 				, nativeBitmap_
 				, diBitmap_
-				, factory.getFactory()
+				, factory.getD2dFactory()
 				, factory.getWicFactory()
 			);
 		}
@@ -436,7 +436,7 @@ namespace se //gmpi
 				, static_cast<UINT>(desiredSize.height)
 				, enableLockPixels
 				, originalContext
-				, factory.getFactory()
+				, factory.getD2dFactory()
 				, factory.getWicFactory()
 				, wicBitmap
 				, context_
