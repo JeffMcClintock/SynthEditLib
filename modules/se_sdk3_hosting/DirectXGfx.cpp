@@ -16,8 +16,6 @@ namespace se //gmpi
 {
 	namespace directx
 	{
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> Factory_base::stringConverter;
-
 		int32_t Factory_base::CreateStrokeStyle(const GmpiDrawing_API::MP1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, float* dashes, int32_t dashesCount, GmpiDrawing_API::IMpStrokeStyle** returnValue)
 		{
 			*returnValue = nullptr;
@@ -57,183 +55,39 @@ namespace se //gmpi
 
 		int32_t TextFormat::GetFontMetrics(GmpiDrawing_API::MP1_FONT_METRICS* returnFontMetrics)
 		{
-			IDWriteFontCollection *collection;
-			IDWriteFontFamily *family;
-			IDWriteFontFace *fontface;
-			IDWriteFont *font;
-			WCHAR nameW[255];
-			UINT32 index;
-			BOOL exists;
-			HRESULT hr;
+			auto gmpi_fm = gmpi::directx::getFontMetricsHelper(native());
 
-			hr = native()->GetFontCollection(&collection);
-			//	ok(hr == S_OK, "got 0x%08x\n", hr);
-
-			hr = native()->GetFontFamilyName(nameW, sizeof(nameW) / sizeof(WCHAR));
-			//	ok(hr == S_OK, "got 0x%08x\n", hr);
-
-			hr = collection->FindFamilyName(nameW, &index, &exists);
-			if (exists == 0) // font not available. Fallback.
+			*returnFontMetrics =
 			{
-				index = 0;
-			}
-
-			hr = collection->GetFontFamily(index, &family);
-			//	ok(hr == S_OK, "got 0x%08x\n", hr);
-			collection->Release();
-
-			hr = family->GetFirstMatchingFont(
-				native()->GetFontWeight(),
-				native()->GetFontStretch(),
-				native()->GetFontStyle(),
-				&font);
-			//	ok(hr == S_OK, "got 0x%08x\n", hr);
-
-			hr = font->CreateFontFace(&fontface);
-			//	ok(hr == S_OK, "got 0x%08x\n", hr);
-
-			font->Release();
-			family->Release();
-
-			DWRITE_FONT_METRICS metrics;
-			fontface->GetMetrics(&metrics);
-			fontface->Release();
-
-			// Sizes returned must always be in DIPs.
-			float emsToDips = native()->GetFontSize() / metrics.designUnitsPerEm;
-
-			returnFontMetrics->ascent = emsToDips * metrics.ascent;
-			returnFontMetrics->descent = emsToDips * metrics.descent;
-			returnFontMetrics->lineGap = emsToDips * metrics.lineGap;
-			returnFontMetrics->capHeight = emsToDips * metrics.capHeight;
-			returnFontMetrics->xHeight = emsToDips * metrics.xHeight;
-			returnFontMetrics->underlinePosition = emsToDips * metrics.underlinePosition;
-			returnFontMetrics->underlineThickness = emsToDips * metrics.underlineThickness;
-			returnFontMetrics->strikethroughPosition = emsToDips * metrics.strikethroughPosition;
-			returnFontMetrics->strikethroughThickness = emsToDips * metrics.strikethroughThickness;
+				gmpi_fm.ascent,
+				gmpi_fm.descent,
+				gmpi_fm.lineGap,
+				gmpi_fm.capHeight,
+				gmpi_fm.xHeight,
+				gmpi_fm.underlinePosition,
+				gmpi_fm.underlineThickness,
+				gmpi_fm.strikethroughPosition,
+				gmpi_fm.strikethroughThickness
+			};
 
 			return gmpi::MP_OK;
 		}
 
 		void TextFormat::GetTextExtentU(const char* utf8String, int32_t stringLength, GmpiDrawing_API::MP1_SIZE* returnSize)
 		{
-			const auto widestring = JmUnicodeConversions::Utf8ToWstring(utf8String, stringLength);
-
-			IDWriteFactory* writeFactory = 0;
-			auto hr = DWriteCreateFactory(
-				DWRITE_FACTORY_TYPE_SHARED,
-				__uuidof(writeFactory),
-				reinterpret_cast<IUnknown **>(&writeFactory)
-			);
-
-			IDWriteTextLayout* pTextLayout_ = 0;
-
-			hr = writeFactory->CreateTextLayout(
-				widestring.data(),      // The string to be laid out and formatted.
-				(UINT32)widestring.size(),  // The length of the string.
-				native(),  // The text format to apply to the string (contains font information, etc).
-				100000,         // The width of the layout box.
-				100000,        // The height of the layout box.
-				&pTextLayout_  // The IDWriteTextLayout interface pointer.
-			);
-
-			DWRITE_TEXT_METRICS textMetrics;
-			pTextLayout_->GetMetrics(&textMetrics);
-
-			returnSize->height = textMetrics.height;
-			returnSize->width = textMetrics.widthIncludingTrailingWhitespace;
-
-			if (!useLegacyBaseLineSnapping)
-			{
-				returnSize->height -= topAdjustment;
-			}
-
-			SafeRelease(pTextLayout_);
-			SafeRelease(writeFactory);
+			const auto size = gmpi::directx::getTextExtentHelper(native(), { utf8String, static_cast<size_t>(stringLength) }, topAdjustment, useLegacyBaseLineSnapping);
+			*returnSize = { size.width, size.height };
 		}
 
 		void Factory_SDK3::Init()
 		{
-			{
-				D2D1_FACTORY_OPTIONS o;
-#ifdef _DEBUG
-				o.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;// D2D1_DEBUG_LEVEL_WARNING; // Need to install special stuff. https://msdn.microsoft.com/en-us/library/windows/desktop/ee794278%28v=vs.85%29.aspx?f=255&MSPPError=-2147217396 
-#else
-				o.debugLevel = D2D1_DEBUG_LEVEL_NONE;
-#endif
-//				auto rs = D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory1), &o, (void**)&m_pDirect2dFactory);
-				auto rs = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory1), &o, (void**)&info.m_pDirect2dFactory);
-
-#ifdef _DEBUG
-				if (FAILED(rs))
-				{
-					o.debugLevel = D2D1_DEBUG_LEVEL_NONE; // fallback
-					rs = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory1), &o, (void**)&info.m_pDirect2dFactory);
-				}
-#endif
-				if (FAILED(rs))
-				{
-					_RPT1(_CRT_WARN, "D2D1CreateFactory FAIL %d\n", rs);
-					return;  // Fail.
-				}
-				//		_RPT2(_CRT_WARN, "D2D1CreateFactory OK %d : %x\n", rs, m_pDirect2dFactory);
-			}
-
-			info.writeFactory = nullptr;
-
-			auto hr = DWriteCreateFactory(
-				DWRITE_FACTORY_TYPE_SHARED, // no improvment to glitching DWRITE_FACTORY_TYPE_ISOLATED
-				__uuidof(info.writeFactory),
-				reinterpret_cast<IUnknown**>(&info.writeFactory)
+			gmpi::directx::initFactoryHelper(
+				  &info.writeFactory
+				, &info.pIWICFactory
+				, &info.m_pDirect2dFactory
+				, info.supportedFontFamilies
+				, info.supportedFontFamiliesLowerCase
 			);
-
-			info.pIWICFactory = nullptr;
-
-			hr = CoCreateInstance(
-				CLSID_WICImagingFactory,
-				NULL,
-				CLSCTX_INPROC_SERVER,
-				IID_IWICImagingFactory,
-				(LPVOID*)&info.pIWICFactory
-			);
-
-			// Cache font family names
-			{
-				// TODO IDWriteFontSet is improved API, GetSystemFontSet()
-
-				IDWriteFontCollection* fonts = nullptr;
-				info.writeFactory->GetSystemFontCollection(&fonts, TRUE);
-
-				auto count = fonts->GetFontFamilyCount();
-
-				for (int index = 0; index < (int)count; ++index)
-				{
-					IDWriteFontFamily* family = nullptr;
-					fonts->GetFontFamily(index, &family);
-
-					IDWriteLocalizedStrings* names = nullptr;
-					family->GetFamilyNames(&names);
-
-					BOOL exists;
-					unsigned int nameIndex;
-					names->FindLocaleName(L"en-us", &nameIndex, &exists);
-					if (exists)
-					{
-						wchar_t name[64];
-						names->GetString(nameIndex, name, sizeof(name) / sizeof(name[0]));
-
-						info.supportedFontFamilies.push_back(stringConverter.to_bytes(name));
-
-						std::transform(name, name + wcslen(name), name, ::tolower);
-						info.supportedFontFamiliesLowerCase.push_back(name);
-					}
-
-					names->Release();
-					family->Release();
-				}
-
-				fonts->Release();
-			}
 #if 0
 			// test matrix rotation calc
 			for (int rot = 0; rot < 8; ++rot)
@@ -284,8 +138,7 @@ namespace se //gmpi
 		{
 			*TextFormat = nullptr;
 
-			//auto fontFamilyNameW = stringConverter.from_bytes(fontFamilyName);
-			auto fontFamilyNameW = JmUnicodeConversions::Utf8ToWstring(fontFamilyName);
+			auto fontFamilyNameW = gmpi::directx::Utf8ToWstring(fontFamilyName);
 			std::wstring lowercaseName(fontFamilyNameW);
 			std::transform(lowercaseName.begin(), lowercaseName.end(), lowercaseName.begin(), ::tolower);
 
@@ -310,7 +163,7 @@ namespace se //gmpi
 			if (hr == 0)
 			{
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-				b2.Attach(new se::directx::TextFormat(&stringConverter, dwTextFormat));
+				b2.Attach(new se::directx::TextFormat(dwTextFormat));
 
 				b2->queryInterface(GmpiDrawing_API::SE_IID_TEXTFORMAT_MPGUI, reinterpret_cast<void**>(TextFormat));
 			}
@@ -485,7 +338,7 @@ namespace se //gmpi
 			}
 			else
 			{
-				const auto uriW = JmUnicodeConversions::Utf8ToWstring(utf8Uri);
+				const auto uriW = gmpi::directx::Utf8ToWstring(utf8Uri);
 
 				// To load a bitmap from a file, first use WIC objects to load the image and to convert it to a Direct2D-compatible format.
 				hr = info.pIWICFactory->CreateDecoderFromFilename(
@@ -528,7 +381,7 @@ namespace se //gmpi
 
 		void GraphicsContext_SDK3::DrawTextU(const char* utf8String, int32_t stringLength, const GmpiDrawing_API::IMpTextFormat* textFormat, const GmpiDrawing_API::MP1_RECT* layoutRect, const GmpiDrawing_API::IMpBrush* brush, int32_t flags)
 		{
-			const auto widestring = JmUnicodeConversions::Utf8ToWstring(utf8String, stringLength);
+			const auto widestring = gmpi::directx::Utf8ToWstring({ utf8String, static_cast<size_t>(stringLength) });
 			
 			assert(dynamic_cast<const TextFormat*>(textFormat));
 			auto DxTextFormat = reinterpret_cast<const TextFormat*>(textFormat);

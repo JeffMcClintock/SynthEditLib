@@ -80,8 +80,6 @@ namespace se // gmpi
 			gmpi::IMpUnknown* fallback{};
 
 		public:
-			static std::wstring_convert<std::codecvt_utf8<wchar_t>> stringConverter; // cached, as constructor is super-slow.
-
 			Factory_base(gmpi::directx::DxFactoryInfo& pinfo, gmpi::IMpUnknown* pfallback) : info(pinfo), fallback(pfallback) {}
 
 			gmpi::directx::DxFactoryInfo& getInfo() {
@@ -478,7 +476,6 @@ namespace se // gmpi
 
 		class TextFormat final : public GmpiDXWrapper<GmpiDrawing_API::IMpTextFormat, IDWriteTextFormat>
 		{
-			std::wstring_convert<std::codecvt_utf8<wchar_t>>* stringConverter = {}; // constructed once is much faster.
 			bool useLegacyBaseLineSnapping = true;
 			float topAdjustment = {};
 			float fontMetrics_ascent = {};
@@ -498,9 +495,8 @@ namespace se // gmpi
 			}
 
 		public:
-			TextFormat(std::wstring_convert<std::codecvt_utf8<wchar_t>>* pstringConverter, IDWriteTextFormat* native) :
+			TextFormat(IDWriteTextFormat* native) :
 				GmpiDXWrapper<GmpiDrawing_API::IMpTextFormat, IDWriteTextFormat>(native)
-				, stringConverter(pstringConverter)
 			{
 				CalculateTopAdjustment();
 			}
