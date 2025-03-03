@@ -12,8 +12,6 @@
 #include "GmpiApiDrawing.h"
 #include "backends/DirectXGfx.h" // GMPI-UI DIrectX implementation
 
-// #define LOG_DIRECTX_CALLS
-
 namespace se // gmpi
 {
 	namespace directx
@@ -1359,7 +1357,6 @@ namespace se // gmpi
 		{
 		public:
 			GraphicsContext2(gmpi::IMpUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* deviceContext = {}) : GraphicsContext_SDK3(pfallback, pinfo, deviceContext){}
-//			GraphicsContext2(Factory* pfactory) : GraphicsContext_SDK3(pfactory) {}
 
 			int32_t MP_STDCALL CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** returnObject) override;
 

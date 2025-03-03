@@ -31,8 +31,6 @@ namespace se //gmpi
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> wrapper;
 				wrapper.Attach(new StrokeStyle(b, this));
 
-				//					auto wrapper = gmpi_sdk::make_shared_ptr<StrokeStyle>(b, this);
-
 				return wrapper->queryInterface(GmpiDrawing_API::SE_IID_STROKESTYLE_MPGUI, reinterpret_cast<void**>(returnValue));
 			}
 
@@ -161,14 +159,8 @@ namespace se //gmpi
 			SafeRelease(writeFactory);
 		}
 
-		void Factory_SDK3::Init() //ID2D1Factory1* existingFactory)
+		void Factory_SDK3::Init()
 		{
-			//if (existingFactory)
-			//{
-			//	m_pDirect2dFactory = existingFactory;
-			//	m_pDirect2dFactory->AddRef();
-			//}
-			//else
 			{
 				D2D1_FACTORY_OPTIONS o;
 #ifdef _DEBUG
@@ -456,7 +448,6 @@ namespace se //gmpi
 		{
 			IWICBitmap* wicBitmap = nullptr;
 			auto hr = info.pIWICFactory->CreateBitmap(width, height, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &wicBitmap); // pre-muliplied alpha
-	// nuh	auto hr =      pIWICFactory->CreateBitmap(width, height, GUID_WICPixelFormat32bppBGRA, WICBitmapCacheOnLoad, &wicBitmap);
 
 			if (hr == 0)
 			{
@@ -564,42 +555,23 @@ namespace se //gmpi
 					WICBitmapCacheOnLoad,
 					&wicBitmap);
 			}
-			/*
-D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feature level D3D_FEATURE_LEVEL_11_0, the Width (value = 32) must be between 1 and 16384, inclusively. The Height (value = 60000) must be between 1 and 16384, inclusively. And, the ArraySize (value = 1) must be between 1 and 2048, inclusively. [ STATE_CREATION ERROR #101: CREATETEXTURE2D_INVALIDDIMENSIONS]
-			*/
+
 			if (hr == 0)
 			{
-				// I've removed this as the max size can vary depending on hardware.
-				// So we need to have a robust check elsewhere anyhow.
-
-#if 0
-				UINT width, height;
-
-				wicBitmap->GetSize(&width, &height);
-
-				const int maxDirectXImageSize = 16384; // TODO can be smaller. Query hardware.
-				if (width > maxDirectXImageSize || height > maxDirectXImageSize)
-				{
-					hr = E_FAIL; // fail, too big for DirectX.
-				}
-				else
-#endif
-				{
-					auto bitmap = new Bitmap(getInfo(), getPlatformPixelFormat(), wicBitmap);
+				auto bitmap = new Bitmap(getInfo(), getPlatformPixelFormat(), wicBitmap);
 #ifdef _DEBUG
-					bitmap->debugFilename = utf8Uri;
+				bitmap->debugFilename = utf8Uri;
 #endif
-					gmpi_sdk::mp_shared_ptr<GmpiDrawing_API::IMpBitmap> b2;
-					b2.Attach(bitmap);
+				gmpi_sdk::mp_shared_ptr<GmpiDrawing_API::IMpBitmap> b2;
+				b2.Attach(bitmap);
 
-					// on Windows 7, leave image as-is
-					if (getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
-					{
-						bitmap->ApplyPreMultiplyCorrection();
-					}
-
-					b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, (void**)returnDiBitmap);
+				// on Windows 7, leave image as-is
+				if (getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
+				{
+					bitmap->ApplyPreMultiplyCorrection();
 				}
+
+				b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, (void**)returnDiBitmap);
 			}
 
 			SafeRelease(pDecoder);
@@ -613,10 +585,6 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 
 		void GraphicsContext_SDK3::DrawGeometry(const GmpiDrawing_API::IMpPathGeometry* geometry, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle)
 		{
-#ifdef LOG_DIRECTX_CALLS
-			_RPT3(_CRT_WARN, "context_->DrawGeometry(geometry%x, brush%x, %f, 0);\n", (int)geometry, (int)brush, strokeWidth);
-#endif
-
 			auto& d2d_geometry = ((se::directx::Geometry*)geometry)->geometry_;
 			context_->DrawGeometry(d2d_geometry, ((Brush*)brush)->nativeBrush(), (FLOAT)strokeWidth, toNative(strokeStyle));
 		}
@@ -648,34 +616,6 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 			}
 
 			context_->DrawText(widestring.data(), (UINT32)widestring.size(), tf, reinterpret_cast<const D2D1_RECT_F*>(&adjusted), b, (D2D1_DRAW_TEXT_OPTIONS)flags | D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
-
-#ifdef LOG_DIRECTX_CALLS
-			{
-				std::wstring widestring2 = widestring;
-				replacein( widestring2, L"\n", L"\\n");
-				_RPT0(_CRT_WARN, "{\n");
-				_RPT4(_CRT_WARN, "auto r = D2D1::RectF(%.3f, %.3f, %.3f, %.3ff);\n", layoutRect->left, layoutRect->top, layoutRect->right, layoutRect->bottom);
-				_RPT4(_CRT_WARN, "context_->DrawTextW(L\"%S\", %d, textformat%x, &r, brush%x,", widestring2.c_str(), (int)widestring.size(), (int)textFormat, (int) brush);
-				_RPT1(_CRT_WARN, " (D2D1_DRAW_TEXT_OPTIONS) %d);\n}\n", flags);
-			}
-#endif
-/*
-
-#if 0
-			{
-				GmpiDrawing_API::MP1_FONT_METRICS fontMetrics;
-				((GmpiDrawing_API::IMpTextFormat*)textFormat)->GetFontMetrics(&fontMetrics);
-
-				float predictedBaseLine = layoutRect->top + fontMetrics.ascent;
-				const float scale = 0.5f;
-				predictedBaseLine = floorf(-0.5 + predictedBaseLine / scale) * scale;
-
-				GmpiDrawing::Graphics g(this);
-				auto brush = g.CreateSolidColorBrush(GmpiDrawing::Color::Lime);
-				g.DrawLine(GmpiDrawing::Point(layoutRect->left, predictedBaseLine + 0.25f), GmpiDrawing::Point(layoutRect->left + 2, predictedBaseLine + 0.25f), brush, 0.5);
-			}
-#endif
-*/
 		}
 
 		void Bitmap::GetFactory(GmpiDrawing_API::IMpFactory** pfactory)
@@ -743,7 +683,6 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 		// WIX premultiplies images automatically on load, but wrong (assumes linear not SRGB space). Fix it.
 		void Bitmap::ApplyPreMultiplyCorrection()
 		{
-#if 1
 			GmpiDrawing::Bitmap bitmap(this);
 
 			auto pixelsSource = bitmap.lockPixels(true);
@@ -782,75 +721,7 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 
 				sourcePixels += sizeof(uint32_t);
 			}
-#if 0
-			for (unsigned char i = 0; i < 256; ++i)
-			{
-				_RPT2(_CRT_WARN, "%f %f\n", FastGamma::sRGB_to_float(i), (float)FastGamma::float_to_sRGB(FastGamma::sRGB_to_float(i)));
-			}
-#endif
-#endif
 		}
-
-#if 0
-		void Bitmap::ApplyAlphaCorrection_win7()
-		{
-
-#if 1 // apply gamma correction to compensate for linear blending in SRGB space (DirectX 1.0 limitation)
-			GmpiDrawing::Bitmap bitmap(this);
-
-			auto pixelsSource = bitmap.lockPixels(true);
-			auto imageSize = bitmap.GetSize();
-			int totalPixels = (int)imageSize.height * pixelsSource.getBytesPerRow() / sizeof(uint32_t);
-
-			uint8_t* sourcePixels = pixelsSource.getAddress();
-			const float gamma = 2.2f;
-			const float overTwoFiftyFive = 1.0f / 255.0f;
-			for (int i = 0; i < totalPixels; ++i)
-			{
-				int alpha = sourcePixels[3];
-
-				if (alpha != 0 && alpha != 255)
-				{
-					float bitmapAlpha = alpha * overTwoFiftyFive;
-
-					// Calc pixel lumination (linear).
-					float components[3];
-					float foreground = 0.0f;
-					for (int c = 0; c < 3; ++c)
-					{
-						float pixel = sourcePixels[c] * overTwoFiftyFive;
-						pixel /= bitmapAlpha; // un-premultiply
-						pixel = powf(pixel, gamma);
-						components[c] = pixel;
-					}
-					//					foreground = 0.2126 * components[2] + 0.7152 * components[1] + 0.0722 * components[0]; // Luminance.
-					foreground = 0.3333f * components[2] + 0.3333f * components[1] + 0.3333f * components[0]; // Average. Much the same as Luminance.
-
-					float blackAlpha = 1.0f - powf(1.0f - bitmapAlpha, 1.0 / gamma);
-					float whiteAlpha = powf(bitmapAlpha, 1.0f / gamma);
-
-					float mix = powf(foreground, 1.0f / gamma);
-
-					float bitmapAlphaCorrected = blackAlpha * (1.0f - mix) + whiteAlpha * mix;
-
-					for (int c = 0; c < 3; ++c)
-					{
-						float pixel = components[c];
-						pixel = powf(pixel, 1.0f / gamma); // linear -> sRGB space.
-						pixel *= bitmapAlphaCorrected; // premultiply
-						pixel = pixel * 255.0f + 0.5f; // back to 8-bit
-						sourcePixels[c] = (std::min)(255, static_cast<int32_t>(pixel));
-					}
-
-					bitmapAlphaCorrected = bitmapAlphaCorrected * 255.0f + 0.5f; // back to 8-bit
-		//			int alphaVal = (int)(bitmapAlphaCorrected * 255.0f + 0.5f);
-					sourcePixels[3] = static_cast<int32_t>(bitmapAlphaCorrected);
-				}
-				sourcePixels += sizeof(uint32_t);
-			}
-#endif
-		}
-#endif
 
 		int32_t GraphicsContext_SDK3::CreateSolidColorBrush(const GmpiDrawing_API::MP1_COLOR* color, GmpiDrawing_API::IMpSolidColorBrush **solidColorBrush)
 		{
@@ -867,14 +738,6 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 				b2->queryInterface(GmpiDrawing_API::SE_IID_SOLIDCOLORBRUSH_MPGUI, reinterpret_cast<void **>(solidColorBrush));
 			}
 
-#ifdef LOG_DIRECTX_CALLS
-			_RPT1(_CRT_WARN, "ID2D1SolidColorBrush* brush%x = nullptr;\n", (int)* solidColorBrush);
-			_RPT0(_CRT_WARN, "{\n");
-			_RPT4(_CRT_WARN, "auto c = D2D1::ColorF(%.3ff, %.3ff, %.3ff, %.3ff);\n", color->r, color->g, color->b, color->a);
-			_RPT1(_CRT_WARN, "context_->CreateSolidColorBrush(c, &brush%x);\n", (int)* solidColorBrush);
-			_RPT0(_CRT_WARN, "}\n");
-#endif
-
 			return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
 		}
 
@@ -882,13 +745,11 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 		{
 			*gradientStopCollection = nullptr;
 
-			HRESULT hr = 0;
-#if 1
 			// New way. Gamma-correct gradients without banding. White->Black mid color seems wrong (too light).
 			// requires ID2D1DeviceContext, not merely ID2D1RenderTarget
 			ID2D1GradientStopCollection1* native2 = nullptr;
 
-			hr = context_->CreateGradientStopCollection(
+			HRESULT hr = context_->CreateGradientStopCollection(
 				(const D2D1_GRADIENT_STOP*)gradientStops,
 				gradientStopsCount,
 				D2D1_COLOR_SPACE_SRGB,
@@ -906,63 +767,9 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 
 				wrapper->queryInterface(GmpiDrawing_API::SE_IID_GRADIENTSTOPCOLLECTION_MPGUI, reinterpret_cast<void**>(gradientStopCollection));
 			}
-#else
-			{
-				ID2D1GradientStopCollection* native1 = nullptr;
-
-				// for proper gradient in SRGB target, need to set gamma. hmm not sure. https://msdn.microsoft.com/en-us/library/windows/desktop/dd368113(v=vs.85).aspx
-				hr = context_->CreateGradientStopCollection(
-					(D2D1_GRADIENT_STOP*)gradientStops,
-					gradientStopsCount,
-					D2D1_GAMMA_2_2,	// gamma-correct, but not smooth.
-					//	D2D1_GAMMA_1_0, // smooth, but not gamma-correct.
-					D2D1_EXTEND_MODE_CLAMP,
-					&native1);
-				if (hr == 0)
-				{
-					gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> wrapper;
-					wrapper.Attach(new GradientStopCollection(native1, factory));
-
-					wrapper->queryInterface(GmpiDrawing_API::SE_IID_GRADIENTSTOPCOLLECTION_MPGUI, reinterpret_cast<void**>(gradientStopCollection));
-				}
-			}
-#endif
 
 			return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
 		}
-
-
-		//int32_t GraphicsContext_SDK3::CreateMesh(GmpiDrawing_API::IMpMesh** returnObject)
-		//{
-		//	*returnObject = nullptr;
-
-		//	auto mesh = new Mesh(factory, context_);
-		//	return mesh->queryInterface(GmpiDrawing_API::SE_IID_MESH_MPGUI, reinterpret_cast<void **>(returnObject));
-		//}
-		/*
-		int32_t GraphicsContext_SDK3::CreateBitmap(GmpiDrawing_API::MP1_SIZE_U size, const GmpiDrawing_API::MP1_BITMAP_PROPERTIES* bitmapProperties, GmpiDrawing_API::IMpBitmap** bitmap)
-		{
-			*bitmap = nullptr;
-
-			D2D1_BITMAP_PROPERTIES nativeBitmapProperties;
-			nativeBitmapProperties.dpiX = 0.0f;
-			nativeBitmapProperties.dpiY = 0.0f;
-			nativeBitmapProperties.pixelFormat = context_->GetPixelFormat();
-
-			ID2D1Bitmap* b = nullptr;
-			auto hr = context_->CreateBitmap(*(D2D1_SIZE_U*) &size, nativeBitmapProperties, &b);
-
-			if (hr == 0)
-			{
-				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-				b2.Attach(new  bitmap(context_, b));
-
-				b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, reinterpret_cast<void **>(bitmap));
-			}
-
-			return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
-		}
-		*/
 
 		int32_t GraphicsContext_SDK3::CreateCompatibleRenderTarget(const GmpiDrawing_API::MP1_SIZE* desiredSize, GmpiDrawing_API::IMpBitmapRenderTarget** returnObject)
 		{
@@ -1016,7 +823,7 @@ D3D11 ERROR: ID3D11Device::CreateTexture2D: The Dimensions are invalid. For feat
 
 				hr = S_OK;
 			}
-			else // if (wikBitmapRenderTarget)
+			else
 			{
 				gmpi::directx::ComPtr<ID2D1Bitmap> nativeBitmap;
 				hr = context_.as<ID2D1BitmapRenderTarget>()->GetBitmap(nativeBitmap.put());
