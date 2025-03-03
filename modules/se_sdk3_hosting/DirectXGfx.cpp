@@ -265,8 +265,6 @@ namespace se //gmpi
 		int32_t Factory_base::CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry** pathGeometry)
 		{
 			*pathGeometry = nullptr;
-			//*pathGeometry = new GmpiGuiHosting::PathGeometry();
-			//return gmpi::MP_OK;
 
 			ID2D1PathGeometry* d2d_geometry = nullptr;
 			HRESULT hr = info.m_pDirect2dFactory->CreatePathGeometry(&d2d_geometry);
@@ -277,6 +275,7 @@ namespace se //gmpi
 				b2.Attach(new se::directx::Geometry(d2d_geometry));
 
 				b2->queryInterface(GmpiDrawing_API::SE_IID_PATHGEOMETRY_MPGUI, reinterpret_cast<void**>(pathGeometry));
+			}
 
 			return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
 		}
@@ -450,13 +449,13 @@ namespace se //gmpi
 			return gmpi::MP_OK;
 		}
 
-		int32_t Factory_base::LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnDiBitmap)
+		int32_t Factory_base::LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap** returnBitmap)
 		{
-			*returnDiBitmap = nullptr;
+			*returnBitmap = nullptr;
 
 			HRESULT hr{};
-			IWICBitmapDecoder* pDecoder{};
-			IWICStream* pIWICStream{};
+			gmpi::directx::ComPtr<IWICBitmapDecoder> pDecoder;
+			gmpi::directx::ComPtr<IWICStream> pIWICStream;
 
 			// is this an in-memory resource?
 			std::string uriString(utf8Uri);
@@ -466,7 +465,7 @@ namespace se //gmpi
 				binaryData = BundleInfo::instance()->getResource(utf8Uri + strlen(BundleInfo::resourceTypeScheme));
 
 				// Create a WIC stream to map onto the memory.
-				hr = info.pIWICFactory->CreateStream(&pIWICStream);
+				hr = info.pIWICFactory->CreateStream(pIWICStream.put());
 
 				// Initialize the stream with the memory pointer and size.
 				if (SUCCEEDED(hr)) {
@@ -481,12 +480,11 @@ namespace se //gmpi
 						pIWICStream,                   // The stream to use to create the decoder
 						NULL,                          // Do not prefer a particular vendor
 						WICDecodeMetadataCacheOnLoad,  // Cache metadata when needed
-						&pDecoder);                    // Pointer to the decoder
+						pDecoder.put());               // Pointer to the decoder
 				}
 			}
 			else
 			{
-				// auto uriW = stringConverter.from_bytes(utf8Uri);
 				const auto uriW = JmUnicodeConversions::Utf8ToWstring(utf8Uri);
 
 				// To load a bitmap from a file, first use WIC objects to load the image and to convert it to a Direct2D-compatible format.
@@ -495,45 +493,13 @@ namespace se //gmpi
 					NULL,
 					GENERIC_READ,
 					WICDecodeMetadataCacheOnLoad,
-					&pDecoder
+					pDecoder.put()
 				);
 			}
 
-			IWICBitmapFrameDecode *pSource = NULL;
-			if (hr == 0)
-			{
-				// 2.Retrieve a frame from the image and store the frame in an IWICBitmapFrameDecode object.
-				hr = pDecoder->GetFrame(0, &pSource);
-			}
+			auto wicBitmap = gmpi::directx::loadWicBitmap(info.pIWICFactory, pDecoder.get());
 
-			IWICFormatConverter *pConverter = NULL;
-			if (hr == 0)
-			{
-				// 3.The bitmap must be converted to a format that Direct2D can use.
-				hr = info.pIWICFactory->CreateFormatConverter(&pConverter);
-			}
-			if (hr == 0)
-			{
-				hr = pConverter->Initialize(
-					pSource,
-					GUID_WICPixelFormat32bppPBGRA, //Premultiplied
-					WICBitmapDitherTypeNone,
-					NULL,
-					0.f,
-					WICBitmapPaletteTypeCustom
-				);
-			}
-
-			IWICBitmap* wicBitmap = nullptr;
-			if (hr == 0)
-			{
-				hr = info.pIWICFactory->CreateBitmapFromSource(
-					pConverter,
-					WICBitmapCacheOnLoad,
-					&wicBitmap);
-			}
-
-			if (hr == 0)
+			if (wicBitmap)
 			{
 				auto bitmap = new Bitmap(getInfo(), getPlatformPixelFormat(), wicBitmap);
 #ifdef _DEBUG
@@ -548,14 +514,8 @@ namespace se //gmpi
 					bitmap->ApplyPreMultiplyCorrection();
 				}
 
-				b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, (void**)returnDiBitmap);
+				b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, (void**)returnBitmap);
 			}
-
-			SafeRelease(pDecoder);
-			SafeRelease(pSource);
-			SafeRelease(pConverter);
-			SafeRelease(wicBitmap);
-			SafeRelease(pIWICStream);
 			
 			return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
 		}
