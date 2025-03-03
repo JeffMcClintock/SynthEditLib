@@ -4,6 +4,8 @@
 using namespace gmpi;
 
 // Don't even need to make a class, just describe it in XML and register it as 'SeGuiInvisibleBase'
+// then implement it in GUI_3_0.cpp
+
 namespace
 {
 	/*
@@ -191,6 +193,8 @@ R"XML(
     <GUI graphicsApi="Cadmium">
       <Pin name="Value In" datatype="float" />
       <Pin name="Value Out" datatype="float" direction="out" />
+      <Pin name="Normalized" datatype="float" direction="out" />
+      <Pin name="ID" datatype="int" direction="out" />
     </GUI>
     <Audio>
       <Pin id="0" name="PM In" datatype="float" parameterId="0" />
@@ -199,6 +203,55 @@ R"XML(
       <Pin id="3" name="Value In" datatype="float" />
       <Pin id="4" name="Value Out" direction="out" datatype="float" />
     </Audio>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+namespace
+{
+    auto r21 = sesdk::Register<SeGuiInvisibleBase>::withXml(
+        R"XML(
+<?xml version="1.0" ?>
+<PluginList>
+  <Plugin id="CD ValueSink" name="Value Sink" category="Experimental/Graphics">
+    <GUI graphicsApi="Cadmium">
+      <Pin name="ID" datatype="int" direction="in" />
+      <Pin name="Normalized" datatype="float" />
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+namespace
+{
+    auto r22 = sesdk::Register<SeGuiInvisibleBase>::withXml(
+        R"XML(
+<?xml version="1.0" ?>
+<PluginList>
+  <Plugin id="CD Mouse2Value" name="Value Dragger" category="Experimental/Graphics">
+    <GUI graphicsApi="Cadmium">
+      <Pin name="Drag" datatype="float" />
+      <Pin name="Normalized" datatype="float" />
+      <Pin name="Normalized" datatype="float" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+namespace
+{
+    auto r23 = sesdk::Register<SeGuiInvisibleBase>::withXml(
+        R"XML(
+<?xml version="1.0" ?>
+<PluginList>
+  <Plugin id="CD ValueIn" name="Value In" category="Experimental/Graphics">
+    <GUI graphicsApi="Cadmium">
+      <Pin name="ID" datatype="int" direction="out" />
+      <Pin name="Normalized" datatype="float" direction="out" />
+    </GUI>
   </Plugin>
 </PluginList>
 )XML");
