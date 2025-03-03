@@ -307,6 +307,7 @@ struct observableState : public state_t
 	std::vector<node*> downstreamNodes;
 };
 
+// a node holds pointers to all it's input states, and a function to calculate it's (sole) output state.
 struct node
 {
     node(
@@ -324,7 +325,7 @@ struct node
 
     bool dirty = true;
     std::function < state_data_t(std::vector<state_t*>) > function;
-    std::vector<state_t*> arguments;
+    std::vector<state_t*> arguments; // store pointers to the input states
 	observableState result; // maybe could support multiple outputs: std::vector<state_t> results;
     int32_t handle = -1;
 	std::string debug_name;

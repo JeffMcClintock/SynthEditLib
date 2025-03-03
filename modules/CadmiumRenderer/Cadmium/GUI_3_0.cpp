@@ -375,7 +375,7 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 		}
 	);
 }
-		},
+},
 ////////////////////////////////////////////////////////////////////////////////
 { "CD Point2Values",
 [](int32_t handle, Json::Value& module_json, functionalUI::builder &builder) // , std::vector< std::unique_ptr<state_t> >& states, std::vector<node>& graph)
@@ -389,17 +389,18 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 			{
 				Point defaultPoint{ 0.0f, 0.0f };
 
-				Point* p = {};
+				Point* p = &defaultPoint;
 				if (states.size() > 0)
 				{
 					p = std::get_if<Point>(&states[0]->value);
 				}
 
-				if (!p)
-				{
-					p = &defaultPoint;
-				}
+				//if (!p)
+				//{
+				//	p = &defaultPoint;
+				//}
 
+				// !!!! how to return Y???? struct 'node' has only one 'presult'
 				return p->x;
 			},
 			{}, // inputs
@@ -416,9 +417,6 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 	//!!! TODO use techniques from "CD Pointer" to slash this to nothing.
 	//! // will need to proxy both input and output nodes.
 
-//	auto& states = builder.scheduler.states2;
-	auto& nodegraph = builder.scheduler.graph;
-
 	// Add an input state to hold incoming parameter value.
 	const auto stateIndex = builder.scheduler.registerInputParameter(float{});
 	// Redirect 'from' connections to the proxy.
@@ -427,6 +425,7 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 
 	// register the link between the parameter and the state
 	auto patchManager = builder.patchManager;
+	// get the handle of my first parameter
 	const auto parameterHandle = patchManager->getParameterHandle(handle, 0);
 	builder.parameterHandles.insert({ parameterHandle , static_cast<int32_t>(stateIndex) });
 
@@ -434,6 +433,7 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 	const auto tempHandle = builder.getTempHandle();
 
 	// add the 'Value' node. This will 'listen' on the graph for parameter updates (from the user).
+	auto& nodegraph = builder.scheduler.graph;
 	nodegraph.push_back(
 		{
 		[stateIndex, patchManager, parameterHandle](std::vector<state_t*> states) -> state_data_t
@@ -505,8 +505,10 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 { "CD Pointer", // aka Mouse position
 [](int32_t handle, Json::Value& module_json, functionalUI::builder& builder)
 {
+	// "pointerPosition" is automatically hooked up to the mouse position.
 	const auto stateIndex = builder.scheduler.registerInputState("pointerPosition", Point{});
 
+	// Redirect 'from' connections to output pin 0.
 	builder.connectionProxies.push_back({ handle, 0, stateIndex });
 }
 },
@@ -718,6 +720,36 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 			);
 			}
 		},
+////////////////////////////////////////////////////////////////////////////////
+{ "CD Mouse2Value",
+[](int32_t handle, Json::Value& module_json, functionalUI::builder& builder) // , std::vector< std::unique_ptr<state_t> >& states, std::vector<node>& graph)
+{
+		auto& nodegraph = builder.scheduler.graph;
+
+		nodegraph.push_back(
+			{
+			[](std::vector<state_t*> states) -> state_data_t
+				{
+					float* drag{};
+					float* normalized{};
+					if (states.size() > 0)
+					{
+						drag = std::get_if<float>(&states[0]->value);
+					}
+					if (states.size() > 1)
+					{
+						normalized = std::get_if<float>(&states[1]->value);
+					}
+
+					return std::clamp(*normalized + *drag, 0.0f, 1.0f);
+				},
+				{}, // inputs
+				{0.0f}, // output
+				handle
+			}
+		);
+	}
+},
 // new one here
 
 };
