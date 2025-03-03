@@ -114,7 +114,6 @@ namespace se // gmpi
 			{
 				return info.m_pDirect2dFactory;
 			}
-			std::wstring fontMatch(std::wstring fontName, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, float fontSize);
 
 			int32_t CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry** pathGeometry) override;
 			int32_t CreateTextFormat(const char* fontFamilyName, void* unused /* fontCollection */, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, GmpiDrawing_API::MP1_FONT_STYLE fontStyle, GmpiDrawing_API::MP1_FONT_STRETCH fontStretch, float fontSize, void* unused2 /* localeName */, GmpiDrawing_API::IMpTextFormat** textFormat) override;
@@ -479,6 +478,7 @@ namespace se // gmpi
 			bool useLegacyBaseLineSnapping = true;
 			float topAdjustment = {};
 			float fontMetrics_ascent = {};
+			IDWriteFactory* writeFactory{};
 
 			void CalculateTopAdjustment()
 			{
@@ -495,8 +495,9 @@ namespace se // gmpi
 			}
 
 		public:
-			TextFormat(IDWriteTextFormat* native) :
+			TextFormat(IDWriteFactory* pwriteFactory, IDWriteTextFormat* native) :
 				GmpiDXWrapper<GmpiDrawing_API::IMpTextFormat, IDWriteTextFormat>(native)
+				, writeFactory(pwriteFactory)
 			{
 				CalculateTopAdjustment();
 			}

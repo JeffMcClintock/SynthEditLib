@@ -75,7 +75,7 @@ namespace se //gmpi
 
 		void TextFormat::GetTextExtentU(const char* utf8String, int32_t stringLength, GmpiDrawing_API::MP1_SIZE* returnSize)
 		{
-			const auto size = gmpi::directx::getTextExtentHelper(native(), { utf8String, static_cast<size_t>(stringLength) }, topAdjustment, useLegacyBaseLineSnapping);
+			const auto size = gmpi::directx::getTextExtentHelper(writeFactory, native(), { utf8String, static_cast<size_t>(stringLength) }, topAdjustment, useLegacyBaseLineSnapping);
 			*returnSize = { size.width, size.height };
 		}
 
@@ -144,7 +144,13 @@ namespace se //gmpi
 
 			if (std::find(info.supportedFontFamiliesLowerCase.begin(), info.supportedFontFamiliesLowerCase.end(), lowercaseName) == info.supportedFontFamiliesLowerCase.end())
 			{
-				fontFamilyNameW = fontMatch(fontFamilyNameW, fontWeight, fontSize);
+				fontFamilyNameW = gmpi::directx::fontMatchHelper(
+					info.writeFactory
+					, info.GdiFontConversions
+					, fontFamilyNameW
+					, (gmpi::drawing::FontWeight) fontWeight
+					, fontSize
+				);
 			}
 
 			IDWriteTextFormat* dwTextFormat = nullptr;
@@ -163,114 +169,12 @@ namespace se //gmpi
 			if (hr == 0)
 			{
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-				b2.Attach(new se::directx::TextFormat(dwTextFormat));
+				b2.Attach(new se::directx::TextFormat(info.writeFactory, dwTextFormat));
 
 				b2->queryInterface(GmpiDrawing_API::SE_IID_TEXTFORMAT_MPGUI, reinterpret_cast<void**>(TextFormat));
 			}
 
 			return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
-		}
-
-		// 2nd pass - GDI->DirectWrite conversion. "Arial Black" -> "Arial"
-		std::wstring Factory_base::fontMatch(std::wstring fontFamilyNameW, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, float fontSize)
-		{
-			auto it = info.GdiFontConversions.find(fontFamilyNameW);
-			if (it != info.GdiFontConversions.end())
-			{
-				return (*it).second;
-			}
-
-			IDWriteGdiInterop* interop = nullptr;
-			info.writeFactory->GetGdiInterop(&interop);
-
-			LOGFONT lf;
-			memset(&lf, 0, sizeof(LOGFONT));   // Clear out structure.
-			lf.lfHeight = (LONG) -fontSize;
-			lf.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
-			const wchar_t* actual_facename = fontFamilyNameW.c_str();
-
-			if (fontFamilyNameW == _T("serif"))
-			{
-				actual_facename = _T("Times New Roman");
-				lf.lfPitchAndFamily = DEFAULT_PITCH | FF_ROMAN;
-			}
-
-			if (fontFamilyNameW == _T("sans-serif"))
-			{
-				//		actual_facename = _T("Helvetica");
-				actual_facename = _T("Arial"); // available on all version of windows
-				lf.lfPitchAndFamily = DEFAULT_PITCH | FF_SWISS;
-			}
-
-			if (fontFamilyNameW == _T("cursive"))
-			{
-				actual_facename = _T("Zapf-Chancery");
-				lf.lfPitchAndFamily = DEFAULT_PITCH | FF_SCRIPT;
-			}
-
-			if (fontFamilyNameW == _T("fantasy"))
-			{
-				actual_facename = _T("Western");
-				lf.lfPitchAndFamily = DEFAULT_PITCH | FF_DECORATIVE;
-			}
-
-			if (fontFamilyNameW == _T("monospace"))
-			{
-				actual_facename = _T("Courier New");
-				lf.lfPitchAndFamily = DEFAULT_PITCH | FF_MODERN;
-			}
-			wcscpy_s(lf.lfFaceName, 32, actual_facename);
-			/*
-			if ((p_desc->flags & TTL_UNDERLINE) != 0)
-			{
-			lf.lfUnderline = 1;
-			}
-			*/
-			if (fontWeight > GmpiDrawing_API::MP1_FONT_WEIGHT_SEMI_BOLD)
-			{
-				lf.lfWeight = FW_BOLD;
-			}
-			else
-			{
-				if (fontWeight < 350)
-				{
-					lf.lfWeight = FW_LIGHT;
-				}
-			}
-
-			IDWriteFont* font = nullptr;
-			auto hr = interop->CreateFontFromLOGFONT(&lf, &font);
-
-			if (font && hr == 0)
-			{
-				IDWriteFontFamily* family = nullptr;
-				font->GetFontFamily(&family);
-
-				IDWriteLocalizedStrings* names = nullptr;
-				family->GetFamilyNames(&names);
-
-				BOOL exists;
-				unsigned int nameIndex;
-				names->FindLocaleName(L"en-us", &nameIndex, &exists);
-				if (exists)
-				{
-					wchar_t name[64];
-					names->GetString(nameIndex, name, sizeof(name) / sizeof(name[0]));
-					std::transform(name, name + wcslen(name), name, ::tolower);
-
-					//						supportedFontFamiliesLowerCase.push_back(name);
-					info.GdiFontConversions.insert({ fontFamilyNameW, name });
-					fontFamilyNameW = name;
-				}
-
-				names->Release();
-				family->Release();
-
-				font->Release();
-			}
-
-			interop->Release();
-			return fontFamilyNameW;
 		}
 
 		int32_t Factory_base::CreateImage(int32_t width, int32_t height, GmpiDrawing_API::IMpBitmap** returnDiBitmap)
