@@ -559,7 +559,7 @@ public:
 	GMPI_REFCOUNT;
 };
 
-class bitmapPixels final : public GmpiDrawing_API::IMpBitmapPixels
+class BitmapPixels final : public GmpiDrawing_API::IMpBitmapPixels
 {
 	gmpi::directx::ComPtr<IWICBitmap> bitmap;
     gmpi::directx::ComPtr<IWICBitmapLock> pBitmapLock;
@@ -570,14 +570,14 @@ class bitmapPixels final : public GmpiDrawing_API::IMpBitmapPixels
 	IMpBitmapPixels::PixelFormat pixelFormat = kBGRA; // default to non-SRGB Win7 (not tested)
 
 public:
-	bitmapPixels(IWICBitmap* inBitmap, bool _alphaPremultiplied, int32_t pflags)
+	BitmapPixels(IWICBitmap* inBitmap, bool _alphaPremultiplied, int32_t pflags)
 	{
 		assert(inBitmap);
 		UINT w{}, h{};
 		inBitmap->GetSize(&w, &h);
 
 		{
-    WICPixelFormatGUID formatGuid{};
+			WICPixelFormatGUID formatGuid{};
 			inBitmap->GetPixelFormat(&formatGuid);
 
 			// premultiplied BGRA (default)
@@ -600,7 +600,7 @@ public:
 
 			alphaPremultiplied = _alphaPremultiplied;
 			if (!alphaPremultiplied)
-				unpremultiplyAlpha();
+				gmpi::directx::unpremultiplyAlpha(pBitmapLock.get());
 		}
 		else
 		{
@@ -611,7 +611,7 @@ public:
     ~BitmapPixels()
 	{
 		if (!alphaPremultiplied)
-			premultiplyAlpha();
+			gmpi::directx::premultiplyAlpha(pBitmapLock.get());
 	}
 
 	virtual uint8_t* getAddress() const override { return ptr; }
@@ -619,54 +619,6 @@ public:
 	int32_t getPixelFormat() const override
 	{
 		return pixelFormat;
-	}
-
-	void premultiplyAlpha()
-	{
-		UINT w, h;
-		bitmap->GetSize(&w, &h);
-		int totalPixels = h * bytesPerRow / sizeof(uint32_t);
-
-		uint8_t* pixel = ptr;
-
-		for (int i = 0; i < totalPixels; ++i)
-		{
-			if (pixel[3] == 0)
-			{
-				pixel[0] = 0;
-				pixel[1] = 0;
-				pixel[2] = 0;
-			}
-			else
-			{
-				pixel[0] = gmpi::directx::fast8bitScale(pixel[0], pixel[3]);
-				pixel[1] = gmpi::directx::fast8bitScale(pixel[1], pixel[3]);
-				pixel[2] = gmpi::directx::fast8bitScale(pixel[2], pixel[3]);
-			}
-
-			pixel += sizeof(uint32_t);
-		}
-	}
-
-	//-----------------------------------------------------------------------------
-	void unpremultiplyAlpha()
-	{
-		UINT w, h;
-		bitmap->GetSize(&w, &h);
-		int totalPixels = h * bytesPerRow / sizeof(uint32_t);
-
-		uint8_t* pixel = ptr;
-
-		for (int i = 0; i < totalPixels; ++i)
-		{
-			if (pixel[3] != 0)
-			{
-				pixel[0] = (uint32_t)(pixel[0] * 255) / pixel[3];
-				pixel[1] = (uint32_t)(pixel[1] * 255) / pixel[3];
-				pixel[2] = (uint32_t)(pixel[2] * 255) / pixel[3];
-			}
-			pixel += sizeof(uint32_t);
-		}
 	}
 
 	GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_BITMAP_PIXELS_MPGUI, GmpiDrawing_API::IMpBitmapPixels);
@@ -742,7 +694,7 @@ public:
 		nativeBitmap_ = {};
 
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-		b2.Attach(new bitmapPixels(diBitmap_, alphaPremultiplied, GmpiDrawing_API::MP1_BITMAP_LOCK_READ | GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE));
+		b2.Attach(new BitmapPixels(diBitmap_, alphaPremultiplied, GmpiDrawing_API::MP1_BITMAP_LOCK_READ | GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE));
 
 		return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_PIXELS_MPGUI, (void**)(returnInterface));
 	}
