@@ -511,7 +511,7 @@ namespace se //gmpi
 				// on Windows 7, leave image as-is
 				if (getPlatformPixelFormat() == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
 				{
-					bitmap->ApplyPreMultiplyCorrection();
+					gmpi::directx::applyPreMultiplyCorrection(wicBitmap.get());
 				}
 
 				b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, (void**)returnBitmap);
@@ -607,57 +607,6 @@ namespace se //gmpi
 			, pixelFormat_(pixelFormat)
 		{
 			diBitmap_ = diBitmap;
-
-			/* moved (only for bitmaps loaded off disk, not render targets.
-			// on Windows 7, leave image as-is
-			if (pixelFormat_ == GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB)
-			{
-				ApplyPreMultiplyCorrection();
-			}
-			*/
-		}
-
-		// WIX premultiplies images automatically on load, but wrong (assumes linear not SRGB space). Fix it.
-		void Bitmap::ApplyPreMultiplyCorrection()
-		{
-			GmpiDrawing::Bitmap bitmap(this);
-
-			auto pixelsSource = bitmap.lockPixels(true);
-			auto imageSize = bitmap.GetSize();
-			size_t totalPixels = imageSize.height * pixelsSource.getBytesPerRow() / sizeof(uint32_t);
-			uint8_t* sourcePixels = pixelsSource.getAddress();
-
-			// WIX currently not premultiplying correctly, so redo it respecting gamma.
-			const float over255 = 1.0f / 255.0f;
-			for (size_t i = 0; i < totalPixels; ++i)
-			{
-				int alpha = sourcePixels[3];
-
-				if (alpha != 255 && alpha != 0)
-				{
-					float AlphaNorm = alpha * over255;
-					float overAlphaNorm = 1.f / AlphaNorm;
-
-					for (int j = 0; j < 3; ++j)
-					{
-						int p = sourcePixels[j];
-						if (p != 0)
-						{
-							float originalPixel = p * overAlphaNorm; // un-premultiply.
-
-							// To linear
-							auto cf = se_sdk::FastGamma::sRGB_to_float(static_cast<unsigned char>(static_cast<int32_t>(originalPixel + 0.5f)));
-
-							cf *= AlphaNorm;						// pre-multiply (correctly).
-
-							// back to SRGB
-							sourcePixels[j] = se_sdk::FastGamma::float_to_sRGB(cf);
-						}
-					}
-				}
-
-				sourcePixels += sizeof(uint32_t);
-			}
 		}
 
 		int32_t GraphicsContext_SDK3::CreateSolidColorBrush(const GmpiDrawing_API::MP1_COLOR* color, GmpiDrawing_API::IMpSolidColorBrush **solidColorBrush)

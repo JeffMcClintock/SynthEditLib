@@ -764,7 +764,6 @@ namespace se // gmpi
 			int32_t lockPixels(GmpiDrawing_API::IMpBitmapPixels** returnInterface, int32_t flags) override;
 
 			void ApplyAlphaCorrection() override{} // deprecated
-			void ApplyPreMultiplyCorrection();
 
 			void GetFactory(GmpiDrawing_API::IMpFactory** pfactory) override;
 
