@@ -146,19 +146,10 @@ namespace se // gmpi
 			GMPI_REFCOUNT_NO_DELETE;
 		};
 
-
 		class Brush : /* public GmpiDrawing_API::IMpBrush,*/ public GmpiDXResourceWrapper<GmpiDrawing_API::IMpBrush, ID2D1Brush> // Resource
 		{
 		public:
 			Brush(ID2D1Brush* native, GmpiDrawing_API::IMpFactory* factory) : GmpiDXResourceWrapper(native, factory) {}
-
-#ifdef LOG_DIRECTX_CALLS
-			~Brush()
-			{
-				_RPT1(_CRT_WARN, "brush%x->Release();\n", (int)this);
-				_RPT1(_CRT_WARN, "brush%x = nullptr;\n", (int)this);
-			}
-#endif
 
 			inline ID2D1Brush* nativeBrush()
 			{
@@ -218,7 +209,6 @@ namespace se // gmpi
 					se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color->b)),
 					color->a
 				};
-//				modified = GmpiDrawing::Color::Orange;
 
 				/*HRESULT hr =*/ context->CreateSolidColorBrush(*(D2D1_COLOR_F*)&modified, (ID2D1SolidColorBrush**) &native_);
 			}
@@ -231,7 +221,6 @@ namespace se // gmpi
 			// IMPORTANT: Virtual functions must 100% match simulated interface (GmpiDrawing_API::IMpSolidColorBrush)
 			virtual void SetColor(const GmpiDrawing_API::MP1_COLOR* color) // simulated: override
 			{
-				//				D2D1::ConvertColorSpace(D2D1::ColorF*) color);
 				GmpiDrawing_API::MP1_COLOR modified
 				{
 					se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color->r)),
@@ -244,18 +233,11 @@ namespace se // gmpi
 
 			virtual GmpiDrawing_API::MP1_COLOR GetColor() // simulated:  override
 			{
-				auto b = nativeSolidColorBrush()->GetColor();
-				//		return GmpiDrawing::Color(b.r, b.g, b.b, b.a);
-				GmpiDrawing_API::MP1_COLOR c;
-				c.a = b.a;
-				c.r = b.r;
-				c.g = b.g;
-				c.b = b.b;
-				return c;
+				const auto b = nativeSolidColorBrush()->GetColor();
+				return GmpiDrawing_API::MP1_COLOR{ b.r, b.g, b.b, b.a };
 			}
 
 			//	GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_SOLIDCOLORBRUSH_MPGUI, GmpiDrawing_API::IMpSolidColorBrush);
-
 			int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 			{
 				*returnInterface = 0;
@@ -522,13 +504,6 @@ namespace se // gmpi
 			{
 				CalculateTopAdjustment();
 			}
-#ifdef LOG_DIRECTX_CALLS
-			~TextFormat()
-			{
-				_RPT1(_CRT_WARN, "textformat%x->Release();\n", (int)this);
-				_RPT1(_CRT_WARN, "textformat%x = nullptr;\n", (int)this);
-			}
-#endif
 
 			int32_t SetTextAlignment(GmpiDrawing_API::MP1_TEXT_ALIGNMENT textAlignment) override
 			{
@@ -789,7 +764,6 @@ namespace se // gmpi
 			int32_t lockPixels(GmpiDrawing_API::IMpBitmapPixels** returnInterface, int32_t flags) override;
 
 			void ApplyAlphaCorrection() override{} // deprecated
-//			void ApplyAlphaCorrection_win7();
 			void ApplyPreMultiplyCorrection();
 
 			void GetFactory(GmpiDrawing_API::IMpFactory** pfactory) override;
@@ -866,27 +840,14 @@ namespace se // gmpi
 				{
 					geometrysink_->Release();
 
-#ifdef LOG_DIRECTX_CALLS
-					_RPT1(_CRT_WARN, "sink%x->Release();\n", (int)this);
-					_RPT1(_CRT_WARN, "sink%x = nullptr;\n", (int)this);
-#endif
 				}
 			}
 			void SetFillMode(GmpiDrawing_API::MP1_FILL_MODE fillMode) override
 			{
 				geometrysink_->SetFillMode((D2D1_FILL_MODE)fillMode);
 			}
-#if 0
-			void SetSegmentFlags(GmpiDrawing_API::MP1_PATH_SEGMENT vertexFlags) override
-			{
-				geometrysink_->SetSegmentFlags((D2D1_PATH_SEGMENT)vertexFlags);
-			}
-#endif
 			void BeginFigure(GmpiDrawing_API::MP1_POINT startPoint, GmpiDrawing_API::MP1_FIGURE_BEGIN figureBegin) override
 			{
-#ifdef LOG_DIRECTX_CALLS
-				_RPT4(_CRT_WARN, "sink%x->BeginFigure(D2D1::Point2F(%f,%f), (D2D1_FIGURE_BEGIN)%d);\n", (int)this, startPoint.x, startPoint.y, figureBegin);
-#endif
 				geometrysink_->BeginFigure(*reinterpret_cast<D2D1_POINT_2F*>(&startPoint), (D2D1_FIGURE_BEGIN)figureBegin);
 			}
 			void AddLines(const GmpiDrawing_API::MP1_POINT* points, uint32_t pointsCount) override
@@ -899,24 +860,15 @@ namespace se // gmpi
 			}
 			void EndFigure(GmpiDrawing_API::MP1_FIGURE_END figureEnd) override
 			{
-#ifdef LOG_DIRECTX_CALLS
-				_RPT2(_CRT_WARN, "sink%x->EndFigure((D2D1_FIGURE_END)%d);\n", (int)this, figureEnd);
-#endif
 				geometrysink_->EndFigure((D2D1_FIGURE_END)figureEnd);
 			}
 			int32_t Close() override
 			{
-#ifdef LOG_DIRECTX_CALLS
-				_RPT1(_CRT_WARN, "sink%x->Close();\n", (int)this);
-#endif
 				auto hr = geometrysink_->Close();
 				return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
 			}
 			void AddLine(GmpiDrawing_API::MP1_POINT point) override
 			{
-#ifdef LOG_DIRECTX_CALLS
-				_RPT4(_CRT_WARN, "sink%x->AddLine(D2D1::Point2F(%f,%f));\n", (int)this, point.x, point.y);
-#endif
 				geometrysink_->AddLine(*reinterpret_cast<D2D1_POINT_2F*>(&point));
 			}
 			void AddBezier(const GmpiDrawing_API::MP1_BEZIER_SEGMENT* bezier) override
@@ -966,10 +918,6 @@ namespace se // gmpi
 				if (geometry_)
 				{
 					geometry_->Release();
-#ifdef LOG_DIRECTX_CALLS
-					_RPT1(_CRT_WARN, "geometry%x->Release();\n", (int)this);
-					_RPT1(_CRT_WARN, "geometry%x = nullptr;\n", (int)this);
-#endif
 				}
 			}
 
@@ -1047,42 +995,7 @@ namespace se // gmpi
 				, fallback(pfallback)
 			{
 			}
-#if 0
-			// "real" GMPI-UI API
-				// IResource (gmpi_ui)
-			gmpi::ReturnCode getFactory(gmpi::drawing::api::IFactory** factory) override { return gmpi::ReturnCode::Ok; }
 
-			// IDeviceContext (gmpi_ui)
-			gmpi::ReturnCode createBitmapBrush(gmpi::drawing::api::IBitmap* bitmap, /*const BitmapBrushProperties* bitmapBrushProperties,*/ const gmpi::drawing::BrushProperties* brushProperties, gmpi::drawing::api::IBitmapBrush** returnBitmapBrush) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode createSolidColorBrush(const gmpi::drawing::Color* color, const gmpi::drawing::BrushProperties* brushProperties, gmpi::drawing::api::ISolidColorBrush** returnSolidColorBrush) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode createGradientstopCollection(const gmpi::drawing::Gradientstop* gradientstops, uint32_t gradientstopsCount, gmpi::drawing::ExtendMode extendMode, gmpi::drawing::api::IGradientstopCollection** returnGradientstopCollection) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode createLinearGradientBrush(const gmpi::drawing::LinearGradientBrushProperties* linearGradientBrushProperties, const gmpi::drawing::BrushProperties* brushProperties, gmpi::drawing::api::IGradientstopCollection* gradientstopCollection, gmpi::drawing::api::ILinearGradientBrush** returnLinearGradientBrush) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode createRadialGradientBrush(const gmpi::drawing::RadialGradientBrushProperties* radialGradientBrushProperties, const gmpi::drawing::BrushProperties* brushProperties, gmpi::drawing::api::IGradientstopCollection* gradientstopCollection, gmpi::drawing::api::IRadialGradientBrush** returnRadialGradientBrush) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode drawLine(gmpi::drawing::Point point0, gmpi::drawing::Point point1, gmpi::drawing::api::IBrush* brush, float strokeWidth, gmpi::drawing::api::IStrokeStyle* strokeStyle) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode drawRectangle(const gmpi::drawing::Rect* rect, gmpi::drawing::api::IBrush* brush, float strokeWidth, gmpi::drawing::api::IStrokeStyle* strokeStyle) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode fillRectangle(const gmpi::drawing::Rect* rect, gmpi::drawing::api::IBrush* brush) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode drawRoundedRectangle(const gmpi::drawing::RoundedRect* roundedRect, gmpi::drawing::api::IBrush* brush, float strokeWidth, gmpi::drawing::api::IStrokeStyle* strokeStyle) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode fillRoundedRectangle(const gmpi::drawing::RoundedRect* roundedRect, gmpi::drawing::api::IBrush* brush) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode drawEllipse(const gmpi::drawing::Ellipse* ellipse, gmpi::drawing::api::IBrush* brush, float strokeWidth, gmpi::drawing::api::IStrokeStyle* strokeStyle) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode fillEllipse(const gmpi::drawing::Ellipse* ellipse, gmpi::drawing::api::IBrush* brush) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode drawGeometry(gmpi::drawing::api::IPathGeometry* pathGeometry, gmpi::drawing::api::IBrush* brush, float strokeWidth, gmpi::drawing::api::IStrokeStyle* strokeStyle) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode fillGeometry(gmpi::drawing::api::IPathGeometry* pathGeometry, gmpi::drawing::api::IBrush* brush, gmpi::drawing::api::IBrush* opacityBrush) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode drawBitmap(gmpi::drawing::api::IBitmap* bitmap, const gmpi::drawing::Rect* destinationRectangle, float opacity, gmpi::drawing::BitmapInterpolationMode interpolationMode, const gmpi::drawing::Rect* sourceRectangle) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode drawTextU(const char* string, uint32_t stringLength, gmpi::drawing::api::ITextFormat* textFormat, const gmpi::drawing::Rect* layoutRect, gmpi::drawing::api::IBrush* defaultForegroundBrush, int32_t options) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode setTransform(const gmpi::drawing::Matrix3x2* transform) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode getTransform(gmpi::drawing::Matrix3x2* returnTransform) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode pushAxisAlignedClip(const gmpi::drawing::Rect* clipRect) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode popAxisAlignedClip() override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode getAxisAlignedClip(gmpi::drawing::Rect* returnClipRect) override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode clear(const gmpi::drawing::Color* clearColor) override
-			{
-				context_->Clear((D2D1_COLOR_F*)clearColor);
-				return gmpi::ReturnCode::Ok;
-			}
-			gmpi::ReturnCode beginDraw() override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode endDraw() override { return gmpi::ReturnCode::Ok; }
-			gmpi::ReturnCode createCompatibleRenderTarget(gmpi::drawing::Size desiredSize, struct gmpi::drawing::api::IBitmapRenderTarget** returnBitmapRenderTarget) override { return gmpi::ReturnCode::Ok; } // TODO SizeL ???
-#endif
 			gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override {
 				*returnInterface = {};
 				if ((*iid) == gmpi::drawing::api::IDeviceContext::guid) {
@@ -1149,12 +1062,6 @@ namespace se // gmpi
 
 			void Clear(const GmpiDrawing_API::MP1_COLOR* clearColor) override
 			{
-#ifdef LOG_DIRECTX_CALLS
-				_RPT0(_CRT_WARN, "{\n");
-				_RPT4(_CRT_WARN, "auto c = D2D1::ColorF(%.3ff, %.3ff, %.3ff, %.3ff);\n", clearColor->r, clearColor->g, clearColor->b, clearColor->a);
-				_RPT0(_CRT_WARN, "context_->Clear(c);\n");
-				_RPT0(_CRT_WARN, "}\n");
-#endif
 				native()->Clear(*(D2D1_COLOR_F*)clearColor);
 			}
 
@@ -1167,9 +1074,6 @@ namespace se // gmpi
 
 			void FillGeometry(const GmpiDrawing_API::IMpPathGeometry* geometry, const GmpiDrawing_API::IMpBrush* brush, const GmpiDrawing_API::IMpBrush* opacityBrush) override
 			{
-#ifdef LOG_DIRECTX_CALLS
-				_RPT3(_CRT_WARN, "context_->FillGeometry(geometry%x, brush%x, nullptr);\n", (int)geometry, (int)brush);
-#endif
 				auto d2d_geometry = ((Geometry*)geometry)->geometry_;
 
 				ID2D1Brush* opacityBrushNative;
@@ -1184,12 +1088,6 @@ namespace se // gmpi
 
 				context_->FillGeometry(d2d_geometry, ((Brush*)brush)->nativeBrush(), opacityBrushNative);
 			}
-
-			//void FillMesh(const GmpiDrawing_API::IMpMesh* mesh, const GmpiDrawing_API::IMpBrush* brush) override
-			//{
-			//	auto nativeMesh = ((Mesh*)mesh)->native();
-			//	context_->FillMesh(nativeMesh, ((Brush*)brush)->nativeBrush());
-			//}
 
 			void DrawTextU(const char* utf8String, int32_t stringLength, const GmpiDrawing_API::IMpTextFormat* textFormat, const GmpiDrawing_API::MP1_RECT* layoutRect, const GmpiDrawing_API::IMpBrush* brush, int32_t flags) override;
 
@@ -1212,24 +1110,11 @@ namespace se // gmpi
 
 			void SetTransform(const GmpiDrawing_API::MP1_MATRIX_3X2* transform) override
 			{
-#ifdef LOG_DIRECTX_CALLS
-				_RPT0(_CRT_WARN, "{\n");
-				_RPT4(_CRT_WARN, "auto t = D2D1::Matrix3x2F(%.3f, %.3f, %.3f, %.3f, ", transform->_11, transform->_12, transform->_21, transform->_22);
-				_RPT4(_CRT_WARN, "%.3f, %.3f);\n", transform->_31, transform->_32);
-				_RPT0(_CRT_WARN, "context_->SetTransform(t);\n");
-				_RPT0(_CRT_WARN, "}\n");
-#endif
 				context_->SetTransform(reinterpret_cast<const D2D1_MATRIX_3X2_F*>(transform));
 			}
 
 			void GetTransform(GmpiDrawing_API::MP1_MATRIX_3X2* transform) override
 			{
-#ifdef LOG_DIRECTX_CALLS
-				_RPT0(_CRT_WARN, "{\n");
-				_RPT0(_CRT_WARN, "D2D1_MATRIX_3X2_F t;\n");
-				_RPT0(_CRT_WARN, "context_->GetTransform(&t);\n");
-				_RPT0(_CRT_WARN, "}\n");
-#endif
 				context_->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(transform));
 			}
 
@@ -1276,8 +1161,6 @@ namespace se // gmpi
 				context_->DrawRoundedRectangle((D2D1_ROUNDED_RECT*)roundedRect, (ID2D1Brush*)((Brush*)brush)->nativeBrush(), (FLOAT)strokeWidth, toNative(strokeStyle));
 			}
 
-//			int32_t CreateMesh(GmpiDrawing_API::IMpMesh** returnObject) override;
-
 			void FillRoundedRectangle(const GmpiDrawing_API::MP1_ROUNDED_RECT* roundedRect, const GmpiDrawing_API::IMpBrush* brush) override
 			{
 				context_->FillRoundedRectangle((D2D1_ROUNDED_RECT*)roundedRect, (ID2D1Brush*)((Brush*)brush)->nativeBrush());
@@ -1297,10 +1180,6 @@ namespace se // gmpi
 
 			void PopAxisAlignedClip() override
 			{
-//				_RPT0(_CRT_WARN, "                 PopAxisAlignedClip()\n");
-#ifdef LOG_DIRECTX_CALLS
-				_RPT0(_CRT_WARN, "context_->PopAxisAlignedClip();\n");
-#endif
 				context_->PopAxisAlignedClip();
 				clipRectStack.pop_back();
 			}
@@ -1309,24 +1188,15 @@ namespace se // gmpi
 
 			void BeginDraw() override
 			{
-#ifdef LOG_DIRECTX_CALLS
-				_RPT0(_CRT_WARN, "\n\n// ==================================================\n");
-				_RPT0(_CRT_WARN, "context_->BeginDraw();\n");
-#endif
 				context_->BeginDraw();
 			}
 
 			int32_t EndDraw() override
 			{
-#ifdef LOG_DIRECTX_CALLS
-				_RPT0(_CRT_WARN, "context_->EndDraw();\n");
-#endif
 				auto hr = context_->EndDraw();
 
 				return hr == S_OK ? gmpi::MP_OK : gmpi::MP_FAIL;
 			}
-
-//			int32_t GetUpdateRegion(GmpiDrawing_API::IUpdateRegion** returnUpdateRegion) override;
 
 			//	void InsetNewMethodHere(){}
 

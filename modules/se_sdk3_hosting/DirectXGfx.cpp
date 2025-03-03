@@ -50,13 +50,6 @@ namespace se //gmpi
 
 				b2->queryInterface(GmpiDrawing_API::SE_IID_GEOMETRYSINK_MPGUI, reinterpret_cast<void**>(geometrySink));
 
-#ifdef LOG_DIRECTX_CALLS
-				_RPT1(_CRT_WARN, "ID2D1GeometrySink* sink%x = nullptr;\n", (int)* geometrySink);
-				_RPT0(_CRT_WARN, "{\n");
-				_RPT2(_CRT_WARN, "geometry%x->Open(&sink%x);\n", (int) this, (int)* geometrySink);
-				_RPT0(_CRT_WARN, "}\n");
-#endif
-
 			}
 
 			return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
@@ -285,14 +278,6 @@ namespace se //gmpi
 
 				b2->queryInterface(GmpiDrawing_API::SE_IID_PATHGEOMETRY_MPGUI, reinterpret_cast<void**>(pathGeometry));
 
-#ifdef LOG_DIRECTX_CALLS
-				_RPT1(_CRT_WARN, "ID2D1PathGeometry* geometry%x = nullptr;\n", (int)*pathGeometry);
-				_RPT0(_CRT_WARN, "{\n");
-				_RPT1(_CRT_WARN, "factory->CreatePathGeometry(&geometry%x);\n", (int)*pathGeometry);
-				_RPT0(_CRT_WARN, "}\n");
-#endif
-			}
-
 			return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
 		}
 
@@ -329,14 +314,6 @@ namespace se //gmpi
 				b2.Attach(new se::directx::TextFormat(&stringConverter, dwTextFormat));
 
 				b2->queryInterface(GmpiDrawing_API::SE_IID_TEXTFORMAT_MPGUI, reinterpret_cast<void**>(TextFormat));
-
-//				_RPT2(_CRT_WARN, "factory.CreateTextFormat() -> %x %S\n", (int)dwTextFormat, fontFamilyNameW.c_str());
-#ifdef LOG_DIRECTX_CALLS
-//				_RPT4(_CRT_WARN, "auto c = D2D1::ColorF(%.3f, %.3f, %.3f, %.3f);\n", color->r, color->g, color->b, color->a);
-				_RPT1(_CRT_WARN, "IDWriteTextFormat* textformat%x = nullptr;\n", (int)*TextFormat);
-				_RPT4(_CRT_WARN, "writeFactory->CreateTextFormat(L\"%S\",NULL, (DWRITE_FONT_WEIGHT)%d, (DWRITE_FONT_STYLE)%d, DWRITE_FONT_STRETCH_NORMAL, %f, L\"\",", fontFamilyNameW.c_str(), fontWeight, fontStyle, fontSize);
-				_RPT1(_CRT_WARN, "&textformat%x);\n", (int)*TextFormat);
-#endif
 			}
 
 			return hr == 0 ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
@@ -842,13 +819,6 @@ namespace se //gmpi
 
 		void GraphicsContext_SDK3::PushAxisAlignedClip(const GmpiDrawing_API::MP1_RECT* clipRect/*, GmpiDrawing_API::MP1_ANTIALIAS_MODE antialiasMode*/)
 		{
-#ifdef LOG_DIRECTX_CALLS
-			_RPT0(_CRT_WARN, "{\n");
-			_RPT4(_CRT_WARN, "auto r = D2D1::RectF(%.3f, %.3f, %.3f, %.3ff);\n", clipRect->left, clipRect->top, clipRect->right, clipRect->bottom);
-			_RPT0(_CRT_WARN, "context_->PushAxisAlignedClip(&r, D2D1_ANTIALIAS_MODE_ALIASED);\n");
-			_RPT0(_CRT_WARN, "}\n");
-#endif
-
 			context_->PushAxisAlignedClip((D2D1_RECT_F*)clipRect, D2D1_ANTIALIAS_MODE_ALIASED /*, (D2D1_ANTIALIAS_MODE)antialiasMode*/);
 
 			// Transform to original position.
@@ -856,19 +826,10 @@ namespace se //gmpi
 			context_->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(&currentTransform));
 			auto r2 = currentTransform.TransformRect(*clipRect);
 			clipRectStack.push_back(r2);
-
-//			_RPT4(_CRT_WARN, "                 PushAxisAlignedClip( %f %f %f %f)\n", r2.left, r2.top, r2.right , r2.bottom);
 		}
 
 		void GraphicsContext_SDK3::GetAxisAlignedClip(GmpiDrawing_API::MP1_RECT* returnClipRect)
 		{
-#ifdef LOG_DIRECTX_CALLS
-			_RPT0(_CRT_WARN, "{\n");
-			_RPT0(_CRT_WARN, "D2D1_MATRIX_3X2_F t;\n");
-			_RPT0(_CRT_WARN, "context_->GetTransform(&t);\n");
-			_RPT0(_CRT_WARN, "}\n");
-#endif
-
 			// Transform to original position.
 			GmpiDrawing::Matrix3x2 currentTransform;
 			context_->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(&currentTransform));
