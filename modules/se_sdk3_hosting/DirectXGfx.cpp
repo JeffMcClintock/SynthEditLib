@@ -3,7 +3,6 @@
 #include <sstream>
 #include "./DirectXGfx.h"
 #include "../shared/xplatform.h"
-#include "../shared/unicode_conversion.h"
 #include "../se_sdk3_hosting/gmpi_gui_hosting.h"
 #include "BundleInfo.h"
 
@@ -78,31 +77,12 @@ void TextFormat::GetTextExtentU(const char* utf8String, int32_t stringLength, Gm
 void Factory_SDK3::Init()
 {
 	gmpi::directx::initFactoryHelper(
-			info.writeFactory
+		  info.writeFactory
 		, info.wicFactory
 		, info.d2dFactory
 		, info.supportedFontFamilies
 		, info.supportedFontFamiliesLowerCase
 	);
-#if 0
-	// test matrix rotation calc
-	for (int rot = 0; rot < 8; ++rot)
-	{
-		const float angle = (rot / 8.f) * 2.f * 3.14159274101257324219f;
-		auto test = GmpiDrawing::Matrix3x2::Rotation(angle, { 23, 7 });
-		auto test2 = D2D1::Matrix3x2F::Rotation(angle * 180.f / 3.14159274101257324219f, { 23, 7 });
-
-		_RPTN(0, "\nangle=%f\n", angle);
-		_RPTN(0, "%f, %f\n", test._11, test._12);
-		_RPTN(0, "%f, %f\n", test._21, test._22);
-		_RPTN(0, "%f, %f\n", test._31, test._32);
-}
-
-	// test matrix scaling
-	const auto test = GmpiDrawing::Matrix3x2::Scale({ 3, 5 }, { 7, 9 });
-	const auto test2 = D2D1::Matrix3x2F::Scale({ 3, 5 }, { 7, 9 });
-	const auto breakpointer = test._11 + test2._11;
-#endif
 }
 
 int32_t Factory_base::CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry** pathGeometry)

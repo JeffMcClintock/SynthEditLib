@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 include(plugin_helper.cmake)
+include(${GMPI_SDK}/gmpi_plugin.cmake)
 
 # Build individual SEM modules
 add_subdirectory(Arpeggiator)
@@ -46,3 +47,6 @@ add_subdirectory(VaFilters)
 add_subdirectory(VoiceWatcherBlocker)
 add_subdirectory(WaveRecorder2)
 add_subdirectory(Waveshapers)
+
+# GMPI plugins
+add_subdirectory(SubControls4)
