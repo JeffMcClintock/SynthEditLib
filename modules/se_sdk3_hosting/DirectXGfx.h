@@ -7,7 +7,6 @@
 #include <d2d1_2.h>
 #include <dwrite.h>
 #include <Wincodec.h>
-#include "fast_gamma.h"
 #include "Drawing_API.h"
 #include "GmpiApiDrawing.h"
 #include "backends/DirectXGfx.h" // GMPI-UI DirectX implementation
@@ -199,15 +198,9 @@ class SolidColorBrush_Win7 final : /* Simulated: public GmpiDrawing_API::IMpSoli
 public:
 	SolidColorBrush_Win7(ID2D1RenderTarget* context, const GmpiDrawing_API::MP1_COLOR* color, GmpiDrawing_API::IMpFactory* factory) : Brush(nullptr, factory)
 	{
-		const GmpiDrawing_API::MP1_COLOR modified
-		{
-			se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color->r)),
-			se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color->g)),
-			se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color->b)),
-			color->a
-		};
+		const auto nativeColor = gmpi::directx::toNativeWin7((const gmpi::drawing::Color*)color);
 
-		/*HRESULT hr =*/ context->CreateSolidColorBrush(*(D2D1_COLOR_F*)&modified, (ID2D1SolidColorBrush**) &native_);
+		/*HRESULT hr =*/ context->CreateSolidColorBrush(nativeColor, (ID2D1SolidColorBrush**) &native_);
 	}
 
 	inline ID2D1SolidColorBrush* nativeSolidColorBrush()
@@ -218,14 +211,8 @@ public:
 	// IMPORTANT: Virtual functions must 100% match simulated interface (GmpiDrawing_API::IMpSolidColorBrush)
 	virtual void SetColor(const GmpiDrawing_API::MP1_COLOR* color) // simulated: override
 	{
-		GmpiDrawing_API::MP1_COLOR modified
-		{
-			se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color->r)),
-			se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color->g)),
-			se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color->b)),
-			color->a
-		};
-		nativeSolidColorBrush()->SetColor((D2D1::ColorF*) &modified);
+		const auto nativeColor = gmpi::directx::toNativeWin7((const gmpi::drawing::Color*)color);
+		nativeSolidColorBrush()->SetColor(&nativeColor);
 	}
 
 	virtual GmpiDrawing_API::MP1_COLOR GetColor() // simulated:  override
@@ -1241,22 +1228,17 @@ public:
 			auto& srce = gradientStops[i];
 			auto& dest = stops[i];
 			dest.position = srce.position;
-			dest.color.a = srce.color.a;
-			dest.color.r = se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(srce.color.r));
-			dest.color.g = se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(srce.color.g));
-			dest.color.b = se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(srce.color.b));
+
+			*(D2D1_COLOR_F*) &dest.color = gmpi::directx::toNativeWin7((const gmpi::drawing::Color*)&srce.color);
 		}
 
 		return GraphicsContext_SDK3::CreateGradientStopCollection(stops.data(), gradientStopsCount, gradientStopCollection);
 	}
 
-	void Clear(const GmpiDrawing_API::MP1_COLOR* clearColor) override
+	void Clear(const GmpiDrawing_API::MP1_COLOR* color) override
 	{
-		GmpiDrawing_API::MP1_COLOR color(*clearColor);
-		color.r = se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color.r));
-		color.g = se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color.g));
-		color.b = se_sdk::FastGamma::pixelToNormalised(se_sdk::FastGamma::float_to_sRGB(color.b));
-		context_->Clear((D2D1_COLOR_F*)&color);
+		const auto native = gmpi::directx::toNativeWin7((const gmpi::drawing::Color*)color);
+		context_->Clear(&native);
 	}
 };
 

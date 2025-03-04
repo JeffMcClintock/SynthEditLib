@@ -31,7 +31,6 @@ namespace se_sdk
 
 	class FastGamma : private static_holder<gammaLookupTables>
 	{
-
 	public:
 		// Fast version.
 		inline static float sRGB_to_float(unsigned char pixel)
