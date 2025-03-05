@@ -81,7 +81,7 @@ void Factory_SDK3::Init()
 		, info.wicFactory
 		, info.d2dFactory
 		, info.supportedFontFamilies
-		, info.supportedFontFamiliesLowerCase
+		, info.availableFonts
 	);
 }
 
@@ -107,19 +107,24 @@ int32_t Factory_base::CreateTextFormat(const char* fontFamilyName, void* unused 
 {
 	*TextFormat = {};
 
-	auto fontFamilyNameW = gmpi::directx::Utf8ToWstring(fontFamilyName);
-	std::wstring lowercaseName(fontFamilyNameW);
-	std::transform(lowercaseName.begin(), lowercaseName.end(), lowercaseName.begin(), ::tolower);
+	std::string lowercaseNameU(fontFamilyName);
+	std::transform(lowercaseNameU.begin(), lowercaseNameU.end(), lowercaseNameU.begin(), [](char c) { return static_cast<char>(std::tolower(c)); });
 
-	if (std::find(info.supportedFontFamiliesLowerCase.begin(), info.supportedFontFamiliesLowerCase.end(), lowercaseName) == info.supportedFontFamiliesLowerCase.end())
+	std::wstring fontFamilyNameW;
+
+	// match the font name case-insensitive. To look up the system font name (correct case)
+	if (auto it = info.availableFonts.find(lowercaseNameU); it != info.availableFonts.end())
 	{
 		fontFamilyNameW = gmpi::directx::fontMatchHelper(
-			info.writeFactory
+			  info.writeFactory
 			, info.GdiFontConversions
-			, fontFamilyNameW
+			, fontFamilyName
 			, (gmpi::drawing::FontWeight) fontWeight
-			, fontSize
 		);
+	}
+	else
+	{
+		fontFamilyNameW = it->second.systemFontName;
 	}
 
 	IDWriteTextFormat* dwTextFormat{};
