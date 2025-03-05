@@ -76,13 +76,7 @@ void TextFormat::GetTextExtentU(const char* utf8String, int32_t stringLength, Gm
 
 void Factory_SDK3::Init()
 {
-	gmpi::directx::initFactoryHelper(
-		  info.writeFactory
-		, info.wicFactory
-		, info.d2dFactory
-		, info.supportedFontFamilies
-		, info.availableFonts
-	);
+	gmpi::directx::initFactoryHelper(info);
 }
 
 int32_t Factory_base::CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry** pathGeometry)
