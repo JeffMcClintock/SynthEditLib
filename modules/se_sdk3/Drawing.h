@@ -643,7 +643,7 @@ namespace GmpiDrawing
 
 	template<class T> PointBase<T> CenterPoint(const RectBase<T>& r)
 	{
-		return PointBase<T>( (T)0.5 * (r.left + r.right), (T)0.5 * (r.top + r.bottom));
+		return PointBase<T>((r.left + r.right) / (T)2, (r.top + r.bottom) / (T)2);
 	}
 
 	typedef RectBase<float> Rect;
