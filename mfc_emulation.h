@@ -17,10 +17,6 @@
 #define _RPT3(p0,p1,p2,p3,p4) fprintf(stderr, p1, p2, p3, p4);
 #define _RPT4(p0,p1,p2,p3,p4,p5) fprintf(stderr, p1, p2, p3, p4, p5);
 
-// va args don't seem to work on mac
-//#define _RPT_BASE(...) () (fprintf(stderr, __VA_ARGS__))
-//#define _RPTN(rptno, ...) _RPT_BASE(rptno, __VA_ARGS__)
-#define _RPTN(rptno, msg, ...)
 #else
 
 #define _RPT0(p0,p1)
@@ -29,8 +25,13 @@
 #define _RPT3(p0,p1,p2,p3,p4)
 #define _RPT4(p0,p1,p2,p3,p4,p5)
 #define _RPTN(rptno, msg, ...)
+#define _RPTWN(rptno, msg, ...)
 
 #endif
+
+// va args don't seem to work on mac
+#define _RPTN(rptno, msg, ...)
+#define _RPTWN(rptno, msg, ...)
 
 #define _RPTW0(p0,p1)
 #define _RPTW1(p0,p1,p2)
