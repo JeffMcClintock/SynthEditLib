@@ -858,6 +858,7 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateTextFormat(const char* fontFa
 		(gmpi::drawing::FontStyle) fontStyle,
 		(gmpi::drawing::FontStretch) fontStretch,
 		fontSize,
+		0,
 		&b
 	);
 

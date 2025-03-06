@@ -62,8 +62,7 @@ public:
 		const float totalWidth = graphWidth;
 		const float lowHz = 20.0f;
 		const int interpolationExtraValues = 3;
-		const int numBars = interpolationExtraValues + static_cast<int>(std::ceil(totalWidth / pixelToBinDx));
-		const int prequelDummyValues = 1; // db bins have a dummy value at index 0, to reduce the number of checks when interpolating.
+		const int numBars = interpolationExtraValues + static_cast<int>(totalWidth);
 
 		int section = 0;
 		int x = 0;
@@ -72,7 +71,7 @@ public:
 			const float octave = x * 10.0f / totalWidth;
 			const float hz = powf(2.0f, octave) * lowHz;
 
-			const float bin = prequelDummyValues + hz * hz2bin;
+			const float bin = hz * hz2bin;
 			const float safeBin = std::clamp(bin, 0.f, (float)numValues - 1.0f);
 
 			const int index = static_cast<int>(safeBin);
@@ -81,13 +80,11 @@ public:
 				{
 					index
 					,fraction
-	#ifdef _DEBUG
 					,hz
-	#endif
 				}
 			);
 
-			x += pixelToBinDx;
+			++x;
 		}
 	}
 
@@ -112,13 +109,35 @@ FreqAnalyser3Gui::FreqAnalyser3Gui()
 
 void FreqAnalyser3Gui::onValueChanged()
 {
-	graphValues.clear();
-	geometry = nullptr;
+	const auto size = pinSpectrum.getValue().getSize();
 
-	if (peakResetCounter-- < 0)
+	if (size > sizeof(float))
 	{
-		clearPeaks();
-		peakResetCounter = 60;
+		const auto data = pinSpectrum.getValue().getData();
+
+		const auto newSpectrumCount = (std::max)(0, -1 + static_cast<int>(size / sizeof(float)));
+
+		rawSpectrum.assign((float*)data, (float*)data + size / sizeof(float));
+		auto newSampleRateFft = ((float*)data)[newSpectrumCount]; // last entry used for sample-rate.
+
+		if (sampleRateFft != newSampleRateFft)
+		{
+			cachedBackground_ = nullptr;
+			sampleRateFft = newSampleRateFft;
+			pixelToBin.clear();
+			clearPeaks();
+		}
+
+		graphValues.clear();
+		spectrumUpdateFlag = true;
+
+		//	geometry = nullptr;
+
+		if (peakResetCounter-- < 0)
+		{
+			clearPeaks();
+			peakResetCounter = 60;
+		}
 	}
 
 	invalidateRect();
@@ -165,6 +184,7 @@ int32_t FreqAnalyser3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCon
 	const auto newSpectrumCount = (std::max)(0, -1 + static_cast<int>(pinSpectrum.rawSize() / sizeof(float)));
 	auto capturedata = (const float*) pinSpectrum.rawData();
 
+#if 0
 	if (newSpectrumCount > 0)
 	{
 		const auto& newSamplerate = capturedata[newSpectrumCount]; // last entry used for sample-rate.
@@ -180,6 +200,7 @@ int32_t FreqAnalyser3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCon
 			graphValues.clear();
 		}
 	}
+#endif
 
 #if USE_CACHED_BACKGROUND
 	if (cachedBackground_.isNull())
@@ -252,7 +273,7 @@ int32_t FreqAnalyser3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCon
 		{
 			// FREQUENCY LABELS
 			// Highest mark is nyquist rounded to nearest 10kHz.
-			const float topFrequency = calcTopFrequency3(sampleRateFft);
+			const float topFrequency = 20000.0f; // calcTopFrequency3(sampleRateFft);
 			float frequencyStep = 1000.0;
 			if (width < 500)
 			{
@@ -399,9 +420,17 @@ int32_t FreqAnalyser3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCon
 	g.DrawBitmap(cachedBackground_, Point(0, 0), r);
 #endif
 
+#if 0
 	if (graphValues.empty())
 	{
 		rawSpectrum.assign(capturedata, capturedata + newSpectrumCount);
+		const auto plotAreaWidth = rightBorder - leftBorder;
+		updateSpectrumGraph(plotAreaWidth, r.getHeight());
+	}
+#endif
+
+	if (spectrumDecayFlag || spectrumUpdateFlag)
+	{
 		const auto plotAreaWidth = rightBorder - leftBorder;
 		updateSpectrumGraph(plotAreaWidth, r.getHeight());
 	}

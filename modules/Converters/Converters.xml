@@ -422,7 +422,7 @@
     </Audio>
   </Plugin>
   
-  <Plugin id="SE Unit Converter (Volts)" name="Unit Converter (Volts)" category="Conversion" >
+  <Plugin id="SE Unit Converter (Volts)" name="Unit Converter (Volts)" category="Conversion" simdOverwritesBufferEnd="true" >
     <Audio>
       <Pin id="0" name="A" direction="in" datatype="float" rate="audio"/>
       <Pin id="1" name="B" direction="out" datatype="float" rate="audio"/>

@@ -4,11 +4,15 @@
 #include "unicode_conversion.h"
 #include "RawConversions.h"
 #include "BundleInfo.h"
-#include "../tinyXml2/tinyxml2.h"
+// #include "dsp_patch_manager.h" // enable for logging only
 
 //==============================================================================
-SE2JUCE_Processor::SE2JUCE_Processor(std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter) :
-    controller(dawStateManager)
+SE2JUCE_Processor::SE2JUCE_Processor(
+    std::unique_ptr<SeJuceController> pController,
+    std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter
+) :
+    controller(std::move(pController))
+
     // init the midi converter
     ,midiConverter(
         // provide a lambda to accept converted MIDI 2.0 messages
@@ -16,10 +20,10 @@ SE2JUCE_Processor::SE2JUCE_Processor(std::function<juce::AudioParameterFloatAttr
         {
             processor.MidiIn(offset, msg.begin(), static_cast<int>(msg.size()));
         }
-    ),
+    )
 
 #ifndef JucePlugin_PreferredChannelConfigurations
-     AudioProcessor (BusesProperties()
+     ,AudioProcessor (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
                       #if ! JucePlugin_IsSynth
                        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
@@ -29,42 +33,47 @@ SE2JUCE_Processor::SE2JUCE_Processor(std::function<juce::AudioParameterFloatAttr
                        )
 #endif
 {
-
+#ifdef _DEBUG
+    _RPT0(0, "\nSE2JUCE_Processor::SE2JUCE_Processor()\n");
+#endif
     BundleInfo::instance()->initPresetFolder(JucePlugin_Manufacturer, JucePlugin_Name);
 
-    processor.connectPeer(&controller);
+    processor.connectPeer(controller.get());
 
-    // STATE MANAGER
+    // Initialize the DAW state manager
     {
-        dawStateManager.callback =
-            [this](const DawPreset* preset)
+        {
+            TiXmlDocument doc;
+            {
+                const auto xml = BundleInfo::instance()->getResource("parameters.se.xml");
+                doc.Parse(xml.c_str());
+                assert(!doc.Error());
+            }
+
+            TiXmlHandle hDoc(&doc);
+
+            auto controllerE = hDoc.FirstChildElement("Controller").Element();
+            assert(controllerE);
+
+            auto patchManagerE = controllerE->FirstChildElement();
+            assert(strcmp(patchManagerE->Value(), "PatchManager") == 0);
+
+            auto parameters_xml = patchManagerE->FirstChildElement("Parameters");
+
+            dawStateManager.init(parameters_xml);
+        }
+
+        dawStateManager.callback = [this](DawPreset const* preset)
             {
                 // update Processor when preset changes
                 processor.setPresetUnsafe(preset);
 
                 // update Controller when preset changes
-                controller.setPresetUnsafe(preset);
+                controller->setPresetUnsafe(preset);
             };
-
-        tinyxml2::XMLDocument doc;
-        {
-            const auto xml = BundleInfo::instance()->getResource("parameters.se.xml");
-            doc.Parse(xml.c_str());
-            assert(!doc.Error());
-        }
-
-        auto controllerE = doc.FirstChildElement("Controller");
-        assert(controllerE);
-
-        auto patchManagerE = controllerE->FirstChildElement();
-        assert(strcmp(patchManagerE->Value(), "PatchManager") == 0);
-
-        auto parameters_xml = patchManagerE->FirstChildElement("Parameters");
-
-        dawStateManager.init(parameters_xml);
     }
 
-    controller.Initialize(this);
+    controller->Initialize(this);
 
     if(!customizeParameter)
     {
@@ -72,7 +81,7 @@ SE2JUCE_Processor::SE2JUCE_Processor(std::function<juce::AudioParameterFloatAttr
 	}
 
     int sequentialIndex = 0;
-    for(auto& p : controller.nativeParameters())
+    for(auto& p : controller->nativeParameters())
     {
 //        _RPTW2(0, L"%2d: %s\n", index, p->name_.c_str());
 
@@ -141,15 +150,15 @@ SE2JUCE_Processor::SE2JUCE_Processor(std::function<juce::AudioParameterFloatAttr
     }
 
     parameterUpdates.reserve(sequentialIndex);
-    for (auto& p : controller.nativeParameters())
+    for (auto& p : controller->nativeParameters())
     {
 		const auto val = p->getDawNormalized();
         parameterUpdates.push_back({ val,val });
     }
 
-    // sync controller preset
+    // sync controller preset to the default preset.
     {
-        controller.setPreset(dawStateManager.getPreset());
+        controller->setPreset(dawStateManager.getPreset());
     }
 }
 
@@ -158,7 +167,7 @@ SE2JUCE_Processor::SE2JUCE_Processor(std::function<juce::AudioParameterFloatAttr
 // Cubase: called on main thread when changing param via mouse.
 void SE2JUCE_Processor::parameterValueChanged(int parameterIndex, float newValue)
 {
-    controller.setParameterNormalizedUnsafe(parameterIndex, newValue);
+    controller->setParameterNormalizedUnsafe(parameterIndex, newValue);
 	setNormalizedUnsafe(parameterIndex, newValue);
 }
 
@@ -177,7 +186,7 @@ void SE2JUCE_Processor::setNormalizedUnsafe(int dawIndex, float daw_normalized)
 void SE2JUCE_Processor::parameterGestureChanged(int parameterIndex, bool gestureIsStarting)
 {
     /* feedsback from GUI to GUI
-    if (auto p = controller.getDawParameter(parameterIndex); p)
+    if (auto p = controller->getDawParameter(parameterIndex); p)
     {
         p->setGrabbed(gestureIsStarting);
     }
@@ -186,6 +195,9 @@ void SE2JUCE_Processor::parameterGestureChanged(int parameterIndex, bool gesture
 
 SE2JUCE_Processor::~SE2JUCE_Processor()
 {
+#ifdef _DEBUG
+    _RPT0(0, "\nSE2JUCE_Processor::~SE2JUCE_Processor()\n");
+#endif
 }
 
 //==============================================================================
@@ -229,7 +241,7 @@ double SE2JUCE_Processor::getTailLengthSeconds() const
 int SE2JUCE_Processor::getNumPrograms()
 {
     return 1;
-//    return controller.getPresetCount();   // NB: some hosts don't cope very well if you tell them there are 0 programs,
+//    return controller->getPresetCount();   // NB: some hosts don't cope very well if you tell them there are 0 programs,
                 // so this should be at least 1, even if you're not really implementing programs.
 }
 
@@ -237,22 +249,22 @@ int SE2JUCE_Processor::getCurrentProgram()
 {
     return 0;
 
-    //const auto parameterHandle = controller.getParameterHandle(-1, -1 - HC_PROGRAM);
+    //const auto parameterHandle = controller->getParameterHandle(-1, -1 - HC_PROGRAM);
 
-    //const auto program = (int32_t) controller.getParameterValue(parameterHandle, gmpi::MP_FT_VALUE);
+    //const auto program = (int32_t) controller->getParameterValue(parameterHandle, gmpi::MP_FT_VALUE);
     //// _RPT1(0, "getCurrentProgram() -> %d\n", program);
     //return program;
 }
 
 void SE2JUCE_Processor::setCurrentProgram (int index)
 {
-//    controller.loadFactoryPreset(index, true);
+//    controller->loadFactoryPreset(index, true);
 }
 
 const juce::String SE2JUCE_Processor::getProgramName (int index)
 {
-    const auto safeIndex = (std::min)(controller.getPresetCount(), (std::max)(0, index));
-    return { controller.getPresetInfo(safeIndex).name};
+    const auto safeIndex = (std::min)(controller->getPresetCount(), (std::max)(0, index));
+    return { controller->getPresetInfo(safeIndex).name};
 }
 
 void SE2JUCE_Processor::changeProgramName (int, const juce::String&)
@@ -274,26 +286,16 @@ void SE2JUCE_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
         samplesPerBlock,
         !isNonRealtime()
     );
+#ifdef _DEBUG
+    _RPT0(0, "\nSE2JUCE_Processor::prepareToPlay()\n");
+#endif
 
     OnLatencyChanged();
 
-#if 0
-    // didn't work when parameters have since changed on th editor.
-    if (processor.missedPreset)
-    {
-        dawStateManager.setMissedPreset(processor.missedPreset);
-
-        assert(!processor.missedPreset);
-    }
-#endif
-
 	// Some DAWs can set the state before prepareToPlay is called. (and therefore before the generator is available to accept the preset).
     // Bring processor up-to-date with state.
+    if(presetCount > 0)
     {
-        //controller.timerCallback();
-        //auto preset = controller.getPreset();
-        //dawStateManager.setPresetFromUnownedPtr(preset.get());
-
         auto preset = dawStateManager.getPreset();
         processor.setPresetUnsafe(preset);
     }
@@ -424,7 +426,7 @@ bool SE2JUCE_Processor::hasEditor() const
 
 juce::AudioProcessorEditor* SE2JUCE_Processor::createEditor()
 {
-    return new SynthEditEditor(*this, controller);
+    return new SynthEditEditor(*this, *controller.get());
 }
 
 //==============================================================================
@@ -432,7 +434,13 @@ void SE2JUCE_Processor::getStateInformation (juce::MemoryBlock& destData)
 {
     const auto chunk = dawStateManager.getPreset()->toString(BundleInfo::instance()->getPluginId());
 
-#if 0 //def _DEBUG
+#ifdef DEBUG_LOG_PM_TO_FILE
+    {
+        *DspPatchManager::currentLoggingFile << "SE2JUCE_Processor::getStateInformation\n";
+        *DspPatchManager::currentLoggingFile << chunk << "\n\n";
+    }
+#endif
+#ifdef _DEBUG
     {
         auto xml = chunk.substr(0, 500);
 
@@ -447,13 +455,25 @@ void SE2JUCE_Processor::setStateInformation (const void* data, int sizeInBytes)
 {
     const std::string chunk(static_cast<const char*>(data), sizeInBytes);
 
-#if 0 //def _DEBUG
+#ifdef DEBUG_LOG_PM_TO_FILE
+    if(DspPatchManager::currentLoggingFile)
+    {
+        *DspPatchManager::currentLoggingFile << "SE2JUCE_Processor::setStateInformation\n";
+        *DspPatchManager::currentLoggingFile << chunk << "\n\n";
+    }
+
+#ifdef _DEBUG
     {
         auto xml = chunk.substr(0, 500);
 
         _RPTN(0, "\nSE2JUCE_Processor::setStateInformation()\n %s\n\n", xml.c_str());
     }
 #endif
+
+
+
+
+    presetCount++;
 
     dawStateManager.setPresetFromXml(chunk);
 }

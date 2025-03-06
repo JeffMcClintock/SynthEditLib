@@ -14,7 +14,6 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 #include "mp_sdk_audio.h"
 #include "SharedBlob.h"
-#include "mfc_emulation.h"
 
 using namespace gmpi;
 

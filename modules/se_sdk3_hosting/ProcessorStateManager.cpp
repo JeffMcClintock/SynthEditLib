@@ -430,16 +430,6 @@ void ProcessorStateMgr::setPresetFromUnownedPtr(DawPreset const* preset)
 	setPreset(retainPreset(new DawPreset(*preset)));
 }
 
-#if 0
-// A missed preset happens when the Processor starts for the first time, and needs to action a preset that was set earlier (often it's the initial preset).
-// assume preset is already owned by this, so no need to retain it.
-void ProcessorStateMgr::setMissedPreset(DawPreset const* preset)
-{
-	// set the preset without modifying it's IPC flag. Since it may have been several seconds since the preset was set from the DAW, it's possible that the IPC flag has expired.
-	callback(preset);
-}
-#endif
-
 ProcessorStateMgrVst3::ProcessorStateMgrVst3() :
 	messageQueFromProcessor(SeAudioMaster::AUDIO_MESSAGE_QUE_SIZE),
 	messageQueFromController(SeAudioMaster::AUDIO_MESSAGE_QUE_SIZE)
@@ -660,7 +650,13 @@ void ProcessorStateMgr::setPresetFromXml(const std::string& presetString)
 void ProcessorStateMgrVst3::setPresetFromXml(const std::string& presetString)
 {
 	auto preset = new DawPreset(parametersInfo, presetString);
+	preset->ignoreProgramChangeActive = ignoreProgramChange;
 
+	setPresetRespectingIpc(preset);
+}
+// takes ownership of preset
+void ProcessorStateMgrVst3::setPresetRespectingIpc(DawPreset* preset)
+{
 	// bring current preset up-to-date
 	serviceQueue(messageQueFromProcessor);
 	serviceQueue(messageQueFromController);
@@ -668,17 +664,22 @@ void ProcessorStateMgrVst3::setPresetFromXml(const std::string& presetString)
 	{
 		const std::lock_guard<std::mutex> lock{ presetMutex };
 
-		// On very first load of JUCE standalone, the initial preset will be empty because JUCE found no previously saved state.
-		// In this case, we need to fill the preset with default values, otherwise subsequent changes to any parameter will crash.
-		// This is also a safeguard in case the preset is corrupted or not the latest schema.
-		for (auto& p : presetMutable.params)
+		if (preset->ignoreProgramChangeActive)
 		{
-			paramInfo& info = parametersInfo[p.first];
+			// merge the new preset with the current one.
+			for (auto& p : preset->params)
 
-			const auto foundIt = preset->params.find(p.first) != preset->params.end();
-			if (!foundIt || (ignoreProgramChange && info.ignoreProgramChange)) // if preset is missing a value, or if ignore-program change is active, overwrite with existing value.
 			{
-				preset->params[p.first] = p.second;
+				paramInfo& info = parametersInfo[p.first];
+				if (info.ignoreProgramChange)
+				{
+					auto it = presetMutable.params.find(p.first);
+					assert(it != presetMutable.params.end());
+					if (it != presetMutable.params.end())
+					{
+						p.second.rawValues_ = it->second.rawValues_;
+					}
+				}
 			}
 		}
 
@@ -691,7 +692,9 @@ void ProcessorStateMgrVst3::setPresetFromXml(const std::string& presetString)
 		messageQueFromController.clear();
 	}
 
-	ProcessorStateMgr::setPreset(retainPreset(preset));
+	// set the preset without messing with the IPC flag set by caller. (i.e. avoiding ProcessorStateMgr::setPreset())
+	retainPreset(preset);
+	callback(preset);
 
 #if 0 //def _DEBUG
 	auto temp = RawView(preset->params[1329619189].rawValues_[0]);
