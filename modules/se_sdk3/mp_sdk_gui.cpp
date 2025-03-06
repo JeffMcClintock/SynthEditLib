@@ -1,4 +1,5 @@
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+#define _LIBCPP_DISABLE_DEPRECATION_WARNINGS 1
 #include "mp_sdk_gui.h"
 #include <codecvt>
 #include <locale>

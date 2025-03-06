@@ -47,6 +47,10 @@ using namespace GmpiDrawing;
 #pragma warning(disable : 4996) // "codecvt deprecated in C++17"
 #endif
 
+// for codecvt
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+#define _LIBCPP_DISABLE_DEPRECATION_WARNINGS 1
+
 #include "Drawing_API.h"
 #include <vector>
 #include <unordered_map>

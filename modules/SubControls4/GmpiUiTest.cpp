@@ -1,4 +1,4 @@
-#include "Helpers/GmpiPluginEditor.h"
+#include "helpers/GmpiPluginEditor.h"
 
 using namespace gmpi;
 using namespace gmpi::editor;
