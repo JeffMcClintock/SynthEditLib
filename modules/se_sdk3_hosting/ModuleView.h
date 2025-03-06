@@ -426,7 +426,7 @@ namespace SE2
 
 		bool isVisable() override
 		{
-			return pluginGraphics.get() != nullptr;
+			return pluginGraphics || pluginGraphics_GMPI;
 		}
 		bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
 		bool hitTestR(int32_t flags, GmpiDrawing_API::MP1_RECT selectionRect) override;
