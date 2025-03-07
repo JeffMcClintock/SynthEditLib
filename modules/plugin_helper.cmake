@@ -188,6 +188,7 @@ if(APPLE)
   # generate debug symbols
   target_compile_options(${BUILD_GMPI_PLUGIN_PROJECT_NAME} PRIVATE
       $<$<CONFIG:Debug>:-g>
+      -Wno-deprecated-declarations
   )
   set_target_properties(${BUILD_GMPI_PLUGIN_PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT
     $<$<CONFIG:Debug>:dwarf-with-dsym>

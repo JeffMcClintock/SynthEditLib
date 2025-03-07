@@ -20,7 +20,7 @@ public:
 	{
 		return !LoadDllOnDemand();
 	}
-	virtual bool isSummary() // for VST2 plugins held as name-only.
+	bool isSummary() override // for VST2 plugins held as name-only.
 	{
 		return m_parameters.empty() && gui_plugs.empty() && plugs.empty(); // reasonable guess.
 	}
