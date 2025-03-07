@@ -639,6 +639,7 @@ if(APPLE)
   # generate debug symbols
   target_compile_options(${PROJECT_NAME} PRIVATE
       $<$<CONFIG:Debug>:-g>
+      -Wno-deprecated-declarations
   )
   set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT
     $<$<CONFIG:Debug>:dwarf-with-dsym>
