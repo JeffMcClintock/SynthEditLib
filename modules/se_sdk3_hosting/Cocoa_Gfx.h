@@ -1,5 +1,5 @@
 #pragma once
-
+#define _LIBCPP_DISABLE_DEPRECATION_WARNINGS 1
 /*
 #include "Cocoa_Gfx.h"
 */
