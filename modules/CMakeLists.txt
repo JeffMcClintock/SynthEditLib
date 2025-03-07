@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.15)
 include(plugin_helper.cmake)
 include(${GMPI_SDK}/gmpi_plugin.cmake)
 
+set CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
+
 # Build individual SEM modules
 add_subdirectory(Arpeggiator)
 add_subdirectory(BoolInverter)
