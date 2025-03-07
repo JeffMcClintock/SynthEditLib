@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(EnveloperAdsr)
+project(EnvelopeAdsr)
 
 build_gmpi_plugin(
     PROJECT_NAME ${PROJECT_NAME}
