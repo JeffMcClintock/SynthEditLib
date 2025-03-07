@@ -48,7 +48,10 @@ using namespace GmpiDrawing;
 #endif
 
 // for codecvt
+#ifndef _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+#endif
+
 #define _LIBCPP_DISABLE_DEPRECATION_WARNINGS 1
 
 #include "Drawing_API.h"
