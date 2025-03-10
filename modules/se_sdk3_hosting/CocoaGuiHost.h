@@ -1,11 +1,3 @@
-//
-//  CocoaGuiHost.h
-//  Standalone
-//
-//  Created by Jenkins on 22/09/17.
-//  Copyright © 2017 Jenkins. All rights reserved.
-//
-
 #ifndef CocoaGuiHost_h
 #define CocoaGuiHost_h
 

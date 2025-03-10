@@ -204,6 +204,7 @@ namespace se
 
 		};
     
+
     class DrawingFactory : public GmpiDrawing_API::IMpFactory2
     {
         std::vector<std::string> supportedFontFamilies;
