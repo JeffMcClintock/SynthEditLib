@@ -59,7 +59,7 @@ public:
     gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
     {
         *returnInterface = {};
-        if (*iid == gmpi::drawing::api::IFactory::guid)
+        if (*iid == gmpi::drawing::api::IFactory::guid || *iid == gmpi::api::IUnknown::guid)
         {
             return gmpi::directx::Factory_base::queryInterface(iid, returnInterface);
         }
@@ -69,12 +69,6 @@ public:
             )
         {
             return (gmpi::ReturnCode)sdk3Factory.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
-        }
-        if (*iid == gmpi::api::IUnknown::guid)
-        {
-            *returnInterface = this;
-            addRef();
-            return gmpi::ReturnCode::Ok;
         }
         return gmpi::ReturnCode::NoSupport;
     }

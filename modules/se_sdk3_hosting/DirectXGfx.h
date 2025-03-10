@@ -891,30 +891,19 @@ public:
 	void Init();
 };
 
-class Factory_RG : public gmpi::directx::Factory_base
-{
-public:
-	Factory_RG(gmpi::directx::DxFactoryInfo& pinfo) : gmpi::directx::Factory_base(pinfo, nullptr)
-	{
-	}
-
-	GMPI_QUERYINTERFACE_METHOD(gmpi::drawing::api::IFactory);
-	GMPI_REFCOUNT_NO_DELETE;
-};
-
 // GMPI-UI version
 class GraphicsContext_RG : public gmpi::directx::GraphicsContext_base
 {
 protected:
 	ID2D1DeviceContext* context_{};
-	Factory_RG factory;
+	gmpi::directx::Factory_base factory;
 	gmpi::api::IUnknown* fallback{};
 
 public:
 	GraphicsContext_RG(gmpi::api::IUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* deviceContext) :
 		gmpi::directx::GraphicsContext_base(&factory, deviceContext)
 		, context_(deviceContext)
-		, factory(pinfo)
+		, factory(pinfo, nullptr)
 		, fallback(pfallback)
 	{
 	}
