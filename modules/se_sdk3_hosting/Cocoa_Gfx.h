@@ -2229,7 +2229,76 @@ return gmpi::MP_FAIL;
 
             GMPI_REFCOUNT_NO_DELETE;
         };
-        
+
+        // extend the GMPI-UI graphics context with the ability to fallback to the SDK3 one
+        class GraphicsContext_RG : public gmpi::cocoa::GraphicsContext_base
+        {
+        protected:
+//            ID2D1DeviceContext* context_{};
+            Factory_RG factory;
+            gmpi::api::IUnknown* fallback{};
+
+        public:
+            GraphicsContext_RG(gmpi::api::IUnknown* pfallback, gmpi::cocoa::FactoryInfo& pinfo, NSView* pview) :
+                gmpi::cocoa::GraphicsContext_base(pinfo, pview)
+//                , context_(deviceContext)
+                , factory(pinfo)
+                , fallback(pfallback)
+            {
+            }
+
+            gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override {
+                *returnInterface = {};
+                if ((*iid) == gmpi::drawing::api::IDeviceContext::guid) {
+                    *returnInterface = static_cast<gmpi::drawing::api::IDeviceContext*>(this); addRef();
+                    return gmpi::ReturnCode::Ok;
+                }
+                if ((*iid) == gmpi::drawing::api::IResource::guid) {
+                    *returnInterface = static_cast<gmpi::drawing::api::IResource*>(this); addRef();
+                    return gmpi::ReturnCode::Ok;
+                }
+
+                if (fallback)
+                    return fallback->queryInterface(iid, returnInterface);
+
+                return gmpi::ReturnCode::NoSupport;
+            }
+            GMPI_REFCOUNT_NO_DELETE;
+        };
+
+        struct UniversalGraphicsContext : public gmpi::api::IUnknown
+        {
+            GraphicsContext_RG gmpiContext;
+            GraphicsContext2 sdk3Context;
+
+            UniversalGraphicsContext(gmpi::cocoa::FactoryInfo& pinfo, NSView* pview) :
+                gmpiContext(this, pinfo, pview),
+                sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pinfo, pview)
+            {
+            }
+
+            gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+            {
+                *returnInterface = {};
+                if (*iid == gmpi::drawing::api::IDeviceContext::guid || *iid == gmpi::drawing::api::IResource::guid)
+                {
+                    return gmpiContext.queryInterface(iid, returnInterface);
+                }
+                if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
+                {
+                    return (gmpi::ReturnCode)sdk3Context.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
+                }
+                if (*iid == gmpi::api::IUnknown::guid)
+                {
+                    *returnInterface = this;
+                    addRef();
+                    return gmpi::ReturnCode::Ok;
+                }
+                return gmpi::ReturnCode::NoSupport;
+            }
+            GMPI_REFCOUNT_NO_DELETE;
+        };
+
 		// https://stackoverflow.com/questions/10627557/mac-os-x-drawing-into-an-offscreen-nsgraphicscontext-using-cgcontextref-c-funct
 		class bitmapRenderTarget : public GraphicsContext // emulated by carefull layout public GmpiDrawing_API::IMpBitmapRenderTarget
 		{
