@@ -83,7 +83,7 @@ public:
         
         // draw onto linear back buffer.
         [NSGraphicsContext saveGraphicsState];
-        [backBuffer retain];
+ // ??       [backBuffer retain];
         NSGraphicsContext *g = [NSGraphicsContext graphicsContextWithBitmapImageRep:backBuffer];
 
         [NSGraphicsContext setCurrentContext:g];
@@ -347,7 +347,7 @@ public:
         // kCGColorSpaceGenericRGB - actually sRGB
         
         // kCGColorSpaceExtendedLinearSRGB might be best since float color values should match SE's linear RGB
-        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB);
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB); //kCGColorSpaceLinearSRGB);
         
         NSColorSpace *linearRGBColorSpace = [[NSColorSpace alloc] initWithCGColorSpace:colorSpace];
 
@@ -365,6 +365,8 @@ public:
         
         backBuffer = [imagerep1 bitmapImageRepByRetaggingWithColorSpace:linearRGBColorSpace];
         [backBuffer setSize: logicalsize]; // Communicates DPI
+
+        [backBuffer retain]; // else AU2 crashes during render.
 
         // Release the resources
         CGColorSpaceRelease(colorSpace);
