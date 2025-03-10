@@ -372,10 +372,11 @@ namespace SE2
 			gmpi::drawing::api::IDeviceContext* gmpiContext{};
 			g.Get()->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::drawing::api::IDeviceContext::guid), reinterpret_cast<void**>(&gmpiContext));
 
-			pluginGraphics_GMPI->render(gmpiContext);
-
-			if (gmpiContext)
-				gmpiContext->release();
+            if (gmpiContext)
+            {
+                pluginGraphics_GMPI->render(gmpiContext);
+                gmpiContext->release();
+            }
 
 			return;
 		}

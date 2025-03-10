@@ -8,6 +8,7 @@
 #include "../se_sdk3/mp_sdk_audio.h"
 #include "../se_sdk3/mp_midi.h"
 #include "../se_sdk3/it_enum_list.h"
+#include "../../mfc_emulation.h"
 
 using namespace gmpi;
 using namespace GmpiMidi;
