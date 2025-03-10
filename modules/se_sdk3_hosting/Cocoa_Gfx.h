@@ -238,7 +238,7 @@ namespace se
             nsColorSpace = [[NSColorSpace alloc] initWithCGColorSpace:colorSpace];
 #endif
         }
-        
+#if 0
         void setBestColorSpace(/*NSWindow* window*/)
         {
             /* even non-wide displays benifit from kCGColorSpaceExtendedLinearSRGB, they appear to dither to approximate it
@@ -367,7 +367,7 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
             */
   //          return nsColorSpace;
         }
-        
+#endif
         // utility
         inline NSColor* toNative(const GmpiDrawing_API::MP1_COLOR& color)
         {

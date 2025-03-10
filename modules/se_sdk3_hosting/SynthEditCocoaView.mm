@@ -491,10 +491,10 @@ GmpiDrawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
      [super viewDidMoveToWindow];
 
     auto window = [self window];
-    if(window)
-    {
-        drawingFrame.drawingFactory.setBestColorSpace();//window);
-    }
+//    if(window)
+//    {
+//        drawingFrame.drawingFactory.setBestColorSpace();//window);
+//    }
 }
 
 - (void) removeFromSuperview
