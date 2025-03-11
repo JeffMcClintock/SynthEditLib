@@ -328,7 +328,7 @@ ID2D1Bitmap* Bitmap::GetNativeBitmap(ID2D1DeviceContext* nativeContext)
 }
 
 Bitmap::Bitmap(gmpi::directx::DxFactoryInfo& factoryInfo, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, IWICBitmap* diBitmap) :
-		factory(factoryInfo, nullptr)
+		factory(factoryInfo)
 	, pixelFormat_(pixelFormat)
 {
 	diBitmap_ = diBitmap;

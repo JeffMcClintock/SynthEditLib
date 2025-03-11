@@ -81,10 +81,9 @@ class Factory_base : public GmpiDrawing_API::IMpFactory2
 {
 protected:
 	gmpi::directx::DxFactoryInfo& info;
-	gmpi::IMpUnknown* fallback{};
 
 public:
-	Factory_base(gmpi::directx::DxFactoryInfo& pinfo, gmpi::IMpUnknown* pfallback) : info(pinfo), fallback(pfallback) {}
+	Factory_base(gmpi::directx::DxFactoryInfo& pinfo) : info(pinfo) {}
 
 	gmpi::directx::DxFactoryInfo& getInfo() {
 		return info;
@@ -132,13 +131,6 @@ public:
 			addRef();
 			return gmpi::MP_OK;
 		}
-
-		if (fallback)
-		{
-			assert(false); // not required?
-			return fallback->queryInterface(iid, returnInterface);
-		}
-
 		return gmpi::MP_NOSUPPORT;
 	}
 
@@ -630,7 +622,7 @@ public:
 
 	Bitmap(gmpi::directx::DxFactoryInfo& factoryInfo, GmpiDrawing_API::IMpBitmapPixels::PixelFormat pixelFormat, ID2D1DeviceContext* nativeContext, ID2D1Bitmap* nativeBitmap) :
 			nativeContext_(nativeContext)
-		, factory(factoryInfo, nullptr)
+		, factory(factoryInfo)
 		, pixelFormat_(pixelFormat)
 	{
 		nativeBitmap_ = nativeBitmap;
@@ -890,7 +882,7 @@ class Factory_SDK3 : public Factory_base
 	gmpi::directx::DxFactoryInfo concreteInfo;
 
 public:
-	Factory_SDK3(gmpi::IMpUnknown* pfallback) : Factory_base(concreteInfo, pfallback){}
+	Factory_SDK3() : Factory_base(concreteInfo){}
 	void Init();
 };
 
@@ -906,7 +898,7 @@ protected:
 public:
 	GraphicsContext_SDK3(gmpi::IMpUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* deviceContext = 0) :
 		context_(deviceContext)
-		, factory(pinfo, nullptr)
+		, factory(pinfo)
 		, fallback(pfallback)
 	{
 		// gmpiContext inits it's clip rect, SDK3 does not.

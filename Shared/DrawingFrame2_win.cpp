@@ -123,7 +123,7 @@ HRESULT DrawingFrameHwndBase::createNativeSwapChain
 
 void DrawingFrameBase2::OnSwapChainCreated(bool DX_support_sRGB)
 {
-    DrawingFactory->setSrgbSupport(DX_support_sRGB);
+    DrawingFactory->gmpiFactory.setSrgbSupport(DX_support_sRGB);
 
     const auto dpiScale = lowDpiMode ? 1.0f : getRasterizationScale();
 
@@ -444,7 +444,7 @@ void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZ
     {
 		setWindowHandle(windowHandle);
 
-        CreateSwapPanel(DrawingFactory->getD2dFactory());
+        CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
 
         calcViewTransform();
 
@@ -508,7 +508,7 @@ void DrawingFrameHwndBase::ReSize(int left, int top, int right, int bottom)
         d2dDeviceContext->SetTarget(nullptr);
         if (S_OK == swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0))
         {
-            CreateSwapPanel(DrawingFactory->getD2dFactory());
+            CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
         }
         else
         {
@@ -603,7 +603,7 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 
 	if (!d2dDeviceContext) // not quite right, also need to re-create any resources (brushes etc) else most object draw blank. Could refresh the view in this case.
 	{
-		CreateSwapPanel(DrawingFactory->getD2dFactory());
+		CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
 	}
 
 	assert(d2dDeviceContext);
@@ -628,7 +628,7 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 
     // draw onto the intermediate buffer.
 	{
-        se::directx::UniversalGraphicsContext context(DrawingFactory->getInfo(), deviceContext);
+        se::directx::UniversalGraphicsContext context(DrawingFactory->gmpiFactory.getInfo(), deviceContext);
 
 		auto legacyContext = static_cast<GmpiDrawing_API::IMpDeviceContext*>(&context.sdk3Context);
 		GmpiDrawing::Graphics graphics(legacyContext);
@@ -773,7 +773,7 @@ void DrawingFrameHwndBase::OnSize(UINT width, UINT height)
 
     if (S_OK == swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0))
     {
-        CreateSwapPanel(DrawingFactory->getD2dFactory());
+        CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
     }
     else
     {

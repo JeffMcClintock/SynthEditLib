@@ -46,32 +46,14 @@ inline GmpiDrawing_API::MP1_RECT operator*(GmpiDrawing_API::MP1_RECT rect, gmpi:
     };
 }
 
-class UniversalFactory : public gmpi::directx::Factory
+struct UniversalFactory
 {
+    gmpi::directx::Factory gmpiFactory;
     se::directx::Factory_base sdk3Factory;
 
-public:
-	UniversalFactory() : sdk3Factory(info, (gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this))
+	UniversalFactory() : sdk3Factory(gmpiFactory.getInfo()) // SDK3 factory borrows the guts from the GMPI factory.
 	{
 	}
-
-    gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
-    {
-        *returnInterface = {};
-        if (*iid == gmpi::drawing::api::IFactory::guid || *iid == gmpi::api::IUnknown::guid)
-        {
-            return gmpi::directx::Factory_base::queryInterface(iid, returnInterface);
-        }
-        if (
-            *iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_FACTORY2_MPGUI) ||
-            *iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_FACTORY_MPGUI)
-            )
-        {
-            return (gmpi::ReturnCode)sdk3Factory.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
-        }
-        return gmpi::ReturnCode::NoSupport;
-    }
-    GMPI_REFCOUNT_NO_DELETE;
 };
 
 // SDK3 Graphics support on Direct2D. Used by SE2JUCE, VST3 and SynthEdit2::HostedView
@@ -185,7 +167,7 @@ struct DrawingFrameBase2 :
     // IMpGraphicsHost
     int32_t MP_STDCALL GetDrawingFactory(GmpiDrawing_API::IMpFactory** returnFactory) override
     {
-        return (int32_t) DrawingFactory->queryInterface(reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_FACTORY2_MPGUI), (void**)returnFactory);
+        return DrawingFactory->sdk3Factory.queryInterface(GmpiDrawing_API::SE_IID_FACTORY2_MPGUI, (void**)returnFactory);
     }
 
     void MP_STDCALL invalidateMeasure() override {}
