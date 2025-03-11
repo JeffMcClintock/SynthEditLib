@@ -408,7 +408,7 @@ BitmapRenderTarget::BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API:
 	, originalContext(g->native())
 {
 	createBitmapRenderTarget(
-			static_cast<UINT>(desiredSize.width)
+		  static_cast<UINT>(desiredSize.width)
 		, static_cast<UINT>(desiredSize.height)
 		, enableLockPixels
 		, originalContext

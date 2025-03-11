@@ -134,7 +134,10 @@ public:
 		}
 
 		if (fallback)
+		{
+			assert(false); // not required?
 			return fallback->queryInterface(iid, returnInterface);
+		}
 
 		return gmpi::MP_NOSUPPORT;
 	}
@@ -1003,7 +1006,6 @@ public:
 
 	void DrawTextU(const char* utf8String, int32_t stringLength, const GmpiDrawing_API::IMpTextFormat* textFormat, const GmpiDrawing_API::MP1_RECT* layoutRect, const GmpiDrawing_API::IMpBrush* brush, int32_t flags) override;
 
-	//	void DrawBitmap( GmpiDrawing_API::IMpBitmap* mpBitmap, GmpiDrawing::Rect destinationRectangle, float opacity, int32_t interpolationMode, GmpiDrawing::Rect sourceRectangle) override
 	void DrawBitmap(const GmpiDrawing_API::IMpBitmap* mpBitmap, const GmpiDrawing_API::MP1_RECT* destinationRectangle, float opacity, /* MP1_BITMAP_INTERPOLATION_MODE*/ int32_t interpolationMode, const GmpiDrawing_API::MP1_RECT* sourceRectangle) override
 	{
 		auto bm = ((Bitmap*)mpBitmap);
