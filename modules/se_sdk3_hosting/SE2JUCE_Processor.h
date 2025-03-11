@@ -1,3 +1,4 @@
+#pragma once
 /*
   ==============================================================================
 
@@ -5,8 +6,6 @@
 
   ==============================================================================
 */
-
-#pragma once
 
 #include <JuceHeader.h>
 #include "SE2JUCE_Processor.h"
@@ -39,8 +38,7 @@ protected:
     void setNormalizedUnsafe(int parameterIndex, float daw_normalized);
 
 public:
-    //==============================================================================
-    SE2JUCE_Processor(std::unique_ptr<SeJuceController> pcontroller, std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter = {});
+    SE2JUCE_Processor(SeJuceController* customController = {}, std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter = {});
     ~SE2JUCE_Processor() override;
 
     // IShellServices interface

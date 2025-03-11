@@ -4,15 +4,13 @@
 #include "unicode_conversion.h"
 #include "RawConversions.h"
 #include "BundleInfo.h"
+#include "../tinyXml2/tinyxml2.h"
 // #include "dsp_patch_manager.h" // enable for logging only
 
-//==============================================================================
 SE2JUCE_Processor::SE2JUCE_Processor(
-    std::unique_ptr<SeJuceController> pController,
+    SeJuceController* customController,
     std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter
-) :
-    controller(std::move(pController))
-
+) : controller(customController)
     // init the midi converter
     ,midiConverter(
         // provide a lambda to accept converted MIDI 2.0 messages
@@ -36,42 +34,42 @@ SE2JUCE_Processor::SE2JUCE_Processor(
 #ifdef _DEBUG
     _RPT0(0, "\nSE2JUCE_Processor::SE2JUCE_Processor()\n");
 #endif
+    if (!controller)
+    {
+        controller.reset(new SeJuceController(dawStateManager));
+    }
+
     BundleInfo::instance()->initPresetFolder(JucePlugin_Manufacturer, JucePlugin_Name);
 
     processor.connectPeer(controller.get());
 
     // Initialize the DAW state manager
     {
+        tinyxml2::XMLDocument doc;
         {
-            TiXmlDocument doc;
-            {
-                const auto xml = BundleInfo::instance()->getResource("parameters.se.xml");
-                doc.Parse(xml.c_str());
-                assert(!doc.Error());
-            }
-
-            TiXmlHandle hDoc(&doc);
-
-            auto controllerE = hDoc.FirstChildElement("Controller").Element();
-            assert(controllerE);
-
-            auto patchManagerE = controllerE->FirstChildElement();
-            assert(strcmp(patchManagerE->Value(), "PatchManager") == 0);
-
-            auto parameters_xml = patchManagerE->FirstChildElement("Parameters");
-
-            dawStateManager.init(parameters_xml);
+            const auto xml = BundleInfo::instance()->getResource("parameters.se.xml");
+            doc.Parse(xml.c_str());
+            assert(!doc.Error());
         }
 
-        dawStateManager.callback = [this](DawPreset const* preset)
-            {
-                // update Processor when preset changes
-                processor.setPresetUnsafe(preset);
+        auto controllerE = doc.FirstChildElement("Controller");
+        assert(controllerE);
 
-                // update Controller when preset changes
-                controller->setPresetUnsafe(preset);
-            };
+        auto patchManagerE = controllerE->FirstChildElement();
+        assert(strcmp(patchManagerE->Value(), "PatchManager") == 0);
+
+        auto parameters_xml = patchManagerE->FirstChildElement("Parameters");
+        dawStateManager.init(parameters_xml);
     }
+
+    dawStateManager.callback = [this](DawPreset const* preset)
+        {
+            // update Processor when preset changes
+            processor.setPresetUnsafe(preset);
+
+            // update Controller when preset changes
+            controller->setPresetUnsafe(preset);
+        };
 
     controller->Initialize(this);
 
@@ -469,9 +467,7 @@ void SE2JUCE_Processor::setStateInformation (const void* data, int sizeInBytes)
         _RPTN(0, "\nSE2JUCE_Processor::setStateInformation()\n %s\n\n", xml.c_str());
     }
 #endif
-
-
-
+#endif
 
     presetCount++;
 

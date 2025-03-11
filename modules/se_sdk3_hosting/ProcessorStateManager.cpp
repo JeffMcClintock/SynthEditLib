@@ -654,6 +654,7 @@ void ProcessorStateMgrVst3::setPresetFromXml(const std::string& presetString)
 
 	setPresetRespectingIpc(preset);
 }
+
 // takes ownership of preset
 void ProcessorStateMgrVst3::setPresetRespectingIpc(DawPreset* preset)
 {
@@ -668,7 +669,6 @@ void ProcessorStateMgrVst3::setPresetRespectingIpc(DawPreset* preset)
 		{
 			// merge the new preset with the current one.
 			for (auto& p : preset->params)
-
 			{
 				paramInfo& info = parametersInfo[p.first];
 				if (info.ignoreProgramChange)
@@ -680,6 +680,21 @@ void ProcessorStateMgrVst3::setPresetRespectingIpc(DawPreset* preset)
 						p.second.rawValues_ = it->second.rawValues_;
 					}
 				}
+			}
+		}
+
+		// fill in any parameters missing from the preset.
+		for (auto& p : parametersInfo)
+		{
+			if (auto it = preset->params.find(p.first); it == preset->params.end())
+			{
+				auto& presetMutableParam = preset->params[p.first];
+				presetMutableParam.dataType = p.second.dataType;
+				presetMutableParam.MidiAutomation = -1;
+				presetMutableParam.MidiAutomationSysex.clear();
+
+				for (auto& v : p.second.defaultRaw)
+					presetMutableParam.rawValues_.push_back({ v.data(), v.size() });
 			}
 		}
 

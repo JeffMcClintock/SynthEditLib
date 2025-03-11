@@ -109,16 +109,16 @@ int32_t Factory_base::CreateTextFormat(const char* fontFamilyName, void* unused 
 	// match the font name case-insensitive. To look up the system font name (correct case)
 	if (auto it = info.availableFonts.find(lowercaseNameU); it != info.availableFonts.end())
 	{
-		fontFamilyNameW = gmpi::directx::fontMatchHelper(
-			  info.writeFactory
-			, info.GdiFontConversions
-			, fontFamilyName
-			, (gmpi::drawing::FontWeight) fontWeight
-		);
+		fontFamilyNameW = it->second.systemFontName;
 	}
 	else
 	{
-		fontFamilyNameW = it->second.systemFontName;
+		fontFamilyNameW = gmpi::directx::fontMatchHelper(
+			info.writeFactory
+			, info.GdiFontConversions
+			, fontFamilyName
+			, (gmpi::drawing::FontWeight)fontWeight
+		);
 	}
 
 	IDWriteTextFormat* dwTextFormat{};
@@ -221,6 +221,9 @@ int32_t Factory_base::LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap
 			pDecoder.put()
 		);
 	}
+
+	if(!pDecoder)
+		return gmpi::MP_FAIL;
 
 	auto wicBitmap = gmpi::directx::loadWicBitmap(info.wicFactory, pDecoder.get());
 
