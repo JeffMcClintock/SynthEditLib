@@ -204,16 +204,16 @@ namespace se
 		{
 		};
 #endif
-
+    
     class DrawingFactory : public GmpiDrawing_API::IMpFactory2
     {
-     public:
+    public:
         gmpi::cocoa::FactoryInfo& info;
         
         DrawingFactory(gmpi::cocoa::FactoryInfo& pinfo) : info(pinfo)
         {
-        }
-
+            }
+            
         // utility
         inline NSColor* toNative(const GmpiDrawing_API::MP1_COLOR& color)
         {
@@ -1388,7 +1388,7 @@ return gmpi::MP_FAIL;
 		protected:
 			std::wstring_convert<std::codecvt_utf8<wchar_t>>* stringConverter; // cached, as constructor is super-slow.
             se::cocoa::DrawingFactory* factory{};
-            std::vector<GmpiDrawing_API::MP1_RECT> clipRectStack;
+			std::vector<GmpiDrawing_API::MP1_RECT> clipRectStack;
 			NSAffineTransform* currentTransform;
 			NSView* view_;
             gmpi::IMpUnknown* fallback{};
@@ -1397,7 +1397,7 @@ return gmpi::MP_FAIL;
             inline static int logicProFix = -1;
             
 			GraphicsContext(NSView* pview, se::cocoa::DrawingFactory* pfactory, gmpi::IMpUnknown* pfallback) :
-				  factory(pfactory)
+				factory(pfactory)
 				, view_(pview)
                 , fallback(pfallback)
 			{
@@ -2092,6 +2092,7 @@ return gmpi::MP_FAIL;
 
             GMPI_REFCOUNT_NO_DELETE;
         };
+#if 0
 #if 0
         // extend the GMPI-UI graphics context with the ability to fallback to the SDK3 one
         class GraphicsContext_RG : public gmpi::cocoa::GraphicsContext

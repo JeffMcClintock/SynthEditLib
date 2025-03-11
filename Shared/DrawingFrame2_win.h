@@ -46,13 +46,12 @@ inline GmpiDrawing_API::MP1_RECT operator*(GmpiDrawing_API::MP1_RECT rect, gmpi:
     };
 }
 
-
 class UniversalFactory : public gmpi::directx::Factory
 {
     se::directx::Factory_base sdk3Factory;
 
 public:
-	UniversalFactory() : gmpi::directx::Factory(nullptr), sdk3Factory(info, (gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this))
+	UniversalFactory() : sdk3Factory(info, (gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this))
 	{
 	}
 

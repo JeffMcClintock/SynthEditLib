@@ -894,42 +894,6 @@ public:
 	void Init();
 };
 
-// GMPI-UI version
-class GraphicsContext_RG : public gmpi::directx::GraphicsContext_base
-{
-protected:
-	ID2D1DeviceContext* context_{};
-	gmpi::directx::Factory_base factory;
-	gmpi::api::IUnknown* fallback{};
-
-public:
-	GraphicsContext_RG(gmpi::api::IUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* deviceContext) :
-		gmpi::directx::GraphicsContext_base(&factory, deviceContext)
-		, context_(deviceContext)
-		, factory(pinfo, nullptr)
-		, fallback(pfallback)
-	{
-	}
-
-	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override {
-		*returnInterface = {};
-		if ((*iid) == gmpi::drawing::api::IDeviceContext::guid) {
-			*returnInterface = static_cast<gmpi::drawing::api::IDeviceContext*>(this); addRef();
-			return gmpi::ReturnCode::Ok;
-		}
-		if ((*iid) == gmpi::drawing::api::IResource::guid) {
-			*returnInterface = static_cast<gmpi::drawing::api::IResource*>(this); addRef();
-			return gmpi::ReturnCode::Ok;
-		}
-
-		if(fallback)
-			return fallback->queryInterface(iid, returnInterface);
-
-		return gmpi::ReturnCode::NoSupport;
-	}
-	GMPI_REFCOUNT_NO_DELETE;
-};
-
 // Classic version
 class GraphicsContext_SDK3 : public GmpiDrawing_API::IMpDeviceContext
 {
@@ -938,7 +902,7 @@ protected:
 	Factory_base factory;
 	gmpi::IMpUnknown* fallback{};
 
-	std::vector<GmpiDrawing_API::MP1_RECT> clipRectStack;
+	std::vector<GmpiDrawing_API::MP1_RECT> clipRectStack; // TODO GraphicsContext_RG and GraphicsContext2 need to share the same clip stack!!!
 public:
 	GraphicsContext_SDK3(gmpi::IMpUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* deviceContext = 0) :
 		context_(deviceContext)
@@ -1233,65 +1197,54 @@ public:
 	}
 };
 
-struct UniversalGraphicsContext : public gmpi::api::IUnknown
+struct UniversalGraphicsContext : public gmpi::directx::GraphicsContext_base
 {
-	GraphicsContext_RG gmpiContext;
 	GraphicsContext2 sdk3Context;
+	gmpi::directx::Factory_base factory;
 
 	UniversalGraphicsContext(gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* nativeContext = {}) :
-		gmpiContext(this, pinfo, nativeContext),
-		sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pinfo, nativeContext)
-	{
-	}
-
-	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
-	{
-		*returnInterface = {};
-		if (*iid == gmpi::drawing::api::IDeviceContext::guid || *iid == gmpi::drawing::api::IResource::guid)
-		{
-			return gmpiContext.queryInterface(iid, returnInterface);
-		}
-		if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
-		{
-			return (gmpi::ReturnCode)sdk3Context.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
-		}
-		if (*iid == gmpi::api::IUnknown::guid)
-		{
-			*returnInterface = this;
-			addRef();
-			return gmpi::ReturnCode::Ok;
-		}
-		return gmpi::ReturnCode::NoSupport;
-	}
-	GMPI_REFCOUNT_NO_DELETE;
-};
-
-struct UniversalGraphicsContext_win7 : public gmpi::api::IUnknown
-{
-	GraphicsContext_RG gmpiContext;
-	GraphicsContext_Win7 sdk3Context;
-
-	UniversalGraphicsContext_win7(gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* nativeContext = {}) :
-		gmpiContext(this, pinfo, nativeContext),
+		factory(pinfo),
+		gmpi::directx::GraphicsContext_base(&factory, nativeContext),
 		sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pinfo, nativeContext)
 	{}
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
 		*returnInterface = {};
-		if (*iid == gmpi::drawing::api::IDeviceContext::guid || *iid == gmpi::drawing::api::IResource::guid)
+		if (*iid == gmpi::drawing::api::IDeviceContext::guid || *iid == gmpi::drawing::api::IResource::guid || *iid == gmpi::api::IUnknown::guid)
 		{
-			return gmpiContext.queryInterface(iid, returnInterface);
+			return gmpi::directx::GraphicsContext_base::queryInterface(iid, returnInterface);
 		}
-		if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
+		if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI) || *iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
 		{
 			return (gmpi::ReturnCode)sdk3Context.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
 		}
-		if (*iid == gmpi::api::IUnknown::guid)
+		return gmpi::ReturnCode::NoSupport;
+	}
+	GMPI_REFCOUNT_NO_DELETE;
+};
+
+struct UniversalGraphicsContext_win7 : public gmpi::directx::GraphicsContext_base
+{
+	GraphicsContext_Win7 sdk3Context;
+	gmpi::directx::Factory_base factory;
+
+	UniversalGraphicsContext_win7(gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* nativeContext = {}) :
+		factory(pinfo),
+		gmpi::directx::GraphicsContext_base(&factory, nativeContext),
+		sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pinfo, nativeContext)
+	{}
+
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+	{
+		*returnInterface = {};
+		if (*iid == gmpi::drawing::api::IDeviceContext::guid || *iid == gmpi::drawing::api::IResource::guid || *iid == gmpi::api::IUnknown::guid)
 		{
-			*returnInterface = this;
-			addRef();
-			return gmpi::ReturnCode::Ok;
+			return gmpi::directx::GraphicsContext_base::queryInterface(iid, returnInterface);
+		}
+		if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI) || *iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
+		{
+			return (gmpi::ReturnCode)sdk3Context.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
 		}
 		return gmpi::ReturnCode::NoSupport;
 	}
