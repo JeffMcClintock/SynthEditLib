@@ -1388,7 +1388,7 @@ return gmpi::MP_FAIL;
 		protected:
 			std::wstring_convert<std::codecvt_utf8<wchar_t>>* stringConverter; // cached, as constructor is super-slow.
             se::cocoa::DrawingFactory* factory{};
-			std::vector<GmpiDrawing_API::MP1_RECT> clipRectStack;
+            std::vector<gmpi::drawing::Rect>& clipRectStack;
 			NSAffineTransform* currentTransform;
 			NSView* view_;
             gmpi::IMpUnknown* fallback{};
@@ -1396,9 +1396,15 @@ return gmpi::MP_FAIL;
 		public:
             inline static int logicProFix = -1;
             
-			GraphicsContext(NSView* pview, se::cocoa::DrawingFactory* pfactory, gmpi::IMpUnknown* pfallback) :
+			GraphicsContext(
+                            NSView* pview
+                            , se::cocoa::DrawingFactory* pfactory
+                            , std::vector<gmpi::drawing::Rect>& pclipRectStack
+                            , gmpi::IMpUnknown* pfallback
+                            ) :
 				factory(pfactory)
 				, view_(pview)
+                , clipRectStack(pclipRectStack)
                 , fallback(pfallback)
 			{
 				currentTransform = [NSAffineTransform transform];
@@ -1987,9 +1993,9 @@ return gmpi::MP_FAIL;
 				auto absClipRect = currentTransform.TransformRect(*clipRect);
                 
                 if(!clipRectStack.empty())
-                    absClipRect = GmpiDrawing::Intersect(absClipRect, GmpiDrawing::Rect(clipRectStack.back()));
+                    absClipRect = GmpiDrawing::Intersect(absClipRect, *(GmpiDrawing::Rect*) &clipRectStack.back());
                     
-				clipRectStack.push_back(absClipRect);
+				clipRectStack.push_back(*(gmpi::drawing::Rect*) &absClipRect);
 
 				// Save the current clipping region
 				[NSGraphicsContext saveGraphicsState];
@@ -2010,7 +2016,7 @@ return gmpi::MP_FAIL;
                 GmpiDrawing::Matrix3x2 currentTransform;
                 GetTransform(&currentTransform);
                 currentTransform.Invert();
-				*returnClipRect = currentTransform.TransformRect(clipRectStack.back());
+				*returnClipRect = currentTransform.TransformRect(*(GmpiDrawing_API::MP1_RECT*) &clipRectStack.back());
 			}
 
 			void MP_STDCALL BeginDraw() override
@@ -2068,7 +2074,12 @@ return gmpi::MP_FAIL;
         class GraphicsContext2 : public GraphicsContext, public GmpiDrawing_API::IMpDeviceContextExt
         {
         public:
-            GraphicsContext2(gmpi::IMpUnknown* pfallback, NSView* pview, se::cocoa::DrawingFactory* pfactory) : GraphicsContext(pview, pfactory, pfallback){}
+            GraphicsContext2(
+                             gmpi::IMpUnknown* pfallback
+                             , NSView* pview
+                             , std::vector<gmpi::drawing::Rect>& clipRectStack
+                             , se::cocoa::DrawingFactory* pfactory
+                             ) : GraphicsContext(pview, pfactory, clipRectStack, pfallback){}
 
             int32_t MP_STDCALL CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** returnObject) override;
 
@@ -2092,7 +2103,6 @@ return gmpi::MP_FAIL;
 
             GMPI_REFCOUNT_NO_DELETE;
         };
-#if 0
 #if 0
         // extend the GMPI-UI graphics context with the ability to fallback to the SDK3 one
         class GraphicsContext_RG : public gmpi::cocoa::GraphicsContext
@@ -2134,7 +2144,7 @@ return gmpi::MP_FAIL;
 
             UniversalGraphicsContext(NSView* pview, gmpi::cocoa::Factory* gmpiFactory, se::cocoa::DrawingFactory* sdk3Factory) :
                 gmpi::cocoa::GraphicsContext(pview, gmpiFactory),
-                sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pview, sdk3Factory)
+                sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pview, clipRectStack, sdk3Factory)
             {
             }
 
@@ -2158,10 +2168,11 @@ return gmpi::MP_FAIL;
 		class bitmapRenderTarget : public GraphicsContext // emulated by carefull layout public GmpiDrawing_API::IMpBitmapRenderTarget
 		{
 			NSImage* image = {};
+            std::vector<gmpi::drawing::Rect> clipRectStack;
 
 		public:
 			bitmapRenderTarget(se::cocoa::DrawingFactory* pfactory, const GmpiDrawing_API::MP1_SIZE* desiredSize) :
-				GraphicsContext(nullptr, pfactory, nullptr)
+				GraphicsContext(nullptr, pfactory, clipRectStack, nullptr)
 			{
 				NSRect r = NSMakeRect(0.0, 0.0, desiredSize->width, desiredSize->height);
                 image = [[NSImage alloc] initWithSize:r.size];
