@@ -351,9 +351,8 @@ public:
         // kCGColorSpaceGenericRGBLinear - middle gray is darker, blend seems correct.
         // kCGColorSpaceExtendedLinearSRGB, kCGColorSpaceLinearDisplayP3 - same
         // kCGColorSpaceGenericRGB - actually sRGB
-        
-        // kCGColorSpaceExtendedLinearSRGB might be best since float color values should match SE's linear RGB
-        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB); //kCGColorSpaceLinearSRGB);
+        // kCGColorSpaceExtendedLinearSRGB - draws too dark after initial paint.
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceLinearSRGB);
         
         NSColorSpace *linearRGBColorSpace = [[NSColorSpace alloc] initWithCGColorSpace:colorSpace];
 
