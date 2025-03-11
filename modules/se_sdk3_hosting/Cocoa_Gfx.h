@@ -1387,7 +1387,7 @@ return gmpi::MP_FAIL;
 		{
 		protected:
             se::cocoa::DrawingFactory* factory{};
-            ContextInfo& info;
+            gmpi::cocoa::ContextInfo& info;
             gmpi::IMpUnknown* fallback{};
 			std::wstring_convert<std::codecvt_utf8<wchar_t>>* stringConverter; // cached, as constructor is super-slow.
             
@@ -1397,15 +1397,15 @@ return gmpi::MP_FAIL;
 			GraphicsContext(
                             NSView* pview
                             , se::cocoa::DrawingFactory* pfactory
-                            , ContextInfo& pinfo
+                            , gmpi::cocoa::ContextInfo& pinfo
                             , gmpi::IMpUnknown* pfallback
                             ) :
 				factory(pfactory)
-				, view_(pview)
                 , info(pinfo)
                 , fallback(pfallback)
 			{
-				currentTransform = [NSAffineTransform transform];
+                info.view = pview;
+                info.currentTransform = [NSAffineTransform transform];
                 
 #if 0
                 // no idea what the real cause is
@@ -1854,8 +1854,8 @@ return gmpi::MP_FAIL;
                 // Remove the current transformations by applying the inverse transform.
                 try
                 {
-                    [currentTransform invert];
-                    [currentTransform concat];
+                    [info.currentTransform invert];
+                    [info.currentTransform concat];
                 }
                 catch(...)
                 {
@@ -1872,15 +1872,15 @@ return gmpi::MP_FAIL;
                     transform->_32
                 };
 
-				[currentTransform setTransformStruct : transformStruct];
+				[info.currentTransform setTransformStruct : transformStruct];
 
-				[currentTransform concat];
+				[info.currentTransform concat];
 			}
 
 			void MP_STDCALL GetTransform(GmpiDrawing_API::MP1_MATRIX_3X2* transform) override
 			{
 				NSAffineTransformStruct
-					transformStruct = [currentTransform transformStruct];
+					transformStruct = [info.currentTransform transformStruct];
 
 				transform->_11 = transformStruct.m11;
 				transform->_12 = transformStruct.m12;
@@ -2028,7 +2028,7 @@ return gmpi::MP_FAIL;
    
             NSView* getNativeView()
             {
-                return view_;
+                return info.view;
             }
 /*
             int getQuartzYorigin()
@@ -2075,7 +2075,7 @@ return gmpi::MP_FAIL;
             GraphicsContext2(
                              gmpi::IMpUnknown* pfallback
                              , NSView* pview
-                             , ContextInfo& info;
+                             , gmpi::cocoa::ContextInfo& info
                              , se::cocoa::DrawingFactory* pfactory
                              ) : GraphicsContext(pview, pfactory, info, pfallback){}
 
@@ -2084,19 +2084,13 @@ return gmpi::MP_FAIL;
             int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
             {
                 *returnInterface = 0;
-                if (iid == GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI || iid == gmpi::MP_IID_UNKNOWN)
-                {
-                    *returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContext*>(this);
-                    addRef();
-                    return gmpi::MP_OK;
-                }
                 if (iid == GmpiDrawing_API::IMpDeviceContextExt::guid)
                 {
                     *returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(this);
                     addRef();
                     return gmpi::MP_OK;
                 }
-                return gmpi::MP_NOSUPPORT;
+                return GraphicsContext::queryInterface(iid, returnInterface);
             }
 
             GMPI_REFCOUNT_NO_DELETE;
@@ -2132,7 +2126,7 @@ return gmpi::MP_FAIL;
 		class bitmapRenderTarget : public GraphicsContext // emulated by carefull layout public GmpiDrawing_API::IMpBitmapRenderTarget
 		{
 			NSImage* image = {};
-            ContextInfo info;
+            gmpi::cocoa::ContextInfo info;
 
 		public:
 			bitmapRenderTarget(se::cocoa::DrawingFactory* pfactory, const GmpiDrawing_API::MP1_SIZE* desiredSize) :
