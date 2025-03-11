@@ -11,6 +11,7 @@
 #include "./Gfx_base.h"
 #include "BundleInfo.h"
 #include "mfc_emulation.h"
+#include "backends/CocoaGfx.h"
 
 #define USE_BACKING_BUFFER 1
 
@@ -32,17 +33,17 @@ namespace se
             return NSMakePoint(p.x, p.y);
         }
     
-		inline GmpiDrawing::Rect RectFromNSRect(NSRect nsr)
-		{
-			GmpiDrawing::Rect r(nsr.origin.x, nsr.origin.y, nsr.origin.x + nsr.size.width, nsr.origin.y + nsr.size.height);
-			return r;
-		}
+//		inline GmpiDrawing::Rect RectFromNSRect(NSRect nsr)
+//		{
+//			GmpiDrawing::Rect r(nsr.origin.x, nsr.origin.y, nsr.origin.x + nsr.size.width, nsr.origin.y + nsr.size.height);
+//			return r;
+//		}
 
 		inline NSRect NSRectFromRect(GmpiDrawing_API::MP1_RECT rect)
 		{
 			return NSMakeRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
 		}
-        
+#if 0
         CGMutablePathRef NsToCGPath(NSBezierPath* geometry) // could be cached in some cases.
         {
             CGMutablePathRef cgPath = CGPathCreateMutable();
@@ -73,7 +74,7 @@ namespace se
             }
             return cgPath;
         }
-        
+#endif
         // helper
         void SetNativePenStrokeStyle(NSBezierPath * path, GmpiDrawing_API::IMpStrokeStyle* strokeStyle)
         {
@@ -154,7 +155,7 @@ namespace se
                         
             [path setLineDash: dashes.data() count: dashes.size() phase: phase];
         }
-
+#if 1
 		// Classes without GetFactory()
 		template<class MpInterface, class CocoaType>
 		class CocoaWrapper : public MpInterface
@@ -201,173 +202,18 @@ namespace se
 
 		class nothing
 		{
-
 		};
-    
+#endif
 
     class DrawingFactory : public GmpiDrawing_API::IMpFactory2
     {
-        std::vector<std::string> supportedFontFamilies;
+     public:
+        gmpi::cocoa::FactoryInfo& info;
         
-    public:
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> stringConverter; // cached, as constructor is super-slow.
-        NSColorSpace* gmpiColorSpace = {};
-        
-        DrawingFactory()
+        DrawingFactory(gmpi::cocoa::FactoryInfo& pinfo) : info(pinfo)
         {
-#if 0
-            int maxPixelDepth = 0;
-            for(auto windowDepth = NSAvailableWindowDepths() ; *windowDepth ; ++windowDepth)
-            {
-                maxPixelDepth = std::max(maxPixelDepth, (int) NSBitsPerSampleFromDepth(*windowDepth));
-            }
-            
-            if(maxPixelDepth > 8)
-            {
-                
-                colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB);
-            }
-            else
-            {
-                
-                colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGBLinear);
-            }
-            // kCGColorSpaceGenericRGBLinear - proper linear gradients, banding on dark-grey gradient bitmap.
-            // kCGColorSpaceExtendedLinearDisplayP3, kCGColorSpaceExtendedLinearSRGB
-         
-            nsColorSpace = [[NSColorSpace alloc] initWithCGColorSpace:colorSpace];
-#endif
         }
-#if 0
-        void setBestColorSpace(/*NSWindow* window*/)
-        {
-            /* even non-wide displays benifit from kCGColorSpaceExtendedLinearSRGB, they appear to dither to approximate it
 
-            bool hasWideGamutScreen = true;
-            for ( NSScreen* screen in [NSScreen screens] )
-            {
-                if ( FALSE == [screen canRepresentDisplayGamut:NSDisplayGamutP3] )
-                {
-                    hasWideGamutScreen = false;
-                }
-            }
-             */
-            
-#if 0
-            //colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB); // bitmap washed-out on big sur
-            // colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceLinearSRGB); // too dark
-
-  /* The name of the "Generic" linear RGB color space. This is the same as
-     `kCGColorSpaceGenericRGB' but with a 1.0 gamma. */
-
-CG_EXTERN const CFStringRef kCGColorSpaceGenericRGBLinear
-CG_AVAILABLE_STARTING(10.5, 9.0);
-
-CG_EXTERN const CFStringRef kCGColorSpaceLinearDisplayP3
-CG_AVAILABLE_STARTING(12.0, 15.0);
-
-CG_EXTERN const CFStringRef kCGColorSpaceExtendedLinearDisplayP3
-CG_AVAILABLE_STARTING(10.14.3, 12.3);
-/*  The name of the sRGB color space variant with linear gamma */
-
-CG_EXTERN const CFStringRef kCGColorSpaceLinearSRGB
-CG_AVAILABLE_STARTING(10.12, 10.0);
-
-/*  The name of the extended sRGB color space variant with linear gamma */
-
-CG_EXTERN const CFStringRef kCGColorSpaceExtendedLinearSRGB
-CG_AVAILABLE_STARTING(10.12, 10.0);
-
-#endif
-
-#if 0
-// !!!DISABLE WINDOW COLORSPACE AS IT CAUSES FLICKERING TITLE BAR. !!! TODO research problem, log bug with Apple whatever
-
-#if 0 // ndef _DEBUG
-            NSOperatingSystemVersion minimumSupportedOSVersion = { .majorVersion = 10, .minorVersion = 12, .patchVersion = 2 };
-            const BOOL isSupported = [NSProcessInfo.processInfo isOperatingSystemAtLeastVersion:minimumSupportedOSVersion];
-            colorSpace = CGColorSpaceCreateWithName(isSupported ? kCGColorSpaceGenericRGBLinear : kCGColorSpaceSRGB);
-#else
-
-            const CFStringRef preferedColorSpaces[] =
-            {                                                   // BIGSUR (Intel)   MONT (M1)         CATALINA (Mini Intel)
-//              CFSTR("kCGColorSpaceExtendedLinearDisplayP3"),  // too bright       *good             *good
-                CFSTR("kCGColorSpaceExtendedLinearSRGB"),       // too bright       *good             *good
-                kCGColorSpaceGenericRGBLinear, // AKA Gen HDR   // *good (16bit)    good/banded(8bit) same
-                CFSTR("kCGColorSpaceLinearSRGB"), // sRGB IEC   // *good 8b         good/banded 8b    good/banded (8bit)
-                CFSTR("kCGColorSpaceSRGB"),// most generic      // brushes OK, gradients very bad. mild-banding all systems
-            };
-            const int fallbackCount = sizeof(preferedColorSpaces)/sizeof(preferedColorSpaces[0]);
-/*
-            static int test = 0;
-            const int safeindex = test % fallbackCount;
-            colorSpace = CGColorSpaceCreateWithName(preferedColorSpaces[safeindex]);
-            ++test;
-*/
-            NSOperatingSystemVersion minimumSupportedOSVersion = { .majorVersion = 12, .minorVersion = 0, .patchVersion = 1 };
-            const BOOL isMonterey = [NSProcessInfo.processInfo isOperatingSystemAtLeastVersion:minimumSupportedOSVersion];
-            const int bestColorspaceIndex = isMonterey ? 0 : 1;
-            CGColorSpaceRef colorSpace = {};
-            for(int i = bestColorspaceIndex ; !colorSpace && i < fallbackCount; ++i)
-            {
-                colorSpace = CGColorSpaceCreateWithName(preferedColorSpaces[i]);
-            }
-#endif
-
-            if(colorSpace)
-            {
-                nsColorSpace = [[NSColorSpace alloc] initWithCGColorSpace:colorSpace];
-                [window setColorSpace:nsColorSpace];
-            }
-#endif
-            {
-                auto temp = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB);
-                // auto temp = CGColorSpaceCreateWithName(kCGColorSpaceLinearSRGB); // no difference on big sur
-                gmpiColorSpace = [[NSColorSpace alloc] initWithCGColorSpace:temp];
-                
-// no diff on big sur               CGContextRef ctx = (CGContextRef) [[NSGraphicsContext currentContext] graphicsPort];
-//                CGContextSetFillColorSpace(ctx, temp);
-                
-                if(temp)
-                    CFRelease(temp);
-            }
- /* don't work
-
-            const bool failed = (colorSpace != [[window colorSpace] CGColorSpace]);
-            
-            if(!failed)
-            {
-                return;
-            }
-            
-            colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGBLinear);
-            nsColorSpace = [[NSColorSpace alloc] initWithCGColorSpace:colorSpace];
-            [window setColorSpace:nsColorSpace];
-  */
- /*
-//nope            const auto bpp = NSBitsPerSampleFromDepth( [window depthLimit] );
-            // hasWideGamutScreen works, but kCGColorSpaceExtendedLinearSRGB seems fine on those screens anyhow (Waves laptop)
-            if(true) // hasWideGamutScreen) //8 < bpp)
-            {
-                // linear gradients, no banding.
-                colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB);
-            }
-            else
-            {
-                // proper linear gradients, but banding on dark-grey gradient bitmap due to lack of precision.
-                colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGBLinear);
-            }
-            
-            nsColorSpace = [[NSColorSpace alloc] initWithCGColorSpace:colorSpace];
-            
-            [window setColorSpace:nsColorSpace];
-            
-            auto test = [window colorSpace];
-            auto cgcs = [test CGColorSpace];
-            */
-  //          return nsColorSpace;
-        }
-#endif
         // utility
         inline NSColor* toNative(const GmpiDrawing_API::MP1_COLOR& color)
         {
@@ -397,7 +243,7 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
                     alpha : (CGFloat)color.a];
 #endif
             const CGFloat components[4] = {color.r, color.g, color.b, color.a};
-            return [NSColor colorWithColorSpace:gmpiColorSpace components:components count:4];
+            return [NSColor colorWithColorSpace:info.gmpiColorSpace components:components count:4];
             
 // I think this is wrong because it's saying that the gmpi color is in the screen's color space. Which is a crapshoot out of our control.
 // we need to supply our color in a known color space, then let the OS convert it to whatever unknown color-space the screen is using.
@@ -425,7 +271,7 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
         // IMpFactory2
         int32_t MP_STDCALL GetFontFamilyName(int32_t fontIndex, gmpi::IString* returnString) override
         {
-            if(supportedFontFamilies.empty())
+            if(info.supportedFontFamilies.empty())
             {
                 NSFontManager* fontManager = [NSFontManager sharedFontManager];
     /*
@@ -444,16 +290,16 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
 
                 for( NSString* familyName in fontFamilies)
                 {
-                    supportedFontFamilies.push_back([familyName UTF8String]);
+                    info.supportedFontFamilies.push_back([familyName UTF8String]);
                 }
             }
             
-            if (fontIndex < 0 || fontIndex >= supportedFontFamilies.size())
+            if (fontIndex < 0 || fontIndex >= info.supportedFontFamilies.size())
             {
                 return gmpi::MP_FAIL;
             }
 
-            returnString->setData(supportedFontFamilies[fontIndex].data(), static_cast<int32_t>(supportedFontFamilies[fontIndex].size()));
+            returnString->setData(info.supportedFontFamilies[fontIndex].data(), static_cast<int32_t>(info.supportedFontFamilies[fontIndex].size()));
             return gmpi::MP_OK;
         }
 
@@ -614,7 +460,7 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
 
 //                CFRelease(colorSpace);
                 
-                native2 = [[NSGradient alloc] initWithColors:colors atLocations: locations2.data() colorSpace:factory->gmpiColorSpace];
+                native2 = [[NSGradient alloc] initWithColors:colors atLocations: locations2.data() colorSpace:factory->info.gmpiColorSpace];
             }
             
             ~Gradient()
@@ -681,7 +527,7 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
                 // convert NSPath to CGPath
                 CGPathRef strokePath;
 			{
-                    CGMutablePathRef cgPath = NsToCGPath(nsPath);
+                CGMutablePathRef cgPath = gmpi::cocoa::NsToCGPath(nsPath);
 
                     strokePath = CGPathCreateCopyByStrokingPath(cgPath, NULL, strokeWidth, (CGLineCap)[nsPath lineCapStyle],
                                                                           (CGLineJoin)[nsPath lineJoinStyle], [nsPath miterLimit]);
@@ -776,7 +622,7 @@ CG_AVAILABLE_STARTING(10.12, 10.0);
                 // convert NSPath to CGPath
                 CGPathRef strokePath;
                 {
-                    CGMutablePathRef cgPath = NsToCGPath(nsPath);
+                    CGMutablePathRef cgPath = gmpi::cocoa::NsToCGPath(nsPath);
 
                     strokePath = CGPathCreateCopyByStrokingPath(cgPath, NULL, strokeWidth, (CGLineCap)[nsPath lineCapStyle],
                                                                           (CGLineJoin)[nsPath lineJoinStyle], [nsPath miterLimit]);
@@ -1461,7 +1307,7 @@ return gmpi::MP_FAIL;
             
 			int32_t MP_STDCALL StrokeContainsPoint(GmpiDrawing_API::MP1_POINT point, float strokeWidth, GmpiDrawing_API::IMpStrokeStyle* strokeStyle, const GmpiDrawing_API::MP1_MATRIX_3X2* worldTransform, bool* returnContains) override
 			{
-                auto cgPath2 = NsToCGPath(geometry_);
+                auto cgPath2 = gmpi::cocoa::NsToCGPath(geometry_);
                 
                 CGPathRef hitTargetPath = CGPathCreateCopyByStrokingPath(cgPath2, NULL, (CGFloat) strokeWidth, (CGLineCap) [geometry_ lineCapStyle], (CGLineJoin)[geometry_ lineJoinStyle], [geometry_ miterLimit] );
                 
@@ -1541,17 +1387,19 @@ return gmpi::MP_FAIL;
 		{
 		protected:
 			std::wstring_convert<std::codecvt_utf8<wchar_t>>* stringConverter; // cached, as constructor is super-slow.
-            se::cocoa::DrawingFactory* factory;
-			std::vector<GmpiDrawing_API::MP1_RECT> clipRectStack;
+            se::cocoa::DrawingFactory* factory{};
+            std::vector<GmpiDrawing_API::MP1_RECT> clipRectStack;
 			NSAffineTransform* currentTransform;
 			NSView* view_;
+            gmpi::IMpUnknown* fallback{};
             
 		public:
             inline static int logicProFix = -1;
             
-			GraphicsContext(NSView* pview, se::cocoa::DrawingFactory* pfactory) :
-				factory(pfactory)
+			GraphicsContext(NSView* pview, se::cocoa::DrawingFactory* pfactory, gmpi::IMpUnknown* pfallback) :
+				  factory(pfactory)
 				, view_(pview)
+                , fallback(pfallback)
 			{
 				currentTransform = [NSAffineTransform transform];
                 
@@ -2198,14 +2046,29 @@ return gmpi::MP_FAIL;
 */
 			//	void MP_STDCALL InsetNewMethodHere(){}
 
-			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI, GmpiDrawing_API::IMpDeviceContext);
+			// GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI, GmpiDrawing_API::IMpDeviceContext);
+            int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+            {
+                *returnInterface = 0;
+                if (iid == GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI || iid == gmpi::MP_IID_UNKNOWN)
+                {
+                    *returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContext*>(this);
+                    addRef();
+                    return gmpi::MP_OK;
+                }
+
+                if (fallback)
+                    return fallback->queryInterface(iid, returnInterface);
+
+                return gmpi::MP_NOSUPPORT;
+            }
 			GMPI_REFCOUNT_NO_DELETE;
 		};
 
         class GraphicsContext2 : public GraphicsContext, public GmpiDrawing_API::IMpDeviceContextExt
         {
         public:
-            GraphicsContext2(NSView* pview, se::cocoa::DrawingFactory* pfactory) : GraphicsContext(pview, pfactory){}
+            GraphicsContext2(gmpi::IMpUnknown* pfallback, NSView* pview, se::cocoa::DrawingFactory* pfactory) : GraphicsContext(pview, pfactory, pfallback){}
 
             int32_t MP_STDCALL CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** returnObject) override;
 
@@ -2229,18 +2092,16 @@ return gmpi::MP_FAIL;
 
             GMPI_REFCOUNT_NO_DELETE;
         };
-
+#if 0
         // extend the GMPI-UI graphics context with the ability to fallback to the SDK3 one
-        class GraphicsContext_RG : public gmpi::cocoa::GraphicsContext_base
+        class GraphicsContext_RG : public gmpi::cocoa::GraphicsContext
         {
         protected:
-//            ID2D1DeviceContext* context_{};
-            Factory_RG factory;
             gmpi::api::IUnknown* fallback{};
 
         public:
             GraphicsContext_RG(gmpi::api::IUnknown* pfallback, gmpi::cocoa::FactoryInfo& pinfo, NSView* pview) :
-                gmpi::cocoa::GraphicsContext_base(pinfo, pview)
+                gmpi::cocoa::GraphicsContext(pinfo, pview)
 //                , context_(deviceContext)
                 , factory(pinfo)
                 , fallback(pfallback)
@@ -2265,34 +2126,27 @@ return gmpi::MP_FAIL;
             }
             GMPI_REFCOUNT_NO_DELETE;
         };
-
-        struct UniversalGraphicsContext : public gmpi::api::IUnknown
+#endif
+        struct UniversalGraphicsContext : public gmpi::cocoa::GraphicsContext
         {
-            GraphicsContext_RG gmpiContext;
             GraphicsContext2 sdk3Context;
 
-            UniversalGraphicsContext(gmpi::cocoa::FactoryInfo& pinfo, NSView* pview) :
-                gmpiContext(this, pinfo, pview),
-                sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pinfo, pview)
+            UniversalGraphicsContext(NSView* pview, gmpi::cocoa::Factory* gmpiFactory, se::cocoa::DrawingFactory* sdk3Factory) :
+                gmpi::cocoa::GraphicsContext(pview, gmpiFactory),
+                sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pview, sdk3Factory)
             {
             }
 
             gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
             {
                 *returnInterface = {};
-                if (*iid == gmpi::drawing::api::IDeviceContext::guid || *iid == gmpi::drawing::api::IResource::guid)
+                if (*iid == gmpi::drawing::api::IDeviceContext::guid || *iid == gmpi::drawing::api::IResource::guid || *iid == gmpi::api::IUnknown::guid)
                 {
-                    return gmpiContext.queryInterface(iid, returnInterface);
+                    return gmpi::cocoa::GraphicsContext::queryInterface(iid, returnInterface);
                 }
                 if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
                 {
                     return (gmpi::ReturnCode)sdk3Context.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
-                }
-                if (*iid == gmpi::api::IUnknown::guid)
-                {
-                    *returnInterface = this;
-                    addRef();
-                    return gmpi::ReturnCode::Ok;
                 }
                 return gmpi::ReturnCode::NoSupport;
             }
@@ -2306,7 +2160,7 @@ return gmpi::MP_FAIL;
 
 		public:
 			bitmapRenderTarget(se::cocoa::DrawingFactory* pfactory, const GmpiDrawing_API::MP1_SIZE* desiredSize) :
-				GraphicsContext(nullptr, pfactory)
+				GraphicsContext(nullptr, pfactory, nullptr)
 			{
 				NSRect r = NSMakeRect(0.0, 0.0, desiredSize->width, desiredSize->height);
                 image = [[NSImage alloc] initWithSize:r.size];
@@ -2388,7 +2242,7 @@ return gmpi::MP_FAIL;
         inline int32_t MP_STDCALL DrawingFactory::CreateTextFormat(const char* fontFamilyName, void* unused /* fontCollection */, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, GmpiDrawing_API::MP1_FONT_STYLE fontStyle, GmpiDrawing_API::MP1_FONT_STRETCH fontStretch, float fontSize, void* unused2 /* localeName */, GmpiDrawing_API::IMpTextFormat** textFormat)
         {
             gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-            b2.Attach(new TextFormat(&stringConverter, fontFamilyName, fontWeight, fontStyle, fontStretch, fontSize));
+            b2.Attach(new TextFormat(&info.stringConverter, fontFamilyName, fontWeight, fontStyle, fontStretch, fontSize));
 
             return b2->queryInterface(GmpiDrawing_API::SE_IID_TEXTFORMAT_MPGUI, reinterpret_cast<void **>(textFormat));
         }

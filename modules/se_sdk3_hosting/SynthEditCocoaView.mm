@@ -7,6 +7,7 @@
 #import "./ContainerView.h"
 #include "./JsonDocPresenter.h"
 #include "BundleInfo.h"
+#include "backends/CocoaGfx.h"
 
 #if defined(SE_TARGET_AU)
 #include "../../../se_au/SEInstrumentBase.h"
@@ -29,13 +30,18 @@ class DrawingFrameCocoa : public gmpi_gui::IMpGraphicsHost, public gmpi::IMpUser
     GmpiGuiHosting::UpdateRegionMac dirtyRects;
 
 public:
-    se::cocoa::DrawingFactory drawingFactory;
+    se::cocoa::DrawingFactory drawingFactory_SDK3;
+    gmpi::cocoa::Factory drawingFactory_GMPI;
+
     NSView* view;
     NSBitmapImageRep* backBuffer{}; // backing buffer with linear colorspace for correct blending.
 
+    DrawingFrameCocoa() : drawingFactory_SDK3(drawingFactory_GMPI.info){}
+    
     void Init(SE2::IPresenter* presenter, class IGuiHost2* hostPatchManager, int pviewType)
     {
         controller = hostPatchManager;
+        initFactoryHelper(drawingFactory_GMPI.info);
         
         const int topViewBounds = 8000; // simply a large enough size.
         containerView.Attach(new SE2::ContainerViewPanel({topViewBounds,topViewBounds}));
@@ -99,9 +105,9 @@ public:
         {
             se::cocoa::GraphicsContext2::logicProFix = 0;
             
-            se::cocoa::GraphicsContext2 context(frame, &drawingFactory);
+            se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory_GMPI, &drawingFactory_SDK3);
             
-            GmpiDrawing::Graphics g(static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(&context));
+            GmpiDrawing::Graphics g(static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(&context.sdk3Context));
             auto tf = g.GetFactory().CreateTextFormat(16, "Arial", GmpiDrawing::FontWeight::Normal);
             auto brush = g.CreateSolidColorBrush(GmpiDrawing::Color::Black);
             g.FillRectangle(0,0,40,40, brush);
@@ -129,16 +135,16 @@ public:
         
         // context must be disposed (via RIAA) before restoring state, because its destructor also restores state
         {
-	        se::cocoa::GraphicsContext2 context(frame, &drawingFactory);
+	        se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory_GMPI, &drawingFactory_SDK3);
 
             // draw the absolute minimum.
             for( auto& r : dirtyRects.rects )
 		    {
-                context.PushAxisAlignedClip(&r);
+                context.pushAxisAlignedClip((const gmpi::drawing::Rect*)&r);
         
-        	    containerView->OnRender(static_cast<GmpiDrawing_API::IMpDeviceContext*>(&context));
+                containerView->OnRender(static_cast<GmpiDrawing_API::IMpDeviceContext*>(&context.sdk3Context));
 
-       		    context.PopAxisAlignedClip();
+       		    context.popAxisAlignedClip();
 		    }
         }
 
@@ -276,7 +282,7 @@ public:
     }
     virtual int32_t MP_STDCALL GetDrawingFactory(GmpiDrawing_API::IMpFactory ** returnFactory) override
     {
-        *returnFactory = &drawingFactory;
+        *returnFactory = &drawingFactory_SDK3;
         return gmpi::MP_OK;
     }
     
