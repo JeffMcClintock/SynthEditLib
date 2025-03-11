@@ -893,20 +893,20 @@ protected:
 	gmpi::directx::ComPtr<ID2D1DeviceContext> context_;
 	Factory_base factory;
 	gmpi::IMpUnknown* fallback{};
+	std::vector<gmpi::drawing::Rect>& clipRectStack; // shared with GMPI-UI context
 
-	std::vector<GmpiDrawing_API::MP1_RECT> clipRectStack; // TODO GraphicsContext_RG and GraphicsContext2 need to share the same clip stack!!!
 public:
-	GraphicsContext_SDK3(gmpi::IMpUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* deviceContext = 0) :
+	GraphicsContext_SDK3(
+		gmpi::IMpUnknown* pfallback
+		, gmpi::directx::DxFactoryInfo& pinfo
+		, std::vector<gmpi::drawing::Rect>& pclipRectStack
+		, ID2D1DeviceContext* deviceContext = 0
+	) :
 		context_(deviceContext)
 		, factory(pinfo)
 		, fallback(pfallback)
+		, clipRectStack(pclipRectStack)
 	{
-		// gmpiContext inits it's clip rect, SDK3 does not.
-		const float defaultClipBounds = 100000.0f;
-		GmpiDrawing_API::MP1_RECT r;
-		r.top = r.left = -defaultClipBounds;
-		r.bottom = r.right = defaultClipBounds;
-		clipRectStack.push_back(r);
 	}
 
 	~GraphicsContext_SDK3(){}
@@ -1096,7 +1096,17 @@ public:
 class GraphicsContext2 : public GraphicsContext_SDK3, public GmpiDrawing_API::IMpDeviceContextExt
 {
 public:
-	GraphicsContext2(gmpi::IMpUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* deviceContext = {}) : GraphicsContext_SDK3(pfallback, pinfo, deviceContext){}
+	GraphicsContext2(
+		gmpi::IMpUnknown* pfallback
+		, gmpi::directx::DxFactoryInfo& pinfo
+		, std::vector<gmpi::drawing::Rect>& clipRectStack
+		, ID2D1DeviceContext* deviceContext = {}
+	) : GraphicsContext_SDK3(
+		pfallback
+		, pinfo
+		, clipRectStack
+		, deviceContext
+	){}
 
 	int32_t MP_STDCALL CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** returnObject) override;
 
@@ -1119,6 +1129,7 @@ class BitmapRenderTarget : public GraphicsContext_SDK3
 {
 	gmpi::directx::ComPtr<IWICBitmap> wicBitmap;
 	ID2D1DeviceContext* originalContext{};
+	std::vector<gmpi::drawing::Rect> clipRectStack;
 
 public:
 
@@ -1152,8 +1163,13 @@ class GraphicsContext_Win7 : public GraphicsContext2
 {
 public:
 
-	GraphicsContext_Win7(gmpi::IMpUnknown* pfallback, gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* context) :
-		GraphicsContext2(pfallback, pinfo, context)
+	GraphicsContext_Win7(
+		gmpi::IMpUnknown* pfallback
+		, gmpi::directx::DxFactoryInfo& pinfo
+		, std::vector<gmpi::drawing::Rect>& clipRectStack
+		, ID2D1DeviceContext* context
+	) :
+		GraphicsContext2(pfallback, pinfo, clipRectStack, context)
 	{}
 
 	int32_t CreateSolidColorBrush(const GmpiDrawing_API::MP1_COLOR* color, GmpiDrawing_API::IMpSolidColorBrush **solidColorBrush) override
@@ -1197,7 +1213,7 @@ struct UniversalGraphicsContext : public gmpi::directx::GraphicsContext_base
 	UniversalGraphicsContext(gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* nativeContext = {}) :
 		factory(pinfo),
 		gmpi::directx::GraphicsContext_base(&factory, nativeContext),
-		sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pinfo, nativeContext)
+		sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pinfo, clipRectStack, nativeContext)
 	{}
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
@@ -1224,7 +1240,7 @@ struct UniversalGraphicsContext_win7 : public gmpi::directx::GraphicsContext_bas
 	UniversalGraphicsContext_win7(gmpi::directx::DxFactoryInfo& pinfo, ID2D1DeviceContext* nativeContext = {}) :
 		factory(pinfo),
 		gmpi::directx::GraphicsContext_base(&factory, nativeContext),
-		sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pinfo, nativeContext)
+		sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pinfo, clipRectStack, nativeContext)
 	{}
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override

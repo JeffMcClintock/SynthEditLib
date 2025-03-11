@@ -404,7 +404,7 @@ int32_t GraphicsContext2::CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L d
 }
 
 BitmapRenderTarget::BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API::MP1_SIZE desiredSize, gmpi::directx::DxFactoryInfo& info, bool enableLockPixels) :
-	GraphicsContext_SDK3(nullptr, info)
+	GraphicsContext_SDK3(nullptr, info, clipRectStack)
 	, originalContext(g->native())
 {
 	createBitmapRenderTarget(
@@ -459,7 +459,7 @@ void GraphicsContext_SDK3::PushAxisAlignedClip(const GmpiDrawing_API::MP1_RECT* 
 	GmpiDrawing::Matrix3x2 currentTransform{};
 	context_->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(&currentTransform));
 	auto r2 = currentTransform.TransformRect(*clipRect);
-	clipRectStack.push_back(r2);
+	clipRectStack.push_back(*(gmpi::drawing::Rect*)&r2);
 }
 
 void GraphicsContext_SDK3::GetAxisAlignedClip(GmpiDrawing_API::MP1_RECT* returnClipRect)
@@ -468,7 +468,7 @@ void GraphicsContext_SDK3::GetAxisAlignedClip(GmpiDrawing_API::MP1_RECT* returnC
 	GmpiDrawing::Matrix3x2 currentTransform;
 	context_->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(&currentTransform));
 	currentTransform.Invert();
-	auto r2 = currentTransform.TransformRect(clipRectStack.back());
+	auto r2 = currentTransform.TransformRect(*(GmpiDrawing_API::MP1_RECT*) &clipRectStack.back());
 
 	*returnClipRect = r2;
 }
