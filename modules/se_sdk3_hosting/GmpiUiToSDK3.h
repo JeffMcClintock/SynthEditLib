@@ -9,6 +9,7 @@
 
 namespace se
 {
+// provide for running SynthEdit modules in a host that uses GMPI
 class GmpiToSDK3Factory : public GmpiDrawing_API::IMpFactory2
 {
 	gmpi::drawing::api::IFactory* native{};
@@ -718,7 +719,7 @@ class g3_BitmapRenderTarget final : public GmpiToSDK3Context_base // emulated by
 	gmpi::drawing::api::IBitmapRenderTarget* makeNative(GmpiToSDK3Context_base* g, const gmpi::drawing::Size* desiredSize) const
 	{
 		gmpi::drawing::api::IBitmapRenderTarget* native{};
-		g->context_->createCompatibleRenderTarget(*desiredSize, &native);
+		g->context_->createCompatibleRenderTarget(*desiredSize, 0, &native);
 		return native;
 	}
 public:
@@ -878,7 +879,7 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateImage(int32_t width, int32_t 
 	*returnDiBitmap = nullptr;
 
 	gmpi::drawing::api::IBitmap* b{};
-	auto hr = native->createImage(width, height, &b);
+	auto hr = native->createImage(width, height, (int32_t)gmpi::drawing::BitmapRenderTargetFlags::EightBitPixels, &b);
 
 	if (hr == gmpi::ReturnCode::Ok)
 	{

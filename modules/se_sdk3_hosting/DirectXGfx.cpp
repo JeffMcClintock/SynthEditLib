@@ -444,7 +444,7 @@ int32_t BitmapRenderTarget::GetBitmap(GmpiDrawing_API::IMpBitmap** returnBitmap)
 
 		if (hr == S_OK)
 		{
-			b2.Attach(new Bitmap(factory.getInfo(), factory.getPlatformPixelFormat(), /*context_*/originalContext, nativeBitmap.get()));
+			b2.Attach(new Bitmap(factory.getInfo(), factory.getPlatformPixelFormat(), originalContext, nativeBitmap.get()));
 		}
 	}
 

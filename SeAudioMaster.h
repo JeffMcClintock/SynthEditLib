@@ -59,8 +59,6 @@ class dsp_msg_target;
 class IO_base;
 class my_msg_que_input_stream;
 class my_input_stream;
-class DawStateManager;
-
 struct DawPreset;
 
 // helper struct to track lookup table list
