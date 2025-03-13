@@ -1,5 +1,6 @@
 #include "helpers/GmpiPluginEditor.h"
 #include "half.hpp"
+#include "NumberEditClient.h"
 #include <algorithm>
 
 using half_float::half;
@@ -652,21 +653,31 @@ inline uint8_t fast8bitScale(uint8_t a, uint8_t b)
     return (uint8_t)((t + 1 + (t >> 8)) >> 8); // fast way to divide by 255
 }
 
-class GmpiUiTest : public PluginEditor
+class GmpiUiTest : public PluginEditor, public SsgNumberEditClient
 {
-    Bitmap buffer;
     Bitmap buffer2;
 
+    SsgNumberEdit numberEdit;
+
 public:
+
+	GmpiUiTest() : numberEdit(*this)
+	{
+//		numberEdit.setRange(0, 100, 1);
+//		numberEdit.setValue(5);
+	}
+
 	ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
 	{
 		Graphics g(drawingContext);
 
-		if (!buffer)
+		if (!buffer2)
 		{
 			// draw on a bitmap mask
 			Size mysize(100, 100);
             SizeU mysize2(100, 100);
+
+            Bitmap buffer;
             {
                 // TODO: is this meant to create it in DIPs or hardware pixels? why is it float?
 				auto dc = g.createCompatibleRenderTarget(mysize, (int32_t)BitmapRenderTargetFlags::Mask | (int32_t)BitmapRenderTargetFlags::CpuReadable);
@@ -866,6 +877,38 @@ public:
 
 		return ReturnCode::Ok;
 	}
+
+	//gmpi::ReturnCode hitTest(gmpi::drawing::Point p, int32_t flags) override
+	//{
+	//	return gmpi::ReturnCode::Ok;
+	//}
+
+    // IInputClient
+    gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
+    {
+        return inputHost->setCapture();
+    }
+    gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override
+    {
+        return ReturnCode::Unhandled;
+    }
+    gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
+    {
+		inputHost->getFocus();
+
+        numberEdit.show(dialogHost, "Moose", &bounds); // getTextFromValue(getValue()).initialSectionContainingOnly("01234567890.+-"));
+
+        return inputHost->releaseCapture();
+    }
+    gmpi::ReturnCode OnKeyPress(wchar_t c) override
+    {
+        return ReturnCode::Handled;
+    }
+
+    // SsgNumberEditClient
+    void repaintText() override {}
+    void setEditValue(std::string value) override {}
+    void endEditValue() override {}
 };
 
 // Describe the plugin and register it with the framework.

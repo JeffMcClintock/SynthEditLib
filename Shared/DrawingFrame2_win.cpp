@@ -71,7 +71,7 @@ void DrawingFrameBase2::calcViewTransform()
     invalidateRect(nullptr);
 }
 
-gmpi::ReturnCode DrawingFrameBase2::createKeyListener(gmpi::api::IUnknown** returnKeyListener)
+gmpi::ReturnCode DrawingFrameBase2::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
 {
 #if 0 // TODO
     *returnKeyListener = new WINUI_PlatformKeyListener(swapChainHost.DispatcherQueue(), swapChainHost);

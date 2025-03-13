@@ -32,18 +32,33 @@ using namespace GmpiDrawing;
 namespace SE2
 {
 	// IInputHost
-	gmpi::ReturnCode GmpiUiHelper::setCapture() { return (gmpi::ReturnCode) moduleview.setCapture();}
-	gmpi::ReturnCode GmpiUiHelper::getCapture(bool& returnValue) { int32_t cap{}; moduleview.getCapture(cap); returnValue = cap != 0; return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode GmpiUiHelper::releaseCapture() { return (gmpi::ReturnCode) moduleview.releaseCapture(); }
-	gmpi::ReturnCode GmpiUiHelper::getFocus() { return gmpi::ReturnCode::NoSupport; }
-	gmpi::ReturnCode GmpiUiHelper::releaseFocus() { return gmpi::ReturnCode::NoSupport; }
+	ReturnCode GmpiUiHelper::setCapture() { return (gmpi::ReturnCode) moduleview.setCapture();}
+	ReturnCode GmpiUiHelper::getCapture(bool& returnValue) { int32_t cap{}; moduleview.getCapture(cap); returnValue = cap != 0; return gmpi::ReturnCode::Ok; }
+	ReturnCode GmpiUiHelper::releaseCapture() { return (gmpi::ReturnCode) moduleview.releaseCapture(); }
+	ReturnCode GmpiUiHelper::getFocus() { return gmpi::ReturnCode::NoSupport; }
+	ReturnCode GmpiUiHelper::releaseFocus() { return gmpi::ReturnCode::NoSupport; }
 	// IEditorHost
-	gmpi::ReturnCode GmpiUiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const void* data) { return (gmpi::ReturnCode) moduleview.pinTransmit(pinId, size, data, voice); }
+	ReturnCode GmpiUiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const void* data) { return (gmpi::ReturnCode) moduleview.pinTransmit(pinId, size, data, voice); }
 	int32_t GmpiUiHelper::getHandle() { return moduleview.handle; }
 	// IDrawingHost
-	gmpi::ReturnCode GmpiUiHelper::getDrawingFactory(gmpi::api::IUnknown** returnFactory) { return (gmpi::ReturnCode) moduleview.GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory); }
+	ReturnCode GmpiUiHelper::getDrawingFactory(gmpi::api::IUnknown** returnFactory) { return (gmpi::ReturnCode) moduleview.GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory); }
 	void GmpiUiHelper::invalidateRect(const gmpi::drawing::Rect* invalidRect) { moduleview.invalidateRect((const GmpiDrawing_API::MP1_RECT*) invalidRect); }
+	// IDialogHost
+	ReturnCode GmpiUiHelper::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) { return gmpi::ReturnCode::NoSupport; }
+	ReturnCode GmpiUiHelper::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) { return gmpi::ReturnCode::NoSupport; }
+	ReturnCode GmpiUiHelper::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
+	{
+		const auto rl = gmpi::drawing::offsetRect(*r, { moduleview.bounds_.left + moduleview.pluginGraphicsPos.left, moduleview.bounds_.top + moduleview.pluginGraphicsPos.top });
 
+		gmpi::shared_ptr<gmpi::api::IDialogHost> host;
+		moduleview.parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid, host.put_void());
+
+		host->createKeyListener(&rl, returnKeyListener);
+
+		return gmpi::ReturnCode::NoSupport;
+	}
+	ReturnCode GmpiUiHelper::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::NoSupport; }
+	ReturnCode GmpiUiHelper::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::NoSupport; }
 	////////////////////////////////////////////////////////
 
 	ModuleView::ModuleView(const wchar_t* typeId, ViewBase* pParent, int handle) : ViewChild(pParent, handle)
@@ -678,10 +693,13 @@ namespace SE2
 		if (!ModuleView::hitTest(flags, point))
 			return false;
 
-		if (!pluginGraphics2)
+		if (!pluginInput_GMPI && !pluginGraphics2)
 			return false;
 
 		auto local = PointToPlugin(point);
+
+		if (pluginInput_GMPI)
+			return pluginInput_GMPI->hitTest(*(gmpi::drawing::Point*) &local, flags) == gmpi::ReturnCode::Ok;
 
 		gmpi_sdk::mp_shared_ptr<ISubView> subView;
 		if (pluginGraphics)

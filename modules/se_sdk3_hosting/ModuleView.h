@@ -62,10 +62,10 @@ namespace SE2
 		}
 	};
 
-	class GmpiUiHelper :
-		public gmpi::api::IInputHost,
-		public gmpi::api::IEditorHost,
-		public gmpi::api::IDrawingHost
+	class GmpiUiHelper : public gmpi::api::IInputHost
+		, public gmpi::api::IDialogHost
+		, public gmpi::api::IEditorHost
+		, public gmpi::api::IDrawingHost
 	{
 		class ModuleView& moduleview;
 	public:
@@ -83,11 +83,18 @@ namespace SE2
 		// IDrawingHost
 		gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override;
 		void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
+		// IDialogHost
+		gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override;
+		gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override;
+		gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override; // why here not IInputHost? becuase it is effectivly an invisible text-edit
+		gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
+		gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 
 		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
 			*returnInterface = {};
 			GMPI_QUERYINTERFACE(gmpi::api::IInputHost);
+			GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
 			return gmpi::ReturnCode::NoSupport;
@@ -95,7 +102,11 @@ namespace SE2
 		GMPI_REFCOUNT;
 	};
 
-	class ModuleView : public ViewChild, public gmpi::IMpUserInterfaceHost2, public gmpi::IMpUserInterfaceHost, public gmpi_gui::IMpGraphicsHost
+	class ModuleView : public
+		ViewChild
+		, public gmpi::IMpUserInterfaceHost2
+		, public gmpi::IMpUserInterfaceHost
+		, public gmpi_gui::IMpGraphicsHost
 	{
 	protected:
 		Module_Info* moduleInfo;

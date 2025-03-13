@@ -108,23 +108,15 @@ struct DrawingFrameBase2 :
     }
 
     // gmpi::api::IDialogHost
-    gmpi::ReturnCode createTextEdit(gmpi::api::IUnknown** returnTextEdit) override
-    {
-		return gmpi::ReturnCode::NoSupport;
-	}
-    gmpi::ReturnCode createKeyListener(gmpi::api::IUnknown** returnKeyListener) override;
-    gmpi::ReturnCode createPopupMenu(gmpi::api::IUnknown** returnPopupMenu) override
-    {
-        return gmpi::ReturnCode::NoSupport;
-    }
+    gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override
+    {return gmpi::ReturnCode::NoSupport;}
+    gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override
+    {return gmpi::ReturnCode::NoSupport;}
+    gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override;
     gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override
-    {
-        return gmpi::ReturnCode::NoSupport;
-    }
+    {return gmpi::ReturnCode::NoSupport;}
     gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override
-    {
-        return gmpi::ReturnCode::NoSupport;
-    }
+    {return gmpi::ReturnCode::NoSupport;}
 
     // IMpUserInterfaceHost2
     int32_t MP_STDCALL pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice = 0) override

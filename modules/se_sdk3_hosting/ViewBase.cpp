@@ -1773,9 +1773,9 @@ bool cursorBlinkState(const State& inState)
 			gmpi::shared_ptr<gmpi::api::IDialogHost> host;
 			parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid, host.put_void()); // ->ChildCreatePlatformTextEdit(&r, textEdit.put());
 
-            host->createKeyListener((gmpi::api::IUnknown**) listener.put());
+            host->createKeyListener((const gmpi::drawing::Rect*)&bounds_, (gmpi::api::IUnknown**) listener.put());
 
-			listener->showAsync((const gmpi::drawing::Rect*) &bounds_, static_cast<gmpi::api::IKeyListenerCallback*>(this));
+			listener->showAsync(static_cast<gmpi::api::IKeyListenerCallback*>(this));
 
 			startTimer(62);
 		}
