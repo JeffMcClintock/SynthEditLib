@@ -658,14 +658,19 @@ class GmpiUiTest : public PluginEditor, public SsgNumberEditClient
     Bitmap buffer2;
 
     SsgNumberEdit numberEdit;
+    float value{23.5f};
 
 public:
 
 	GmpiUiTest() : numberEdit(*this)
 	{
-//		numberEdit.setRange(0, 100, 1);
-//		numberEdit.setValue(5);
-	}
+    }
+
+    ReturnCode open(gmpi::api::IUnknown* host) override
+    {
+        numberEdit.setText(std::to_string(value));
+        return PluginEditor::open(host);
+    }
 
 	ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
 	{
@@ -688,7 +693,7 @@ public:
                 auto brush = dc.createSolidColorBrush(Colors::White);
 				dc.drawCircle({ 50, 50 }, 40, brush, 5.0f);
 
-				dc.drawLine({ 0, 100 }, { 100, 90 }, brush, 5.0f);
+//				dc.drawLine({ 0, 100 }, { 100, 90 }, brush, 5.0f);
 
 				dc.endDraw();
 				buffer = dc.getBitmap();
@@ -875,13 +880,12 @@ public:
         auto brush = g.createSolidColorBrush(Colors::White);
         g.drawCircle({ 50, 50 }, 40, brush, 5.0f);
 
+        // draw the value as text
+        auto textFormat = g.getFactory().createTextFormat(22);
+        numberEdit.render(g, textFormat, bounds);
+
 		return ReturnCode::Ok;
 	}
-
-	//gmpi::ReturnCode hitTest(gmpi::drawing::Point p, int32_t flags) override
-	//{
-	//	return gmpi::ReturnCode::Ok;
-	//}
 
     // IInputClient
     gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
@@ -896,7 +900,9 @@ public:
     {
 		inputHost->getFocus();
 
-        numberEdit.show(dialogHost, "Moose", &bounds); // getTextFromValue(getValue()).initialSectionContainingOnly("01234567890.+-"));
+		auto valueString = std::to_string(value);
+
+        numberEdit.show(dialogHost, valueString, &bounds); // getTextFromValue(getValue()).initialSectionContainingOnly("01234567890.+-"));
 
         return inputHost->releaseCapture();
     }
@@ -906,7 +912,10 @@ public:
     }
 
     // SsgNumberEditClient
-    void repaintText() override {}
+    void repaintText() override
+    {
+        drawingHost->invalidateRect({});
+    }
     void setEditValue(std::string value) override {}
     void endEditValue() override {}
 };
