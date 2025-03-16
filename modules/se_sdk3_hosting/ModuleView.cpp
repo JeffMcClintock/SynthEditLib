@@ -15,7 +15,7 @@
 #include "DragLine.h"
 #include "SubViewPanel.h"
 #include "ResizeAdorner.h"
-
+#include "backends/../Drawing.h" // gmpi-ui version, not SDK3
 #include "modules/shared/GraphHelpers.h"
 #include "IGuiHost2.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
@@ -48,7 +48,7 @@ namespace SE2
 	ReturnCode GmpiUiHelper::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) { return gmpi::ReturnCode::NoSupport; }
 	ReturnCode GmpiUiHelper::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
 	{
-		const auto rl = gmpi::drawing::offsetRect(*r, { moduleview.bounds_.left + moduleview.pluginGraphicsPos.left, moduleview.bounds_.top + moduleview.pluginGraphicsPos.top });
+		const auto rl = gmpi::drawing::offsetRect(*r, gmpi::drawing::Size{ moduleview.bounds_.left + moduleview.pluginGraphicsPos.left, moduleview.bounds_.top + moduleview.pluginGraphicsPos.top });
 
 		gmpi::shared_ptr<gmpi::api::IDialogHost> host;
 		moduleview.parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid, host.put_void());
