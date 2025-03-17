@@ -1,5 +1,6 @@
 #pragma once
 #include "helpers/Timer.h"
+#include "../shared/simdutf/simdutf.h"
 
 struct SsgNumberEditClient
 {
@@ -8,19 +9,30 @@ struct SsgNumberEditClient
     virtual void endEditValue() = 0;
 };
 
+std::string toUtf8(const std::u32string& utf32)
+{
+	std::string utf8;
+	utf8.resize(simdutf::utf8_length_from_utf32(utf32.data(), utf32.size()));
+	[[maybe_unused]] const auto r = simdutf::convert_utf32_to_utf8(utf32.data(), utf32.size(), utf8.data());
+	return utf8;
+}
+
 class GlyphArrangement
 {
 public:
 	struct Glyph
 	{
-        char c; // ASCII is ok for numbers.
+        char32_t c;
         float left{};
         float right{};
 	};
     float height{};
 
-	std::vector<Glyph> glyphs;
+    std::u32string text_utf32;
+	std::string text_utf8;
+    std::vector<Glyph> glyphs;
 
+#if 0
     void init(std::string_view s, gmpi::drawing::TextFormat& textFormat)
     {
         glyphs.clear();
@@ -35,7 +47,73 @@ public:
             auto boundsIndividual = textFormat.getTextExtentU({ &c, 1 });
             auto sizeCumulative   = textFormat.getTextExtentU({s.begin(), s.begin() + i + 1});
 
-            glyphs.push_back({ c, sizeCumulative.width - boundsIndividual.width, sizeCumulative.width });
+            glyphs.push_back({ (char32_t) c, sizeCumulative.width - boundsIndividual.width, sizeCumulative.width });
+        }
+    }
+#endif
+
+    bool setText(std::u32string newText)
+    {
+		const bool changed = text_utf32 != newText;
+
+        if (changed)
+        {
+            text_utf32 = newText;
+			text_utf8 = toUtf8(newText);
+
+            // glyphs are expensive to measure, so only do it if text has changed.
+            // calc number of characters in common from start of string.
+            int common = 0;
+            for (; common < glyphs.size() && common < text_utf32.size(); ++common)
+            {
+                if (glyphs[common].c != newText[common])
+                    break;
+            }
+            // erase any no longer wanted extra glyfs
+            if (common < glyphs.size())
+            {
+                glyphs.erase(glyphs.begin() + common, glyphs.end());
+            }
+        }
+
+        return changed;
+	}
+
+    bool setText(std::string_view newText)
+    {
+        std::u32string text;
+        // convert string to UTF-32 on the assumption that most glyfs will resolve to one utf32 char (not always true)
+        const size_t expected_utfwords = simdutf::utf32_length_from_utf8(newText.data(), newText.size());
+        text.resize(expected_utfwords);
+        [[maybe_unused]] const auto r = simdutf::convert_utf8_to_utf32(newText.data(), newText.size(), (char32_t*)text.data());
+
+        return setText(text);
+    }
+
+    void update(gmpi::drawing::TextFormat& textFormat)
+    {
+        // calculate the glyfs top-left aligned, then adjust later.
+        if (glyphs.size() < text_utf32.size())
+        {
+            std::string allChars = text_utf8.substr(0, glyphs.size());
+
+            gmpi::drawing::Size sizeCumulative{};
+            for (int i = glyphs.size(); i < text_utf32.size(); ++i)
+            {
+                const size_t expected_utf8words = simdutf::utf8_length_from_utf32(&text_utf32[i], 1);
+                
+                std::string charUtf8;
+                charUtf8.resize(expected_utf8words);
+                [[maybe_unused]] const auto r = simdutf::convert_utf32_to_utf8(&text_utf32[i], 1, charUtf8.data());
+
+                allChars += charUtf8;
+                auto boundsIndividual = textFormat.getTextExtentU({ charUtf8.data(), charUtf8.size() });
+                sizeCumulative = textFormat.getTextExtentU({ allChars.begin(), allChars.end() });
+
+                glyphs.push_back({ text_utf32[i], sizeCumulative.width - boundsIndividual.width, sizeCumulative.width });
+            }
+
+            height = sizeCumulative.height;
         }
     }
 
@@ -48,7 +126,6 @@ public:
 class SsgNumberEdit : public gmpi::TimerClient, public gmpi::api::IKeyListenerCallback // juce::Component, public juce::Timer, public juce::ModalComponentManager::Callback
 {
     SsgNumberEditClient& client;
-    std::string text;
     int timerCounter = 0;
 
     int selectedFrom = -1;
@@ -67,18 +144,23 @@ public:
 //        juce::Desktop::getInstance().removeGlobalMouseListener(this);
     }
 
-    std::string unsavedText() const { return text; }
-
-    void show(gmpi::api::IDialogHost* dialogHost, std::string ptext, const gmpi::drawing::Rect* bounds)
+    std::string unsavedText() const
     {
-        if (text != ptext)
-            numberEditGlyfs.glyphs.clear();
+        return toUtf8(numberEditGlyfs.text_utf32);
+    }
 
-        text = ptext;
+	void setText(std::string newText)
+	{
+		if (numberEditGlyfs.setText(newText))
+		{
+			client.repaintText();
+		}
+	}
 
+    void show(gmpi::api::IDialogHost* dialogHost, const gmpi::drawing::Rect* bounds)
+    {
         selectedFrom = 0;
-        selectedTo = text.length();
-        cursorPos = text.length();
+        selectedTo = cursorPos = numberEditGlyfs.text_utf32.length();
 
         // grab Keyboard Focus
         gmpi::shared_ptr<gmpi::api::IUnknown> ret;
@@ -155,13 +237,13 @@ public:
 
     void onKeyDown(int32_t key, int32_t flags) override
     {
-		const auto textBefore = text;
+		auto text = numberEditGlyfs.text_utf32;
 
         switch (key)
         {
             case 0x0D: // <ENTER>
             {
-                client.setEditValue(text);
+                client.setEditValue(toUtf8(text));
                 hide();
             }
             break;
@@ -256,12 +338,12 @@ public:
             {
                 if (selectedFrom != selectedTo)
                 {
-                    text = text.substr(0, selectedFrom) + (char)key + text.substr(selectedTo);
+                    text = text.substr(0, selectedFrom) + (char32_t)key + text.substr(selectedTo);
                     cursorPos = selectedFrom + 1;
                 }
                 else
                 {
-                    text = text.substr(0, cursorPos) + (char)key + text.substr(cursorPos);
+                    text = text.substr(0, cursorPos) + (char32_t)key + text.substr(cursorPos);
                     cursorPos++;
                 }
                 selectedFrom = selectedTo = cursorPos;
@@ -289,6 +371,12 @@ public:
         timerCounter = 0; // show cursor
         client.repaintText();
 
+		if(numberEditGlyfs.setText(text))
+		{
+			client.repaintText();
+		}
+
+        /*
 		if (textBefore != text)
 		{
             if (textBefore.size() > 0 && text == textBefore.substr(0, textBefore.size() - 1))
@@ -301,28 +389,19 @@ public:
                 numberEditGlyfs.glyphs.clear();
             }
 		}
+        */
     }
-
-	void setText(std::string newText)
-	{
-		text = newText;
-		numberEditGlyfs.glyphs.clear();
-		client.repaintText();
-	}
 
     // textFormat must be created with default alightment (top-left)
     void render(
-        gmpi::drawing::Graphics& g
+          gmpi::drawing::Graphics& g
         , gmpi::drawing::TextFormat& textFormat
         , gmpi::drawing::Rect bounds
         , gmpi::drawing::TextAlignment textAlignment = gmpi::drawing::TextAlignment::Center
         , gmpi::drawing::ParagraphAlignment paragraphAlignment = gmpi::drawing::ParagraphAlignment::Center
     )
     {
-        if (numberEditGlyfs.glyphs.empty())
-        {
-            numberEditGlyfs.init(text, textFormat);
-        }
+		numberEditGlyfs.update(textFormat);
 
         const float textWidth = numberEditGlyfs.glyphs.empty() ? 0.0f : numberEditGlyfs.glyphs.back().right;
         const auto& textHeight = numberEditGlyfs.height;
@@ -352,7 +431,7 @@ public:
         }
 
         auto brush = g.createSolidColorBrush(gmpi::drawing::Colors::White);
-        g.drawTextU(text, textFormat, bounds, brush);
+        g.drawTextU(numberEditGlyfs.text_utf8, textFormat, bounds, brush);
 
         // Highlight selection
         if (selectedFrom != selectedTo)
@@ -373,7 +452,7 @@ public:
                 // highlight foreground
                 brush.setColor(gmpi::drawing::Colors::Red);
 
-                g.drawTextU(text, textFormat, bounds, brush);
+                g.drawTextU(numberEditGlyfs.text_utf8, textFormat, bounds, brush);
             }
         }
 

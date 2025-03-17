@@ -11,4 +11,8 @@ gmpi_plugin(
         GmpiUiTest.cpp
         ${gmpi_ui_folder}/helpers/Timer.h
         ${gmpi_ui_folder}/helpers/Timer.cpp
+        ${gmpi_ui_folder}/helpers/GinBlur.h
+        ${gmpi_ui_folder}/helpers/CachedBlur.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../shared/simdutf/simdutf.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../shared/simdutf/simdutf.cpp
 )
