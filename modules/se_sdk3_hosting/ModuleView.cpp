@@ -740,7 +740,11 @@ namespace SE2
 
 	void ModuleView::setHover(bool mouseIsOverMe)
 	{
-		if (pluginGraphics3) // TODO: implement a static dummy pluginGraphics2 to avoid all the null tests.
+		if (pluginInput_GMPI)
+		{
+			pluginInput_GMPI->setHover(mouseIsOverMe);
+		}
+		else if (pluginGraphics3) // TODO: implement a static dummy pluginGraphics2 to avoid all the null tests.
 		{
 			pluginGraphics3->setHover(mouseIsOverMe);
 		}
