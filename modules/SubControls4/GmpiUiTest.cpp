@@ -14,6 +14,7 @@ class GmpiUiTest : public PluginEditor, public SsgNumberEditClient
     cachedBlur blur;
     SsgNumberEdit numberEdit;
     float value{23.5f};
+	bool isHovered{};
 
 public:
 
@@ -29,26 +30,34 @@ public:
         return PluginEditor::open(host);
     }
 
-	ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
-	{
-		Graphics g(drawingContext);
+    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    {
+        Graphics g(drawingContext);
 
         ClipDrawingToBounds _(g, bounds);
         g.clear(Colors::Black);
 
-        // draw the object blurred
-		blur.draw(
-              g
-            , bounds
-            , [](Graphics& g)
-			{
-				auto brush = g.createSolidColorBrush(Colors::White); // always draw the mask in white. Change the final color via blur.tint
-				g.drawCircle({ 50, 50 }, 40, brush, 5.0f);
-			}
-        );
+        if (isHovered)
+        {
+            // draw the object blurred
+            blur.draw(
+                g
+                , bounds
+                , [this](Graphics& g)
+                {
+                    auto brush = g.createSolidColorBrush(Colors::White); // always draw the mask in white. Change the final color via blur.tint
+                    g.drawCircle({ 50, 50 }, 40, brush, 5.0f);
+
+                    auto textFormat = g.getFactory().createTextFormat(22);
+                    numberEdit.render(g, textFormat, bounds);
+                }
+            );
+
+        }
+
+        auto brush = g.createSolidColorBrush(Colors::White);
 
         // draw the same object sharp, over the top of the blur.
-        auto brush = g.createSolidColorBrush(Colors::White);
         g.drawCircle({ 50, 50 }, 40, brush, 5.0f);
 
         // draw the value as text
@@ -59,6 +68,12 @@ public:
 	}
 
     // IInputClient
+    gmpi::ReturnCode setHover(bool isMouseOverMe) override
+    {
+		isHovered = isMouseOverMe;
+		drawingHost->invalidateRect({});
+        return ReturnCode::Ok;
+    }
     gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
     {
         return inputHost->setCapture();

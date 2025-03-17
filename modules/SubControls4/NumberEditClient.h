@@ -231,8 +231,7 @@ public:
     }
     void onLostFocus(gmpi::ReturnCode result) override
     {
-        client.repaintText();
-        listener = nullptr;
+        hide();
     }
 
     void onKeyDown(int32_t key, int32_t flags) override
