@@ -16,17 +16,20 @@ class GmpiUiTest : public PluginEditor, public SsgNumberEditClient
     float value{23.5f};
 	bool isHovered{};
 
-public:
+	void updateTextFromValue()
+	{
+		const auto s = std::format("{:.2f}", value);
+		numberEdit.setText(s);
+	}
 
+public:
 	GmpiUiTest() : numberEdit(*this)
 	{
     }
 
     ReturnCode open(gmpi::api::IUnknown* host) override
     {
-        const auto s = std::format("{:.2f}", value);
-
-        numberEdit.setText(s);
+		updateTextFromValue();
         return PluginEditor::open(host);
     }
 
@@ -70,7 +73,7 @@ public:
             auto toPixels = makeScale(pixelScale, pixelScale);
 
             // this will transform logical to physical pixels.
-            auto dipToPixel = g.getPixelTransform() * toPixels;
+            auto dipToPixel = g.getTransform() * toPixels;
 
             // calc my top-left in pixels, snapped to exact pixel boundary.
             Point topLeftDip{ 0, 0 };
@@ -140,7 +143,13 @@ public:
 		blur.invalidate();
         drawingHost->invalidateRect({});
     }
-    void setEditValue(std::string value) override {}
+    void setEditValue(std::string s) override
+    {
+		// value = std::stof(svalue); // throws.
+        value = 0.0f;
+        std::from_chars(s.data(), s.data() + s.size(), value);
+        updateTextFromValue();
+    }
     void endEditValue() override {}
 };
 

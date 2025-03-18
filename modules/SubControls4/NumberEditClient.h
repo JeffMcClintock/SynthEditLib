@@ -247,12 +247,14 @@ public:
             {
                 client.setEditValue(toUtf8(text));
                 hide();
+                return; // client may have updated text_utf32, don't overwrite that
             }
             break;
 
             case 0x1B: // <ESC>
             {
                 hide();
+                return;
             }
             break;
 
@@ -279,6 +281,7 @@ public:
         {
             if (selectedFrom == selectedTo)
             {
+                // delete next character
                 if (cursorPos < text.length())
                 {
                     text = text.substr(0, cursorPos) + text.substr(cursorPos + 1);
@@ -287,6 +290,7 @@ public:
             else
             {
                 text = text.substr(0, selectedFrom) + text.substr(selectedTo);
+                cursorPos = selectedTo = selectedFrom;
             }
         }
         break;
