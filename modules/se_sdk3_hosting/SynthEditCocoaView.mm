@@ -23,8 +23,8 @@ namespace Json
 
 class DrawingFrameCocoa : public
       gmpi::api::IDrawingHost
-    , gmpi_gui::IMpGraphicsHost
-    , public gmpi::IMpUserInterfaceHost2
+    , public gmpi_gui::legacy::IMpGraphicsHost
+    , public gmpi::legacy::IMpUserInterfaceHost2
     , public GmpiGuiHosting::PlatformTextEntryObserver
 {
     gmpi_sdk::mp_shared_ptr<SE2::ViewBase> containerView;
