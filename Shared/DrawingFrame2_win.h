@@ -213,6 +213,7 @@ struct DrawingFrameBase2 :
     gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
     {
         *returnInterface = {};
+        GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
         GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
         GMPI_QUERYINTERFACE(gmpi_gui::legacy::IMpGraphicsHost);
         GMPI_QUERYINTERFACE(gmpi::legacy::IMpUserInterfaceHost2);

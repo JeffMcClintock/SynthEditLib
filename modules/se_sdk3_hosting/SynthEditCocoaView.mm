@@ -189,48 +189,48 @@ public:
     }
     
     // Inherited via IMpUserInterfaceHost2
-    virtual int32_t MP_STDCALL pinTransmit(int32_t pinId, int32_t size, const void * data, int32_t voice = 0) override
+    int32_t MP_STDCALL pinTransmit(int32_t pinId, int32_t size, const void * data, int32_t voice = 0) override
     {
 //TODO         assert(false); // not implemented.
         return gmpi::MP_FAIL;
     }
-    virtual int32_t MP_STDCALL createPinIterator(gmpi::IMpPinIterator** returnIterator) override
+    int32_t MP_STDCALL createPinIterator(gmpi::IMpPinIterator** returnIterator) override
     {
 //TODO         assert(false); // not implemented.
         return gmpi::MP_FAIL;
     }
-    virtual int32_t MP_STDCALL getHandle(int32_t & returnValue) override
+    int32_t MP_STDCALL getHandle(int32_t & returnValue) override
     {
  //TODO        assert(false); // not implemented.
         return gmpi::MP_FAIL;
     }
-    virtual int32_t MP_STDCALL sendMessageToAudio(int32_t id, int32_t size, const void * messageData) override
+    int32_t MP_STDCALL sendMessageToAudio(int32_t id, int32_t size, const void * messageData) override
     {
  //TODO        assert(false); // not implemented.
         return gmpi::MP_FAIL;
     }
-    virtual int32_t MP_STDCALL ClearResourceUris() override
+    int32_t MP_STDCALL ClearResourceUris() override
     {
 //TODO         assert(false); // not implemented.
         return gmpi::MP_FAIL;
     }
-    virtual int32_t MP_STDCALL RegisterResourceUri(const char * resourceName, const char * resourceType, gmpi::IString* returnString) override
+    int32_t MP_STDCALL RegisterResourceUri(const char * resourceName, const char * resourceType, gmpi::IString* returnString) override
     {
 //TODO         assert(false); // not implemented.
         return gmpi::MP_FAIL;
     }
-    virtual int32_t MP_STDCALL OpenUri(const char * fullUri, gmpi::IProtectedFile2** returnStream) override
+    int32_t MP_STDCALL OpenUri(const char * fullUri, gmpi::IProtectedFile2** returnStream) override
     {
 //TODO         assert(false); // not implemented.
         return gmpi::MP_FAIL;
     }
-    virtual int32_t MP_STDCALL FindResourceU(const char * resourceName, const char * resourceType, gmpi::IString* returnString) override
+    int32_t MP_STDCALL FindResourceU(const char * resourceName, const char * resourceType, gmpi::IString* returnString) override
     {
 //TODO         assert(false); // not implemented.
         return gmpi::MP_FAIL;
     }
     
-    virtual int32_t MP_STDCALL LoadPresetFile_DEPRECATED(const char* presetFilePath) override
+    int32_t MP_STDCALL LoadPresetFile_DEPRECATED(const char* presetFilePath) override
     {
         //TODO         assert(false); // not implemented.
         return gmpi::MP_FAIL;
@@ -285,51 +285,51 @@ public:
     {
 //TODO        assert(false); // not implemented.
     }
-    virtual int32_t MP_STDCALL setCapture(void) override
+    int32_t MP_STDCALL setCapture(void) override
     {
         mouseCaptured = 1;
         return gmpi::MP_OK;
     }
-    virtual int32_t MP_STDCALL getCapture(int32_t & returnValue) override
+    int32_t MP_STDCALL getCapture(int32_t & returnValue) override
     {
         returnValue = mouseCaptured;
         return gmpi::MP_OK;
     }
-    virtual int32_t MP_STDCALL releaseCapture(void) override
+    int32_t MP_STDCALL releaseCapture(void) override
     {
         mouseCaptured = 0;
         return gmpi::MP_OK;
     }
-    virtual int32_t MP_STDCALL GetDrawingFactory(GmpiDrawing_API::IMpFactory ** returnFactory) override
+    int32_t MP_STDCALL GetDrawingFactory(GmpiDrawing_API::IMpFactory ** returnFactory) override
     {
         *returnFactory = &drawingFactory_SDK3;
         return gmpi::MP_OK;
     }
     
-    virtual int32_t MP_STDCALL createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu) override
+    int32_t MP_STDCALL createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu) override
     {
         *returnMenu = new GmpiGuiHosting::PlatformMenu(view, rect);
         return gmpi::MP_OK;
     }
-    virtual int32_t MP_STDCALL createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override
+    int32_t MP_STDCALL createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override
     {
         currentTextEdit = new GmpiGuiHosting::PlatformTextEntry(this, view, rect);
         *returnTextEdit = currentTextEdit;
         return gmpi::MP_OK;
     }
-    virtual int32_t MP_STDCALL createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override
+    int32_t MP_STDCALL createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override
     {
         *returnFileDialog = new GmpiGuiHosting::PlatformFileDialog(dialogType, view);
         return gmpi::MP_OK;
     }
-    virtual int32_t MP_STDCALL createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override
+    int32_t MP_STDCALL createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override
     {
         *returnDialog = new GmpiGuiHosting::PlatformOkCancelDialog(dialogType, view);
         return gmpi::MP_OK;
     }
     
     // IUnknown methods
-    virtual int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+    int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
     {
         if (gmpi::MpGuidEqual(&iid, (const gmpi::MpGuid*)&gmpi::api::IDrawingHost::guid))
         {
@@ -356,6 +356,16 @@ public:
         
         *returnInterface = 0;
         return gmpi::MP_NOSUPPORT;
+    }
+
+    gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+    {
+        *returnInterface = {};
+        GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
+//      GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
+        GMPI_QUERYINTERFACE(gmpi_gui::legacy::IMpGraphicsHost);
+        GMPI_QUERYINTERFACE(gmpi::legacy::IMpUserInterfaceHost2);
+        return gmpi::ReturnCode::NoSupport;
     }
     
     void removeTextEdit()
