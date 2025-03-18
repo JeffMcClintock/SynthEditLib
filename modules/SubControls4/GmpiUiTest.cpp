@@ -69,10 +69,8 @@ public:
 
         // draw some perfectly snapped pixels.
         {
-            auto pixelScale = drawingHost->getRasterizationScale();
-            auto toPixels = makeScale(pixelScale, pixelScale);
-
             // this will transform logical to physical pixels.
+            auto toPixels = makeScale(drawingHost->getRasterizationScale());
             auto dipToPixel = g.getTransform() * toPixels;
 
             // calc my top-left in pixels, snapped to exact pixel boundary.
@@ -89,11 +87,11 @@ public:
             Rect r;
             for (float y = 0; y < 60; ++y)
             {
-                r.top = pixelTopLeft.y + y + 0.5f;
+                r.top = pixelTopLeft.y + y;
                 r.bottom = r.top + 1.f;
                 for (float x = 0; x < 60; ++x)
                 {
-                    r.left = pixelTopLeft.x + x + 0.5f;
+                    r.left = pixelTopLeft.x + x;
                     r.right = r.left + 1.f;
 
                     if ((int)(x + y) % 2 == 0)
