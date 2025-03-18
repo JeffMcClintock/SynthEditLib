@@ -83,6 +83,7 @@ namespace SE2
 		// IDrawingHost
 		gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override;
 		void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
+		float getRasterizationScale() override;
 		// IDialogHost
 		gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override;
 		gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override;

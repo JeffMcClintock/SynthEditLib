@@ -66,9 +66,7 @@ void DrawingFrameBase2::calcViewTransform()
     viewTransform = gmpi::drawing::makeScale({zoomFactor, zoomFactor});
     viewTransform *= gmpi::drawing::makeTranslation({scrollPos.width, scrollPos.height});
 
-//?    WindowToDips = gmpi::drawing::invert(DipsToWindow);
-
-    invalidateRect(nullptr);
+    static_cast<gmpi::api::IDrawingHost*>(this)->invalidateRect(nullptr);
 }
 
 gmpi::ReturnCode DrawingFrameBase2::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
@@ -77,6 +75,11 @@ gmpi::ReturnCode DrawingFrameBase2::createKeyListener(const gmpi::drawing::Rect*
     *returnKeyListener = new WINUI_PlatformKeyListener(swapChainHost.DispatcherQueue(), swapChainHost);
 #endif
     return gmpi::ReturnCode::Ok;
+}
+
+void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
+{
+    invalidateRect((const GmpiDrawing_API::MP1_RECT*)invalidRect);
 }
 
 float DrawingFrameHwndBase::getRasterizationScale()

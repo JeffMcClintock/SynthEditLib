@@ -107,6 +107,13 @@ struct DrawingFrameBase2 :
         ReleaseDevice();
     }
 
+    // gmpi::api::IDrawingHost
+    gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override
+    {
+        *returnFactory = &DrawingFactory->gmpiFactory;
+        return gmpi::ReturnCode::Ok;
+    }
+
     // gmpi::api::IDialogHost
     gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override
     {return gmpi::ReturnCode::NoSupport;}
@@ -168,7 +175,15 @@ struct DrawingFrameBase2 :
 
     int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
     {
-        if (gmpi::MpGuidEqual(&iid, (const gmpi::MpGuid*) &gmpi::api::IDialogHost::guid))
+        if (gmpi::MpGuidEqual(&iid, (const gmpi::MpGuid*)&gmpi::api::IDrawingHost::guid))
+        {
+            // important to cast to correct vtable (this has 2 vtables) before reinterpret cast
+            *returnInterface = reinterpret_cast<void*>(static_cast<gmpi::api::IDrawingHost*>(this));
+            addRef();
+            return gmpi::MP_OK;
+        }
+
+        if (gmpi::MpGuidEqual(&iid, (const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid))
         {
             // important to cast to correct vtable (this has 2 vtables) before reinterpret cast
             *returnInterface = reinterpret_cast<void*>(static_cast<gmpi::api::IDialogHost*>(this));
@@ -241,6 +256,8 @@ public:
         IDXGISwapChain1** returnSwapChain
     ) override;
 
+    // IMpGraphicsHost
+    void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
     float getRasterizationScale() override;
 
     void ReSize(int left, int top, int right, int bottom);

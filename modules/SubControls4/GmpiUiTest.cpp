@@ -64,6 +64,45 @@ public:
         auto textFormat = g.getFactory().createTextFormat(22);
         numberEdit.render(g, textFormat, bounds);
 
+        // draw some perfectly snapped pixels.
+        {
+            auto pixelScale = drawingHost->getRasterizationScale();
+            auto toPixels = makeScale(pixelScale, pixelScale);
+
+            // this will transform logical to physical pixels.
+            auto dipToPixel = g.getPixelTransform() * toPixels;
+
+            // calc my top-left in pixels, snapped to exact pixel boundary.
+            Point topLeftDip{ 0, 0 };
+            auto pixelTopLeft = transformPoint(dipToPixel, topLeftDip);
+            pixelTopLeft.x = std::round(pixelTopLeft.x);
+            pixelTopLeft.y = std::round(pixelTopLeft.y);
+
+            // this will transform physical pixels to logical pixels. Relative to swapchain top left.
+            auto pixelToDip = invert(dipToPixel);
+
+            auto brush = g.createSolidColorBrush(Colors::White); // always draw the mask in white. Change the final color via blur.tint
+
+            Rect r;
+            for (float y = 0; y < 60; ++y)
+            {
+                r.top = pixelTopLeft.y + y + 0.5f;
+                r.bottom = r.top + 1.f;
+                for (float x = 0; x < 60; ++x)
+                {
+                    r.left = pixelTopLeft.x + x + 0.5f;
+                    r.right = r.left + 1.f;
+
+                    if ((int)(x + y) % 2 == 0)
+                    {
+                        auto pixelRect = transformRect(pixelToDip, r);
+                        g.fillRectangle(pixelRect, brush);
+                    }
+                }
+            }
+        }
+
+
 		return ReturnCode::Ok;
 	}
 
@@ -98,6 +137,7 @@ public:
     // SsgNumberEditClient
     void repaintText() override
     {
+		blur.invalidate();
         drawingHost->invalidateRect({});
     }
     void setEditValue(std::string value) override {}

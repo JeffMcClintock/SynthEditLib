@@ -43,6 +43,12 @@ namespace SE2
 	// IDrawingHost
 	ReturnCode GmpiUiHelper::getDrawingFactory(gmpi::api::IUnknown** returnFactory) { return (gmpi::ReturnCode) moduleview.GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory); }
 	void GmpiUiHelper::invalidateRect(const gmpi::drawing::Rect* invalidRect) { moduleview.invalidateRect((const GmpiDrawing_API::MP1_RECT*) invalidRect); }
+	float GmpiUiHelper::getRasterizationScale()
+	{
+		gmpi::shared_ptr<gmpi::api::IDrawingHost> host;
+		moduleview.parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDrawingHost::guid, host.put_void());
+		return host->getRasterizationScale();
+	}
 	// IDialogHost
 	ReturnCode GmpiUiHelper::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) { return gmpi::ReturnCode::NoSupport; }
 	ReturnCode GmpiUiHelper::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) { return gmpi::ReturnCode::NoSupport; }
