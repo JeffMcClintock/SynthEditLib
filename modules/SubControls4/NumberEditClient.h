@@ -119,6 +119,9 @@ public:
 
 	gmpi::drawing::Rect getGlyfBounds(int i) const
 	{
+        if (glyphs.empty())
+            return {};
+
 		return { glyphs[i].left, 0.0f, glyphs[i].right, height};
 	}
 };
@@ -272,7 +275,7 @@ public:
         }
         break;
 
-        case 0x2E: // <DEL>
+        case 0x7F: // <DEL>
         {
             if (selectedFrom == selectedTo)
             {
