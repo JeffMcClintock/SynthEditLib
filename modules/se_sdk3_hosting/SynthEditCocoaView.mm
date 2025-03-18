@@ -21,7 +21,11 @@ namespace Json
     class Value;
 }
 
-class DrawingFrameCocoa : public gmpi_gui::IMpGraphicsHost, public gmpi::IMpUserInterfaceHost2, public GmpiGuiHosting::PlatformTextEntryObserver
+class DrawingFrameCocoa : public
+      gmpi::api::IDrawingHost
+    , gmpi_gui::IMpGraphicsHost
+    , public gmpi::IMpUserInterfaceHost2
+    , public GmpiGuiHosting::PlatformTextEntryObserver
 {
     gmpi_sdk::mp_shared_ptr<SE2::ViewBase> containerView;
     IGuiHost2* controller;
@@ -231,6 +235,21 @@ public:
         return gmpi::MP_FAIL;
     }
 
+    // IDrawingHost
+    gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override
+    {
+        *returnFactory = &drawingFactory_GMPI;
+        return gmpi::ReturnCode::Ok;
+    }
+	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override
+    {
+        invalidateRect((const GmpiDrawing_API::MP1_RECT*) invalidRect);
+    }
+	float getRasterizationScale() override // DPI scaling
+    {
+        return 1.0f;
+    }
+
     // IMpGraphicsHost
     void MP_STDCALL invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override
     {
@@ -311,6 +330,13 @@ public:
     // IUnknown methods
     virtual int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
     {
+        if (gmpi::MpGuidEqual(&iid, (const gmpi::MpGuid*)&gmpi::api::IDrawingHost::guid))
+        {
+            // important to cast to correct vtable (this has 2 vtables) before reinterpret cast
+            *returnInterface = reinterpret_cast<void*>(static_cast<gmpi::api::IDrawingHost*>(this));
+            addRef();
+            return gmpi::MP_OK;
+        }
         if (iid == gmpi::MP_IID_UI_HOST2)
         {
             // important to cast to correct vtable (ug_plugin3 has 2 vtables) before reinterpret cast
