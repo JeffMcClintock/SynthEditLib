@@ -1,6 +1,7 @@
 #include <optional>
 #include <algorithm>
 #include <format>
+#include <charconv>
 #include "helpers/GmpiPluginEditor.h"
 #include "helpers/CachedBlur.h"
 #include "NumberEditClient.h"
@@ -145,7 +146,9 @@ public:
     {
 		// value = std::stof(svalue); // throws.
         value = 0.0f;
-        std::from_chars(s.data(), s.data() + s.size(), value);
+// not on apple yet        std::from_chars<float>(s.begin(), s.end(), value);
+        value = atof(s.c_str());
+        
         updateTextFromValue();
     }
     void endEditValue() override {}

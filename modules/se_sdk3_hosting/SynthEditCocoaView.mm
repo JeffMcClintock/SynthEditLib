@@ -8,6 +8,7 @@
 #include "./JsonDocPresenter.h"
 #include "BundleInfo.h"
 #include "backends/CocoaGfx.h"
+#include "legacy_sdk_gui2.h"
 
 #if defined(SE_TARGET_AU)
 #include "../../../se_au/SEInstrumentBase.h"
@@ -49,7 +50,7 @@ public:
         
         const int topViewBounds = 8000; // simply a large enough size.
         containerView.Attach(new SE2::ContainerViewPanel({topViewBounds,topViewBounds}));
-        containerView->setHost(static_cast<gmpi_gui::IMpGraphicsHost*>(this));
+        containerView->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
         
         containerView->setDocument(presenter);
         
