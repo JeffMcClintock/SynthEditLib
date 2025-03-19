@@ -274,8 +274,7 @@ public:
             else
             {
                 text = text.substr(0, selectedFrom) + text.substr(selectedTo);
-                cursorPos = selectedFrom;
-                selectedTo = selectedFrom;
+                cursorPos = selectedTo = selectedFrom;
             }
         }
         break;
