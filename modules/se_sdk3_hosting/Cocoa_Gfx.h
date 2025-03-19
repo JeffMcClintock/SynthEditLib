@@ -934,11 +934,11 @@ namespace se
 
 		class bitmapPixels final : public GmpiDrawing_API::IMpBitmapPixels
 		{
-            int bytesPerRow{};
+			int bytesPerRow;
             class Bitmap* seBitmap = {};
-            NSImage** inBitmap_ = {};
+            NSImage** inBitmap_;
             NSBitmapImageRep* bitmap2 = {};
-            int32_t flags{};
+			int32_t flags;
             
         public:
             bitmapPixels(Bitmap* bitmap /*NSImage** inBitmap*/, bool _alphaPremultiplied, int32_t pflags);
@@ -949,7 +949,7 @@ namespace se
                 return static_cast<uint8_t*>([bitmap2 bitmapData]);
             }
 			int32_t MP_STDCALL getBytesPerRow() const override { return bytesPerRow; }
-			int32_t MP_STDCALL getPixelFormat() const override { return kRGBA; } // TODO!! not true for monochrome
+			int32_t MP_STDCALL getPixelFormat() const override { return kRGBA; }
 
 			inline uint8_t fast8bitScale(uint8_t a, uint8_t b) const
 			{
@@ -964,8 +964,7 @@ namespace se
 		class Bitmap : public GmpiDrawing_API::IMpBitmap
 		{
 			GmpiDrawing_API::IMpFactory* factory = nullptr;
-            int32_t creationFlags = (int32_t)gmpi::drawing::BitmapRenderTargetFlags::EightBitPixels;
-            
+
 		public:
 			NSImage* nativeBitmap_ = nullptr;
 			NSBitmapImageRep* additiveBitmap_ = nullptr;
@@ -1023,15 +1022,8 @@ namespace se
 #endif
             }
 
-            // from a bitmap render target
-			Bitmap(
-                   GmpiDrawing_API::IMpFactory* pfactory
-                   , NSImage* native
-                   , int32_t pCreationFlags = (int32_t)gmpi::drawing::BitmapRenderTargetFlags::EightBitPixels
-                   )
-                : nativeBitmap_(native)
+			Bitmap(GmpiDrawing_API::IMpFactory* pfactory, NSImage* native) : nativeBitmap_(native)
 				, factory(pfactory)
-                , creationFlags(pCreationFlags)
 			{
 //               _RPT1(0, "Bitmap() C: %d\n", this);
                [nativeBitmap_ retain];
@@ -2293,53 +2285,37 @@ return gmpi::MP_FAIL;
                 ,seBitmap(sebitmap)
         {
             NSSize s = [*inBitmap_ size];
+            bytesPerRow = s.width * 4;
+            
+            constexpr int bitsPerSample = 8;
+            constexpr int samplesPerPixel = 4;
+            constexpr int bitsPerPixel = bitsPerSample * samplesPerPixel;
 
-            NSBitmapImageRep* imagerep = [[*inBitmap_ representations] objectAtIndex:0];
-            const auto currentSamplesPerPixel = [imagerep samplesPerPixel];
+            auto initial_bitmap = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:nil
+                pixelsWide : s.width
+                pixelsHigh : s.height
+                bitsPerSample : bitsPerSample
+                samplesPerPixel : samplesPerPixel
+                hasAlpha : YES
+                isPlanar : NO
+                colorSpaceName: NSCalibratedRGBColorSpace
+                bitmapFormat : 0
+                bytesPerRow : bytesPerRow
+                bitsPerPixel : bitsPerPixel];
+                
+            bitmap2 = [initial_bitmap bitmapImageRepByRetaggingWithColorSpace:NSColorSpace.sRGBColorSpace];
+            [bitmap2 retain];
 
-            // is this a mask (monochrome) image?
-            if(1 == currentSamplesPerPixel)
+            // Copy the image to the new imageRep (effectivly converts it to correct pixel format/brightness etc)
+            if (0 != (flags & GmpiDrawing_API::MP1_BITMAP_LOCK_READ))
             {
-                // we can lock this directly
-                bytesPerRow = s.width;
-                bitmap2 = imagerep;
-                [bitmap2 retain];
-            }
-            else
-            {
-                // convert to sRGB
-                bytesPerRow = s.width * 4;
+                NSGraphicsContext * context;
+                context = [NSGraphicsContext graphicsContextWithBitmapImageRep : bitmap2];
+                [NSGraphicsContext saveGraphicsState];
+                [NSGraphicsContext setCurrentContext : context];
+                [*inBitmap_ drawAtPoint: NSZeroPoint fromRect: NSZeroRect operation: NSCompositingOperationCopy fraction: 1.0];
                 
-                constexpr int bitsPerSample = 8;
-                constexpr int samplesPerPixel = 4;
-                constexpr int bitsPerPixel = bitsPerSample * samplesPerPixel;
-                
-                auto initial_bitmap = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:nil
-                                                                             pixelsWide : s.width
-                                                                             pixelsHigh : s.height
-                                                                          bitsPerSample : bitsPerSample
-                                                                        samplesPerPixel : samplesPerPixel
-                                                                               hasAlpha : YES
-                                                                               isPlanar : NO
-                                                                          colorSpaceName: NSCalibratedRGBColorSpace
-                                                                           bitmapFormat : 0
-                                                                            bytesPerRow : bytesPerRow
-                                                                           bitsPerPixel : bitsPerPixel];
-                
-                bitmap2 = [initial_bitmap bitmapImageRepByRetaggingWithColorSpace:NSColorSpace.sRGBColorSpace];
-                [bitmap2 retain];
-                
-                // Copy the image to the new imageRep (effectivly converts it to correct pixel format/brightness etc)
-                if (0 != (flags & GmpiDrawing_API::MP1_BITMAP_LOCK_READ))
-                {
-                    NSGraphicsContext * context;
-                    context = [NSGraphicsContext graphicsContextWithBitmapImageRep : bitmap2];
-                    [NSGraphicsContext saveGraphicsState];
-                    [NSGraphicsContext setCurrentContext : context];
-                    [*inBitmap_ drawAtPoint: NSZeroPoint fromRect: NSZeroRect operation: NSCompositingOperationCopy fraction: 1.0];
-                    
-                    [NSGraphicsContext restoreGraphicsState];
-                }
+                [NSGraphicsContext restoreGraphicsState];
             }
         }
         
