@@ -170,7 +170,10 @@ public:
         dialogHost->createKeyListener(bounds, ret.put());
 		listener = ret.as<gmpi::api::IKeyListener>();
 
-        listener->showAsync(static_cast<gmpi::api::IKeyListenerCallback*>(this));
+        if(listener)
+        {
+            listener->showAsync(static_cast<gmpi::api::IKeyListenerCallback*>(this));
+        }
 
         client.repaintText();
 

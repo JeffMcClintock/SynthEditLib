@@ -24,9 +24,10 @@ namespace Json
 
 class DrawingFrameCocoa : public
       gmpi::api::IDrawingHost
-    , public gmpi_gui::legacy::IMpGraphicsHost
-    , public gmpi::legacy::IMpUserInterfaceHost2
-    , public GmpiGuiHosting::PlatformTextEntryObserver
+    , gmpi::api::IDialogHost
+    , gmpi_gui::legacy::IMpGraphicsHost
+    , gmpi::legacy::IMpUserInterfaceHost2
+    , GmpiGuiHosting::PlatformTextEntryObserver
 {
     gmpi_sdk::mp_shared_ptr<SE2::ViewBase> containerView;
     IGuiHost2* controller;
@@ -120,7 +121,7 @@ public:
             g.DrawTextU("_", tf, {0, 0, 40, 40}, brush);
             
             uint8_t* pixels = 1 + [backBuffer bitmapData];
-            int stride = [backBuffer bytesPerRow];
+            auto stride = [backBuffer bytesPerRow];
             int bestBrightness = 0;
             int bestRow = 1;
             
@@ -250,6 +251,16 @@ public:
     {
         return [[view window] backingScaleFactor];
     }
+    
+    // IDialogHost
+    gmpi::ReturnCode createTextEdit   (const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override {return gmpi::ReturnCode::NoSupport;}
+    gmpi::ReturnCode createPopupMenu  (const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override {return gmpi::ReturnCode::NoSupport;}
+    gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override
+    {
+        return gmpi::ReturnCode::NoSupport;
+    }
+    gmpi::ReturnCode createFileDialog (int32_t dialogType, gmpi::api::IUnknown** returnDialog) override {return gmpi::ReturnCode::NoSupport;}
+    gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override {return gmpi::ReturnCode::NoSupport;}
 
     // IMpGraphicsHost
     void MP_STDCALL invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override
@@ -281,7 +292,7 @@ public:
             [view setNeedsDisplay:YES];
         }
     }
-    virtual void MP_STDCALL invalidateMeasure() override
+    void MP_STDCALL invalidateMeasure() override
     {
 //TODO        assert(false); // not implemented.
     }
@@ -338,6 +349,13 @@ public:
             addRef();
             return gmpi::MP_OK;
         }
+        if (gmpi::MpGuidEqual(&iid, (const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid))
+        {
+            // important to cast to correct vtable (this has 2 vtables) before reinterpret cast
+            *returnInterface = reinterpret_cast<void*>(static_cast<gmpi::api::IDialogHost*>(this));
+            addRef();
+            return gmpi::MP_OK;
+        }
         if (iid == gmpi::MP_IID_UI_HOST2)
         {
             // important to cast to correct vtable (ug_plugin3 has 2 vtables) before reinterpret cast
@@ -362,7 +380,7 @@ public:
     {
         *returnInterface = {};
         GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
-//      GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
+        GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
         GMPI_QUERYINTERFACE(gmpi_gui::legacy::IMpGraphicsHost);
         GMPI_QUERYINTERFACE(gmpi::legacy::IMpUserInterfaceHost2);
         return gmpi::ReturnCode::NoSupport;
