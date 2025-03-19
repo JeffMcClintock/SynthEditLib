@@ -248,7 +248,7 @@ public:
     }
 	float getRasterizationScale() override // DPI scaling
     {
-        return 1.0f;
+        return [[view window] backingScaleFactor];
     }
 
     // IMpGraphicsHost

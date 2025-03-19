@@ -104,7 +104,6 @@ public:
             }
         }
 
-
 		return ReturnCode::Ok;
 	}
 
