@@ -1812,6 +1812,9 @@ bool cursorBlinkState(const State& inState)
 			listener = nullptr; // release it.
 			parent->DismissModulePicker();
 		}
+		void paste(const char* text, size_t size)
+		{
+		}
 
 		GMPI_QUERYINTERFACE_METHOD(gmpi::api::IKeyListenerCallback);
 		GMPI_REFCOUNT_NO_DELETE;
