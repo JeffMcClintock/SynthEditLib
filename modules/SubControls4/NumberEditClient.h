@@ -244,17 +244,11 @@ public:
     {
 		auto text = numberEditGlyfs.text_utf32;
 
-        // delete highlighted text
-        if (selectedFrom != selectedTo)
-        {
-            text = text.substr(0, selectedFrom) + text.substr(selectedTo);
-            cursorPos = selectedTo = selectedFrom;
-        }
-
         switch (key)
         {
-            case 0x0D: // <ENTER>
-            {
+        case 0x09: // <TAB>
+        case 0x0D: // <ENTER>
+        {
                 client.setEditValue(toUtf8(text));
                 hide();
                 return; // client may have updated text_utf32, don't overwrite that
@@ -355,7 +349,7 @@ public:
                     cursorPos = text.length();
                 }
                 break;
-
+/*
                 case 'v':
                 case 'V':
                 {
@@ -363,6 +357,7 @@ public:
                     int test = 9;
                 }
                 break;
+*/
 
 				};
             }
@@ -414,6 +409,33 @@ public:
 		}
         */
     }
+    void cut(gmpi::api::IString* returnString) override
+    {
+        if (selectedFrom >= numberEditGlyfs.text_utf8.size())
+            returnString->setData("", 0);
+        else
+            returnString->setData(numberEditGlyfs.text_utf8.data() + selectedFrom, selectedTo - selectedFrom);
+
+        if (selectedFrom != selectedTo)
+        {
+            auto text = numberEditGlyfs.text_utf32;
+            text = text.substr(0, selectedFrom) + text.substr(selectedTo);
+            cursorPos = selectedTo = selectedFrom;
+
+            if (numberEditGlyfs.setText(text))
+            {
+                client.repaintText();
+            }
+        }
+    }
+    void copy(gmpi::api::IString* returnString) override
+    {
+		if (selectedFrom >= numberEditGlyfs.text_utf8.size())
+			returnString->setData("", 0);
+		else
+    		returnString->setData(numberEditGlyfs.text_utf8.data() + selectedFrom, selectedTo - selectedFrom);
+    }
+
     void paste(const char* ptext, size_t psize) override
     {
         auto text = numberEditGlyfs.text_utf32;

@@ -1812,7 +1812,13 @@ bool cursorBlinkState(const State& inState)
 			listener = nullptr; // release it.
 			parent->DismissModulePicker();
 		}
-		void paste(const char* text, size_t size)
+		void cut(gmpi::api::IString* returnString) override
+		{
+		}
+		void copy(gmpi::api::IString* returnString) override
+		{
+		}
+		void paste(const char* text, size_t size) override
 		{
 		}
 
