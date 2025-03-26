@@ -248,19 +248,19 @@ public:
         {
         case 0x09: // <TAB>
         case 0x0D: // <ENTER>
-        {
-                client.setEditValue(toUtf8(text));
-                hide();
-                return; // client may have updated text_utf32, don't overwrite that
-            }
-            break;
+		{
+			client.setEditValue(toUtf8(text));
+			hide();
+			return; // client may have updated text_utf32, don't overwrite that
+		}
+		break;
 
-            case 0x1B: // <ESC>
-            {
-                hide();
-                return;
-            }
-            break;
+		case 0x1B: // <ESC>
+		{
+			hide();
+			return;
+		}
+		break;
 
         case 0x08: // <BACKSPACE>
         case 0x7F: // <DEL>
