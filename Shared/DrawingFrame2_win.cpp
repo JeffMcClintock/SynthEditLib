@@ -2,11 +2,6 @@
 
 #include <Windowsx.h>
 #include "DrawingFrame2_win.h"
-//#include <winrt/Windows.UI.h>
-//#include <winrt/Microsoft.UI.Xaml.Controls.h>
-//#include <winrt/Microsoft.UI.Xaml.Input.h>
-//#include <winrt/Microsoft.UI.Input.h>
-//#include <winrt/Windows.Storage.Pickers.h>
 #include <dxgi1_6.h>
 #include "shlobj.h"
 #include "conversion.h"
@@ -71,9 +66,7 @@ void DrawingFrameBase2::calcViewTransform()
 
 gmpi::ReturnCode DrawingFrameBase2::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
 {
-#if 0 // TODO
-    *returnKeyListener = new WINUI_PlatformKeyListener(swapChainHost.DispatcherQueue(), swapChainHost);
-#endif
+    *returnKeyListener = new gmpi::hosting::win32::PlatformKeyListener(getWindowHandle(), r);
     return gmpi::ReturnCode::Ok;
 }
 

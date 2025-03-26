@@ -246,51 +246,48 @@ public:
 
         switch (key)
         {
-            case 0x0D: // <ENTER>
-            {
-                client.setEditValue(toUtf8(text));
-                hide();
-                return; // client may have updated text_utf32, don't overwrite that
-            }
-            break;
+        case 0x09: // <TAB>
+        case 0x0D: // <ENTER>
+		{
+			client.setEditValue(toUtf8(text));
+			hide();
+			return; // client may have updated text_utf32, don't overwrite that
+		}
+		break;
 
-            case 0x1B: // <ESC>
-            {
-                hide();
-                return;
-            }
-            break;
+		case 0x1B: // <ESC>
+		{
+			hide();
+			return;
+		}
+		break;
 
         case 0x08: // <BACKSPACE>
-        {
-            if (selectedFrom == selectedTo)
-            {
-                if (cursorPos > 0)
-                {
-                    text = text.substr(0, cursorPos - 1) + text.substr(cursorPos);
-                    cursorPos--;
-                }
-            }
-            else
-            {
-                text = text.substr(0, selectedFrom) + text.substr(selectedTo);
-                cursorPos = selectedTo = selectedFrom;
-            }
-        }
-        break;
-
         case 0x7F: // <DEL>
         {
             if (selectedFrom == selectedTo)
             {
-                // delete next character
-                if (cursorPos < text.length())
+                if (key == 0x08)
                 {
-                    text = text.substr(0, cursorPos) + text.substr(cursorPos + 1);
+                    // delete prev character
+                    if (cursorPos > 0)
+                    {
+                        text = text.substr(0, cursorPos - 1) + text.substr(cursorPos);
+                        cursorPos--;
+                    }
+                }
+                else // <DEL>
+                {
+                    // delete next character
+                    if (cursorPos < text.length())
+                    {
+                        text = text.substr(0, cursorPos) + text.substr(cursorPos + 1);
+                    }
                 }
             }
             else
             {
+                // delete highlighted text
                 text = text.substr(0, selectedFrom) + text.substr(selectedTo);
                 cursorPos = selectedTo = selectedFrom;
             }
@@ -339,39 +336,52 @@ public:
 
         default:
         {
-            // const auto k = static_cast<char>(key.getKeyCode());
-            switch (key)
+            if (flags & gmpi::api::GG_POINTER_KEY_CONTROL) // <ctrl> key
             {
-            case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': case '.': case '+': case '-':
-            {
-                if (selectedFrom != selectedTo)
+                switch (key)
                 {
-                    text = text.substr(0, selectedFrom) + (char32_t)key + text.substr(selectedTo);
-                    cursorPos = selectedFrom + 1;
-                }
-                else
+                case 'a':
+                case 'A':
                 {
-                    text = text.substr(0, cursorPos) + (char32_t)key + text.substr(cursorPos);
-                    cursorPos++;
-                }
-                selectedFrom = selectedTo = cursorPos;
-            }
-            break;
-
-            case 'a':
-            case 'A':
-            {
-                // <ctrl> + A : Select All
-                if (flags & gmpi::api::GG_POINTER_KEY_CONTROL)
-                //if (key.getModifiers().isCommandDown())
-                {
+                    // <ctrl> + A : Select All
                     selectedFrom = 0;
                     selectedTo = text.length();
                     cursorPos = text.length();
                 }
+                break;
+/*
+                case 'v':
+                case 'V':
+                {
+                    // <ctrl> + V : Paste
+                    int test = 9;
+                }
+                break;
+*/
+
+				};
             }
-            break;
-            };
+            else
+            {
+                switch (key)
+                {
+                case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': case '.': case '+': case '-':
+                {
+                    if (selectedFrom != selectedTo)
+                    {
+                        text = text.substr(0, selectedFrom) + (char32_t)key + text.substr(selectedTo);
+                        cursorPos = selectedFrom + 1;
+                    }
+                    else
+                    {
+                        text = text.substr(0, cursorPos) + (char32_t)key + text.substr(cursorPos);
+                        cursorPos++;
+                    }
+                    selectedFrom = selectedTo = cursorPos;
+                }
+                break;
+                };
+            }
         }
         break;
         };
@@ -398,6 +408,60 @@ public:
             }
 		}
         */
+    }
+    void cut(gmpi::api::IString* returnString) override
+    {
+        if (selectedFrom >= numberEditGlyfs.text_utf8.size())
+            returnString->setData("", 0);
+        else
+            returnString->setData(numberEditGlyfs.text_utf8.data() + selectedFrom, selectedTo - selectedFrom);
+
+        if (selectedFrom != selectedTo)
+        {
+            auto text = numberEditGlyfs.text_utf32;
+            text = text.substr(0, selectedFrom) + text.substr(selectedTo);
+            cursorPos = selectedTo = selectedFrom;
+
+            if (numberEditGlyfs.setText(text))
+            {
+                client.repaintText();
+            }
+        }
+    }
+    void copy(gmpi::api::IString* returnString) override
+    {
+		if (selectedFrom >= numberEditGlyfs.text_utf8.size())
+			returnString->setData("", 0);
+		else
+    		returnString->setData(numberEditGlyfs.text_utf8.data() + selectedFrom, selectedTo - selectedFrom);
+    }
+
+    void paste(const char* ptext, size_t psize) override
+    {
+        auto text = numberEditGlyfs.text_utf32;
+
+        // delete highlighted text
+        if (selectedFrom != selectedTo)
+        {
+            text = text.substr(0, selectedFrom) + text.substr(selectedTo);
+            cursorPos = selectedTo = selectedFrom;
+        }
+
+        // convert to glyfs
+		const std::string_view utf8(ptext, psize);
+		const size_t expected_utfwords = simdutf::utf32_length_from_utf8(utf8.data(), utf8.size());
+		std::u32string utf32;
+		utf32.resize(expected_utfwords);
+		[[maybe_unused]] const auto r = simdutf::convert_utf8_to_utf32(utf8.data(), utf8.size(), (char32_t*)utf32.data());
+
+        // paste into string
+        text = text.substr(0, cursorPos) + utf32 + text.substr(cursorPos);
+        cursorPos += utf32.size();
+
+        if (numberEditGlyfs.setText(text))
+        {
+            client.repaintText();
+        }
     }
 
     // textFormat must be created with default alightment (top-left)
