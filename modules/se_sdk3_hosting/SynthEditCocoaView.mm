@@ -8,6 +8,7 @@
 #include "./JsonDocPresenter.h"
 #include "BundleInfo.h"
 #include "backends/CocoaGfx.h"
+#include "backends/DrawingFrameMac.h"
 #include "legacy_sdk_gui2.h"
 
 #if defined(SE_TARGET_AU)
@@ -257,6 +258,7 @@ public:
     gmpi::ReturnCode createPopupMenu  (const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override {return gmpi::ReturnCode::NoSupport;}
     gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override
     {
+        *returnKeyListener = new GMPI_MAC_KeyListener(view, r);
         return gmpi::ReturnCode::NoSupport;
     }
     gmpi::ReturnCode createFileDialog (int32_t dialogType, gmpi::api::IUnknown** returnDialog) override {return gmpi::ReturnCode::NoSupport;}
@@ -848,6 +850,8 @@ void onCloseNativeView(void* view_ptr)
     [view onClose];
 }
 
+/* duplicates GMPI one
+
 void resizeNativeView(void* view_ptr, int width, int height)
 {
     auto view = (SYNTHEDIT_PLUGIN_COCOA_NSVIEW_WRAPPER_CLASSNAME*) view_ptr;
@@ -856,3 +860,4 @@ void resizeNativeView(void* view_ptr, int width, int height)
     r.size.height = height;
     [view setFrame:r];
 }
+*/

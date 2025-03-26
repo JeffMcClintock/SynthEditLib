@@ -76,7 +76,7 @@ namespace se
         }
 #endif
         // helper
-        void SetNativePenStrokeStyle(NSBezierPath * path, GmpiDrawing_API::IMpStrokeStyle* strokeStyle)
+        inline void SetNativePenStrokeStyle(NSBezierPath * path, GmpiDrawing_API::IMpStrokeStyle* strokeStyle)
         {
             GmpiDrawing_API::MP1_CAP_STYLE capstyle = strokeStyle == nullptr ? GmpiDrawing_API::MP1_CAP_STYLE_FLAT : strokeStyle->GetStartCap();
             
@@ -98,7 +98,7 @@ namespace se
             }
         }
     
-        void applyDashStyleToPath(NSBezierPath* path, const GmpiDrawing_API::IMpStrokeStyle* strokeStyleIm, float strokeWidth)
+        inline void applyDashStyleToPath(NSBezierPath* path, const GmpiDrawing_API::IMpStrokeStyle* strokeStyleIm, float strokeWidth)
         {
             auto strokeStyle = const_cast<GmpiDrawing_API::IMpStrokeStyle*>(strokeStyleIm); // work arround const-correctness issues.
 
@@ -2196,14 +2196,14 @@ return gmpi::MP_FAIL;
 			GMPI_REFCOUNT;
 		};
 
-		int32_t MP_STDCALL GraphicsContext::CreateCompatibleRenderTarget(const GmpiDrawing_API::MP1_SIZE* desiredSize, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget)
+		inline int32_t MP_STDCALL GraphicsContext::CreateCompatibleRenderTarget(const GmpiDrawing_API::MP1_SIZE* desiredSize, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget)
 		{
 			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
 			b2.Attach(new class bitmapRenderTarget(factory, desiredSize));
 
 			return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI, reinterpret_cast<void **>(bitmapRenderTarget));
 		}
-        int32_t GraphicsContext2::CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** returnObject)
+    inline int32_t GraphicsContext2::CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** returnObject)
         {
             GmpiDrawing_API::MP1_SIZE sizef{ static_cast<float>(desiredSize.width), static_cast<float>(desiredSize.height) };
             return CreateCompatibleRenderTarget(&sizef, returnObject);
@@ -2251,7 +2251,7 @@ return gmpi::MP_FAIL;
             return gmpi::MP_FAIL;
         }
 
-        void BitmapBrush::FillPath(GraphicsContext* context, NSBezierPath* nsPath) const
+        inline void BitmapBrush::FillPath(GraphicsContext* context, NSBezierPath* nsPath) const
         {
             [NSGraphicsContext saveGraphicsState];
 
