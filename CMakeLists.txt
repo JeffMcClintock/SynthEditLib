@@ -435,6 +435,7 @@ modules/se_sdk3_hosting/SynthEditCocoaView.h
 modules/se_sdk3_hosting/SynthEditCocoaView.mm
 modules/se_sdk3_hosting/CocoaGuiHost.h
 modules/se_sdk3_hosting/CocoaGuiHost.mm
+${gmpi_ui_folder}/backends/DrawingFrameMac.mm
 )
 ENDIF()
 
