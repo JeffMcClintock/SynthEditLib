@@ -74,8 +74,7 @@ modules/tinyXml2/tinyxml2.cpp
 
 set(srcs_modules_internal
 modules_internal/Blob2Test.cpp
-modules_internal/VoiceMute/VoiceMute.h
-modules_internal/VoiceMute/VoiceMute.cpp
+modules_internal/CadmiumModules.cpp
 modules_internal/CpuMeter/CpuMeterGui.cpp
 modules_internal/MIDI2Converter.cpp
 modules_internal/MPEToMIDI2.cpp
@@ -84,6 +83,8 @@ modules_internal/PatchPointsGui.h
 modules_internal/PatchPointsGui.cpp
 modules_internal/PrefabBrowser/PrefabBrowserGui.cpp
 modules_internal/RegistrationCheck.cpp
+modules_internal/VoiceMute/VoiceMute.h
+modules_internal/VoiceMute/VoiceMute.cpp
 modules/SubControls4/GmpiUiTest.cpp
 modules/SubControls4/half.hpp
 modules/SubControls4/NumberEditClient.h
