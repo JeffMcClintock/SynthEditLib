@@ -26,6 +26,10 @@
 #include "BundleInfo.h"
 #include "platform.h"
 
+// support for 'real' GMPI plugins
+#include "GmpiApiCommon.h"
+#include "Common.h"
+
 #if SE_EXTERNAL_SEM_SUPPORT==1
 	#include "Module_Info3.h"
 #endif
@@ -162,6 +166,21 @@ Module_Info* CModuleFactory::FindOrCreateModuleInfo( const std::wstring& p_uniqu
 	{
 		return (*it).second;
 	}
+}
+
+// real GMPI factory registration
+namespace gmpi
+{
+// register a plugin component with the factory
+gmpi::ReturnCode RegisterPlugin(gmpi::api::PluginSubtype subType, const char* uniqueId, gmpi::CreatePluginPtr create)
+{
+	const auto uniqueIdW = Utf8ToWstring(uniqueId);
+	return (gmpi::ReturnCode) ModuleFactory()->RegisterPlugin((int) subType, uniqueIdW.c_str(), (MP_CreateFunc2)create);
+}
+gmpi::ReturnCode RegisterPluginWithXml(gmpi::api::PluginSubtype subType, const char* xml, gmpi::CreatePluginPtr create)
+{
+	return (gmpi::ReturnCode) ModuleFactory()->RegisterPluginWithXml((int) subType, xml, (MP_CreateFunc2) create);
+}
 }
 
 // register one or more *internal* plugins with the factory
@@ -1211,6 +1230,9 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(MIDI2Converter)
 	INIT_STATIC_FILE(MPEToMIDI2)
 	INIT_STATIC_FILE(Blob2Test)
+	
+	// temporarily built in SELib to make iterating on this quicker
+	INIT_STATIC_FILE(GmpiUiTest)
 
 	// You can include extra plugin-specific modules by placing this define in projucer 'Extra Preprocessor Definitions'
 	// e.g. SE_EXTRA_STATIC_FILE_CPP="../PROJECT_NAME/Resources/module_static_link.cpp"

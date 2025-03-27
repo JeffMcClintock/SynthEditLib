@@ -51,4 +51,4 @@ add_subdirectory(WaveRecorder2)
 add_subdirectory(Waveshapers)
 
 # GMPI plugins
-add_subdirectory(SubControls4)
+# temp moved into SE add_subdirectory(SubControls4)

@@ -84,6 +84,9 @@ modules_internal/PatchPointsGui.h
 modules_internal/PatchPointsGui.cpp
 modules_internal/PrefabBrowser/PrefabBrowserGui.cpp
 modules_internal/RegistrationCheck.cpp
+modules/SubControls4/GmpiUiTest.cpp
+modules/SubControls4/half.hpp
+modules/SubControls4/NumberEditClient.h
 )
 
 set(srcs_dspfilters

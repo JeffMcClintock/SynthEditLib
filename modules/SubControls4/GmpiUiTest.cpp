@@ -10,6 +10,8 @@ using namespace gmpi;
 using namespace gmpi::editor;
 using namespace gmpi::drawing;
 
+SE_DECLARE_INIT_STATIC_FILE(GmpiUiTest)
+
 class GmpiUiTest : public PluginEditor, public SsgNumberEditClient
 {
     cachedBlur blur;
@@ -116,6 +118,9 @@ public:
     }
     gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
     {
+		if (0 == (flags & gmpi::api::GG_POINTER_FLAG_FIRSTBUTTON)) // left button
+            return ReturnCode::Unhandled;
+
         return inputHost->setCapture();
     }
     gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override
