@@ -1227,12 +1227,13 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(ug_wave_recorder);
 
 	INIT_STATIC_FILE(DAWSampleRate);
-	INIT_STATIC_FILE(MIDI2Converter)
-	INIT_STATIC_FILE(MPEToMIDI2)
-	INIT_STATIC_FILE(Blob2Test)
+	INIT_STATIC_FILE(MIDI2Converter);
+	INIT_STATIC_FILE(MPEToMIDI2);
+	INIT_STATIC_FILE(Blob2Test);
 	
 	// temporarily built in SELib to make iterating on this quicker
-	INIT_STATIC_FILE(GmpiUiTest)
+	INIT_STATIC_FILE(GmpiUiTest);
+	INIT_STATIC_FILE(CadmiumModules);
 
 	// You can include extra plugin-specific modules by placing this define in projucer 'Extra Preprocessor Definitions'
 	// e.g. SE_EXTRA_STATIC_FILE_CPP="../PROJECT_NAME/Resources/module_static_link.cpp"

@@ -171,3 +171,142 @@ auto r = gmpi::Register<GmpiUiTest>::withXml(R"XML(
 </PluginList>
 )XML");
 }
+
+// TODO create an interface to make these truely functional
+// no state, just a function to transform input values to output values.
+class ReallyFunctional
+{
+    struct myInputs
+    {
+        float* value1;
+		float* value2;
+    };
+    struct myoutput
+    {
+		float* outputvalue1;
+    };
+
+	void process(void* inputs, void* outputs)
+	{
+		auto& in = *static_cast<myInputs*>(inputs);
+		auto& out = *static_cast<myoutput*>(outputs);
+
+		*out.outputvalue1 = *in.value1 + *in.value2;
+	}
+};
+
+class PatchMemSet final : public PluginEditorNoGui
+{
+    Pin<int32_t> pinId;
+    Pin<float> pinNormalized;
+    Pin<bool> pinMouseDown;
+
+	gmpi::shared_ptr <gmpi::api::IParameterSetter_x> paramHost;
+
+public:
+    PatchMemSet()
+    {
+        init(pinId);
+        init(pinNormalized);
+        init(pinMouseDown);
+
+        pinNormalized.onUpdate = [this](PinBase*)
+            {
+                recalc();
+            };
+    }
+    ReturnCode initialize() override
+    {
+        paramHost = editorHost.as<gmpi::api::IParameterSetter_x>();
+        recalc();
+		return PluginEditorNoGui::initialize();
+    }
+
+    void recalc()
+    {
+		if (paramHost)
+		{
+            paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), &pinNormalized.value);
+		}
+    }
+};
+
+namespace
+{
+auto r2 = gmpi::Register<PatchMemSet>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: PatchMemSet" name="Value Set" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="ID" datatype="int"/>
+      <Pin name="Normalized" datatype="float"/>
+      <Pin name="MouseDown" datatype="bool"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class PatchMemGet final : public PluginEditorNoGui
+{
+//    Pin<int32_t> pinId_in;
+    Pin<float> pinNormalized_in;
+    Pin<bool> pinMouseDown_in;
+
+    Pin<int32_t> pinId;
+    Pin<float> pinNormalized;
+    Pin<bool> pinMouseDown;
+
+public:
+    PatchMemGet()
+    {
+//        init(pinId_in);
+        init(pinNormalized_in);
+        init(pinMouseDown_in);
+        init(pinId);
+        init(pinNormalized);
+        init(pinMouseDown);
+
+        pinNormalized_in.onUpdate = [this](PinBase*)
+            {
+                pinNormalized = pinNormalized_in.value;
+            };
+    }
+
+    ReturnCode initialize() override
+    {
+        auto paramHost = editorHost.as<gmpi::api::IParameterSetter_x>();
+        if (paramHost)
+        {
+            int32_t paramHandle{};
+            paramHost->getParameterHandle(0, paramHandle);
+            pinId = paramHandle;
+        }
+
+        return PluginEditorNoGui::initialize();
+    }
+};
+
+namespace
+{
+auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: PatchMemGet" name="Value Get" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <Parameters>
+      <Parameter id="0" datatype="float" />
+    </Parameters>
+    <GUI>
+<!--       <Pin name="ID-in" datatype="int" parameterId="0" parameterField="Handle"/> -->
+      <Pin name="Normalized-in" datatype="float" parameterId="0" parameterField="Normalized"/>
+      <Pin name="MouseDown-in" datatype="bool" parameterId="0" parameterField="Grab"/>
+      <Pin name="ID" datatype="int" direction="out"/>
+      <Pin name="Normalized" datatype="float" direction="out"/>
+      <Pin name="MouseDown" datatype="bool" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}

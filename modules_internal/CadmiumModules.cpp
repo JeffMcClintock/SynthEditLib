@@ -1,6 +1,8 @@
 #include "mp_sdk_gui2.h"
 #include "../se_sdk3/mp_sdk_audio.h"
 
+SE_DECLARE_INIT_STATIC_FILE(CadmiumModules)
+
 using namespace gmpi;
 
 // Don't even need to make a class, just describe it in XML and register it as 'SeGuiInvisibleBase'
@@ -232,9 +234,9 @@ namespace
 <PluginList>
   <Plugin id="CD Mouse2Value" name="Value Dragger" category="Experimental/Graphics">
     <GUI graphicsApi="Cadmium">
-      <Pin name="Drag" datatype="float" />
       <Pin name="Normalized" datatype="float" />
       <Pin name="Normalized" datatype="float" direction="out"/>
+      <Pin name="Drag" datatype="float" />
     </GUI>
   </Plugin>
 </PluginList>

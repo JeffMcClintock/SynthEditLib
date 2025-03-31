@@ -62,10 +62,12 @@ namespace SE2
 		}
 	};
 
-	class GmpiUiHelper : public gmpi::api::IInputHost
+	class GmpiUiHelper :
+		  public gmpi::api::IInputHost
 		, public gmpi::api::IDialogHost
 		, public gmpi::api::IEditorHost
 		, public gmpi::api::IDrawingHost
+		, public gmpi::api::IParameterSetter_x
 	{
 		class ModuleView& moduleview;
 	public:
@@ -91,6 +93,10 @@ namespace SE2
 		gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 		gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 
+		// IParameterSetter_x
+		gmpi::ReturnCode getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle) override;
+		gmpi::ReturnCode setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const void* data) override;
+
 		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
 			*returnInterface = {};
@@ -98,6 +104,7 @@ namespace SE2
 			GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
+			GMPI_QUERYINTERFACE(gmpi::api::IParameterSetter_x);
 			return gmpi::ReturnCode::NoSupport;
 		}
 		GMPI_REFCOUNT;

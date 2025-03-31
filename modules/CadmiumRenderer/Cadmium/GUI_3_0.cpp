@@ -722,7 +722,7 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 		},
 ////////////////////////////////////////////////////////////////////////////////
 { "CD Mouse2Value",
-[](int32_t handle, Json::Value& module_json, functionalUI::builder& builder) // , std::vector< std::unique_ptr<state_t> >& states, std::vector<node>& graph)
+[](int32_t handle, Json::Value& module_json, functionalUI::builder& builder)
 {
 		auto& nodegraph = builder.scheduler.graph;
 
@@ -734,11 +734,11 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 					float* normalized{};
 					if (states.size() > 0)
 					{
-						drag = std::get_if<float>(&states[0]->value);
+						normalized = std::get_if<float>(&states[1]->value);
 					}
 					if (states.size() > 1)
 					{
-						normalized = std::get_if<float>(&states[1]->value);
+						drag = std::get_if<float>(&states[0]->value);
 					}
 
 					return std::clamp(*normalized + *drag, 0.0f, 1.0f);

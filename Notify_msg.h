@@ -1,6 +1,7 @@
 #pragma once
 
 // Posible notification messages for communicating between objects
+#define OM_RECENT_FILES_CHANGED 5
 #define OM_REFRESH_PRESENTERS 6
 #define OM_DRAG_NEW_MODULE    7
 #define OM_DELETE			 8

@@ -1543,6 +1543,22 @@ namespace SE2
 	{
 		switch (key)
 		{
+		case 0x25: // left
+			Presenter()->DragSelection({ -1, 0 });
+			break;
+
+		case 0x27: // right
+			Presenter()->DragSelection({ 1, 0 });
+			break;
+
+		case 0x26: // up
+			Presenter()->DragSelection({ 0, -1 });
+			break;
+
+		case 0x28: // down
+			Presenter()->DragSelection({ 0, 1 });
+			break;
+
 		case 0x1B: // <ESC> to cancel cable or module drag
 			if (auto cable = dynamic_cast<SE2::ConnectorViewBase*>(mouseCaptureObject); cable)
 			{

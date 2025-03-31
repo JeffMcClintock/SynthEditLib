@@ -65,6 +65,21 @@ namespace SE2
 	}
 	ReturnCode GmpiUiHelper::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::NoSupport; }
 	ReturnCode GmpiUiHelper::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::NoSupport; }
+
+	gmpi::ReturnCode GmpiUiHelper::getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle)
+	{
+		// get my own parameter handle.
+		returnHandle = moduleview.parent->Presenter()->GetPatchManager()->getParameterHandle(moduleview.handle, moduleParameterId);
+		return gmpi::ReturnCode::Ok;
+	}
+	gmpi::ReturnCode GmpiUiHelper::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const void* data)
+	{
+		// set ANY parameter.
+		moduleview.parent->Presenter()->GetPatchManager()->setParameterValue({ data, static_cast<size_t>(size) }, parameterHandle, (gmpi::FieldType) fieldId);
+		_RPTN(0, "GmpiUiHelper::setParameter %d -> %f\n", parameterHandle, *(float*)data);
+		return gmpi::ReturnCode::Ok;
+	}
+
 	////////////////////////////////////////////////////////
 
 	ModuleView::ModuleView(const wchar_t* typeId, ViewBase* pParent, int handle) : ViewChild(pParent, handle)
