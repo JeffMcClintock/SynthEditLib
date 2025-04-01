@@ -199,6 +199,7 @@ class PatchMemSet final : public PluginEditorNoGui
 {
     Pin<int32_t> pinId;
     Pin<float> pinNormalized;
+    Pin<float> pinValue;
     Pin<bool> pinMouseDown;
 
 	gmpi::shared_ptr <gmpi::api::IParameterSetter_x> paramHost;
@@ -208,11 +209,17 @@ public:
     {
         init(pinId);
         init(pinNormalized);
+        init(pinValue);
         init(pinMouseDown);
 
         pinNormalized.onUpdate = [this](PinBase*)
             {
                 recalc();
+            };
+        pinValue.onUpdate = [this](PinBase*)
+            {
+				_RPTN(0, "PatchMemSet:Value %f\n", pinValue.value);
+                //recalc();
             };
     }
     ReturnCode initialize() override
@@ -241,6 +248,7 @@ auto r2 = gmpi::Register<PatchMemSet>::withXml(R"XML(
     <GUI>
       <Pin name="ID" datatype="int"/>
       <Pin name="Normalized" datatype="float"/>
+      <Pin name="Value" datatype="float"/>
       <Pin name="MouseDown" datatype="bool"/>
     </GUI>
   </Plugin>
@@ -253,10 +261,12 @@ class PatchMemGet final : public PluginEditorNoGui
 //    Pin<int32_t> pinId_in;
     Pin<float> pinNormalized_in;
     Pin<bool> pinMouseDown_in;
+    Pin<float> pinValue_in;
 
     Pin<int32_t> pinId;
     Pin<float> pinNormalized;
     Pin<bool> pinMouseDown;
+    Pin<float> pinValue;
 
 public:
     PatchMemGet()
@@ -264,13 +274,19 @@ public:
 //        init(pinId_in);
         init(pinNormalized_in);
         init(pinMouseDown_in);
+        init(pinValue_in);
         init(pinId);
         init(pinNormalized);
         init(pinMouseDown);
+        init(pinValue);
 
         pinNormalized_in.onUpdate = [this](PinBase*)
             {
                 pinNormalized = pinNormalized_in.value;
+            };
+        pinValue_in.onUpdate = [this](PinBase*)
+            {
+                pinValue = pinValue_in.value;
             };
     }
 
@@ -294,17 +310,141 @@ auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: PatchMemGet" name="Value Get" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+  <Plugin id="SE: PatchMemGet" name="Value" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <Parameters>
       <Parameter id="0" datatype="float" />
     </Parameters>
     <GUI>
-<!--       <Pin name="ID-in" datatype="int" parameterId="0" parameterField="Handle"/> -->
       <Pin name="Normalized-in" datatype="float" parameterId="0" parameterField="Normalized"/>
       <Pin name="MouseDown-in" datatype="bool" parameterId="0" parameterField="Grab"/>
+      <Pin name="Value-in" datatype="float" parameterId="0" parameterField="Value"/>
       <Pin name="ID" datatype="int" direction="out"/>
       <Pin name="Normalized" datatype="float" direction="out"/>
       <Pin name="MouseDown" datatype="bool" direction="out"/>
+      <Pin name="Value" datatype="float" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// TODO timer to simulate syncronous updates
+class PatchMemUpdateFloatText final : public PluginEditorNoGui
+{
+    Pin<std::string> text_orig;
+    Pin<std::string> text_mod;
+    Pin<float> pinValue_in;
+    Pin<float> pinValue;
+
+public:
+    PatchMemUpdateFloatText()
+    {
+        init(text_orig);
+        init(text_mod);
+        init(pinValue_in);
+        init(pinValue);
+
+        // pass-thru
+        pinValue_in.onUpdate = [this](PinBase*)
+            {
+                pinValue = pinValue_in.value;
+            };
+        text_mod.onUpdate = [this](PinBase*)
+            {
+                // if user changed the text at all, update the float value.
+                if (text_mod.value != text_orig.value)
+                {
+                    pinValue = (float)strtod(text_mod.value.c_str(), 0);
+                }
+
+//                _RPTN(0, "PatchMemUpdateFloatText:Value %s\n", text_mod.value.c_str());
+            };
+    }
+};
+
+namespace
+{
+auto r4 = gmpi::Register<PatchMemUpdateFloatText>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: PatchMemUpdateFloatText" name="PatchMemUpdateFloatText" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Original Text" datatype="string"/>
+      <Pin name="Modified Text" datatype="string"/>
+      <Pin name="Value" datatype="float"/>
+      <Pin name="Value" datatype="float" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// just to help with simulating mono-directional system
+class OneWayFloat final : public PluginEditorNoGui
+{
+    Pin<float> pinValue_in;
+    Pin<float> pinValue;
+
+public:
+    OneWayFloat()
+    {
+        init(pinValue_in);
+        init(pinValue);
+
+        // pass-thru
+        pinValue_in.onUpdate = [this](PinBase*)
+            {
+                pinValue = pinValue_in.value;
+            };
+    }
+};
+
+namespace
+{
+auto r5 = gmpi::Register<OneWayFloat>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: OneWayFloat" name="OneWayFloat" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Value" datatype="float"/>
+      <Pin name="Value" datatype="float" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class OneWayText final : public PluginEditorNoGui
+{
+    Pin<std::string> pinValue_in;
+    Pin<std::string> pinValue;
+
+public:
+    OneWayText()
+    {
+        init(pinValue_in);
+        init(pinValue);
+
+        // pass-thru
+        pinValue_in.onUpdate = [this](PinBase*)
+            {
+                pinValue = pinValue_in.value;
+            };
+    }
+};
+
+namespace
+{
+auto r6 = gmpi::Register<OneWayText>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: OneWayText" name="OneWayText" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Value" datatype="string"/>
+      <Pin name="Value" datatype="string" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
