@@ -37,13 +37,13 @@ namespace SE2
 	public:
 		std::shared_ptr<T> get(GmpiDrawing::Graphics& g)
 		{
-	        auto factory = g.GetFactory();
-			auto resourcePtr = resourceStructs[factory.Get()].lock();
+	        auto factory = g.GetFactory().Get();
+			auto resourcePtr = resourceStructs[factory].lock();
 
 			if(!resourcePtr)
 			{
 				resourcePtr = std::make_shared<T>(g);
-				resourceStructs[factory.Get()] = resourcePtr;
+				resourceStructs[factory] = resourcePtr;
 			}
 
 			return resourcePtr;

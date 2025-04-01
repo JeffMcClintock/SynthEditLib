@@ -624,7 +624,7 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 
     // draw onto the intermediate buffer.
 	{
-        se::directx::UniversalGraphicsContext context(DrawingFactory->gmpiFactory.getInfo(), deviceContext);
+        se::directx::UniversalGraphicsContext context(DrawingFactory.get(), deviceContext);
 
 		auto legacyContext = static_cast<GmpiDrawing_API::IMpDeviceContext*>(&context.sdk3Context);
 		GmpiDrawing::Graphics graphics(legacyContext);

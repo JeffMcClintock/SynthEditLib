@@ -5,6 +5,7 @@
 #include "../shared/xplatform.h"
 #include "../se_sdk3_hosting/gmpi_gui_hosting.h"
 #include "BundleInfo.h"
+#include "Shared/DrawingFrame2_win.h"
 
 using namespace GmpiGuiHosting;
 
@@ -72,6 +73,10 @@ void TextFormat::GetTextExtentU(const char* utf8String, int32_t stringLength, Gm
 {
 	const auto size = gmpi::directx::getTextExtentHelper(writeFactory, native(), { utf8String, static_cast<size_t>(stringLength) }, topAdjustment, useLegacyBaseLineSnapping);
 	*returnSize = { size.width, size.height };
+}
+
+Factory_SDK3::Factory_SDK3() : Factory_base(concreteInfo)
+{
 }
 
 void Factory_SDK3::Init()
@@ -390,7 +395,7 @@ int32_t GraphicsContext_SDK3::CreateCompatibleRenderTarget(const GmpiDrawing_API
 	*returnObject = {};
 
 	gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-	b2.Attach(new BitmapRenderTarget(this, *desiredSize, factory.getInfo()));
+	b2.Attach(new BitmapRenderTarget(this, *desiredSize, factory));
 	return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI, reinterpret_cast<void **>(returnObject));
 }
 
@@ -402,12 +407,12 @@ int32_t GraphicsContext2::CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L d
 	GmpiDrawing_API::MP1_SIZE sizef{ static_cast<float>(desiredSize.width),  static_cast<float>(desiredSize.height) };
 
 	gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-	b2.Attach(new BitmapRenderTarget(this, sizef, factory.getInfo(), enableLockPixels));
+	b2.Attach(new BitmapRenderTarget(this, sizef, factory, enableLockPixels));
 	return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI, reinterpret_cast<void**>(returnObject));
 }
 
-BitmapRenderTarget::BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API::MP1_SIZE desiredSize, gmpi::directx::DxFactoryInfo& info, bool enableLockPixels) :
-	GraphicsContext_SDK3(nullptr, info, clipRectStack)
+BitmapRenderTarget::BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API::MP1_SIZE desiredSize, Factory_base& pfactory, bool enableLockPixels) :
+	GraphicsContext_SDK3(nullptr, pfactory, clipRectStack)
 	, originalContext(g->native())
 {
 	createBitmapRenderTarget(
@@ -475,6 +480,20 @@ void GraphicsContext_SDK3::GetAxisAlignedClip(GmpiDrawing_API::MP1_RECT* returnC
 
 	*returnClipRect = r2;
 }
+
+
+UniversalGraphicsContext::UniversalGraphicsContext(UniversalFactory* uFactory, ID2D1DeviceContext* nativeContext) :
+	gmpi::directx::GraphicsContext_base(&uFactory->gmpiFactory, nativeContext),
+	sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), uFactory->sdk3Factory, clipRectStack, nativeContext)
+{
+}
+
+UniversalGraphicsContext_win7::UniversalGraphicsContext_win7(UniversalFactory* uFactory, ID2D1DeviceContext* nativeContext) :
+	gmpi::directx::GraphicsContext_base(&uFactory->gmpiFactory, nativeContext),
+	sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), uFactory->sdk3Factory, clipRectStack, nativeContext)
+{
+}
+
 } // namespace
 } // namespace
 
