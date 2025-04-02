@@ -606,6 +606,12 @@ namespace SE2
 		}
 	}
 
+	void ViewBase::markDirtyChild(IViewChild* child)
+	{
+		child->setDirty(true);
+		childrenDirty = true;
+	}
+
 	void ViewBase::OnDragSelectionBox(int32_t flags, GmpiDrawing::Rect selectionRect)
 	{
 		// can't select them while iterating because fresh adorners invalidate vector.
@@ -1532,6 +1538,16 @@ namespace SE2
 	{
 		// Get any meter updates from DSP. ( See also CSynthEditAppBase::OnTimer() )
 		Presenter()->GetPatchManager()->serviceGuiQueue();
+
+		if (childrenDirty)
+		{
+			childrenDirty = false;
+
+			for (auto& m : children)
+			{
+				m->process();
+			}
+		}
 	}
 
 	int32_t ViewBase::OnKeyPress(wchar_t c) // SDK3 version, forward to new version.

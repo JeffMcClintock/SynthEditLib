@@ -37,6 +37,7 @@ bool isIteratingChildren = false;
 		std::string draggingNewModuleId;
 		std::unique_ptr<GmpiSdk::ContextMenuHelper::ContextMenuCallbacks> contextMenuCallbacks;
 		bool isArranged = false;
+		bool childrenDirty = false;
 		std::vector< std::unique_ptr<IViewChild> > children;
 		std::unique_ptr<IPresenter> presenter;
 
@@ -70,6 +71,7 @@ bool isIteratingChildren = false;
 
 		void OnChildResize(IViewChild* child);
 		void RemoveChild(IViewChild* child);
+		void markDirtyChild(IViewChild* child);
 
 		int32_t measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_API::MP1_SIZE * returnDesiredSize) override;
 		int32_t arrange(GmpiDrawing_API::MP1_RECT finalRect) override;

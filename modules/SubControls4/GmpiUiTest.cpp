@@ -195,11 +195,27 @@ class ReallyFunctional
 	}
 };
 
-class PatchMemSet final : public PluginEditorNoGui
+class PluginEditorNoGuiUniDirectional : public PluginEditorBase, public gmpi::api::IEditor2_x
+{
+public:
+    ReturnCode process() override
+    {
+        return ReturnCode::NoSupport;
+    }
+
+    ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+    {
+        GMPI_QUERYINTERFACE(gmpi::api::IEditor);
+        GMPI_QUERYINTERFACE(gmpi::api::IEditor2_x);
+        return ReturnCode::NoSupport;
+    }
+    GMPI_REFCOUNT;
+};
+
+class PatchMemSet final : public PluginEditorNoGuiUniDirectional
 {
     Pin<int32_t> pinId;
     Pin<float> pinNormalized;
-    Pin<float> pinValue;
     Pin<bool> pinMouseDown;
 
 	gmpi::shared_ptr <gmpi::api::IParameterSetter_x> paramHost;
@@ -209,9 +225,8 @@ public:
     {
         init(pinId);
         init(pinNormalized);
-        init(pinValue);
         init(pinMouseDown);
-
+/*
         pinNormalized.onUpdate = [this](PinBase*)
             {
                 recalc();
@@ -221,20 +236,33 @@ public:
 				_RPTN(0, "PatchMemSet:Value %f\n", pinValue.value);
                 //recalc();
             };
+*/
     }
     ReturnCode initialize() override
     {
         paramHost = editorHost.as<gmpi::api::IParameterSetter_x>();
-        recalc();
-		return PluginEditorNoGui::initialize();
+//        recalc();
+		return PluginEditorNoGuiUniDirectional::initialize();
     }
 
-    void recalc()
+  //  void recalc()
+  //  {
+		//if (paramHost)
+		//{
+  //          paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), &pinNormalized.value);
+		//}
+  //  }
+
+    ReturnCode process() override
     {
-		if (paramHost)
-		{
+        if (paramHost)
+        {
+//            paramHost->setParameter(pinId.value, gmpi::Field::Value, 0, sizeof(float), &pinValue.value);
             paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), &pinNormalized.value);
-		}
+            paramHost->setParameter(pinId.value, gmpi::Field::Grab, 0, sizeof(bool), &pinMouseDown.value);
+        }
+
+        return ReturnCode::Ok;
     }
 };
 
@@ -248,7 +276,6 @@ auto r2 = gmpi::Register<PatchMemSet>::withXml(R"XML(
     <GUI>
       <Pin name="ID" datatype="int"/>
       <Pin name="Normalized" datatype="float"/>
-      <Pin name="Value" datatype="float"/>
       <Pin name="MouseDown" datatype="bool"/>
     </GUI>
   </Plugin>
@@ -256,7 +283,53 @@ auto r2 = gmpi::Register<PatchMemSet>::withXml(R"XML(
 )XML");
 }
 
-class PatchMemGet final : public PluginEditorNoGui
+class PatchMemSetFloat final : public PluginEditorNoGuiUniDirectional
+{
+    Pin<int32_t> pinId;
+    Pin<float> pinValue;
+
+    gmpi::shared_ptr <gmpi::api::IParameterSetter_x> paramHost;
+
+public:
+    PatchMemSetFloat()
+    {
+        init(pinId);
+        init(pinValue);
+    }
+    ReturnCode initialize() override
+    {
+        paramHost = editorHost.as<gmpi::api::IParameterSetter_x>();
+        return PluginEditorNoGuiUniDirectional::initialize();
+    }
+
+    ReturnCode process() override
+    {
+        if (paramHost)
+        {
+            paramHost->setParameter(pinId.value, gmpi::Field::Value, 0, sizeof(float), &pinValue.value);
+        }
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r6 = gmpi::Register<PatchMemSetFloat>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: PatchMemSetFloat" name="Value Set- Float" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="ID" datatype="int"/>
+      <Pin name="Value" datatype="float"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class PatchMemGet final : public PluginEditorNoGuiUniDirectional
 {
 //    Pin<int32_t> pinId_in;
     Pin<float> pinNormalized_in;
@@ -300,7 +373,7 @@ public:
             pinId = paramHandle;
         }
 
-        return PluginEditorNoGui::initialize();
+        return PluginEditorNoGuiUniDirectional::initialize();
     }
 };
 
@@ -328,8 +401,9 @@ auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
 )XML");
 }
 
+
 // TODO timer to simulate syncronous updates
-class PatchMemUpdateFloatText final : public PluginEditorNoGui
+class PatchMemUpdateFloatText final : public PluginEditorNoGuiUniDirectional
 {
     Pin<std::string> text_orig;
     Pin<std::string> text_mod;
@@ -344,6 +418,7 @@ public:
         init(pinValue_in);
         init(pinValue);
 
+#if 0
         // pass-thru
         pinValue_in.onUpdate = [this](PinBase*)
             {
@@ -359,6 +434,21 @@ public:
 
 //                _RPTN(0, "PatchMemUpdateFloatText:Value %s\n", text_mod.value.c_str());
             };
+#endif
+    }
+
+    ReturnCode process() override
+	{
+        if (text_mod.value != text_orig.value)
+        {
+            pinValue = (float)strtod(text_mod.value.c_str(), 0);
+        }
+        else
+        {
+            pinValue = pinValue_in.value;
+        }
+
+		return ReturnCode::Ok;
     }
 };
 
@@ -381,7 +471,7 @@ auto r4 = gmpi::Register<PatchMemUpdateFloatText>::withXml(R"XML(
 }
 
 // just to help with simulating mono-directional system
-class OneWayFloat final : public PluginEditorNoGui
+class OneWayFloat final : public PluginEditorNoGuiUniDirectional
 {
     Pin<float> pinValue_in;
     Pin<float> pinValue;
@@ -416,7 +506,7 @@ auto r5 = gmpi::Register<OneWayFloat>::withXml(R"XML(
 )XML");
 }
 
-class OneWayText final : public PluginEditorNoGui
+class OneWayText final : public PluginEditorNoGuiUniDirectional
 {
     Pin<std::string> pinValue_in;
     Pin<std::string> pinValue;
@@ -437,7 +527,7 @@ public:
 
 namespace
 {
-auto r6 = gmpi::Register<OneWayText>::withXml(R"XML(
+auto r7 = gmpi::Register<OneWayText>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>

@@ -265,7 +265,9 @@ namespace SE2
 		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IEditor::guid)       , pluginParameters_GMPI.put_void());
 		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IDrawingClient::guid), pluginGraphics_GMPI.put_void());
 		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IInputClient::guid)  , pluginInput_GMPI.put_void());
-		
+		// experimental
+		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IEditor2_x::guid)    , pluginEditor2.put_void());
+
 		if(pluginParameters_GMPI)
 		{
 			pluginParameters_GMPI->setHost(static_cast<gmpi::api::IEditorHost*>(&uiHelper));
@@ -593,7 +595,16 @@ namespace SE2
 			if (pluginParameters_GMPI)
 			{
 				pluginParameters_GMPI->setPin(pinId, voice, size, data);
-				pluginParameters_GMPI->notifyPin(pinId, voice);
+				if (isMonoDirectional())
+				{
+					// monodirection method, mark as dirty, notify entire module later.
+					parent->markDirtyChild(this);
+				}
+				else
+				{
+					// classic method, notify pin immediatly.
+					pluginParameters_GMPI->notifyPin(pinId, voice);
+				}
 			}
 
 			if (pluginParameters)
@@ -633,6 +644,14 @@ namespace SE2
 			--recursionStopper_;
 		}
 		return gmpi::MP_OK;
+	}
+
+	void ModuleView::process()
+	{
+		if(pluginEditor2) // todo dirty flag for optimisation.
+		{
+			pluginEditor2->process();
+		}
 	}
 
 	// works on structure, not on panel, panel sub-controls don't know if they are muted or not.

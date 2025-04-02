@@ -697,9 +697,9 @@ namespace SE2
 				const auto DspTopColor = calcColor({ 0xEFEFEFu }, greyBack, opacity);// Color::FromArgb(0xFFEFEFEF); // S0
 				const auto DspBotColor = calcColor({ 0xCCCCCCu }, greyBack, opacity);// Color::FromArgb(0xFFCCCCCC); // V80 S0
 #else
-				// calculated in advance (same formula)
-				const Color GuiTopColor(0.777851462f, 0.933072031f, 1.103668900f, opacity);
-				const Color GuiBotColor(0.400113374f, 0.511825383f, 0.637583494f, opacity);
+				// calculated in advance (same formula)                          Greenish                                                   Blueish
+				const Color GuiTopColor = isMonoDirectional() ? Color(0.777851462f, 1.103668900f, 0.933072031f, opacity) : Color(0.777851462f, 0.933072031f, 1.103668900f, opacity);
+				const Color GuiBotColor = isMonoDirectional() ? Color(0.400113374f, 0.637583494f, 0.511825383f, opacity) : Color(0.400113374f, 0.511825383f, 0.637583494f, opacity);
 				const Color DspTopColor(0.942677438f, 0.942677438f, 0.942677430f, opacity);
 				const Color DspBotColor(0.637583494f, 0.637583494f, 0.637583494f, opacity);
 #endif

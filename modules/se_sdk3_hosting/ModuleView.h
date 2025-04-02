@@ -145,6 +145,11 @@ namespace SE2
 		void BuildContainerCadmium(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap);
 		void Build();
 		void CreateGraphicsResources();
+		bool isMonoDirectional() const
+		{
+			return !pluginEditor2.isNull();
+		}
+		void process() override;
 
 		// IMpGraphicsHost support.
 		virtual void invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override;
@@ -358,6 +363,7 @@ namespace SE2
 		gmpi::shared_ptr<gmpi::api::IEditor> pluginParameters_GMPI;
 		gmpi::shared_ptr<gmpi::api::IInputClient> pluginInput_GMPI;
 		gmpi::shared_ptr<gmpi::api::IDrawingClient> pluginGraphics_GMPI;
+		gmpi::shared_ptr<gmpi::api::IEditor2_x> pluginEditor2;
 
 		GmpiDrawing::Rect pluginGraphicsPos;
 
