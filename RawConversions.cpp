@@ -168,8 +168,7 @@ std::string ParseToRaw( int datatype, const std::wstring& s )
 		break;
 
 	case DT_STRING_UTF8:
-		result.resize( s.size() );
-		memcpy( &result[0], s.data(), result.size() );
+		result = WStringToUtf8(s);
 		break;
 
 	case DT_BOOL:
