@@ -70,13 +70,12 @@ namespace SE2
 
 		virtual GmpiDrawing::Point getConnectionPoint(CableType cableType, int pinIndex) = 0;
 
-		virtual void setDirty(bool dirty)
-		{}
+		virtual void setDirty() {}
 		virtual bool getDirty()
 		{
-			return true;
+			return false;
 		}
-		virtual void process() {}
+		virtual void process() {} // clears dirty flag.
 	};
 
 

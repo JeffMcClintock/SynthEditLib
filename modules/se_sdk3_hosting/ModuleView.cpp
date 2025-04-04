@@ -1,6 +1,7 @@
 
 #include <vector>
 #include <sstream>
+#include <filesystem>
 #include <iomanip>
 
 #include "ModuleView.h"
@@ -41,8 +42,10 @@ namespace SE2
 	ReturnCode GmpiUiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const void* data) { return (gmpi::ReturnCode) moduleview.pinTransmit(pinId, size, data, voice); }
 	int32_t GmpiUiHelper::getHandle() { return moduleview.handle; }
 	// IDrawingHost
-	ReturnCode GmpiUiHelper::getDrawingFactory(gmpi::api::IUnknown** returnFactory) { return (gmpi::ReturnCode) moduleview.GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory); }
+	ReturnCode GmpiUiHelper::getDrawingFactory(gmpi::api::IUnknown** returnFactory) { return moduleview.parent->getDrawingFactory(returnFactory); }
 	void GmpiUiHelper::invalidateRect(const gmpi::drawing::Rect* invalidRect) { moduleview.invalidateRect((const GmpiDrawing_API::MP1_RECT*) invalidRect); }
+	void GmpiUiHelper::invalidateMeasure() { moduleview.invalidateMeasure(); }
+
 	float GmpiUiHelper::getRasterizationScale()
 	{
 		gmpi::shared_ptr<gmpi::api::IDrawingHost> host;
@@ -79,6 +82,34 @@ namespace SE2
 		_RPTN(0, "GmpiUiHelper::setParameter %d -> %f\n", parameterHandle, *(float*)data);
 		return gmpi::ReturnCode::Ok;
 	}
+
+	//////////////////////////////////////////////////////// IEmbeddedFileSupport
+
+	gmpi::ReturnCode GmpiUiHelper::findResourceUri(const char* fileName, /*const char* resourceType,*/ gmpi::api::IString* returnFullUri)
+	{
+		std::filesystem::path uri(fileName);
+		auto resourceType = uri.extension().generic_string();
+		if (!resourceType.empty())
+		{
+			resourceType = resourceType.substr(1); // remove leading dot.
+		}
+		return (gmpi::ReturnCode) moduleview.FindResourceU(fileName, resourceType.c_str(), (gmpi::IString*)returnFullUri);
+	}
+	gmpi::ReturnCode GmpiUiHelper::registerResourceUri(const char* fullUri)
+	{
+		return (gmpi::ReturnCode) GmpiResourceManager::Instance()->RegisterResourceUri(moduleview.handle, fullUri);
+	}
+	gmpi::ReturnCode GmpiUiHelper::openUri(const char* fullUri, gmpi::api::IUnknown** returnStream)
+	{
+		// TODO
+		return gmpi::ReturnCode::NoSupport;
+	}
+	gmpi::ReturnCode GmpiUiHelper::clearResourceUris()
+	{
+		// TODO
+		return gmpi::ReturnCode::NoSupport;
+	}
+
 
 	////////////////////////////////////////////////////////
 
@@ -164,6 +195,7 @@ namespace SE2
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> object;
 		object.Attach(static_cast<gmpi::IMpUserInterface2B*>(subView));
 		assert(object != nullptr);
+#if 0
 		{
 			auto r = object->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pluginParameters.asIMpUnknownPtr());
 			r = object->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
@@ -174,6 +206,8 @@ namespace SE2
 
 			pluginParameters->setHost(static_cast<gmpi::IMpUserInterfaceHost2*>(this));
 		}
+#endif
+		queryPluginInterfaces(object);
 
 		auto subPresenter = Presenter()->CreateSubPresenter(handle);
 		subView->Init(subPresenter);
@@ -232,12 +266,9 @@ namespace SE2
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> object;
 		object.Attach(mi->Build(MP_SUB_TYPE_GUI2, true));
 
-		if (!object)
+		if (!object && mi->getWindowType() == MP_WINDOW_TYPE_NONE) // can't support legacy graphics, but can support invisible legacy sub-controls.
 		{
-			if (mi->getWindowType() == MP_WINDOW_TYPE_NONE) // can't support legacy graphics, but can support invisible legacy sub-controls.
-			{
-				object.Attach(mi->Build(MP_SUB_TYPE_GUI, true));
-			}
+			object.Attach(mi->Build(MP_SUB_TYPE_GUI, true));
 		}
 
 		if (!object)
@@ -253,6 +284,11 @@ namespace SE2
 			return;
 		}
 
+		queryPluginInterfaces(object);
+	}
+
+	void ModuleView::queryPluginInterfaces(gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown>& object)
+	{
 		auto r = object->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pluginParameters.asIMpUnknownPtr());
 		r = object->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
 		r = object->queryInterface(gmpi::MP_IID_GUI_PLUGIN, pluginParametersLegacy.asIMpUnknownPtr());
@@ -262,11 +298,18 @@ namespace SE2
 		r = object->queryInterface(gmpi_gui_api::SE_IID_GRAPHICS_MPGUI4, pluginGraphics4.asIMpUnknownPtr());
 
 		// 'real' GMPI
-		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IEditor::guid)       , pluginParameters_GMPI.put_void());
-		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IDrawingClient::guid), pluginGraphics_GMPI.put_void());
-		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IInputClient::guid)  , pluginInput_GMPI.put_void());
+		auto gmpi_object = (gmpi::api::IUnknown*) object.get();
+		auto
+		r2 = gmpi_object->queryInterface(&gmpi::api::IEditor::guid       , pluginParameters_GMPI.put_void());
+		r2 = gmpi_object->queryInterface(&gmpi::api::IDrawingClient::guid, pluginGraphics_GMPI.put_void());
+		r2 = gmpi_object->queryInterface(&gmpi::api::IInputClient::guid  , pluginInput_GMPI.put_void());
 		// experimental
-		r = object->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IEditor2_x::guid)    , pluginEditor2.put_void());
+		r2 = gmpi_object->queryInterface(&gmpi::api::IEditor2_x::guid    , pluginEditor2.put_void());
+
+		if (pluginGraphics)
+		{
+			object->queryInterface(SE_IID_SUBVIEW, subView.asIMpUnknownPtr());
+		}
 
 		if(pluginParameters_GMPI)
 		{
@@ -648,10 +691,17 @@ namespace SE2
 
 	void ModuleView::process()
 	{
+		dirty = false;
 		if(pluginEditor2) // todo dirty flag for optimisation.
 		{
 			pluginEditor2->process();
 		}
+		else if (subView)
+		{
+			subView->process();
+		}
+
+		// todo SubViews recursivly
 	}
 
 	// works on structure, not on panel, panel sub-controls don't know if they are muted or not.
@@ -740,12 +790,6 @@ namespace SE2
 
 		if (pluginInput_GMPI)
 			return pluginInput_GMPI->hitTest(*(gmpi::drawing::Point*) &local, flags) == gmpi::ReturnCode::Ok;
-
-		gmpi_sdk::mp_shared_ptr<ISubView> subView;
-		if (pluginGraphics)
-		{
-			pluginGraphics->queryInterface(SE_IID_SUBVIEW, subView.asIMpUnknownPtr());
-		}
 
 		if (subView)
 		{
@@ -845,12 +889,6 @@ namespace SE2
 
 				if (!clientHit)
 				{
-					gmpi_sdk::mp_shared_ptr<ISubView> subView;
-					if (pluginGraphics)
-					{
-						pluginGraphics->queryInterface(SE_IID_SUBVIEW, subView.asIMpUnknownPtr());
-					}
-
 					if (subView)
 					{
 						clientHit = subView->hitTest(flags, &local);
@@ -908,12 +946,6 @@ namespace SE2
 		{
 			GmpiDrawing::Point local(point);
 			local -= OffsetToClient();
-
-			gmpi_sdk::mp_shared_ptr<ISubView> subView;
-			if (pluginGraphics)
-			{
-				pluginGraphics->queryInterface(SE_IID_SUBVIEW, subView.asIMpUnknownPtr());
-			}
 
 			if (subView)
 			{
@@ -985,12 +1017,6 @@ namespace SE2
 
 		if(!ModuleView::hitTestR(flags, selectionRect))
 			return false;
-
-		gmpi_sdk::mp_shared_ptr<ISubView> subView;
-		if (pluginGraphics)
-		{
-			pluginGraphics->queryInterface(SE_IID_SUBVIEW, subView.asIMpUnknownPtr());
-		}
 
 		// ignore hidden panels when selecting by lasso
 		if (subView)

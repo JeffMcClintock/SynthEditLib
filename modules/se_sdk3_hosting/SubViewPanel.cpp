@@ -150,6 +150,13 @@ void SubView::OnPatchCablesVisibilityUpdate()
 	parent->parent->OnPatchCablesVisibilityUpdate();
 }
 
+void SubView::markDirtyChild(SE2::IViewChild* child)
+{
+	SE2::ViewBase::markDirtyChild(child);
+	auto parent = dynamic_cast<SE2::ViewChild*> (getGuiHost());
+	parent->parent->markDirtyChild(parent);
+}
+
 int32_t SubView::setCapture(SE2::IViewChild* module)
 {
 	// Avoid situation where some module turns off panel then captures mouse (ensuring it never can un-capture it).
@@ -362,6 +369,11 @@ int32_t SubView::getToolTip(MP1_POINT point, gmpi::IString* returnString)
 {
 	const auto localPoint = GmpiDrawing::Point(point.x - offset_.width, point.y - offset_.height);
 	return ViewBase::getToolTip(localPoint, returnString);
+}
+
+void SubView::process()
+{
+	processUnidirectionalModules();
 }
 
 bool SubView::hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT* point)

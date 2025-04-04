@@ -8,18 +8,18 @@ namespace SE2
 	class IViewChild;
 }
 
-class DECLSPEC_NOVTABLE ISubView : public gmpi::IMpUnknown
-{
-public:
-	virtual void OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::IViewChild*& bestModule, int& bestPinIndex) = 0;
-	virtual bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT* point) = 0;
-	virtual bool MP_STDCALL isVisible() = 0;
-};
-
-// GUID for ISubView
-static const gmpi::MpGuid SE_IID_SUBVIEW =
-// {4F6B4050-F169-401C-AAEB-D6057ECDF58E}
-{ 0x4f6b4050, 0xf169, 0x401c, { 0xaa, 0xeb, 0xd6, 0x5, 0x7e, 0xcd, 0xf5, 0x8e } };
+//class DECLSPEC_NOVTABLE ISubView : public gmpi::IMpUnknown
+//{
+//public:
+//	virtual void OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::IViewChild*& bestModule, int& bestPinIndex) = 0;
+//	virtual bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT* point) = 0;
+//	virtual bool MP_STDCALL isVisible() = 0;
+//};
+//
+//// GUID for ISubView
+//static const gmpi::MpGuid SE_IID_SUBVIEW =
+//// {4F6B4050-F169-401C-AAEB-D6057ECDF58E}
+//{ 0x4f6b4050, 0xf169, 0x401c, { 0xaa, 0xeb, 0xd6, 0x5, 0x7e, 0xcd, 0xf5, 0x8e } };
 
 // sub-view shown on Panel.
 class SubView : public SE2::ViewBase, public ISubView
@@ -103,15 +103,15 @@ public:
 			return p;
 
 		// [Viewbase[<- parent -[ SubContainerView<- guihost -[ContainerPanel]
-		auto subview = dynamic_cast<SE2::ModuleView*> (getGuiHost());
+		auto submview = dynamic_cast<SE2::ModuleView*> (getGuiHost());
 
 		// My offset.
 		p += offset_;
 
 		// Parent ModuleView offset.
-		p += subview->OffsetToClient();
+		p += submview->OffsetToClient();
 
-		auto view = subview->parent;
+		auto view = submview->parent;
 		p = view->MapPointToView(parentView, p);
 
 		return p;
@@ -126,8 +126,10 @@ public:
 	{
 		return isShown();
 	}
+	void process() override;
 
 	void OnPatchCablesVisibilityUpdate() override;
+	void markDirtyChild(SE2::IViewChild* child) override;
 
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{

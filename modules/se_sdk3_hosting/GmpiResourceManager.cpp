@@ -276,6 +276,17 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 	return gmpi::MP_OK;
 }
 
+int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const char* fullUri)
+{
+	if (isEditor())
+	{
+		assert(moduleHandle > -1);
+		resourceUris_.insert({ moduleHandle, fullUri });
+	}
+
+	return gmpi::MP_OK;
+}
+
 void GmpiResourceManager::ClearResourceUris(int32_t moduleHandle)
 {
 	resourceUris_.erase(moduleHandle);

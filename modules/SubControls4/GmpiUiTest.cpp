@@ -1,18 +1,22 @@
 #include <optional>
 #include <algorithm>
 #include <format>
+#include <filesystem>
 #include <charconv>
 #include "helpers/GmpiPluginEditor.h"
+#include "helpers/GmpiPluginEditor2.h"
 #include "helpers/CachedBlur.h"
+#include "helpers/AnimatedBitmap.h"
 #include "NumberEditClient.h"
+#include "Extensions/EmbeddedFile.h"
 
 using namespace gmpi;
-using namespace gmpi::editor;
+using namespace gmpi::editor2;
 using namespace gmpi::drawing;
 
 SE_DECLARE_INIT_STATIC_FILE(GmpiUiTest)
 
-class GmpiUiTest : public PluginEditor, public SsgNumberEditClient
+class GmpiUiTest : public gmpi::editor::PluginEditor, public SsgNumberEditClient
 {
     cachedBlur blur;
     SsgNumberEdit numberEdit;
@@ -195,24 +199,7 @@ class ReallyFunctional
 	}
 };
 
-class PluginEditorNoGuiUniDirectional : public PluginEditorBase, public gmpi::api::IEditor2_x
-{
-public:
-    ReturnCode process() override
-    {
-        return ReturnCode::NoSupport;
-    }
-
-    ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
-    {
-        GMPI_QUERYINTERFACE(gmpi::api::IEditor);
-        GMPI_QUERYINTERFACE(gmpi::api::IEditor2_x);
-        return ReturnCode::NoSupport;
-    }
-    GMPI_REFCOUNT;
-};
-
-class PatchMemSet final : public PluginEditorNoGuiUniDirectional
+class PatchMemSet final : public PluginEditorNoGui
 {
     Pin<int32_t> pinId;
     Pin<float> pinNormalized;
@@ -226,38 +213,17 @@ public:
         init(pinId);
         init(pinNormalized);
         init(pinMouseDown);
-/*
-        pinNormalized.onUpdate = [this](PinBase*)
-            {
-                recalc();
-            };
-        pinValue.onUpdate = [this](PinBase*)
-            {
-				_RPTN(0, "PatchMemSet:Value %f\n", pinValue.value);
-                //recalc();
-            };
-*/
     }
     ReturnCode initialize() override
     {
         paramHost = editorHost.as<gmpi::api::IParameterSetter_x>();
-//        recalc();
-		return PluginEditorNoGuiUniDirectional::initialize();
+		return PluginEditorBase::initialize();
     }
-
-  //  void recalc()
-  //  {
-		//if (paramHost)
-		//{
-  //          paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), &pinNormalized.value);
-		//}
-  //  }
 
     ReturnCode process() override
     {
         if (paramHost)
         {
-//            paramHost->setParameter(pinId.value, gmpi::Field::Value, 0, sizeof(float), &pinValue.value);
             paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), &pinNormalized.value);
             paramHost->setParameter(pinId.value, gmpi::Field::Grab, 0, sizeof(bool), &pinMouseDown.value);
         }
@@ -283,7 +249,7 @@ auto r2 = gmpi::Register<PatchMemSet>::withXml(R"XML(
 )XML");
 }
 
-class PatchMemSetFloat final : public PluginEditorNoGuiUniDirectional
+class PatchMemSetFloat final : public PluginEditorNoGui
 {
     Pin<int32_t> pinId;
     Pin<float> pinValue;
@@ -299,7 +265,7 @@ public:
     ReturnCode initialize() override
     {
         paramHost = editorHost.as<gmpi::api::IParameterSetter_x>();
-        return PluginEditorNoGuiUniDirectional::initialize();
+        return PluginEditorBase::initialize();
     }
 
     ReturnCode process() override
@@ -329,9 +295,8 @@ auto r6 = gmpi::Register<PatchMemSetFloat>::withXml(R"XML(
 )XML");
 }
 
-class PatchMemGet final : public PluginEditorNoGuiUniDirectional
+class PatchMemGet final : public PluginEditorNoGui
 {
-//    Pin<int32_t> pinId_in;
     Pin<float> pinNormalized_in;
     Pin<bool> pinMouseDown_in;
     Pin<float> pinValue_in;
@@ -344,7 +309,6 @@ class PatchMemGet final : public PluginEditorNoGuiUniDirectional
 public:
     PatchMemGet()
     {
-//        init(pinId_in);
         init(pinNormalized_in);
         init(pinMouseDown_in);
         init(pinValue_in);
@@ -353,27 +317,35 @@ public:
         init(pinMouseDown);
         init(pinValue);
 
-        pinNormalized_in.onUpdate = [this](PinBase*)
-            {
-                pinNormalized = pinNormalized_in.value;
-            };
-        pinValue_in.onUpdate = [this](PinBase*)
-            {
-                pinValue = pinValue_in.value;
-            };
+        //pinNormalized_in.onUpdate = [this](PinBase*)
+        //    {
+        //        pinNormalized = pinNormalized_in.value;
+        //    };
+        //pinValue_in.onUpdate = [this](PinBase*)
+        //    {
+        //        pinValue = pinValue_in.value;
+        //    };
     }
 
     ReturnCode initialize() override
     {
-        auto paramHost = editorHost.as<gmpi::api::IParameterSetter_x>();
-        if (paramHost)
+        if (auto paramHost = editorHost.as<gmpi::api::IParameterSetter_x>(); paramHost)
         {
             int32_t paramHandle{};
             paramHost->getParameterHandle(0, paramHandle);
             pinId = paramHandle;
         }
 
-        return PluginEditorNoGuiUniDirectional::initialize();
+        return PluginEditorBase::initialize();
+    }
+
+    ReturnCode process() override
+    {
+        pinValue = pinValue_in.value;
+        pinMouseDown = pinMouseDown_in.value;
+        pinNormalized = pinNormalized_in.value;
+
+        return ReturnCode::Ok;
     }
 };
 
@@ -403,7 +375,7 @@ auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
 
 
 // TODO timer to simulate syncronous updates
-class PatchMemUpdateFloatText final : public PluginEditorNoGuiUniDirectional
+class PatchMemUpdateFloatText final : public PluginEditorNoGui
 {
     Pin<std::string> text_orig;
     Pin<std::string> text_mod;
@@ -471,7 +443,7 @@ auto r4 = gmpi::Register<PatchMemUpdateFloatText>::withXml(R"XML(
 }
 
 // just to help with simulating mono-directional system
-class OneWayFloat final : public PluginEditorNoGuiUniDirectional
+class OneWayFloat final : public PluginEditorNoGui
 {
     Pin<float> pinValue_in;
     Pin<float> pinValue;
@@ -506,7 +478,7 @@ auto r5 = gmpi::Register<OneWayFloat>::withXml(R"XML(
 )XML");
 }
 
-class OneWayText final : public PluginEditorNoGuiUniDirectional
+class OneWayText final : public PluginEditorNoGui
 {
     Pin<std::string> pinValue_in;
     Pin<std::string> pinValue;
@@ -536,6 +508,170 @@ auto r7 = gmpi::Register<OneWayText>::withXml(R"XML(
       <Pin name="Value" datatype="string"/>
       <Pin name="Value" datatype="string" direction="out"/>
     </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class Image4Gui : public PluginEditor
+{
+protected:
+    Pin<std::string> pinFilename;
+    Pin<float> pinAnimationPosition;
+    Pin<int32_t> pinFrame;
+    Pin<bool> pinHdMode;
+
+    gmpi_helper::AnimatedBitmap image;
+
+public:
+    Image4Gui()
+    {
+        init(pinFilename);
+        init(pinAnimationPosition);
+        init(pinFrame);
+        init(pinHdMode);
+
+        pinFilename.onUpdate = [this](PinBase*) { onSetFilename(); };
+		pinAnimationPosition.onUpdate = [this](PinBase*) { calcDrawAt(); };
+		pinFrame.onUpdate = [this](PinBase*) { calcDrawAt(); };
+    }
+
+    void setAnimationPos(float p)
+    {
+        pinAnimationPosition = p;
+    }
+
+    void onSetFilename()
+    {
+        // ensure that the filename has an extension that indicates that it is an image (SynthEdit has special rules for locating images).
+		std::filesystem::path uri(pinFilename.value);
+		if (!uri.has_extension())
+		{
+			uri.replace_extension(".png");
+		}
+
+        // get drawingFactory
+        gmpi::shared_ptr<gmpi::api::IUnknown> ret;
+        drawingHost->getDrawingFactory(ret.put());
+        auto drawingFactory = ret.as<drawing::api::IFactory>();
+
+        auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>();
+        
+        ReturnString fullUri;
+        synthEdit->findResourceUri(uri.generic_string().c_str(), &fullUri);
+		synthEdit->registerResourceUri(fullUri.c_str());
+
+        // images have a coresponding text file that provides information about how they should be animated.
+        std::filesystem::path textfileUri(fullUri.str());
+		textfileUri.replace_extension("txt");
+        synthEdit->registerResourceUri(textfileUri.generic_string().c_str());
+
+        if (MP_OK == image.load(drawingFactory.get(), fullUri.c_str(), textfileUri.generic_string().c_str()))
+        {
+            onLoaded();
+
+            const auto currrentSize = getSize(bounds);
+            if (currrentSize.width) // already sized?
+            {
+                gmpi::drawing::Size avail{10000,10000};
+                gmpi::drawing::Size desired{};
+                measure(&avail, &desired);
+
+                if(currrentSize != desired)
+                    drawingHost->invalidateMeasure();
+            }
+
+            calcDrawAt();
+        }
+    }
+
+    void onLoaded()
+    {
+        //if (image.metadata())
+        //{
+        //    int fc = image.metadata()->getFrameCount();
+        //    pinFrameCount = fc;
+        //}
+    }
+
+    void calcDrawAt()
+    {
+        if (pinFrame.value >= 0)
+        {
+            if (image.calcFrame(pinFrame.value))
+                drawingHost->invalidateRect({});
+        }
+        else
+        {
+            if (image.calcDrawAt(pinAnimationPosition.value))
+                drawingHost->invalidateRect({});
+        }
+    }
+
+    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    {
+        Graphics g(drawingContext);
+
+        if (pinHdMode.value)
+        {
+            const auto originalTransform = g.getTransform();
+            const auto adjustedTransform = makeScale(0.5f) * originalTransform;
+            g.setTransform(adjustedTransform);
+
+            image.renderBitmap(g, { 0, 0 });
+
+            g.setTransform(originalTransform);
+        }
+        else
+        {
+            image.renderBitmap(g, { 0, 0 });
+        }
+
+        return ReturnCode::Ok;
+    }
+
+    ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override
+    {
+        if (image.metadata())
+        {
+            *returnDesiredSize = image.metadata()->getPaddedFrameSize();
+
+            if (pinHdMode.value)
+            {
+                returnDesiredSize->width /= 2;
+                returnDesiredSize->height /= 2;
+            }
+        }
+        else
+        {
+            returnDesiredSize->width = 10;
+            returnDesiredSize->height = 10;
+        }
+
+        return ReturnCode::Ok;
+    }
+
+    ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
+    {
+        return ReturnCode::Ok; // TODO image.bitmapHitTestLocal(point) ? ReturnCode::Ok : ReturnCode::Fail;
+    }
+};
+
+// Register the GUI
+//SE_DECLARE_INIT_STATIC_FILE(Image4_Gui);
+namespace
+{
+auto r8 = gmpi::Register<Image4Gui>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Image4" name="Image4" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+	<GUI graphicsApi="GmpiGui">
+		<Pin name="Filename" datatype="string_utf8" default="knob_sm" isFilename="true" metadata="bmp" />
+		<Pin name="Animation Position" datatype="float" default="-1" />
+		<Pin name="Frame" datatype="int" default="-1" />
+		<Pin name="HD" datatype="bool" isMinimised="true"/>
+	</GUI>
   </Plugin>
 </PluginList>
 )XML");

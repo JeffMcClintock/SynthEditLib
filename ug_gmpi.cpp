@@ -1,5 +1,6 @@
 #include "pch.h"
 #include <sstream>
+#include <numeric>
 #include "./ug_gmpi.h"
 #include "module_info.h"
 #include "SeAudioMaster.h"
@@ -102,25 +103,30 @@ bool ug_gmpi::PPGetActiveFlag()
 	return ug_base::PPGetActiveFlag();
 }
 
-gmpi::ReturnCode ug_gmpi::resolveFilename(const char* fileName, gmpi::api::IString* returnFullUri) 
+gmpi::ReturnCode ug_gmpi::findResourceUri(const char* fileName, /*const char* resourceType,*/ gmpi::api::IString* returnFullUri)
 {
 	const std::string resourceNameStr(fileName);
 	const auto filenameW = Utf8ToWstring(resourceNameStr);
 	auto f_ext = GetExtension(filenameW);
 
-	const auto full_filename = AudioMaster()->getShell()->ResolveFilename( filenameW, f_ext );
+	const auto full_filename = AudioMaster()->getShell()->ResolveFilename(filenameW, f_ext);
 	const auto full_filenameU = WStringToUtf8(full_filename);
 
-	return returnFullUri->setData(full_filenameU.data(), (int32_t) full_filenameU.size());
+	return returnFullUri->setData(full_filenameU.data(), (int32_t)full_filenameU.size());
 }
-
 gmpi::ReturnCode ug_gmpi::openUri(const char* fullUri, gmpi::api::IUnknown** returnStream)
 {
 	*returnStream = reinterpret_cast<gmpi::api::IUnknown*>(static_cast<gmpi::IMpUnknown*>(ProtectedFile2::FromUri(fullUri)));
-
 	return *returnStream ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Fail;
 }
-#include <numeric>
+gmpi::ReturnCode ug_gmpi::registerResourceUri(const char* fullUri)
+{
+	return gmpi::ReturnCode::NoSupport; // on DSP side.
+}
+gmpi::ReturnCode ug_gmpi::clearResourceUris()
+{
+	return gmpi::ReturnCode::NoSupport; // on DSP side.
+}
 
 int32_t ug_gmpi::getAutoduplicatePinCount()
 {

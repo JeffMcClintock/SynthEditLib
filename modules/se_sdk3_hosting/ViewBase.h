@@ -55,6 +55,7 @@ bool isIteratingChildren = false;
 		void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
 		class ModuleViewPanel* getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap);
 		void PreGraphicsRedraw() override;
+		void processUnidirectionalModules();
 
 	public:
 		ViewBase(GmpiDrawing::Size size);
@@ -71,7 +72,7 @@ bool isIteratingChildren = false;
 
 		void OnChildResize(IViewChild* child);
 		void RemoveChild(IViewChild* child);
-		void markDirtyChild(IViewChild* child);
+		virtual void markDirtyChild(IViewChild* child);
 
 		int32_t measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_API::MP1_SIZE * returnDesiredSize) override;
 		int32_t arrange(GmpiDrawing_API::MP1_RECT finalRect) override;
@@ -96,6 +97,7 @@ bool isIteratingChildren = false;
 			getGuiHost()->GetDrawingFactory(&temp);
 			return temp;
 		}
+		gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory);
 
 //		std::string getToolTip(GmpiDrawing_API::MP1_POINT point);
 //		int32_t getToolTip(float x, float y, gmpi::IMpUnknown* returnToolTipString) override;

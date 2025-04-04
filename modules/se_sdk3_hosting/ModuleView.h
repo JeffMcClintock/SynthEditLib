@@ -13,6 +13,7 @@
 #include "modules/se_sdk3/mp_sdk_common.h"
 #include "modules/se_sdk2/se_datatypes.h"
 #include "modules/se_sdk3/se_mp_extensions.h"
+#include "../Extensions/EmbeddedFile.h"
 
 #include "GmpiSdkCommon.h"
 #include "GmpiApiEditor.h"
@@ -23,6 +24,26 @@
 
 class Module_Info;
 class cpu_accumulator;
+
+namespace SE2
+{
+class IPresenter;
+class IViewChild;
+}
+
+class DECLSPEC_NOVTABLE ISubView : public gmpi::IMpUnknown
+{
+public:
+	virtual void OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::IViewChild*& bestModule, int& bestPinIndex) = 0;
+	virtual bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT* point) = 0;
+	virtual bool MP_STDCALL isVisible() = 0;
+	virtual void process() = 0;
+};
+
+// GUID for ISubView
+static const gmpi::MpGuid SE_IID_SUBVIEW =
+// {4F6B4050-F169-401C-AAEB-D6057ECDF58E}
+{ 0x4f6b4050, 0xf169, 0x401c, { 0xaa, 0xeb, 0xd6, 0x5, 0x7e, 0xcd, 0xf5, 0x8e } };
 
 namespace SE2
 {
@@ -68,6 +89,7 @@ namespace SE2
 		, public gmpi::api::IEditorHost
 		, public gmpi::api::IDrawingHost
 		, public gmpi::api::IParameterSetter_x
+		, public synthedit::IEmbeddedFileSupport
 	{
 		class ModuleView& moduleview;
 	public:
@@ -85,6 +107,7 @@ namespace SE2
 		// IDrawingHost
 		gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override;
 		void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
+		void invalidateMeasure() override;
 		float getRasterizationScale() override;
 		// IDialogHost
 		gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override;
@@ -97,6 +120,12 @@ namespace SE2
 		gmpi::ReturnCode getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle) override;
 		gmpi::ReturnCode setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const void* data) override;
 
+		// IEmbeddedFileSupport
+		gmpi::ReturnCode findResourceUri(const char* fileName, /*const char* resourceType,*/ gmpi::api::IString* returnFullUri) override;
+		gmpi::ReturnCode registerResourceUri(const char* fullUri) override;
+		gmpi::ReturnCode openUri(const char* fullUri, gmpi::api::IUnknown** returnStream) override;
+		gmpi::ReturnCode clearResourceUris() override;
+
 		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
 			*returnInterface = {};
@@ -105,6 +134,7 @@ namespace SE2
 			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IParameterSetter_x);
+			GMPI_QUERYINTERFACE(synthedit::IEmbeddedFileSupport);
 			return gmpi::ReturnCode::NoSupport;
 		}
 		GMPI_REFCOUNT;
@@ -144,10 +174,18 @@ namespace SE2
 		void BuildContainer(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap);
 		void BuildContainerCadmium(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap);
 		void Build();
+		void queryPluginInterfaces(gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown>& object);
 		void CreateGraphicsResources();
 		bool isMonoDirectional() const
 		{
 			return !pluginEditor2.isNull();
+		}
+
+		// unidirectional modules
+		virtual void setDirty() { dirty = true; }
+		virtual bool getDirty()
+		{
+			return dirty;
 		}
 		void process() override;
 
@@ -351,6 +389,7 @@ namespace SE2
 
 		virtual void OnCpuUpdate(cpu_accumulator* cpuInfo) {}
 
+		// SDK3
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface> pluginParametersLegacy;
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> pluginParameters;
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2B> pluginParameters2B;
@@ -364,6 +403,9 @@ namespace SE2
 		gmpi::shared_ptr<gmpi::api::IInputClient> pluginInput_GMPI;
 		gmpi::shared_ptr<gmpi::api::IDrawingClient> pluginGraphics_GMPI;
 		gmpi::shared_ptr<gmpi::api::IEditor2_x> pluginEditor2;
+
+		// SubView
+		gmpi_sdk::mp_shared_ptr<ISubView> subView;
 
 		GmpiDrawing::Rect pluginGraphicsPos;
 
@@ -383,7 +425,7 @@ namespace SE2
 		std::vector<int> alreadySentDataPins_;
 
 		bool mouseCaptured = false;
-
+		bool dirty{ true };
 		virtual bool isRackModule() = 0;
 
 		GMPI_REFCOUNT_NO_DELETE;

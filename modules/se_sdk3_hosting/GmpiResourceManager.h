@@ -23,6 +23,7 @@ public:
 	void ClearResourceUris(int32_t moduleHandle);
 	void ClearAllResourceUris();
 	int32_t RegisterResourceUri(int32_t moduleHandle, const std::string skinName, const char* resourceName, const char* resourceType, gmpi::IString* returnString, bool isIMbeddedResource = true);
+	int32_t RegisterResourceUri(int32_t moduleHandle, const char* fullUri);
 	int32_t FindResourceU(int32_t moduleHandle, const std::string skinName, const char* resourceName, const char* resourceType, gmpi::IString* returnString);
 	virtual int32_t OpenUri(const char* fullUri, gmpi::IProtectedFile2** returnStream);
 };
