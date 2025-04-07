@@ -87,6 +87,7 @@ namespace SE2
 		  public gmpi::api::IInputHost
 		, public gmpi::api::IDialogHost
 		, public gmpi::api::IEditorHost
+		, public gmpi::api::IEditorHost2_x
 		, public gmpi::api::IDrawingHost
 		, public gmpi::api::IParameterSetter_x
 		, public synthedit::IEmbeddedFileSupport
@@ -126,12 +127,16 @@ namespace SE2
 		gmpi::ReturnCode openUri(const char* fullUri, gmpi::api::IUnknown** returnStream) override;
 		gmpi::ReturnCode clearResourceUris() override;
 
+		// IEditorHost2_x
+		gmpi::ReturnCode setDirty() override;
+
 		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
 			*returnInterface = {};
 			GMPI_QUERYINTERFACE(gmpi::api::IInputHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost);
+			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost2_x);		
 			GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IParameterSetter_x);
 			GMPI_QUERYINTERFACE(synthedit::IEmbeddedFileSupport);

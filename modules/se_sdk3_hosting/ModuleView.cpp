@@ -82,6 +82,11 @@ namespace SE2
 		_RPTN(0, "GmpiUiHelper::setParameter %d -> %f\n", parameterHandle, *(float*)data);
 		return gmpi::ReturnCode::Ok;
 	}
+	gmpi::ReturnCode GmpiUiHelper::setDirty()
+	{
+		moduleview.setDirty();
+		return gmpi::ReturnCode::Ok;
+	}
 
 	//////////////////////////////////////////////////////// IEmbeddedFileSupport
 

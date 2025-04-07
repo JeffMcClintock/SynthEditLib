@@ -1633,7 +1633,7 @@ namespace SE2
 		return {};
 	}
 
-	void SortOrderSetup3(std::vector<ModuleView*> children, int& maxSortOrderGlobal)
+	FeedbackTraceUi* SortOrderSetup3(std::vector<ModuleView*> children, int& maxSortOrderGlobal)
 	{
 		for (auto& ug : children)
 		{
@@ -1655,7 +1655,7 @@ namespace SE2
 				e->DebugDump();
 #endif
 
-				throw e;
+				return e;
 			}
 		}
 
@@ -1674,9 +1674,11 @@ namespace SE2
 				e->DebugDump();
 #endif
 
-				throw e;
+				return e;
 			}
 		}
+
+		return {};
 	}
 
 	void ViewBase::initMonoDirectionalModules(std::map<int, SE2::ModuleView*>& guiObjectMap)
@@ -1694,7 +1696,12 @@ namespace SE2
 		}
 
 		int maxSortOrderGlobal = -1;
-		SortOrderSetup3(children_monodirectional, maxSortOrderGlobal);
+		auto e = SortOrderSetup3(children_monodirectional, maxSortOrderGlobal);
+
+		if (e)
+		{
+			_RPT0(_CRT_WARN, "ERROR: Feedback loop detected in module graph.\n");
+		}
 
 		std::sort(children_monodirectional.begin(), children_monodirectional.end(), [](const auto& a, const auto& b)
 			{

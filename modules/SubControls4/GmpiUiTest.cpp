@@ -374,7 +374,6 @@ auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
 }
 
 
-// TODO timer to simulate syncronous updates
 class PatchMemUpdateFloatText final : public PluginEditorNoGui
 {
     Pin<std::string> text_orig;
@@ -672,6 +671,242 @@ auto r8 = gmpi::Register<Image4Gui>::withXml(R"XML(
 		<Pin name="Frame" datatype="int" default="-1" />
 		<Pin name="HD" datatype="bool" isMinimised="true"/>
 	</GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class MouseTarget : public PluginEditor
+{
+protected:
+    Pin<bool>  pinHover;
+    Pin<bool>  pinLClick;
+    Pin<float> pinX;
+    Pin<float> pinY;
+
+//    gmpi::drawing::Point prevPoint;
+
+public:
+    MouseTarget()
+    {
+        init(pinHover);
+        init(pinLClick);
+        init(pinX);
+        init(pinY);
+    }
+
+    gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
+    {
+        inputHost->setCapture();
+//        prevPoint = point;
+        pinLClick = true;
+
+        return gmpi::ReturnCode::Ok;
+    }
+
+    gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override
+    {
+        bool isCaptured{};
+		inputHost->getCapture(isCaptured);
+        if (isCaptured)
+        {
+            //pinX = pinX.value + point.x - prevPoint.x;
+            //pinY = pinY.value + prevPoint.y - point.y;
+            pinX = point.x;
+            pinY = point.y;
+        }
+//        prevPoint = point;
+
+        return gmpi::ReturnCode::Ok;
+    }
+
+    gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
+    {
+        pinLClick = false;
+        inputHost->releaseCapture();
+        return gmpi::ReturnCode::Ok;
+    }
+
+    gmpi::ReturnCode setHover(bool isMouseOverMe) override
+    {
+        pinHover = isMouseOverMe;
+
+        return gmpi::ReturnCode::Unhandled;
+    }
+};
+
+// Register the GUI
+//SE_DECLARE_INIT_STATIC_FILE(Image4_Gui);
+namespace
+{
+auto r9 = gmpi::Register<MouseTarget>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: MouseTarget" name="MouseTarget" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+	<GUI graphicsApi="GmpiGui">
+        <Pin name="Hover" datatype="bool" direction="out"/>
+        <Pin name="Left Click" datatype="bool" direction="out"/>
+        <Pin name="X" datatype="float" direction="out"/>
+        <Pin name="Y" datatype="float" direction="out"/>
+	</GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class Delta final : public PluginEditorNoGui
+{
+    Pin<float> pinValue_in;
+    Pin<float> pinValue;
+
+    float prev{};
+
+public:
+    Delta()
+    {
+        init(pinValue_in);
+        init(pinValue);
+    }
+
+    ReturnCode process() override
+    {
+        pinValue = pinValue_in.value - prev;
+		prev = pinValue_in.value;
+
+		_RPTN(0, "Delta: %f\n", pinValue.value);
+
+        if(pinValue.value)
+            editorHost2->setDirty(); // return to zero next frame.
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r10 = gmpi::Register<Delta>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Delta" name="Delta" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Value" datatype="float"/>
+      <Pin name="Value" datatype="float" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class Add final : public PluginEditorNoGui
+{
+    Pin<float> pinValue_inA;
+    Pin<float> pinValue_inB;
+    Pin<float> pinValue;
+
+public:
+    Add()
+    {
+        init(pinValue_inA);
+        init(pinValue_inB);
+        init(pinValue);
+    }
+
+    ReturnCode process() override
+    {
+        pinValue = pinValue_inA.value + pinValue_inB.value;
+        _RPTN(0, "Add: %f\n", pinValue.value);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r11 = gmpi::Register<Add>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Add" name="Add" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Value" datatype="float"/>
+      <Pin name="Value" datatype="float"/>
+      <Pin name="Value" datatype="float" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class Multiply final : public PluginEditorNoGui
+{
+    Pin<float> pinValue_inA;
+    Pin<float> pinValue_inB;
+    Pin<float> pinValue;
+
+public:
+    Multiply()
+    {
+        init(pinValue_inA);
+        init(pinValue_inB);
+        init(pinValue);
+    }
+
+    ReturnCode process() override
+    {
+        pinValue = pinValue_inA.value * pinValue_inB.value;
+        _RPTN(0, "Multiply: %f\n", pinValue.value);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r12 = gmpi::Register<Multiply>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Multiply" name="Multiply" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Value" datatype="float"/>
+      <Pin name="Value" datatype="float"/>
+      <Pin name="Value" datatype="float" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class Bool2Float final : public PluginEditorNoGui
+{
+    Pin<bool> pinValue_in;
+    Pin<float> pinValue;
+
+public:
+    Bool2Float()
+    {
+        init(pinValue_in);
+        init(pinValue);
+    }
+
+    ReturnCode process() override
+    {
+        pinValue = pinValue_in.value ? 1.0f : 0.0f;
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r13 = gmpi::Register<Bool2Float>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Bool2Float" name="Bool2Float" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Value" datatype="bool"/>
+      <Pin name="Value" datatype="float" direction="out"/>
+    </GUI>
   </Plugin>
 </PluginList>
 )XML");
