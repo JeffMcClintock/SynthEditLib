@@ -99,8 +99,8 @@ void ModuleContainer::SortAll(std::vector<ug_base*>& nonExecutingModules)
 		if (a->GetFlag(UGF_NEVER_EXECUTES) != b->GetFlag(UGF_NEVER_EXECUTES))
 			return a->GetFlag(UGF_NEVER_EXECUTES) < b->GetFlag(UGF_NEVER_EXECUTES);
 
-		if (a->SortOrder2 != b->SortOrder2)
-			return a->SortOrder2 < b->SortOrder2;
+		if (a->SortOrder != b->SortOrder)
+			return a->SortOrder < b->SortOrder;
 
 		// MIDI-CV legacy functionality requires "main" MIDI-CV execute before clones.
 		auto uga = dynamic_cast<const ug_base*>(a);
@@ -1701,7 +1701,7 @@ void SeAudioMaster::InsertBlockDev( EventProcessor* p_module )
 	//	_RPT2(_CRT_WARN, "inserting ug (%x) into activeModules (sort%d)\n", p_module, p_module->GetSortOrder() );
 #ifdef _DEBUG
 	bool is_container = dynamic_cast<ug_base*>( p_module ) != 0;
-	assert( p_module->SortOrder2 >= 0 || is_container); // sort order set??
+	assert( p_module->SortOrder >= 0 || is_container); // sort order set??
 #endif
 
 	activeModules.insertSorted(p_module);
@@ -2593,9 +2593,9 @@ void SeAudioMaster::AssignPinBuffers()
 		audioPins.end(),
 		[](const UPlug* p1, const UPlug* p2)
 		{
-			if (p1->UG->SortOrder2 != p2->UG->SortOrder2)
+			if (p1->UG->SortOrder != p2->UG->SortOrder)
 			{
-				return p1->UG->SortOrder2 < p2->UG->SortOrder2;
+				return p1->UG->SortOrder < p2->UG->SortOrder;
 			}
 
             if (p1->getPlugIndex() != p2->getPlugIndex())

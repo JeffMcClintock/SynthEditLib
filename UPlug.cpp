@@ -438,7 +438,7 @@ void UPlug::TransmitState(timestamp_t p_clock, state_type p_stat)
 	for( auto to : connections )
 	{
 		auto toUg = to->UG;
-		assert(toUg->SortOrder2 > UG->SortOrder2);
+		assert(toUg->SortOrder > UG->SortOrder);
 
 		if( toUg->IsSuspended() )
 		{
@@ -531,7 +531,7 @@ void UPlug::SetDefault2(const char* utf8val)
 			assert(from);
 		}
 
-		assert(from->UG->SortOrder2 < UG->SortOrder2); // default-setter must be upstream.
+		assert(from->UG->SortOrder < UG->SortOrder); // default-setter must be upstream.
 
 		auto fromUg = from->UG;
 		auto fromIdx = from->getPlugIndex();
@@ -598,7 +598,7 @@ void UPlug::SetDefault(const char* utf8val)
 
 			assert(connections.size() == 1 && (Direction == DR_IN /*|| Direction == DR _PARAMETER*/));
 			UPlug* from = connections.front();
-			assert(from->UG->SortOrder2 < UG->SortOrder2); // io_mod must be upstream
+			assert(from->UG->SortOrder < UG->SortOrder); // io_mod must be upstream
 
 			from->SetDefault(utf8val);
 		}

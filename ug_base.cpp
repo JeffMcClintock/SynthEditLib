@@ -2092,10 +2092,10 @@ void activateFeedbackModule(ug_base* feedback_out)
 
 FeedbackTrace* ug_base::CalcSortOrder3(int& maxSortOrderGlobal)
 {
-	if (SortOrder2 >= 0) // Skip sorted modules.
+	if (SortOrder >= 0) // Skip sorted modules.
 		return {};
 
-	SortOrder2 = -2; // prevent recursion back to this.
+	SortOrder = -2; // prevent recursion back to this.
 
 	for (auto p : plugs)
 	{
@@ -2104,7 +2104,7 @@ FeedbackTrace* ug_base::CalcSortOrder3(int& maxSortOrderGlobal)
 
 		for (auto from : p->connections)
 		{
-			const int order = from->UG->SortOrder2;
+			const int order = from->UG->SortOrder;
 			if (order == -2) // Found an feedback path, report it.
 			{
 				// feedback-out encounters feedback on it's own helper.
@@ -2121,7 +2121,7 @@ FeedbackTrace* ug_base::CalcSortOrder3(int& maxSortOrderGlobal)
 				}
 				else
 				{
-					SortOrder2 = -1; // Allow this to be re-sorted after feedback (potentially) compensated.
+					SortOrder = -1; // Allow this to be re-sorted after feedback (potentially) compensated.
 					auto e = new FeedbackTrace(SE_FEEDBACK_PATH);
 					e->AddLine(p, from);
 					return e;
@@ -2152,7 +2152,7 @@ FeedbackTrace* ug_base::CalcSortOrder3(int& maxSortOrderGlobal)
 					}
 					else
 					{
-						SortOrder2 = -1; // Allow this to be re-sorted after feedback (potentially) compensated.
+						SortOrder = -1; // Allow this to be re-sorted after feedback (potentially) compensated.
 
 						// If downstream module has feedback, add trace information.
 						e->AddLine(p, from);
@@ -2172,7 +2172,7 @@ FeedbackTrace* ug_base::CalcSortOrder3(int& maxSortOrderGlobal)
 
 done:
 
-	SortOrder2 = ++maxSortOrderGlobal;
+	SortOrder = ++maxSortOrderGlobal;
 
 #if 0 // _DEBUG
 	_RPTN(_CRT_WARN, " SortOrder: %3d  ", SortOrder2);

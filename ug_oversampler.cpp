@@ -713,13 +713,13 @@ void ug_oversampler::InsertBlockDev(EventProcessor* p_module)
 	//	_RPT2(_CRT_WARN, "inserting ug (%x) into activeModules (sort%d)\n", p_module, so );
 #ifdef _DEBUG
 	bool is_container = dynamic_cast<ug_base*>( p_module ) != 0;
-	assert( p_module->SortOrder2 >= 0 || is_container); // sort order set??
+	assert( p_module->SortOrder >= 0 || is_container); // sort order set??
 #endif
 
 	activeModules.insertSorted(p_module);
 
 	bool missedExecution = {};
-	missedExecution = current_run_ug && current_run_ug->SortOrder2 > p_module->SortOrder2;
+	missedExecution = current_run_ug && current_run_ug->SortOrder > p_module->SortOrder;
 
 	// if prev in list has already executed, new module will miss out till next block.
 	if (missedExecution)

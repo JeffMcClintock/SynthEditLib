@@ -239,8 +239,8 @@ int ug_feedback_delay::Open()
 	OutputChange(0, GetPlug(PN_OUT1), ST_STATIC);
 
 	// Only add latency to events if help module is actually upstream.
-	assert(feedback_out->SortOrder2 < SortOrder2); // check unneeded ones removed from patch.
-	feedbackLatency = feedback_out->SortOrder2 < SortOrder2 ? AudioMaster()->BlockSize() : 0;
+	assert(feedback_out->SortOrder < SortOrder); // check unneeded ones removed from patch.
+	feedbackLatency = feedback_out->SortOrder < SortOrder ? AudioMaster()->BlockSize() : 0;
 
 	feedbackLatencyMs = 1000.f * feedbackLatency / getSampleRate();
 	RUN_AT(SampleClock(), &ug_feedback_delay::OnFirstSample);

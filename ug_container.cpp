@@ -898,7 +898,7 @@ void ug_container::SortOrderSetup3(int& maxSortOrderGlobal)
 #if 1
 	for(auto& ug : ugs)
 	{
-		if (ug->SortOrder2 != -1) // already sorted?
+		if (ug->SortOrder != -1) // already sorted?
 			continue;
 
 		// skip intermediate modules, since we'll be sorting them from downstream anyhow.
@@ -911,7 +911,7 @@ void ug_container::SortOrderSetup3(int& maxSortOrderGlobal)
 
 			for (auto to : p->connections)
 			{
-				assert(to->UG->SortOrder2 == -1);
+				assert(to->UG->SortOrder == -1);
 			}
 
 			hasOutputLines = true;
@@ -971,7 +971,7 @@ void ug_container::SortOrderSetup3(int& maxSortOrderGlobal)
 	// Rare case. when patch consists only of modules feeding back into each other (no 'downstream' module at all)
 	for (auto& ug : ugs)
 	{
-		if (ug->SortOrder2 != -1) // already sorted?
+		if (ug->SortOrder != -1) // already sorted?
 			continue;
 
 		// recurse upstream as far as possible, assigning sortorder

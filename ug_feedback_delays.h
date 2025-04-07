@@ -187,7 +187,7 @@ public:
 		// Only add latency to events if helper module is actually upstream.
 		if constexpr (DIRECTION == DR_IN) // Feedback-in module
 		{
-			feedbackLatency = mate->SortOrder2 < SortOrder2 ? AudioMaster()->BlockSize() : 0;
+			feedbackLatency = mate->SortOrder < SortOrder ? AudioMaster()->BlockSize() : 0;
 		}
 
 		return 0;
