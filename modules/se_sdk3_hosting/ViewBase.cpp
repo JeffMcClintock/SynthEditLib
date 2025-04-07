@@ -1251,6 +1251,8 @@ namespace SE2
 		BuildPatchCableNotifier(guiObjectMap);
 		ConnectModules(*context, guiObjectMap);
 
+		initMonoDirectionalModules(guiObjectMap);
+
 		// remainder should mimic standard GUI module initialization.
 		Presenter()->InitializeGuiObjects();
 		initialize();
@@ -1545,6 +1547,168 @@ namespace SE2
 		childrenDirty = true;
 	}
 
+	/// //////////////////////////////////////////////////////////////////////////////////////////////////
+	struct feedbackPinUi
+	{
+//		feedbackPinUi(UPlug* pin);
+		int32_t moduleHandle;
+		int32_t pinIndex;
+		std::string debugModuleName;
+	};
+
+	struct FeedbackTraceUi
+	{
+		std::list< std::pair<feedbackPinUi, feedbackPinUi> > feedbackConnectors;
+		int reason_;
+
+		FeedbackTraceUi(int reason) : reason_(reason) {}
+		void AddLine(ModuleView* modA, ModuleView* modB, int pinA, int pinB)
+		{
+			feedbackConnectors.emplace_back(feedbackPinUi{ modA->getModuleHandle(), pinA, modA->name }, feedbackPinUi{ modB->getModuleHandle(), pinB, modB->name });
+		}
+
+		void DebugDump() {}
+	};
+
+	FeedbackTraceUi* CalcSortOrder3(ModuleView* mod, int& maxSortOrderGlobal)
+	{
+		if (mod->SortOrder >= 0) // Skip sorted modules.
+			return {};
+
+		mod->SortOrder = -2; // prevent recursion back to this.
+
+		for (auto& c : mod->connections_)
+		{
+			const auto pinId = c.first;
+			const bool isInput = std::find(mod->inputPinIds.begin(), mod->inputPinIds.end(), pinId) != mod->inputPinIds.end();
+			if (!isInput)
+				continue; // skip output pins.
+
+			auto from = c.second.otherModule_;
+			const int order = from->SortOrder;
+			if (order == -2) // Found an feedback path, report it.
+			{
+				mod->SortOrder = -1; // Allow this to be re-sorted after feedback (potentially) compensated.
+				auto e = new FeedbackTraceUi(0);// SE_FEEDBACK_PATH);
+				e->AddLine(from, mod, c.second.otherModulePinIndex_, pinId);
+				return e;
+			}
+
+			if (order == -1) // Found an unsorted path, go up it.
+			{
+				auto e = CalcSortOrder3(from, maxSortOrderGlobal);
+
+				if (e) // Upstream module encountered feedback.
+				{
+					mod->SortOrder = -1; // Allow this to be re-sorted after feedback (potentially) compensated.
+
+					// If downstream module has feedback, add trace information.
+					e->AddLine(from, mod, c.second.otherModulePinIndex_, pinId);
+
+					int32_t handle{};
+					mod->getHandle(handle);
+
+					if (e->feedbackConnectors.front().second.moduleHandle == handle) // only reconstruct feedback loop as far as nesc.
+					{
+#if defined( _DEBUG )
+						e->DebugDump();
+#endif
+						throw e;
+					}
+					return e;
+				}
+			}
+		}
+
+	done:
+
+		mod->SortOrder = ++maxSortOrderGlobal;
+
+#if 0 // _DEBUG
+		_RPTN(_CRT_WARN, " SortOrder: %3d  ", SortOrder2);
+		DebugIdentify();
+		_RPT0(_CRT_WARN, "\n");
+#endif
+
+		return {};
+	}
+
+	void SortOrderSetup3(std::vector<ModuleView*> children, int& maxSortOrderGlobal)
+	{
+		for (auto& ug : children)
+		{
+			if (ug->SortOrder != -1) // already sorted?
+				continue;
+
+			// skip intermediate modules, since we'll be sorting them from downstream anyhow.
+			// this may include being sorted by an outer container later (i.e. not here).
+			const bool hasOutputLines = !ug->connections_.empty();
+			if (hasOutputLines)
+				continue;
+
+			// recurse upstream as far as possible, assigning sortorder
+			auto e = CalcSortOrder3(ug, maxSortOrderGlobal);
+
+			if (e)
+			{
+#if defined( _DEBUG )
+				e->DebugDump();
+#endif
+
+				throw e;
+			}
+		}
+
+		// Rare case. when patch consists only of modules feeding back into each other (no 'downstream' module at all)
+		for (auto& ug : children)
+		{
+			if (ug->SortOrder != -1) // already sorted?
+				continue;
+
+			// recurse upstream as far as possible, assigning sortorder
+			auto e = CalcSortOrder3(ug, maxSortOrderGlobal);
+
+			if (e)
+			{
+#if defined( _DEBUG )
+				e->DebugDump();
+#endif
+
+				throw e;
+			}
+		}
+	}
+
+	void ViewBase::initMonoDirectionalModules(std::map<int, SE2::ModuleView*>& guiObjectMap)
+	{
+		children_monodirectional.clear();
+
+		// pull out all mono-directional modules.
+		for (auto& m : guiObjectMap)
+		{
+			auto module = m.second;
+			if (module->isMonoDirectional())
+			{
+				children_monodirectional.push_back(dynamic_cast<ModuleView*>(module));
+			}
+		}
+
+		int maxSortOrderGlobal = -1;
+		SortOrderSetup3(children_monodirectional, maxSortOrderGlobal);
+
+		std::sort(children_monodirectional.begin(), children_monodirectional.end(), [](const auto& a, const auto& b)
+			{
+				return a->SortOrder < b->SortOrder;
+			});
+
+#ifdef _DEBUG
+		for (auto& ug : children_monodirectional)
+		{
+			_RPTN(_CRT_WARN, "%3d : %s\n", ug->SortOrder, ug->name.c_str());
+		}
+#endif
+	}
+
 	void ViewBase::processUnidirectionalModules()
 	{
 		if (!childrenDirty)
@@ -1552,7 +1716,7 @@ namespace SE2
 
 		childrenDirty = false;
 
-		for (auto& m : children) // todo sorted list
+		for (auto& m : children_monodirectional)
 		{
 			if (m->getDirty())
 				m->process();

@@ -39,6 +39,7 @@ bool isIteratingChildren = false;
 		bool isArranged = false;
 		bool childrenDirty = false;
 		std::vector< std::unique_ptr<IViewChild> > children;
+		std::vector<ModuleView*> children_monodirectional;
 		std::unique_ptr<IPresenter> presenter;
 
 		GmpiDrawing::Rect drawingBounds;
@@ -67,6 +68,7 @@ bool isIteratingChildren = false;
 		void Init(class IPresenter* ppresentor);
 		void BuildPatchCableNotifier(std::map<int, class ModuleView*>& guiObjectMap);
 		virtual void BuildModules(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap) = 0;
+		void initMonoDirectionalModules(std::map<int, SE2::ModuleView*>& guiObjectMap);
 
 		virtual int getViewType() = 0;
 

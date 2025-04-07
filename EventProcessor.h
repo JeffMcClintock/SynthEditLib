@@ -271,7 +271,7 @@ private:
 	ISeAudioMaster* m_audio_master; // really just same as vsthost class??? combine?? !!
 
 public:
-	int SortOrder2 = -1;
+	int SortOrder = -1;
 
 	void SetFlag( int flag, bool setit = true )
 	{

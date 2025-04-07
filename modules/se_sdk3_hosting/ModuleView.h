@@ -157,6 +157,7 @@ namespace SE2
 		bool initialised_;
 		std::vector<int> inputPinIds;
 		bool ignoreMouse;
+		int SortOrder = -1;
 
 		ModuleView(const wchar_t* typeId, ViewBase* pParent, int handle);
 		ModuleView(Json::Value* context, ViewBase* pParent);

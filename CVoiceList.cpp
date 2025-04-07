@@ -660,8 +660,8 @@ void Voice::Open(ISeAudioMaster* p_audiomaster, bool setVoiceNumbers)
 		u->Open();
 
 #ifdef _DEBUG
-		assert(u->SortOrder2 > last_sortorder );
-		last_sortorder = u->SortOrder2;
+		assert(u->SortOrder > last_sortorder );
+		last_sortorder = u->SortOrder;
 	#if _MSC_VER >= 1600 // Not Avail in VS2005.
 		unsigned int fpState;
 		_controlfp_s( &fpState, 0, 0 ); // flush-denormals-to-zero mode?
@@ -1338,8 +1338,8 @@ void Voice::Sort3()
 	UGClones.sort(
 		[](const ug_base* first, const ug_base* second)
 	{
-		assert(first->SortOrder2 >= 0 && second->SortOrder2 >= 0);
-		return first->SortOrder2 < second->SortOrder2;
+		assert(first->SortOrder >= 0 && second->SortOrder >= 0);
+		return first->SortOrder < second->SortOrder;
 	}
 	);
 }
@@ -1352,8 +1352,8 @@ void Voice::CheckSortOrder()
 	for( auto it = UGClones.rbegin() ; it != UGClones.rend() ; ++it )
 	{
 		ug_base* u = *it;
-		assert( u->SortOrder2 < last );
-		last = u->SortOrder2;
+		assert( u->SortOrder < last );
+		last = u->SortOrder;
 	}
 
 #endif
