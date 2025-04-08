@@ -14,6 +14,7 @@ class ModuleViewStruct : public ModuleView
 	GmpiDrawing::Rect clipArea;
 	bool muted = false;
 	int hoverPin = -1;
+	std::string hoverScopeText;
 
 	static std::chrono::time_point<std::chrono::steady_clock> lastClickedTime;
 
@@ -74,6 +75,8 @@ public:
 	}
 	virtual std::unique_ptr<SE2::IViewChild> createAdorner(ViewBase* pParent) override;
 	void OnCpuUpdate(class cpu_accumulator* cpuInfo) override;
+	void SetHoverScopeText(const char* text) override;
+
 	bool isRackModule() override
 	{
 		return false;

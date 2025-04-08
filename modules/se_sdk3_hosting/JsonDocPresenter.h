@@ -78,6 +78,7 @@ public:
 	{
 		// TODO
 	}
+	void setHoverScopePin(int32_t moduleHandle, int pin) override {} // editor only
 
 	/* maybe
 	void RemoveRackModule() override

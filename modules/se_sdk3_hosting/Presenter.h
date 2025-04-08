@@ -60,6 +60,7 @@ namespace SE2
 		virtual void OnChildDspMessage(void* msg) = 0;
         virtual void OnControllerDeleted() = 0;
 		virtual void InsertRackModule(const std::wstring& prefabFilePath) = 0;		
+		virtual void setHoverScopePin(int32_t moduleHandle, int pin) = 0;
 		// - HERE --
 	};
 }

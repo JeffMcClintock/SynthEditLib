@@ -962,9 +962,6 @@ namespace SE2
 			legacyContext->Clear(&r);
 #endif
 
-			//if(gmpiContext)
-			//	gmpiContext->release();
-
 			// Transform back. (!! only needed with CPU)
 			g.SetTransform(transform);
 		}
@@ -983,9 +980,21 @@ namespace SE2
 			g.SetTransform(transform);
 		}
 
-#if 0
-		g.SetTransform(originalTransform);
-#endif
+		// Hover scope
+		if (hoverPin > -1)
+		{
+			const auto& pin = plugs_[hoverPin];
+
+			GmpiDrawing::Rect scopeRect{ 0, 0, 50, plugDiameter };
+
+			scopeRect.Offset(pin.direction == DR_IN ? -scopeRect.getWidth() - 2 : bounds_.getWidth() + 2, hoverPin * plugDiameter);
+
+			auto brush = g.CreateSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
+			g.FillRectangle(scopeRect, brush);
+
+			brush.SetColor(Color::LimeGreen);
+			g.DrawTextU(hoverScopeText.c_str(), resources->tf_plugs_left, scopeRect, brush);
+		}
 	}
 
 	PathGeometry ModuleViewStruct::CreateModuleOutline(Factory& factory)
@@ -2159,6 +2168,9 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 			if (hoverPin != newHoverPin)
 			{
 				hoverPin = newHoverPin;
+
+				Presenter()->setHoverScopePin(handle, newHoverPin);
+
 				invalidateRect(0);
 			}
 		}
@@ -2267,6 +2279,11 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 		parent->ChildInvalidateRect(r);
 
 		cpuInfo = pCpuInfo;
+	}
+
+	void ModuleViewStruct::SetHoverScopeText(const char* text)
+	{
+		hoverScopeText = text;
 	}
 
 	void ModuleViewStruct::invalidateMeasure()
