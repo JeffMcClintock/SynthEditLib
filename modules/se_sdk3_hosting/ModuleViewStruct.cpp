@@ -997,6 +997,23 @@ namespace SE2
 		}
 	}
 
+	void ModuleViewStruct::SetHoverScopeText(const char* text)
+	{
+		hoverScopeText = text;
+
+		if (hoverPin > -1)
+		{
+			const auto& pin = plugs_[hoverPin];
+
+			GmpiDrawing::Rect scopeRect{ 0, 0, 50, sharedGraphicResources_struct::plugDiameter };
+
+			scopeRect.Offset(pin.direction == DR_IN ? -scopeRect.getWidth() - 2 : bounds_.getWidth() + 2, hoverPin * sharedGraphicResources_struct::plugDiameter);
+
+			scopeRect.Offset(bounds_.left, bounds_.top);
+			parent->ChildInvalidateRect(scopeRect);
+		}
+	}
+
 	PathGeometry ModuleViewStruct::CreateModuleOutline(Factory& factory)
 	{
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
@@ -2279,11 +2296,6 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 		parent->ChildInvalidateRect(r);
 
 		cpuInfo = pCpuInfo;
-	}
-
-	void ModuleViewStruct::SetHoverScopeText(const char* text)
-	{
-		hoverScopeText = text;
 	}
 
 	void ModuleViewStruct::invalidateMeasure()

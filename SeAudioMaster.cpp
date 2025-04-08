@@ -1116,6 +1116,21 @@ void SeAudioMaster::UpdateCpu(int64_t nanosecondsElapsed)
 
 		strm.Write(cpuConsumption, sizeof(cpuConsumption));
 		strm.Send();
+
+		// hover-scope
+		if (hoverScopePin)
+		{
+			if (DT_FSAMPLE == hoverScopePin->DataType)
+			{
+				const float currentValue = hoverScopePin->GetSamplePtr()[0];
+
+				my_msg_que_output_stream strm(queue, hoverScopePin->UG->Handle()/*Handle()*/, "hvsd");
+				strm << static_cast<int32_t>(sizeof(float)/* + sizeof(int32_t)*/); // message length.
+//				strm << (int32_t) hoverScopePin->UG->Handle();
+				strm << currentValue;
+				strm.Send();
+			}
+		}
 	}
 }
 
@@ -1296,6 +1311,24 @@ void SeAudioMaster::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 		Patchmanager_->OnUiMsg(p_msg_id, p_stream);
 		getShell()->EnableIgnoreProgramChange();
 		return;
+	}
+	if (p_msg_id == id_to_long2("hvsc")) // hover-scope
+	{
+		int32_t moduleHandle{};
+		int32_t pinIdx{};
+		p_stream >> moduleHandle;
+		p_stream >> pinIdx;
+		_RPTN(0, "hover-scope: %d %d\n", moduleHandle, pinIdx);
+
+		hoverScopePin = {};
+		if (pinIdx > -1) // -1 = none
+		{
+			if (auto hoverModule = dynamic_cast<ug_base*>(HandleToObject(moduleHandle)); hoverModule)
+			{
+				assert(hoverModule->plugs.size() > pinIdx && pinIdx >= 0);
+				hoverScopePin = hoverModule->GetPlug(pinIdx);
+			}
+		}
 	}
 
 	dsp_msg_target::OnUiMsg( p_msg_id, p_stream );

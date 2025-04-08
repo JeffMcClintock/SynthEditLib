@@ -60,3 +60,10 @@
 #define OM_HOVER_SCOPE_VALUE		    70
 
 #define OM_USER_1						2000 // thru 3000. UG CAN USE THIS FOR ANYTHING IT WANTS
+
+// OM_HOVER_SCOPE_VALUE
+struct handleAndString
+{
+	int handle;
+	const char* text;
+};

@@ -163,12 +163,21 @@ Shared/Vst2Preset.cpp
 
 ${VST3_SDK}/pluginterfaces/base/funknown.h
 ${VST3_SDK}/pluginterfaces/base/funknown.cpp
-${VST3_SDK}/base/source/fobject.h
-${VST3_SDK}/base/source/fobject.cpp
 ${VST3_SDK}/pluginterfaces/base/coreiids.cpp
+${VST3_SDK}/pluginterfaces/base/smartpointer.h
+${VST3_SDK}/pluginterfaces/base/fplatform.h
+${VST3_SDK}/pluginterfaces/base/ftypes.h
+${VST3_SDK}/pluginterfaces/base/iupdatehandler.h
+${VST3_SDK}/pluginterfaces/base/ibstream.h
+${VST3_SDK}/pluginterfaces/base/icloneable.h
+${VST3_SDK}/pluginterfaces/base/ipluginbase.h
+${VST3_SDK}/pluginterfaces/base/fstrdefs.h
+${VST3_SDK}/pluginterfaces/base/iplugincompatibility.h
 ${VST3_SDK}/public.sdk/source/vst/vstpresetfile.h
 ${VST3_SDK}/public.sdk/source/vst/vstpresetfile.cpp
 ${VST3_SDK}/public.sdk/source/vst/vstinitiids.cpp
+${VST3_SDK}/base/source/fobject.h
+${VST3_SDK}/base/source/fobject.cpp
 ${VST3_SDK}/base/source/fbuffer.h
 ${VST3_SDK}/base/source/fbuffer.cpp
 ${VST3_SDK}/base/source/fstring.h
@@ -178,6 +187,7 @@ ${VST3_SDK}/base/source/fdebug.cpp
 ${VST3_SDK}/base/source/baseiids.cpp
 ${VST3_SDK}/base/source/updatehandler.h
 ${VST3_SDK}/base/source/updatehandler.cpp
+${VST3_SDK}/base/source/classfactoryhelpers.h
 ${VST3_SDK}/base/thread/include/flock.h
 ${VST3_SDK}/base/thread/source/flock.cpp
 
