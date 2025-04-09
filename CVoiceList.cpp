@@ -1644,7 +1644,9 @@ Voice* VoiceList::allocateVoice( timestamp_t timestamp, /*int channel,*/ int voi
 
 					const float totalScore = scoreQuietness - attack_boost + noteDuration_score + overlap_score;
 
+#if defined( DEBUG_VOICE_ALLOCATION )
 					_RPTN(0, "Voice %d, noteDuration %f Score %f\n", v->m_voice_number, noteDuration, totalScore);
+#endif
 
 					if (v->NoteOffTime == SE_TIMESTAMP_MAX) // Held Note
 					{

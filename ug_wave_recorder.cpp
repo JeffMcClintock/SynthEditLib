@@ -3,6 +3,7 @@
 #include "ug_wave_recorder.h"
 #include "modules/shared/wav_file.h"
 #include "SeAudioMaster.h"
+#include "BundleInfo.h"
 
 // copied from header mmreg.h
 #define WAVE_FORMAT_PCM     1
@@ -59,7 +60,7 @@ int ug_wave_recorder::Close()
 {
 	//	_RPT0(_CRT_WARN, "ug_wave_recorder::Close()\n" );
 	CloseFile();
-#if 0
+
 	// Calculate program's efficiency
 	if ((SeAudioMaster::profileBlockSize || debug))
 	{
@@ -94,14 +95,28 @@ int ug_wave_recorder::Close()
 		{
 			if (BundleInfo::instance()->isEditor)
 			{
+				static std::vector<double> allTimings;
+
+				allTimings.push_back(sample_generate_time);
+				// calc mean and median
+				double sum = 0;
+				for (double time : allTimings)
+				{
+					sum += time;
+				}
+				double mean = sum / allTimings.size();
+				std::sort(allTimings.begin(), allTimings.end());
+				double median = allTimings[allTimings.size() / 2];
+
 				std::wostringstream oss;
-				oss << sample_play_time << L" seconds of sound rendered in " << sample_generate_time << "s.  Efficiency = " << efficiency << "\n";
+				oss << sample_play_time << L" seconds of sound rendered in " << sample_generate_time << "s.  Efficiency = " << efficiency << "\n"
+					<< " median: " << median << " Mean: " << mean << " (" << allTimings.size() << " runs).";
+
 				message(oss.str());
 				Sleep(250); // else terminates before que serviced.
 			}
 		}
 	}
-#endif
 
 	return ug_base::Close();
 }
