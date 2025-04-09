@@ -6,6 +6,7 @@ namespace SE2
 {
 	class IPresenter;
 	class IViewChild;
+	class ConnectorViewBase;
 }
 
 //class DECLSPEC_NOVTABLE ISubView : public gmpi::IMpUnknown
@@ -130,6 +131,7 @@ public:
 
 	void OnPatchCablesVisibilityUpdate() override;
 	void markDirtyChild(SE2::IViewChild* child) override;
+	SE2::ConnectorViewBase* createCable(SE2::CableType type, int32_t handleFrom, int32_t fromPin) override;
 
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{

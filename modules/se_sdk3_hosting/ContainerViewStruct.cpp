@@ -79,6 +79,14 @@ namespace SE2
 		std::reverse(std::begin(children), std::end(children));
 	}
 
+	ConnectorViewBase* ContainerViewStruct::createCable(CableType type, int32_t handleFrom, int32_t fromPin)
+	{
+		if (type == CableType::PatchCable)
+			return new SE2::PatchCableView(this, handleFrom, fromPin, -1, -1);
+		else
+			return new SE2::ConnectorView2(this, handleFrom, fromPin, -1, -1);
+	}
+
 	int32_t ContainerViewStruct::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 	{
 		Graphics g(drawingContext);

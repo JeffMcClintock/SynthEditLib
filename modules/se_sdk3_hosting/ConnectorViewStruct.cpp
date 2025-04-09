@@ -746,5 +746,24 @@ namespace SE2
 		}
 		return gmpi::MP_HANDLED;
 	}
+
+	int32_t ConnectorView2::measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize)
+	{
+		// Measure/Arrange not really applicable to lines.
+		returnDesiredSize->height = 10;
+		returnDesiredSize->width = 10;
+
+//		if (type == CableType::StructureCable)
+		{
+			auto module1 = dynamic_cast<ModuleViewStruct*>(Presenter()->HandleToObject(fromModuleH));
+			if (module1)
+			{
+				datatype = static_cast<char>(module1->getPinDatatype(fromModulePin));
+				isGuiConnection = module1->getPinGuiType(fromModulePin);
+			}
+		}
+
+		return gmpi::MP_OK;
+	}
 } // namespace
 

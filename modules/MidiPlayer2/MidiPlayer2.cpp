@@ -358,7 +358,7 @@ void MidiPlayer2::NextMidiEvent(int bufferOffset)
 
 	if( next_midi_clock == pulse_count )
 	{
-		if (pinSendClocks)
+		if (pinSendClocks.getId() > -1 && pinSendClocks)
 		{
 			midiMessage[0] = MIDI_CLOCK;
 			pinMIDIOut.send(midiMessage, 1, bufferOffset);
@@ -621,7 +621,7 @@ void MidiPlayer2::Setbpm(double bpm)
 
 void MidiPlayer2::MidiClockStart( int bufferOffset )
 {
-	if (pinSendClocks)
+	if (pinSendClocks.getId() > -1 && pinSendClocks)
 	{
 		unsigned char msg = MIDI_CLOCK_START;
 		pinMIDIOut.send(&msg, 1, bufferOffset);
@@ -630,7 +630,7 @@ void MidiPlayer2::MidiClockStart( int bufferOffset )
 
 void MidiPlayer2::MidiClockStop( int bufferOffset )
 {
-	if (pinSendClocks)
+	if (pinSendClocks.getId() > -1 && pinSendClocks)
 	{
 		unsigned char msg = MIDI_CLOCK_STOP;
 		pinMIDIOut.send(&msg, 1, bufferOffset);

@@ -42,17 +42,6 @@ namespace SE2
 		// Measure/Arrange not really applicable to lines.
 		returnDesiredSize->height = 10;
 		returnDesiredSize->width = 10;
-
-		if (type == CableType::StructureCable)
-		{
-			auto module1 = dynamic_cast<ModuleViewStruct*>(Presenter()->HandleToObject(fromModuleH));
-			if (module1)
-			{
-				datatype = static_cast<char>(module1->getPinDatatype(fromModulePin));
-				isGuiConnection = module1->getPinGuiType(fromModulePin);
-			}
-		}
-
 		return gmpi::MP_OK;
 	}
 

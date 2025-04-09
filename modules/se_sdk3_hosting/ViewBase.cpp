@@ -4,7 +4,7 @@
 #include <iostream>
 #include "ViewBase.h"
 #include "ConnectorView.h"
-																				#include "ConnectorViewStruct.h"
+//																				#include "ConnectorViewStruct.h"
 #include "modules/se_sdk3_hosting/Presenter.h"
 #include "ResizeAdorner.h"
 #include "GuiPatchAutomator3.h"
@@ -779,11 +779,7 @@ namespace SE2
 		{
 			// Not <ALT> held.
 
-			ConnectorViewBase* cable = nullptr;
-			if(type == CableType::PatchCable)
-				cable = new SE2::PatchCableView(this, fromModule->getModuleHandle(), fromPin, -1, -1);
-			else
-				cable = new SE2::ConnectorView2(this, fromModule->getModuleHandle(), fromPin, -1, -1);
+			ConnectorViewBase* cable = createCable(type, fromModule->getModuleHandle(), fromPin);
 
 			cable->from_ = fromPoint;
 			cable->pickup(1, fromPoint);

@@ -150,6 +150,11 @@ void SubView::OnPatchCablesVisibilityUpdate()
 	parent->parent->OnPatchCablesVisibilityUpdate();
 }
 
+SE2::ConnectorViewBase* SubView::createCable(SE2::CableType type, int32_t handleFrom, int32_t fromPin)
+{
+	return new SE2::PatchCableView(this, handleFrom, fromPin, -1, -1);
+}
+
 void SubView::markDirtyChild(SE2::IViewChild* child)
 {
 	SE2::ViewBase::markDirtyChild(child);

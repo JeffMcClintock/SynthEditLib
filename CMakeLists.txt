@@ -14,6 +14,11 @@ project(SynthEditLib)
 set(sdk_srcs
 ${gmpi_ui_folder}/helpers/Timer.h
 ${gmpi_ui_folder}/helpers/Timer.cpp
+${gmpi_ui_folder}/helpers/ImageCache.h
+${gmpi_ui_folder}/helpers/ImageCache.cpp
+${gmpi_ui_folder}/helpers/ImageMetadata.h
+${gmpi_ui_folder}/helpers/ImageMetadata.cpp
+${gmpi_ui_folder}/helpers/AnimatedBitmap.h
 ${gmpi_ui_folder}/backends/DrawingFrameCommon.h
 ${gmpi_ui_folder}/backends/DrawingFrameCommon.cpp
 
@@ -136,8 +141,6 @@ ${se_sdk_hosting_folder}/MpParameter.h
 ${se_sdk_hosting_folder}/MpParameter.cpp
 ${se_sdk_hosting_folder}/ConnectorView.h
 ${se_sdk_hosting_folder}/ConnectorView.cpp
-${se_sdk_hosting_folder}/ConnectorViewStruct.h
-${se_sdk_hosting_folder}/ConnectorViewStruct.cpp
 ${se_sdk_hosting_folder}/ModuleView.h
 ${se_sdk_hosting_folder}/ModuleView.cpp
 ${se_sdk_hosting_folder}/GmpiResourceManager.h

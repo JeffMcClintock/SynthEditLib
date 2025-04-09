@@ -109,7 +109,7 @@ namespace SE2
 		bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
 		bool hitTestR(int32_t flags, GmpiDrawing_API::MP1_RECT selectionRect) override;
 
-//		int32_t measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize) override;
+		int32_t measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize) override;
 		int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
 		int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
 		int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;

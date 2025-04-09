@@ -22,6 +22,7 @@ struct DrawingFrameBase2;
 namespace SE2
 {
 	class DragLine;
+	class ConnectorViewBase;
 
 	// Base of any view that displays modules. Itself behaving as a standard graphics module.
 	class ViewBase : public gmpi_gui::MpGuiGfxBase, public IGraphicsRedrawClient, public gmpi_gui_api::IMpKeyClient
@@ -186,6 +187,7 @@ bool isIteratingChildren = false;
 		bool DoModulePicker(gmpi::drawing::Point currentPointerPos);
 		void DismissModulePicker();
 		void DragNewModule(const char* id);
+		virtual ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) = 0;
 
 		int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 		{

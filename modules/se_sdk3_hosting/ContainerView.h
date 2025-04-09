@@ -32,6 +32,7 @@ namespace SE2
 
 		void Refresh(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap_) override;
 		void BuildModules(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap) override;
+		ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) override;
 		int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override;
 	};
 }

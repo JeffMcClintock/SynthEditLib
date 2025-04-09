@@ -94,6 +94,11 @@ namespace SE2
 		std::reverse(std::begin(children), std::end(children));
 	}
 
+	ConnectorViewBase* ContainerViewPanel::createCable(CableType type, int32_t handleFrom, int32_t fromPin)
+	{
+		return new SE2::PatchCableView(this, handleFrom, fromPin, -1, -1);
+	}
+
 } // namespace
 
  
