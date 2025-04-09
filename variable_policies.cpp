@@ -111,13 +111,6 @@ void MetaData_enum::SetValueRaw( ParameterFieldType field, const void* data, int
 	};
 }
 
-/*
-class RawValuePtr
-{
-	void *data;
-	int size;
-}
-*/
 int32_t MetaData_filename::GetDatatype( ParameterFieldType field, int* returnValue)
 {
 	*returnValue = (int) TypeToEDatatype<std::wstring>::enum_value;
@@ -127,11 +120,11 @@ int32_t MetaData_filename::GetDatatype( ParameterFieldType field, int* returnVal
 std::wstring MetaData_filename::getMetaValue()
 {
 	return std::wstring(m_file_ext.c_str());
-};
+}
 std::wstring MetaData_enum::getMetaValue()
 {
 	return std::wstring(m_enum_list.c_str());
-};
+}
 
 void MetaData_filename::GetValueRaw2( ParameterFieldType field, const void** data, int* size )
 {
