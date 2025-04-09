@@ -40,6 +40,15 @@ enum UPlugFlags : int16_t
 class UPlug
 {
 public:
+	ug_base* UG;
+
+	// Smaller datatypes should pack together.
+	EDirection Direction;	// 1-byte
+	EPlugDataType DataType;	// 1-byte
+	int16_t plugIndex_;		// 2-bytes
+
+	std::vector<UPlug*> connections;
+
 	void SetDefault(const char* utf8val);
 	void SetDefault2(const char* utf8val);
 
@@ -135,13 +144,11 @@ public:
 	void Transmit(timestamp_t timestamp, int32_t data_size, const void* data);
 	void TransmitPolyphonic(timestamp_t timestamp, int physicalVoiceNumber, int32_t data_size, const void* data);
 
-	ug_base* UG;
 	void* io_variable;
 
 	// TODO: BIG MESS. currently using 'io_variable' to store pointer to sample-buffer, and 'sample_ptr' to store pointer to module's float*
 	// SHOULD BE: io_variable left as-is to point to float*, m_buffer.sample_buffer to float* when module dosnt provide, sample-buffer pointer stored elsewhere (global array or something)
 	float** sample_ptr;
-	std::vector<UPlug*> connections;
 	void DeleteConnection(UPlug* other);
 
 	// attach appropriate buffer (MIDI/Audio in/out whatever), anything larger than 8 bytes is allocated
@@ -176,15 +183,10 @@ protected:
 private:
 	int uniqueId_; // not unique on autoduplicating plugs. hence not much use.
 
-	// Smaller datatypes after here to pack them together.
-	int16_t plugIndex_;
-
 protected:
 	state_type state;		// Is it active or dormant. depreciated with SDK3
 
 public:
-	EDirection Direction;
-	EPlugDataType DataType;  // type of io_var {IOT_INPUT, IOT_OUTPUT, IOT_IN_ARRAY}
 	UPlugFlags flags;
 
 #if defined( _DEBUG )
