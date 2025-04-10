@@ -816,15 +816,12 @@ void ug_base::SetPinValue(timestamp_t timestamp, int pin_index, int datatype, co
 
 	if( data_size1 <= sizeof(raw_output_value) )
 	{
-		if( data_size1 > 0 )
-		{
-			unsigned char* dest = (unsigned char*)raw_output_value;
-			unsigned char* src = (unsigned char*) data1;
+		unsigned char* dest = (unsigned char*)raw_output_value;
+		unsigned char* src = (unsigned char*) data1;
 
-			for(int i = 0 ; i < data_size1; i++ )
-			{
-				*dest++ = *src++;
-			}
+		for(int i = 0 ; i < data_size1; i++ )
+		{
+			*dest++ = *src++;
 		}
 	}
 	else

@@ -40,14 +40,13 @@ enum UPlugFlags : int16_t
 class UPlug
 {
 public:
+	std::vector<UPlug*> connections;
 	ug_base* UG;
 
 	// Smaller datatypes should pack together.
 	EDirection Direction;	// 1-byte
 	EPlugDataType DataType;	// 1-byte
 	int16_t plugIndex_;		// 2-bytes
-
-	std::vector<UPlug*> connections;
 
 	void SetDefault(const char* utf8val);
 	void SetDefault2(const char* utf8val);
