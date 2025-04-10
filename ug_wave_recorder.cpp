@@ -109,7 +109,7 @@ int ug_wave_recorder::Close()
 				double median = allTimings[allTimings.size() / 2];
 
 				std::wostringstream oss;
-				oss << sample_play_time << L" seconds of sound rendered in " << sample_generate_time << "s.  Efficiency = " << efficiency << "\n"
+				oss << sample_play_time << L"s rendered in " << sample_generate_time << "s.  Efficiency = " << efficiency << "\n"
 					<< " median: " << median << " Mean: " << mean << " (" << allTimings.size() << " runs).";
 
 				message(oss.str());
