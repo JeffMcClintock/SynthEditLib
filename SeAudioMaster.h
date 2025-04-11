@@ -540,6 +540,7 @@ public:
 	void SetModuleLatency(int32_t handle, int32_t latency) override;
 	void CpuFunc();
 	int32_t RegisterIoModule(class ISpecialIoModule* m) override;
+	void ApplyPinDefaultChanges(std::unordered_map<int64_t, std::string>& extraPinDefaultChanges);
 	int getLatencySamples();
 	// debugging
 	void UpdateCpu(int64_t elapsed);

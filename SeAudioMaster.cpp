@@ -446,6 +446,19 @@ void SeAudioMaster::BuildDspGraph(
 #endif
 }
 
+void SeAudioMaster::ApplyPinDefaultChanges(std::unordered_map<int64_t, std::string>& extraPinDefaultChanges)
+{
+	for (auto& p : extraPinDefaultChanges)
+	{
+		const auto handle = p.first >> 32;
+		const auto pinIdx = static_cast<int32_t>(p.first & 0xFFFFFFFF);
+		const auto& value = p.second;
+
+		auto module = dynamic_cast<ug_base*>(m_handle_map[handle]);
+		module->GetPlug(pinIdx)->SetDefault2(value.c_str());
+	}
+}
+
 int32_t SeAudioMaster::RegisterIoModule(class ISpecialIoModule* m)
 {
 	if (auto audioout = dynamic_cast<ISpecialIoModuleAudioOut*>(m); audioout)

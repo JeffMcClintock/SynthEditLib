@@ -20,10 +20,10 @@ public:
 	int32_t getHandle() override;
 
 	// IEmbeddedFileSupport
-	gmpi::ReturnCode findResourceUri(const char* fileName, /*const char* resourceType,*/ gmpi::api::IString* returnFullUri) override;
-	gmpi::ReturnCode registerResourceUri(const char* fullUri) override;
+	gmpi::ReturnCode findResourceUri(const char* fileName, gmpi::api::IString* returnFullUri) override;
 	gmpi::ReturnCode openUri(const char* fullUri, gmpi::api::IUnknown** returnStream) override;
-	gmpi::ReturnCode clearResourceUris() override;
+	gmpi::ReturnCode registerResourceUri(const char* fullUri) override { return gmpi::ReturnCode::NoSupport; }
+	gmpi::ReturnCode clearResourceUris() override { return gmpi::ReturnCode::NoSupport; }
 
 	// IPinCount
 	int32_t getAutoduplicatePinCount() override;
