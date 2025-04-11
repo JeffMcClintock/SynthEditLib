@@ -735,7 +735,7 @@ void UPlug::SetDefaultDirect(const char* utf8val)
 		assert(false); // you are using an undefined datatype
 	}
 
-	UG->SetPinValue(UG->AudioMaster()->NextGlobalStartClock(), getPlugIndex(), DataType, raw.data(), static_cast<int32_t>(raw.size()));
+	UG->SetPin Value(UG->AudioMaster()->NextGlobalStartClock(), getPlugIndex(), DataType, raw.data(), static_cast<int32_t>(raw.size()));
 }
 #endif
 
@@ -1027,6 +1027,7 @@ void UPlug::Transmit(timestamp_t timestamp, int32_t data_size, const void* data)
 		if( timestamp == 0 )
 			debug_sent_status = true;
 	#endif
+	currentRawValue.assign((char*) data, ((char*)data) + data_size);
 
 	for( auto& to_plug : connections )
 	{

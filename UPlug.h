@@ -188,6 +188,7 @@ protected:
 public:
 	UPlugFlags flags;
 
+	std::string currentRawValue; // used to store the last value sent. For hover-pins
 #if defined( _DEBUG )
 	// need to ensure all modules send status on all pins at startup (since V1.1)
 	bool debug_sent_status;

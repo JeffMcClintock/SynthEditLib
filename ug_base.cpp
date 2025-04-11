@@ -811,8 +811,8 @@ void ug_base::SetPinValue(timestamp_t timestamp, int pin_index, int datatype, co
 		}
 	}
 
-	int32_t raw_output_value[2] = {};
-	char* extraData = 0;
+	int32_t raw_output_value[2]{};
+	char* extraData{};
 
 	if( data_size1 <= sizeof(raw_output_value) )
 	{

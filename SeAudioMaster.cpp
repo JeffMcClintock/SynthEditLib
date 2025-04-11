@@ -1124,11 +1124,37 @@ void SeAudioMaster::UpdateCpu(int64_t nanosecondsElapsed)
 			{
 				const float currentValue = hoverScopePin->GetSamplePtr()[0];
 
-				my_msg_que_output_stream strm(queue, hoverScopePin->UG->Handle()/*Handle()*/, "hvsd");
-				strm << static_cast<int32_t>(sizeof(float)/* + sizeof(int32_t)*/); // message length.
-//				strm << (int32_t) hoverScopePin->UG->Handle();
+				my_msg_que_output_stream strm(queue, hoverScopePin->UG->Handle(), "hvsd");
+				strm << static_cast<int32_t>(sizeof(float)); // message length.
 				strm << currentValue;
 				strm.Send();
+			}
+			else
+			{
+				UPlug* ValuePin{};
+				if (hoverScopePin->Direction == DR_IN)
+				{
+					ValuePin = hoverScopePin->connections.empty() ? nullptr : hoverScopePin->connections[0];
+				}
+				else
+				{
+					ValuePin = hoverScopePin;
+				}
+
+				if (ValuePin)
+				{
+					RawView rview(ValuePin->currentRawValue);
+
+					if (DT_FLOAT == hoverScopePin->DataType)
+					{
+						const auto currentValue = (float)rview;
+
+						my_msg_que_output_stream strm(queue, hoverScopePin->UG->Handle(), "hvsd");
+						strm << static_cast<int32_t>(sizeof(float)); // message length.
+						strm << currentValue;
+						strm.Send();
+					}
+				}
 			}
 		}
 	}
