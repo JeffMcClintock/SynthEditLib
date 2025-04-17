@@ -13,8 +13,6 @@
 #include "ULookup.h"
 #include "./midi_defs.h"
 #include "./UMidiBuffer2.h"
-//#include "./ug_vst_in.h"
-//#include "./ug_vst_out.h"
 #include "./ug_patch_automator.h"
 #include "./IDspPatchManager.h"
 #include "ug_oversampler.h"
@@ -29,7 +27,6 @@
 #include "my_msg_que_output_stream.h"
 #include "ug_event.h"
 #include "ug_voice_splitter.h"
-#include "SeAudioMaster.h"
 #include "tinyxml/tinyxml.h"
 #include "ULookup.h"
 #include "ug_patch_param_setter.h"
@@ -1135,12 +1132,15 @@ void SeAudioMaster::UpdateCpu(int64_t nanosecondsElapsed)
 		{
 			if (DT_FSAMPLE == hoverScopePin->DataType)
 			{
+				/*
 				const float currentValue = hoverScopePin->GetSamplePtr()[0];
 
 				my_msg_que_output_stream strm(queue, hoverScopePin->UG->Handle(), "hvsd");
 				strm << static_cast<int32_t>(sizeof(float)); // message length.
 				strm << currentValue;
 				strm.Send();
+				*/
+
 			}
 			else
 			{
@@ -1360,12 +1360,27 @@ void SeAudioMaster::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 		_RPTN(0, "hover-scope: %d %d\n", moduleHandle, pinIdx);
 
 		hoverScopePin = {};
+		hoverScopeModule = {};
 		if (pinIdx > -1) // -1 = none
 		{
 			if (auto hoverModule = dynamic_cast<ug_base*>(HandleToObject(moduleHandle)); hoverModule)
 			{
 				assert(hoverModule->plugs.size() > pinIdx && pinIdx >= 0);
 				hoverScopePin = hoverModule->GetPlug(pinIdx);
+
+				if (hoverScopePin)
+				{
+					if (hoverScopePin->DataType == DT_FSAMPLE)
+					{
+						if (!hoverScopeModule)
+						{
+							hoverScopeModule = std::make_unique<HoverScopeAudioCollector>();
+							hoverScopeModule->buffer = hoverScopePin->GetSamplePtr();
+							hoverScopeModule->queue = getShell()->MessageQueToGui();
+							hoverScopeModule->moduleHandle = hoverScopePin->UG->Handle();
+						}
+					}
+				}
 			}
 		}
 	}
@@ -1660,6 +1675,9 @@ void AudioMasterBase::processModules_editor(
 #endif
 		assert(ug->sleeping || ug->SampleClock() == sample_clock + sampleframes);
 	}
+
+	if (hoverScopeModule)
+		hoverScopeModule->process(lBlockPosition, sampleframes);
 }
 
 #if defined( _DEBUG )

@@ -273,6 +273,8 @@ sample.h
 Sdk3CloneIterator.h
 SeAudioMaster.cpp
 SeAudioMaster.h
+HoverScopeAudioCollector.cpp
+HoverScopeAudioCollector.h
 SerializationHelper_XML.h
 se_types.h
 SincFilter.h

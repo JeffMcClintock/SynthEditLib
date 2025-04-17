@@ -15,6 +15,7 @@ class ModuleViewStruct : public ModuleView
 	bool muted = false;
 	int hoverPin = -1;
 	std::string hoverScopeText;
+	std::unique_ptr< std::vector<float> > hoverScopeWaveform;
 
 	static std::chrono::time_point<std::chrono::steady_clock> lastClickedTime;
 
@@ -76,6 +77,7 @@ public:
 	virtual std::unique_ptr<SE2::IViewChild> createAdorner(ViewBase* pParent) override;
 	void OnCpuUpdate(class cpu_accumulator* cpuInfo) override;
 	void SetHoverScopeText(const char* text) override;
+	void SetHoverScopeWaveform(std::unique_ptr< std::vector<float> > data) override;
 
 	bool isRackModule() override
 	{

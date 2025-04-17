@@ -58,6 +58,7 @@
 #define OM_UPDATE_PRESET_BROWSER_PATCH	68
 #define OM_SHOW_CODE_SKELETON_DIALOG    69
 #define OM_HOVER_SCOPE_VALUE		    70
+#define OM_HOVER_SCOPE_WAVEFORM		    71
 
 #define OM_USER_1						2000 // thru 3000. UG CAN USE THIS FOR ANYTHING IT WANTS
 
@@ -66,4 +67,10 @@ struct handleAndString
 {
 	int handle;
 	const char* text;
+};
+// OM_HOVER_SCOPE_WAVEFORM
+struct handleAndWaveform
+{
+	int handle;
+	std::unique_ptr< std::vector<float> > data;
 };

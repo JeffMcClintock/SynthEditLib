@@ -395,6 +395,7 @@ namespace SE2
 
 		virtual void OnCpuUpdate(cpu_accumulator* cpuInfo) {}
 		virtual void SetHoverScopeText(const char* text) {}
+		virtual void SetHoverScopeWaveform(std::unique_ptr< std::vector<float> > data) {}
 
 		// SDK3
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface> pluginParametersLegacy;

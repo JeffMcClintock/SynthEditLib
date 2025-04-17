@@ -985,21 +985,79 @@ namespace SE2
 		{
 			const auto& pin = plugs_[hoverPin];
 
-			GmpiDrawing::Rect scopeRect{ 0, 0, 50, plugDiameter };
+			Rect scopeRect{ 0, 0, 48, plugDiameter * 2.0f };
 
-			scopeRect.Offset(pin.direction == DR_IN ? -scopeRect.getWidth() - 2 : bounds_.getWidth() + 2, hoverPin * plugDiameter);
+			float visiblePinrank = -0.5f;
+			for (const auto& pin : plugs_)
+			{
+				if (pin.isVisible)
+				{
+					if (pin.indexCombined == hoverPin)
+						break;
+
+					visiblePinrank++;
+				}
+			}
+
+			scopeRect.Offset(pin.direction == DR_IN ? -scopeRect.getWidth() - 2 : bounds_.getWidth() + 2, visiblePinrank * plugDiameter);
 
 			auto brush = g.CreateSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
 			g.FillRectangle(scopeRect, brush);
 
 			brush.SetColor(Color::LimeGreen);
-			g.DrawTextU(hoverScopeText.c_str(), resources->tf_plugs_left, scopeRect, brush);
+
+			if (hoverScopeWaveform)
+			{
+				auto geometry = g.GetFactory().CreatePathGeometry();
+				auto sink = geometry.Open();
+
+				const float yScale = scopeRect.getHeight() * 0.5f;
+				const float yMiddle = scopeRect.top + yScale;
+				const float dx = scopeRect.getWidth() / static_cast<float>(hoverScopeWaveform->size());
+				Point p{ scopeRect.left, 0.f };
+
+				for (int i = 0; i < hoverScopeWaveform->size(); ++i)
+				{
+					p.y = yMiddle - yScale * (*hoverScopeWaveform)[i];
+					if (i == 0)
+						sink.BeginFigure(p);
+					else
+						sink.AddLine(p);
+
+					p.x += dx;
+				}
+
+				sink.EndFigure(FigureEnd::Open);
+				sink.Close();
+
+				g.DrawGeometry(geometry, brush, 1.0f);
+			}
+			else
+			{
+				g.DrawTextU(hoverScopeText.c_str(), resources->tf_plugs_left, scopeRect, brush);
+			}
 		}
 	}
 
 	void ModuleViewStruct::SetHoverScopeText(const char* text)
 	{
 		hoverScopeText = text;
+
+		if (hoverPin > -1)
+		{
+			const auto& pin = plugs_[hoverPin];
+
+			GmpiDrawing::Rect scopeRect{ 0, 0, 50, sharedGraphicResources_struct::plugDiameter };
+
+			scopeRect.Offset(pin.direction == DR_IN ? -scopeRect.getWidth() - 2 : bounds_.getWidth() + 2, hoverPin * sharedGraphicResources_struct::plugDiameter);
+
+			scopeRect.Offset(bounds_.left, bounds_.top);
+			parent->ChildInvalidateRect(scopeRect);
+		}
+	}
+	void ModuleViewStruct::SetHoverScopeWaveform(std::unique_ptr< std::vector<float> > data)
+	{
+		hoverScopeWaveform = std::move(data);
 
 		if (hoverPin > -1)
 		{
@@ -2185,6 +2243,7 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 			if (hoverPin != newHoverPin)
 			{
 				hoverPin = newHoverPin;
+				hoverScopeWaveform = {};
 
 				Presenter()->setHoverScopePin(handle, newHoverPin);
 

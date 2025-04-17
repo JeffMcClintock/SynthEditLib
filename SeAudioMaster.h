@@ -28,6 +28,7 @@
 #include "my_VstTimeInfo.h"
 #include "iseshelldsp.h"
 #include "CpuConsumption.h"
+#include "HoverScopeAudioCollector.h"
 
 // Waves-only, use fixed-pool memory management.
 #if defined( SE_FIXED_POOL_MEMORY_ALLOCATION )
@@ -328,6 +329,7 @@ public:
 	std::list<class UgDebugInfo*> m_debuggers;
 	std::vector<class ug_base*> m_cpu_parents;
 	int cpu_block_rate = 1;
+	std::unique_ptr<HoverScopeAudioCollector> hoverScopeModule;
 };
 
 class SeAudioMaster : public EventProcessor, public interThreadQueUser, public AudioMasterBase
