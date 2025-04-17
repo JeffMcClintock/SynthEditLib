@@ -1,7 +1,7 @@
 
 #include <math.h>
 #include "ug_generic_1_1.h"
-#include "UgDatabase.h"
+#include "module_register.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_generic_1_1)
 

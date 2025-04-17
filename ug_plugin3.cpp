@@ -12,7 +12,6 @@
 #include "Sdk3CloneIterator.h"
 #include "./modules/shared/xplatform.h"
 #include "conversion.h"
-#include "UgDatabase.h"
 #include "ug_container.h"
 #include "MpPinIterator.h"
 #include "ProtectedFile.h"
