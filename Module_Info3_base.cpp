@@ -16,6 +16,8 @@
 #include "UgDatabase.h"
 #include "./modules/shared/xplatform.h"
 #include "SafeMessageBox.h"
+#include "GmpiSdkCommon.h"
+#include "ug_gmpi.h"
 
 #include <assert.h>
 #include "modules/tinyXml2/tinyxml2.h"
@@ -82,7 +84,7 @@ void Module_Info3_base::ScanXml(TiXmlElement* pluginData)
 
 	auto gui_plugin_class = pluginData->FirstChild("GUI");
 	// New. Graphics API specified on "GUI".
-	if (gui_plugin_class != 0)
+	if (gui_plugin_class)
 	{
 		graphicsApi = FixNullCharPtr(gui_plugin_class->ToElement()->Attribute("graphicsApi"));
 	}
@@ -314,20 +316,16 @@ void Module_Info::RegisterParameters(TiXmlNode* parameters) // XML data passed i
 	std::wstring msg;
 	parameter_description* pind;
 
-	/*
-		for( unsigned int k = 0 ; k < parameters.size(); k++ )
-		{
-			XNode *pData = parameters[k];
-			XNodes param = pData->GetChilds((L"Parameter") );
-			for( unsigned int l = 0 ; l < param.size(); l++ )
-		XNode *pData2 = param[l];
-	*/
+	int pinId{};
 	for (auto param = parameters->FirstChild("Parameter"); param; param = param->NextSibling("Parameter"))
 	{
 		TiXmlElement* pData2 = param->ToElement();
 		pind = new parameter_description();
+
 		// I.D.
-		pData2->QueryIntAttribute("id", &(pind->id));
+		pData2->QueryIntAttribute("id", &pinId);
+		pind->id = pinId;
+
 		// Datatype.
 		std::string pin_datatype = FixNullCharPtr(pData2->Attribute("datatype"));
 		// Name.
@@ -396,6 +394,8 @@ void Module_Info::RegisterParameters(TiXmlNode* parameters) // XML data passed i
 			bool res = m_parameters.insert({ pind->id, pind }).second;
 			assert(res && "parameter already registered");
 		}
+
+		++pinId;
 	}
 
 	scanned_xml_parameters = true;
@@ -1212,6 +1212,7 @@ Module_Info3_internal::Module_Info3_internal(const wchar_t* moduleId) :
 {
 }
 
+#if 0
 Module_Info3_internal::Module_Info3_internal(const char* xml) :
 	Module_Info3_base(L"")
 {
@@ -1235,6 +1236,7 @@ Module_Info3_internal::Module_Info3_internal(const char* xml) :
 		ScanXml(PluginElement);
 	}
 }
+#endif
 
 int32_t Module_Info3_internal::RegisterPluginConstructor(int subType, MP_CreateFunc2 create)
 {
@@ -1273,21 +1275,32 @@ ug_base* Module_Info3_internal::BuildSynthOb()
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpPlugin2> plugin;
 		com_object->queryInterface(gmpi::MP_IID_PLUGIN2, plugin.asIMpUnknownPtr());
 
-		if (plugin == 0)
+		if (plugin)
 		{
-			return 0;
+			// create and attach appropriate wrapper.
+			auto ug = new ug_plugin3<gmpi::IMpPlugin2, gmpi::MpEvent>();
+			ug->setModuleType(this);
+			ug->flags = static_cast<UgFlags>(ug_flags);
+			ug->latencySamples = latency;
+			ug->AttachGmpiPlugin(plugin);
+			plugin->setHost(static_cast<gmpi::IGmpiHost*>(ug));
+
+			return ug;
 		}
 
-		// create and attach appropriate wrapper.
-		auto ug = new ug_plugin3<gmpi::IMpPlugin2, gmpi::MpEvent>();
-		ug->setModuleType(this);
-		ug->flags = static_cast<UgFlags>(ug_flags);
-		ug->latencySamples = latency;
-		ug->AttachGmpiPlugin(plugin);
-		plugin->setHost(static_cast<gmpi::IGmpiHost*>(ug));
+		gmpi::shared_ptr<gmpi::api::IProcessor> gmpi_plugin;
+		com_object->queryInterface(*(gmpi::MpGuid*)&gmpi::api::IProcessor::guid, gmpi_plugin.put_void());
 
-		return ug;
+		if (gmpi_plugin)
+		{
+			// Now plugin safely created. Host it.
+			auto ug = new ug_gmpi(this, gmpi_plugin);
+			ug->flags = static_cast<UgFlags>(ug_flags);
+			ug->latencySamples = latency;
+
+			return ug;
+		}
 	}
 
-	return 0;
+	return {};
 }

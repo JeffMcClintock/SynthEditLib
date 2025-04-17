@@ -151,21 +151,37 @@ bool Module_Info::gui_object_non_visible()
 //	return ( GetFlags() & CF_NON_VISIBLE) != 0;
 }
 
-Module_Info* CModuleFactory::FindOrCreateModuleInfo( const std::wstring& p_unique_id  )
+Module_Info* CModuleFactory::FindOrCreateModuleInfo(const std::wstring& p_unique_id)
 {
-	auto it = module_list.find( p_unique_id );
+	auto it = module_list.find(p_unique_id);
 
-	if( it == module_list.end( ) )
+	if (it == module_list.end())
 	{
 		Module_Info* mi = new Module_Info(p_unique_id);
 		auto res = module_list.insert({ (mi->UniqueId()), mi });
-		assert( res.second ); // insert failed.
+		assert(res.second); // insert failed.
 		return mi;
 	}
 	else
 	{
 		return (*it).second;
 	}
+}
+
+// SDK3/ GMPI modules
+Module_Info3_internal* CModuleFactory::FindOrCreateModuleInfo3(const std::wstring& p_unique_id)
+{
+	if (auto it = module_list.find(p_unique_id); it != module_list.end())
+	{
+		auto mi3 = dynamic_cast<Module_Info3_internal*>((*it).second);
+		assert(mi3 && "wrong type of module");
+		return mi3;
+	}
+
+	auto mi = new Module_Info3_internal(p_unique_id.c_str());
+	auto res = module_list.insert({ (mi->UniqueId()), mi });
+	assert(res.second); // insert failed.
+	return mi;
 }
 
 // real GMPI factory registration
@@ -213,40 +229,44 @@ namespace internalSdk
 
 int32_t CModuleFactory::RegisterPlugin( int subType, const wchar_t* uniqueId, MP_CreateFunc2 create )
 {
-	Module_Info3_internal* mi3 = 0;
-	Module_Info* mi = GetById( uniqueId );
+	auto mi3 = FindOrCreateModuleInfo3(uniqueId);
+	return mi3->RegisterPluginConstructor( subType, create );
+}
 
-	if( mi )
-	{
-		mi3 = dynamic_cast<Module_Info3_internal*>( mi );
+std::wstring parseModuleId(TiXmlDocument& doc, const char* xml)
+{
+	doc.Parse(xml);
 
-		if( mi3 == 0 )
-		{
-			assert( false && "wrong type of module" );
-			return gmpi::MP_FAIL;
-		}
-	}
-	else
+	if (!doc.Error())
 	{
-		mi3 = new Module_Info3_internal( uniqueId );
-		auto res = module_list.insert({ (mi3->UniqueId()), mi3 });
-		assert( res.second ); // insert failed.
+		auto pluginList = doc.FirstChild("PluginList");
+		auto node = pluginList->FirstChild("Plugin");
+		assert(node);
+		auto PluginElement = node->ToElement();
+		return Utf8ToWstring(PluginElement->Attribute("id"));
 	}
 
-	mi3->RegisterPluginConstructor( subType, create );
-
-	return gmpi::MP_OK;
+	return{};
 }
 
 int32_t CModuleFactory::RegisterPluginWithXml(int subType, const char* xml, MP_CreateFunc2 create)
 {
-	auto mi3 = new Module_Info3_internal(xml);
+	TiXmlDocument doc;
+	auto uniqueId = parseModuleId(doc, xml);
 
-	auto res = module_list.insert({ (mi3->UniqueId()), mi3 });
-	assert(res.second); // insert failed.
-	mi3->RegisterPluginConstructor(subType, create);
+	if (uniqueId.empty())
+	{
+		std::wostringstream oss;
+		oss << L"Module XML Error: [SynthEdit.exe]" << doc.ErrorDesc() << L"." << doc.Value();
+		SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
+		return gmpi::MP_FAIL;
+	}
 
-	return gmpi::MP_OK;
+	auto mi3 = FindOrCreateModuleInfo3(uniqueId);
+
+	mi3->ScanXml(doc.FirstChild("PluginList")->FirstChild("Plugin")->ToElement());
+
+	return mi3->RegisterPluginConstructor(subType, create);
 }
 
 // Register DSP section of module
@@ -1234,6 +1254,9 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	// temporarily built in SELib to make iterating on this quicker
 	INIT_STATIC_FILE(GmpiUiTest);
 	INIT_STATIC_FILE(CadmiumModules);
+
+	INIT_STATIC_FILE(HoverScope);
+	INIT_STATIC_FILE(HoverScopeGui);
 
 	// You can include extra plugin-specific modules by placing this define in projucer 'Extra Preprocessor Definitions'
 	// e.g. SE_EXTRA_STATIC_FILE_CPP="../PROJECT_NAME/Resources/module_static_link.cpp"

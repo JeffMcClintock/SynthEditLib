@@ -12,6 +12,9 @@ set(DSP_CORE ${CMAKE_CURRENT_SOURCE_DIR})
 project(SynthEditLib)
 
 set(sdk_srcs
+${gmpi_sdk_folder}/Core/Processor.h
+${gmpi_sdk_folder}/Core/Processor.cpp
+
 ${gmpi_ui_folder}/helpers/Timer.h
 ${gmpi_ui_folder}/helpers/Timer.cpp
 ${gmpi_ui_folder}/helpers/ImageCache.h
@@ -58,6 +61,8 @@ set(sdk_srcs
   ${sdk_srcs}
   ${gmpi_ui_folder}/backends/DrawingFrameWin.h
   ${gmpi_ui_folder}/backends/DrawingFrameWin.cpp
+  ${gmpi_ui_folder}/backends/DirectXGfx.h
+  ${gmpi_ui_folder}/backends/DirectXGfx.cpp
   Shared/DrawingFrame2_win.h
   Shared/DrawingFrame2_win.cpp
 )
@@ -81,6 +86,8 @@ set(srcs_modules_internal
 modules_internal/Blob2Test.cpp
 modules_internal/CadmiumModules.cpp
 modules_internal/CpuMeter/CpuMeterGui.cpp
+modules_internal/HoverScope.cpp
+modules_internal/HoverScopeGui.cpp
 modules_internal/MIDI2Converter.cpp
 modules_internal/MPEToMIDI2.cpp
 modules_internal/PatchPoints.cpp
@@ -121,8 +128,6 @@ set(srcs
 Shared/AuPreset.h
 Shared/AuPreset.cpp
 
-${gmpi_ui_folder}/backends/DirectXGfx.h
-${gmpi_ui_folder}/backends/DirectXGfx.cpp
 modules/se_sdk3_hosting/IGuiHost2.h
 
 ${se_sdk_hosting_folder}/gmpi_gui_hosting.h

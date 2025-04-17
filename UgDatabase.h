@@ -65,5 +65,6 @@ private:
 	CModuleFactory( const CModuleFactory& );
 	~CModuleFactory();
 	Module_Info* FindOrCreateModuleInfo( const std::wstring& p_unique_id );
+	class Module_Info3_internal* FindOrCreateModuleInfo3(const std::wstring& p_unique_id);
 	void initialise_synthedit_modules(bool passFalse = false);
 };
