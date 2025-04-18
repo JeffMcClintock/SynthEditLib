@@ -16,7 +16,8 @@ class ModuleViewStruct : public ModuleView
 	int hoverPin = -1;
 	std::string hoverScopeText;
 	std::unique_ptr< std::vector<float> > hoverScopeWaveform;
-
+	float movingPeaks[512] = {};
+	int movingPeaksIdx = 0;
 	static std::chrono::time_point<std::chrono::steady_clock> lastClickedTime;
 
 	std::shared_ptr<sharedGraphicResources_struct> drawingResources;
@@ -76,6 +77,7 @@ public:
 	}
 	virtual std::unique_ptr<SE2::IViewChild> createAdorner(ViewBase* pParent) override;
 	void OnCpuUpdate(class cpu_accumulator* cpuInfo) override;
+	GmpiDrawing::Rect calcScopeRect(int pinIdx);
 	void SetHoverScopeText(const char* text) override;
 	void SetHoverScopeWaveform(std::unique_ptr< std::vector<float> > data) override;
 

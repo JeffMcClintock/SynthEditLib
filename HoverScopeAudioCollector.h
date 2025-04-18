@@ -2,8 +2,20 @@
 
 struct HoverScopeAudioCollector
 {
+	HoverScopeAudioCollector(
+		int32_t pmoduleHandle
+		, int psampleRate
+		, float* pbuffer
+		, class IWriteableQue* pqueue
+	);
 	const float* buffer{};
-	float resultsA_[400 + 1]; // 4x as big when oversampling. +1 for sample-rate.
+	float resultsA_[1024 + 1]; // 4x as big when oversampling. +1 for sample-rate.
+	float sampleRate{};
+	int samplesPerPoint{};
+	float pointMax{};
+	float pointMin{};
+	int pointCounter{};
+
 	int index_{};
 	int timeoutCount_{};
 	int channelsleepCount_{};

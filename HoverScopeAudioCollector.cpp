@@ -1,13 +1,66 @@
 #include <assert.h>
+#include <cmath>
 #include <algorithm>
 #include "HoverScopeAudioCollector.h"
 #include "my_msg_que_output_stream.h"
+
+HoverScopeAudioCollector::HoverScopeAudioCollector(
+	  int32_t pmoduleHandle
+	, int psampleRate
+	, float* pbuffer
+	, class IWriteableQue* pqueue
+)
+	: buffer(pbuffer)
+	, sampleRate(psampleRate)
+	, queue(pqueue)
+	, moduleHandle(pmoduleHandle)
+{
+	constexpr int totalCapturePoints = 192; // 96 pixels in HD
+	constexpr float captureTime = 2.f; // 2s
+	samplesPerPoint = static_cast<int>(std::roundf(sampleRate * captureTime / totalCapturePoints));
+	pointCounter = samplesPerPoint;
+}
 
 void HoverScopeAudioCollector::process(int blockPosition, int sampleFrames)
 {
 	// get pointers to in/output buffers
 	auto signalA = buffer + blockPosition;
 
+#if 1 // long-term display
+	
+	for (int s = sampleFrames; s > 0; s--)
+	{
+		if (pointCounter <= 0)
+		{
+			pointCounter = samplesPerPoint;
+			resultsA_[index_++] = pointMin;
+			resultsA_[index_++] = pointMax;
+
+//			if (index_ >= captureSamples)
+			{
+				const int32_t valueCount = index_;
+				const int32_t totalBytes = static_cast<int32_t>(sizeof(float)) * valueCount;
+
+				my_msg_que_output_stream strm(queue, moduleHandle, "hvsw"); // hoverscope waveform.
+				strm << static_cast<int32_t>(totalBytes + sizeof(int32_t)); // message size (waveform + count)
+				strm << valueCount;
+				strm.Write(resultsA_, totalBytes);
+				strm.Send();
+
+				index_ = 0;
+				pointMin = 0.f;
+				pointMax = 0.f;
+			}
+		}
+
+		pointMin = (std::min)(pointMin, *signalA);
+		pointMax = (std::max)(pointMax, *signalA);
+
+		pointCounter--;
+		signalA++;
+	}
+
+#else // zoomed-in scope
 	int s = sampleFrames;
 	for (; s > 0; s--)
 	{
@@ -95,4 +148,5 @@ void HoverScopeAudioCollector::process(int blockPosition, int sampleFrames)
 			s -= count;
 		}
 	}
+#endif
 }

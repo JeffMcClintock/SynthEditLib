@@ -1372,13 +1372,12 @@ void SeAudioMaster::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 				{
 					if (hoverScopePin->DataType == DT_FSAMPLE)
 					{
-						if (!hoverScopeModule)
-						{
-							hoverScopeModule = std::make_unique<HoverScopeAudioCollector>();
-							hoverScopeModule->buffer = hoverScopePin->GetSamplePtr();
-							hoverScopeModule->queue = getShell()->MessageQueToGui();
-							hoverScopeModule->moduleHandle = hoverScopePin->UG->Handle();
-						}
+						hoverScopeModule = std::make_unique<HoverScopeAudioCollector>(
+							hoverScopePin->UG->Handle()
+							, SampleRate()
+							, hoverScopePin->GetSamplePtr()
+							, getShell()->MessageQueToGui()
+						);
 					}
 				}
 			}
