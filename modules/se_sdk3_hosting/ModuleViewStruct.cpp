@@ -1015,7 +1015,7 @@ namespace SE2
 
 			brush.SetColor(Color::LimeGreen);
 
-			if (true) //hoverScopeWaveform)
+			if (scopeIsWave) //hoverScopeWaveform)
 			{
 #if 1
 				auto geometry = g.GetFactory().CreatePathGeometry();
@@ -1105,6 +1105,7 @@ namespace SE2
 			scopeRect.Offset(bounds_.left, bounds_.top);
 			parent->ChildInvalidateRect(scopeRect);
 		}
+		scopeIsWave = false;
 	}
 	void ModuleViewStruct::SetHoverScopeWaveform(std::unique_ptr< std::vector<float> > data)
 	{
@@ -1127,6 +1128,8 @@ namespace SE2
 		auto scopeRect = calcScopeRect(hoverPin);
 		scopeRect.Offset(bounds_.left, bounds_.top);
 		parent->ChildInvalidateRect(scopeRect);
+
+		scopeIsWave = true;
 #endif
 	}
 

@@ -1255,9 +1255,6 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(GmpiUiTest);
 	INIT_STATIC_FILE(CadmiumModules);
 
-	INIT_STATIC_FILE(HoverScope);
-	INIT_STATIC_FILE(HoverScopeGui);
-
 	// You can include extra plugin-specific modules by placing this define in projucer 'Extra Preprocessor Definitions'
 	// e.g. SE_EXTRA_STATIC_FILE_CPP="../PROJECT_NAME/Resources/module_static_link.cpp"
 #ifdef SE_EXTRA_STATIC_FILE_CPP

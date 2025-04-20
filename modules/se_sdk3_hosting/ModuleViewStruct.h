@@ -14,6 +14,7 @@ class ModuleViewStruct : public ModuleView
 	GmpiDrawing::Rect clipArea;
 	bool muted = false;
 	int hoverPin = -1;
+	bool scopeIsWave{};
 	std::string hoverScopeText;
 	std::unique_ptr< std::vector<float> > hoverScopeWaveform;
 	float movingPeaks[512] = {};

@@ -478,6 +478,14 @@ void SeAudioMaster::DoProcess_plugin(int sampleframes, const float* const* input
 	{
 		audioOutModule->setIoBuffers(outputs, numOutputs);
 	}
+	else
+	{
+		// send silence.
+		for (int chan = 0; chan < numOutputs; ++chan)
+		{
+			std::fill(outputs[chan], outputs[chan] + sampleframes, 0.0f);
+		}
+	}
 
 	if (audioInModule)
 	{

@@ -48,13 +48,15 @@ void HoverScopeAudioCollector::process(int blockPosition, int sampleFrames)
 				strm.Send();
 
 				index_ = 0;
-				pointMin = 0.f;
-				pointMax = 0.f;
+				pointMin = *signalA;
+				pointMax = *signalA;
 			}
 		}
-
-		pointMin = (std::min)(pointMin, *signalA);
-		pointMax = (std::max)(pointMax, *signalA);
+		else
+		{
+			pointMin = (std::min)(pointMin, *signalA);
+			pointMax = (std::max)(pointMax, *signalA);
+		}
 
 		pointCounter--;
 		signalA++;

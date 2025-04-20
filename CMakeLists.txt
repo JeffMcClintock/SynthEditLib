@@ -86,8 +86,6 @@ set(srcs_modules_internal
 modules_internal/Blob2Test.cpp
 modules_internal/CadmiumModules.cpp
 modules_internal/CpuMeter/CpuMeterGui.cpp
-modules_internal/HoverScope.cpp
-modules_internal/HoverScopeGui.cpp
 modules_internal/MIDI2Converter.cpp
 modules_internal/MPEToMIDI2.cpp
 modules_internal/PatchPoints.cpp
