@@ -9,6 +9,7 @@
 #include "helpers/AnimatedBitmap.h"
 #include "NumberEditClient.h"
 #include "Extensions/EmbeddedFile.h"
+#include "../shared/unicode_conversion.h"
 
 using namespace gmpi;
 using namespace gmpi::editor2;
@@ -224,7 +225,8 @@ public:
     {
         if (paramHost)
         {
-            paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), &pinNormalized.value);
+            const float safeValue = std::clamp(pinNormalized.value, 0.0f, 1.0f);
+            paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), &safeValue);
             paramHost->setParameter(pinId.value, gmpi::Field::Grab, 0, sizeof(bool), &pinMouseDown.value);
         }
 
@@ -388,24 +390,6 @@ public:
         init(text_mod);
         init(pinValue_in);
         init(pinValue);
-
-#if 0
-        // pass-thru
-        pinValue_in.onUpdate = [this](PinBase*)
-            {
-                pinValue = pinValue_in.value;
-            };
-        text_mod.onUpdate = [this](PinBase*)
-            {
-                // if user changed the text at all, update the float value.
-                if (text_mod.value != text_orig.value)
-                {
-                    pinValue = (float)strtod(text_mod.value.c_str(), 0);
-                }
-
-//                _RPTN(0, "PatchMemUpdateFloatText:Value %s\n", text_mod.value.c_str());
-            };
-#endif
     }
 
     ReturnCode process() override
@@ -676,6 +660,118 @@ auto r8 = gmpi::Register<Image4Gui>::withXml(R"XML(
 )XML");
 }
 
+struct TextEditCallback : public gmpi::api::ITextEditCallback
+{
+    std::function<void(ReturnCode)> callback = [](ReturnCode) {};
+    std::string text;
+
+    void onChanged(const char* ptext) override
+    {
+		text = ptext;
+    }
+    void onComplete(ReturnCode result)
+    {
+		callback(result);
+    }
+
+    GMPI_QUERYINTERFACE_METHOD(gmpi::api::ITextEditCallback);
+    GMPI_REFCOUNT_NO_DELETE;
+};
+
+
+class TextEntry4Gui : public PluginEditor
+{
+protected:
+    Pin<std::string> pinValueIn;
+    Pin<std::string> pinValueOut;
+
+    TextEditCallback callback;
+
+public:
+    TextEntry4Gui()
+    {
+        init(pinValueIn);
+        init(pinValueOut);
+
+        callback.callback = [this](ReturnCode result)
+            {
+                pinValueOut = callback.text;
+            };
+    }
+
+    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    {
+        Graphics g(drawingContext);
+
+		auto borderBrush = g.createSolidColorBrush(Colors::White);
+		auto textBrush = g.createSolidColorBrush(Colors::Black);
+		auto textFormat = g.getFactory().createTextFormat(getHeight(bounds));
+		auto textRect = bounds;
+		textRect.left += 2;
+		textRect.top += 2;
+		textRect.right -= 2;
+		textRect.bottom -= 2;
+		g.fillRectangle(textRect, borderBrush);
+		g.drawTextU(pinValueIn.value, textFormat, textRect, textBrush);
+		g.drawRectangle(textRect, borderBrush);
+        return ReturnCode::Ok;
+    }
+
+    ReturnCode process() override
+    {
+        pinValueOut = pinValueIn.value;
+
+//        if (pinValue.value)
+//            editorHost2->setDirty(); // return to zero next frame.
+
+        return ReturnCode::Ok;
+    }
+
+    ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
+    {
+        return ReturnCode::Ok;
+    }
+    gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
+    {
+		inputHost->setCapture();
+        return ReturnCode::Unhandled;
+    }
+    gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
+    {
+        inputHost->releaseCapture();
+
+		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+        dialogHost->createTextEdit(&bounds, unknown.put());
+
+		auto textEdit = unknown.as<gmpi::api::ITextEdit>();
+
+        if (textEdit)
+        {
+            textEdit->setText(pinValueIn.value.c_str());
+            textEdit->showAsync(&callback);
+        }
+
+        return ReturnCode::Unhandled;
+    }
+};
+
+// Register the GUI
+namespace
+{
+auto r8B = gmpi::Register<TextEntry4Gui>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: TextEntry4Gui" name="TextEntry4" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+	<GUI graphicsApi="GmpiGui">
+		<Pin name="Value" datatype="string_utf8" />
+		<Pin name="Value" datatype="string_utf8" direction="out" />
+	</GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 class MouseTarget : public PluginEditor
 {
 protected:
@@ -906,6 +1002,176 @@ auto r13 = gmpi::Register<Bool2Float>::withXml(R"XML(
     <GUI>
       <Pin name="Value" datatype="bool"/>
       <Pin name="Value" datatype="float" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class Float2Text final : public PluginEditorNoGui
+{
+    Pin<float> pinValue_in;
+    Pin<int> pinDecimals;
+    Pin<std::string> pinOutput;
+
+public:
+    Float2Text()
+    {
+        init(pinValue_in);
+        init(pinDecimals);
+        init(pinOutput);
+    }
+
+    ReturnCode process() override
+    {
+        int decimals = pinDecimals.value;
+
+        if (decimals < 0) // -1 : automatic decimal places.
+        {
+            float absolute = fabsf(pinValue_in.value);
+            decimals = 2;
+
+            if (absolute < 0.1f)
+            {
+                if (absolute == 0.0f)
+                    decimals = 1;
+                else
+                    decimals = 4;
+            }
+            else
+                if (absolute > 10.f)
+                    decimals = 1;
+                else
+                    if (absolute > 100.f)
+                        decimals = 0;
+        }
+
+        // longest float value is about 40 characters.
+        const int maxSize = 50;
+
+        char formatString[maxSize];
+
+        // Use safe printf if available.
+#if defined(_MSC_VER)
+        sprintf_s(formatString, maxSize, "%%.%df", decimals);
+#else
+        sprintf(formatString, maxSize, "%%.%df", decimals);
+#endif
+
+        char outputString[maxSize];
+
+        //#if defined(_MSC_VER)
+        //	swprintf_s( outputString, maxSize, formatString, (double) (float) inputValue );
+        //#else
+        snprintf(outputString, maxSize, formatString, (double)pinValue_in.value);
+        //	#endif
+
+            // Replace -0.0 with 0.0 ( same for -0.00 and -0.000 etc).
+            // deliberate 'feature' of printf is to round small negative numbers to -0.0
+        if (outputString[0] == '-' && (float)pinValue_in.value > -1.0f)
+        {
+            int i = (int)strlen(outputString) - 1;
+            while (i > 0)
+            {
+                if (outputString[i] != '0' && outputString[i] != '.')
+                {
+                    break;
+                }
+                --i;
+            }
+            if (i == 0) // nothing but zeros (or dot). remove leading minus sign.
+            {
+                strcpy(outputString, outputString + 1);
+            }
+        }
+
+        pinOutput = outputString;
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r14 = gmpi::Register<Float2Text>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Float2Text" name="Float2Text" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Value" datatype="float"/>
+      <Pin name="Decimal Places" datatype="int" default="-1"/>
+      <Pin name="Value" datatype="string_utf8" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class Utf82Wide final : public PluginEditorNoGui
+{
+    Pin<std::string> pinValue_in;
+    Pin<std::wstring> pinOutput;
+
+public:
+    Utf82Wide()
+    {
+        init(pinValue_in);
+        init(pinOutput);
+    }
+
+    ReturnCode process() override
+    {
+        pinOutput = JmUnicodeConversions::Utf8ToWstring(pinValue_in.value);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r15 = gmpi::Register<Utf82Wide>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Utf82Wide" name="Utf82Wide" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Value" datatype="string_utf8"/>
+      <Pin name="Value" datatype="string" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+class Wide2Utf8 final : public PluginEditorNoGui
+{
+    Pin<std::wstring> pinValue_in;
+    Pin<std::string> pinOutput;
+
+public:
+    Wide2Utf8()
+    {
+        init(pinValue_in);
+        init(pinOutput);
+    }
+
+    ReturnCode process() override
+    {
+        pinOutput = JmUnicodeConversions::WStringToUtf8(pinValue_in.value);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r16 = gmpi::Register<Wide2Utf8>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Wide2Utf8" name="Wide2Utf8" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Value" datatype="string"/>
+      <Pin name="Value" datatype="string_utf8" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>

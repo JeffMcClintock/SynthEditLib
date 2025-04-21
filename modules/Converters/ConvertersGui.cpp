@@ -35,7 +35,6 @@ REGISTER_GUI_PLUGIN(Int64ToIntGui, L"SE Int64ToIntGui");
 
 REGISTER_GUI_PLUGIN( FloatToInt, L"SE FloatToInt GUI" );
 REGISTER_GUI_PLUGIN( FloatToBool, L"SE FloatToBool GUI" );
-//REGISTER_GUI_PLUGIN( FloatToText, L"SE FloatToText GUI" );
 REGISTER_GUI_PLUGIN(FloatToDoubleGui, L"SE FloatToFloat64Gui");
 REGISTER_GUI_PLUGIN(DoubleToFloatGui, L"SE Float64ToFloatGui");
 

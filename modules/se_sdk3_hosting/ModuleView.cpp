@@ -53,7 +53,12 @@ namespace SE2
 		return host->getRasterizationScale();
 	}
 	// IDialogHost
-	ReturnCode GmpiUiHelper::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) { return gmpi::ReturnCode::NoSupport; }
+	ReturnCode GmpiUiHelper::createTextEdit(const gmpi::drawing::Rect* rect, gmpi::api::IUnknown** returnTextEdit)
+	{
+		gmpi::drawing::Rect r = offsetRect(*rect, { moduleview.bounds_.left + moduleview.pluginGraphicsPos.left, moduleview.bounds_.top + moduleview.pluginGraphicsPos.top });
+		return (gmpi::ReturnCode) moduleview.parent->ChildCreatePlatformTextEdit((GmpiDrawing_API::MP1_RECT*) &r, (gmpi_gui::IMpPlatformText**) returnTextEdit);
+	}
+
 	ReturnCode GmpiUiHelper::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) { return gmpi::ReturnCode::NoSupport; }
 	ReturnCode GmpiUiHelper::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
 	{

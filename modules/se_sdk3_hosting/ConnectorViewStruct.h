@@ -34,7 +34,7 @@ namespace SE2
 				0xb45e00, // INT64 orange
 				0xbc00bc, // BLOB -purple
 				0xbc00bc, // Class -purple
-				0xbcbcbc, // Spare - white.
+				0xbc0000, // Text UTF8 red.
 			};
 
 			assert(std::size(brushes) <= std::size(datatypeColors));
