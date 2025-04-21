@@ -48,8 +48,10 @@ public:
 	}
 	void AddModule(const wchar_t* uniqueid, GmpiDrawing_API::MP1_POINT point) override
 	{}
-	void AddConnector(int32_t fromModule, int fromPin, int32_t toModule, int toPin, bool placeAtBack) override
-	{}
+	bool AddConnector(int32_t fromModule, int fromPin, int32_t toModule, int toPin, bool placeAtBack) override
+	{
+		return false;
+	}
 	void HighlightConnector(int32_t moduleHandle, int pin) override
 	{}
 

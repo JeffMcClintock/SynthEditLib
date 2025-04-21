@@ -44,7 +44,7 @@ namespace SE2
 
 		virtual void AddModule(const wchar_t* uniqueid, GmpiDrawing_API::MP1_POINT point) = 0;
 		virtual bool CanConnect(CableType cabletype, int32_t fromModule, int fromPin, int32_t toModule, int toPin) = 0;
-		virtual void AddConnector(int32_t fromModule, int fromPin, int32_t toModule, int toPin, bool placeAtBack) = 0;
+		virtual bool AddConnector(int32_t fromModule, int fromPin, int32_t toModule, int toPin, bool placeAtBack) = 0;
 		virtual void HighlightConnector(int32_t moduleHandle, int pin) = 0;
 		virtual bool AddPatchCable(int32_t fromModule, int fromPin, int32_t toModule, int toPin, int colorIndex, bool placeAtBack = false) = 0;
 		virtual void RemovePatchCable(int32_t fromModule, int fromPin, int32_t toModule, int toPin) = 0;

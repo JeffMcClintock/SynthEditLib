@@ -2397,8 +2397,7 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 				dragline->draggingFromEnd = -1;
 				dragline->parent->ChildInvalidateRect(dragline->bounds_);
 
-				Presenter()->AddConnector(dragline->fromModuleHandle(), dragline->fromPin(), getModuleHandle(), toPin.first, false);
-				return true;
+				return Presenter()->AddConnector(dragline->fromModuleHandle(), dragline->fromPin(), getModuleHandle(), toPin.first, false);
 			}
 		}
 		return false;

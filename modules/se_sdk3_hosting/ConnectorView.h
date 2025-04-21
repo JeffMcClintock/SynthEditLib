@@ -16,7 +16,7 @@ namespace SE2
 		int fromModulePin;
 		int toModulePin;
 		char datatype = DT_FSAMPLE;
-		bool isGuiConnection = false;
+		bool drawArrows = false;
 		int highlightFlags = 0;
 #if defined( _DEBUG )
 		float cancellation = 0.0f;
@@ -170,7 +170,7 @@ namespace SE2
 			}
 
 			datatype = DT_FSAMPLE;
-			isGuiConnection = false;
+			drawArrows = false;
 		}
 
 		~PatchCableView();

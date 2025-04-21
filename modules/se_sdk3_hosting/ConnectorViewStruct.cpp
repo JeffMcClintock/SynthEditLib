@@ -106,7 +106,7 @@ namespace SE2
 				sink.AddBezier(BezierSegment(splinePoints[i], splinePoints[i + 1], splinePoints[i + 2]));
 			}
 
-			if (!isGuiConnection)//&& drawArrows)
+			if (!drawArrows)//&& drawArrows)
 			{
 				int splineCount = (static_cast<int>(splinePoints.size()) - 1) / 3;
 				int middleSplineIdx = splineCount / 2;
@@ -234,7 +234,7 @@ namespace SE2
 			sink.EndFigure(FigureEnd::Open); // complete line
 
 			// center arrow
-			if (!isGuiConnection)
+			if (!drawArrows)
 			{
 				int splineCount = (static_cast<int>(nodesInclusive.size()) + 1) / 2;
 				int middleSplineIdx = splineCount / 2;
@@ -753,14 +753,11 @@ namespace SE2
 		returnDesiredSize->height = 10;
 		returnDesiredSize->width = 10;
 
-//		if (type == CableType::StructureCable)
+		auto module1 = dynamic_cast<ModuleViewStruct*>(Presenter()->HandleToObject(fromModuleH));
+		if (module1)
 		{
-			auto module1 = dynamic_cast<ModuleViewStruct*>(Presenter()->HandleToObject(fromModuleH));
-			if (module1)
-			{
-				datatype = static_cast<char>(module1->getPinDatatype(fromModulePin));
-				isGuiConnection = module1->getPinGuiType(fromModulePin);
-			}
+			datatype = static_cast<char>(module1->getPinDatatype(fromModulePin));
+			drawArrows = module1->getPinGuiType(fromModulePin) && !module1->isMonoDirectional();
 		}
 
 		return gmpi::MP_OK;
