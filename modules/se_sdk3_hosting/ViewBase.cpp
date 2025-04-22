@@ -1016,10 +1016,10 @@ namespace SE2
 		{
 			if(m->getModuleHandle() == phandle)
 			{
-				auto moduleview = dynamic_cast<ConnectorViewBase*>(m.get());
-				if(moduleview)
+				auto line = dynamic_cast<ConnectorViewBase*>(m.get());
+				if(line)
 				{
-					moduleview->setHighlightFlags(flags);
+					line->setHighlightFlags(flags);
 				}
 				break;
 			}
@@ -1543,14 +1543,6 @@ namespace SE2
 	}
 
 	/// //////////////////////////////////////////////////////////////////////////////////////////////////
-	struct feedbackPinUi
-	{
-//		feedbackPinUi(UPlug* pin);
-		int32_t moduleHandle;
-		int32_t pinIndex;
-		std::string debugModuleName;
-	};
-
 	struct FeedbackTraceUi
 	{
 		std::list< std::pair<feedbackPinUi, feedbackPinUi> > feedbackConnectors;
@@ -1678,6 +1670,8 @@ namespace SE2
 
 	void ViewBase::initMonoDirectionalModules(std::map<int, SE2::ModuleView*>& guiObjectMap)
 	{
+		Presenter()->ClearFeedbackHighlights();
+
 		children_monodirectional.clear();
 
 		// pull out all mono-directional modules.
@@ -1696,6 +1690,7 @@ namespace SE2
 		if (e)
 		{
 			_RPT0(_CRT_WARN, "ERROR: Feedback loop detected in module graph.\n");
+			Presenter()->HighlightFeedback(e->feedbackConnectors);
 		}
 
 		std::sort(children_monodirectional.begin(), children_monodirectional.end(), [](const auto& a, const auto& b)

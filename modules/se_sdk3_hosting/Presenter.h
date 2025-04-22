@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include <list>
 #include "../se_sdk3/mp_sdk_stdint.h"
 #include "../se_sdk3/Drawing_API.h"
 #include "../shared/PatchCables.h"
@@ -20,6 +20,12 @@ namespace SE2
 	// support both MFC and json versions of the model.
 
 	// Currently the View is NOT represented by an abstraction, to save pissing about.
+	struct feedbackPinUi
+	{
+		int32_t moduleHandle;
+		int32_t pinIndex;
+		std::string debugModuleName;
+	};
 
 	class IPresenter
 	{
@@ -61,6 +67,8 @@ namespace SE2
         virtual void OnControllerDeleted() = 0;
 		virtual void InsertRackModule(const std::wstring& prefabFilePath) = 0;		
 		virtual void setHoverScopePin(int32_t moduleHandle, int pin) = 0;
+		virtual void HighlightFeedback(std::list< std::pair<feedbackPinUi, feedbackPinUi> >& feedbackConnectors) = 0;
+		virtual void ClearFeedbackHighlights() = 0;
 		// - HERE --
 	};
 }

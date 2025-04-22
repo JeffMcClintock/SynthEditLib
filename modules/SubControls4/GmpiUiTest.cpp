@@ -200,7 +200,7 @@ class ReallyFunctional
 	}
 };
 
-class PatchMemSet final : public PluginEditorNoGui
+struct PatchMemSet final : public PluginEditorNoGui
 {
     Pin<int32_t> pinId;
     Pin<float> pinNormalized;
@@ -208,13 +208,6 @@ class PatchMemSet final : public PluginEditorNoGui
 
 	gmpi::shared_ptr <gmpi::api::IParameterSetter_x> paramHost;
 
-public:
-    PatchMemSet()
-    {
-        init(pinId);
-        init(pinNormalized);
-        init(pinMouseDown);
-    }
     ReturnCode initialize() override
     {
         paramHost = editorHost.as<gmpi::api::IParameterSetter_x>();
@@ -251,19 +244,13 @@ auto r2 = gmpi::Register<PatchMemSet>::withXml(R"XML(
 )XML");
 }
 
-class PatchMemSetFloat final : public PluginEditorNoGui
+struct PatchMemSetFloat final : public PluginEditorNoGui
 {
     Pin<int32_t> pinId;
     Pin<float> pinValue;
 
     gmpi::shared_ptr <gmpi::api::IParameterSetter_x> paramHost;
 
-public:
-    PatchMemSetFloat()
-    {
-        init(pinId);
-        init(pinValue);
-    }
     ReturnCode initialize() override
     {
         paramHost = editorHost.as<gmpi::api::IParameterSetter_x>();
@@ -297,7 +284,7 @@ auto r6 = gmpi::Register<PatchMemSetFloat>::withXml(R"XML(
 )XML");
 }
 
-class PatchMemGet final : public PluginEditorNoGui
+struct PatchMemGet final : public PluginEditorNoGui
 {
     Pin<float> pinNormalized_in;
     Pin<bool> pinMouseDown_in;
@@ -307,27 +294,6 @@ class PatchMemGet final : public PluginEditorNoGui
     Pin<float> pinNormalized;
     Pin<bool> pinMouseDown;
     Pin<float> pinValue;
-
-public:
-    PatchMemGet()
-    {
-        init(pinNormalized_in);
-        init(pinMouseDown_in);
-        init(pinValue_in);
-        init(pinId);
-        init(pinNormalized);
-        init(pinMouseDown);
-        init(pinValue);
-
-        //pinNormalized_in.onUpdate = [this](PinBase*)
-        //    {
-        //        pinNormalized = pinNormalized_in.value;
-        //    };
-        //pinValue_in.onUpdate = [this](PinBase*)
-        //    {
-        //        pinValue = pinValue_in.value;
-        //    };
-    }
 
     ReturnCode initialize() override
     {
@@ -376,32 +342,19 @@ auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
 }
 
 
-class PatchMemUpdateFloatText final : public PluginEditorNoGui
+struct PatchMemUpdateFloatText final : public PluginEditorNoGui
 {
     Pin<std::string> text_orig;
     Pin<std::string> text_mod;
     Pin<float> pinValue_in;
     Pin<float> pinValue;
 
-public:
-    PatchMemUpdateFloatText()
-    {
-        init(text_orig);
-        init(text_mod);
-        init(pinValue_in);
-        init(pinValue);
-    }
-
     ReturnCode process() override
 	{
         if (text_mod.value != text_orig.value)
-        {
             pinValue = (float)strtod(text_mod.value.c_str(), 0);
-        }
         else
-        {
             pinValue = pinValue_in.value;
-        }
 
 		return ReturnCode::Ok;
     }
@@ -426,22 +379,16 @@ auto r4 = gmpi::Register<PatchMemUpdateFloatText>::withXml(R"XML(
 }
 
 // just to help with simulating mono-directional system
-class OneWayFloat final : public PluginEditorNoGui
+struct OneWayFloat final : public PluginEditorNoGui
 {
     Pin<float> pinValue_in;
     Pin<float> pinValue;
 
-public:
-    OneWayFloat()
+    ReturnCode process() override
     {
-        init(pinValue_in);
-        init(pinValue);
+        pinValue = pinValue_in.value;
 
-        // pass-thru
-        pinValue_in.onUpdate = [this](PinBase*)
-            {
-                pinValue = pinValue_in.value;
-            };
+        return ReturnCode::Ok;
     }
 };
 
@@ -461,22 +408,16 @@ auto r5 = gmpi::Register<OneWayFloat>::withXml(R"XML(
 )XML");
 }
 
-class OneWayText final : public PluginEditorNoGui
+struct OneWayText final : public PluginEditorNoGui
 {
     Pin<std::string> pinValue_in;
     Pin<std::string> pinValue;
 
-public:
-    OneWayText()
+    ReturnCode process() override
     {
-        init(pinValue_in);
-        init(pinValue);
+        pinValue = pinValue_in.value;
 
-        // pass-thru
-        pinValue_in.onUpdate = [this](PinBase*)
-            {
-                pinValue = pinValue_in.value;
-            };
+        return ReturnCode::Ok;
     }
 };
 
@@ -496,9 +437,8 @@ auto r7 = gmpi::Register<OneWayText>::withXml(R"XML(
 )XML");
 }
 
-class Image4Gui : public PluginEditor
+struct Image4Gui : public PluginEditor
 {
-protected:
     Pin<std::string> pinFilename;
     Pin<float> pinAnimationPosition;
     Pin<int32_t> pinFrame;
@@ -506,14 +446,8 @@ protected:
 
     gmpi_helper::AnimatedBitmap image;
 
-public:
     Image4Gui()
     {
-        init(pinFilename);
-        init(pinAnimationPosition);
-        init(pinFrame);
-        init(pinHdMode);
-
         pinFilename.onUpdate = [this](PinBase*) { onSetFilename(); };
 		pinAnimationPosition.onUpdate = [this](PinBase*) { calcDrawAt(); };
 		pinFrame.onUpdate = [this](PinBase*) { calcDrawAt(); };
@@ -660,39 +594,17 @@ auto r8 = gmpi::Register<Image4Gui>::withXml(R"XML(
 )XML");
 }
 
-struct TextEditCallback : public gmpi::api::ITextEditCallback
-{
-    std::function<void(ReturnCode)> callback = [](ReturnCode) {};
-    std::string text;
-
-    void onChanged(const char* ptext) override
-    {
-		text = ptext;
-    }
-    void onComplete(ReturnCode result)
-    {
-		callback(result);
-    }
-
-    GMPI_QUERYINTERFACE_METHOD(gmpi::api::ITextEditCallback);
-    GMPI_REFCOUNT_NO_DELETE;
-};
-
-
 class TextEntry4Gui : public PluginEditor
 {
 protected:
     Pin<std::string> pinValueIn;
     Pin<std::string> pinValueOut;
 
-    TextEditCallback callback;
+    sdk::TextEditCallback callback;
 
 public:
     TextEntry4Gui()
     {
-        init(pinValueIn);
-        init(pinValueOut);
-
         callback.callback = [this](ReturnCode result)
             {
                 pinValueOut = callback.text;
@@ -705,12 +617,14 @@ public:
 
 		auto borderBrush = g.createSolidColorBrush(Colors::White);
 		auto textBrush = g.createSolidColorBrush(Colors::Black);
-		auto textFormat = g.getFactory().createTextFormat(getHeight(bounds));
 		auto textRect = bounds;
 		textRect.left += 2;
 		textRect.top += 2;
 		textRect.right -= 2;
 		textRect.bottom -= 2;
+
+		auto textFormat = g.getFactory().createTextFormat(getHeight(textRect));
+
 		g.fillRectangle(textRect, borderBrush);
 		g.drawTextU(pinValueIn.value, textFormat, textRect, textBrush);
 		g.drawRectangle(textRect, borderBrush);
@@ -720,8 +634,9 @@ public:
     ReturnCode process() override
     {
         pinValueOut = pinValueIn.value;
+        drawingHost->invalidateRect({});
 
-//        if (pinValue.value)
+        //        if (pinValue.value)
 //            editorHost2->setDirty(); // return to zero next frame.
 
         return ReturnCode::Ok;
@@ -762,7 +677,7 @@ auto r8B = gmpi::Register<TextEntry4Gui>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: TextEntry4Gui" name="TextEntry4" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+  <Plugin id="SE: TextEntry4Gui" name="Text Entry" category="GMPI/SDK Examples" vendor="Jeff McClintock">
 	<GUI graphicsApi="GmpiGui">
 		<Pin name="Value" datatype="string_utf8" />
 		<Pin name="Value" datatype="string_utf8" direction="out" />
@@ -780,21 +695,10 @@ protected:
     Pin<float> pinX;
     Pin<float> pinY;
 
-//    gmpi::drawing::Point prevPoint;
-
 public:
-    MouseTarget()
-    {
-        init(pinHover);
-        init(pinLClick);
-        init(pinX);
-        init(pinY);
-    }
-
     gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
     {
         inputHost->setCapture();
-//        prevPoint = point;
         pinLClick = true;
 
         return gmpi::ReturnCode::Ok;
@@ -806,12 +710,9 @@ public:
 		inputHost->getCapture(isCaptured);
         if (isCaptured)
         {
-            //pinX = pinX.value + point.x - prevPoint.x;
-            //pinY = pinY.value + prevPoint.y - point.y;
             pinX = point.x;
             pinY = point.y;
         }
-//        prevPoint = point;
 
         return gmpi::ReturnCode::Ok;
     }
@@ -859,18 +760,12 @@ class Delta final : public PluginEditorNoGui
     float prev{};
 
 public:
-    Delta()
-    {
-        init(pinValue_in);
-        init(pinValue);
-    }
-
     ReturnCode process() override
     {
+        _RPTN(0, "Delta: %f -> %f delta=%f\n", prev, pinValue_in.value, pinValue_in.value - prev);
+
         pinValue = pinValue_in.value - prev;
 		prev = pinValue_in.value;
-
-		_RPTN(0, "Delta: %f\n", pinValue.value);
 
         if(pinValue.value)
             editorHost2->setDirty(); // return to zero next frame.
@@ -902,17 +797,9 @@ class Add final : public PluginEditorNoGui
     Pin<float> pinValue;
 
 public:
-    Add()
-    {
-        init(pinValue_inA);
-        init(pinValue_inB);
-        init(pinValue);
-    }
-
     ReturnCode process() override
     {
         pinValue = pinValue_inA.value + pinValue_inB.value;
-        _RPTN(0, "Add: %f\n", pinValue.value);
         return ReturnCode::Ok;
     }
 };
@@ -934,24 +821,15 @@ auto r11 = gmpi::Register<Add>::withXml(R"XML(
 )XML");
 }
 
-class Multiply final : public PluginEditorNoGui
+struct Multiply final : public PluginEditorNoGui
 {
     Pin<float> pinValue_inA;
     Pin<float> pinValue_inB;
     Pin<float> pinValue;
 
-public:
-    Multiply()
-    {
-        init(pinValue_inA);
-        init(pinValue_inB);
-        init(pinValue);
-    }
-
     ReturnCode process() override
     {
         pinValue = pinValue_inA.value * pinValue_inB.value;
-        _RPTN(0, "Multiply: %f\n", pinValue.value);
         return ReturnCode::Ok;
     }
 };
@@ -973,17 +851,10 @@ auto r12 = gmpi::Register<Multiply>::withXml(R"XML(
 )XML");
 }
 
-class Bool2Float final : public PluginEditorNoGui
+struct Bool2Float final : public PluginEditorNoGui
 {
     Pin<bool> pinValue_in;
     Pin<float> pinValue;
-
-public:
-    Bool2Float()
-    {
-        init(pinValue_in);
-        init(pinValue);
-    }
 
     ReturnCode process() override
     {
@@ -1008,19 +879,11 @@ auto r13 = gmpi::Register<Bool2Float>::withXml(R"XML(
 )XML");
 }
 
-class Float2Text final : public PluginEditorNoGui
+struct Float2Text final : public PluginEditorNoGui
 {
     Pin<float> pinValue_in;
     Pin<int> pinDecimals;
     Pin<std::string> pinOutput;
-
-public:
-    Float2Text()
-    {
-        init(pinValue_in);
-        init(pinDecimals);
-        init(pinOutput);
-    }
 
     ReturnCode process() override
     {
@@ -1108,17 +971,10 @@ auto r14 = gmpi::Register<Float2Text>::withXml(R"XML(
 )XML");
 }
 
-class Utf82Wide final : public PluginEditorNoGui
+struct Utf82Wide final : public PluginEditorNoGui
 {
     Pin<std::string> pinValue_in;
     Pin<std::wstring> pinOutput;
-
-public:
-    Utf82Wide()
-    {
-        init(pinValue_in);
-        init(pinOutput);
-    }
 
     ReturnCode process() override
     {
@@ -1143,17 +999,10 @@ auto r15 = gmpi::Register<Utf82Wide>::withXml(R"XML(
 )XML");
 }
 
-class Wide2Utf8 final : public PluginEditorNoGui
+struct Wide2Utf8 final : public PluginEditorNoGui
 {
     Pin<std::wstring> pinValue_in;
     Pin<std::string> pinOutput;
-
-public:
-    Wide2Utf8()
-    {
-        init(pinValue_in);
-        init(pinOutput);
-    }
 
     ReturnCode process() override
     {

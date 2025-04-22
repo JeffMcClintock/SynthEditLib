@@ -176,7 +176,6 @@ void EditWidget::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 		return;
 
 	GmpiDrawing::Rect r = getRect();
-//	gmpi_sdk::mp_shared_ptr<gmpi_gui::IMpPlatformText> returnObject;
 	getGuiHost()->createPlatformTextEdit(&r, nativeEdit.getAddressOf());
 
 	//if( returnObject == 0 )
