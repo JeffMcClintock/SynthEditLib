@@ -3,6 +3,8 @@
 #include <format>
 #include <filesystem>
 #include <charconv>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include "helpers/GmpiPluginEditor.h"
 #include "helpers/GmpiPluginEditor2.h"
 #include "helpers/CachedBlur.h"
@@ -1021,6 +1023,204 @@ auto r16 = gmpi::Register<Wide2Utf8>::withXml(R"XML(
     <GUI>
       <Pin name="Value" datatype="string"/>
       <Pin name="Value" datatype="string_utf8" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+struct CircleGeometry final : public PluginEditor
+{
+    Pin<int64_t> pinOutput;
+
+    gmpi::shared_ptr<gmpi::drawing::api::IPathGeometry> geometry;
+
+    ReturnCode process() override
+    {
+        if (!pinOutput.value)
+        {
+            gmpi::shared_ptr<gmpi::api::IUnknown> ret;
+            drawingHost->getDrawingFactory(ret.put());
+            auto drawingFactory = ret.as<drawing::api::IFactory>();
+
+            drawingFactory->createPathGeometry(geometry.put());
+
+            gmpi::shared_ptr<drawing::api::IGeometrySink> sink;
+            geometry->open(sink.put());
+
+            // make a circle from two half-circle arcs
+            const Point center{ 20.0f, 20.0f };
+            const float radius{ 10.f };
+
+            constexpr float pi = static_cast<float>(M_PI);
+            sink->beginFigure({ center.x, center.y - radius }, drawing::FigureBegin::Filled);
+			ArcSegment arc1{ { center.x, center.y + radius}, { radius, radius }, pi, SweepDirection::Clockwise, ArcSize::Small };
+            ArcSegment arc2{ { center.x, center.y - radius}, { radius, radius }, pi, SweepDirection::Clockwise, ArcSize::Small };
+            sink->addArc(&arc1);
+            sink->addArc(&arc2);
+
+            sink->endFigure(FigureEnd::Closed);
+            sink->close();
+
+			pinOutput = reinterpret_cast<int64_t>(geometry.get());
+        }
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r17 = gmpi::Register<CircleGeometry>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: CircleGeometry" name="CircleGeometry" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Path" datatype="int64" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+struct RenderGeometry final : public PluginEditor
+{
+    Pin<int64_t> pinInput;
+
+    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    {
+		if (!pinInput.value)
+			return ReturnCode::Ok;
+
+		//PathGeometry pathGeometry;
+  //      pathGeometry.
+
+        Graphics g(drawingContext);
+
+		auto brush = g.createSolidColorBrush(Colors::Black);
+		auto strokeStyle = g.getFactory().createStrokeStyle(CapStyle::Flat);
+
+		g.get()->drawGeometry(
+			  reinterpret_cast<gmpi::drawing::api::IPathGeometry*>(pinInput.value)
+			, brush.get()
+			, 1.0f
+			, strokeStyle.get()
+		);
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r18 = gmpi::Register<RenderGeometry>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: RenderGeometry" name="Render" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Path" datatype="int64"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+struct Render2Bitmap final : public PluginEditor
+{
+    Pin<int64_t> pinInput;
+    Pin<int64_t> pinOutput;
+
+    Bitmap bitmap;
+
+    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    {
+        if (!pinInput.value)
+            return ReturnCode::Ok;
+
+        Graphics g(drawingContext);
+
+        auto brush = g.createSolidColorBrush(Colors::Black);
+        auto strokeStyle = g.getFactory().createStrokeStyle(CapStyle::Flat);
+
+        auto g2 = g.createCompatibleRenderTarget(
+              {getWidth(bounds), getHeight(bounds)}
+            , (int32_t) BitmapRenderTargetFlags::None
+        );
+
+        g2.beginDraw();
+
+        g2.get()->drawGeometry(
+            reinterpret_cast<gmpi::drawing::api::IPathGeometry*>(pinInput.value)
+            , brush.get()
+            , 1.0f
+            , strokeStyle.get()
+        );
+
+        g2.endDraw();
+
+        bitmap = g2.getBitmap();
+
+        pinOutput = reinterpret_cast<int64_t>(bitmap.get());
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r19 = gmpi::Register<Render2Bitmap>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Render2Bitmap" name="Render2Bitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Path" datatype="int64"/>
+      <Pin name="Bitmap" datatype="int64" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+struct RenderBitmap final : public PluginEditor
+{
+    Pin<int64_t> pinInput;
+
+    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    {
+        if (!pinInput.value)
+            return ReturnCode::Ok;
+
+        Graphics g(drawingContext);
+
+        auto bitmap = reinterpret_cast<gmpi::drawing::api::IBitmap*>(pinInput.value);
+        SizeU size{};
+        bitmap->getSizeU(&size);
+        const Rect rect{ 0, 0, size.width, size.height };
+
+        g.get()->drawBitmap(
+            bitmap
+            , &rect
+            , 1.0f
+            , BitmapInterpolationMode::Linear
+            , &rect
+        );
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r20 = gmpi::Register<RenderBitmap>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: RenderBitmap" name="RenderBitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Bitmap" datatype="int64"/>
     </GUI>
   </Plugin>
 </PluginList>
