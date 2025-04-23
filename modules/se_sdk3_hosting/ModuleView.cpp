@@ -84,7 +84,12 @@ namespace SE2
 	{
 		// set ANY parameter.
 		moduleview.parent->Presenter()->GetPatchManager()->setParameterValue({ data, static_cast<size_t>(size) }, parameterHandle, (gmpi::FieldType) fieldId);
-		_RPTN(0, "GmpiUiHelper::setParameter %d -> %f\n", parameterHandle, *(float*)data);
+
+		if (fieldId == gmpi::Field::Value || fieldId == gmpi::Field::Normalized)
+		{
+			_RPTN(0, "GmpiUiHelper::setParameter %d -> %f\n", parameterHandle, *(float*)data);
+		}
+
 		return gmpi::ReturnCode::Ok;
 	}
 	gmpi::ReturnCode GmpiUiHelper::setDirty()

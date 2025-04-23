@@ -707,8 +707,8 @@ public:
     gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override
     {
         bool isCaptured{};
-		inputHost->getCapture(isCaptured);
-        if (isCaptured)
+		//inputHost->getCapture(isCaptured);
+  //      if (isCaptured)
         {
             pinX = point.x;
             pinY = point.y;
