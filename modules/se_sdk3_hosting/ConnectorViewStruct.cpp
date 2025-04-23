@@ -406,9 +406,9 @@ namespace SE2
 		{
 			if (draggingFromEnd < 0)
 			{
-				if ((highlightFlags & 3) != 0)
+				if ((highlightFlags & 7) != 0)
 				{
-					if ((highlightFlags & 1) != 0) // error
+					if ((highlightFlags & 3) != 0) // error
 					{
 						brush3 = &resources->errorBrush;
 					}
