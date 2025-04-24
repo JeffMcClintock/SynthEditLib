@@ -1093,12 +1093,9 @@ struct RenderGeometry final : public PluginEditor
 		if (!pinInput.value)
 			return ReturnCode::Ok;
 
-		//PathGeometry pathGeometry;
-  //      pathGeometry.
-
         Graphics g(drawingContext);
 
-		auto brush = g.createSolidColorBrush(Colors::Black);
+		auto brush = g.createSolidColorBrush(Colors::White);
 		auto strokeStyle = g.getFactory().createStrokeStyle(CapStyle::Flat);
 
 		g.get()->drawGeometry(
@@ -1134,33 +1131,84 @@ struct Render2Bitmap final : public PluginEditor
 
     Bitmap bitmap;
 
-    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+//    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    ReturnCode process() override
     {
         if (!pinInput.value)
             return ReturnCode::Ok;
 
-        Graphics g(drawingContext);
+//        Graphics g(drawingContext);
 
-        auto brush = g.createSolidColorBrush(Colors::Black);
-        auto strokeStyle = g.getFactory().createStrokeStyle(CapStyle::Flat);
+        auto geometry = reinterpret_cast<gmpi::drawing::api::IPathGeometry*>(pinInput.value);
 
-        auto g2 = g.createCompatibleRenderTarget(
-              {getWidth(bounds), getHeight(bounds)}
-            , (int32_t) BitmapRenderTargetFlags::None
-        );
 
-        g2.beginDraw();
+        {
+#if 1
+            const SizeU size{ 100, 100 };// getWidth(bounds), getHeight(bounds)};
+            const int32_t flags = (int32_t)BitmapRenderTargetFlags::Mask;
 
-        g2.get()->drawGeometry(
-            reinterpret_cast<gmpi::drawing::api::IPathGeometry*>(pinInput.value)
-            , brush.get()
-            , 1.0f
-            , strokeStyle.get()
-        );
+            // get factory.
+            gmpi::shared_ptr<gmpi::api::IUnknown> ret;
+            drawingHost->getDrawingFactory(ret.put());
+            auto drawingFactory = ret.as<drawing::api::IFactory>();
 
-        g2.endDraw();
+            // create a bitmap render target on CPU.
+//            gmpi::shared_ptr<drawing::api::IBitmapRenderTarget> g2_ptr;
+            BitmapRenderTarget g2;
+            drawingFactory->createCpuRenderTarget(size, flags, g2.put());
 
-        bitmap = g2.getBitmap();
+#else // create on GPU
+            auto g2 = g.createCompatibleRenderTarget(
+                { getWidth(bounds), getHeight(bounds) }
+                , (int32_t)BitmapRenderTargetFlags::Mask | (int32_t)BitmapRenderTargetFlags::CpuReadable //(int32_t)BitmapRenderTargetFlags::None //
+            );
+#endif
+            g2.beginDraw();
+
+            auto brush = g2.createSolidColorBrush(Colors::White);
+            auto strokeStyle = g2.getFactory().createStrokeStyle(CapStyle::Flat);
+
+#if 0
+            // copy the devoce dependant geometry to a fresh geometry associated with the bitmap contect.
+            {
+                gmpi::shared_ptr<gmpi::api::IUnknown> ret;
+                drawingHost->getDrawingFactory(ret.put());
+                auto drawingFactory = ret.as<drawing::api::IFactory>();
+
+                drawingFactory->createPathGeometry(geometry.put());
+
+                gmpi::shared_ptr<drawing::api::IGeometrySink> sink;
+                geometry->open(sink.put());
+
+                // make a circle from two half-circle arcs
+                const Point center{ 20.0f, 20.0f };
+                const float radius{ 10.f };
+
+                constexpr float pi = static_cast<float>(M_PI);
+                sink->beginFigure({ center.x, center.y - radius }, drawing::FigureBegin::Filled);
+                ArcSegment arc1{ { center.x, center.y + radius}, { radius, radius }, pi, SweepDirection::Clockwise, ArcSize::Small };
+                ArcSegment arc2{ { center.x, center.y - radius}, { radius, radius }, pi, SweepDirection::Clockwise, ArcSize::Small };
+                sink->addArc(&arc1);
+                sink->addArc(&arc2);
+
+                sink->endFigure(FigureEnd::Closed);
+                sink->close();
+
+                pinOutput = reinterpret_cast<int64_t>(geometry.get());
+
+            }
+#endif
+            g2.get()->drawGeometry(
+                  geometry
+                , brush.get()
+                , 1.0f
+                , strokeStyle.get()
+            );
+
+            g2.endDraw();
+
+            bitmap = g2.getBitmap();
+        }
 
         pinOutput = reinterpret_cast<int64_t>(bitmap.get());
 
@@ -1188,10 +1236,18 @@ struct RenderBitmap final : public PluginEditor
 {
     Pin<int64_t> pinInput;
 
+    ReturnCode process() override
+    {
+        drawingHost->invalidateRect(&bounds);
+        return ReturnCode::Ok;
+    }
+
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
     {
         if (!pinInput.value)
             return ReturnCode::Ok;
+        
+//    return ReturnCode::Ok;
 
         Graphics g(drawingContext);
 
@@ -1221,6 +1277,209 @@ auto r20 = gmpi::Register<RenderBitmap>::withXml(R"XML(
   <Plugin id="SE: RenderBitmap" name="RenderBitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Bitmap" datatype="int64"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+struct BlurBitmap final : public PluginEditor
+{
+    Pin<int64_t> pinInput;
+    Pin<int64_t> pinOutput;
+
+    drawing::Color tint = drawing::colorFromHex(0xd4c1ffu);
+    Bitmap blurredBitmap;
+
+//    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    ReturnCode process() override
+    {
+        if (!pinInput.value)
+            return ReturnCode::Ok;
+
+//        Graphics g(drawingContext);
+#if 1 // can't draw bitmap onto another device context.
+        auto bitmap = reinterpret_cast<gmpi::drawing::api::IBitmap*>(pinInput.value);
+
+
+        // copy bitmap to a buffer
+        SizeU size{};
+        bitmap->getSizeU(&size);
+        const Rect rect{ 0, 0, size.width, size.height };
+#else
+        SizeU size{ getWidth(bounds), getHeight(bounds) };
+        auto path = reinterpret_cast<gmpi::drawing::api::IPathGeometry*>(pinInput.value);
+#endif
+
+
+#if 0
+        drawing::Bitmap buffer; // monochrome mask
+        {
+            auto g2 = g.createCompatibleRenderTarget(
+                { getWidth(bounds), getHeight(bounds) }
+                , (int32_t)BitmapRenderTargetFlags::CpuReadable | (int32_t)BitmapRenderTargetFlags::Mask
+            );
+
+            g2.beginDraw();
+
+#if 1
+            g2.get()->drawBitmap(
+                bitmap
+                , &rect
+                , 1.0f
+                , BitmapInterpolationMode::Linear
+                , &rect
+            );
+#else
+            auto brush = g2.createSolidColorBrush(Colors::White);
+            auto strokeStyle = g2.getFactory().createStrokeStyle(CapStyle::Flat);
+
+            g2.get()->drawGeometry(
+                  path
+                , brush.get()
+                , 1.0f
+                , strokeStyle.get()
+                );
+#endif
+            g2.endDraw();
+
+            buffer = g2.getBitmap();
+        }
+#endif
+        // copy the mask bitmap to working RAM.
+//        auto intermediateBitmap = g.getFactory().createImage(size, (int32_t)drawing::BitmapRenderTargetFlags::Mask | (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
+//        SizeU imageSize{};
+        std::vector<uint8_t> workingArea;
+        {
+            //auto data = buffer.lockPixels(drawing::BitmapLockFlags::ReadWrite);
+
+            {
+                gmpi::shared_ptr<gmpi::drawing::api::IBitmapPixels> data;
+                bitmap->lockPixels(data.put(), (int32_t)drawing::BitmapLockFlags::Read);
+
+//                bitmap->getSizeU(&size);
+                int32_t stride{};
+                data->getBytesPerRow(&stride);
+                int32_t format{};
+                data->getPixelFormat(&format);
+                constexpr int pixelSize = 1; // 8 bytes per pixel for half-float,1 byte for mask.
+                const int totalPixels = (int)size.height * stride / pixelSize;
+
+                uint8_t* pixel{};
+                data->getAddress(&pixel);
+
+                // could switch on format here
+                workingArea.resize(totalPixels);
+                for (int i = 0; i < totalPixels; ++i)
+                {
+                    workingArea[i] = *pixel++;//[i * pixelSize + 3]; // alpha channel
+                }
+            }
+        }
+        // modify the buffer
+        {
+
+            //auto data = buffer.lockPixels(drawing::BitmapLockFlags::ReadWrite);
+//            auto data = bitmap->lockPixels(drawing::BitmapLockFlags::ReadWrite);
+
+            {
+                /*
+                auto imageSize = buffer.getSize();
+                constexpr int pixelSize = 8; // 8 bytes per pixel for half-float
+                auto stride = data.getBytesPerRow();
+                auto format = data.getPixelFormat();
+                const int totalPixels = (int)imageSize.height * stride / pixelSize;
+
+                const int pixelSizeTest = stride / imageSize.width; // 8 for half-float RGB, 4 for 8-bit sRGB, 1 for alpha mask
+                */
+
+                // modify pixels here
+#if 0
+                {
+                    // half-float pixels.
+                    auto pixel = (half*)data.getAddress();
+                    ginARGB(pixel, imageSize.width, imageSize.height, 5);
+                }
+#else
+                {
+                    // create a blurred mask of the image.
+                    auto pixel = workingArea.data(); // data.getAddress();
+                    ginSingleChannel(pixel, size.width, size.height, 5);
+                }
+#endif
+
+                // get drawingFactory
+                gmpi::shared_ptr<gmpi::api::IUnknown> ret;
+                drawingHost->getDrawingFactory(ret.put());
+                auto drawingFactory = ret.as<drawing::api::IFactory>();
+
+                // create bitmap
+                // blurredBitmap = 
+                drawingFactory->createImage(size.width, size.height, (int32_t)drawing::BitmapRenderTargetFlags::EightBitPixels| (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable, blurredBitmap.put());
+                {
+                    auto destdata = blurredBitmap.lockPixels(drawing::BitmapLockFlags::Write);
+//                    auto imageSize = blurredBitmap.getSize();
+                    constexpr int pixelSize = 4; // 8 bytes per pixel for half-float, 4 for 8-bit
+                    auto stride = destdata.getBytesPerRow();
+                    auto format = destdata.getPixelFormat();
+                    const int totalPixels = (int)size.height * stride / pixelSize;
+
+                    const int pixelSizeTest = stride / size.width; // 8 for half-float RGB, 4 for 8-bit sRGB, 1 for alpha mask
+
+                    auto pixelsrc = workingArea.data(); // data.getAddress();
+                    //   auto pixeldest = (half*)destdata.getAddress();
+                    auto pixeldest = destdata.getAddress();
+
+                    float tintf[4] = { tint.r, tint.g, tint.b, tint.a };
+
+                    constexpr float inv255 = 1.0f / 255.0f;
+
+                    for (int i = 0; i < totalPixels; ++i)
+                    {
+                        const auto alpha = *pixelsrc;
+                        if (alpha == 0)
+                        {
+                            pixeldest[0] = pixeldest[1] = pixeldest[2] = pixeldest[3] = 0.0f;
+                        }
+                        else
+                        {
+                            const float AlphaNorm = alpha * inv255;
+                            for (int j = 0; j < 3; ++j)
+                            {
+                                // To linear
+                                auto cf = tintf[j];
+
+                                // pre-multiply in linear space.
+                                cf *= AlphaNorm;
+
+                                // back to SRGB
+                                pixeldest[j] = drawing::linearPixelToSRGB(cf);
+                            }
+                            pixeldest[3] = alpha;
+                        }
+
+                        pixelsrc++;
+                        pixeldest += 4;
+                    }
+                }
+            }
+        }
+        pinOutput = reinterpret_cast<int64_t>(blurredBitmap.get());
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r21 = gmpi::Register<BlurBitmap>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: BlurBitmap" name="BlurBitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Path" datatype="int64"/>
+      <Pin name="Blurred" datatype="int64" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
