@@ -12,9 +12,11 @@ set(DSP_CORE ${CMAKE_CURRENT_SOURCE_DIR})
 project(SynthEditLib)
 
 set(sdk_srcs
+${gmpi_sdk_folder}/Core/GmpiApiCommon.h
 ${gmpi_sdk_folder}/Core/Processor.h
 ${gmpi_sdk_folder}/Core/Processor.cpp
 
+${gmpi_ui_folder}/GmpiApiDrawing.h
 ${gmpi_ui_folder}/helpers/Timer.h
 ${gmpi_ui_folder}/helpers/Timer.cpp
 ${gmpi_ui_folder}/helpers/ImageCache.h
