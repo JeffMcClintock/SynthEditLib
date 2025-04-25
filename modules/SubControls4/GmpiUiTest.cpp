@@ -1439,3 +1439,266 @@ auto r21 = gmpi::Register<BlurBitmap>::withXml(R"XML(
 </PluginList>
 )XML");
 }
+
+struct TextFormatNode final : public GraphicsProcessor
+{
+    Pin<int64_t> pinOutput;
+
+    gmpi::drawing::TextFormat textFormat;
+
+    ReturnCode process() override
+    {
+        if (!pinOutput.value)
+        {
+			textFormat = drawingFactory.createTextFormat(20.0f);
+
+            pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(textFormat));
+        }
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r22 = gmpi::Register<TextFormatNode>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: TextFormat" name="TextFormat" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Font" datatype="int64" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+struct RenderText2Bitmap final : public GraphicsProcessor
+{
+    Pin<int64_t> pinInput;
+    Pin<std::string> pinText;
+    Pin<int64_t> pinOutput;
+
+    Bitmap bitmap;
+
+    ReturnCode process() override
+    {
+        if (!pinInput.value)
+            return ReturnCode::Ok;
+
+        TextFormat geometry;
+        {
+            auto unknown = reinterpret_cast<gmpi::api::IUnknown*>(pinInput.value);
+            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::ITextFormat::guid, AccessPtr::put_void(geometry)))
+                return ReturnCode::Fail;
+        }
+        {
+            const SizeU size{ 100, 100 };// getWidth(bounds), getHeight(bounds)}; size is zero on first process.
+            const int32_t flags = (int32_t)BitmapRenderTargetFlags::Mask;
+
+            // get factory.
+            Factory factory;
+            {
+                gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+                drawingHost->getDrawingFactory(unknown.put());
+                unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
+            }
+
+            // create a bitmap render target on CPU.
+            auto g2 = factory.createCpuRenderTarget(size, flags);
+
+            g2.beginDraw();
+
+            auto brush = g2.createSolidColorBrush(Colors::White);
+            auto strokeStyle = factory.createStrokeStyle(CapStyle::Flat);
+
+            //g2.drawGeometry(geometry, brush);
+			
+            g2.drawTextU(pinText.value, geometry, { 0, 0, 100, 100 }, brush);
+
+            g2.endDraw();
+
+            bitmap = g2.getBitmap();
+        }
+
+        pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(bitmap));
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r23 = gmpi::Register<RenderText2Bitmap>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: RenderText2Bitmap" name="RenderText2Bitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Font" datatype="int64"/>
+      <Pin name="Text" datatype="string_utf8"/>
+      <Pin name="Bitmap" datatype="int64" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// 8-bit mask image to 32-bit bitmap.
+struct Mask2Bitmap final : public GraphicsProcessor
+{
+    Pin<int64_t> pinInput;
+    Pin<int64_t> pinOutput;
+
+    drawing::Color tint = drawing::colorFromHex(0xffffffu);
+    Bitmap blurredBitmap;
+
+    ReturnCode process() override
+    {
+        if (!pinInput.value)
+            return ReturnCode::Ok;
+
+        auto unknown = reinterpret_cast<gmpi::api::IUnknown*>(pinInput.value);
+
+        Bitmap bitmap;
+        PathGeometry geometry;
+
+        // test if input is Bitmap or Path
+        if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IBitmap::guid, AccessPtr::put_void(bitmap)))
+        {
+            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
+                return ReturnCode::Fail;
+
+            // it's a path, render it to the mask bitmap.
+            const SizeU size{ 100, 100 };// getWidth(bounds), getHeight(bounds)}; size is zero on first process.
+            const int32_t flags = (int32_t)BitmapRenderTargetFlags::Mask;
+
+            // get factory.
+            Factory factory;
+            {
+                gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+                drawingHost->getDrawingFactory(unknown.put());
+                unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
+            }
+
+            // create a bitmap render target on CPU.
+            auto g2 = factory.createCpuRenderTarget(size, flags);
+
+            g2.beginDraw();
+
+            auto brush = g2.createSolidColorBrush(Colors::White);
+            auto strokeStyle = factory.createStrokeStyle(CapStyle::Flat);
+
+            g2.drawGeometry(geometry, brush);
+
+            g2.endDraw();
+
+            bitmap = g2.getBitmap();
+        }
+
+        auto size = bitmap.getSize();
+        const Rect rect{ 0, 0, static_cast<float>(size.width), static_cast<float>(size.height) };
+
+        // copy the mask bitmap to working RAM.
+        std::vector<uint8_t> workingArea;
+        {
+            auto data = bitmap.lockPixels();
+
+            const auto stride = data.getBytesPerRow();
+            const auto format = data.getPixelFormat();
+
+            constexpr int pixelSize = 1; // 8 bytes per pixel for half-float,1 byte for mask.
+            const int totalPixels = (int)size.height * stride / pixelSize;
+
+            const uint8_t* pixel = data.getAddress();
+
+            // could switch on format here
+            workingArea.resize(totalPixels);
+            for (int i = 0; i < totalPixels; ++i)
+            {
+                workingArea[i] = *pixel++;//[i * pixelSize + 3]; // alpha channel
+            }
+        }
+        // modify the buffer
+        {
+            // modify pixels here (or don't)
+
+            // get drawingFactory
+            Factory factory;
+            {
+                gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+                drawingHost->getDrawingFactory(unknown.put());
+                unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
+            }
+
+            // create bitmap
+            blurredBitmap = factory.createImage(size, (int32_t)drawing::BitmapRenderTargetFlags::EightBitPixels | (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
+            {
+                auto destdata = blurredBitmap.lockPixels(drawing::BitmapLockFlags::Write);
+                constexpr int pixelSize = 4; // 8 bytes per pixel for half-float, 4 for 8-bit
+                auto stride = destdata.getBytesPerRow();
+                auto format = destdata.getPixelFormat();
+                const int totalPixels = (int)size.height * stride / pixelSize;
+
+                const int pixelSizeTest = stride / size.width; // 8 for half-float RGB, 4 for 8-bit sRGB, 1 for alpha mask
+
+                auto pixelsrc = workingArea.data(); // data.getAddress();
+                //   auto pixeldest = (half*)destdata.getAddress();
+                auto pixeldest = destdata.getAddress();
+
+                float tintf[4] = { tint.r, tint.g, tint.b, tint.a };
+
+                constexpr float inv255 = 1.0f / 255.0f;
+
+                for (int i = 0; i < totalPixels; ++i)
+                {
+                    const auto alpha = *pixelsrc;
+                    if (alpha == 0)
+                    {
+                        pixeldest[0] = pixeldest[1] = pixeldest[2] = pixeldest[3] = {};
+                    }
+                    else
+                    {
+                        const float AlphaNorm = alpha * inv255;
+                        for (int j = 0; j < 3; ++j)
+                        {
+                            // To linear
+                            auto cf = tintf[j];
+
+                            // pre-multiply in linear space.
+                            cf *= AlphaNorm;
+
+                            // back to SRGB
+                            pixeldest[j] = drawing::linearPixelToSRGB(cf);
+                        }
+                        pixeldest[3] = alpha;
+                    }
+
+                    pixelsrc++;
+                    pixeldest += 4;
+                }
+            }
+        }
+
+        pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(blurredBitmap));
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r24 = gmpi::Register<Mask2Bitmap>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Mask2Bitmap" name="Mask2Bitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Bitmap/Path" datatype="int64"/>
+      <Pin name="Blurred" datatype="int64" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
