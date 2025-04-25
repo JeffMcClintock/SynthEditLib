@@ -1032,11 +1032,16 @@ auto r16 = gmpi::Register<Wide2Utf8>::withXml(R"XML(
 struct GraphicsProcessor : public PluginEditorNoGui
 {
     gmpi::shared_ptr<gmpi::api::IDrawingHost> drawingHost;
+    Factory drawingFactory;
 
     ReturnCode setHost(gmpi::api::IUnknown* phost) override
     {
         gmpi::shared_ptr<gmpi::api::IUnknown> unknown(phost);
         drawingHost = unknown.as<gmpi::api::IDrawingHost>();
+
+        gmpi::shared_ptr<gmpi::api::IUnknown> unknown2;
+        drawingHost->getDrawingFactory(unknown2.put());
+        unknown2->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(drawingFactory));
 
         return PluginEditorNoGui::setHost(phost);
     }
@@ -1047,36 +1052,45 @@ struct CircleGeometry final : public GraphicsProcessor
 {
     Pin<int64_t> pinOutput;
 
-    gmpi::shared_ptr<gmpi::drawing::api::IPathGeometry> geometry;
+    gmpi::drawing::PathGeometry geometry;
+
+  //  ~CircleGeometry()
+  //  {
+		//_RPT0(0, "CircleGeometry destructor\n");
+  //  }
 
     ReturnCode process() override
     {
         if (!pinOutput.value)
         {
-            gmpi::shared_ptr<gmpi::api::IUnknown> ret;
-            drawingHost->getDrawingFactory(ret.put());
-            auto drawingFactory = ret.as<drawing::api::IFactory>();
+            geometry = drawingFactory.createPathGeometry();
+#ifdef _DEBUG
+            // test move/copy operators.
+            gmpi::drawing::PathGeometry geometry2;
+            geometry2 = geometry;
 
-            drawingFactory->createPathGeometry(geometry.put());
+            gmpi::drawing::PathGeometry geometry3(geometry);
 
-            gmpi::shared_ptr<drawing::api::IGeometrySink> sink;
-            geometry->open(sink.put());
+//            std::shared_ptr<int> test;
+#endif
+
+            auto sink = geometry.open();
 
             // make a circle from two half-circle arcs
             const Point center{ 20.0f, 20.0f };
             const float radius{ 10.f };
 
             constexpr float pi = static_cast<float>(M_PI);
-            sink->beginFigure({ center.x, center.y - radius }, drawing::FigureBegin::Filled);
+            sink.beginFigure({ center.x, center.y - radius }, drawing::FigureBegin::Filled);
 			ArcSegment arc1{ { center.x, center.y + radius}, { radius, radius }, pi, SweepDirection::Clockwise, ArcSize::Small };
             ArcSegment arc2{ { center.x, center.y - radius}, { radius, radius }, pi, SweepDirection::Clockwise, ArcSize::Small };
-            sink->addArc(&arc1);
-            sink->addArc(&arc2);
+            sink.addArc(arc1);
+            sink.addArc(arc2);
 
-            sink->endFigure(FigureEnd::Closed);
-            sink->close();
+            sink.endFigure(FigureEnd::Closed);
+            sink.close();
 
-			pinOutput = reinterpret_cast<int64_t>(geometry.get());
+			pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(geometry));
         }
 
         return ReturnCode::Ok;
@@ -1110,7 +1124,7 @@ struct RenderGeometry final : public PluginEditor
         PathGeometry geometry;
         {
             auto unknown = reinterpret_cast<gmpi::api::IUnknown*>(pinInput.value);
-            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IPathGeometry::guid, (void**)geometry.put()))
+            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
                 return ReturnCode::Fail;
         }
 
@@ -1155,7 +1169,7 @@ struct Render2Bitmap final : public GraphicsProcessor
         PathGeometry geometry;
         {
             auto unknown = reinterpret_cast<gmpi::api::IUnknown*>(pinInput.value);
-            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IPathGeometry::guid, (void**)geometry.put()))
+            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
                 return ReturnCode::Fail;
         }
         {
@@ -1167,7 +1181,7 @@ struct Render2Bitmap final : public GraphicsProcessor
             {
                 gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
                 drawingHost->getDrawingFactory(unknown.put());
-                unknown->queryInterface(&drawing::api::IFactory::guid, (void**)factory.put());
+                unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
             }
 
             // create a bitmap render target on CPU.
@@ -1185,7 +1199,7 @@ struct Render2Bitmap final : public GraphicsProcessor
             bitmap = g2.getBitmap();
         }
 
-        pinOutput = reinterpret_cast<int64_t>(bitmap.get());
+        pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(bitmap));
 
         return ReturnCode::Ok;
     }
@@ -1227,12 +1241,12 @@ struct RenderBitmap final : public PluginEditor
         Bitmap bitmap;
         {
             auto unknown = reinterpret_cast<gmpi::api::IUnknown*>(pinInput.value);
-            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IBitmap::guid, (void**)bitmap.put()))
+            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IBitmap::guid, AccessPtr::put_void(bitmap)))
                 return ReturnCode::Fail;
         }
 
         const auto size = bitmap.getSize();
-        const Rect rect{ 0, 0, size.width, size.height };
+        const Rect rect{ 0, 0, static_cast<float>(size.width), static_cast<float>(size.height) };
 
 		g.drawBitmap(bitmap, rect, rect);
 
@@ -1275,9 +1289,9 @@ struct BlurBitmap final : public GraphicsProcessor
         PathGeometry geometry;
 
         // test if input is Bitmap or Path
-        if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IBitmap::guid, (void**)bitmap.put()))
+        if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IBitmap::guid, AccessPtr::put_void(bitmap)))
         {
-            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IPathGeometry::guid, (void**)geometry.put()))
+            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
                 return ReturnCode::Fail;
 
             // it's a path, render it to the mask bitmap.
@@ -1289,7 +1303,7 @@ struct BlurBitmap final : public GraphicsProcessor
             {
                 gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
                 drawingHost->getDrawingFactory(unknown.put());
-                unknown->queryInterface(&drawing::api::IFactory::guid, (void**)factory.put());
+                unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
             }
 
             // create a bitmap render target on CPU.
@@ -1308,7 +1322,7 @@ struct BlurBitmap final : public GraphicsProcessor
         }
 
         auto size = bitmap.getSize();
-        const Rect rect{ 0, 0, size.width, size.height };
+        const Rect rect{ 0, 0, static_cast<float>(size.width), static_cast<float>(size.height) };
 
         // copy the mask bitmap to working RAM.
         std::vector<uint8_t> workingArea;
@@ -1352,7 +1366,7 @@ struct BlurBitmap final : public GraphicsProcessor
             {
                 gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
                 drawingHost->getDrawingFactory(unknown.put());
-                unknown->queryInterface(&drawing::api::IFactory::guid, (void**)factory.put());
+                unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
             }
 
             // create bitmap
@@ -1404,7 +1418,7 @@ struct BlurBitmap final : public GraphicsProcessor
             }
         }
 
-        pinOutput = reinterpret_cast<int64_t>(blurredBitmap.get());
+        pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(blurredBitmap));
 
         return ReturnCode::Ok;
     }
