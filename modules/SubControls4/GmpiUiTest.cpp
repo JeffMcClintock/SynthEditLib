@@ -221,6 +221,7 @@ struct PatchMemSet final : public PluginEditorNoGui
         if (paramHost)
         {
             const float safeValue = std::clamp(pinNormalized.value, 0.0f, 1.0f);
+
             paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), &safeValue);
             paramHost->setParameter(pinId.value, gmpi::Field::Grab, 0, sizeof(bool), &pinMouseDown.value);
         }
@@ -1566,36 +1567,7 @@ struct Mask2Bitmap final : public GraphicsProcessor
 
         // test if input is Bitmap or Path
         if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IBitmap::guid, AccessPtr::put_void(bitmap)))
-        {
-            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
-                return ReturnCode::Fail;
-
-            // it's a path, render it to the mask bitmap.
-            const SizeU size{ 100, 100 };// getWidth(bounds), getHeight(bounds)}; size is zero on first process.
-            const int32_t flags = (int32_t)BitmapRenderTargetFlags::Mask;
-
-            // get factory.
-            Factory factory;
-            {
-                gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-                drawingHost->getDrawingFactory(unknown.put());
-                unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
-            }
-
-            // create a bitmap render target on CPU.
-            auto g2 = factory.createCpuRenderTarget(size, flags);
-
-            g2.beginDraw();
-
-            auto brush = g2.createSolidColorBrush(Colors::White);
-            auto strokeStyle = factory.createStrokeStyle(CapStyle::Flat);
-
-            g2.drawGeometry(geometry, brush);
-
-            g2.endDraw();
-
-            bitmap = g2.getBitmap();
-        }
+            return ReturnCode::Fail;
 
         auto size = bitmap.getSize();
         const Rect rect{ 0, 0, static_cast<float>(size.width), static_cast<float>(size.height) };
@@ -1695,8 +1667,8 @@ auto r24 = gmpi::Register<Mask2Bitmap>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: Mask2Bitmap" name="Mask2Bitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Bitmap/Path" datatype="int64"/>
-      <Pin name="Blurred" datatype="int64" direction="out"/>
+      <Pin name="Bitmap8" datatype="int64"/>
+      <Pin name="Bitmap24" datatype="int64" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>

@@ -82,8 +82,22 @@ namespace SE2
 	}
 	gmpi::ReturnCode GmpiUiHelper::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const void* data)
 	{
+		auto patchMgr = moduleview.parent->Presenter()->GetPatchManager();
+
+		if (fieldId == gmpi::Field::Value || fieldId == gmpi::Field::Normalized)
+		{
+			// normalised is sensitive to tiny rounding errors. Causes 'changed' flag to be set even when value is the same. (due to rounding in conversion to real value)
+
+			const float current = (float)patchMgr->getParameterValue(parameterHandle, (gmpi::FieldType)fieldId);
+
+			if (fabsf(current - *(float*)data) < 0.000001f)
+			{
+				return gmpi::ReturnCode::Ok; // ignore small change.
+			}
+		}
+
 		// set ANY parameter.
-		moduleview.parent->Presenter()->GetPatchManager()->setParameterValue({ data, static_cast<size_t>(size) }, parameterHandle, (gmpi::FieldType) fieldId);
+		patchMgr->setParameterValue({ data, static_cast<size_t>(size) }, parameterHandle, (gmpi::FieldType) fieldId);
 
 		if (fieldId == gmpi::Field::Value || fieldId == gmpi::Field::Normalized)
 		{
