@@ -35,9 +35,15 @@ class Blob2Test final : public MpBase2
 public:
 	Blob2Test()
 	{
-		initializePin(1, pinTrigger);
-		initializePin(3, pinValueIn);
-		initializePin(99999, pinValueOut);
+		// fails
+		//initializePin(1, pinTrigger);
+		//initializePin(3, pinValueIn);
+		//initializePin(99999, pinValueOut);
+
+		// initialise with index, not ID.
+		initializePin(0, pinTrigger);
+		initializePin(1, pinValueIn);
+		initializePin(2, pinValueOut);
 	}
 
 	void onSetPins() override
