@@ -856,7 +856,7 @@ void init(std::map<int32_t, paramInfo>& parametersInfo, tinyxml2::XMLNode* param
 		parameter_xml->QueryIntAttribute("MIDI", &(p.midiAutomation));
 		if (p.midiAutomation != -1)
 		{
-			std::string temp;
+			const char* temp{};
 			parameter_xml->QueryStringAttribute("MIDI_SYSEX", &temp);
 			p.midiAutomationSysex = Utf8ToWstring(temp);
 		}
