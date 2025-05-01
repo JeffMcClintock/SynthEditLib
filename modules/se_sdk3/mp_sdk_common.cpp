@@ -78,17 +78,17 @@ public:
 	}
 } grim_reaper;
 
-#if !defined(_M_X64) && defined(_MSC_VER)
-	// Export additional symbol without name decoration.
-	#pragma comment( linker, "/export:MP_GetFactory=_MP_GetFactory@4" )
-#endif
-
 // This is the DLL's main entry point.  It returns the factory.
 extern "C"
 
 #ifdef _WIN32
 	#define VST_EXPORT __declspec (dllexport)
 #else
+
+#if !defined(_M_X64) && defined(_MSC_VER)
+	// Export additional symbol without name decoration.
+	#pragma comment( linker, "/export:MP_GetFactory=_MP_GetFactory@4" )
+#endif
 
 #if defined (__GNUC__)
 	#define VST_EXPORT	__attribute__ ((visibility ("default")))

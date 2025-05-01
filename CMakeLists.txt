@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
 
 # To build SE Modules, point CMake at 'SE16' folder, not here.
+# for ARM64, use the following commands:
+#  cd build_arm (C:SE/SynthEditLib/build_arm)
+#  cmake ../../SE16 -G "Visual Studio 17 2022" -A ARM64   (or ARM64EC, fails with SIMDUTF8 lib)
 
 # macOS 13.3 required for std::format (SubControls4)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "Minimum macOS deployment version")
