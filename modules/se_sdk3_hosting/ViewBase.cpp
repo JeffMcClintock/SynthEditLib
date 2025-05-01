@@ -1010,6 +1010,21 @@ namespace SE2
 		}
 	}
 
+	void ViewBase::RemoveModule(int32_t handle)
+	{
+		// module is being deleted from document, can't wait for timer to invalidate view because will leave any pointers to the document/controllers invalid.
+		// mostly a problem with VST wrappers and SynthEdit GMPI.
+		for (auto it = children.begin(); it != children.end(); ++it)
+		{
+			if ((*it)->getModuleHandle() == handle)
+			{
+//				children.erase(it);
+				RemoveChild((*it).get());
+				break;
+			}
+		}
+	}
+
 	void ViewBase::OnChangedChildHighlight(int phandle, int flags)
 	{
 		for(auto& m : children)

@@ -125,6 +125,7 @@ bool isIteratingChildren = false;
 		void OnPatchCablesUpdate(RawView patchCablesRaw);
 		void UpdateCablesBounds();
 		void RemoveCables(ConnectorViewBase* cable);
+		void RemoveModule(int32_t handle);
 
 		void OnChangedChildHighlight(int phandle, int flags);
 

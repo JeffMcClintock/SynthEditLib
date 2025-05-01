@@ -311,8 +311,8 @@ protected:
 		// IMpPathGeometry
 		int32_t MP_STDCALL Open(GmpiDrawing_API::IMpGeometrySink** geometrySink) override
 		{
-			gmpi::drawing::api::IGeometrySink* nativeGeometrySink{};
-			native()->open(&nativeGeometrySink);
+			gmpi::shared_ptr<gmpi::drawing::api::IGeometrySink> nativeGeometrySink;
+			native()->open(nativeGeometrySink.put());
 			*geometrySink = new g3_GeometrySink(factory_, nativeGeometrySink);
 			return gmpi::MP_OK;
 		}
@@ -537,9 +537,9 @@ public:
 	{
 		*solidColorBrush = nullptr;
 
-		gmpi::drawing::api::ISolidColorBrush* b{};
 		gmpi::drawing::BrushProperties bp{};
-		auto hr = context_->createSolidColorBrush((const gmpi::drawing::Color*) color, &bp, &b);
+		gmpi::shared_ptr<gmpi::drawing::api::ISolidColorBrush> b;
+		auto hr = context_->createSolidColorBrush((const gmpi::drawing::Color*) color, &bp, b.put());
 
 		if (hr == gmpi::ReturnCode::Ok)
 		{
@@ -556,8 +556,8 @@ public:
 	{
 		*gradientStopCollection = nullptr;
 
-		gmpi::drawing::api::IGradientstopCollection* b{};
-		auto hr = context_->createGradientstopCollection((const gmpi::drawing::Gradientstop*) gradientStops, gradientStopsCount, gmpi::drawing::ExtendMode::Clamp, &b);
+		gmpi::shared_ptr<gmpi::drawing::api::IGradientstopCollection> b;
+		auto hr = context_->createGradientstopCollection((const gmpi::drawing::Gradientstop*) gradientStops, gradientStopsCount, gmpi::drawing::ExtendMode::Clamp, b.put());
 
 		if (hr == gmpi::ReturnCode::Ok)
 		{
@@ -574,12 +574,12 @@ public:
 	{
 		*linearGradientBrush = nullptr;
 
-		gmpi::drawing::api::ILinearGradientBrush* b{};
+		gmpi::shared_ptr<gmpi::drawing::api::ILinearGradientBrush> b;
 		auto hr = context_->createLinearGradientBrush(
 			(const gmpi::drawing::LinearGradientBrushProperties*) linearGradientBrushProperties,
 			(const gmpi::drawing::BrushProperties*) brushProperties,
 			dynamic_cast<const g3_GradientStopCollection*>(gradientStopCollection)->native(),
-			&b
+			b.put()
 		);
 
 		if (hr == gmpi::ReturnCode::Ok)
@@ -597,8 +597,8 @@ public:
 	{
 		returnBrush = nullptr;
 
-		gmpi::drawing::api::IBitmapBrush* b{};
-		auto hr = context_->createBitmapBrush(dynamic_cast<const g3_Bitmap*>(bitmap)->native(), (const gmpi::drawing::BrushProperties*)brushProperties, &b);
+		gmpi::shared_ptr<gmpi::drawing::api::IBitmapBrush> b;
+		auto hr = context_->createBitmapBrush(dynamic_cast<const g3_Bitmap*>(bitmap)->native(), (const gmpi::drawing::BrushProperties*)brushProperties, b.put());
 
 		if (hr == gmpi::ReturnCode::Ok)
 		{
@@ -615,12 +615,12 @@ public:
 	{
 		*radialGradientBrush = nullptr;
 
-		gmpi::drawing::api::IRadialGradientBrush* b{};
+		gmpi::shared_ptr<gmpi::drawing::api::IRadialGradientBrush> b;
 		auto hr = context_->createRadialGradientBrush(
 			(const gmpi::drawing::RadialGradientBrushProperties*) radialGradientBrushProperties,
 			(const gmpi::drawing::BrushProperties*) brushProperties,
 			dynamic_cast<const g3_GradientStopCollection*>(gradientStopCollection)->native(),
-			&b
+			b.put()
 		);
 
 		if (hr == gmpi::ReturnCode::Ok)
@@ -736,8 +736,8 @@ public:
 		gmpi::drawing::api::IBitmapRenderTarget* native{};
 		context_->queryInterface(&gmpi::drawing::api::IBitmapRenderTarget::guid, (void**)&native);
 
-		gmpi::drawing::api::IBitmap* bitmap{};
-		native->getBitmap(&bitmap);
+		gmpi::shared_ptr<gmpi::drawing::api::IBitmap> bitmap;
+		native->getBitmap(bitmap.put());
 
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
 		b2.Attach(new GmpiToSDK3Context::g3_Bitmap(factory, bitmap));
@@ -811,12 +811,12 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateStrokeStyle(const GmpiDrawing
 		strokeStyleProperties->dashOffset
 	};
 
-	gmpi::drawing::api::IStrokeStyle* b{};
+	gmpi::shared_ptr<gmpi::drawing::api::IStrokeStyle> b;
 	auto hr = native->createStrokeStyle(
 		&strokeStylePropertiesNative,
 		dashes,
 		dashesCount,
-		&b
+		b.put()
 	);
 
 	if (hr == gmpi::ReturnCode::Ok)
@@ -834,8 +834,8 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreatePathGeometry(GmpiDrawing_API:
 {
 	*pathGeometry = nullptr;
 
-	gmpi::drawing::api::IPathGeometry* b{};
-	auto hr = native->createPathGeometry(&b);
+	gmpi::shared_ptr<gmpi::drawing::api::IPathGeometry> b;
+	auto hr = native->createPathGeometry(b.put());
 
 	if (hr == gmpi::ReturnCode::Ok)
 	{
@@ -852,7 +852,7 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateTextFormat(const char* fontFa
 {
 	*textFormat = nullptr;
 
-	gmpi::drawing::api::ITextFormat* b{};
+	gmpi::shared_ptr<gmpi::drawing::api::ITextFormat> b;
 	auto hr = native->createTextFormat(
 		fontFamilyName,
 		(gmpi::drawing::FontWeight) fontWeight,
@@ -860,7 +860,7 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateTextFormat(const char* fontFa
 		(gmpi::drawing::FontStretch) fontStretch,
 		fontSize,
 		0,
-		&b
+		b.put()
 	);
 
 	if (hr == gmpi::ReturnCode::Ok)
@@ -878,8 +878,8 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateImage(int32_t width, int32_t 
 {
 	*returnDiBitmap = nullptr;
 
-	gmpi::drawing::api::IBitmap* b{};
-	auto hr = native->createImage(width, height, (int32_t)gmpi::drawing::BitmapRenderTargetFlags::EightBitPixels, &b);
+	gmpi::shared_ptr<gmpi::drawing::api::IBitmap> b;
+	auto hr = native->createImage(width, height, (int32_t)gmpi::drawing::BitmapRenderTargetFlags::EightBitPixels, b.put());
 
 	if (hr == gmpi::ReturnCode::Ok)
 	{
@@ -896,8 +896,8 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::LoadImageU(const char* utf8Uri, Gmp
 {
 	*returnDiBitmap = nullptr;
 
-	gmpi::drawing::api::IBitmap* b{};
-	auto hr = native->loadImageU(utf8Uri, &b);
+	gmpi::shared_ptr<gmpi::drawing::api::IBitmap> b;
+	auto hr = native->loadImageU(utf8Uri, b.put());
 
 	if (hr == gmpi::ReturnCode::Ok)
 	{

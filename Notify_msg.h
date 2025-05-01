@@ -14,7 +14,7 @@
 #define OM_DELETE_DOC		15
 #define OM_ADD_CHILD		17
 
-#define OM_REMOVE_CHILD		18 // temp. only used by controls-on-panel
+#define OM_REMOVE_CHILD		18
 
 #define OM_MUTE_CHANGE		19
 #define OM_SCREENSHOT		21

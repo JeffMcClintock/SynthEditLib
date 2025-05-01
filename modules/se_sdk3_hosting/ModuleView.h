@@ -478,6 +478,11 @@ namespace SE2
 			tf_header.SetTextAlignment(GmpiDrawing::TextAlignment::Center);
 		}
 
+		~sharedGraphicResources_struct()
+		{
+			_RPT0(0, "~sharedGraphicResources_struct\n");
+		}
+
 		GmpiDrawing::TextFormat tf_plugs_left;
 		GmpiDrawing::TextFormat tf_plugs_right;
 		GmpiDrawing::TextFormat tf_header;
