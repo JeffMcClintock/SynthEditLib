@@ -1737,7 +1737,7 @@ namespace SE2
 
 	int32_t ViewBase::OnKeyPress(wchar_t c) // SDK3 version, forward to new version.
 	{
-		return (int32_t) onKey(c, nullptr);
+		return (int32_t) onKey(c, (gmpi::drawing::Point*) &lastMovePoint);
 	}
 
 	gmpi::ReturnCode ViewBase::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
