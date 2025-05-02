@@ -12,7 +12,6 @@
 
 namespace GmpiGuiHosting
 {
-//	class DrawingFrameBase;
 	class ConnectorViewBase;
 }
 

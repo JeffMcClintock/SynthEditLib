@@ -9,10 +9,12 @@ enum class PresenterCommand;
 
 namespace SE2
 {
-	class ViewBase;
-	class ModuleView;
-    enum class CableType;
-	// The presentor class mediates between the view and the model.
+class ViewBase;
+class IViewChild;
+class ModuleView;
+enum class CableType;
+
+	// The presenter class mediates between the view and the model.
 	//
 	//                 [Model]<->[Presentor]<->[View]
 	//
@@ -69,6 +71,7 @@ namespace SE2
 		virtual void setHoverScopePin(int32_t moduleHandle, int pin) = 0;
 		virtual void HighlightFeedback(std::list< std::pair<feedbackPinUi, feedbackPinUi> >& feedbackConnectors) = 0;
 		virtual void ClearFeedbackHighlights() = 0;
+		virtual SE2::IViewChild* createModulePicker(SE2::ViewBase*) = 0;
 		// - HERE --
 	};
 }
