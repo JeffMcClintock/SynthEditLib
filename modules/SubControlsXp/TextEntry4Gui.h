@@ -4,12 +4,12 @@
 #include <functional>
 #include "TextSubcontrol.h"
 
-class TextEntry4Gui : public TextSubcontrol
+class TextEntry5Gui : public TextSubcontrol
 {
 	GmpiGui::TextEdit nativeEdit;
 
 public:
-	TextEntry4Gui();
+	TextEntry5Gui();
 
 	void onSetStyle();
 

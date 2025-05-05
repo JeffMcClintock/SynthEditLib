@@ -12,17 +12,17 @@ using namespace GmpiDrawing;
 using namespace GmpiDrawing_API;
 using namespace gmpi_gui_api;
 
-GMPI_REGISTER_GUI(MP_SUB_TYPE_GUI2, TextEntry4Gui, L"SE Text Entry4" );
+GMPI_REGISTER_GUI(MP_SUB_TYPE_GUI2, TextEntry5Gui, L"SE Text Entry4" );
 SE_DECLARE_INIT_STATIC_FILE(TextEntry4_Gui);
 
-TextEntry4Gui::TextEntry4Gui()
+TextEntry5Gui::TextEntry5Gui()
 {
 	// initialise pins.
-	initializePin( pinText, static_cast<MpGuiBaseMemberPtr2>(&TextEntry4Gui::redraw) );
-	initializePin( pinStyle, static_cast<MpGuiBaseMemberPtr2>(&TextEntry4Gui::onSetStyle) );
-	initializePin( pinMultiline, static_cast<MpGuiBaseMemberPtr2>(&TextEntry4Gui::onSetStyle) );
+	initializePin( pinText, static_cast<MpGuiBaseMemberPtr2>(&TextEntry5Gui::redraw) );
+	initializePin( pinStyle, static_cast<MpGuiBaseMemberPtr2>(&TextEntry5Gui::onSetStyle) );
+	initializePin( pinMultiline, static_cast<MpGuiBaseMemberPtr2>(&TextEntry5Gui::onSetStyle) );
 	initializePin( pinWriteable );
-	initializePin( pinGreyed, static_cast<MpGuiBaseMemberPtr2>(&TextEntry4Gui::redraw) );
+	initializePin( pinGreyed, static_cast<MpGuiBaseMemberPtr2>(&TextEntry5Gui::redraw) );
 	initializePin( pinHint );
 	initializePin( pinMenuItems );
 	initializePin( pinMenuSelection );
@@ -30,9 +30,9 @@ TextEntry4Gui::TextEntry4Gui()
 	initializePin( pinMouseDown );
 }
 
-void TextEntry4Gui::onSetStyle()
+void TextEntry5Gui::onSetStyle()
 {
-	std::string customStyleName{"TextEntry4Gui:text:"};
+	std::string customStyleName{"TextEntry5Gui:text:"};
 	customStyleName += WStringToUtf8(pinStyle.getValue());
 
 	if(pinMultiline.getValue())
@@ -65,7 +65,7 @@ void TextEntry4Gui::onSetStyle()
 }
 
 // Overriden to suport multiline text.
-int32_t TextEntry4Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
+int32_t TextEntry5Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 {
 	GmpiDrawing::Graphics g(drawingContext);
 
@@ -94,7 +94,7 @@ int32_t TextEntry4Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContex
 	return gmpi::MP_OK;
 }
 
-int32_t TextEntry4Gui::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+int32_t TextEntry5Gui::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 {
 	// Let host handle right-clicks.
 	if( ( flags & GG_POINTER_FLAG_FIRSTBUTTON ) == 0 )
@@ -110,7 +110,7 @@ int32_t TextEntry4Gui::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT p
 	return gmpi::MP_OK;
 }
 
-int32_t TextEntry4Gui::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+int32_t TextEntry5Gui::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 {
 	if( !getCapture() )
 	{
@@ -135,12 +135,12 @@ int32_t TextEntry4Gui::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT poi
 	return gmpi::MP_OK;
 }
 
-std::string TextEntry4Gui::getDisplayText()
+std::string TextEntry5Gui::getDisplayText()
 {
 	return WStringToUtf8(pinText.getValue());
 }
 
-void TextEntry4Gui::OnTextEnteredComplete(int32_t result)
+void TextEntry5Gui::OnTextEnteredComplete(int32_t result)
 {
 	if (result == gmpi::MP_OK)
 	{

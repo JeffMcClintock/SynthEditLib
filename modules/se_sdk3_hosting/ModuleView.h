@@ -15,8 +15,8 @@
 #include "modules/se_sdk3/se_mp_extensions.h"
 #include "Extensions/EmbeddedFile.h"
 
-#include "GmpiSdkCommon.h"
-#include "GmpiApiEditor.h"
+#include "Core/GmpiSdkCommon.h"
+#include "Core/GmpiApiEditor.h"
 #include "helpers/NativeUi.h"
 
 #include "modules/se_sdk3_hosting/GmpiResourceManager.h"
