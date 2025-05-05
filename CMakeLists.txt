@@ -635,8 +635,8 @@ ${DSP_CORE}
 ${DSP_CORE}/modules
 ${se_sdk_folder}
 ${VST3_SDK}
-${GMPI_SDK}
-${GMPI_SDK}/Core
+${gmpi_sdk_folder}
+${gmpi_sdk_folder}/Core
 ${gmpi_ui_folder}
 ${se_shared_folder}
 ${se_sdk_hosting_folder}

@@ -83,7 +83,7 @@ public:
 	void setHoverScopePin(int32_t moduleHandle, int pin) override {} // editor only
 	void HighlightFeedback(std::list< std::pair<SE2::feedbackPinUi, SE2::feedbackPinUi> >& feedbackConnectors) override {} // editor only
 	void ClearFeedbackHighlights() override {} // editor only
-	SE2::IViewChild* createModulePicker(SE2::ViewBase*) override {} // editor only
+	SE2::IViewChild* createModulePicker(SE2::ViewBase*) override { return {}; } // editor only
 
 	/* maybe
 	void RemoveRackModule() override

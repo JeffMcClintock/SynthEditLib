@@ -13,7 +13,7 @@
 #include "modules/se_sdk3/mp_sdk_common.h"
 #include "modules/se_sdk2/se_datatypes.h"
 #include "modules/se_sdk3/se_mp_extensions.h"
-#include "../Extensions/EmbeddedFile.h"
+#include "Extensions/EmbeddedFile.h"
 
 #include "GmpiSdkCommon.h"
 #include "GmpiApiEditor.h"
