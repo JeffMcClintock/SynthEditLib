@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <span>
+#include "RawView.h"
 #include "RawConversions.h"
 #include "IGuiHost2.h"
 #include "it_enum_list.h"
@@ -60,7 +61,7 @@ struct SeParameterAttachment2 : SeParameterAttachment
     }
 
     // gmpi::IMpParameterObserver
-    int32_t MP_STDCALL setParameter(int32_t pparameterHandle, int32_t fieldId, int32_t /*voice*/, const void* data, int32_t size) override
+    int32_t MP_STDCALL setParameter(int32_t /*pparameterHandle*/, int32_t fieldId, int32_t /*voice*/, const void* data, int32_t size) override
     {
         if (/*parameterHandle == pparameterHandle &&*/ gmpi::MP_FT_VALUE == fieldId)
         {
@@ -131,26 +132,26 @@ struct SeParameterAttachmentSlider : SeParameterAttachment
         , slider(pslider)
     {
         slider.onValueChange = [this] {
-            controller->setParameterValue({ (float)slider.getValue() }, parameterHandle);
+            controller->setParameterValue(RawView{ (float)slider.getValue() }, parameterHandle);
         };
 
         slider.onDragStart = [this] {
             controller->setParameterValue(
-                { true },
+                RawView{ true },
                 parameterHandle,
                 gmpi::MP_FT_GRAB);
         };
 
         slider.onDragEnd = [this] {
             controller->setParameterValue(
-                { false },
+                RawView{ false },
                 parameterHandle,
                 gmpi::MP_FT_GRAB);
         };
     }
 
     // gmpi::IMpParameterObserver
-    int32_t MP_STDCALL setParameter(int32_t pparameterHandle, int32_t fieldId, int32_t /*voice*/, const void* data, int32_t size) override
+    int32_t MP_STDCALL setParameter(int32_t /*pparameterHandle*/, int32_t fieldId, int32_t /*voice*/, const void* data, int32_t size) override
     {
         if (/*parameterHandle == pparameterHandle &&*/ gmpi::MP_FT_VALUE == fieldId && size == sizeof(float))
         {
@@ -195,13 +196,13 @@ struct SeParameterAttachmentButton : SeParameterAttachment
                 // we're assuming switch is wired to an enum parameter as part of a radio-group
                 if (button.getToggleState())
                 {
-                    controller->setParameterValue(enumVal, parameterHandle, gmpi::MP_FT_VALUE);
+                    controller->setParameterValue(RawView{ enumVal }, parameterHandle, gmpi::MP_FT_VALUE);
                 }
             }
             else
             {
                 // we're assuming switch is wired to an enum parameter, where the first two values are (0 1)
-                controller->setParameterValue({ button.getToggleState() ? onVal : offVal }, parameterHandle, gmpi::MP_FT_VALUE);
+                controller->setParameterValue(RawView{ button.getToggleState() ? onVal : offVal }, parameterHandle, gmpi::MP_FT_VALUE);
             }
         };
     }
@@ -262,11 +263,11 @@ struct SeParameterAttachmentBoolButton : SeParameterAttachment
 
 	void UpdateParameter(bool isToggled)
 	{
-        controller->setParameterValue(isToggled ? 1.0f : 0.0f, parameterHandle, gmpi::MP_FT_NORMALIZED);
+        controller->setParameterValue(RawView(isToggled ? 1.0f : 0.0f), parameterHandle, gmpi::MP_FT_NORMALIZED);
 	}
 
     // gmpi::IMpParameterObserver
-    int32_t MP_STDCALL setParameter(int32_t pparameterHandle, int32_t fieldId, int32_t /*voice*/, const void* data, int32_t size) override
+    int32_t MP_STDCALL setParameter(int32_t /*pparameterHandle*/, int32_t fieldId, int32_t /*voice*/, const void* data, int32_t size) override
     {
         if (/*parameterHandle == pparameterHandle &&*/ gmpi::MP_FT_VALUE == fieldId && size == sizeof(bool))
         {
@@ -379,7 +380,7 @@ struct SeParameterAttachmentButtonDisabler2 : SeParameterAttachment
     {}
 
     // gmpi::IMpParameterObserver
-    int32_t MP_STDCALL setParameter(int32_t pparameterHandle, int32_t fieldId, int32_t /*voice*/, const void* data, int32_t size) override
+    int32_t MP_STDCALL setParameter(int32_t /*pparameterHandle*/, int32_t fieldId, int32_t /*voice*/, const void* data, int32_t size) override
     {
         if (gmpi::MP_FT_VALUE != fieldId)
             return gmpi::MP_OK;
@@ -457,18 +458,18 @@ struct ButtonStateManager : SeParameterAttachment, public juce::MouseListener
             // we're assuming switch is wired to an enum parameter as part of a radio-group
             if (on)
             {
-                controller->setParameterValue(enumVal, parameterHandle, gmpi::MP_FT_VALUE);
+                controller->setParameterValue(RawView{ enumVal }, parameterHandle, gmpi::MP_FT_VALUE);
             }
         }
         else
         {
             // we're assuming switch is wired to an enum parameter, where the first two values are (0 1)
-            controller->setParameterValue({ on ? (int32_t)1 : (int32_t)0 }, parameterHandle, gmpi::MP_FT_VALUE);
+            controller->setParameterValue(RawView{ on ? (int32_t)1 : (int32_t)0 }, parameterHandle, gmpi::MP_FT_VALUE);
         }
     }
 
     // gmpi::IMpParameterObserver
-    int32_t MP_STDCALL setParameter(int32_t pparameterHandle, int32_t fieldId, int32_t /*voice*/, const void* data, int32_t size) override
+    int32_t MP_STDCALL setParameter(int32_t /*pparameterHandle*/, int32_t fieldId, int32_t /*voice*/, const void* data, int32_t size) override
     {
         if (/*parameterHandle == pparameterHandle &&*/ gmpi::MP_FT_VALUE == fieldId && size == sizeof(int32_t))
         {
