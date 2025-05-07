@@ -212,7 +212,7 @@ namespace se
         
         DrawingFactory(gmpi::cocoa::FactoryInfo& pinfo) : info(pinfo)
         {
-            }
+        }
             
         // utility
         inline NSColor* toNative(const GmpiDrawing_API::MP1_COLOR& color)

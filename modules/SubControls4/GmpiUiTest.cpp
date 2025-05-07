@@ -765,7 +765,7 @@ class Delta final : public PluginEditorNoGui
 public:
     ReturnCode process() override
     {
-        _RPTN(0, "Delta: %f -> %f delta=%f\n", prev, pinValue_in.value, pinValue_in.value - prev);
+    //    _RPTN(0, "Delta: %f -> %f delta=%f\n", prev, pinValue_in.value, pinValue_in.value - prev);
 
         pinValue = pinValue_in.value - prev;
 		prev = pinValue_in.value;
@@ -921,7 +921,7 @@ struct Float2Text final : public PluginEditorNoGui
 #if defined(_MSC_VER)
         sprintf_s(formatString, maxSize, "%%.%df", decimals);
 #else
-        sprintf(formatString, maxSize, "%%.%df", decimals);
+        sprintf(formatString, "%%.%df", decimals);
 #endif
 
         char outputString[maxSize];
