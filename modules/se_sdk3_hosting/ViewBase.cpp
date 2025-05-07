@@ -1742,8 +1742,11 @@ namespace SE2
 
 	gmpi::ReturnCode ViewBase::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
 	{
+#ifdef _WIN32
 		*returnFactory = static_cast<gmpi::drawing::api::IFactory*>(&frameWindow->DrawingFactory->gmpiFactory);
 		return gmpi::ReturnCode::Ok;
+#endif
+        return gmpi::ReturnCode::NoSupport;
 	}
 
 	gmpi::ReturnCode ViewBase::onKey(int32_t key, gmpi::drawing::Point* pointerPosOrNull)

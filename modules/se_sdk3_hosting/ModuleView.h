@@ -188,8 +188,8 @@ namespace SE2
 		}
 
 		// unidirectional modules
-		virtual void setDirty() { dirty = true; }
-		virtual bool getDirty()
+		virtual void setDirty() override { dirty = true; }
+		virtual bool getDirty() override
 		{
 			return dirty;
 		}
@@ -480,7 +480,7 @@ namespace SE2
 
 		~sharedGraphicResources_struct()
 		{
-			_RPT0(0, "~sharedGraphicResources_struct\n");
+			// _RPT0(0, "~sharedGraphicResources_struct\n");
 		}
 
 		GmpiDrawing::TextFormat tf_plugs_left;

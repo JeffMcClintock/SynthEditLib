@@ -51,7 +51,7 @@ public:
 	Envelope( IMpUnknown* host );
 	inline float CalcIncrement( float p_rate );
 	void onSetPins( void ) override;
-	void ChooseSubProcess( int blockPosition );
+	void ChooseSubProcess( int blockPosition ) override;
 	void sub_process5( int start_pos, int sampleframes );
 	void sub_process8( int start_pos, int sampleframes );
 	void sub_process9( int start_pos, int sampleframes );

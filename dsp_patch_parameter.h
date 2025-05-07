@@ -118,7 +118,7 @@ public:
 	}
 
 #if defined( _DEBUG )
-	virtual std::wstring GetValueString(int patch)
+    std::wstring GetValueString(int patch) override
 	{
 		const int voiceId = 0;
 		auto data = patchMemory[voiceId]->GetValue( patch );

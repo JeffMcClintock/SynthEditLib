@@ -60,7 +60,8 @@ int ug_wave_recorder::Close()
 {
 	//	_RPT0(_CRT_WARN, "ug_wave_recorder::Close()\n" );
 	CloseFile();
-
+    
+#ifdef _WIN32
 	// Calculate program's efficiency
 	if ((SeAudioMaster::profileBlockSize || debug))
 	{
@@ -117,7 +118,8 @@ int ug_wave_recorder::Close()
 			}
 		}
 	}
-
+#endif
+    
 	return ug_base::Close();
 }
 
