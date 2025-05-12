@@ -1156,24 +1156,9 @@ struct MpBlob
 	{
 		Init(size, data);
 	}
-	~MpBlob()
-	{
-		delete[] data_;
-	}
-	void setValueRaw(size_t size, const void* data)
-	{
-		if (size_ != size)
-		{
-			delete[] data_;
-			size_ = size;
-			data_ = new char[size_];
-		}
+	~MpBlob();
 
-		if (size_ > 0)
-		{
-			memcpy(data_, data, size_);
-		}
-	}
+	void setValueRaw(size_t size, const void* data);
 	inline void setValueRaw(int size, const void* data)
 	{
 		setValueRaw((size_t)size, data);

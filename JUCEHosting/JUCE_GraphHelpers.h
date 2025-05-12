@@ -42,22 +42,23 @@ inline void SimplifyGraph(const std::vector<juce::Point<float>>& in, std::vector
 
 	out.clear();
 
-	constexpr float tollerance = 0.3f;
+	constexpr float tollerance{ 0.3f }; // points this close in pixels to the projected line are skipped.
+	constexpr float tolleranceX{ 0.00001f }; // points this close horizontally are skipped.
 
 	auto prev = in[0];
     auto lastOut = prev;
-    lastOut.y -= 1000.0f; // force prediction failure on first point.
-	float slope = 0.0f;
+	lastOut.y -= 1000.0f; // force prediction failure on first point.
+	float slope{ 0.0f };
                 
     for(auto& p : in)
     {
-        if(p.x < lastOut.x + 0.00001f) // skip points with same x value (infinite slope)
+        if(fabsf(p.x - lastOut.x) < tolleranceX) // skip points with same x value (infinite slope)
             continue;
 
         const float predictedY = lastOut.y + slope * (p.x - lastOut.x);
         const float err = p.y - predictedY;
 
-        if (err > tollerance || err < -tollerance)
+        if (err > tollerance || err < -tollerance) // done the hard way to capture nans
         {
             out.push_back(prev);
             lastOut = prev;
@@ -68,26 +69,17 @@ inline void SimplifyGraph(const std::vector<juce::Point<float>>& in, std::vector
     }
 
 	assert(!out.empty()); // should always contain at least the start point.
-
-	//if (out.empty()) // perfect flat line
-	//{
-	//	out.push_back(lastOut);
-	//}
-
 	assert(out.back() != in.back());
     
 	// last point
-	const float lastX = out.back().x;
-    out.push_back(in.back());
-	out.back().x = (std::max)(out.back().x, lastX + 0.00001f); // avoid points with same x value (infinite slope)
+	if(fabsf(in.back().x - out.back().x) > tolleranceX) // avoid points with same x value (infinite slope))
+		out.push_back(in.back());
 }
 
 inline juce::Path DataToGraph(const std::vector<Point>& inData)
 {
-	const float tollerance = 0.3f;
-
 	juce::Path geometry;
-	bool first = true;
+	bool first{ true };
 	for (const auto& p : inData)
 	{
 		if (first)
@@ -100,7 +92,6 @@ inline juce::Path DataToGraph(const std::vector<Point>& inData)
 			geometry.lineTo(p);
 		}
 	}
-//	geometry.closeSubPath();
 
 	return geometry;
 }

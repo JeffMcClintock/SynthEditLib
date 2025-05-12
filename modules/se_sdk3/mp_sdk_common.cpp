@@ -12,7 +12,7 @@ using namespace gmpi;
 //define COMPILE_HOST_SUPPORT
 #endif
 
-//#ifndef COMPILE_HOST_SUPPORT
+#ifndef COMPILE_HOST_SUPPORT
 
 //---------------FACTORY --------------------
 
@@ -281,12 +281,6 @@ int32_t MpFactory::getSdkInformation( int32_t& returnSdkVersion, int32_t maxChar
 #endif	// COMPILE_HOST_SUPPORT
 
 // BLOB datatype
-
-MpBlob::MpBlob() :
-	size_(0),
-	data_(0)
-{
-}
 
 void MpBlob::setValueRaw(size_t size, const void* data)
 {

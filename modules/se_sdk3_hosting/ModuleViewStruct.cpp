@@ -31,7 +31,7 @@ inline PathGeometry DataToGraph(Graphics& g, const std::vector<Point>& inData)
 {
 	auto geometry = g.GetFactory().CreatePathGeometry();
 	auto sink = geometry.Open();
-	bool first = true;
+	bool first{ true };
 	for (const auto& p : inData)
 	{
 		if (first)
@@ -1100,7 +1100,7 @@ namespace SE2
 
 			GmpiDrawing::Rect scopeRect{ 0, 0, 50, sharedGraphicResources_struct::plugDiameter };
 
-			scopeRect.Offset(pin.direction == DR_IN ? -scopeRect.getWidth() - 2 : bounds_.getWidth() + 2, hoverPin * sharedGraphicResources_struct::plugDiameter);
+			scopeRect.Offset(pin.direction == DR_IN ? -scopeRect.getWidth() - 2 : bounds_.getWidth() + 2, static_cast<float>(hoverPin * sharedGraphicResources_struct::plugDiameter));
 
 			scopeRect.Offset(bounds_.left, bounds_.top);
 			parent->ChildInvalidateRect(scopeRect);

@@ -8,7 +8,6 @@ cmake_minimum_required(VERSION 3.15)
 # macOS 13.3 required for std::format (SubControls4)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "Minimum macOS deployment version")
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for macOS" FORCE)
-set(CMAKE_CXX_STANDARD 20)
 
 set(DSP_CORE ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -31,6 +30,7 @@ ${gmpi_ui_folder}/backends/DrawingFrameCommon.h
 ${gmpi_ui_folder}/backends/DrawingFrameCommon.cpp
 
 ${se_sdk_folder}/mp_sdk_common.h
+${se_sdk_folder}/mp_sdk_common.cpp
 ${se_sdk_folder}/mp_sdk_audio.h
 ${se_sdk_folder}/mp_sdk_audio.cpp
 ${se_sdk_folder}/mp_sdk_gui.h
@@ -685,6 +685,7 @@ target_compile_definitions (${PROJECT_NAME} PRIVATE
     _UNICODE
     UNICODE
     SE_USE_LIB_FACTORY=1
+    COMPILE_HOST_SUPPORT
 )
 
 # enable super fast UTF conversions
