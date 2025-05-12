@@ -85,11 +85,6 @@ extern "C"
 	#define VST_EXPORT __declspec (dllexport)
 #else
 
-#if !defined(_M_X64) && defined(_MSC_VER)
-	// Export additional symbol without name decoration.
-	#pragma comment( linker, "/export:MP_GetFactory=_MP_GetFactory@4" )
-#endif
-
 #if defined (__GNUC__)
 	#define VST_EXPORT	__attribute__ ((visibility ("default")))
 #else
@@ -283,4 +278,102 @@ int32_t MpFactory::getSdkInformation( int32_t& returnSdkVersion, int32_t maxChar
 	return gmpi::MP_OK;
 }
 
-//#endif	// COMPILE_HOST_SUPPORT
+#endif	// COMPILE_HOST_SUPPORT
+
+// BLOB datatype
+
+MpBlob::MpBlob() :
+	size_(0),
+	data_(0)
+{
+}
+
+void MpBlob::setValueRaw(size_t size, const void* data)
+{
+	if (size_ != size)
+	{
+		delete[] data_;
+		size_ = size;
+		data_ = new char[size_];
+	}
+
+	if (size_ > 0)
+	{
+		memcpy(data_, data, size_);
+	}
+}
+
+void MpBlob::resize( int size )
+{
+	if( size_ < static_cast<size_t>(size) )
+	{
+		delete [] data_;
+		if( size > 0 )
+		{
+			data_ = new char[static_cast<size_t>(size)];
+		}
+		else
+		{
+			data_ = 0;
+		}
+	}
+
+	size_ = static_cast<size_t>(size);
+}
+
+int32_t MpBlob::getSize() const
+{
+	return (int32_t) size_;
+}
+
+char* MpBlob::getData() const
+{
+	return data_;
+}
+
+const MpBlob& MpBlob::operator=( const MpBlob &other )
+{
+	setValueRaw( other.size_, other.data_ );
+	return other;
+}
+
+bool MpBlob::operator==( const MpBlob& other ) const
+{
+	if( size_ != other.size_ )
+		return false;
+
+	for( size_t i = 0 ; i < size_ ; ++i )
+	{
+		if( data_[i] != other.data_[i] )
+			return false;
+	}
+	return true;
+}
+
+bool MpBlob::operator!=(const MpBlob& other) const
+{
+	return !operator==(other);
+}
+
+bool MpBlob::compare( char* data, int size )
+{
+	if( size_ != static_cast<size_t>(size) )
+		return false;
+
+	for( size_t i = 0 ; i < size_ ; ++i )
+	{
+		if( data_[i] != data[i] )
+			return false;
+	}
+	return true;
+}
+
+MpBlob::~MpBlob()
+{
+	delete [] data_;
+}
+
+bool MpBlob::operator!=( const MpBlob& other )
+{
+	return !operator==(other);
+}

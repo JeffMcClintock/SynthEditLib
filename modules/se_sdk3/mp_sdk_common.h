@@ -1178,67 +1178,15 @@ struct MpBlob
 	{
 		setValueRaw((size_t)size, data);
 	}
-	const MpBlob &operator=( const MpBlob& other )
-	{
-		setValueRaw(other.size_, other.data_);
-		return other;
-	}
 
-	bool operator==(const MpBlob& other) const
-	{
-		if (size_ != other.size_)
-			return false;
-
-		for (size_t i = 0; i < size_; ++i)
-		{
-			if (data_[i] != other.data_[i])
-				return false;
-		}
-		return true;
-	}
-	bool operator!=(const MpBlob& other)
-	{
-		return !operator==(other);
-	}
-	bool compare(char* data, int size)
-	{
-		if (size_ != static_cast<size_t>(size))
-			return false;
-
-		for (size_t i = 0; i < size_; ++i)
-		{
-			if (data_[i] != data[i])
-				return false;
-		}
-		return true;
-	}
-	int32_t getSize() const
-	{
-		return (int32_t)size_;
-	}
-
-	char* getData() const
-	{
-		return data_;
-	}
-
-	void resize( int size )
-	{
-		if (size_ < static_cast<size_t>(size))
-		{
-			delete[] data_;
-			if (size > 0)
-			{
-				data_ = new char[static_cast<size_t>(size)];
-			}
-			else
-			{
-				data_ = 0;
-			}
-		}
-
-		size_ = static_cast<size_t>(size);
-	}
+	const MpBlob &operator=( const MpBlob& other );
+	bool operator==(const MpBlob& other) const;
+	bool operator!=(const MpBlob& other) const;
+	bool compare( char* data, int size );
+	bool operator!=( const MpBlob& other );
+	int32_t getSize() const;
+	char* getData() const;
+	void resize( int size );
 
 private:
 	inline void Init(size_t size, const void* data)
