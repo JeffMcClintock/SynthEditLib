@@ -349,7 +349,7 @@ std::string DawPreset::toString(int32_t pluginId, std::string presetNameOverride
 	tinyxml2::XMLDocument doc;
 	doc.LinkEndChild(doc.NewDeclaration());
 
-	auto element = doc.NewElement("Presets");
+	auto element = doc.NewElement("Preset");
 	doc.LinkEndChild(element);
 
 	if (withVersion > 0)

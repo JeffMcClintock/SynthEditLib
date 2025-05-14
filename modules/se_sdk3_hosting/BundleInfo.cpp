@@ -521,7 +521,10 @@ void BundleInfo::initPluginInfo()
 {
     // are we in a bundle?
 	const auto path = gmpi_dynamic_linking::MP_GetDllFilename();
-    isEditor = path.find(L"SynthEdit2.exe") != std::string::npos || path.find(L"SynthEdit.") > path.size() - 15;
+    {
+        const auto syntheditPos = path.find(L"SynthEdit.");
+        isEditor = path.find(L"SynthEdit2.exe") != std::string::npos || (syntheditPos != std::string::npos && syntheditPos > path.size() - 15);
+    }
 
 	// Chop off trailing filename
 	pluginIsBundle = path.find(L".vst3/Contents") != std::string::npos || path.find(L".vst3\\Contents") != std::string::npos;
