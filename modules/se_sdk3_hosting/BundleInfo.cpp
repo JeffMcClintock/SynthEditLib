@@ -8,7 +8,7 @@
 #include "it_enum_list.h"
 #include "xp_dynamic_linking.h"
 #include "GmpiSdkCommon.h"
-#include "GmpiApiAudio.h"
+#include "Core/GmpiApiAudio.h"
 
 #if defined( _WIN32 )
 #define WIN32_LEAN_AND_MEAN
