@@ -538,10 +538,8 @@ struct Pin
 
 struct HasParameterAttachments : gmpi::IMpParameterObserver
 {
-private:
-	std::unordered_map<int32_t, std::vector< std::unique_ptr<SeParameterAttachment> > > parameterAttachments;
-
 public:
+	std::unordered_map<int32_t, std::vector< std::unique_ptr<SeParameterAttachment> > > parameterAttachments;
     class IGuiHost2& controller;
 
     HasParameterAttachments(IGuiHost2& controller) : controller(controller)
