@@ -167,7 +167,7 @@ template <typename T = int32_t>
 struct SeParameterAttachmentButton : SeParameterAttachment
 {
     juce::Button& button;
-    T enumVal = -1;
+    int32_t enumVal = -1;
     T onVal = 1;
     T offVal = 0;
 
@@ -175,7 +175,7 @@ struct SeParameterAttachmentButton : SeParameterAttachment
         IGuiHost2* pcontroller
         , juce::Button& pbutton
         , int32_t pparameterHandle
-        , T penumVal = 1
+        , int32_t penumVal = 1
         , T poffVal = 0
         , T ponVal = 1
     )
