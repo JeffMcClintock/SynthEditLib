@@ -4,6 +4,7 @@
 #include "unicode_conversion.h"
 #include "RawConversions.h"
 #include "BundleInfo.h"
+#include "../tinyXml2/tinyxml2.h"
 // #include "dsp_patch_manager.h" // enable for logging only
 
 SE2JUCE_Processor::SE2JUCE_Processor(
