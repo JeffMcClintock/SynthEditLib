@@ -4,13 +4,14 @@
 #include "unicode_conversion.h"
 #include "RawConversions.h"
 #include "BundleInfo.h"
-#include "../tinyXml2/tinyxml2.h"
 // #include "dsp_patch_manager.h" // enable for logging only
 
 SE2JUCE_Processor::SE2JUCE_Processor(
-    SeJuceController* customController,
+    std::unique_ptr<SeJuceController> pController,
     std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter
-) : controller(customController)
+) :
+    controller(std::move(pController))
+
     // init the midi converter
     ,midiConverter(
         // provide a lambda to accept converted MIDI 2.0 messages
@@ -272,6 +273,9 @@ void SE2JUCE_Processor::changeProgramName (int, const juce::String&)
 //==============================================================================
 void SE2JUCE_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    m_maxSamplesPerBlock = samplesPerBlock;
+    m_sampleRate = sampleRate;
+
     timeInfo.resetToDefault();
     memset(&timeInfoSe, 0, sizeof(timeInfoSe));
     timeInfoSe.tempo = 120.0;
@@ -339,6 +343,16 @@ bool SE2JUCE_Processor::isBusesLayoutSupported (const BusesLayout& layouts) cons
 void SE2JUCE_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
+
+    if (processor.reinitializeFlag)
+    {
+        processor.prepareToPlay(
+            this,
+            static_cast<int32_t>(m_sampleRate),
+            m_maxSamplesPerBlock,
+            !isNonRealtime()
+        );
+    }
 
     if (getPlayHead() && getPlayHead()->getCurrentPosition(timeInfo))
     {

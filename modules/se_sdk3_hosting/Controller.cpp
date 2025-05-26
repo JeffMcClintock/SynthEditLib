@@ -32,6 +32,7 @@
 
 #endif
 #include "conversion.h"
+#include "UniqueSnowflake.h"
 
 #ifdef _DEBUG
 // #define DEBUG_UNDO
@@ -506,7 +507,7 @@ int32_t MpController::getController(int32_t moduleHandle, gmpi::IMpController** 
 	return gmpi::MP_OK;
 }
 
-std::vector< presetInfo > MpController::scanNativePresets()
+std::vector< MpController::presetInfo > MpController::scanNativePresets()
 {
 	platform_string PresetFolder = toPlatformString(BundleInfo::instance()->getPresetFolder());
 
@@ -515,7 +516,7 @@ std::vector< presetInfo > MpController::scanNativePresets()
 	return scanPresetFolder(PresetFolder, extension);
 }
 
-presetInfo MpController::parsePreset(const std::wstring& filename, const std::string& xml)
+MpController::presetInfo MpController::parsePreset(const std::wstring& filename, const std::string& xml)
 {
 	// file name overrides the name from XML
 	std::string presetName;
@@ -561,7 +562,7 @@ presetInfo MpController::parsePreset(const std::wstring& filename, const std::st
 	};
 	}
 
-std::vector< presetInfo > MpController::scanPresetFolder(platform_string PresetFolder, platform_string extension)
+std::vector< MpController::presetInfo > MpController::scanPresetFolder(platform_string PresetFolder, platform_string extension)
 {
 	std::vector< presetInfo > returnValues;
 
@@ -2257,4 +2258,12 @@ void MpController::ImportBankXml(const char* xmlfilename)
 void MpController::setModified(bool presetIsModified)
 {
 	(*getHostParameter(HC_PROGRAM_MODIFIED)) = presetIsModified;
+}
+
+void MpController::ResetProcessor2()
+{
+	my_msg_que_output_stream s(getQueueToDsp(), UniqueSnowflake::APPLICATION, "RSRT");
+
+	s << (int)0;
+	s.Send();
 }

@@ -37,8 +37,12 @@ protected:
     std::atomic<int> presetCount = {};
     void setNormalizedUnsafe(int parameterIndex, float daw_normalized);
 
+    int m_maxSamplesPerBlock{};
+    double m_sampleRate{};
+
 public:
-    SE2JUCE_Processor(SeJuceController* customController = {}, std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter = {});
+    //==============================================================================
+    SE2JUCE_Processor(std::unique_ptr<SeJuceController> pcontroller, std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter = {});
     ~SE2JUCE_Processor() override;
 
     // IShellServices interface

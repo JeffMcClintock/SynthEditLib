@@ -111,35 +111,24 @@ public:
 	bool isPresetModified();
 };
 
-// presets from factory.xmlpreset resource.
-struct presetInfo
-{
-	std::string name;
-	std::string category;
-	int index = -1;			// Internal Factory presets only.
-	std::wstring filename;	// External disk presets only.
-	std::size_t hash = 0;
-	bool isFactory = false;
-	bool isSession = false; // is temporary preset to accommodate preset loaded from DAW session (but not an existing preset)
-};
-
-struct IPresetsModel
-{
-	virtual int getPresetCount() = 0;
-	virtual int getPresetIndex() = 0; // index according to controller (not nesc order displayed in combo)
-	virtual void setPresetIndex(int) = 0;
-	virtual presetInfo getPresetInfo(int index) = 0;
-	virtual std::pair<bool, bool> CategorisePresetName(const std::string& name) = 0;
-	virtual void SavePresetAs(const std::string& presetName) = 0;
-	virtual void DeletePreset(int presetIndex) = 0;
-	virtual bool isPresetModified() = 0;
-};
 
 class MpController : public IGuiHost2, public interThreadQueUser, public se_sdk::TimerClient
 {
 	friend class UndoManager;
 	friend class SubPresetManager;
 	static const int UI_MESSAGE_QUE_SIZE2 = 0x500000; // 5MB. see also AUDIO_MESSAGE_QUE_SIZE
+public:
+	// presets from factory.xmlpreset resource.
+	struct presetInfo
+	{
+		std::string name;
+		std::string category;
+		int index = -1;			// Internal Factory presets only.
+		std::wstring filename;	// External disk presets only.
+		std::size_t hash = 0;
+		bool isFactory = false;
+		bool isSession = false; // is temporary preset to accommodate preset loaded from DAW session (but not an existing preset)
+	};
 
 protected:
 	static const int timerPeriodMs = 35;
@@ -334,9 +323,22 @@ public:
 		return &message_que_dsp_to_ui;
 	}
 
-	virtual void ResetProcessor() {}
+	virtual void ResetProcessor() {} // not used?
+	void ResetProcessor2();
 	virtual void OnStartPresetChange() {}
 	virtual void OnEndPresetChange();
 	virtual void OnLatencyChanged() {}
 	virtual MpParameter_native* makeNativeParameter(int ParameterTag, bool isInverted = false) = 0;
+};
+
+struct IPresetsModel
+{
+	virtual int getPresetCount() = 0;
+	virtual int getPresetIndex() = 0; // index according to controller (not nesc order displayed in combo)
+	virtual void setPresetIndex(int) = 0;
+	virtual MpController::presetInfo getPresetInfo(int index) = 0;
+	virtual std::pair<bool, bool> CategorisePresetName(const std::string& name) = 0;
+	virtual void SavePresetAs(const std::string& presetName) = 0;
+	virtual void DeletePreset(int presetIndex) = 0;
+	virtual bool isPresetModified() = 0;
 };
