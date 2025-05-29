@@ -57,6 +57,31 @@ inline juce::String displaydBD(double value)
     return juce::String(txt);
 }
 
+inline juce::String displaydBD2(double value)
+{
+    // real number with a sensible number of decimal places
+    char txt[12];
+
+    if (fabsf(value) < 10.f)
+    {
+#if defined(_MSC_VER)
+        sprintf_s(txt, "%.1f dB", value);
+#else
+        sprintf(txt, "%.1f dB", value);
+#endif
+    }
+    else
+    {
+#if defined(_MSC_VER)
+        sprintf_s(txt, "%.0f dB", value);
+#else
+        sprintf(txt, "%.0f dB", value);
+#endif
+    }
+
+    return juce::String(txt);
+}
+
 inline juce::String displayRealNumber(float value, int /*maxLen*/)
 {
     // real number with a sensible number of decimal places
@@ -114,17 +139,17 @@ inline juce::String displayRealNumberD2(double value)
     if (fabs(value) < 10.)
     {
 #if defined(_MSC_VER)
-        sprintf_s(txt, "%2.1f", value);
+        sprintf_s(txt, "%.1f", value);
 #else
-        sprintf(txt, "%2.1f", value);
+        sprintf(txt, "%.1f", value);
 #endif
     }
     else
     {
 #if defined(_MSC_VER)
-        sprintf_s(txt, "%3.0f", value);
+        sprintf_s(txt, "%.0f", value);
 #else
-        sprintf(txt, "%3.0f", value);
+        sprintf(txt, "%.0f", value);
 #endif
     }
 
