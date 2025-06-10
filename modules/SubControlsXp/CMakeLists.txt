@@ -38,6 +38,7 @@ build_gmpi_plugin(
         TextSubcontrol.h
         TextSubcontrol.cpp
         VectorRingGui.cpp
+        GammaTestGui.cpp
 
         ${se_sdk_folder}/it_enum_list.h
         ${se_sdk_folder}/it_enum_list.cpp

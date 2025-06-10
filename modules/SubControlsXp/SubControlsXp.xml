@@ -1,5 +1,10 @@
 <?xml version="1.0" ?>
 <PluginList>
+    <Plugin id="SE Gamma Test" name="Gamma Test" category="Diagnostic">
+        <GUI graphicsApi="GmpiGui">
+            <Pin name="Display" datatype="enum" isMinimised="true" metadata="Fixed Size, Tiled, Stretch"/>
+        </GUI>
+    </Plugin>
 	<Plugin id="SE:GUIFixedValues_text" name="Fixed Values (text)" category="Experimental/Sub-Controls/Conversion">
 		<GUI>
 			<Pin name="Val" datatype="string" direction="out" autoDuplicate="true" settableOutput="true" autoRename="true"/>
