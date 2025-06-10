@@ -62,7 +62,7 @@ inline juce::String displaydBD2(double value)
     // real number with a sensible number of decimal places
     char txt[12];
 
-    if (fabsf(value) < 10.f)
+    if (fabs(value) < 10.)
     {
 #if defined(_MSC_VER)
         sprintf_s(txt, "%.1f dB", value);
