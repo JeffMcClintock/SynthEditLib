@@ -327,7 +327,7 @@ ID2D1Bitmap* Bitmap::GetNativeBitmap(ID2D1DeviceContext* nativeContext)
 	}
 
 	return gmpi::directx::bitmapToNative(
-			nativeContext
+		  nativeContext
 		, nativeBitmap_
 		, diBitmap_
 		, factory.getD2dFactory()

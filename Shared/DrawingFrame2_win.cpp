@@ -119,7 +119,7 @@ HRESULT DrawingFrameHwndBase::createNativeSwapChain
 
 void DrawingFrameBase2::OnSwapChainCreated(bool DX_support_sRGB)
 {
-    DrawingFactory->gmpiFactory.setSrgbSupport(DX_support_sRGB);
+//    DrawingFactory->gmpiFactory.setSrgbSupport(DX_support_sRGB);
 
     const auto dpiScale = lowDpiMode ? 1.0f : getRasterizationScale();
 

@@ -105,14 +105,15 @@ public:
 		return info.d2dFactory.get();
 	}
 
-	void setSrgbSupport(bool s)
-	{
-		info.DX_support_sRGB = s;
-	}
+	//void setSrgbSupport(bool s)
+	//{
+	//	info.DX_support_sRGB = s;
+	//}
 
 	GmpiDrawing_API::IMpBitmapPixels::PixelFormat getPlatformPixelFormat()
 	{
-		return info.DX_support_sRGB ? GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB : GmpiDrawing_API::IMpBitmapPixels::kBGRA;
+		//return info.DX_support_sRGB ? GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB : GmpiDrawing_API::IMpBitmapPixels::kBGRA;
+		return GmpiDrawing_API::IMpBitmapPixels::kBGRA_SRGB;
 	}
 
 	int32_t CreatePathGeometry(GmpiDrawing_API::IMpPathGeometry** pathGeometry) override;
