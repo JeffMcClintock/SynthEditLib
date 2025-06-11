@@ -595,6 +595,20 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 
     reentrant = true;
 
+    // !!! this never detects moving the app to a new monitor in WINUI3
+
+    gmpi::directx::ComPtr<::IDXGIFactory2> dxgiFactory;
+    swapChain->GetParent(__uuidof(dxgiFactory), dxgiFactory.put_void());
+    if (!dxgiFactory->IsCurrent())
+    {
+        _RPT0(0, "dxgiFactory is NOT Current!\n");
+    }
+
+    if (false) // testing
+    {
+		hdrRenderTarget = {}; // TODO: when moving to a monitor with diferent HDR support, we need to re-create the render target.
+    }
+
 	//	_RPT1(_CRT_WARN, "OnPaint(); %d dirtyRects\n", dirtyRects.size() );
 
 	if (!d2dDeviceContext) // not quite right, also need to re-create any resources (brushes etc) else most object draw blank. Could refresh the view in this case.
@@ -611,8 +625,7 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 
     gmpi::directx::ComPtr <ID2D1DeviceContext> deviceContext;
 
-    gmpi::directx::ComPtr<ID2D1Bitmap> pSourceBitmap;
-	if (hdrWhiteScaleEffect) // draw onto intermediate buffer, then pass that through an effect to scale white.
+	if (hdrRenderTarget) // draw onto intermediate buffer, then pass that through an effect to scale white.
     {
         d2dDeviceContext->BeginDraw();
         deviceContext = hdrRenderTarget.as<ID2D1DeviceContext>();
@@ -635,74 +648,32 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 
 auto reverseTransform = gmpi::drawing::invert(viewTransform);
 
+		// clip and draw each rect individually (causes some objects to redraw several times)
+		for (auto& r : dirtyRects)
 		{
-			// clip and draw each rect individually (causes some objects to redraw several times)
-			for (auto& r : dirtyRects)
-			{
-                const gmpi::drawing::Rect dirtyRectPixels{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
-                const auto dirtyRectDips = dirtyRectPixels * WindowToDips;
-                const auto dirtyRectDipsPanZoomed = dirtyRectDips * reverseTransform; // Apply Pan and Zoom
+            const gmpi::drawing::Rect dirtyRectPixels{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
+            const auto dirtyRectDips = dirtyRectPixels * WindowToDips;
+            const auto dirtyRectDipsPanZoomed = dirtyRectDips * reverseTransform; // Apply Pan and Zoom
 
-                graphics.PushAxisAlignedClip(toLegacy(dirtyRectDipsPanZoomed));
+            graphics.PushAxisAlignedClip(toLegacy(dirtyRectDipsPanZoomed));
 
-/*
-				auto r2 = WindowToDips.TransformRect(GmpiDrawing::Rect(static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom)));
-
-				// Snap to whole DIPs.
-				GmpiDrawing::Rect temp;
-				temp.left = floorf(r2.left);
-				temp.top = floorf(r2.top);
-				temp.right = ceilf(r2.right);
-				temp.bottom = ceilf(r2.bottom);
-
-				graphics.PushAxisAlignedClip(temp);
-*/
-
-				gmpi_gui_client->OnRender(legacyContext);
-				graphics.PopAxisAlignedClip();
-			}
+			gmpi_gui_client->OnRender(legacyContext);
+			graphics.PopAxisAlignedClip();
 		}
 
-#if 0
-		// Print Frame Rate
-//		const bool displayFrameRate = true;
-		constexpr bool displayFrameRate = false;
-		if (displayFrameRate)
-		{
-			static int frameCount = 0;
-			static char frameCountString[100] = "";
-			if (++frameCount == 60)
-			{
-				auto timenow = std::chrono::steady_clock::now();
-				auto elapsed = std::chrono::steady_clock::now() - frameCountTime;
-				auto elapsedSeconds = 0.001f * (float)std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
-
-				float frameRate = frameCount / elapsedSeconds;
-
-				//				sprintf(frameCountString, "%3.1f FPS. %dms PT", frameRate, presentTimeMs);
-				sprintf_s(frameCountString, sizeof(frameCountString), "%3.1f FPS", frameRate);
-				frameCountTime = timenow;
-				frameCount = 0;
-
-				auto brush = graphics.CreateSolidColorBrush(GmpiDrawing::Color::Black);
-				auto fpsRect = GmpiDrawing::Rect(0, 0, 50, 18);
-				graphics.FillRectangle(fpsRect, brush);
-				brush.SetColor(GmpiDrawing::Color::White);
-				graphics.DrawTextU(frameCountString, graphics.GetFactory().CreateTextFormat(12), fpsRect, brush);
-
-				dirtyRects.push_back(GmpiDrawing::RectL(0, 0, 100, 36));
-			}
-		}
-#endif
-		/*const auto r =*/ graphics.EndDraw();
+		graphics.EndDraw();
 	}
 
     // draw the intermediate buffer onto the swapchain.
-    if(hdrWhiteScaleEffect)
+    if(hdrRenderTarget)
 	{
 		// Draw the bitmap to the screen
-		const D2D1_RECT_F destRect = D2D1::RectF(0, 0, static_cast<float>(swapChainSize.width), static_cast<float>(swapChainSize.height));
-        d2dDeviceContext->DrawImage(hdrWhiteScaleEffect.get());
+		const D2D1_RECT_F destRect(0, 0, static_cast<float>(swapChainSize.width), static_cast<float>(swapChainSize.height));
+        d2dDeviceContext->DrawImage(
+              hdrWhiteScaleEffect.get()
+            , D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR
+            , D2D1_COMPOSITE_MODE_SOURCE_COPY
+        );
 
         d2dDeviceContext->EndDraw();
     }
@@ -724,30 +695,8 @@ auto reverseTransform = gmpi::drawing::invert(viewTransform);
 		{
 			assert(!dirtyRects.empty());
 			DXGI_PRESENT_PARAMETERS presetParameters{ (UINT)dirtyRects.size(), (RECT*)dirtyRects.data(), nullptr, nullptr, };
-			/*
-							presetParameters.pScrollRect = nullptr;
-							presetParameters.pScrollOffset = nullptr;
-							presetParameters.DirtyRectsCount = (UINT) dirtyRects.size();
-							presetParameters.pDirtyRects = reinterpret_cast<RECT*>(dirtyRects.data()); // should be exact same layout.
-			*/
-			// checkout DXGI_PRESENT_DO_NOT_WAIT
-//				hr = swapChain->Present1(1, DXGI_PRESENT_TEST, &presetParameters);
-//				_RPT1(_CRT_WARN, "Present1() test = %x\n", hr);
-/* NEVER returns DXGI_ERROR_WAS_STILL_DRAWING
-	//			_RPT1(_CRT_WARN, "Present1() DirtyRectsCount = %d\n", presetParameters.DirtyRectsCount);
-				hr = swapChain->Present1(1, DXGI_PRESENT_DO_NOT_WAIT, &presetParameters);
-				if (hr == DXGI_ERROR_WAS_STILL_DRAWING)
-				{
-					_RPT1(_CRT_WARN, "Present1() Blocked\n", hr);
-*/
-// Present(0... improves framerate only from 60 -> 64 FPS, so must be blocking a little with "1".
-//				auto timeA = std::chrono::steady_clock::now();
+
 			hr = swapChain->Present1(1, 0, &presetParameters);
-			//auto elapsed = std::chrono::steady_clock::now() - timeA;
-			//presentTimeMs = (float)std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
-//				}
-/* could put this in timer to reduce blocking, agregating dirty rects until call successful.
-*/
 		}
 
 		if (S_OK != hr && DXGI_STATUS_OCCLUDED != hr)
