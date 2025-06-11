@@ -87,7 +87,7 @@ struct DrawingFrameBase2 :
     bool isMouseOver() const { return currentPointerPos.x >= 0 && currentPointerPos.y >= 0; }
 
     // override these please.
-    void OnSwapChainCreated(bool DX_support_sRGB) override;
+    void OnSwapChainCreated() override;
 
     virtual void autoScrollStart() {}
     virtual void autoScrollStop() {}
