@@ -48,6 +48,14 @@ void DrawingFrameBase2::detachClient()
     pluginParameters2B = {};
 }
 
+void DrawingFrameBase2::detachAndRecreate()
+{
+    assert(!reentrant); // do this async please.
+
+    detachClient();
+    CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
+}
+
 void DrawingFrameBase2::OnScrolled(double x, double y, double zoom)
 {
     scrollPos = { -static_cast<float>(x), -static_cast<float>(y) };
@@ -591,21 +599,20 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
         return;
     }
 
-    reentrant = true;
-
-    // !!! this never detects moving the app to a new monitor in WINUI3
-
+	// Detect switching on/off HDR mode.
     gmpi::directx::ComPtr<::IDXGIFactory2> dxgiFactory;
     swapChain->GetParent(__uuidof(dxgiFactory), dxgiFactory.put_void());
     if (!dxgiFactory->IsCurrent())
     {
         _RPT0(0, "dxgiFactory is NOT Current!\n");
+        recreateSwapChainAndClientAsync();
     }
 
-    if (false) // testing
-    {
-		hdrRenderTarget = {}; // TODO: when moving to a monitor with diferent HDR support, we need to re-create the render target.
-    }
+    // if app dragged to new monitor or HDR changed we need to stop drawing until swapchain is recreated.
+    if (monitorChanged)
+        return;
+
+    reentrant = true;
 
 	//	_RPT1(_CRT_WARN, "OnPaint(); %d dirtyRects\n", dirtyRects.size() );
 
@@ -626,7 +633,9 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 	if (hdrRenderTarget) // draw onto intermediate buffer, then pass that through an effect to scale white.
     {
         d2dDeviceContext->BeginDraw();
-        deviceContext = hdrRenderTarget.as<ID2D1DeviceContext>();
+        deviceContext = hdrRenderTargetDC;
+
+//		_RPTN(0, "%s: hdrRenderTarget %x deviceContext %x\n", this->debugName.c_str(), hdrRenderTarget.get(), deviceContext.get());
     }
     else // draw directly on the swapchain bitmap.
     {

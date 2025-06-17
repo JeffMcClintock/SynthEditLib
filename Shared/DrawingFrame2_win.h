@@ -94,6 +94,7 @@ struct DrawingFrameBase2 :
 
     void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx);
     void detachClient();
+    void detachAndRecreate();
     void calcViewTransform();
 
     virtual void OnPaint() = 0; // Derived should call Paint with the dirty area
