@@ -224,7 +224,7 @@ struct DrawingFrameBase2 :
     GMPI_REFCOUNT_NO_DELETE;
 };
 
-// Used in SE2JUCE, VST3
+// Used in SE2JUCE, SE VST3
 class DrawingFrameHwndBase : public DrawingFrameBase2, public gmpi::TimerClient
 {
 protected:
@@ -285,6 +285,9 @@ public:
     int32_t createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override;
     int32_t createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override;
     int32_t createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override;
+
+    // tempSharedD2DBase
+    float calcWhiteLevel() override;
 };
 
 // This is used in VST3. Native HWND window frame, owned by this.

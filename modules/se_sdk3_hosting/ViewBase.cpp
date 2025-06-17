@@ -1713,7 +1713,7 @@ namespace SE2
 				return a->SortOrder < b->SortOrder;
 			});
 
-#ifdef _DEBUG
+#if 0 //def _DEBUG
 		for (auto& ug : children_monodirectional)
 		{
 			_RPTN(_CRT_WARN, "%3d : %s\n", ug->SortOrder, ug->name.c_str());

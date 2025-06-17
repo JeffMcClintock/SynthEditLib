@@ -519,6 +519,12 @@ void DrawingFrameHwndBase::ReSize(int left, int top, int right, int bottom)
     }
 }
 
+// see also DrawingFrame::calcWhiteLevel()
+float DrawingFrameHwndBase::calcWhiteLevel()
+{
+    return gmpi::hosting::calcWhiteLevelForHwnd(getWindowHandle());
+}
+
 // Ideally this is called at 60Hz so we can draw as fast as practical, but without blocking to wait for Vsync all the time (makes host unresponsive).
 bool DrawingFrameHwndBase::onTimer()
 {
