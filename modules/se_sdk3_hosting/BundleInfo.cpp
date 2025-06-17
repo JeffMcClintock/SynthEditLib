@@ -531,7 +531,9 @@ void BundleInfo::initPluginInfo()
             filename.find(L"TIDE") == 0;
     }
 
-    // are we in a bundle?
+//	pluginIsBundle = path. .find(L".vst3/Contents") != std::string::npos || path.find(L".vst3\\Contents") != std::string::npos;
+
+    // are we in a bundle? path contains "*.vst3/Contents/"
 	std::string bundleExtension;
     for(auto it = path.begin(); it != path.end(); ++it)
     {
@@ -543,8 +545,6 @@ void BundleInfo::initPluginInfo()
         
         bundleExtension = (*it).extension().string();
 	}
-
-//	pluginIsBundle = path. .find(L".vst3/Contents") != std::string::npos || path.find(L".vst3\\Contents") != std::string::npos;
 
     if (isEditor)
         return;

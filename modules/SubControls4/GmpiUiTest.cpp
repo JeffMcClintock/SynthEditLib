@@ -9,6 +9,7 @@
 #include "helpers/GmpiPluginEditor2.h"
 #include "helpers/CachedBlur.h"
 #include "helpers/AnimatedBitmap.h"
+#include "helpers/SvgParser.h"
 #include "NumberEditClient.h"
 #include "Extensions/EmbeddedFile.h"
 #include "../shared/unicode_conversion.h"
@@ -1106,6 +1107,60 @@ auto r17 = gmpi::Register<CircleGeometry>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: CircleGeometry" name="CircleGeometry" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
+      <Pin name="Path" datatype="int64" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+struct SvgGeometry final : public GraphicsProcessor
+{
+    Pin<std::string> pinFilename;
+    Pin<int64_t> pinOutput;
+
+    gmpi::drawing::PathGeometry geometry;
+
+    ReturnCode process() override
+    {
+        if (!pinOutput.value)
+        {
+            geometry = drawingFactory.createPathGeometry();
+
+            auto sink = geometry.open();
+
+            SvgParser::parseToGeometry(pinFilename.value, AccessPtr::get(sink));
+
+            //// make a circle from two half-circle arcs
+            //const Point center{ 20.0f, 20.0f };
+            //const float radius{ 10.f };
+
+            //constexpr float pi = static_cast<float>(M_PI);
+            //sink.beginFigure({ center.x, center.y - radius }, drawing::FigureBegin::Filled);
+            //ArcSegment arc1{ { center.x, center.y + radius}, { radius, radius }, pi, SweepDirection::Clockwise, ArcSize::Small };
+            //ArcSegment arc2{ { center.x, center.y - radius}, { radius, radius }, pi, SweepDirection::Clockwise, ArcSize::Small };
+            //sink.addArc(arc1);
+            //sink.addArc(arc2);
+
+            //sink.endFigure(FigureEnd::Closed);
+            sink.close();
+
+            pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(geometry));
+        }
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r17b = gmpi::Register<SvgGeometry>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: SvgGeometry" name="Svg Geometry" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+	  <Pin name="SVG File" datatype="string_utf8" isFilename="true" metadata="svg"/>
       <Pin name="Path" datatype="int64" direction="out"/>
     </GUI>
   </Plugin>
