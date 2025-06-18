@@ -239,6 +239,7 @@ protected:
     // Paint() uses Direct-2d which block on vsync. Therefore all invalid rects should be applied in one "hit", else windows message queue chokes calling WM_PAINT repeately and blocking on every rect.
 	gmpi::hosting::UpdateRegionWinGdi updateRegion_native;
     std::vector<GmpiDrawing::RectL> backBufferDirtyRects;
+    int pollHdrChangesCount = 100;
 
     void initTooltip();
     void HideToolTip();
@@ -248,7 +249,7 @@ protected:
 
 public:
     void open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZE_L* overrideSize = {});
-	virtual void setWindowHandle(HWND hwnd) = 0; // privides the new hwnd to the derived class
+	virtual void setWindowHandle(HWND hwnd) = 0; // provides the new hwnd to the derived class
 
     HRESULT createNativeSwapChain
     (

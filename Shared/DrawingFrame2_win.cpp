@@ -532,6 +532,16 @@ bool DrawingFrameHwndBase::onTimer()
     if (hwnd == nullptr || gmpi_gui_client == nullptr)
         return true;
 
+    if (pollHdrChangesCount-- < 0)
+    {
+        pollHdrChangesCount = 100; // 1.5s
+
+        if (currentWhiteLevel != calcWhiteLevel())
+        {
+            recreateSwapChainAndClientAsync();
+        }
+    }
+
     // Tooltips
     if (toolTiptimer-- == 0 && !toolTipShown)
     {
