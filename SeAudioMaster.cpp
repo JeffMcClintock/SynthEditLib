@@ -1205,6 +1205,7 @@ void SeAudioMaster::HandleEvent(SynthEditEvent* e)
 	};
 }
 
+// perform an async restart on a worker thread.
 void SeAudioMaster::TriggerRestart()
 {
 	// may come from UI thread.

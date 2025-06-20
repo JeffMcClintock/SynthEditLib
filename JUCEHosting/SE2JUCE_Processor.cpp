@@ -345,6 +345,7 @@ void SE2JUCE_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
 {
     juce::ScopedNoDenormals noDenormals;
 
+#if 0
     if (processor.reinitializeFlag)
     {
         processor.prepareToPlay(
@@ -354,6 +355,7 @@ void SE2JUCE_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
             !isNonRealtime()
         );
     }
+#endif
 
     if (getPlayHead() && getPlayHead()->getCurrentPosition(timeInfo))
     {

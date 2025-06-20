@@ -19,8 +19,7 @@ using namespace std;
 
 SynthRuntime::SynthRuntime() :
 	usingTempo_(false),
-    generator(nullptr),
-    reinitializeFlag(false)
+    generator(nullptr)
 {
 }
 
@@ -40,10 +39,10 @@ void SynthRuntime::prepareToPlay(
 		generator == nullptr ||
 		generator->SampleRate() != sampleRate ||
 		generator->BlockSize() != generator->CalcBlockSize(maxBlockSize) ||
-		(!runsRealtime && runsRealtimeCurrent) ||	// i.e. we switched *to* an offline render. need to ensure cancellation is consistant.
-		reinitializeFlag;
+		(!runsRealtime && runsRealtimeCurrent);	// i.e. we switched *to* an offline render. need to ensure cancellation is consistant.
+//		reinitializeFlag;
 
-	reinitializeFlag = false;
+//	reinitializeFlag = false;
 
 	if (mustReinitilize)
 	{
@@ -241,7 +240,16 @@ void SynthRuntime::GetRegistrationInfo(std::wstring& p_user_email, std::wstring&
 
 void SynthRuntime::DoAsyncRestart()
 {
-	reinitializeFlag = true;
+	// old syncronous method: reinitializeFlag = true;
+
+	// When changing polyphony etc we need to rebuild the DSP graph,
+	// however it's not nesc to stall GUI by polling for the audio fade-out to complete.
+	// Step one is to trigger the fadeout, step two is wait for signal from DSP to call OnFadeOutComplete();
+
+	if (generator && generator->synth_thread_running)
+	{
+		generator->TriggerRestart();
+	}
 }
 
 void SynthRuntime::ClearDelaysUnsafe()

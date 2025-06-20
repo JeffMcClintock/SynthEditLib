@@ -620,7 +620,7 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
     swapChain->GetParent(__uuidof(dxgiFactory), dxgiFactory.put_void());
     if (!dxgiFactory->IsCurrent())
     {
-        _RPT0(0, "dxgiFactory is NOT Current!\n");
+        // _RPT0(0, "dxgiFactory is NOT Current!\n");
         recreateSwapChainAndClientAsync();
     }
 

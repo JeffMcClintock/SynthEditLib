@@ -164,7 +164,7 @@ public:
 
     void OnSaveStateDspStalled() override;
     
-	bool reinitializeFlag;
+//	bool reinitializeFlag;
 
 private:
 	bool usingTempo_;
