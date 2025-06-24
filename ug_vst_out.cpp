@@ -41,23 +41,23 @@ void ug_vst_out::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_st
 {
 	switch (p_to_plug->getPlugIndex())
 	{
-/* not needed at present
-		case PIN_CLEARTAILS:
-			// DAW has resumed, but plugin may emit spikes due to discontinuities. Fade output up gradually to mask them. (fix for Presonus One "invalid output" crap).
-			_RPTN(0, "ug_vst_out CLEARTAILS. fade start at %f\n", fadeLevel_);
-			startFade(false);
-			break;
-*/
-		default: // audio pins?
-		{
-			const int outputIndex = p_to_plug->getPlugIndex() - PIN_AUDIOOUT0;
-	if (outputIndex >= 0)
-	{
-		pinIsSilent[outputIndex] = p_to_plug->getState() != ST_RUN && p_to_plug->getValue() == 0.0f;
-		pinChanged[outputIndex] = true;
-	}
-}
+		/* not needed at present
+	case PIN_CLEARTAILS:
+		// DAW has resumed, but plugin may emit spikes due to discontinuities. Fade output up gradually to mask them. (fix for Presonus One "invalid output" crap).
+		_RPTN(0, "ug_vst_out CLEARTAILS. fade start at %f\n", fadeLevel_);
+		startFade(false);
 		break;
+		*/
+	default: // audio pins?
+	{
+		const int outputIndex = p_to_plug->getPlugIndex() - PIN_AUDIOOUT0;
+		if (outputIndex >= 0)
+		{
+			pinIsSilent[outputIndex] = p_to_plug->getState() != ST_RUN && p_to_plug->getValue() == 0.0f;
+			pinChanged[outputIndex] = true;
+		}
+	}
+	break;
 	}
 }
 
@@ -66,14 +66,18 @@ uint64_t ug_vst_out::getSilenceFlags(int output, int count)
 	uint64_t ret{};
 
 	uint64_t flag = 1;
-	for (int i = 0 ; i < count; ++i)
+	for (int i = 0; i < count; ++i)
 	{
-		if (pinIsSilent[output + i] && !pinChanged[output + i])
+		const int index = output + i;
+		if (index < static_cast<int>(pinIsSilent.size())) // Ableton can pass 2 output to a mono plugin.
 		{
-			ret &= flag; // set one bit
-		}
+			if (pinIsSilent[index] && !pinChanged[index])
+			{
+				ret &= flag; // set one bit
+			}
 
-		pinChanged[output + i] = false; // reset for next buffer
+			pinChanged[index] = false; // reset for next buffer
+		}
 		flag = flag << 1;
 	}
 

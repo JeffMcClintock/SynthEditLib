@@ -14,22 +14,24 @@
 #include "./modules/se_sdk3_hosting/Controller.h"
 #include "UgDatabase.h"
 #include "mfc_emulation.h"
+#include "SeException.h"
 
 using namespace std;
 
 SynthRuntime::SynthRuntime() :
-	usingTempo_(false),
-    generator(nullptr)
+	usingTempo_(false)
 {
 }
 
 void SynthRuntime::prepareToPlay(
 	IShellServices* shell,
-	int32_t sampleRate,
-	int32_t maxBlockSize,
+	int32_t psampleRate,
+	int32_t pmaxBlockSize,
 	bool runsRealtime)
 {
 	shell_ = shell;
+	sampleRate = psampleRate;
+	maxBlockSize = pmaxBlockSize;
 
 	// this can be called multiple times, e.g. when performing an offline bounce.
 	// But we need to rebuild the DSP graph from scratch only when something fundamental changes.
@@ -104,8 +106,6 @@ void SynthRuntime::prepareToPlay(
 
 			// assert(!generator->interrupt_setchunk_);
 
-			//const bool saveExtraState = true;
-			//generator->getPresetState(presetChunk, saveExtraState);
 			const bool saveExtraState = true;
 			generator->getPresetsState(pendingPresets, saveExtraState);
 
@@ -114,11 +114,11 @@ void SynthRuntime::prepareToPlay(
 			// can't leave pointers to deleted objects around waiting for Que.
 			ResetMessageQues();
 
-			delete generator;
+			generator = {};
 		}
 
 		// BUILD SYNTHESIZER GRAPH.
-		generator = new SeAudioMaster( (float) sampleRate, this, BundleInfo::instance()->getPluginInfo().latencyConstraint);
+		generator = std::make_unique<SeAudioMaster>( (float) sampleRate, this, BundleInfo::instance()->getPluginInfo().latencyConstraint);
 		generator->setBlockSize(generator->CalcBlockSize(maxBlockSize));
 
 		std::vector<int32_t> mutedContainers; // unused at preset. (Waves thing).
@@ -141,17 +141,16 @@ void SynthRuntime::prepareToPlay(
 		{
 			currentPluginLatency = newLatencySamples;
 
-			{
-				my_msg_que_output_stream strm( MessageQueToGui(), (int)UniqueSnowflake::APPLICATION, "ltnc");
-				strm << (int)0; // message length.
-				strm.Send();
-			}
+			my_msg_que_output_stream strm( MessageQueToGui(), (int)UniqueSnowflake::APPLICATION, "ltnc");
+			strm << (int)0; // message length.
+			strm.Send();
 		}
 	}
 
 	// this can change regardless of if we reinit or not.
 	generator->SetHostControl(HC_PROCESS_RENDERMODE, runsRealtime ? 0 : 2);
 	runsRealtimeCurrent = runsRealtime;
+	runtimeState = eRuntimeState::running;
 }
 
 SynthRuntime::~SynthRuntime()
@@ -160,8 +159,235 @@ SynthRuntime::~SynthRuntime()
     if( generator)
     {
         generator->Close();
-        delete generator;
+		generator = {};
     }
+}
+
+void SynthRuntime::OpenGenerator()
+{
+	generator->Open();
+// editor only	generator->CpuFunc();
+
+	/* TODO ensure this happens
+	// InitialMusicTimeUpdate()
+	{
+		my_VstTimeInfo timeInfo{};
+		timeInfo.tempo = 120.0;
+		timeInfo.flags = my_VstTimeInfo::kVstTransportPlaying | my_VstTimeInfo::kVstTempoValid | my_VstTimeInfo::kVstTimeSigValid | my_VstTimeInfo::kVstBarsValid | my_VstTimeInfo::kVstPpqPosValid;
+		timeInfo.timeSigNumerator = 4;
+		timeInfo.timeSigDenominator = 4;
+		timeInfo.flags = my_VstTimeInfo::kVstTransportPlaying;
+
+		generator->UpdateTempo(&timeInfo);
+	}
+	*/
+
+//	const bool runsRealtime = io_manager->AudioDriver()->RunsRealTime();
+	generator->SetHostControl(HC_PROCESS_RENDERMODE, runsRealtimeCurrent ? 0 : 2); // from Waves. Mode 0 = "Live", 2 = "Preview" (Offline)
+}
+
+void rebuildDsp(
+	  SeAudioMaster* generator
+	, TiXmlDocument* currentDspXml
+	, std::vector< std::pair<int32_t, std::string> >& pendingPresets
+	, std::atomic<eRuntimeState>& runtimeState
+//	, FeedbackTrace& returnFeedbackError
+)
+{
+	_RPT0(0, "backGroundRebuildDsp:: start\n");
+
+	try
+	{
+		// Send patch structure to process.
+		std::vector<int32_t> mutedContainers; // unused at present. (Waves thing).
+		generator->BuildDspGraph(currentDspXml, pendingPresets, mutedContainers);
+		// generator->ApplyPinDefaultChanges(extraPinDefaultChanges);
+
+		_RPT0(0, "backGroundRebuildDsp:: done\n");
+		_RPT0(0, "eRuntimeState::newDspReady\n");
+		runtimeState.store(eRuntimeState::newDspReady, std::memory_order_release);
+	}
+	catch (FeedbackTrace* e)
+	{
+		// returnFeedbackError = *e;
+		_RPT0(0, "eRuntimeState::newDspFailed\n");
+		runtimeState.store(eRuntimeState::newDspFailed, std::memory_order_release);
+	}
+	catch (SeException*)
+	{
+		runtimeState.store(eRuntimeState::newDspFailed, std::memory_order_release);
+	}
+}
+
+void SynthRuntime::process(
+	  int sampleFrames
+	, const float* const* inputs
+	, float* const* outputs
+	, int inChannelCount
+	, int outChannelCount
+	, int64_t allSilenceFlagsIn
+	, int64_t& allSilenceFlagsOut
+)
+{
+	const auto myState = runtimeState.load(std::memory_order_acquire);
+
+	switch (myState)
+	{
+	case eRuntimeState::idling:
+	case eRuntimeState::stopped: // ASIO is a bit async, can call here after I'ved asked it to stop
+	{
+		// output silence
+		for (int i = 0; i < outChannelCount; ++i)
+		{
+			auto* dest = outputs[i];
+			std::fill(dest, dest + sampleFrames, 0.0f);
+		}
+	}
+	break;
+
+	case eRuntimeState::newDspFailed:
+	{
+		if (dspBuilderThread.joinable())
+			dspBuilderThread.join();
+
+		generator->state = audioMasterState::Stopped;
+		_RPT0(0, "audioMasterState::Stopped\n");
+	}
+	break;
+
+	case eRuntimeState::newDspReady:
+	{
+		_RPT0(0, "eRuntimeState::newDspReady\n");
+		if (dspBuilderThread.joinable())
+			dspBuilderThread.join();
+
+		_RPT0(0, "eRuntimeState::running\n");
+		runtimeState = eRuntimeState::running;
+
+//		const bool runsRealtime = io_manager->AudioDriver()->RunsRealTime();
+
+		_RPT0(0, "Restart - set preset/s\n");
+		generator->setPresetsState(pendingPresets);
+		pendingPresets.clear();
+
+		generator->SetHostControl(HC_PROCESS_RENDERMODE, runsRealtimeCurrent ? 0 : 2); // from Waves. Mode 0 = "Live", 2 = "Preview" (Offline)
+
+		OpenGenerator();
+
+		_RPT0(0, "eRuntimeState::running...\n");
+	}
+	[[fallthrough]];
+
+	case eRuntimeState::running:
+	{
+		// silence flags
+		for (int i = 0; i < inChannelCount; ++i)
+		{
+			const bool isSilent = 0 != (allSilenceFlagsIn & 1);
+			generator->setInputSilent(i, isSilent);
+			allSilenceFlagsIn = allSilenceFlagsIn >> 1;
+		}
+
+		generator->DoProcess_plugin(sampleFrames, inputs, outputs, inChannelCount, outChannelCount);
+
+		allSilenceFlagsOut = generator->getSilenceFlags(0, outChannelCount);
+	}
+	break;
+
+	case eRuntimeState::resetting:
+	{
+		// Switch out updated DSP XML if nesc
+
+		// a new thread, when done, reengage with soundcard.
+
+		// clear msg que
+		// race condition message_que_dsp_to_ui.Reset();
+		pendingControllerQueueClients.Reset();
+
+		const auto generatorStateWas = generator->state.load();
+
+		// start chain reaction of sound object destruction
+		generator->Close();
+
+		if (generatorStateWas == audioMasterState::AsyncRestart)
+		{
+#if 0 // editor only
+			if (pendingDspXml)
+			{
+				currentDspXml = std::move(pendingDspXml);
+
+				GetModuleLatencies().clear();
+
+//					extraPinDefaultChanges.clear();
+			}
+			else
+#endif
+			{
+				_RPT0(0, "Restart - get preset\n");
+
+				// we're restarting independent of the document
+				pendingPresets.clear();
+				const bool saveExtraState = true;
+				generator->getPresetsState(pendingPresets, saveExtraState);
+			}
+
+//				io_manager->OnRebuildDsp();
+
+			_RPT0(0, "eRuntimeState launching rebuild thread\n");
+			runtimeState = eRuntimeState::idling;
+			_RPT0(0, "eRuntimeState::idling\n");
+
+//				const auto sampleRate = audio_driver->getSampleRate();
+
+			generator = std::make_unique<SeAudioMaster>(sampleRate, this, BundleInfo::instance()->getPluginInfo().latencyConstraint);
+			//generator->setBufferSize(audio_driver->getBufferSize());
+			generator->setBlockSize(generator->CalcBlockSize(maxBlockSize));
+
+			if (runsRealtimeCurrent) //io_manager->AudioDriver()->RunsRealTime())
+			{
+				dspBuilderThread = std::thread(
+					[this]
+					{
+						rebuildDsp(
+								generator.get()
+							, &currentDspXml
+							, pendingPresets
+							, runtimeState
+//								, feedbackTrace
+//								, extraPinDefaultChanges
+						);
+					}
+				);
+			}
+			else
+			{
+				// in offline mode, block while reloading.
+				rebuildDsp(
+						generator.get()
+					, &currentDspXml
+					, pendingPresets
+					, runtimeState
+//						, feedbackTrace
+//						, extraPinDefaultChanges
+				);
+			}
+		}
+		else
+		{
+			assert(generatorStateWas == audioMasterState::Stopping);
+
+			generator->state = audioMasterState::Stopped;
+			_RPT0(0, "audioMasterState::Stopped\n");
+			_RPT0(0, "eRuntimeState::stopped\n");
+			runtimeState.store(eRuntimeState::stopped, std::memory_order_release);
+
+			// we're done
+			// done_flag = true; // cause audio driver to stop immediatly (important for unit tests).
+		}
+	}
+	break;
+
+	}
 }
 
 void SynthRuntime::ServiceDspWaiters2(int sampleframes, int guiFrameRateSamples)
@@ -174,7 +400,7 @@ void SynthRuntime::ServiceDspWaiters2(int sampleframes, int guiFrameRateSamples)
 // GUI >> DSP.
 void SynthRuntime::ServiceDspRingBuffers()
 {
-	peer->ControllerToProcessorQue()->pollMessage(generator);
+	peer->ControllerToProcessorQue()->pollMessage(generator.get());
 }
 
 // Send VU meter value to GUI.

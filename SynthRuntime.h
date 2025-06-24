@@ -34,21 +34,29 @@ class SynthRuntime : public SeShellDsp
 public:
 	SynthRuntime();
 	~SynthRuntime();
+
 	void prepareToPlay(
 		IShellServices* shell,
 		int32_t sampleRate,
 		int32_t maxBlockSize,
 		bool runsRealtime);
 
+	void OpenGenerator();
+
 	void setProcessor( IShellServices* vst3Processor )
 	{
 		shell_ = vst3Processor;
 	}
     
-	void process( int sampleFrames, const float* const* inputs, float* const* outputs, int inChannelCount, int outChannelCount )
-	{
-		generator->DoProcess_plugin( sampleFrames, inputs, outputs, inChannelCount, outChannelCount );
-	}
+	void process(
+		int sampleFrames
+		, const float* const* inputs
+		, float* const* outputs
+		, int inChannelCount
+		, int outChannelCount
+		, int64_t allSilenceFlagsIn
+		, int64_t& allSilenceFlagsOut
+	);
 	void MidiIn( int delta, const unsigned char* midiData, int length )
 	{
 		generator->MidiIn(delta, midiData, length );
@@ -57,10 +65,10 @@ public:
 	{
 		return generator->SampleClock();
 	}
-	void setInputSilent(int input, bool isSilent)
-	{
-		generator->setInputSilent(input, isSilent);
-	}
+	//void setInputSilent(int input, bool isSilent)
+	//{
+	//	generator->setInputSilent(input, isSilent);
+	//}
 	uint64_t getSilenceFlags(int output, int count)
 	{
 		return generator->getSilenceFlags(output, count);
@@ -77,8 +85,6 @@ public:
 	virtual void RequestQue( class QueClient* client, bool noWait = false ) override;
 
 	virtual void NeedTempo() override {usingTempo_=true;}
-	// Ducking fade-out complete.
-	virtual void OnFadeOutComplete() override{}
 
 	virtual std::wstring ResolveFilename(const std::wstring& name, const std::wstring& extension) override;
 	virtual std::wstring getDefaultPath(const std::wstring& p_file_extension ) override;
@@ -138,7 +144,7 @@ public:
 	void onSetParameter(int32_t handle, int32_t field, RawView rawValue, int voiceId)  override;
 
 private:
-	class SeAudioMaster* generator;
+//	class SeAudioMaster* generator;
 
 	// Communication pipes Controller<->Processor
 	QueuedUsers pendingControllerQueueClients; // parameters waiting to be sent to GUI
@@ -163,8 +169,6 @@ public:
 	}
 
     void OnSaveStateDspStalled() override;
-    
-//	bool reinitializeFlag;
 
 private:
 	bool usingTempo_;
@@ -172,6 +176,8 @@ private:
 	std::mutex generatorLock;
 	bool runsRealtimeCurrent = true;
 	TiXmlDocument currentDspXml;
+	int32_t sampleRate{};
+	int32_t maxBlockSize{};
 };
 
 #endif

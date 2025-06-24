@@ -67,6 +67,7 @@ struct DawPreset
 	bool isInitPreset = false;
 	mutable bool ignoreProgramChangeActive = false;
 	mutable bool resetUndo = true;
+	mutable bool reloadProcessor = false; // for Optimus
 
 private:
 	void initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, tinyxml2::XMLNode* presetXml, int presetIdx);

@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <thread>
 #include "modules/shared/xplatform.h"
 #include "modules/shared/RawView.h"
-//#include "ElatencyContraintType.h"
 #include "se_types.h"
 #include "mp_midi.h"
 
@@ -85,6 +85,8 @@ public:
 	virtual void SetCancellationMode() = 0;
 };
 
+enum class eRuntimeState { idling, newDspReady, newDspFailed, running, resetting, stopped };
+
 // implement common functionality
 class SeShellDsp : public ISeShellDsp
 {
@@ -98,6 +100,21 @@ public:
 	{
 		moduleLatencies.clear();
 	}
+	
+	// Ducking fade-out complete.
+	void OnFadeOutComplete() override
+	{
+		// we're in the call stack of seaudiomaster, so just flag need for rebuild.
+//		fadeoutdone = true;
+		runtimeState = eRuntimeState::resetting;
+	}
+
+protected:
+	std::atomic<eRuntimeState> runtimeState = eRuntimeState::idling;
+	std::unique_ptr<class SeAudioMaster> generator;
+	std::thread dspBuilderThread;
+	std::vector< std::pair<int32_t, std::string> > pendingPresets;
+//	bool fadeoutdone = false;
 
 private:
 	std::unordered_map<int32_t, int32_t> moduleLatencies;

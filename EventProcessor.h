@@ -82,6 +82,7 @@ public:
 	}
 	void push_front( SynthEditEvent* e )
 	{
+		assert(!read_only);
 		e->next_ = next_;
 		e->prev_ = this;
 		next_ = e;
@@ -90,6 +91,7 @@ public:
 
 	void pop_front()
 	{
+		assert(!read_only);
 		//		#if defined( _DEBUG )
 		SynthEditEvent* popped = next_;
 		assert( popped != this );
@@ -101,6 +103,7 @@ public:
 
 	void insertAfter( const EventIterator& it, SynthEditEvent* e )
 	{
+		assert(!read_only);
 		// setup new event.
 		e->next_ = (*it)->next_;
 		e->prev_ = *it;
@@ -110,6 +113,7 @@ public:
 	}
 	EventIterator erase( const EventIterator& it )
 	{
+		assert(!read_only);
 		SynthEditEvent* e = *it;
 		e->prev_->next_ = e->next_;
 		e->next_->prev_ = e->prev_;
@@ -119,11 +123,13 @@ public:
 
 	bool empty() const
 	{
-		return next_ == this;
+		return next_ == static_cast<const SynthEditEvent*>(this);
 	}
 
 	void TransferFrom(EventList& other)
 	{
+		assert(!read_only);
+
 		if( other.empty() )
 		{
 			prev_ = next_ = this;
@@ -138,6 +144,9 @@ public:
 
 		other.next_ = other.prev_ = &other;
 	}
+#ifdef _DEBUG
+	bool read_only{ false };
+#endif
 };
 
 inline bool operator==( EventIterator const& lhs, EventIterator const& rhs )

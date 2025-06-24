@@ -710,11 +710,6 @@ void ProcessorStateMgrVst3::setPresetRespectingIpc(DawPreset* preset)
 	// set the preset without messing with the IPC flag set by caller. (i.e. avoiding ProcessorStateMgr::setPreset())
 	retainPreset(preset);
 	callback(preset);
-
-#if 0 //def _DEBUG
-	auto temp = RawView(preset->params[1329619189].rawValues_[0]);
-	_RPTN(0, "setPresetFromXml AIP2 = %f\n", (float)temp);
-#endif
 }
 
 void ProcessorStateMgrVst3::setPreset(DawPreset const* preset)

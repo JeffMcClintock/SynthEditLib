@@ -33,6 +33,7 @@
 #include "dsp_patch_parameter_base.h"
 #include "ug_oversampler_in.h"
 #include "mfc_emulation.h"
+#include "ProcessorStateManager.h"
 
 #if defined(CANCELLATION_TEST_ENABLE) || defined(CANCELLATION_TEST_ENABLE2)
 #include "conversion.h"
@@ -178,6 +179,10 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 	,temporaryHandle_(-20) // start at -20 and decrement for next one.
 	,enableSleepOptimisation(true)
 {
+#ifdef _DEBUG
+	events.read_only = true;
+#endif
+
 	setSampleRate( p_samplerate );
 
 #if (defined(CANCELLATION_TEST_ENABLE) || defined(CANCELLATION_TEST_ENABLE2))
@@ -1246,8 +1251,18 @@ void SeAudioMaster::HandleInterrupt()
 
 	if (auto preset = interrupt_preset_.exchange(nullptr, std::memory_order_relaxed); preset)
 	{
-		Patchmanager_->setPreset(preset);
+		if (preset->reloadProcessor)
+		{
+			state = audioMasterState::AsyncRestart;
+			interupt_start_fade_out = true;
+			// already here. TriggerInterrupt();
+		}
+		else
+		{
+			Patchmanager_->setPreset(preset);
+		}
 	}
+
 	if( interupt_start_fade_out )
 	{
 		interupt_start_fade_out = false;
@@ -1285,23 +1300,23 @@ void SeAudioMaster::HandleInterrupt()
 		}
 	}
 
-	if(interrupt_clear_delays)
+	if (interrupt_clear_delays)
 	{
 		interrupt_clear_delays = false;
 		if (SampleClock() != 0) // no need to clear tails on a complete reset.
 		{
 			_RPT0(0, "interrupt_clear_delays\n");
-/* not needed at present
-#ifndef SE_EDIT_SUPPORT
-			vst_out->MuteUntilTailReset();
-#endif
-*/
-		SetHostControl(HC_CLEAR_TAILS, hCClearTailsNextValue++);
-	}
+			/* not needed at present
+			#ifndef SE_EDIT_SUPPORT
+						vst_out->MuteUntilTailReset();
+			#endif
+			*/
+			SetHostControl(HC_CLEAR_TAILS, hCClearTailsNextValue++);
+		}
 		else
 		{
 			_RPT0(0, "interrupt_clear_delays - ignored (sampleclock == 0)\n");
-}
+		}
 	}
 }
 

@@ -13,6 +13,18 @@ using namespace Steinberg::Vst;
 
 namespace VstPresetUtil
 {
+
+std::string generateUUid()
+{
+	Steinberg::FUID temp;
+	temp.generate();
+
+	Steinberg::char8 s[40];
+	temp.toRegistryString(s);
+	return s;
+}
+
+
 	// Steinbergs implementation don't handle UTF8
 	class FileStreamUtf8 : public IBStream
 	{
