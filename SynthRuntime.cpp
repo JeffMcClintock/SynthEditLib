@@ -151,6 +151,10 @@ void SynthRuntime::prepareToPlay(
 	generator->SetHostControl(HC_PROCESS_RENDERMODE, runsRealtime ? 0 : 2);
 	runsRealtimeCurrent = runsRealtime;
 	runtimeState = eRuntimeState::running;
+
+#ifdef _DEBUG
+	generator->dumpPreset(0);
+#endif
 }
 
 SynthRuntime::~SynthRuntime()
@@ -204,13 +208,13 @@ void rebuildDsp(
 		// generator->ApplyPinDefaultChanges(extraPinDefaultChanges);
 
 		_RPT0(0, "backGroundRebuildDsp:: done\n");
-		_RPT0(0, "eRuntimeState::newDspReady\n");
+		_RPT0(0, "set eRuntimeState::newDspReady\n");
 		runtimeState.store(eRuntimeState::newDspReady, std::memory_order_release);
 	}
 	catch (FeedbackTrace* e)
 	{
 		// returnFeedbackError = *e;
-		_RPT0(0, "eRuntimeState::newDspFailed\n");
+		_RPT0(0, "set eRuntimeState::newDspFailed\n");
 		runtimeState.store(eRuntimeState::newDspFailed, std::memory_order_release);
 	}
 	catch (SeException*)
@@ -264,15 +268,22 @@ void SynthRuntime::process(
 		_RPT0(0, "eRuntimeState::running\n");
 		runtimeState = eRuntimeState::running;
 
-//		const bool runsRealtime = io_manager->AudioDriver()->RunsRealTime();
-
 		_RPT0(0, "Restart - set preset/s\n");
 		generator->setPresetsState(pendingPresets);
 		pendingPresets.clear();
 
-		generator->SetHostControl(HC_PROCESS_RENDERMODE, runsRealtimeCurrent ? 0 : 2); // from Waves. Mode 0 = "Live", 2 = "Preview" (Offline)
-
 		OpenGenerator();
+
+#ifdef _DEBUG
+		generator->dumpPreset(1);
+#endif
+
+		// customisation point. Optimus loads a preset here.
+		onRestartProcessor();
+
+#ifdef _DEBUG
+		generator->dumpPreset(2);
+#endif
 
 		_RPT0(0, "eRuntimeState::running...\n");
 	}
@@ -288,7 +299,13 @@ void SynthRuntime::process(
 			allSilenceFlagsIn = allSilenceFlagsIn >> 1;
 		}
 
-		generator->DoProcess_plugin(sampleFrames, inputs, outputs, inChannelCount, outChannelCount);
+		generator->DoProcess_plugin(
+			  sampleFrames
+			, inputs
+			, outputs
+			, inChannelCount
+			, outChannelCount
+		);
 
 		allSilenceFlagsOut = generator->getSilenceFlags(0, outChannelCount);
 	}
@@ -318,18 +335,20 @@ void SynthRuntime::process(
 
 				GetModuleLatencies().clear();
 
-//					extraPinDefaultChanges.clear();
+				extraPinDefaultChanges.clear();
 			}
 			else
 #endif
+			pendingPresets.clear();
+			if(!restartDontRestorePresets)
 			{
 				_RPT0(0, "Restart - get preset\n");
 
 				// we're restarting independent of the document
-				pendingPresets.clear();
 				const bool saveExtraState = true;
 				generator->getPresetsState(pendingPresets, saveExtraState);
 			}
+			restartDontRestorePresets = false; // back to normal behaviour.
 
 //				io_manager->OnRebuildDsp();
 
@@ -349,7 +368,7 @@ void SynthRuntime::process(
 					[this]
 					{
 						rebuildDsp(
-								generator.get()
+							  generator.get()
 							, &currentDspXml
 							, pendingPresets
 							, runtimeState
@@ -363,7 +382,7 @@ void SynthRuntime::process(
 			{
 				// in offline mode, block while reloading.
 				rebuildDsp(
-						generator.get()
+					  generator.get()
 					, &currentDspXml
 					, pendingPresets
 					, runtimeState
@@ -478,6 +497,17 @@ void SynthRuntime::DoAsyncRestart()
 	}
 }
 
+// restart the processor same as above, but don't attempt to restore it's state. Just stick with default state.
+// For Optimus.
+void SynthRuntime::DoAsyncRestartCleanState()
+{
+	restartDontRestorePresets = true;
+	if (generator && generator->synth_thread_running)
+	{
+		generator->TriggerRestart();
+	}
+}
+
 void SynthRuntime::ClearDelaysUnsafe()
 {
 	std::lock_guard<std::mutex> x(generatorLock);
@@ -532,9 +562,7 @@ void SynthRuntime::setPresetUnsafe(DawPreset const* preset)
 #endif
 
 	if (!generator)
-	{
 		return;
-	}
 
 	// TODO check behaviour during DSP restart
 	generator->interrupt_preset_.store(preset, std::memory_order_release);

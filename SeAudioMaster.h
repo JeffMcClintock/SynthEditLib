@@ -357,6 +357,10 @@ public:
     {
         Patchmanager_->getPresetState(chunk, saveRestartState);
     }
+#ifdef _DEBUG
+	void dumpPreset(int tag);
+#endif
+
     void setPresetState(const std::string& chunk)
     {
         Patchmanager_->setPresetState(chunk);

@@ -114,7 +114,6 @@ protected:
 	std::unique_ptr<class SeAudioMaster> generator;
 	std::thread dspBuilderThread;
 	std::vector< std::pair<int32_t, std::string> > pendingPresets;
-//	bool fadeoutdone = false;
 
 private:
 	std::unordered_map<int32_t, int32_t> moduleLatencies;

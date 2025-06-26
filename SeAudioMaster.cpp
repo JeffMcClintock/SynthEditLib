@@ -1251,16 +1251,7 @@ void SeAudioMaster::HandleInterrupt()
 
 	if (auto preset = interrupt_preset_.exchange(nullptr, std::memory_order_relaxed); preset)
 	{
-		if (preset->reloadProcessor)
-		{
-			state = audioMasterState::AsyncRestart;
-			interupt_start_fade_out = true;
-			// already here. TriggerInterrupt();
-		}
-		else
-		{
-			Patchmanager_->setPreset(preset);
-		}
+		Patchmanager_->setPreset(preset);
 	}
 
 	if( interupt_start_fade_out )
@@ -2750,3 +2741,35 @@ void SeAudioMaster::setPresetsState(const std::vector< std::pair<int32_t, std::s
 		patchmanager->setPresetState(preset.second);
 	}
 }
+
+#ifdef _DEBUG
+#include <filesystem>
+void SeAudioMaster::dumpPreset(int tag)
+{
+	int index = 0;
+	for (auto pa : patchAutomators_)
+	{
+		auto cont = pa->patch_control_container;
+		auto patchmanager = cont->get_patch_manager(); // very messy.
+
+		std::string chunk;
+		patchmanager->getPresetState(chunk, true);
+
+		std::filesystem::path saveFileName = std::format("C:\\temp\\preset_dump_{}_{}.txt", tag, index);
+
+		std::ofstream outFile(saveFileName, std::ios::binary);
+		if (outFile.is_open())
+		{
+			outFile << chunk;
+			outFile.close();
+			_RPT1(_CRT_WARN, "Preset dumped to %s\n", saveFileName.string().c_str());
+		}
+		else
+		{
+			_RPT0(_CRT_WARN, "Failed to open file for preset dump\n");
+		}
+
+		index++;
+	}
+}
+#endif

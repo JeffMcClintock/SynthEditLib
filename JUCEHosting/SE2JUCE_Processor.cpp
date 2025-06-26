@@ -157,9 +157,17 @@ SE2JUCE_Processor::SE2JUCE_Processor(
     }
 
     // sync controller preset to the default preset.
+    controller->setPreset(dawStateManager.getPreset());
+
+    // Optimus needs to be able to restart the processor with a fresh preset, before any processing is performed, otherwise the analysis state will become unpredictable.
+    processor.onRestartProcessor = [this]()
     {
-        controller->setPreset(dawStateManager.getPreset());
-    }
+        if (restart_preset)
+        {
+            dawStateManager.setPresetRespectingIpc(restart_preset.get());
+            restart_preset.release();
+        }
+	};
 }
 
 // Ableton: called on main thread when manipulating param from generic panel.
@@ -309,6 +317,18 @@ void SE2JUCE_Processor::OnLatencyChanged()
     setLatencySamples(processor.getLatencySamples());
 }
 
+void SE2JUCE_Processor::RestartWithPreset(DawPreset* preset)
+{
+	restart_preset.reset(preset);
+
+    processor.DoAsyncRestartCleanState();
+}
+
+void SE2JUCE_Processor::dumpPreset(int tag)
+{
+    processor.dumpPreset(tag);
+}
+
 void SE2JUCE_Processor::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
@@ -422,12 +442,16 @@ void SE2JUCE_Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
 		}
     }
 
+    int64_t silenceflags_unused{};
+
     processor.process(
         buffer.getNumSamples(),
         buffer.getArrayOfReadPointers(),
         buffer.getArrayOfWritePointers(),
         getTotalNumInputChannels(),
-        getTotalNumOutputChannels()
+        getTotalNumOutputChannels(),
+        silenceflags_unused,
+        silenceflags_unused
     );
 
     dawStateManager.ProcessorWatchdog();

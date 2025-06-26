@@ -39,6 +39,7 @@ protected:
 
     int m_maxSamplesPerBlock{};
     double m_sampleRate{};
+    std::unique_ptr<DawPreset> restart_preset;
 
 public:
     //==============================================================================
@@ -55,6 +56,8 @@ public:
         dawStateManager.enableIgnoreProgramChange();
     }
     void OnLatencyChanged();
+    void RestartWithPreset(DawPreset*);
+    void dumpPreset(int tag);
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;

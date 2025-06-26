@@ -30,6 +30,7 @@ public:
 class SynthRuntime : public SeShellDsp
 {
 	IShellServices* shell_ = {};
+	bool restartDontRestorePresets{};
 
 public:
 	SynthRuntime();
@@ -90,6 +91,7 @@ public:
 	virtual std::wstring getDefaultPath(const std::wstring& p_file_extension ) override;
 	virtual void GetRegistrationInfo(std::wstring& p_user_email, std::wstring& p_serial) override;
 	virtual void DoAsyncRestart() override;
+	void DoAsyncRestartCleanState();
 	void ClearDelaysUnsafe();
 	bool NeedsTempo( ){ return usingTempo_; }
 	bool isEditor() override { return false; }
@@ -142,9 +144,11 @@ public:
 	int32_t SeMessageBox(const wchar_t* msg, const wchar_t* title, int flags) override;
 	int RegisterIoModule(ISpecialIoModule*) override { return 1; } // nothing special to do in plugin
 	void onSetParameter(int32_t handle, int32_t field, RawView rawValue, int voiceId)  override;
-
+	void dumpPreset(int tag)
+	{
+		generator->dumpPreset(tag);
+	}
 private:
-//	class SeAudioMaster* generator;
 
 	// Communication pipes Controller<->Processor
 	QueuedUsers pendingControllerQueueClients; // parameters waiting to be sent to GUI
@@ -160,7 +164,6 @@ private:
 	}
     
 	IProcessorMessageQues* peer = {};
-	std::unordered_map<int32_t, int32_t> moduleLatencies;
     
 public:
 	void connectPeer(IProcessorMessageQues* ppeer)
@@ -169,6 +172,7 @@ public:
 	}
 
     void OnSaveStateDspStalled() override;
+	std::function<void()> onRestartProcessor = [](){};
 
 private:
 	bool usingTempo_;
