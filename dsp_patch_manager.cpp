@@ -1596,13 +1596,19 @@ void DspPatchManager::getPresetState( std::string& chunk, bool saveRestartState)
 		{
 			if(parameter->isStateFull(saveRestartState))
 			{
+#ifdef _DEBUG
+				if (!parameter->debugName.empty())
+				{
+					auto commentElement = new TiXmlComment(parameter->debugName.c_str());
+					element->LinkEndChild(commentElement);
+				}
+#endif
 				auto paramElement = new TiXmlElement("Param");
 				element->LinkEndChild(paramElement);
 				paramElement->SetAttribute("id", parameter->Handle());
 
 				// old way. monophonic only. Retained for compatibility.
 				paramElement->SetAttribute("val", parameter->GetValueAsXml());
-
 				// MIDI learn.
 				if(parameter->UnifiedControllerId() != -1)
 				{

@@ -26,6 +26,9 @@
 #include "cancellation.h"
 #include "ug_oversampler_in.h"
 #include "mfc_emulation.h"
+#ifdef _DEBUG
+#include "BundleInfo.h"
+#endif
 
 SE_DECLARE_INIT_STATIC_FILE(ug_container);
 
@@ -1171,6 +1174,45 @@ void ug_container::BuildPatchManager(TiXmlElement* patchMgrXml, const std::strin
 		constexpr bool overrideIgnoreProgramChange = true;
 		dspPatchManager->setPresetState(*presetXml, overrideIgnoreProgramChange);
 	}
+
+	// enable this to allow for parameter names to be included in preset files
+#ifdef _DEBUG
+#if 1
+	{
+		tinyxml2::XMLDocument doc;
+		const auto xml = BundleInfo::instance()->getResource("parameters.se.xml");
+		doc.Parse(xml.c_str());
+		if (!doc.Error())
+		{
+			auto controllerE = doc.FirstChildElement("Controller");
+			assert(controllerE);
+
+			auto patchManagerE = controllerE->FirstChildElement();
+			assert(strcmp(patchManagerE->Value(), "PatchManager") == 0);
+
+			auto patchmgr = dynamic_cast<DspPatchManager*>(dspPatchManager);
+
+			auto parameters_xml = patchManagerE->FirstChildElement("Parameters");
+			for (auto parameter_xml = parameters_xml->FirstChildElement("Parameter"); parameter_xml; parameter_xml = parameter_xml->NextSiblingElement(/*"Parameter"*/))
+			{
+				int ParameterHandle = -1;
+				parameter_xml->QueryIntAttribute("Handle", &ParameterHandle);
+
+				const char* name{};
+				parameter_xml->QueryStringAttribute("Name", &name);
+
+				if (name)
+				{
+					if (auto param = patchmgr->GetParameter(ParameterHandle); param)
+					{
+						param->debugName = name;
+					}
+				}
+			}
+		}
+	}
+#endif
+#endif
 }
 
 // Must be done AFTER all other modules built, so it can detect if USER included a Patch-Automator,

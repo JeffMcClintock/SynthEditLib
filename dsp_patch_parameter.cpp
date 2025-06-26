@@ -532,9 +532,9 @@ void dsp_patch_parameter_base::Initialize( class TiXmlElement* xml )
 	
 //	xml->QueryIntAttribute("ContainerHandle", &voiceContainerHandle_);
 
-#if defined( _DEBUG )
-	debugName = FixNullCharPtr(xml->Attribute("DebugName"));
-#endif
+// moved. #if defined( _DEBUG )
+//	debugName = FixNullCharPtr(xml->Attribute("DebugName"));
+//#endif
 
 	xml->QueryIntAttribute("Index", &WavesParameterIndex );
 
