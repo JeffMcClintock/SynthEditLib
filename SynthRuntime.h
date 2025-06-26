@@ -146,7 +146,9 @@ public:
 	void onSetParameter(int32_t handle, int32_t field, RawView rawValue, int voiceId)  override;
 	void dumpPreset(int tag)
 	{
+#ifdef _DEBUG
 		generator->dumpPreset(tag);
+#endif
 	}
 private:
 
