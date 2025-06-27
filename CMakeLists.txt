@@ -678,7 +678,7 @@ TARGET_LINK_LIBRARIES( ${PROJECT_NAME} ${COREFOUNDATION_LIBRARY} )
 endif()
 
 IF(WIN32)
-target_link_libraries(${PROJECT_NAME} dxguid d3d11.lib d2d1 dwrite windowscodecs)
+target_link_libraries(${PROJECT_NAME} Dwmapi dxguid d3d11.lib d2d1 dwrite windowscodecs)
 endif()
 
 target_compile_definitions (${PROJECT_NAME} PRIVATE
