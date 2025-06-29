@@ -975,7 +975,10 @@ void MpController::OnSetHostControl(int hostControl, int32_t paramField, int32_t
 					{
 						xml = loadNativePreset(presets[preset].filename);
 					}
-					setPresetXmlFromSelf(xml);
+					if (!xml.empty()) // cope with tester deleting preset file.
+					{
+						setPresetXmlFromSelf(xml);
+					}
 				}
 
 // already done by setPresetXmlFromSelf				undoManager.initial(this, getPreset());

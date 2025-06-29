@@ -98,6 +98,8 @@ void SeJuceController::setPresetFromSelf(DawPreset const* preset)
 
 void SeJuceController::setPresetUnsafe(DawPreset const* preset)
 {
+	assert(preset->hash);
+
 	interrupt_preset_.store(preset, std::memory_order_release);
 
 	// TODO: Update Immediate values here right in callers stack frame, otherwise DAW might query a stale value

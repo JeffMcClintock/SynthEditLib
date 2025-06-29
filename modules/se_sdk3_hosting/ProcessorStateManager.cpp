@@ -652,6 +652,8 @@ void ProcessorStateMgrVst3::setPresetFromXml(const std::string& presetString)
 	auto preset = new DawPreset(parametersInfo, presetString);
 	preset->ignoreProgramChangeActive = ignoreProgramChange;
 
+	assert(preset->hash);
+
 	setPresetRespectingIpc(preset);
 }
 
@@ -706,6 +708,8 @@ void ProcessorStateMgrVst3::setPresetRespectingIpc(DawPreset* preset)
 		messageQueFromProcessor.clear();
 		messageQueFromController.clear();
 	}
+
+	assert(preset->hash);
 
 	// set the preset without messing with the IPC flag set by caller. (i.e. avoiding ProcessorStateMgr::setPreset())
 	retainPreset(preset);

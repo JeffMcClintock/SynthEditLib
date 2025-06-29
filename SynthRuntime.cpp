@@ -501,9 +501,9 @@ void SynthRuntime::DoAsyncRestart()
 // For Optimus.
 void SynthRuntime::DoAsyncRestartCleanState()
 {
-	restartDontRestorePresets = true;
 	if (generator && generator->synth_thread_running)
 	{
+		restartDontRestorePresets = true;
 		generator->TriggerRestart();
 	}
 }
