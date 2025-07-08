@@ -455,8 +455,8 @@ namespace SE2
 
 	struct sharedGraphicResources_struct
 	{
-		static const int plugTextSize = 10;
-		static const int plugDiameter = 12;
+		inline static const int plugTextSize = 10;
+		inline static const int plugDiameter = 12;
 
 		sharedGraphicResources_struct(GmpiDrawing::Factory& factory)
 		{
