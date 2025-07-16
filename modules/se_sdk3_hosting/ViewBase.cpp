@@ -32,10 +32,7 @@ using namespace GmpiGuiHosting;
 namespace SE2
 {
 	ViewBase::ViewBase(GmpiDrawing::Size size) :
-		 mouseCaptureObject(nullptr)
-		, elementBeingDragged(nullptr)
-		, patchAutomatorWrapper_(nullptr)
-		, drawingBounds{ 0, 0, size.width, size.height }
+		drawingBounds{ 0, 0, size.width, size.height }
 	{
 	}
 
@@ -477,6 +474,8 @@ namespace SE2
 #ifdef DEBUG_HIT_TEST
 		_RPT3(0, "ViewBase::onPointerDown(%x, (%f, %f))\n", flags, point.x, point.y);
 #endif
+		Presenter()->NotDragging();
+
 		// handle edge-case of mouse clicking without any prior 'OnMove' (e.g. after clicking to make a pop-up menu disappear).
 		// ensures that 'mouseOverObject' is correct.
 		if (lastMovePoint.x != point.x || lastMovePoint.y != point.y)
@@ -1277,6 +1276,8 @@ namespace SE2
 
 	int32_t ViewBase::populateContextMenu(float x, float y, gmpi::IMpUnknown* contextMenuItemsSink)
 	{
+		Presenter()->NotDragging();
+
 		GmpiSdk::ContextMenuHelper menu(contextMenuCallbacks, contextMenuItemsSink);
 
 		// Add items for Presenter
@@ -1304,6 +1305,8 @@ namespace SE2
 
 	int32_t ViewBase::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 	{
+		Presenter()->NotDragging();
+
 		if (!draggingNewModuleId.empty())
 		{
 			int32_t isMouseCaptured{};
@@ -1338,6 +1341,7 @@ namespace SE2
 
 		return gmpi::MP_OK;
 	}
+
 	/*
 	isArranging - Enables 3 pixel resize tolerance to cope with font size variation between GDI and DirectWrite. Not needed when user is dragging stuff.
 	*/
@@ -1751,6 +1755,19 @@ namespace SE2
 
 	gmpi::ReturnCode ViewBase::onKey(int32_t key, gmpi::drawing::Point* pointerPosOrNull)
 	{
+		switch (key)
+		{
+		case 0x25: // left
+		case 0x27: // right
+		case 0x26: // up
+		case 0x28: // down
+			break;
+
+		default:
+			Presenter()->NotDragging();
+			break;
+		}
+
 		switch (key)
 		{
 		case 0x25: // left

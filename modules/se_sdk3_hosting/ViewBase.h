@@ -51,7 +51,7 @@ bool isIteratingChildren = false;
 #ifdef _WIN32
 		DrawingFrameBase2* frameWindow = {};
 #endif
-		class ModuleViewPanel* patchAutomatorWrapper_;
+		class ModuleViewPanel* patchAutomatorWrapper_ = {};
 
 		void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
 		class ModuleViewPanel* getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap);
@@ -89,7 +89,7 @@ bool isIteratingChildren = false;
 		void calcMouseOverObject(int32_t flags);
 		void OnChildDeleted(IViewChild* childObject);
 		void onSubPanelMadeVisible();
-		
+
 		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override;
 		int32_t onContextMenu(int32_t idx) override;
 

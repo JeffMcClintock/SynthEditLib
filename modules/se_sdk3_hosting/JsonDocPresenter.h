@@ -114,8 +114,8 @@ public:
 	}
 	void RemovePatchCable(int32_t fromModule, int fromPin, int32_t toModule, int toPin) override
 	{}
-	void DragSelection(GmpiDrawing_API::MP1_SIZE offset) override
-	{}
+	void DragSelection(GmpiDrawing_API::MP1_SIZE offset) override {}
+	void NotDragging() override {}
 
 	IPresenter* CreateSubPresenter(int32_t containerHandle) override
 	{
@@ -358,6 +358,7 @@ public:
 
 		view->UpdateCablesBounds();
 	}
+	void NotDragging() override {}
 
 	IPresenter* CreateSubPresenter(int32_t containerHandle) override
 	{
