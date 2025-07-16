@@ -136,6 +136,7 @@ UPlug* ug_base::GetPlug(int p_index)
 }
 #endif
 
+#if 0 // mistake I think. pins are referenced by index, not ID.
 UPlug* ug_base::GetPlugById(int id)
 {
 	// 99% of the time ID is the same as index.
@@ -168,6 +169,7 @@ UPlug* ug_base::GetPlugById(int id)
 
 	return {};
 }
+#endif
 
 // big problem with dynamic plugs, this code assumes each plug appears
 // in same order as ListInterface() produces
