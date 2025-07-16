@@ -536,7 +536,7 @@ bool DrawingFrameHwndBase::onTimer()
     {
         pollHdrChangesCount = 100; // 1.5s
 
-        if (currentWhiteLevel != calcWhiteLevel())
+        if (windowWhiteLevel != calcWhiteLevel())
         {
             recreateSwapChainAndClientAsync();
         }
