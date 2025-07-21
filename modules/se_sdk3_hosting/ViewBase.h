@@ -44,9 +44,12 @@ bool isIteratingChildren = false;
 
 		GmpiDrawing::Rect drawingBounds;
 		IViewChild* mouseCaptureObject = {};
-		IViewChild* elementBeingDragged = {};
 		IViewChild* mouseOverObject = {};
 		IViewChild* modulePicker = {};
+
+		bool isDraggingModules = false;
+		GmpiDrawing::Size DraggingModulesOffset = {};
+		GmpiDrawing::Point DraggingModulesInitialTopLeft = {};
 
 #ifdef _WIN32
 		DrawingFrameBase2* frameWindow = {};

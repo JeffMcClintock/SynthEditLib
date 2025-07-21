@@ -16,6 +16,7 @@ namespace SE2
 		static const int DragAreaheight = 4;
 		ViewBase* parent;
 		ModuleView* module;
+		int32_t moduleHandle;
 		GmpiDrawing::Point pointPrev;
 		int dragNodeX;
 		int dragNodeY;
@@ -82,7 +83,8 @@ namespace SE2
 		ResizeAdorner(ViewBase* pParent, ModuleView* pModule) :
 			parent(pParent)
 			, module(pModule)
-			,color(GmpiDrawing::Color::DodgerBlue)
+			, moduleHandle(pModule->getModuleHandle()) // must be cached in case of module being deleted first, then trying to access the handle in ViewBase::RemoveModule
+			, color(GmpiDrawing::Color::DodgerBlue)
 			, hasGripper(true)
 		{
 			if (pModule->ignoreMouse)
@@ -404,7 +406,7 @@ namespace SE2
 
 		int32_t getModuleHandle() override
 		{
-			return module->getModuleHandle();
+			return moduleHandle;
 		}
 		bool getSelected() override
 		{
