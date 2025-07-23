@@ -170,7 +170,7 @@ bool PatchStorageFixedSize::SetValue(const void* data, size_t size, int patch)
 	// when upgrading pre 1.1 files, all patches are loaded, even if 'Ignore PC' is set.
 	// This gives user chance to recitfy bug where IPC don't work for CControl-based classes.
 	// When DSP patch mem is created however, only one patch is allocated. Need to check GUI
-	// ain't updating a patch we don't have.  Happens when loading fxb banks etc.
+	// ain't updating a patch we don't have.  Happens when loading banks etc.
 	if( patch >= 0 && patch < getPatchCount())
 	{
 		char* dest = patchMemory_ + patch * size_;
@@ -188,7 +188,7 @@ bool PatchStorageFixedSize::SetValue(my_input_stream& p_stream, int patch )
 	// when upgrading pre 1.1 files, all patches are loaded, even if 'Ignore PC' is set.
 	// This gives user chance to recitfy bug where IPC don't work for CControl-based classes.
 	// When DSP patch mem is created however, only one patch is allocated. Need to check GUI
-	// ain't updating a patch we don't have.  Happens when loading fxb banks etc.
+	// ain't updating a patch we don't have.  Happens when loading banks etc.
 	if (patch < 0 || patch >= getPatchCount())
 		return false;
 
