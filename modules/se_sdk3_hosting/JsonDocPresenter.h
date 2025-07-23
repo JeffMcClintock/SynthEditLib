@@ -312,7 +312,7 @@ public:
 	void ObjectClicked(int handle, int heldKeys) override
 	{
 		// click on view itself, or decorative object (like background bitmap).
-		if (0 == (heldKeys & ((int)gmpi::modifier_keys::Flags::CtrlKey | (int)gmpi::modifier_keys::Flags::ShiftKey)) )
+		if (0 == (heldKeys & (gmpi_gui_api::GG_POINTER_KEY_SHIFT | gmpi_gui_api::GG_POINTER_KEY_CONTROL)))
 		{
 			for (auto& it : guiObjectMap_)
 			{
@@ -323,7 +323,7 @@ public:
 		auto clickedObject = HandleToObject(handle);
 		if (clickedObject && clickedObject->isRackModule())
 		{
-			if (0 != (heldKeys & (int)gmpi::modifier_keys::Flags::CtrlKey))
+			if (0 != (heldKeys & (gmpi_gui_api::GG_POINTER_KEY_CONTROL)))
 			{
 				clickedObject->setSelected(!clickedObject->getSelected());
 			}

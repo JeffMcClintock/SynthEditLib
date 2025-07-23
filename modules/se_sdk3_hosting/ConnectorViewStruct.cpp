@@ -679,7 +679,7 @@ namespace SE2
 			const bool wasSelected = getSelected();
 
 			// Change selection, depending on shift etc
-			Presenter()->ObjectClicked(handle, gmpi::modifier_keys::getHeldKeys());
+			Presenter()->ObjectClicked(handle, flags);// gmpi::modifier_keys::getHeldKeys());
 
 			if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
 			{

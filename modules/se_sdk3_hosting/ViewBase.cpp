@@ -571,7 +571,7 @@ namespace SE2
 			// Nothing hit, clear selection (left click only).
 			if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
 			{
-				Presenter()->ObjectClicked(-1, gmpi::modifier_keys::getHeldKeys());
+				Presenter()->ObjectClicked(-1, flags); //gmpi::modifier_keys::getHeldKeys());
 			}
 
 			if(Presenter()->editEnabled())

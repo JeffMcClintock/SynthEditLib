@@ -11,7 +11,7 @@
 
 #include "xplatform_modifier_keys.h"
 
-namespace gmpi
+namespace gmpi_deprecated
 {
 namespace modifier_keys
 {
