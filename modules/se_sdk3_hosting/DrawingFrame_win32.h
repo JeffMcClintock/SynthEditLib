@@ -107,22 +107,6 @@ namespace GmpiGuiHosting
 			m_swapChain = nullptr;
 		}
 
-		void ResizeSwapChainBitmap()
-		{
-			mpRenderTarget->SetTarget(nullptr);
-			if (S_OK == m_swapChain->ResizeBuffers(0,
-				0, 0,
-				DXGI_FORMAT_UNKNOWN,
-				0))
-			{
-				CreateDeviceSwapChainBitmap();
-			}
-			else
-			{
-				ReleaseDevice();
-			}
-		}
-
 		void CreateDevice();
 		void CreateDeviceSwapChainBitmap();
 

@@ -97,6 +97,7 @@ struct DrawingFrameBase2 :
     void detachClient();
     void detachAndRecreate();
     void calcViewTransform();
+    void sizeClientDips(float width, float height) override;
 
     virtual void OnPaint() = 0; // Derived should call Paint with the dirty area
     void Paint(const std::span<const gmpi::drawing::RectL> dirtyRects);
@@ -246,7 +247,6 @@ protected:
     void HideToolTip();
     void ShowToolTip();
     void TooltipOnMouseActivity();
-    void OnSize(UINT width, UINT height);
 
 public:
     void open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZE_L* overrideSize = {});
