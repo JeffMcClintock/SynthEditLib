@@ -33,7 +33,7 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
 
     if(swapChain)
     {
-        const auto scale = getRasterizationScale();
+        const auto scale = 1.0 / getRasterizationScale();
 
         sizeClientDips(
             static_cast<float>(swapChainSize.width) * scale,
@@ -455,7 +455,7 @@ void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZ
 
         if (gmpi_gui_client)
         {
-            const auto scale = getRasterizationScale();
+            const auto scale = 1.0 / getRasterizationScale();
 
             sizeClientDips(
                 static_cast<float>((r.right - r.left) * scale),
