@@ -1101,11 +1101,6 @@ std::wstring ug_base::DebugModuleName( bool andHandle )
 		}
 
 #if defined( _DEBUG )
-
-//#if defined( SE_EDIT _SUPPORT )
-//		AFX_MANAGE_STATE(AfxGetStaticModuleState());
-//#endif
-
 		if (!debug_name.empty() && debug_name != res)
 		{
 			res = res + L" \"" + debug_name + L"\"";
