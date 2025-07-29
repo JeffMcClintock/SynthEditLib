@@ -710,7 +710,6 @@ void ProcessorStateMgrVst3::setPresetRespectingIpc(DawPreset* preset)
 	}
 
 	assert(preset->hash);
-
 	// set the preset without messing with the IPC flag set by caller. (i.e. avoiding ProcessorStateMgr::setPreset())
 	retainPreset(preset);
 	callback(preset);

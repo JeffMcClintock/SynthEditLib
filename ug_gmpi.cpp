@@ -114,9 +114,11 @@ gmpi::ReturnCode ug_gmpi::findResourceUri(const char* fileName, gmpi::api::IStri
 
 	return returnFullUri->setData(full_filenameU.data(), (int32_t)full_filenameU.size());
 }
+
 gmpi::ReturnCode ug_gmpi::openUri(const char* fullUri, gmpi::api::IUnknown** returnStream)
 {
 	*returnStream = reinterpret_cast<gmpi::api::IUnknown*>(static_cast<gmpi::IMpUnknown*>(ProtectedFile2::FromUri(fullUri)));
+
 	return *returnStream ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Fail;
 }
 

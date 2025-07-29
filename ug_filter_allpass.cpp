@@ -95,13 +95,13 @@ int ug_filter_allpass::Open()
 	// fix the race condition when another module starts to initialise the lookup table and we skip initialisation here and risk reading uninitialised data.
 	static std::mutex safeInit;
 	std::lock_guard<std::mutex> lock(safeInit);
+
 	CreateSharedLookup2( L"ug_filter_allpass A", lookup_tableA, -1, TABLE_SIZE + 2, true, SLS_ALL_MODULES );
 	CreateSharedLookup2( L"ug_filter_allpass B", lookup_tableB, -1, TABLE_SIZE + 2, true, SLS_ALL_MODULES );
 
 	// Fill lookup tables if not done already
 	if( !lookup_tableA->GetInitialised() )
 	{
-
 		for( int j = 0 ; j < lookup_tableA->GetSize() ; j++ )
 		{
 			float temp = expf( - PI2 * j / (float)TABLE_SIZE );

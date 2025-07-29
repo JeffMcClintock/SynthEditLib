@@ -414,7 +414,6 @@ namespace SE2
 
 		// SubView
 		gmpi_sdk::mp_shared_ptr<ISubView> subView;
-
 		GmpiDrawing::Rect pluginGraphicsPos;
 
 		// GUI connections.

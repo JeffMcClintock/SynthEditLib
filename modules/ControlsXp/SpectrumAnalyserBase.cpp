@@ -91,7 +91,6 @@ void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height)
 		}
 	}
 
-
 	constexpr float displayDbTop = 6.0f;
 	constexpr float displayDbBot = -120.0f;
 	constexpr float clipDbAtBottom = displayDbBot - 5.0f; // -5 to have flat graph just off the bottom

@@ -36,6 +36,10 @@ namespace GmpiGuiHosting
 		se::directx::GraphicsContext_SDK3* context{};
 		gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> frameUpdateClient;
 
+		// https://learn.microsoft.com/en-us/windows/win32/direct3darticles/high-dynamic-range
+		inline static const DXGI_FORMAT bestFormat = DXGI_FORMAT_R16G16B16A16_FLOAT; // Proper gamma-correct blending.
+		inline static const DXGI_FORMAT fallbackFormat = DXGI_FORMAT_B8G8R8A8_UNORM; // shitty linear blending.
+
 	protected:
 		GmpiDrawing::SizeL swapChainSize = {};
 

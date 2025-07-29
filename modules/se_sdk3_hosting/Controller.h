@@ -111,12 +111,12 @@ public:
 	bool isPresetModified();
 };
 
-
 class MpController : public IGuiHost2, public interThreadQueUser, public se_sdk::TimerClient
 {
 	friend class UndoManager;
 	friend class SubPresetManager;
 	static const int UI_MESSAGE_QUE_SIZE2 = 0x500000; // 5MB. see also AUDIO_MESSAGE_QUE_SIZE
+
 public:
 	// presets from factory.xmlpreset resource.
 	struct presetInfo

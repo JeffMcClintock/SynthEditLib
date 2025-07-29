@@ -473,7 +473,7 @@ namespace SE2
 
 	void ModuleViewStruct::RenderCpu(Graphics& g)
 	{
-		auto child_rect = GetCpuRect();
+	const auto child_rect = GetCpuRect();
 		g.PushAxisAlignedClip(child_rect);
 
 		const auto rectBottom = child_rect.bottom;
@@ -564,7 +564,7 @@ namespace SE2
 
 		// PEAK.
 		{
-			float x = 0.f;
+		float x = child_rect.left;
 			const float* graph = cpuInfo->peaks;
 			for (int k = 0; k < graphSize; ++k)
 			{
@@ -596,7 +596,7 @@ namespace SE2
 			plot.clear();
 			plotSimplified.clear();
 
-			float x = 0.f;
+		float x = child_rect.left;
 			const float* graph = cpuInfo->values;
 			for (int k = 0; k < graphSize; ++k)
 			{

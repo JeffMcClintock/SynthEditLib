@@ -75,9 +75,9 @@ uint64_t ug_vst_out::getSilenceFlags(int output, int count)
 			{
 				ret &= flag; // set one bit
 			}
-
 			pinChanged[index] = false; // reset for next buffer
 		}
+
 		flag = flag << 1;
 	}
 

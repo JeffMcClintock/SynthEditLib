@@ -1067,7 +1067,6 @@ bool CModuleFactory::debugInitCheck(const char* modulename)
 }
 #endif
 
-
 // When running in a static library, this mechanism forces the linker to inlude all self-registering modules.
 // without this the linker will decide that they can be discarded, since they are not explicity referenced elsewhere.
 // This can also be run harmlessly in builds where it is not needed.

@@ -924,10 +924,6 @@ void DrawingFrameBase::CreateDevice()
 			assuming the underlying Device does as well.
 	*/
 
-	// https://learn.microsoft.com/en-us/windows/win32/direct3darticles/high-dynamic-range
-	const DXGI_FORMAT bestFormat = DXGI_FORMAT_R16G16B16A16_FLOAT; // Proper gamma-correct blending.
-	const DXGI_FORMAT fallbackFormat = DXGI_FORMAT_B8G8R8A8_UNORM; // shitty linear blending.
-
 	{
 		UINT driverSrgbSupport = 0;
 		auto hr = D3D11Device->CheckFormatSupport(bestFormat, &driverSrgbSupport);
@@ -1132,33 +1128,9 @@ void DrawingFrame::ReSize(int left, int top, int right, int bottom)
 			, SWP_NOZORDER
 		);
 
-		// Note: This method can fail, but it's okay to ignore the
-		// error here, because the error will be returned again
-		// the next time EndDraw is called.
-/*
-		UINT Width = 0; // Auto size
-		UINT Height = 0;
-
-		if (lowDpiMode)
-		{
-			RECT r;
-			GetClientRect(&r);
-
-			Width = (r.right - r.left) / 2;
-			Height = (r.bottom - r.top) / 2;
+		DrawingFrameBase::OnSize(width, height);
 		}
-*/
-		mpRenderTarget->SetTarget(nullptr);
-		if (S_OK == m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0))
-		{
-			CreateDeviceSwapChainBitmap();
 		}
-		else
-		{
-			ReleaseDevice();
-		}
-	}
-}
 
 // Convert to an integer rect, ensuring it surrounds all partial pixels.
 inline GmpiDrawing::RectL RectToIntegerLarger(GmpiDrawing_API::MP1_RECT f)

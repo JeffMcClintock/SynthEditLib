@@ -1609,6 +1609,7 @@ void DspPatchManager::getPresetState( std::string& chunk, bool saveRestartState)
 
 				// old way. monophonic only. Retained for compatibility.
 				paramElement->SetAttribute("val", parameter->GetValueAsXml());
+
 				// MIDI learn.
 				if(parameter->UnifiedControllerId() != -1)
 				{
