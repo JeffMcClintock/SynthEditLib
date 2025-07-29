@@ -1057,9 +1057,6 @@ void MpController::OnSetHostControl(int hostControl, int32_t paramField, int32_t
 				if (getNativePresetExtension() == L"vstpreset")
 				{
 					nativeFileDialog.AddExtension("vstpreset", "VST3 Preset");
-					//#ifdef _WIN32
-					//					nativeFileDialog.AddExtension("fxp", "VST2 Preset");
-					//#endif
 				}
 				else
 				{

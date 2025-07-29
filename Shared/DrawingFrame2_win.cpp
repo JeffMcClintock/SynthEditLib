@@ -33,11 +33,12 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
 
     if(swapChain)
     {
-        const auto availablePt = gmpi::drawing::transformPoint( WindowToDips, { static_cast<float>(swapChainSize.width) , static_cast<float>(swapChainSize.height) });
-		GmpiDrawing_API::MP1_SIZE availableDips{ availablePt.x, availablePt.y };
-        GmpiDrawing_API::MP1_SIZE desired{};
-        gmpi_gui_client->measure(availableDips, &desired);
-        gmpi_gui_client->arrange({ 0, 0, availableDips.width, availableDips.height });
+        const auto scale = 1.0 / getRasterizationScale();
+
+        sizeClientDips(
+            static_cast<float>(swapChainSize.width) * scale,
+            static_cast<float>(swapChainSize.height) * scale
+        );
     }
 }
 
@@ -454,17 +455,12 @@ void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZ
 
         if (gmpi_gui_client)
         {
-            const auto scale = getRasterizationScale();
+            const auto scale = 1.0 / getRasterizationScale();
 
-            const gmpi::drawing::Size available{
+            sizeClientDips(
                 static_cast<float>((r.right - r.left) * scale),
                 static_cast<float>((r.bottom - r.top) * scale)
-            };
-
-            gmpi::drawing::Size desired{};
-            gmpi_gui_client->measure(*(GmpiDrawing_API::MP1_SIZE*)&available, (GmpiDrawing_API::MP1_SIZE*)&desired);
-            const gmpi::drawing::Rect finalRect{ 0, 0, available.width, available.height };
-            gmpi_gui_client->arrange(*(GmpiDrawing_API::MP1_RECT*) &finalRect);
+            );
         }
 
         // starting Timer last to avoid first event getting 'in-between' other init events.
@@ -491,31 +487,7 @@ void DrawingFrameHwndBase::ReSize(int left, int top, int right, int bottom)
             , SWP_NOZORDER
         );
 
-        // Note: This method can fail, but it's okay to ignore the
-        // error here, because the error will be returned again
-        // the next time EndDraw is called.
-/*
-        UINT Width = 0; // Auto size
-        UINT Height = 0;
-
-        if (lowDpiMode)
-        {
-            RECT r;
-            GetClientRect(&r);
-
-            Width = (r.right - r.left) / 2;
-            Height = (r.bottom - r.top) / 2;
-        }
-*/
-        d2dDeviceContext->SetTarget(nullptr);
-        if (S_OK == swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0))
-        {
-            CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
-        }
-        else
-        {
-            ReleaseDevice();
-        }
+		OnSize(width, height);
     }
 }
 
@@ -732,36 +704,13 @@ auto reverseTransform = gmpi::drawing::invert(viewTransform);
     reentrant = false;
 }
 
-void DrawingFrameHwndBase::OnSize(UINT width, UINT height)
+void DrawingFrameBase2::sizeClientDips(float width, float height)
 {
-    assert(swapChain);
-    assert(d2dDeviceContext);
+    GmpiDrawing_API::MP1_SIZE available{ width, height };
+    GmpiDrawing_API::MP1_SIZE desired{};
 
-    d2dDeviceContext->SetTarget(nullptr);
-
-    if (S_OK == swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0))
-    {
-        CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
-    }
-    else
-    {
-        ReleaseDevice();
-    }
-
-    int dpiX, dpiY;
-    {
-        HDC hdc = ::GetDC(getWindowHandle());
-        dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
-        dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
-        ::ReleaseDC(getWindowHandle(), hdc);
-    }
-
-    const GmpiDrawing_API::MP1_SIZE available{
-        static_cast<float>(((width) * 96) / dpiX),
-        static_cast<float>(((height) * 96) / dpiY)
-    };
-
-    gmpi_gui_client->arrange({ 0, 0, available.width, available.height });
+    gmpi_gui_client->measure(available, &desired);
+    gmpi_gui_client->arrange({ 0, 0, width, height });
 }
 
 void DrawingFrameHwndBase::invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect)

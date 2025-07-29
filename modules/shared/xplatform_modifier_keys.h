@@ -5,7 +5,7 @@
 
 // DEPRECATED!!!!, see GG_POINTER_KEY_CONTROL
 
-namespace gmpi
+namespace gmpi_deprecated
 {
 	namespace modifier_keys
 	{

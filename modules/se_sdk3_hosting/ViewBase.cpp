@@ -553,7 +553,11 @@ namespace SE2
 				_RPT0(0, "Dragging Object\n");
 #endif
 				pointPrev = point;
-				elementBeingDragged = hitObject;
+
+				isDraggingModules = true;
+				DraggingModulesOffset = {};
+				DraggingModulesInitialTopLeft = { hitObject->getLayoutRect().left, hitObject->getLayoutRect().top };
+
 				getGuiHost()->setCapture();
 				autoScrollStart();
 			}
@@ -567,7 +571,7 @@ namespace SE2
 			// Nothing hit, clear selection (left click only).
 			if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
 			{
-				Presenter()->ObjectClicked(-1, gmpi::modifier_keys::getHeldKeys());
+				Presenter()->ObjectClicked(-1, flags); //gmpi::modifier_keys::getHeldKeys());
 			}
 
 			if(Presenter()->editEnabled())
@@ -647,24 +651,28 @@ namespace SE2
 		}
 		else
 		{
-			if (elementBeingDragged) // could this be handled with custom mouseCaptureObject? to remove need for check here?
+			if (isDraggingModules) // could this be handled with custom mouseCaptureObject? to remove need for check here?
 			{
 				// Snap-to-grid logic.
-				const auto snapGridSize = Presenter()->GetSnapSize();
 				GmpiDrawing::Size delta(point.x - pointPrev.x, point.y - pointPrev.y);
 				if (delta.width != 0.0f || delta.height != 0.0f) // avoid false snap on selection
 				{
-					GmpiDrawing::Point snapReference(elementBeingDragged->getLayoutRect().left, elementBeingDragged->getLayoutRect().top);
+					const auto snapGridSize = Presenter()->GetSnapSize();
 
-					GmpiDrawing::Point newPoint = snapReference + delta;
+					GmpiDrawing::Point dragModuleTopLeft = DraggingModulesInitialTopLeft + DraggingModulesOffset;
+					GmpiDrawing::Point newPoint = dragModuleTopLeft + delta;
+
 					newPoint.x = floorf((snapGridSize / 2 + newPoint.x) / snapGridSize) * snapGridSize;
 					newPoint.y = floorf((snapGridSize / 2 + newPoint.y) / snapGridSize) * snapGridSize;
-					GmpiDrawing::Size snapDelta = newPoint - snapReference;
+					GmpiDrawing::Size snapDelta = newPoint - dragModuleTopLeft;
 
 					pointPrev += snapDelta;
 
 					if (snapDelta.width != 0.0 || snapDelta.height != 0.0)
+					{
 						Presenter()->DragSelection(snapDelta);
+						DraggingModulesOffset += snapDelta;
+					}
 				}
 				return gmpi::MP_OK;
 			}
@@ -733,7 +741,7 @@ namespace SE2
 
 	int32_t ViewBase::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point)
 	{
-		if (elementBeingDragged)
+		if (isDraggingModules)
 			return gmpi::MP_UNHANDLED;
 
 		calcMouseOverObject(flags);
@@ -1011,17 +1019,20 @@ namespace SE2
 
 	void ViewBase::RemoveModule(int32_t handle)
 	{
-		// module is being deleted from document, can't wait for timer to invalidate view because will leave any pointers to the document/controllers invalid.
-		// mostly a problem with VST wrappers and SynthEdit GMPI.
-		for (auto it = children.begin(); it != children.end(); ++it)
+		if (mouseOverObject && mouseOverObject->getModuleHandle() == handle)
 		{
-			if ((*it)->getModuleHandle() == handle)
-			{
-//				children.erase(it);
-				RemoveChild((*it).get());
-				break;
-			}
+			mouseOverObject = nullptr;
 		}
+
+		assert(!isIteratingChildren);
+
+		std::erase_if( children,
+			[handle](const std::unique_ptr<IViewChild>& child) -> bool
+			{
+				return child->getModuleHandle() == handle;
+			}
+		);
+
 	}
 
 	void ViewBase::OnChangedChildHighlight(int phandle, int flags)
@@ -1207,13 +1218,13 @@ namespace SE2
 	// usefull for live reload of SEMs
 	void ViewBase::Unload()
 	{
-		if(mouseCaptureObject || elementBeingDragged)
+		if(mouseCaptureObject || isDraggingModules)
 			releaseCapture();
 
 		// Clear out previous view.
 		assert(!isIteratingChildren);
 		children.clear();
-		elementBeingDragged = nullptr;
+		isDraggingModules = false;
 		patchAutomatorWrapper_ = nullptr;
 	}
 
@@ -1239,7 +1250,7 @@ namespace SE2
 		assert(!isIteratingChildren);
 
 		mouseOverObject = nullptr;
-		elementBeingDragged = nullptr;
+		isDraggingModules = false;
 		patchAutomatorWrapper_ = nullptr;
 
 		children.clear();
@@ -1332,10 +1343,10 @@ namespace SE2
 		}
 #endif
 
-		if (elementBeingDragged)
+		if (isDraggingModules)
 		{
+			isDraggingModules = false;
 			releaseCapture();
-			elementBeingDragged = nullptr;
 			autoScrollStop();
 		}
 

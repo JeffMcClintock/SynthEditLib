@@ -876,7 +876,7 @@ namespace SE2
 		// pluginGraphics2 supports hit-testing, else need to call onPointerDown() to determin hit on client.
 		if (pluginGraphics_GMPI || pluginGraphics2 || parent->getViewType() == CF_STRUCTURE_VIEW) // Since Structure view is "behind" client, it always gets selected.
 		{
-			Presenter()->ObjectClicked(handle, gmpi::modifier_keys::getHeldKeys());
+			Presenter()->ObjectClicked(handle, flags); // gmpi::modifier_keys::getHeldKeys());
 		}
 
 		GmpiDrawing::Point moduleLocal(point);
@@ -953,7 +953,7 @@ namespace SE2
 
 				if (clientHit && parent->getViewType() == CF_PANEL_VIEW)
 				{
-					Presenter()->ObjectClicked(handle, gmpi::modifier_keys::getHeldKeys());
+					Presenter()->ObjectClicked(handle, flags); //gmpi::modifier_keys::getHeldKeys());
 				}
 			}
 

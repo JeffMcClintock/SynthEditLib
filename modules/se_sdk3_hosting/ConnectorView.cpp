@@ -294,7 +294,7 @@ namespace SE2
 			return gmpi::MP_UNHANDLED;
 
 		// Select Object.
-		Presenter()->ObjectClicked(handle, gmpi::modifier_keys::getHeldKeys());
+		Presenter()->ObjectClicked(handle, flags); //gmpi::modifier_keys::getHeldKeys());
 
 		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
 		{

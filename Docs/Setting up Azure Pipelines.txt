@@ -1,0 +1,72 @@
+In Azure Pipelines
+
+"New Pipeline"
+Where is your code? "Azure Repos Git"
+Select Repository e.g. "Plugins"
+Existing Azure Pipelines YAML file
+Select an existing YAML file: "/SpacePro/pipelines/P_00.yml" [Continue] [Save]
+... Rename.move pipeline: "SpacePro 00 Start Build"
+
+repeat for all 7 .yml files. pipeline names are
+
+00 "SpacePro 00 Start Build"
+01 "SpacePro 01 Export JUCE"
+02 "SpacePro 02 Build Win"
+03 "SpacePro 03 Build macOS"
+04 "SpacePro 04 Installer Win"
+05 "SpacePro 05 Installer macOS"
+
+Modify scripts
+In 'Installer macOS', in section 'DownloadBuildArtifacts@1' change the pipeline argument to match the 'Build macOS' pipeline number.
+You can see the pipeline number in the URL (e.g. definitionId=41) when you click on the source pipeline in Azure.
+same for Installer Win, should get it's artifacts from 'Build Win'.
+'Build Win' and 'Build macOS' get artifacts from 'Export JUCE'
+
+
+This first time you run these pipelines you may have to "Permit" the pipeline before it will start.
+
+
+D:/a/1/s/***/Resources
+
+  does not contain a CMakeLists.txt file.
+
+
+Azure Tenant ID: xxx
+Azure Client ID: xxx
+Azure Client Secret: xxx
+Endpoint: https://eus.codesigning.azure.net/
+Certificate Profile Name: SynthEditCertificateProfile
+File Digest: SHA256
+Timestamp RFC3161: http://timestamp.acs.microsoft.com
+Timestamp Digest: SHA256
+
+https://learn.microsoft.com/en-us/azure/trusted-signing/how-to-signing-integrations#set-up-signtool-with-trusted-signing
+
+install "Trusted Signing Client Tools" MSI
+
+(installs to C:\Users\jef\AppData\Local\Microsoft\MicrosoftTrustedSigningClientTools\)
+
+Create a JSON file called trustedSigningMetadata.json or whatever
+
+
+{
+  "Endpoint": "https://eus.codesigning.azure.net/",
+  "CodeSigningAccountName": "SynthEditTrustedSigning",
+  "CertificateProfileName": "SynthEditCertificateProfile",
+  "CorrelationId": "NotUsed"
+}
+
+in Console:
+
+set AZURE_CLIENT_ID=xxx
+set AZURE_CLIENT_SECRET=xxx
+set AZURE_TENANT_ID=xxx
+
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign /v /debug /fd SHA256 /tr "http://timestamp.acs.microsoft.com" /td SHA256 /dlib "C:\Users\jef\AppData\Local\Microsoft\MicrosoftTrustedSigningClientTools\Azure.CodeSigning.Dlib.dll" /dmdf "C:\SE\trustedSigningMetadata.json" "C:\SE\SSG\build\Optimus\Optimus_artefacts\Release\AAX\Optimus.aaxplugin\Contents\x64\Optimus.aaxplugin"
+
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign /v /debug /fd SHA256 /tr "http://timestamp.acs.microsoft.com" /td SHA256 /dlib "C:\Users\jef\AppData\Local\Microsoft\MicrosoftTrustedSigningClientTools\Azure.CodeSigning.Dlib.dll" /dmdf "C:\SE\trustedSigningMetadata.json" C:\Users\jef\AppData\Local\Temp\724ee454-3765-4ad9-80a2-c21ed0017608\Optimus_signed.aaxplugin
+
+
+--extrasigningoptions
+
+"C:\Program Files (x86)\PACEAntiPiracy\Eden\Fusion\Versions\5\wraptool.exe" sign -V --signid 9a36905e4e2e051b3679bce4f2dadc8b61281558 --wcguid D140F8D0-2E8C-11EF-8D83-005056920FF7 --account jef@synthedit.com --password Greedycat897 --in "C:\SE\SSG\build\Optimus\Optimus_artefacts\Release\AAX\Optimus.aaxplugin\Contents\x64\Optimus.aaxplugin" --out C:\SE\SSG\build\Optimus\Optimus_artefacts\Release\AAX\Optimus.aaxplugin\Contents\x64\Optimus.aaxplugin" --autoinstall on --extrasigningoptions /fd\ SHA256\ /tr\ "http://timestamp.acs.microsoft.com"\ /td\ SHA256\ /dlib\ "C:\Users\jef\AppData\Local\Microsoft\MicrosoftTrustedSigningClientTools\Azure.CodeSigning.Dlib.dll"\ /dmdf\ "C:\SE\trustedSigningMetadata.json"
