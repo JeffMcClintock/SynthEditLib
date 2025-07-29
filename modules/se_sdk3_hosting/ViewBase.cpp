@@ -572,12 +572,10 @@ namespace SE2
 			if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
 			{
 				Presenter()->ObjectClicked(-1, flags); //gmpi::modifier_keys::getHeldKeys());
-			}
 
-			if(Presenter()->editEnabled())
-			{
-				if((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0) // Drag selection box.
+				if(Presenter()->editEnabled())
 				{
+					assert((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0); // Drag selection box.
 					assert(!isIteratingChildren);
 					children.push_back(std::unique_ptr<IViewChild>(new SelectionDragBox(this, point)));
 					autoScrollStart();

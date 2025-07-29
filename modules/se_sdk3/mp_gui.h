@@ -107,6 +107,7 @@ namespace GmpiGui
 	{
 		GmpiGui::PopupMenu contextMenu;
 		bool pendingSeperator = false;
+		bool is_empty = true;
 
 	public:
 		ContextItemsSinkAdaptor(GmpiGui::PopupMenu pcontextMenu) : contextMenu(pcontextMenu)
@@ -118,7 +119,7 @@ namespace GmpiGui
 			// suppress redundant or repeated separators.
 			if (0 != (flags & gmpi_gui::MP_PLATFORM_MENU_SEPARATOR))
 			{
-				pendingSeperator = true;
+				pendingSeperator = !is_empty;
 			}
 			else
 			{
@@ -134,6 +135,7 @@ namespace GmpiGui
 				}
 
 				contextMenu.AddItem(text, id, flags);
+				is_empty = false;
 			}
 
 			return gmpi::MP_OK;

@@ -252,18 +252,18 @@ LRESULT DrawingFrameHwndBase::WindowProc(
     case WM_RBUTTONDOWN:
     case WM_RBUTTONUP:
     {
-        gmpi::drawing::Point p{ static_cast<float>(GET_X_LPARAM(lParam)), static_cast<float>(GET_Y_LPARAM(lParam)) };
-        p *= WindowToDips;
+        gmpi::drawing::Point point{ static_cast<float>(GET_X_LPARAM(lParam)), static_cast<float>(GET_Y_LPARAM(lParam)) };
+        point *= WindowToDips;
 
         // Cubase sends spurious mouse move messages when transport running.
         // This prevents tooltips working.
         if (message == WM_MOUSEMOVE)
         {
-            if (cubaseBugPreviousMouseMove == p)
+            if (cubaseBugPreviousMouseMove == point)
             {
                 return TRUE;
             }
-            cubaseBugPreviousMouseMove = p;
+            cubaseBugPreviousMouseMove = point;
         }
         else
         {
@@ -317,7 +317,7 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         {
         case WM_MOUSEMOVE:
         {
-            r = gmpi_gui_client->onPointerMove(flags, {p.x, p.y});
+            r = gmpi_gui_client->onPointerMove(flags, {point.x, point.y});
 
             // get notified when mouse leaves window
             if (!isTrackingMouse)
@@ -339,14 +339,43 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_MBUTTONDOWN:
-            r = gmpi_gui_client->onPointerDown(flags, { p.x, p.y });
-            ::SetFocus(hwnd);
+            {
+                r = gmpi_gui_client->onPointerDown(flags, { point.x, point.y });
+                ::SetFocus(hwnd);
+
+                // Handle right-click context menu.
+                if (r == gmpi::MP_UNHANDLED && (flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && pluginParameters2B)
+                {
+                    contextMenu.setNull();
+
+                    GmpiDrawing::Rect rect(point.x, point.y, point.x + 120, point.y + 20);
+                    createPlatformMenu(&rect, contextMenu.GetAddressOf());
+
+                    GmpiGui::ContextItemsSinkAdaptor sink(contextMenu);
+
+                    r = pluginParameters2B->populateContextMenu(point.x, point.y, &sink);
+
+                    contextMenu.ShowAsync(
+                        [this](int32_t res) -> int32_t
+                        {
+                            if (res == gmpi::MP_OK)
+                            {
+                                const auto commandId = contextMenu.GetSelectedId();
+                                res = pluginParameters2B->onContextMenu(commandId);
+                            }
+                            contextMenu = {};
+                            return res;
+                        }
+                    );
+                }
+
+            }
             break;
 
         case WM_MBUTTONUP:
         case WM_RBUTTONUP:
         case WM_LBUTTONUP:
-            r = gmpi_gui_client->onPointerUp(flags, { p.x, p.y });
+            r = gmpi_gui_client->onPointerUp(flags, { point.x, point.y });
             break;
         }
     }
