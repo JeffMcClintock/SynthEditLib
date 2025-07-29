@@ -1,6 +1,4 @@
-#import <Foundation/Foundation.h>
-
-#import "SynthEditCocoaView.h"
+#import <Cocoa/Cocoa.h>
 #include "CocoaNamespaceMacros.h"
 
 #include "./CocoaGuiHost.h"
@@ -10,10 +8,6 @@
 #include "backends/CocoaGfx.h"
 #include "backends/DrawingFrameMac.h"
 #include "legacy_sdk_gui2.h"
-
-#if defined(SE_TARGET_AU)
-#include "../../../se_au/SEInstrumentBase.h"
-#endif
 
 // In VST3 wrapper this object is a child window of SynthEditPluginCocoaView,
 // It serves to provide a C++ to Objective-C adaptor to the gmpi Drawing framework.
@@ -476,47 +470,6 @@ GmpiDrawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
 - (void)onTimer: (NSTimer*) t;
 
 @end
-
-//--------------------------------------------------------------------------------------------------------------
-// SMTG_AU_PLUGIN_NAMESPACE (SMTGAUPluginCocoaView)
-//--------------------------------------------------------------------------------------------------------------
-
-#if defined(SE_TARGET_AU)
-
-//--------------------------------------------------------------------------------------------------------------
-@implementation SYNTHEDIT_PLUGIN_COCOA_VIEW_CLASSNAME
-
-
-//--------------------------------------------------------------------------------------------------------------
-- (unsigned) interfaceVersion
-{
-    return 0;
-}
-
-//--------------------------------------------------------------------------------------------------------------
-- (NSString *) description
-{
-    return @"Cocoa View";
-}
-
-//--------------------------------------------------------------------------------------------------------------
-
-- (NSView *)uiViewForAudioUnit:(AudioUnit)inAU withSize:(NSSize)inPreferredSize
-{
-    class ausdk::AUBase* editController = {};
-    UInt32 size = sizeof (editController);
-    if (AudioUnitGetProperty (inAU, 64000, kAudioUnitScope_Global, 0, &editController, &size) != noErr)
-        return nil;
-    
-    return [[[SYNTHEDIT_PLUGIN_COCOA_NSVIEW_WRAPPER_CLASSNAME alloc] initWithController:dynamic_cast<IGuiHost2*>(editController) preferredSize:inPreferredSize] autorelease];
-
-//    return [[[SeTestView alloc] initWithController:dynamic_cast<IGuiHost2*>(editController) preferredSize:inPreferredSize] autorelease];
-}
-
-@end
-
-#endif
-
 
 //--------------------------------------------------------------------------------------------------------------
 @implementation SYNTHEDIT_PLUGIN_COCOA_NSVIEW_WRAPPER_CLASSNAME

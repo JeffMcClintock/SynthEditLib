@@ -459,7 +459,6 @@ IF(APPLE)
 set(srcs ${srcs}
 modules/se_sdk3_hosting/Cocoa_Gfx.h
 modules/se_sdk3_hosting/EventHelper.h
-modules/se_sdk3_hosting/SynthEditCocoaView.h
 modules/se_sdk3_hosting/SynthEditCocoaView.mm
 modules/se_sdk3_hosting/CocoaGuiHost.h
 modules/se_sdk3_hosting/CocoaGuiHost.mm
