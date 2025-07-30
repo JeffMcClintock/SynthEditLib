@@ -26,7 +26,6 @@ class DrawingFrameCocoa : public
     , gmpi::legacy::IMpUserInterfaceHost2
     , GmpiGuiHosting::PlatformTextEntryObserver
 {
-    IGuiHost2* controller;
     int32_t mouseCaptured = 0;
     GmpiGuiHosting::PlatformTextEntry* currentTextEdit = nullptr;
     GmpiGuiHosting::UpdateRegionMac dirtyRects;
@@ -68,18 +67,9 @@ public:
             pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
     }
 
-    void Init(class IGuiHost2* hostPatchManager)
+    void Init()
     {
-        controller = hostPatchManager;
-        initFactoryHelper(drawingFactory_GMPI.info);
- 
-#if defined(SE_TARGET_AU)
-        dynamic_cast<SEInstrumentBase*>(controller)->callbackOnUnloadPlugin = [this]
-        {
-            containerView = nullptr; // free all objects early to avoid dangling pointers to AudioUnit.
-            controller = nullptr; // ensure we don't reference in in destructor.
-        };
-#endif
+         initFactoryHelper(drawingFactory_GMPI.info);
      }
      
      void DeInit()
@@ -513,7 +503,7 @@ GmpiDrawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
         
         drawingFrame.view = self;
         auto presenter = new JsonDocPresenter(_editController);
-        drawingFrame.Init(_editController);
+        drawingFrame.Init();
         
         constexpr int viewDimensions = 7968; // DIPs (divisible by grids 60x60 + 2 24 pixel borders)
 
@@ -527,6 +517,17 @@ GmpiDrawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
         cv->setDocument(presenter);
         
         presenter->RefreshView();
+        
+        // TODO might need this to mitigate crash on close plugin. also need to unregister when editor is closed.
+#if defined(SE_TARGET_AU)
+        dynamic_cast<SEInstrumentBase*>(_editController)->callbackOnUnloadPlugin = [this]
+        {
+            // containerView = nullptr; // free all objects early to avoid dangling pointers to AudioUnit.
+//            controller = nullptr; // ensure we don't reference in in destructor.
+            
+            drawingFrame.detachClient();
+        };
+#endif
         
         timer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(onTimer:) userInfo:nil repeats:YES ];
     }
