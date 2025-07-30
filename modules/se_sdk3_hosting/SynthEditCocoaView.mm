@@ -24,7 +24,6 @@ class DrawingFrameCocoa : public
     , gmpi::legacy::IMpUserInterfaceHost2
     , GmpiGuiHosting::PlatformTextEntryObserver
 {
-    gmpi_sdk::mp_shared_ptr<SE2::ViewBase> containerView;
     IGuiHost2* controller;
     int32_t mouseCaptured = 0;
     GmpiGuiHosting::PlatformTextEntry* currentTextEdit = nullptr;
@@ -34,21 +33,54 @@ public:
     se::cocoa::DrawingFactory drawingFactory_SDK3;
     gmpi::cocoa::Factory drawingFactory_GMPI;
 
+    gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> frameUpdateClient;
+    gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gmpi_gui_client; // usually a ContainerView at the topmost level
+    gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2B> pluginParameters2B;
+
     NSView* view;
     NSBitmapImageRep* backBuffer{}; // backing buffer with linear colorspace for correct blending.
 
     DrawingFrameCocoa() : drawingFactory_SDK3(drawingFactory_GMPI.info){}
     
+    void detachClient()
+    {
+        gmpi_gui_client = {};
+        frameUpdateClient = {};
+        pluginParameters2B = {};
+    }
+
+    void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx)
+    {
+        detachClient();
+
+        gmpi_gui_client = gfx;
+
+        gfx->queryInterface(IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
+        //    gfx->queryInterface(gmpi_gui_api::IMpKeyClient::guid, gmpi_key_client.asIMpUnknownPtr());
+        [[maybe_unused]] auto r = gfx->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
+
+        gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> pinHost;
+        gmpi_gui_client->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pinHost.asIMpUnknownPtr());
+
+        if (pinHost)
+            pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
+    }
+
     void Init(SE2::IPresenter* presenter, class IGuiHost2* hostPatchManager, int pviewType)
     {
         controller = hostPatchManager;
         initFactoryHelper(drawingFactory_GMPI.info);
         
-        const int topViewBounds = 8000; // simply a large enough size.
-        containerView.Attach(new SE2::ContainerViewPanel({topViewBounds,topViewBounds}));
-        containerView->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
-        
-        containerView->setDocument(presenter);
+        constexpr int viewDimensions = 7968; // DIPs (divisible by grids 60x60 + 2 24 pixel borders)
+
+        auto cv = new SE2::ContainerViewPanel({ viewDimensions, viewDimensions });
+
+        gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx;
+        gfx.Attach(cv); // ensure it gets released.
+
+        attachClient(gfx);
+
+        cv->setDocument(presenter);
         
 #if defined(SE_TARGET_AU)
         dynamic_cast<SEInstrumentBase*>(controller)->callbackOnUnloadPlugin = [this]
