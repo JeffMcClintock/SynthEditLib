@@ -36,7 +36,7 @@ public:
     gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> frameUpdateClient;
     gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gmpi_gui_client; // usually a ContainerView at the topmost level
     gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2B> pluginParameters2B;
-
+    
     NSView* view;
     NSBitmapImageRep* backBuffer{}; // backing buffer with linear colorspace for correct blending.
 
@@ -93,7 +93,7 @@ public:
      
      void DeInit()
      {
-        containerView = {};
+        detachClient();
      }
 
     ~DrawingFrameCocoa()
@@ -107,11 +107,6 @@ public:
 #endif
 // alternative?
 // controller->OnDrawingFrameDeleted(); // nulls it's 'OnUnloadPlugin' callback
-    }
-
-    inline SE2::ViewBase* getView()
-    {
-        return containerView.get();
     }
     
     void OnRender(NSView* frame /*, GmpiDrawing_API::MP1_RECT* dirtyRect*/)
@@ -175,7 +170,7 @@ public:
 		    {
                 context.pushAxisAlignedClip((const gmpi::drawing::Rect*)&r);
         
-                containerView->OnRender(static_cast<GmpiDrawing_API::IMpDeviceContext*>(&context.sdk3Context));
+                gmpi_gui_client->OnRender(static_cast<GmpiDrawing_API::IMpDeviceContext*>(&context.sdk3Context));
 
        		    context.popAxisAlignedClip();
 		    }
@@ -466,7 +461,7 @@ public:
         
         NSSize logicalsize = view.frame.size;
         GmpiDrawing_API::MP1_RECT finalRect{0,0, (float) logicalsize.width, (float) logicalsize.height};
-        containerView->arrange(finalRect);
+        gmpi_gui_client->arrange(finalRect);
     }
     
     GMPI_REFCOUNT_NO_DELETE;
@@ -495,6 +490,8 @@ GmpiDrawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
     int toolTipTimer;
     bool toolTipShown;
     GmpiDrawing::Point mousePos;
+    
+    GmpiGui::PopupMenu contextMenu;
 }
 
 - (id) initWithController: (class IGuiHost2*) _editController preferredSize: (NSSize) size;
@@ -684,7 +681,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     ApplyKeyModifiers(flags, theEvent);
     
-    drawingFrame.getView()->onPointerDown(flags, se_mouseToGmpi(self, theEvent));
+    drawingFrame.gmpi_gui_client->onPointerDown(flags, se_mouseToGmpi(self, theEvent));
     
  // no help to edit box   [super mouseDown:theEvent];
 }
@@ -699,27 +696,30 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     ApplyKeyModifiers(flags, theEvent);
     
-    const auto r = drawingFrame.getView()->onPointerDown(flags, se_mouseToGmpi(self, theEvent));
+    const auto point = se_mouseToGmpi(self, theEvent);
+    const auto r = drawingFrame.gmpi_gui_client->onPointerDown(flags, point);
     
     // Handle right-click context menu.
-    if (r == gmpi::MP_UNHANDLED && (flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && pluginParameters2B)
+    if (r == gmpi::MP_UNHANDLED && (flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && drawingFrame.pluginParameters2B)
     {
         contextMenu.setNull();
 
         GmpiDrawing::Rect rect(point.x, point.y, point.x + 120, point.y + 20);
-        createPlatformMenu(&rect, contextMenu.GetAddressOf());
+        drawingFrame.createPlatformMenu(&rect, contextMenu.GetAddressOf());
 
         GmpiGui::ContextItemsSinkAdaptor sink(contextMenu);
 
-        r = pluginParameters2B->populateContextMenu(point.x, point.y, &sink);
+        drawingFrame.pluginParameters2B->populateContextMenu(point.x, point.y, &sink);
 
+        auto clientPtr = drawingFrame.pluginParameters2B.get();
+        
         contextMenu.ShowAsync(
-            [this](int32_t res) -> int32_t
+            [self, clientPtr](int32_t res) -> int32_t
             {
                 if (res == gmpi::MP_OK)
                 {
                     const auto commandId = contextMenu.GetSelectedId();
-                    res = pluginParameters2B->onContextMenu(commandId);
+                    res = clientPtr->onContextMenu(commandId);
                 }
                 contextMenu = {};
                 return res;
@@ -736,7 +736,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     ApplyKeyModifiers(flags, theEvent);
     
-    drawingFrame.getView()->onPointerUp(flags, se_mouseToGmpi(self, theEvent));
+    drawingFrame.gmpi_gui_client->onPointerUp(flags, se_mouseToGmpi(self, theEvent));
 }
 
 - (void)mouseUp:(NSEvent *)theEvent {
@@ -745,7 +745,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     ApplyKeyModifiers(flags, theEvent);
     
-    drawingFrame.getView()->onPointerUp(flags, se_mouseToGmpi(self, theEvent));
+    drawingFrame.gmpi_gui_client->onPointerUp(flags, se_mouseToGmpi(self, theEvent));
 }
 
 - (void)mouseDragged:(NSEvent *)theEvent {
@@ -755,7 +755,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     ApplyKeyModifiers(flags, theEvent);
     
     mousePos = se_mouseToGmpi(self, theEvent);
-    drawingFrame.getView()->onPointerMove(flags, mousePos);
+    drawingFrame.gmpi_gui_client->onPointerMove(flags, mousePos);
     
     [self ToolTipOnMouseActivity];
 }
@@ -771,12 +771,12 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     constexpr float wheelConversion = 120.0f; // on windows the wheel scrolls 120 per knotch
     if(deltaY)
     {
-        drawingFrame.getView()->onMouseWheel(flags, wheelConversion * deltaY, se_mouseToGmpi(self, theEvent));
+        drawingFrame.gmpi_gui_client->onMouseWheel(flags, wheelConversion * deltaY, se_mouseToGmpi(self, theEvent));
     }
     if(deltaX)
     {
         flags |= gmpi_gui_api::GG_POINTER_SCROLL_HORIZ;
-        drawingFrame.getView()->onMouseWheel(flags, wheelConversion * deltaX, se_mouseToGmpi(self, theEvent));
+        drawingFrame.gmpi_gui_client->onMouseWheel(flags, wheelConversion * deltaX, se_mouseToGmpi(self, theEvent));
     }
 }
 
@@ -794,7 +794,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     mousePos = se_mouseToGmpi(self, theEvent);
     
-    drawingFrame.getView()->onPointerMove(flags, mousePos);
+    drawingFrame.gmpi_gui_client->onPointerMove(flags, mousePos);
 
     [self ToolTipOnMouseActivity];
 }
@@ -807,7 +807,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     if(toolTipTimer-- == 0 && !toolTipShown)
     {
         gmpi_sdk::MpString text;
-        drawingFrame.getView()->getToolTip(mousePos, &text);
+        drawingFrame.gmpi_gui_client->getToolTip(mousePos, &text);
         
         if(text.str().empty())
         {
