@@ -667,7 +667,33 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     
     ApplyKeyModifiers(flags, theEvent);
     
-    drawingFrame.getView()->onPointerDown(flags, se_mouseToGmpi(self, theEvent));
+    const auto r = drawingFrame.getView()->onPointerDown(flags, se_mouseToGmpi(self, theEvent));
+    
+    // Handle right-click context menu.
+    if (r == gmpi::MP_UNHANDLED && (flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && pluginParameters2B)
+    {
+        contextMenu.setNull();
+
+        GmpiDrawing::Rect rect(point.x, point.y, point.x + 120, point.y + 20);
+        createPlatformMenu(&rect, contextMenu.GetAddressOf());
+
+        GmpiGui::ContextItemsSinkAdaptor sink(contextMenu);
+
+        r = pluginParameters2B->populateContextMenu(point.x, point.y, &sink);
+
+        contextMenu.ShowAsync(
+            [this](int32_t res) -> int32_t
+            {
+                if (res == gmpi::MP_OK)
+                {
+                    const auto commandId = contextMenu.GetSelectedId();
+                    res = pluginParameters2B->onContextMenu(commandId);
+                }
+                contextMenu = {};
+                return res;
+            }
+        );
+    }
 }
 
 - (void)rightMouseUp:(NSEvent *)theEvent
