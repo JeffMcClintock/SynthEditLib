@@ -8,6 +8,8 @@
 #include "backends/CocoaGfx.h"
 #include "backends/DrawingFrameMac.h"
 #include "legacy_sdk_gui2.h"
+#include "IGuiHost2.h"
+#include "../se_sdk3_hosting/GraphicsRedrawClient.h"
 
 // In VST3 wrapper this object is a child window of SynthEditPluginCocoaView,
 // It serves to provide a C++ to Objective-C adaptor to the gmpi Drawing framework.
@@ -66,22 +68,11 @@ public:
             pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
     }
 
-    void Init(SE2::IPresenter* presenter, class IGuiHost2* hostPatchManager, int pviewType)
+    void Init(class IGuiHost2* hostPatchManager)
     {
         controller = hostPatchManager;
         initFactoryHelper(drawingFactory_GMPI.info);
-        
-        constexpr int viewDimensions = 7968; // DIPs (divisible by grids 60x60 + 2 24 pixel borders)
-
-        auto cv = new SE2::ContainerViewPanel({ viewDimensions, viewDimensions });
-
-        gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx;
-        gfx.Attach(cv); // ensure it gets released.
-
-        attachClient(gfx);
-
-        cv->setDocument(presenter);
-        
+ 
 #if defined(SE_TARGET_AU)
         dynamic_cast<SEInstrumentBase*>(controller)->callbackOnUnloadPlugin = [this]
         {
@@ -522,7 +513,19 @@ GmpiDrawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
         
         drawingFrame.view = self;
         auto presenter = new JsonDocPresenter(_editController);
-        drawingFrame.Init(presenter, _editController, CF_PANEL_VIEW);
+        drawingFrame.Init(_editController);
+        
+        constexpr int viewDimensions = 7968; // DIPs (divisible by grids 60x60 + 2 24 pixel borders)
+
+        auto cv = new SE2::ContainerViewPanel({ viewDimensions, viewDimensions });
+
+        gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx;
+        gfx.Attach(cv); // ensure it gets released.
+
+        drawingFrame.attachClient(gfx);
+
+        cv->setDocument(presenter);
+        
         presenter->RefreshView();
         
         timer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(onTimer:) userInfo:nil repeats:YES ];
@@ -534,7 +537,7 @@ GmpiDrawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
 - (void)viewDidMoveToWindow {
      [super viewDidMoveToWindow];
 
-    auto window = [self window];
+//    auto window = [self window];
 //    if(window)
 //    {
 //        drawingFrame.drawingFactory.setBestColorSpace();//window);
