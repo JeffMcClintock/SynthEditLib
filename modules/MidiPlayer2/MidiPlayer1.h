@@ -8,10 +8,10 @@ class MidiPlayer1 : public MidiPlayer2
 public:
 	MidiPlayer1( IMpUnknown* host );
 	void onSetPins() override;
-	virtual bool loopEntireFile()
+	virtual bool loopEntireFile() override
 	{
 		return pinLoopMode == 1;
-	};
+	}
 
 private:
 	AudioInPin pinTempo;

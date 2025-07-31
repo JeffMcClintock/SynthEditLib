@@ -321,7 +321,7 @@ void MidiPlayer2::ResetTracks()
 
 	for(int i=0; i<tracks; i++)
 	{
-		trackInfo_[i].status = NULL;
+		trackInfo_[i].status = 0;
 		unsigned char* local_pointer = trackInfo_[i].start;
 		int time = ReadVarLen(local_pointer);
 		trackInfo_[i].next_event_at = time;
@@ -400,17 +400,17 @@ void MidiPlayer2::NextMidiEvent(int bufferOffset)
 					{
 					case 0xF0:
 						SysexEvent(g_local_pointer, bufferOffset);
-						g_current_status=NULL;
+						g_current_status=0;
 						break;
 
 					case 0xF7:
 						SysexEvent(g_local_pointer, bufferOffset);
-						g_current_status=NULL;
+						g_current_status=0;
 						break;
 
 					case 0xFF:
 						MetaEvent(g_local_pointer, bufferOffset);
-						g_current_status=NULL;
+						g_current_status=0;
 						break;
 
 					default:

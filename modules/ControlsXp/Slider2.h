@@ -8,7 +8,7 @@ class Slider2 : public MpBase2
 {
 public:
 	Slider2();
-	int32_t open()
+	int32_t open() override
 	{
 		pinValueOut.setCurveType(SmartAudioPin::LinearAdaptive); // Automatic.
 		return MpBase2::open();

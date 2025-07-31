@@ -8,6 +8,7 @@
 #include <codecvt>
 #include <locale>
 #include "MpString.h"
+#include "../shared/unicode_conversion.h"
 
 using namespace gmpi;
 
@@ -36,8 +37,7 @@ const std::string& StringGuiPin::operator=(const std::string& valueUtf8)
 		static_cast<int>(size)
 	);
 #else
-	static std::wstring_convert<std::codecvt_utf8<wchar_t> > convert;
-	auto value = convert.from_bytes(valueUtf8);
+	auto value = JmUnicodeConversions::Utf8ToWstring(valueUtf8);
 #endif
 
 	if (!variablesAreEqual<std::wstring>(value, value_))
@@ -50,8 +50,7 @@ const std::string& StringGuiPin::operator=(const std::string& valueUtf8)
 
 StringGuiPin::operator std::string()
 {
-	static std::wstring_convert<std::codecvt_utf8<wchar_t> > convert;
-	return convert.to_bytes(getValue());
+	return JmUnicodeConversions::WStringToUtf8(getValue());
 }
 
 const std::wstring& StringGuiPin::operator=(const std::wstring& value)
