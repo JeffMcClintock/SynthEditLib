@@ -728,7 +728,7 @@ namespace se
 				return windowsFont;
 			}
 
-			TextFormat(std::wstring_convert<std::codecvt_utf8<wchar_t>>* pstringConverter, const char* pfontFamilyName, GmpiDrawing_API::MP1_FONT_WEIGHT pfontWeight, GmpiDrawing_API::MP1_FONT_STYLE pfontStyle, GmpiDrawing_API::MP1_FONT_STRETCH pfontStretch, float pfontSize) :
+			TextFormat(const char* pfontFamilyName, GmpiDrawing_API::MP1_FONT_WEIGHT pfontWeight, GmpiDrawing_API::MP1_FONT_STYLE pfontStyle, GmpiDrawing_API::MP1_FONT_STRETCH pfontStretch, float pfontSize) :
 				fontWeight(pfontWeight)
 				, fontStyle(pfontStyle)
 				, fontStretch(pfontStretch)
@@ -2212,7 +2212,7 @@ return gmpi::MP_FAIL;
         inline int32_t MP_STDCALL DrawingFactory::CreateTextFormat(const char* fontFamilyName, void* unused /* fontCollection */, GmpiDrawing_API::MP1_FONT_WEIGHT fontWeight, GmpiDrawing_API::MP1_FONT_STYLE fontStyle, GmpiDrawing_API::MP1_FONT_STRETCH fontStretch, float fontSize, void* unused2 /* localeName */, GmpiDrawing_API::IMpTextFormat** textFormat)
         {
             gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
-            b2.Attach(new TextFormat(&info.stringConverter, fontFamilyName, fontWeight, fontStyle, fontStretch, fontSize));
+            b2.Attach(new TextFormat(fontFamilyName, fontWeight, fontStyle, fontStretch, fontSize));
 
             return b2->queryInterface(GmpiDrawing_API::SE_IID_TEXTFORMAT_MPGUI, reinterpret_cast<void **>(textFormat));
         }
