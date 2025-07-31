@@ -128,7 +128,7 @@ public:
 	~SoundfontOscillator2();
 	int32_t open() override;
 	void onSetPins() override;
-	virtual void onGraphStart();
+	void onGraphStart() override;
 
 	IntInPin pinSampleId;
 	EnumInPin pinQuality;
