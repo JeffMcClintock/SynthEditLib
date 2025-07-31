@@ -3,19 +3,19 @@ cmake_minimum_required(VERSION 3.15)
 project(Filters)
 
 set( DSP_FILTERS_SRC
-        DSPFilters/Biquad.h
-        DSPFilters/Biquad.cpp
-        DSPFilters/Butterworth.h
-        DSPFilters/Butterworth.cpp
-        DSPFilters/Cascade.h
-        DSPFilters/Cascade.cpp
-        DSPFilters/Elliptic.h
-        DSPFilters/Elliptic.cpp
-        DSPFilters/PoleFilter.h
-        DSPFilters/PoleFilter.cpp
-        DSPFilters/Common.h
-        DSPFilters/Layout.h
-        DSPFilters/MathSupplement.h
+        DspFilters/Biquad.h
+        DspFilters/Biquad.cpp
+        DspFilters/Butterworth.h
+        DspFilters/Butterworth.cpp
+        DspFilters/Cascade.h
+        DspFilters/Cascade.cpp
+        DspFilters/Elliptic.h
+        DspFilters/Elliptic.cpp
+        DspFilters/PoleFilter.h
+        DspFilters/PoleFilter.cpp
+        DspFilters/Common.h
+        DspFilters/Layout.h
+        DspFilters/MathSupplement.h
 )
 
 build_gmpi_plugin(
