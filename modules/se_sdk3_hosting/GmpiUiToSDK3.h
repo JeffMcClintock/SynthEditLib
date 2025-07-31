@@ -444,7 +444,7 @@ protected:
 		{
 			return (int32_t) native()->getSizeU((gmpi::drawing::SizeU*)returnSize);
 		}
-		int32_t MP_STDCALL lockPixels(GmpiDrawing_API::IMpBitmapPixels** returnPixels, int32_t flags)
+		int32_t MP_STDCALL lockPixels(GmpiDrawing_API::IMpBitmapPixels** returnPixels, int32_t flags) override
 		{
 			gmpi::drawing::api::IBitmapPixels* pixels{};
 			auto hr = native()->lockPixels(&pixels, flags);

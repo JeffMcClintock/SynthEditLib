@@ -358,7 +358,7 @@ void SynthRuntime::process(
 
 //				const auto sampleRate = audio_driver->getSampleRate();
 
-			generator = std::make_unique<SeAudioMaster>(sampleRate, this, BundleInfo::instance()->getPluginInfo().latencyConstraint);
+			generator = std::make_unique<SeAudioMaster>(static_cast<float>(sampleRate), this, BundleInfo::instance()->getPluginInfo().latencyConstraint);
 			//generator->setBufferSize(audio_driver->getBufferSize());
 			generator->setBlockSize(generator->CalcBlockSize(maxBlockSize));
 

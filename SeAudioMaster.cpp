@@ -1389,7 +1389,7 @@ void SeAudioMaster::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 					{
 						hoverScopeModule = std::make_unique<HoverScopeAudioCollector>(
 							hoverScopePin->UG->Handle()
-							, SampleRate()
+							, static_cast<int>(SampleRate())
 							, hoverScopePin->GetSamplePtr()
 							, getShell()->MessageQueToGui()
 						);
