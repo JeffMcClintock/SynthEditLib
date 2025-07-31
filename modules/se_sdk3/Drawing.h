@@ -62,7 +62,7 @@ using namespace GmpiDrawing;
 #include <codecvt>
 #include <locale>
 #include "mp_interface_wrapper.h"
-#include "../shared/unicode_conversion2.h"
+#include "../shared/unicode_conversion.h"
 #include "../shared/fast_gamma.h"
 #include "MpString.h"
 
@@ -1646,12 +1646,10 @@ namespace GmpiDrawing
 		}
 		inline Size GetTextExtentU(std::wstring wString)
 		{
-			static std::wstring_convert<std::codecvt_utf8<wchar_t>> stringConverter;
-			auto utf8String = stringConverter.to_bytes(wString);
-			//			auto utf8String = FastUnicode::WStringToUtf8(wString.c_str());
+			const auto text8 = JmUnicodeConversions::WStringToUtf8(wString);
 
 			Size s;
-			Get()->GetTextExtentU(utf8String.c_str(), (int32_t)utf8String.size(), &s);
+			Get()->GetTextExtentU(text8.c_str(), (int32_t)text8.size(), &s);
 			return s;
 		}
 
@@ -2790,15 +2788,13 @@ namespace GmpiDrawing
 		}
 		inline void DrawTextW(std::wstring wString, TextFormat_readonly textFormat, Rect rect, Brush brush, int32_t flags)
 		{
-			static std::wstring_convert<std::codecvt_utf8<wchar_t>> stringConverter;
-			const auto utf8String = stringConverter.to_bytes(wString);
-			this->DrawTextU(utf8String, textFormat, rect, brush, flags);
+			const auto text8 = JmUnicodeConversions::WStringToUtf8(wString);
+			this->DrawTextU(text8, textFormat, rect, brush, flags);
 		}
 		inline void DrawTextW(std::wstring wString, TextFormat_readonly textFormat, Rect rect, Brush brush, DrawTextOptions options = DrawTextOptions::None)
 		{
-			static std::wstring_convert<std::codecvt_utf8<wchar_t>> stringConverter;
-			const auto utf8String = stringConverter.to_bytes(wString);
-			this->DrawTextU(utf8String, textFormat, rect, brush, (GmpiDrawing_API::MP1_DRAW_TEXT_OPTIONS) options);
+			const auto text8 = JmUnicodeConversions::WStringToUtf8(wString);
+			this->DrawTextU(text8, textFormat, rect, brush, (GmpiDrawing_API::MP1_DRAW_TEXT_OPTIONS) options);
 		}
 		// don't care about rect, only position. DEPRECATED, works only when text is left-aligned.
 		inline void DrawTextU(std::string utf8String, TextFormat_readonly textFormat, float x, float y, Brush brush, DrawTextOptions options = DrawTextOptions::None)
@@ -2814,10 +2810,9 @@ namespace GmpiDrawing
 		// don't care about rect, only position. DEPRECATED, works only when text is left-aligned.
 		inline void DrawTextW(std::wstring wString, TextFormat_readonly textFormat, float x, float y, Brush brush, DrawTextOptions options = DrawTextOptions::None)
 		{
-			static std::wstring_convert<std::codecvt_utf8<wchar_t>> stringConverter;
-			auto utf8String = stringConverter.to_bytes(wString);
+			const auto text8 = JmUnicodeConversions::WStringToUtf8(wString);
 
-			this->DrawTextU(utf8String, textFormat, x, y, brush, options);
+			this->DrawTextU(text8, textFormat, x, y, brush, options);
 		}
 
 		inline void SetTransform(const Matrix3x2& transform)

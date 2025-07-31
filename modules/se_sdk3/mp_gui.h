@@ -37,6 +37,7 @@ using namespace GmpiGui;
 #include "mp_interface_wrapper.h"
 #include "it_enum_list.h"
 #include "../shared/string_utilities.h"
+#include "../shared/unicode_conversion.h"
 
 namespace GmpiGui
 {
@@ -74,9 +75,8 @@ namespace GmpiGui
 		}
 		inline void AddItem(std::wstring text, int32_t id, int32_t flags = 0)
 		{
-			std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
-
-			AddItem(convert.to_bytes(text).c_str(), id, flags);
+			const auto text8 = JmUnicodeConversions::WStringToUtf8(text);
+			AddItem(text8.c_str(), id, flags);
 		}
 		inline void ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler)
 		{
@@ -226,7 +226,6 @@ namespace GmpiGui
 		}
 		inline void AddExtensionList(std::wstring extensions)
 		{
-			std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
 			it_enum_list it2(extensions);
 
 			if (it2.size() == 0)
@@ -237,7 +236,8 @@ namespace GmpiGui
 			{
 				for (it2.First(); !it2.IsDone(); ++it2)
 				{
-					AddExtension(convert.to_bytes((*it2)->text), "");
+					const auto text8 = JmUnicodeConversions::WStringToUtf8((*it2)->text);
+					AddExtension(text8, "");
 				}
 			}
 		}
