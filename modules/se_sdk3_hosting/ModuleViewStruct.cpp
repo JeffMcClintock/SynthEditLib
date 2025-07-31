@@ -75,14 +75,12 @@ namespace SE2
 			locked = module_element.get("locked", Json::Value(false)).asBool();
 */
 
-		static std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
-
 		// create list of pins.
 		for (auto& it : moduleInfo->gui_plugs)
 		{
 			auto& pin = it.second;
 			pinViewInfo info{};
-			info.name = convert.to_bytes(pin->GetName());
+			info.name = WStringToUtf8(pin->GetName());
 			info.direction = pin->GetDirection();
 			info.datatype = pin->GetDatatype();
 			info.isGuiPlug = true;
@@ -97,7 +95,7 @@ namespace SE2
 		{
 			auto& pin = it.second;
 			pinViewInfo info{};
-			info.name = convert.to_bytes(pin->GetName());
+			info.name = WStringToUtf8(pin->GetName());
 			info.direction = pin->GetDirection();
 			info.datatype = pin->GetDatatype();
 			info.isGuiPlug = false;

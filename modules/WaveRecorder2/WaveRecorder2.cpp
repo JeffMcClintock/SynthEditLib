@@ -2,6 +2,7 @@
 #include <locale>
 #include "./WaveRecorder2.h"
 #include "../shared/string_utilities.h"
+#include "./unicode_conversion.h"
 
 #include "../se_sdk3/PinIterator.h"
 #include "../shared/xplatform.h"
@@ -158,8 +159,7 @@ void WaveRecorder2::onSetPins()
 #ifdef _WIN32
             _wfopen_s(&outputStream, fullFilename, L"wb");
 #else
-            std::wstring_convert<std::codecvt_utf8<wchar_t> > stringConverter;
-            auto utf8Filename = stringConverter.to_bytes(fullFilename);
+            auto utf8Filename = JmUnicodeConversions::WStringToUtf8(fullFilename);
             outputStream = fopen(utf8Filename.c_str(), "wb");
 #endif
 

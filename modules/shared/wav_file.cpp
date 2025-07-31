@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <codecvt>
 #include <locale>
+#include "./unicode_conversion.h"
 
 #ifndef WAVE_FORMAT_PCM
 #define WAVE_FORMAT_PCM     1
@@ -36,8 +37,7 @@ struct wave_file_header
 std::wstring toOperatingSystemFilename(const std::string& filename)
 {
 	// Windows will fail to open UTF8 filenames, but will handle UTF16 OK.
-	static std::wstring_convert<std::codecvt_utf8<wchar_t> > convert;
-	return convert.from_bytes(filename);
+	return JmUnicodeConversions::Utf8ToWstring(filename);
 }
 #else
 std::string toOperatingSystemFilename(const std::string& filename)

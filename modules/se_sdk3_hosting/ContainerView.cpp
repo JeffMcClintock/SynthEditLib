@@ -67,8 +67,7 @@ namespace SE2
 			assert(typeName != "SE Structure Group2");
 #ifdef _DEBUG
 			// avoid trying to create unavailable modules
-			static std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
-			const auto typeId = convert.from_bytes(typeName);
+			const auto typeId = JmUnicodeConversions::Utf8ToWstring(typeName);
 			auto moduleInfo = CModuleFactory::Instance()->GetById(typeId);
 //			if (moduleInfo)
 #endif

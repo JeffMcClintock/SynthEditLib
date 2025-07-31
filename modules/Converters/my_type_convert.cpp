@@ -1,7 +1,7 @@
 #include "./my_type_convert.h"
 
 #include <locale>
-#include <codecvt>
+#include "../shared/unicode_conversion.h"
 
 using namespace std;
 
@@ -124,15 +124,13 @@ string myTypeConvert( float value )
 template<>
 std::wstring myTypeConvert(std::string value)
 {
-	std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
-	return convert.from_bytes(value);
+	return JmUnicodeConversions::Utf8ToWstring(value);
 }
 
 template<>
 std::string myTypeConvert(std::wstring value)
 {
-	std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
-	return convert.to_bytes(value);
+	return JmUnicodeConversions::WStringToUtf8(value);
 }
 
 template<>
@@ -238,6 +236,5 @@ string UnicodeToAscii(wstring s) // Actually to UTF8.
 		return {};
 	}
 
-	std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
-	return convert.to_bytes(s);
+	return JmUnicodeConversions::WStringToUtf8(s);
 }

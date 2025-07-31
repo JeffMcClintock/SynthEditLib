@@ -174,9 +174,8 @@ namespace SE2
 		}
 		setSelected(module_element["selected"].asBool() );
 
-		static std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
 		auto typeName = module_element["type"].asString();
-		const auto typeId = convert.from_bytes(typeName);
+		const auto typeId = JmUnicodeConversions::Utf8ToWstring(typeName);
 		moduleInfo = CModuleFactory::Instance()->GetById(typeId);
         assert( moduleInfo != nullptr );
 	}

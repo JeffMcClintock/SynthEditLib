@@ -248,8 +248,6 @@ void MpController::Initialize()
 	auto patchManagerE = controllerE->FirstChildElement();
 	assert(strcmp(patchManagerE->Value(), "PatchManager") == 0);
 
-	std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
-
 	auto parameters_xml = patchManagerE->FirstChildElement("Parameters");
 
 	::init(parametersInfo, parameters_xml); // for parsing presets
@@ -306,7 +304,7 @@ void MpController::Initialize()
 		{
 			auto s = parameter_xml->Attribute("MetaData");
 			if (s)
-				enumList_ = convert.from_bytes(s);
+				enumList_ = JmUnicodeConversions::Utf8ToWstring(s);
 		}
 
 		MpParameter_base* seParameter = nullptr;
@@ -376,7 +374,7 @@ void MpController::Initialize()
 		seParameter->moduleHandle_ = moduleHandle_;
 		seParameter->moduleParamId_ = moduleParamId_;
 		seParameter->stateful_ = stateful_;
-		seParameter->name_ = convert.from_bytes(Name);
+		seParameter->name_ = JmUnicodeConversions::Utf8ToWstring(Name);
 		seParameter->enumList_ = enumList_;
 		seParameter->ignorePc_ = ignorePc != 0;
 
@@ -1198,9 +1196,7 @@ void MpController::UpdateProgramCategoriesHc(MpParameter* param)
 			l.Add(preset.name);
 		}
 	}
-	std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
-
-	auto enumList = convert.from_bytes(l.str());
+	auto enumList = JmUnicodeConversions::Utf8ToWstring(l.str());
 
 	param->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, RawView(enumList));
 }

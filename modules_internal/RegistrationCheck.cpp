@@ -26,8 +26,7 @@ inline void hash_combine(uint64_t& seed, const uint64_t v)
 
 std::wstring GenerateSerial(std::wstring regoName, uint64_t randomSeed)
 {
-	std::wstring_convert<std::codecvt_utf8<wchar_t>> convert;
-	const auto regoNameU = convert.to_bytes(regoName);
+	const auto regoNameU = JmUnicodeConversions::WStringToUtf8(regoName);
 
 	// hash string
 	uint64_t serial = 5381; // <<<<< Place your own 'magic' number here.
