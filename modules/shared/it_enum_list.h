@@ -102,8 +102,8 @@ inline std::vector<enum_entry2> it_enum_list2(std::string_view enum_list)
 		if (p2 == std::string::npos)
 			return res;
 
-		auto lo = strtol(enum_list.data() + p + 1, nullptr, 10);
-		auto hi = strtol(enum_list.data() + p2 + 1, nullptr, 10);
+		auto lo = static_cast<int32_t>(strtol(enum_list.data() + p + 1, nullptr, 10));
+		auto hi = static_cast<int32_t>(strtol(enum_list.data() + p2 + 1, nullptr, 10));
 
 		for (int32_t i = lo; i <= hi; ++i)
 		{
@@ -127,7 +127,7 @@ inline std::vector<enum_entry2> it_enum_list2(std::string_view enum_list)
 		if (p3)
 		{
 			char* endptr{};
-			auto explicitId = strtol(p3 + 1, &endptr, 10);
+			auto explicitId = static_cast<int32_t>(strtol(p3 + 1, &endptr, 10));
 
 			// ignore '=' followed by non-numeric characters. Avoids weirdness when user puts '=' in patch name.
 			if (endptr != p3 + 1)

@@ -149,17 +149,17 @@ std::string ParseToRaw( int datatype, const std::wstring& s )
 
 	case DT_ENUM:
 		result.resize( sizeof( short ) );
-		*(short*) ( &result[0] ) = (short) wcstol( s.c_str(), 0, 10 );
+		*(short*) ( &result[0] ) = (short) static_cast<int32_t>(wcstol( s.c_str(), 0, 10 ));
 		break;
 
 	case DT_INT:
 		result.resize(sizeof(int32_t));
-		*(int32_t*)(&result[0]) = wcstol(s.c_str(), 0, 10);
+		*(int32_t*)(&result[0]) = static_cast<int32_t>(wcstol(s.c_str(), 0, 10));
 		break;
 
 	case DT_INT64:
 		result.resize(sizeof(int64_t));
-		*(int64_t*)(&result[0]) = wcstol(s.c_str(), 0, 10);
+		*(int64_t*)(&result[0]) = static_cast<int32_t>(wcstol(s.c_str(), 0, 10));
 		break;
 		
 	case DT_TEXT:
@@ -210,12 +210,12 @@ std::string ParseToRaw( int datatype, const std::string& s )
 
 	case DT_ENUM:
 		result.resize( sizeof( short ) );
-		*(short*) (result.data()) = (short) strtol( s.c_str(), 0, 10 );
+		*(short*) (result.data()) = static_cast<short>(strtol( s.c_str(), 0, 10 ));
 		break;
 
 	case DT_INT:
 		result.resize( sizeof( int32_t ) );
-		*(int32_t*) (result.data()) = strtol( s.c_str(), 0, 10 );
+		*(int32_t*) (result.data()) = static_cast<int32_t>(strtol( s.c_str(), 0, 10 ));
 		break;
 
 	case DT_INT64:
@@ -275,10 +275,11 @@ std::string ToRaw4<MpBlob>( const MpBlob& value )
 	return returnRaw;
 }
 
-std::string RawToUtf8B(int datatype, const void* data, size_t size)
+std::string RawToUtf8B(int datatype, const void* data, size_t psize)
 {
 	std::string result;
 
+    const auto size = static_cast<int32_t>(psize);
 	switch (datatype)
 	{
 	case DT_FSAMPLE:

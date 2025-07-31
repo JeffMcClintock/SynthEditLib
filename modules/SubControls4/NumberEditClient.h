@@ -98,7 +98,7 @@ public:
             std::string allChars = text_utf8.substr(0, glyphs.size());
 
             gmpi::drawing::Size sizeCumulative{};
-            for (int i = glyphs.size(); i < text_utf32.size(); ++i)
+            for (auto i = glyphs.size(); i < text_utf32.size(); ++i)
             {
                 const size_t expected_utf8words = simdutf::utf8_length_from_utf32(&text_utf32[i], 1);
                 
@@ -163,7 +163,7 @@ public:
     void show(gmpi::api::IDialogHost* dialogHost, const gmpi::drawing::Rect* bounds)
     {
         selectedFrom = 0;
-        selectedTo = cursorPos = numberEditGlyfs.text_utf32.length();
+        selectedTo = cursorPos = static_cast<int32_t>(numberEditGlyfs.text_utf32.length());
 
         // grab Keyboard Focus
         gmpi::shared_ptr<gmpi::api::IUnknown> ret;
@@ -345,8 +345,8 @@ public:
                 {
                     // <ctrl> + A : Select All
                     selectedFrom = 0;
-                    selectedTo = text.length();
-                    cursorPos = text.length();
+                    selectedTo = static_cast<int32_t>(text.length());
+                    cursorPos = static_cast<int32_t>(text.length());
                 }
                 break;
 /*
@@ -529,7 +529,7 @@ public:
         }
 
         // draw a cursor
-        if (cursorBlinkState(numberEditGlyfs.glyphs.size()))
+        if (cursorBlinkState(static_cast<int32_t>(numberEditGlyfs.glyphs.size())))
         {
             float cursorX{ bounds.left};
 			const auto glyfCount = numberEditGlyfs.glyphs.size();

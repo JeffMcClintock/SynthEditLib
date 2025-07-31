@@ -349,7 +349,7 @@ std::string generateUUid()
 
 					std::string metaInfoXml;
 					metaInfoXml.resize(e->size);
-					readOnlyBStream->read((void*)metaInfoXml.data(), e->size);
+					readOnlyBStream->read((void*)metaInfoXml.data(), static_cast<int32_t>(e->size));
 
 					tinyxml2::XMLDocument xmldoc;
 					xmldoc.Parse(metaInfoXml.c_str());

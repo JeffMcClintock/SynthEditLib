@@ -452,7 +452,7 @@ void SeAudioMaster::ApplyPinDefaultChanges(std::unordered_map<int64_t, std::stri
 {
 	for (auto& p : extraPinDefaultChanges)
 	{
-		const auto handle = p.first >> 32;
+		const auto handle = static_cast<int32_t>(p.first >> 32);
 		const auto pinIdx = static_cast<int32_t>(p.first & 0xFFFFFFFF);
 		const auto& value = p.second;
 
