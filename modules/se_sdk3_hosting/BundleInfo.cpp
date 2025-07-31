@@ -657,6 +657,9 @@ void BundleInfo::initPluginInfo()
 
             auto result = getUserDocumentFolder();
             
+            // Latest advice: ~/Music/Audio Music Apps/MYCOMPANY/MYPLUGIN/
+            // https://www.kvraudio.com/forum/viewtopic.php?p=5548801#p5548801
+
             // Note: !!! This folder may not exist, which will result in presets being saved in 'Documents' (and never scanned by preset browser)
             // might be preferable to check if this directory exists, and if not fallback to 'Documents' on mac
             result = result + L"/Library/Audio/Presets/";

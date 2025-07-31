@@ -366,7 +366,7 @@ protected:
 		}
 		void MP_STDCALL GetTextExtentU(const char* utf8String, int32_t stringLength, GmpiDrawing_API::MP1_SIZE* returnSize) override
 		{
-			(int32_t)native()->getTextExtentU(utf8String, stringLength, (gmpi::drawing::Size*)returnSize);
+			native()->getTextExtentU(utf8String, stringLength, (gmpi::drawing::Size*)returnSize);
 		}
 		int32_t MP_STDCALL GetFontMetrics(GmpiDrawing_API::MP1_FONT_METRICS* returnFontMetrics) override
 		{
@@ -435,12 +435,12 @@ protected:
 
 			return { static_cast<float>(sizeU.width), static_cast<float>(sizeU.height) };
 		}
-		int32_t MP_STDCALL lockPixelsOld(GmpiDrawing_API::IMpBitmapPixels** returnPixels, bool alphaPremultiplied = false)
+		int32_t MP_STDCALL lockPixelsOld(GmpiDrawing_API::IMpBitmapPixels** returnPixels, bool alphaPremultiplied = false) override
 		{
 			return lockPixels(returnPixels, GmpiDrawing_API::MP1_BITMAP_LOCK_READ | GmpiDrawing_API::MP1_BITMAP_LOCK_WRITE);
 		}
-		void MP_STDCALL ApplyAlphaCorrection() {}
-		int32_t MP_STDCALL GetSize(GmpiDrawing_API::MP1_SIZE_U* returnSize)
+		void MP_STDCALL ApplyAlphaCorrection() override {}
+		int32_t MP_STDCALL GetSize(GmpiDrawing_API::MP1_SIZE_U* returnSize) override
 		{
 			return (int32_t) native()->getSizeU((gmpi::drawing::SizeU*)returnSize);
 		}
