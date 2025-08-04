@@ -80,9 +80,12 @@ public:
 	std::wstring getImbeddedFileFolder();
     std::wstring getResourceFolder();
 	std::wstring getSemFolder();
+    
+#ifdef SELIB_HAS_FILESYSTEM
     std::filesystem::path getSettingsFolder();
     std::filesystem::path getPlatformPluginsFolder();
-
+#else
+#endif
 	int32_t getPluginId(); // 4-char VST2 code to identify presets.
     const pluginInformation& getPluginInfo();
 };

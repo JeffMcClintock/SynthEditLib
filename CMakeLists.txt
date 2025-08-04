@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.15)
 #  cmake ../../SE16 -G "Visual Studio 17 2022" -A ARM64   (or ARM64EC, fails with SIMDUTF8 lib)
 
 # macOS 13.3 required for std::format (SubControls4)
-set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "Minimum macOS deployment version")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS deployment version")
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for macOS" FORCE)
 set(CMAKE_CXX_STANDARD 20)
 
