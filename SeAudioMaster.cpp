@@ -2746,6 +2746,7 @@ void SeAudioMaster::setPresetsState(const std::vector< std::pair<int32_t, std::s
 #include <filesystem>
 void SeAudioMaster::dumpPreset(int tag)
 {
+#if 0
 	int index = 0;
 	for (auto pa : patchAutomators_)
 	{
@@ -2771,5 +2772,6 @@ void SeAudioMaster::dumpPreset(int tag)
 
 		index++;
 	}
+#endif
 }
 #endif

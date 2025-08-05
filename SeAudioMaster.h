@@ -250,7 +250,7 @@ public:
 #if defined( _DEBUG )
 			,error_msg_count(0) // prevent 'floods' of msgs to debug window
 #endif
-			{};
+			{}
 
 	virtual ~AudioMasterBase();
 
@@ -412,7 +412,7 @@ public:
 #ifdef _DEBUG
 	void Wake(EventProcessor* ug) override;
 #else
-	inline void Wake(EventProcessor* ug) override
+	void Wake(EventProcessor* ug) override
 	{
 		if( ug->sleeping ) // may not be
 		{
