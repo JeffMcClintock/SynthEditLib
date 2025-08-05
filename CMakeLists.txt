@@ -8,6 +8,7 @@ cmake_minimum_required(VERSION 3.15)
 # macOS 13.3 required for std::format (SubControls4)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS deployment version")
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for macOS" FORCE)
+set(SE_GRAPHICS_SUPPORT TRUE CACHE BOOL "Support Graphics modules")
 set(CMAKE_CXX_STANDARD 20)
 
 set(DSP_CORE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -101,10 +102,16 @@ modules_internal/PrefabBrowser/PrefabBrowserGui.cpp
 modules_internal/RegistrationCheck.cpp
 modules_internal/VoiceMute/VoiceMute.h
 modules_internal/VoiceMute/VoiceMute.cpp
+)
+
+if(SE_GRAPHICS_SUPPORT)
+set(srcs_modules_internal
+${srcs_modules_internal}
 modules/SubControls4/GmpiUiTest.cpp
 modules/SubControls4/half.hpp
 modules/SubControls4/NumberEditClient.h
 )
+endif()
 
 set(srcs_dspfilters
 DspFilters/Biquad.cpp
