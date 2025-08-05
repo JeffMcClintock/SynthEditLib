@@ -2060,7 +2060,7 @@ void MpController::DeletePreset(int presetIndex)
 #if defined(__cpp_lib_filesystem)
 	std::filesystem::remove(presets[presetIndex].filename);
 #else
-    std::remove(WStringToUtf8(presets[presetIndex].filename).c_str());
+    remove(WStringToUtf8(presets[presetIndex].filename).c_str());
 #endif
 
 	ScanPresets();

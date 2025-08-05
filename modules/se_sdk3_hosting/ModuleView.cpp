@@ -1,7 +1,6 @@
 
 #include <vector>
 #include <sstream>
-#include <filesystem>
 #include <iomanip>
 
 #include "ModuleView.h"
@@ -116,12 +115,20 @@ namespace SE2
 
 	gmpi::ReturnCode GmpiUiHelper::findResourceUri(const char* fileName, /*const char* resourceType,*/ gmpi::api::IString* returnFullUri)
 	{
+#if 0 // std::filesystem
 		std::filesystem::path uri(fileName);
 		auto resourceType = uri.extension().generic_string();
 		if (!resourceType.empty())
 		{
 			resourceType = resourceType.substr(1); // remove leading dot.
 		}
+#else
+		const std::wstring fileNameW(Utf8ToWstring(fileName));
+		std::wstring r_file, r_path, resourceTypeW;
+		decompose_filename(fileNameW, r_file, r_path, resourceTypeW);
+		const auto resourceType = WStringToUtf8(resourceTypeW);
+#endif
+
 		return (gmpi::ReturnCode) moduleview.FindResourceU(fileName, resourceType.c_str(), (gmpi::IString*)returnFullUri);
 	}
 	gmpi::ReturnCode GmpiUiHelper::registerResourceUri(const char* fullUri)

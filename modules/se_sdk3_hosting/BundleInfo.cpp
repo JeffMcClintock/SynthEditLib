@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <fstream>
-#include <filesystem>
 #include "tinyXml2/tinyxml2.h"
 #include "BundleInfo.h"
 #include "xp_dynamic_linking.h"
@@ -48,16 +47,16 @@ std::string expandTilde(const char* str) {
 }
 
 // ~/Library/Application Support/
-std::string settingsPath() {
-    char path[PATH_MAX];
-    auto state = sysdir_start_search_path_enumeration(SYSDIR_DIRECTORY_APPLICATION_SUPPORT,
-                                                      SYSDIR_DOMAIN_MASK_USER);
-    if ((state = sysdir_get_next_search_path_enumeration(state, path))) {
-        return expandTilde(path);
-    } else {
-        return {};
-    }
-}
+//std::string settingsPath() {
+//    char path[PATH_MAX];
+//    auto state = sysdir_start_search_path_enumeration(SYSDIR_DIRECTORY_APPLICATION_SUPPORT,
+//                                                      SYSDIR_DOMAIN_MASK_USER);
+//    if ((state = sysdir_get_next_search_path_enumeration(state, path))) {
+//        return expandTilde(path);
+//    } else {
+//        return {};
+//    }
+//}
 
 // inspired by: public.sdk/source/vst/vstguieditor.cpp
 //void* gBundleRef = 0;
@@ -267,28 +266,6 @@ std::wstring BundleInfo::getUserDocumentFolder()
         return Utf8ToWstring(pwd->pw_dir);
     
 	return {};
-#endif
-}
-
-std::filesystem::path BundleInfo::getSettingsFolder()
-{
-#ifdef _WIN32
-    wchar_t path[MAX_PATH];
-    SHGetFolderPath(NULL, CSIDL_COMMON_APPDATA, NULL, SHGFP_TYPE_CURRENT, path);
-    return path;
-#else
-    return settingsPath();
-#endif
-}
-
-std::filesystem::path BundleInfo::getPlatformPluginsFolder()
-{
-#ifdef _WIN32
-    wchar_t path[MAX_PATH];
-    SHGetFolderPath(NULL, CSIDL_PROGRAM_FILES_COMMON, NULL, SHGFP_TYPE_CURRENT, path);
-    return path;
-#else
-    return "/Library/Audio/Plugins/";
 #endif
 }
 
@@ -520,7 +497,8 @@ const BundleInfo::pluginInformation& BundleInfo::getPluginInfo()
 
 void BundleInfo::initPluginInfo()
 {
-	const std::filesystem::path path(gmpi_dynamic_linking::MP_GetDllFilename());
+#ifdef SELIB_HAS_FILESYSTEM
+    const std::filesystem::path path(gmpi_dynamic_linking::MP_GetDllFilename());
 
     // are we in the editor?
 	auto filename = path.filename().wstring();
@@ -531,7 +509,6 @@ void BundleInfo::initPluginInfo()
             filename.find(L"TIDE") == 0;
     }
 
-//	pluginIsBundle = path. .find(L".vst3/Contents") != std::string::npos || path.find(L".vst3\\Contents") != std::string::npos;
 
     // are we in a bundle? path contains "*.vst3/Contents/"
 	std::string bundleExtension;
@@ -545,6 +522,15 @@ void BundleInfo::initPluginInfo()
         
         bundleExtension = (*it).extension().string();
 	}
+#else
+    const auto path = gmpi_dynamic_linking::MP_GetDllFilename();
+    isEditor =
+        path.find(L"SynthEdit2.exe") != std::string::npos ||
+        path.find(L"SynthEdit.") != std::string::npos ||
+        path.find(L"TIDE") == 0;
+
+    pluginIsBundle = path.find(L".vst3/Contents") != std::string::npos || path.find(L".vst3\\Contents") != std::string::npos;
+#endif
 
     if (isEditor)
         return;
