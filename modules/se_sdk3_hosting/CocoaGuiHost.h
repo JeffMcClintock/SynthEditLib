@@ -186,8 +186,8 @@ namespace GmpiGuiHosting
 			return selectedId;
 		}
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_MENU, gmpi_gui::IMpPlatformMenu);
-		GMPI_REFCOUNT;
+		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_MENU, gmpi_gui::IMpPlatformMenu)
+		GMPI_REFCOUNT
 	};
 
     struct PlatformTextEntryObserver
@@ -323,8 +323,8 @@ namespace GmpiGuiHosting
             completionHandler->OnComplete(gmpi::MP_OK);
         }
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT, gmpi_gui::IMpPlatformText);
-		GMPI_REFCOUNT;
+		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT, gmpi_gui::IMpPlatformText)
+		GMPI_REFCOUNT
 	};
 
 	class PlatformFileDialog : public gmpi_gui::IMpFileDialog
@@ -471,8 +471,8 @@ namespace GmpiGuiHosting
 			return gmpi::MP_OK;
 		}
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_FILE_DIALOG, gmpi_gui::IMpFileDialog);
-		GMPI_REFCOUNT;
+		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_FILE_DIALOG, gmpi_gui::IMpFileDialog)
+		GMPI_REFCOUNT
 	};
 
 	class PlatformOkCancelDialog : public gmpi_gui::IMpOkCancelDialog
@@ -518,8 +518,8 @@ namespace GmpiGuiHosting
 			return gmpi::MP_OK;
 		}
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, gmpi_gui::IMpOkCancelDialog);
-		GMPI_REFCOUNT;
+		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, gmpi_gui::IMpOkCancelDialog)
+		GMPI_REFCOUNT
 	};
 
 #ifdef STANDALONE

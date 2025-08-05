@@ -87,7 +87,7 @@ namespace GmpiGuiHosting
 		{
 			menuInfoList.clear();
 		}
-		GMPI_QUERYINTERFACE1(gmpi::MP_IID_CONTEXT_ITEMS_SINK, gmpi::IMpContextItemSink);
+		GMPI_QUERYINTERFACE1(gmpi::MP_IID_CONTEXT_ITEMS_SINK, gmpi::IMpContextItemSink)
 		GMPI_REFCOUNT_NO_DELETE;
 	};
     
@@ -228,7 +228,7 @@ namespace GmpiGuiHosting
 		{
 			return menuPosition;
 		}
-		GMPI_QUERYINTERFACE1(gmpi::MP_IID_CONTEXT_ITEMS_SINK, gmpi::IMpContextItemSink);
+		GMPI_QUERYINTERFACE1(gmpi::MP_IID_CONTEXT_ITEMS_SINK, gmpi::IMpContextItemSink)
 		GMPI_REFCOUNT_NO_DELETE;
 	};
 
@@ -325,8 +325,8 @@ namespace GmpiGuiHosting
 			return false;
 		}
 
-		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_UPDATE_REGION_MPGUI, GmpiDrawing_API::IUpdateRegion);
-		GMPI_REFCOUNT;
+		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_UPDATE_REGION_MPGUI, GmpiDrawing_API::IUpdateRegion)
+		GMPI_REFCOUNT
 	};
 */
 	class PGCC_PlatformTextEntry : public gmpi_gui::IMpPlatformText
@@ -395,8 +395,8 @@ namespace GmpiGuiHosting
 			return gmpi::MP_OK;
 		}
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT, gmpi_gui::IMpPlatformText);
-		GMPI_REFCOUNT;
+		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT, gmpi_gui::IMpPlatformText)
+		GMPI_REFCOUNT
 	};
 
 	class PGCC_PlatformMenu : public gmpi_gui::IMpPlatformMenu
@@ -518,8 +518,8 @@ namespace GmpiGuiHosting
 			return selectedId;
 		}
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_MENU, gmpi_gui::IMpPlatformMenu);
-		GMPI_REFCOUNT;
+		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_MENU, gmpi_gui::IMpPlatformMenu)
+		GMPI_REFCOUNT
 	};
 
 	class Gmpi_Win_FileDialog : public gmpi_gui::IMpFileDialog
@@ -569,8 +569,8 @@ namespace GmpiGuiHosting
 		int32_t ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) override;
 		int32_t GetSelectedFilename(IMpUnknown* returnString) override;
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_FILE_DIALOG, gmpi_gui::IMpFileDialog);
-		GMPI_REFCOUNT;
+		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_FILE_DIALOG, gmpi_gui::IMpFileDialog)
+		GMPI_REFCOUNT
 	};
 
 
@@ -602,8 +602,8 @@ namespace GmpiGuiHosting
 
 		int32_t ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) override;
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, gmpi_gui::IMpOkCancelDialog);
-		GMPI_REFCOUNT;
+		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, gmpi_gui::IMpOkCancelDialog)
+		GMPI_REFCOUNT
 	};
 
 
@@ -694,8 +694,8 @@ public:
 		return gmpi::MP_OK;
 	}
 
-	GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT, gmpi_gui::IMpPlatformText);
-	GMPI_REFCOUNT;
+	GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT, gmpi_gui::IMpPlatformText)
+	GMPI_REFCOUNT
 };
 #endif
 

@@ -145,5 +145,5 @@ public:
 		return SE2::ViewBase::queryInterface(iid, returnInterface);
 	}
 
-	GMPI_REFCOUNT;
+	GMPI_REFCOUNT
 };

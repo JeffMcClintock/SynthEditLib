@@ -181,7 +181,7 @@ namespace se
 				return native_;
 			}
 
-			GMPI_REFCOUNT;
+			GMPI_REFCOUNT
 		};
 
 		// Classes with GetFactory()
@@ -411,8 +411,8 @@ namespace se
                 *factory = factory_;
             }
             
-            GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_SOLIDCOLORBRUSH_MPGUI, GmpiDrawing_API::IMpSolidColorBrush);
-			GMPI_REFCOUNT;
+            GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_SOLIDCOLORBRUSH_MPGUI, GmpiDrawing_API::IMpSolidColorBrush)
+			GMPI_REFCOUNT
 		};
 
 		class GradientStopCollection : public CocoaWrapperWithFactory<GmpiDrawing_API::IMpGradientStopCollection, nothing>
@@ -427,7 +427,7 @@ namespace se
 					gradientstops.push_back(gradientStops[i]);
 				}
 			}
-			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_GRADIENTSTOPCOLLECTION_MPGUI, GmpiDrawing_API::IMpGradientStopCollection);
+			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_GRADIENTSTOPCOLLECTION_MPGUI, GmpiDrawing_API::IMpGradientStopCollection)
 		};
 
         class Gradient
@@ -558,8 +558,8 @@ namespace se
                 *factory = factory_;
             }
 
-			GMPI_REFCOUNT;
-			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_LINEARGRADIENTBRUSH_MPGUI, GmpiDrawing_API::IMpLinearGradientBrush);
+			GMPI_REFCOUNT
+			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_LINEARGRADIENTBRUSH_MPGUI, GmpiDrawing_API::IMpLinearGradientBrush)
 		};
 
 		class RadialGradientBrush : public GmpiDrawing_API::IMpRadialGradientBrush, public CocoaBrushBase, public Gradient
@@ -679,8 +679,8 @@ namespace se
                 *factory = factory_;
             }
             
-			GMPI_REFCOUNT;
-			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_RADIALGRADIENTBRUSH_MPGUI, GmpiDrawing_API::IMpRadialGradientBrush);
+			GMPI_REFCOUNT
+			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_RADIALGRADIENTBRUSH_MPGUI, GmpiDrawing_API::IMpRadialGradientBrush)
 		};
 
 		class TextFormat: public GmpiDrawing_API::IMpTextFormat // : public CocoaWrapper<GmpiDrawing_API::IMpTextFormat, const __CFDictionary>
@@ -927,8 +927,8 @@ namespace se
 				return useLegacyBaseLineSnapping;
 			}
 
-			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_TEXTFORMAT_MPGUI, GmpiDrawing_API::IMpTextFormat);
-			GMPI_REFCOUNT;
+			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_TEXTFORMAT_MPGUI, GmpiDrawing_API::IMpTextFormat)
+			GMPI_REFCOUNT
 		};
 
 
@@ -957,8 +957,8 @@ namespace se
 				return (uint8_t)((t + 1 + (t >> 8)) >> 8); // fast way to divide by 255
 			}
 
-            GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_BITMAP_PIXELS_MPGUI, GmpiDrawing_API::IMpBitmapPixels);
-			GMPI_REFCOUNT;
+            GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_BITMAP_PIXELS_MPGUI, GmpiDrawing_API::IMpBitmapPixels)
+			GMPI_REFCOUNT
 		};
 
 		class Bitmap : public GmpiDrawing_API::IMpBitmap
@@ -1118,8 +1118,8 @@ return gmpi::MP_FAIL;
 				*rfactory = factory;
 			}
 
-			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, GmpiDrawing_API::IMpBitmap);
-			GMPI_REFCOUNT;
+			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_BITMAP_MPGUI, GmpiDrawing_API::IMpBitmap)
+			GMPI_REFCOUNT
 		};
 
         class BitmapBrush : public GmpiDrawing_API::IMpBitmapBrush, public CocoaBrushBase
@@ -1173,8 +1173,8 @@ return gmpi::MP_FAIL;
                 *factory = factory_;
             }
             
-            GMPI_REFCOUNT;
-            GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_BITMAPBRUSH_MPGUI, GmpiDrawing_API::IMpBitmapBrush);
+            GMPI_REFCOUNT
+            GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_BITMAPBRUSH_MPGUI, GmpiDrawing_API::IMpBitmapBrush)
         };
 
 		class GeometrySink : public gmpi::generic_graphics::GeometrySink
@@ -1248,7 +1248,7 @@ return gmpi::MP_FAIL;
 				*returnInterface = 0;
 				return gmpi::MP_NOSUPPORT;
 			}
-   			GMPI_REFCOUNT;
+   			GMPI_REFCOUNT
 		};
 
 
@@ -1379,8 +1379,8 @@ return gmpi::MP_FAIL;
                 applyDashStyleToPath(geometry_, strokeStyle, strokeWidth);
             }
             
-			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_PATHGEOMETRY_MPGUI, GmpiDrawing_API::IMpPathGeometry);
-			GMPI_REFCOUNT;
+			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_PATHGEOMETRY_MPGUI, GmpiDrawing_API::IMpPathGeometry)
+			GMPI_REFCOUNT
 		};
 
 		class GraphicsContext : public GmpiDrawing_API::IMpDeviceContext
@@ -2050,7 +2050,7 @@ return gmpi::MP_FAIL;
 */
 			//	void MP_STDCALL InsetNewMethodHere(){}
 
-			// GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI, GmpiDrawing_API::IMpDeviceContext);
+			// GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI, GmpiDrawing_API::IMpDeviceContext)
             int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
             {
                 *returnInterface = 0;
@@ -2193,7 +2193,7 @@ return gmpi::MP_FAIL;
 				}
 			}
 
-			GMPI_REFCOUNT;
+			GMPI_REFCOUNT
 		};
 
 		inline int32_t MP_STDCALL GraphicsContext::CreateCompatibleRenderTarget(const GmpiDrawing_API::MP1_SIZE* desiredSize, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget)

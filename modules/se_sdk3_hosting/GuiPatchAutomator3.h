@@ -31,6 +31,6 @@ public:
 	int32_t setParameter(int32_t parameterHandle, int32_t fieldId, int32_t voice, const void* data, int32_t size) override;
 
 	GMPI_QUERYINTERFACE2(gmpi::MP_IID_PARAMETER_OBSERVER, gmpi::IMpParameterObserver, SeGuiInvisibleBase);
-	GMPI_REFCOUNT; // not deleting in SE _NO_DELETE;
+	GMPI_REFCOUNT // not deleting in SE _NO_DELETE;
 };
 

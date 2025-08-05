@@ -618,5 +618,5 @@ public:
 #endif
 
     GMPI_QUERYINTERFACE_METHOD(gmpi::api::IKeyListenerCallback);
-	GMPI_REFCOUNT;
+	GMPI_REFCOUNT
 }; 

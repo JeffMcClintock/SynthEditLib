@@ -106,8 +106,8 @@ public:
 		return read((void*) buffer, (int64_t) size);
 	}
 
-	GMPI_QUERYINTERFACE1(gmpi::MP_IID_PROTECTED_FILE2, gmpi::IProtectedFile2);
-	GMPI_REFCOUNT;
+	GMPI_QUERYINTERFACE1(gmpi::MP_IID_PROTECTED_FILE2, gmpi::IProtectedFile2)
+	GMPI_REFCOUNT
 };
 
 class ProtectedMemFile2 :
@@ -167,8 +167,8 @@ public:
 		return gmpi::MP_OK;
 	}
 
-	GMPI_QUERYINTERFACE1(gmpi::MP_IID_PROTECTED_FILE2, gmpi::IProtectedFile2);
-	GMPI_REFCOUNT;
+	GMPI_QUERYINTERFACE1(gmpi::MP_IID_PROTECTED_FILE2, gmpi::IProtectedFile2)
+	GMPI_REFCOUNT
 };
 
 inline ProtectedFile2* ProtectedFile2::FromUri(const char* fullUri, const char* mode)

@@ -964,7 +964,7 @@ public:
 
 	const std::string& str();
 
-	GMPI_QUERYINTERFACE1(gmpi::MP_IID_RETURNSTRING, gmpi::IString);
+	GMPI_QUERYINTERFACE1(gmpi::MP_IID_RETURNSTRING, gmpi::IString)
 	GMPI_REFCOUNT_NO_DELETE;
 };
 
@@ -996,7 +996,7 @@ public:
 		return static_cast<gmpi::IMpUnknown*>( this );
 	}
 
-	GMPI_QUERYINTERFACE1(gmpi::MP_IID_RETURNSTRING, gmpi::IString);
+	GMPI_QUERYINTERFACE1(gmpi::MP_IID_RETURNSTRING, gmpi::IString)
 	GMPI_REFCOUNT_NO_DELETE;
 };
 */

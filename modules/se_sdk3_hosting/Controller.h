@@ -70,8 +70,8 @@ public:
 		*/
 	}
 
-	GMPI_QUERYINTERFACE1(gmpi::MP_IID_PARAMETER_OBSERVER, gmpi::IMpParameterObserver);
-	GMPI_REFCOUNT;
+	GMPI_QUERYINTERFACE1(gmpi::MP_IID_PARAMETER_OBSERVER, gmpi::IMpParameterObserver)
+	GMPI_REFCOUNT
 };
 
 class MpController;

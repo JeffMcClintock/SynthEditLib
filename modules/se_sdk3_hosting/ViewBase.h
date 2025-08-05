@@ -212,7 +212,7 @@ bool isIteratingChildren = false;
 
 			return gmpi_gui::MpGuiGfxBase::queryInterface(iid, returnInterface);
 		}
-		GMPI_REFCOUNT;
+		GMPI_REFCOUNT
 	};
 
 	class SelectionDragBox : public ViewChild

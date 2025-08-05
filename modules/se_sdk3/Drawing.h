@@ -1187,12 +1187,12 @@ namespace GmpiDrawing
 			a = pAlpha;
 		}
 
-		Color(uint32_t rgb, float a = 1.0) // why unsigned if upper 8 bits ignored ignored anyhow?
+		Color(uint32_t rgb, float alpha = 1.0) // why unsigned if upper 8 bits ignored ignored anyhow?
 		{
 			InitFromSrgba(
 				static_cast<uint8_t>((rgb & sc_redMask)   >> sc_redShift),
 				static_cast<uint8_t>((rgb & sc_greenMask) >> sc_greenShift),
-				static_cast<uint8_t>((rgb & sc_blueMask)  >> sc_blueShift), a);
+				static_cast<uint8_t>((rgb & sc_blueMask)  >> sc_blueShift), alpha);
 		}
 
 		Color(Enum c)
@@ -1622,7 +1622,7 @@ namespace GmpiDrawing
 	class TextFormat_readonly : public GmpiSdk::Internal::Object
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(TextFormat_readonly, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpTextFormat);
+		GMPIGUISDK_DEFINE_CLASS(TextFormat_readonly, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpTextFormat)
 
 		inline Size GetTextExtentU(const char* utf8String)
 		{
@@ -1706,7 +1706,7 @@ namespace GmpiDrawing
 	class BitmapPixels : public GmpiSdk::Internal::Object
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(BitmapPixels, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpBitmapPixels);
+		GMPIGUISDK_DEFINE_CLASS(BitmapPixels, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpBitmapPixels)
 
 		inline uint8_t* getAddress()
 		{
@@ -1766,7 +1766,7 @@ namespace GmpiDrawing
 	class Resource : public GmpiSdk::Internal::Object
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(Resource, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpResource);
+		GMPIGUISDK_DEFINE_CLASS(Resource, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpResource)
 
 		inline GmpiDrawing_API::IMpFactory* GetFactory()
 		{
@@ -1779,7 +1779,7 @@ namespace GmpiDrawing
 	class Bitmap : public Resource
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(Bitmap, Resource, GmpiDrawing_API::IMpBitmap);
+		GMPIGUISDK_DEFINE_CLASS(Bitmap, Resource, GmpiDrawing_API::IMpBitmap)
 
 		void operator=(const Bitmap& other) { m_ptr = const_cast<GmpiDrawing::Bitmap*>(&other)->Get(); }
 
@@ -1859,7 +1859,7 @@ namespace GmpiDrawing
 	class GradientStopCollection : public Resource
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(GradientStopCollection, Resource, GmpiDrawing_API::IMpGradientStopCollection);
+		GMPIGUISDK_DEFINE_CLASS(GradientStopCollection, Resource, GmpiDrawing_API::IMpGradientStopCollection)
 
 		//inline uint32_t GetGradientStopCount()
 		//{
@@ -1870,13 +1870,13 @@ namespace GmpiDrawing
 	class Brush : public Resource
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(Brush, Resource, GmpiDrawing_API::IMpBrush);
+		GMPIGUISDK_DEFINE_CLASS(Brush, Resource, GmpiDrawing_API::IMpBrush)
 	};
 
 	class BitmapBrush : public Brush
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(BitmapBrush, Brush, GmpiDrawing_API::IMpBitmapBrush);
+		GMPIGUISDK_DEFINE_CLASS(BitmapBrush, Brush, GmpiDrawing_API::IMpBitmapBrush)
 
 		inline void SetExtendModeX(ExtendMode extendModeX)
 		{
@@ -1897,7 +1897,7 @@ namespace GmpiDrawing
 	class SolidColorBrush : public Brush
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(SolidColorBrush, Brush, GmpiDrawing_API::IMpSolidColorBrush);
+		GMPIGUISDK_DEFINE_CLASS(SolidColorBrush, Brush, GmpiDrawing_API::IMpSolidColorBrush)
 
 		inline void SetColor(Color color)
 		{
@@ -1913,7 +1913,7 @@ namespace GmpiDrawing
 	class LinearGradientBrush : public Brush
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(LinearGradientBrush, Brush, GmpiDrawing_API::IMpLinearGradientBrush);
+		GMPIGUISDK_DEFINE_CLASS(LinearGradientBrush, Brush, GmpiDrawing_API::IMpLinearGradientBrush)
 
 		inline void SetStartPoint(Point startPoint)
 		{
@@ -1929,7 +1929,7 @@ namespace GmpiDrawing
 	class RadialGradientBrush : public Brush
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(RadialGradientBrush, Brush, GmpiDrawing_API::IMpRadialGradientBrush);
+		GMPIGUISDK_DEFINE_CLASS(RadialGradientBrush, Brush, GmpiDrawing_API::IMpRadialGradientBrush)
 
 		inline void SetCenter(Point center)
 		{
@@ -1956,13 +1956,13 @@ namespace GmpiDrawing
 	class Geometry : public Resource
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(Geometry, Resource, GmpiDrawing_API::IMpGeometry);
+		GMPIGUISDK_DEFINE_CLASS(Geometry, Resource, GmpiDrawing_API::IMpGeometry)
 	};
 
 	class RectangleGeometry : public Geometry
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(RectangleGeometry, Geometry, GmpiDrawing_API::IMpRectangleGeometry);
+		GMPIGUISDK_DEFINE_CLASS(RectangleGeometry, Geometry, GmpiDrawing_API::IMpRectangleGeometry)
 
 		void GetRect(Rect& rect)
 		{
@@ -1973,7 +1973,7 @@ namespace GmpiDrawing
 	class RoundedRectangleGeometry : public Geometry
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(RoundedRectangleGeometry, Geometry, GmpiDrawing_API::IMpRoundedRectangleGeometry);
+		GMPIGUISDK_DEFINE_CLASS(RoundedRectangleGeometry, Geometry, GmpiDrawing_API::IMpRoundedRectangleGeometry)
 
 		inline void GetRoundedRect(RoundedRect& roundedRect)
 		{
@@ -1984,7 +1984,7 @@ namespace GmpiDrawing
 	class EllipseGeometry : public Geometry
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(EllipseGeometry, Geometry, GmpiDrawing_API::IMpEllipseGeometry);
+		GMPIGUISDK_DEFINE_CLASS(EllipseGeometry, Geometry, GmpiDrawing_API::IMpEllipseGeometry)
 
 		inline void GetEllipse(Ellipse& ellipse)
 		{
@@ -1996,7 +1996,7 @@ namespace GmpiDrawing
 	class SimplifiedGeometrySink : public GmpiSdk::Internal::Object
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(SimplifiedGeometrySink, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpSimplifiedGeometrySink);
+		GMPIGUISDK_DEFINE_CLASS(SimplifiedGeometrySink, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpSimplifiedGeometrySink)
 
 		inline void BeginFigure(Point startPoint, FigureBegin figureBegin = FigureBegin::Hollow)
 		{
@@ -2032,7 +2032,7 @@ namespace GmpiDrawing
 	class GeometrySink : public SimplifiedGeometrySink
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(GeometrySink, SimplifiedGeometrySink, GmpiDrawing_API::IMpGeometrySink);
+		GMPIGUISDK_DEFINE_CLASS(GeometrySink, SimplifiedGeometrySink, GmpiDrawing_API::IMpGeometrySink)
 
 		inline void AddLine(Point point)
 		{
@@ -2074,13 +2074,13 @@ namespace GmpiDrawing
 	class StrokeStyle : public Resource
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(StrokeStyle, Resource, GmpiDrawing_API::IMpStrokeStyle);
+		GMPIGUISDK_DEFINE_CLASS(StrokeStyle, Resource, GmpiDrawing_API::IMpStrokeStyle)
 	};
 
 	class PathGeometry : public Resource
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(PathGeometry, Resource, GmpiDrawing_API::IMpPathGeometry);
+		GMPIGUISDK_DEFINE_CLASS(PathGeometry, Resource, GmpiDrawing_API::IMpPathGeometry)
 
 		inline GeometrySink Open()
 		{
@@ -2121,7 +2121,7 @@ namespace GmpiDrawing
 	class TessellationSink : public GmpiSdk::Internal::Object
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(TessellationSink, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpTessellationSink);
+		GMPIGUISDK_DEFINE_CLASS(TessellationSink, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpTessellationSink)
 
 		void AddTriangles(const GmpiDrawing_API::MP1_TRIANGLE* triangles, uint32_t trianglesCount)
 		{
@@ -2143,7 +2143,7 @@ namespace GmpiDrawing
 	class Mesh : public Resource
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(Mesh, Resource, GmpiDrawing_API::IMpMesh);
+		GMPIGUISDK_DEFINE_CLASS(Mesh, Resource, GmpiDrawing_API::IMpMesh)
 
 		inline TessellationSink Open()
 		{
@@ -2159,7 +2159,7 @@ namespace GmpiDrawing
 		gmpi_sdk::mp_shared_ptr<GmpiDrawing_API::IMpFactory2> factory2;
 
 	public:
-		GMPIGUISDK_DEFINE_CLASS(Factory, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpFactory);
+		GMPIGUISDK_DEFINE_CLASS(Factory, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpFactory)
 
 		inline PathGeometry CreatePathGeometry()
 		{
@@ -2379,7 +2379,7 @@ namespace GmpiDrawing
 	class Graphics_base : public Resource
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(Graphics_base, Resource, GmpiDrawing_API::IMpDeviceContext);
+		GMPIGUISDK_DEFINE_CLASS(Graphics_base, Resource, GmpiDrawing_API::IMpDeviceContext)
 
 /*
 		inline Bitmap CreateBitmap(SizeU size, BitmapProperties& bitmapProperties)
@@ -2927,7 +2927,7 @@ namespace GmpiDrawing
 	class TessellationSink : public GmpiSdk::Internal::Object
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(TessellationSink, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpTessellationSink);
+		GMPIGUISDK_DEFINE_CLASS(TessellationSink, GmpiSdk::Internal::Object, GmpiDrawing_API::IMpTessellationSink)
 
 		void AddTriangles(Triangle& triangles, uint32_t trianglesCount)
 		{
@@ -2944,7 +2944,7 @@ namespace GmpiDrawing
 	class BitmapRenderTarget : public Graphics_base
 	{
 	public:
-		GMPIGUISDK_DEFINE_CLASS(BitmapRenderTarget, Graphics_base, GmpiDrawing_API::IMpBitmapRenderTarget);
+		GMPIGUISDK_DEFINE_CLASS(BitmapRenderTarget, Graphics_base, GmpiDrawing_API::IMpBitmapRenderTarget)
 
 		Bitmap GetBitmap()
 		{

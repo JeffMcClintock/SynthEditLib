@@ -142,7 +142,7 @@ namespace SE2
 			GMPI_QUERYINTERFACE(synthedit::IEmbeddedFileSupport);
 			return gmpi::ReturnCode::NoSupport;
 		}
-		GMPI_REFCOUNT;
+		GMPI_REFCOUNT
 	};
 
 	class ModuleView : public

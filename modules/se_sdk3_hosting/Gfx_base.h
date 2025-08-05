@@ -100,8 +100,8 @@ namespace gmpi
 				*pfactory = factory;
 			}
 
-			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_STROKESTYLE_MPGUI, GmpiDrawing_API::IMpStrokeStyle);
-			GMPI_REFCOUNT;
+			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_STROKESTYLE_MPGUI, GmpiDrawing_API::IMpStrokeStyle)
+			GMPI_REFCOUNT
 		};
 
 		// Provide fallback implementations of Arcs, Quadratic beziers, and bulk operations.
@@ -327,8 +327,8 @@ namespace gmpi
 				}
 			}
 
-			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_GEOMETRYSINK_MPGUI, GmpiDrawing_API::IMpGeometrySink);
-			GMPI_REFCOUNT;
+			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_GEOMETRYSINK_MPGUI, GmpiDrawing_API::IMpGeometrySink)
+			GMPI_REFCOUNT
 		};
 
 		class GraphicsContext : public GmpiDrawing_API::IMpDeviceContext
@@ -558,7 +558,7 @@ namespace gmpi
 			{
 				return gmpi::MP_OK;
 			}
-			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI, GmpiDrawing_API::IMpDeviceContext);
+			GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI, GmpiDrawing_API::IMpDeviceContext)
 			GMPI_REFCOUNT_NO_DELETE;
 		};
 
