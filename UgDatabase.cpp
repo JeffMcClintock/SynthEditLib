@@ -1250,11 +1250,12 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(MIDI2Converter);
 	INIT_STATIC_FILE(MPEToMIDI2);
 	INIT_STATIC_FILE(Blob2Test);
-	
+    
+#if SE_GRAPHICS_SUPPORT
 	// temporarily built in SELib to make iterating on this quicker
 	INIT_STATIC_FILE(GmpiUiTest);
 	INIT_STATIC_FILE(CadmiumModules);
-
+#endif
 	// You can include extra plugin-specific modules by placing this define in projucer 'Extra Preprocessor Definitions'
 	// e.g. SE_EXTRA_STATIC_FILE_CPP="../PROJECT_NAME/Resources/module_static_link.cpp"
 #ifdef SE_EXTRA_STATIC_FILE_CPP

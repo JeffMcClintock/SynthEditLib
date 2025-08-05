@@ -699,4 +699,5 @@ target_compile_definitions (${PROJECT_NAME} PRIVATE
 target_compile_definitions(
   ${PROJECT_NAME} PUBLIC 
   USE_SIMD_UTF_CONVERSION
+  SE_GRAPHICS_SUPPORT=${SE_GRAPHICS_SUPPORT}
 )
