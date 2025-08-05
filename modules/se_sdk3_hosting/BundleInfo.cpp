@@ -47,16 +47,16 @@ std::string expandTilde(const char* str) {
 }
 
 // ~/Library/Application Support/
-//std::string settingsPath() {
-//    char path[PATH_MAX];
-//    auto state = sysdir_start_search_path_enumeration(SYSDIR_DIRECTORY_APPLICATION_SUPPORT,
-//                                                      SYSDIR_DOMAIN_MASK_USER);
-//    if ((state = sysdir_get_next_search_path_enumeration(state, path))) {
-//        return expandTilde(path);
-//    } else {
-//        return {};
-//    }
-//}
+std::string settingsPath() {
+    char path[PATH_MAX];
+    auto state = sysdir_start_search_path_enumeration(SYSDIR_DIRECTORY_APPLICATION_SUPPORT,
+                                                      SYSDIR_DOMAIN_MASK_USER);
+    if ((state = sysdir_get_next_search_path_enumeration(state, path))) {
+        return expandTilde(path);
+    } else {
+        return {};
+    }
+}
 
 // inspired by: public.sdk/source/vst/vstguieditor.cpp
 //void* gBundleRef = 0;
@@ -132,6 +132,37 @@ BundleInfo* BundleInfo::instance()
 BundleInfo::BundleInfo()
 {
     initPluginInfo();
+}
+
+std::string getPlatformPluginsFolder()
+{
+#ifdef _WIN32
+    char path[MAX_PATH];
+    SHGetFolderPathA(NULL, CSIDL_PROGRAM_FILES_COMMON, NULL, SHGFP_TYPE_CURRENT, path);
+    return path;
+#else
+    return "/Library/Audio/Plugins/";
+#endif
+}
+
+std::string getSettingsFolder()
+{
+#ifdef _WIN32
+    char path[MAX_PATH];
+    SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, SHGFP_TYPE_CURRENT, path);
+    return path;
+#else
+    // ~/Library/Application Support/
+    char path[PATH_MAX];
+    auto state = sysdir_start_search_path_enumeration(SYSDIR_DIRECTORY_APPLICATION_SUPPORT,
+        SYSDIR_DOMAIN_MASK_USER);
+    if ((state = sysdir_get_next_search_path_enumeration(state, path))) {
+        return expandTilde(path);
+    }
+    else {
+        return {};
+    }
+#endif
 }
 
 std::wstring BundleInfo::getSemFolder()
@@ -269,18 +300,14 @@ std::wstring BundleInfo::getUserDocumentFolder()
 #endif
 }
 
+
 void BundleInfo::initPresetFolder(const char* manufacturer, const char* product)
 {
 #ifdef _WIN32
     std::wstring res{ L"C:\\ProgramData\\" };
 #else
-//#if defined( GMPI_IS_PLATFORM_JUCE )
 	// "~/Library/Application Support/" solves issues with permissions in macOS
     auto res = Utf8ToWstring(settingsPath()) + PLATFORM_PATH_SLASH_L;
-//#else
-//    std::wstring res{ L"/Library/Application Support/" };
-//#endif
-
 #endif
 
     res += Utf8ToWstring(manufacturer) + PLATFORM_PATH_SLASH_L + Utf8ToWstring(product) + PLATFORM_PATH_SLASH_L;

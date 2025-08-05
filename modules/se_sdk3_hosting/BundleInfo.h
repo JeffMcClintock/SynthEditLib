@@ -9,15 +9,15 @@ BundleInfo::instance()->getResource("whatever");
 
 #include <string>
 #include <vector>
-#ifdef SELIB_HAS_FILESYSTEM
-#include <filesystem>
-#endif
 #include "ElatencyContraintType.h"
 
 #if !defined( _WIN32 )
 #include <CoreFoundation/CFBundle.h>
 CFBundleRef CreatePluginBundleRef();
 #endif
+
+std::string getSettingsFolder();
+std::string getPlatformPluginsFolder();
 
 class BundleInfo
 {
@@ -43,7 +43,6 @@ public:
 private:
     pluginInformation info_ = {};
     
-//    void initPluginInfoFromWrappedSem();
     void initPluginInfo();
     BundleInfo();
     
