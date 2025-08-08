@@ -43,9 +43,13 @@ protected:
 
 public:
     //==============================================================================
-    SE2JUCE_Processor(std::unique_ptr<SeJuceController> pcontroller, std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter = {});
+    SE2JUCE_Processor(std::unique_ptr<SeJuceController> pcontroller = {}, std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter = {});
     ~SE2JUCE_Processor() override;
 
+    IGuiHost2& getController()
+    {
+		return *controller.get();
+    }
     // IShellServices interface
     void onSetParameter(int32_t handle, int32_t field, RawView rawValue, int voiceId) override
     {
@@ -70,6 +74,7 @@ public:
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
     //==============================================================================
+	std::function<juce::AudioProcessorEditor*(void)> createEditorFunction; // allow custom editor creation
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
 

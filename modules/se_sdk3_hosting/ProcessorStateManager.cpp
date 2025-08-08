@@ -208,16 +208,16 @@ void DawPreset::initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, 
 		// !!! TODO: Check 4-char ID correct.
 		//const int voiceId = 0;
 
-		const char* temp{};
-		//presetXmlElement->QueryStringAttribute("category", &category);
-		if (tinyxml2::XML_SUCCESS == presetXmlElement->QueryStringAttribute("category", &temp))
 		{
-			category = temp;
-		}
-		//presetXmlElement->QueryStringAttribute("name", &name);
-		if (tinyxml2::XML_SUCCESS == presetXmlElement->QueryStringAttribute("name", &temp))
-		{
-			name = temp;
+			const char* temp{};
+			if (tinyxml2::XML_SUCCESS == presetXmlElement->QueryStringAttribute("category", &temp))
+			{
+				category = temp;
+			}
+			if (tinyxml2::XML_SUCCESS == presetXmlElement->QueryStringAttribute("name", &temp))
+			{
+				name = temp;
+			}
 		}
 
 		// assuming we are passed "Preset.Parameters" node.

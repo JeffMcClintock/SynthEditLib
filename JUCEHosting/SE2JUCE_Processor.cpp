@@ -12,6 +12,7 @@ SE2JUCE_Processor::SE2JUCE_Processor(
     std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter
 ) :
     controller(std::move(pController))
+    , createEditorFunction([this]() { return new SynthEditEditor(*this, *controller.get()); })
 
     // init the midi converter
     ,midiConverter(
@@ -465,7 +466,7 @@ bool SE2JUCE_Processor::hasEditor() const
 
 juce::AudioProcessorEditor* SE2JUCE_Processor::createEditor()
 {
-    return new SynthEditEditor(*this, *controller.get());
+    return createEditorFunction();
 }
 
 //==============================================================================
