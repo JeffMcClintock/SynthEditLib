@@ -645,6 +645,9 @@ void SeAudioMaster::DoProcess_editor(int sampleframes, const float* const* input
 		// Handle IO Events.
 		if (m_sample_clock == block_start_clock)
 		{
+#if 1
+			assert(events.empty());
+#else
 			// events allowed only on host-block boundary
 			assert(!events.empty());
 			SynthEditEvent* next_event = events.front();
@@ -657,6 +660,12 @@ void SeAudioMaster::DoProcess_editor(int sampleframes, const float* const* input
 				delete_SynthEditEvent(next_event);
 				assert(!events.empty());
 				next_event = events.front();
+			}
+#endif
+			if (m_sample_clock == cpu_func_ts)
+			{
+				CpuFunc();
+				cpu_func_ts = m_sample_clock + BlockSize() * cpu_block_rate;
 			}
 		}
 
@@ -2391,7 +2400,7 @@ void SeAudioMaster::CpuFunc()
 	AudioMasterBase::CpuFunc();
 
 	// TODO:: eliminate RunDelayed, just use a dedicated event for CPU metering.
-	RunDelayed(SampleClock() + BlockSize() * cpu_block_rate, static_cast <ug_func> (&SeAudioMaster::CpuFunc));
+//	RunDelayed(SampleClock() + BlockSize() * cpu_block_rate, static_cast <ug_func> (&SeAudioMaster::CpuFunc));
 }
 
 lookup_table_entry::lookup_table_entry( void* p_pluginInstance, std::wstring p_name, int p_sample_rate, bool integer_table, size_t p_size ) :

@@ -23,6 +23,9 @@ HoverScopeAudioCollector::HoverScopeAudioCollector(
 
 void HoverScopeAudioCollector::process(int blockPosition, int sampleFrames)
 {
+	if (!buffer)
+		return;
+
 	// get pointers to in/output buffers
 	auto signalA = buffer + blockPosition;
 

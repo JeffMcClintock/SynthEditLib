@@ -330,8 +330,24 @@ void Module_Info::RegisterParameters(TiXmlNode* parameters) // XML data passed i
 		std::string pin_datatype = FixNullCharPtr(pData2->Attribute("datatype"));
 		// Name.
 		pind->name = Utf8ToWstring(pData2->Attribute("name"));
-		// File extension or enum list.
-		pind->metaData = Utf8ToWstring(pData2->Attribute("metadata"));
+
+		const auto metadataPtr = pData2->Attribute("metadata");
+		if (metadataPtr)
+		{
+			// File extension, enum list or range.
+			pind->metaData = Utf8ToWstring(metadataPtr);
+		}
+		else
+		{
+			// check for min/max range.
+			const auto minPtr = pData2->Attribute("min");
+			const auto maxPtr = pData2->Attribute("max");
+			if (minPtr || maxPtr)
+			{
+				pind->metaData = Utf8ToWstring(minPtr ? minPtr : "0") + L"," + Utf8ToWstring(maxPtr ? maxPtr : "10");
+			}
+		}
+
 		// Default.
 		pind->defaultValue = Utf8ToWstring(pData2->Attribute("default"));
 

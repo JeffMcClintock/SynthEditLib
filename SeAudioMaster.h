@@ -560,6 +560,7 @@ public:
 	timestamp_t block_start_clock;
 	timestamp_t next_master_clock;
 	timestamp_t host_block_start_clock;
+	timestamp_t cpu_func_ts{};
 
 	std::atomic<bool> interrupt_flag = {};
 	std::atomic<bool> interupt_start_fade_out = {};
