@@ -675,11 +675,7 @@ void Module_Info::RegisterPin(TiXmlElement* pin, module_info_pins_t* pinlist, in
 	int parameterFieldId = FT_VALUE;
 	int expectedPinDatatype = -1;
 	{
-		// parameter ID. Defaults to same as pin ID, but can be overridden.
-		// Pins can be driven from patch-store.
-
-		const auto parameterIdAt = pin->Attribute("parameterId");
-		if (parameterIdAt)
+		if (const auto parameterIdAt = pin->Attribute("parameterId"); parameterIdAt)
 		{
 			sscanf(parameterIdAt, "%d", &parameterId);
 		}
@@ -690,8 +686,7 @@ void Module_Info::RegisterPin(TiXmlElement* pin, module_info_pins_t* pinlist, in
 		// parameterField.
 		if (!pind.hostConnect.empty() || parameterId != -1)
 		{
-			const auto parameterField = pin->Attribute("parameterField");
-			if (parameterField)
+			if (const auto parameterField = pin->Attribute("parameterField"); parameterField)
 			{
 				// field id can be stored as int (plugin XML), or as enum text (sems XML)
 				if (isdigit(*parameterField))
