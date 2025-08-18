@@ -136,6 +136,7 @@ void Module_Info3_base::ScanXml(TiXmlElement* pluginData)
 	}
 }
 
+// see also Import() in ModuleFactory_Editor.cpp
 void Module_Info::ScanXml(TiXmlElement* pluginData)
 {
 	m_unique_id = Utf8ToWstring(pluginData->Attribute("id"));

@@ -390,7 +390,12 @@ struct MetaData_ranged // provides hi/lo range
 				words.push_back(s2);
 			}
 		}
-		if (words.size() == 4)
+		if (words.size() == 2)
+		{
+			MyTypeTraits<T>::parse(words[0].c_str(), m_lo);
+			MyTypeTraits<T>::parse(words[1].c_str(), m_hi);
+		}
+		else if (words.size() == 4)
 		{
 			MyTypeTraits<T>::parse(words[2].c_str(), m_hi);
 			MyTypeTraits<T>::parse(words[3].c_str(), m_lo);
