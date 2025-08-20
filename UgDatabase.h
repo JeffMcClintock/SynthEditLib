@@ -36,7 +36,7 @@ public:
 	bool RegisterModule( module_description_dsp& p_module_desc );
 	bool RegisterModule( Module_Info* p_module_info );
 	void RegisterPluginsXml( const char* xmlFile );
-	void RegisterPluginsXml( class TiXmlNode* pluginList );
+	void RegisterPluginsXml(tinyxml2::XMLElement* pluginList );
 	void RegisterExternalPluginsXmlOnce(TiXmlNode*);
 
 	bool initializedFromXml = {};

@@ -3,7 +3,6 @@
 #include "ug_plugin3.h"
 #include "ug_gmpi.h"
 #include "BundleInfo.h"
-#include "tinyxml/tinyxml.h"
 #include "./modules/se_sdk3/MpString.h"
 #include "GmpiSdkCommon.h"
 #include "SafeMessageBox.h"
@@ -57,7 +56,6 @@ bool Module_Info3::LoadDllOnDemand()
 
 		LoadDll(); // load on demand
 
-//#if defined( SE_ED IT_SUPPORT )
 		if (dllHandle && isShellPlugin() && isSummary()) // shell plugins need info fleshed out.
 		{
 			if(auto factory = getFactory2(); factory)
@@ -77,32 +75,31 @@ bool Module_Info3::LoadDllOnDemand()
 					}
 
 					{
-						TiXmlDocument doc2;
+						tinyxml2::XMLDocument doc2;
 						doc2.Parse(s.c_str());
 						
 						if( doc2.Error() )
 						{
 							std::wostringstream oss;
-							oss << L"Module XML Error: [SynthEdit.exe]" << doc2.ErrorDesc() << L"." << doc2.Value();
+							oss << L"Module XML Error: [SynthEdit.exe]" << doc2.ErrorName() << L"." << doc2.Value();
 							SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
 							assert(false);
 						}
 						else
 						{
-							auto pluginList = doc2.FirstChild("PluginList");
+							auto pluginList = doc2.FirstChildElement("PluginList");
 							if (!pluginList)
 							{
 								return true; // fail
 							}
 
-							auto node = pluginList->FirstChild("Plugin");
-							if (!node)
+							auto PluginElement = pluginList->FirstChildElement("Plugin");
+							if (!PluginElement)
 							{
 								return true; // fail
 							}
 
 							// check for existing
-							auto PluginElement = node->ToElement();
 							std::wstring plugin_id = Utf8ToWstring(PluginElement->Attribute("id"));
 
 							// can be caused by saving the same dll with different unique ID. e.g. by saving PD303 from it's prefab twice. Without re-scanning VSTs.
@@ -118,7 +115,6 @@ bool Module_Info3::LoadDllOnDemand()
 				}
 			}
 		}
-//#endif
 	}
 
 	return !static_cast<bool>(dllHandle);

@@ -14,7 +14,7 @@ class Module_Info3_base : public Module_Info
 {
 public:
 	Module_Info3_base( const wchar_t* moduleId );
-	void ScanXml( class TiXmlElement* xmlData ) override;
+	void ScanXml(tinyxml2::XMLElement* xmlData ) override;
 	virtual ug_base* BuildSynthOb( void ) override;
 
 	void SetupPlugs();
@@ -31,6 +31,7 @@ public:
 	int ug_flags;
 	std::wstring m_description;
 	int m_window_type = MP_WINDOW_TYPE_NONE;
+	std::wstring macSemBundlePath; // record path to mac SEM, editor-only
 
 	inline static const MI3Flags flagNames[6] = {
 	{ "polyphonicSource"	, UGF_POLYPHONIC_GENERATOR,			UGF_POLYPHONIC_GENERATOR | UGF_POLYPHONIC },

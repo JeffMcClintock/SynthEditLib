@@ -10,7 +10,6 @@
 #include "ug_plugin3.h"
 #include "midi_defs.h"
 #include "HostControls.h"
-#include "tinyxml/tinyxml.h"
 #include "IPluginGui.h"
 #include "conversion.h"
 #include "UgDatabase.h"
@@ -52,15 +51,15 @@ Module_Info3_base::Module_Info3_base() :
 	SET_BITS(flags, CF_STRUCTURE_VIEW);
 }
 
-void SetPinFlag(const char* xml_name, int xml_flag, TiXmlElement* pin, int& flags)
-{
-	auto v = pin->Attribute(xml_name);
-
-	if (v && strcmp("true", v) == 0)
-	{
-		SET_BITS(flags, xml_flag);
-	}
-}
+//void SetPinFlag(const char* xml_name, int xml_flag, TiXmlElement* pin, int& flags)
+//{
+//	auto v = pin->Attribute(xml_name);
+//
+//	if (v && strcmp("true", v) == 0)
+//	{
+//		SET_BITS(flags, xml_flag);
+//	}
+//}
 void SetPinFlag(const char* xml_name, int xml_flag, tinyxml2::XMLElement* pin, int& flags)
 {
 	auto v = pin->Attribute(xml_name);
@@ -71,73 +70,71 @@ void SetPinFlag(const char* xml_name, int xml_flag, tinyxml2::XMLElement* pin, i
 	}
 }
 
-void Module_Info3_base::ScanXml(TiXmlElement* pluginData)
+struct GuiTech
 {
-	Module_Info::ScanXml(pluginData);
+	std::string name;
+	int32_t value;
+}; 
+
+const GuiTech guiTypes[] = {
+	{""				, 0							},
+	{"none"			, 0							},
+	{"GmpiGui"		, MP_WINDOW_TYPE_XP			},
+	{"composited"	, MP_WINDOW_TYPE_COMPOSITED	},
+	{"HWND"			, MP_WINDOW_TYPE_HWND		},
+	{"VSTGUI"		, MP_WINDOW_TYPE_VSTGUI		},
+	{"WPF-internal"	, MP_WINDOW_TYPE_WPF_INTERNAL},
+	{"Cadmium"	    , MP_WINDOW_TYPE_CADMIUM    },
+};
+
+void Module_Info3_base::ScanXml(tinyxml2::XMLElement* pluginE)
+{
+	Module_Info::ScanXml(pluginE);
 
 	for (auto& fn : flagNames)
 	{
-		SetPinFlag(fn.name, fn.writeFlags, pluginData, ug_flags);
+		SetPinFlag(fn.name, fn.writeFlags, pluginE, ug_flags);
 	}
 
-	std::string graphicsApi;
-
-	auto gui_plugin_class = pluginData->FirstChild("GUI");
-	// New. Graphics API specified on "GUI".
-	if (gui_plugin_class)
+//harmless in other situations.	if (CSynthEditDocBase::serializingMode == SERT_SEM_CACHE)
 	{
-		graphicsApi = FixNullCharPtr(gui_plugin_class->ToElement()->Attribute("graphicsApi"));
+//		macSemBundlePath[UniqueId()] = Utf8ToWstring(pluginE->Attribute("macSemBundlePath"));
+		macSemBundlePath = Utf8ToWstring(pluginE->Attribute("macSemBundlePath"));
 	}
 
-	// Legacy. Graphics API specified on "Plugin".
-	if (graphicsApi.empty())
+	auto guiX = pluginE->FirstChildElement("GUI");
+	if (guiX)
 	{
-		graphicsApi = FixNullCharPtr(pluginData->Attribute("graphicsApi"));
-	}
+		std::string graphicsApi = FixNullCharPtr(guiX->Attribute("graphicsApi"));
 
-	if (graphicsApi.empty() || graphicsApi.compare("none") == 0)
-	{
-//		flags |= CF_NON_VISIBLE;
-	}
-	else
-	{
-		static constexpr std::pair<int, const char*> graphicsApis[] =
+		// Legacy. Graphics API specified on "Plugin".
+		if (graphicsApi.empty())
 		{
-			{MP_WINDOW_TYPE_NONE, ""},
-			{MP_WINDOW_TYPE_NONE, "none"},
-			{MP_WINDOW_TYPE_XP, "GmpiGui"},
-			{MP_WINDOW_TYPE_COMPOSITED, "composited"},
-			{MP_WINDOW_TYPE_HWND, "HWND"},
-			{MP_WINDOW_TYPE_WPF_INTERNAL, "VSTGUI"},
-			{MP_WINDOW_TYPE_XP, "WPF-internal"},
-			{MP_WINDOW_TYPE_CADMIUM, "Cadmium"}
-		};
+			graphicsApi = FixNullCharPtr(pluginE->Attribute("graphicsApi"));
+		}
+
 		bool found = false;
-		for (auto& it : graphicsApis)
+		for (auto& gt : guiTypes)
 		{
-			if (graphicsApi.compare(it.second) == 0)
+			if (gt.name == graphicsApi)
 			{
+				m_window_type = gt.value;
 				found = true;
-				m_window_type = it.first;
-				if (m_window_type == MP_WINDOW_TYPE_WPF_INTERNAL)
-				{
-//					flags |= CF_NON_VISIBLE;
-				}
 				break;
 			}
 		}
 
-		if(!found)
+		if (!found)
 		{
 			std::wostringstream oss;
 			oss << L"module XML - 'graphicsApi' invalid. Legal: {none, composited, HWND, GmpiGui, WPF-internal}\n" << Filename();
-			Messagebox(oss);
+			SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
 		}
 	}
 }
 
 // see also Import() in ModuleFactory_Editor.cpp
-void Module_Info::ScanXml(TiXmlElement* pluginData)
+void Module_Info::ScanXml(tinyxml2::XMLElement* pluginData)
 {
 	m_unique_id = Utf8ToWstring(pluginData->Attribute("id"));
 
@@ -155,6 +152,7 @@ void Module_Info::ScanXml(TiXmlElement* pluginData)
 
 	m_group_name = Utf8ToWstring(pluginData->Attribute("category"));
 	helpUrl_ = Utf8ToWstring(pluginData->Attribute("helpUrl"));
+
 	std::string oldWindowType = FixNullCharPtr(pluginData->Attribute("windowType"));
 
 	if (!oldWindowType.empty())
@@ -164,16 +162,17 @@ void Module_Info::ScanXml(TiXmlElement* pluginData)
 
 	SetPinFlag("polyphonicSource", CF_NOTESOURCE | CF_DONT_EXPAND_CONTAINER, pluginData, flags);
 	SetPinFlag("alwaysExport", CF_ALWAYS_EXPORT, pluginData, flags);
+	SetPinFlag("shellPlugin", CF_SHELL_PLUGIN, pluginData, flags);
 
 	// get parameter info.
-	auto parameters = pluginData->FirstChild("Parameters");
+	auto parameters = pluginData->FirstChildElement("Parameters");
 
 	if (parameters)
 	{
 		RegisterParameters(parameters);
 	}
 
-	if (pluginData->FirstChild("Controller"))
+	if (pluginData->FirstChildElement("Controller"))
 	{
 		// nothing to do, just note it's existance. todo, hassle for now.
 		// m_controller_registered = true;
@@ -199,7 +198,7 @@ void Module_Info::ScanXml(TiXmlElement* pluginData)
 			break;
 		}
 
-		auto plugin_class = pluginData->FirstChild(sub_type_name);
+		auto plugin_class = pluginData->FirstChildElement(sub_type_name.c_str());
 
 		if (plugin_class)
 		{
@@ -221,14 +220,13 @@ void Module_Info::ScanXml(TiXmlElement* pluginData)
 				if (sub_type == gmpi::MP_SUB_TYPE_GUI && scanned_xml_gui)
 				{
 					// Override asssumptions made by RegisterPins() if need be.
-					TiXmlElement* guiElement = plugin_class->ToElement();
-					const char* s = guiElement->Attribute("DisplayOnPanel");
+					const char* s = plugin_class->Attribute("DisplayOnPanel");
 
 					if (s && strcmp(s, "false") == 0)
 					{
 						CLEAR_BITS(flags, CF_PANEL_VIEW);
 					}
-					s = guiElement->Attribute("DisplayOnStructure");
+					s = plugin_class->Attribute("DisplayOnStructure");
 
 					if (s && strcmp(s, "false") == 0)
 					{
@@ -253,14 +251,13 @@ void Module_Info::ScanXml(TiXmlElement* pluginData)
 		flags |= CF_STRUCTURE_VIEW;
 	}
 
-	auto patchPoints_xml = pluginData->FirstChild("PatchPoints");
+	auto patchPoints_xml = pluginData->FirstChildElement("PatchPoints");
 
 	if (patchPoints_xml)
 	{
-		for (auto param = patchPoints_xml->FirstChild("PatchPoint"); param; param = param->NextSibling("PatchPoint"))
+		for (auto param = patchPoints_xml->FirstChildElement("PatchPoint"); param; param = param->NextSiblingElement("PatchPoint"))
 		{
 			auto pData2 = param->ToElement();
-			//			auto pp = new patchpoint_description();
 
 			patchPoints.push_back(patchpoint_description());
 
@@ -310,7 +307,7 @@ void Module_Info::ScanXml(TiXmlElement* pluginData)
 
 #endif
 }
-
+#if 0
 void Module_Info::RegisterParameters(TiXmlNode* parameters) // XML data passed in.
 {
 	assert(scanned_xml_parameters == false && "Already scanned parameters");
@@ -448,6 +445,7 @@ void Module_Info::RegisterPins(TiXmlNode* plugin_data, int32_t plugin_sub_type) 
 
 	ScanPinXml(plugin_data, pinlist, plugin_sub_type);
 }
+#endif
 
 void Module_Info::RegisterParameters(tinyxml2::XMLElement* parameters) // XML data passed in.
 {
@@ -598,6 +596,7 @@ void Module_Info::ScanPinXml(tinyxml2::XMLElement* xmlObjects, module_info_pins_
 	}
 }
 
+#if 0
 void Module_Info::ScanPinXml(TiXmlNode* xmlObjects, module_info_pins_t* pinlist, int32_t plugin_sub_type) // XML data passed in.
 {
 	int nextPinId = 0;
@@ -911,6 +910,7 @@ void Module_Info::RegisterPin(TiXmlElement* pin, module_info_pins_t* pinlist, in
 		assert(res.second && "pin already registered");
 	}
 }
+#endif
 
 void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pinlist, int32_t plugin_sub_type, int& pin_id) // XML data passed in.
 {
@@ -929,48 +929,10 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 	pin->QueryIntAttribute("id", &(pin_id));
 	// name
 	pind.name = Utf8ToWstring(pin->Attribute("name"));
-	// datatype
-	std::string pin_datatype = FixNullCharPtr(pin->Attribute("datatype"));
-	std::string pin_rate = FixNullCharPtr(pin->Attribute("rate"));
-
-	// Datatype.
-	int temp;
-	if (XmlStringToDatatype(pin_datatype, temp))
-	{
-		pind.datatype = (EPlugDataType)temp;
-		if (pind.datatype == DT_CLASS) // e.g. "class:geometry"
-		{
-			if(pin_datatype.size() > 6)
-				pind.classname = pin_datatype.substr(6);
-		}
-	}
-	else
-	{
-		std::wostringstream oss;
-		oss << L"err. module XML file (" << Filename() << L"): parameter id " << pin_id << L" unknown datatype '" << Utf8ToWstring(pin_datatype) << L"'. Valid [float, int ,string, blob, midi ,bool ,enum ,double]";
-		Messagebox(oss);
-	}
 
 	// default
 	pind.default_value = Utf8ToWstring(pin->Attribute("default"));
 
-	if (pin_rate.compare("audio") == 0)
-	{
-		if (!pind.default_value.empty())
-		{
-			// multiply default by 10 (to Volts). DoubleToString() removes trilaing zeros.
-			pind.default_value = DoubleToString(10.0f * StringToFloat(pind.default_value));
-		}
-
-		pind.datatype = DT_FSAMPLE;
-
-		if (pin_datatype.compare("float") != 0)
-		{
-			std::wostringstream oss;
-			oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" audio-rate not supported.";
-			Messagebox(oss);
-		}
-	}
 
 	// direction
 	std::string pin_direction = FixNullCharPtr(pin->Attribute("direction"));
@@ -1034,6 +996,7 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 	// Pins can be driven from patch-store.
 	int parameterId = -1;
 	int parameterFieldId = FT_VALUE;
+	int expectedPinDatatype = -1;
 	std::wstring parameterIdString = Utf8ToWstring(pin->Attribute("parameterId"));
 
 	if (parameterIdString.empty())
@@ -1057,7 +1020,6 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 		if (parameterField.empty() || isdigit(parameterField[0]))
 		{
 			// In exported VST3s, just using int in XML. Faster, more compact.
-//			pin->QueryIntAttribute("parameterField", &parameterFieldId);
 			parameterFieldId = StringToInt(parameterField.c_str());
 		}
 		else
@@ -1070,40 +1032,138 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 				Messagebox(oss);
 			}
 		}
-	}
 
-	if (!pind.hostConnect.empty())
-	{
-		pind.flags |= IO_HOST_CONTROL | IO_HIDE_PIN;
-		HostControls hostControlId = (HostControls)StringToHostControl(pind.hostConnect.c_str());
-		if (hostControlId == HC_NONE)
+		if (parameterId != -1) // parameter pin
 		{
-			std::wostringstream oss;
-			oss << L"ERROR. module XML: '" << pind.hostConnect << L"' unknown HOST CONTROL.";
-			Messagebox(oss);
-		}
+			pind.flags |= (IO_PATCH_STORE | IO_HIDE_PIN);
 
-		if (parameterFieldId == FT_VALUE)
-		{
-			int expectedDatatype = GetHostControlDatatype(hostControlId);
-			if (expectedDatatype == DT_ENUM)
+			auto it = m_parameters.find(parameterId);
+			if (it != m_parameters.end())
 			{
-				expectedDatatype = DT_INT;
-			}
+				const auto param = *it->second;
 
-			if (parameterFieldId == FT_VALUE && expectedDatatype != -1 && expectedDatatype != pind.datatype)
+				expectedPinDatatype = getFieldDatatype((ParameterFieldType)parameterFieldId);
+				if (expectedPinDatatype == -1) // type must be same as parameter type
+				{
+					expectedPinDatatype = param.datatype;
+				}
+			}
+		}
+		else // host-connect pin
+		{
+			pind.flags |= IO_HOST_CONTROL | IO_HIDE_PIN;
+			const auto hostControlId = (HostControls)StringToHostControl(pind.hostConnect.c_str());
+
+			if (hostControlId == HC_NONE)
 			{
 				std::wostringstream oss;
-				oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" hostConnect wrong datatype. Expected: " << expectedDatatype;
+				oss << L"ERROR. module XML: '" << pind.hostConnect << L"' unknown HOST CONTROL.";
 				Messagebox(oss);
 			}
+			if (pind.direction != DR_IN && (hostControlId < HC_USER_SHARED_PARAMETER_INT0 || hostControlId > HC_USER_SHARED_PARAMETER_INT4))
+			{
+				std::wostringstream oss;
+				oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" hostConnect pin wrong direction. Expected: direction=\"in\"";
+				Messagebox(oss);
+			}
+
+			expectedPinDatatype = GetHostControlDatatype(hostControlId);
+		}
+	}
+
+	// Datatype.
+	{
+		if (expectedPinDatatype == DT_ENUM && MT_SDK3 == ModuleTechnology())
+		{
+			expectedPinDatatype = DT_INT;
 		}
 
-		if (pind.direction != DR_IN && (hostControlId < HC_USER_SHARED_PARAMETER_INT0 || hostControlId > HC_USER_SHARED_PARAMETER_INT4))
+		const auto dt = pin->Attribute("datatype");
+		if (dt)
 		{
-			std::wostringstream oss;
-			oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" hostConnect pin wrong direction. Expected: direction=\"in\"";
-			Messagebox(oss);
+			const std::string pin_datatype(dt);
+
+			int temp;
+			if (XmlStringToDatatype(pin_datatype, temp))
+			{
+				pind.datatype = (EPlugDataType)temp;
+
+				if (pind.datatype == DT_FLOAT)
+				{
+					if (const auto rate = pin->Attribute("rate"); rate && strcmp(rate, "audio") == 0)
+					{
+						pind.datatype = DT_FSAMPLE;
+
+						if (!pind.default_value.empty())
+						{
+							// multiply default by 10 (to Volts). DoubleToString() removes trilaing zeros.
+							pind.default_value = DoubleToString(10.0f * StringToFloat(pind.default_value));
+						}
+					}
+				}
+				else
+				{
+					if (const auto rate = pin->Attribute("rate"); rate && strcmp(rate, "audio") == 0)
+					{
+						std::wostringstream oss;
+						oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" audio-rate not supported.";
+						Messagebox(oss);
+					}
+
+					if (pind.datatype == DT_CLASS) // e.g. "class:geometry"
+					{
+						if (pin_datatype.size() > 6)
+							pind.classname = pin_datatype.substr(6);
+					}
+					else if (pind.datatype == DT_TEXT && GetExtension(Filename()) == L"gmpi")
+					{
+						// by default GMPI uses UTF-8 encoding for strings. (SE uses UCS16)
+						pind.datatype = DT_STRING_UTF8;
+					}
+				}
+			}
+			else
+			{
+				std::wostringstream oss;
+				oss << L"err. module XML file (" << Filename() << L"): parameter id " << pin_id << L" unknown datatype '" << Utf8ToWstring(pin_datatype) << L"'. Valid [float, int ,string, blob, midi ,bool ,enum ,double]";
+
+				Messagebox(oss);
+			}
+
+			if (expectedPinDatatype != -1 && parameterFieldId == FT_VALUE && expectedPinDatatype != pind.datatype)
+			{
+				std::wostringstream oss;
+				oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" hostConnect wrong datatype: " << pind.datatype << " Expected: " << expectedPinDatatype;
+
+				if (DT_FLOAT == expectedPinDatatype && DT_FSAMPLE == pind.datatype)
+				{
+					// Elena modules seem to have sample inputs on host-controls
+					_RPT1(0, "%S\n", oss.str().c_str());
+				}
+				else
+				{
+					Messagebox(oss);
+				}
+			}
+		}
+		else
+		{
+			// if not explicitly specified, take datatype from parameter or host-control.
+			if (expectedPinDatatype != -1)
+			{
+				pind.datatype = (EPlugDataType)expectedPinDatatype;
+			}
+			else
+			{
+				// blank dataype defaults to DT_FSAMPLE, else it's an error.
+				if (dt)
+				{
+					std::wostringstream oss;
+					oss << L"err. module XML file (" << Filename() << L"): pin " << pin_id << L": unknown datatype. Valid [float, int ,string, blob, midi ,bool ,enum ,double]";
+
+					Messagebox(oss);
+				}
+			}
 		}
 	}
 

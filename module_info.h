@@ -25,16 +25,16 @@ class Module_Info
 {
 protected:
 	void ScanPinXml(tinyxml2::XMLElement* xmlObjects, module_info_pins_t * pinlist, int32_t plugin_sub_type);
-	void ScanPinXml(TiXmlNode* xmlObjects, module_info_pins_t* pinlist, int32_t plugin_sub_type);
-	void RegisterPin(class TiXmlElement* pin, module_info_pins_t* pinlist, int32_t plugin_sub_type, int& nextPinId);
-
 	void RegisterPin(tinyxml2::XMLElement * pin, module_info_pins_t * pinlist, int32_t plugin_sub_type, int & pin_id);
 	
 public:
 	void RegisterParameters(tinyxml2::XMLElement* parameters);
-	void RegisterParameters(class TiXmlNode* parameters);
-	void RegisterPins(TiXmlNode* plugin_data, int32_t plugin_sub_type);
 	void RegisterPins(tinyxml2::XMLElement* plugin_data, int32_t plugin_sub_type);
+
+//	void ScanPinXml(TiXmlNode* xmlObjects, module_info_pins_t* pinlist, int32_t plugin_sub_type);
+//	void RegisterPin(class TiXmlElement* pin, module_info_pins_t* pinlist, int32_t plugin_sub_type, int& nextPinId);
+//	void RegisterParameters(class TiXmlNode* parameters);
+//	void RegisterPins(TiXmlNode* plugin_data, int32_t plugin_sub_type);
 
 	virtual int getClassType() {return 1;} // 0 - Module_Info3, 1 - Module_Info, 2 - Module_Info3_internal, 3 - Module_Info_Plugin
 	bool scanned_xml_dsp;
@@ -53,7 +53,7 @@ public:
 
 	virtual ~Module_Info();
 
-	virtual void ScanXml(class TiXmlElement* xmlData);
+	virtual void ScanXml(tinyxml2::XMLElement* xmlData);
 
 	const std::wstring& UniqueId() const
 	{

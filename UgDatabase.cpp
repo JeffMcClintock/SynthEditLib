@@ -233,16 +233,15 @@ int32_t CModuleFactory::RegisterPlugin( int subType, const wchar_t* uniqueId, MP
 	return mi3->RegisterPluginConstructor( subType, create );
 }
 
-std::wstring parseModuleId(TiXmlDocument& doc, const char* xml)
+std::wstring parseModuleId(tinyxml2::XMLDocument& doc, const char* xml)
 {
 	doc.Parse(xml);
 
 	if (!doc.Error())
 	{
-		auto pluginList = doc.FirstChild("PluginList");
-		auto node = pluginList->FirstChild("Plugin");
-		assert(node);
-		auto PluginElement = node->ToElement();
+		auto pluginList = doc.FirstChildElement("PluginList");
+		auto PluginElement = pluginList->FirstChildElement("Plugin");
+		assert(PluginElement);
 		return Utf8ToWstring(PluginElement->Attribute("id"));
 	}
 
@@ -251,20 +250,20 @@ std::wstring parseModuleId(TiXmlDocument& doc, const char* xml)
 
 int32_t CModuleFactory::RegisterPluginWithXml(int subType, const char* xml, MP_CreateFunc2 create)
 {
-	TiXmlDocument doc;
+	tinyxml2::XMLDocument doc;
 	auto uniqueId = parseModuleId(doc, xml);
 
 	if (uniqueId.empty())
 	{
 		std::wostringstream oss;
-		oss << L"Module XML Error: [SynthEdit.exe]" << doc.ErrorDesc() << L"." << doc.Value();
+		oss << L"Module XML Error: [SynthEdit.exe]" << doc.ErrorName() << L"." << doc.Value();
 		SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
 		return gmpi::MP_FAIL;
 	}
 
 	auto mi3 = FindOrCreateModuleInfo3(uniqueId);
 
-	mi3->ScanXml(doc.FirstChild("PluginList")->FirstChild("Plugin")->ToElement());
+	mi3->ScanXml(doc.FirstChildElement("PluginList")->FirstChildElement("Plugin")->ToElement());
 
 	return mi3->RegisterPluginConstructor(subType, create);
 }
@@ -467,17 +466,17 @@ bool Module_Info::isShellPlugin()
 
 void CModuleFactory::RegisterPluginsXml( const char* xml_data )
 {
-	TiXmlDocument doc;
+	tinyxml2::XMLDocument doc;
 	doc.Parse( xml_data );
 
 	if ( doc.Error() )
 	{
 		std::wostringstream oss;
-		oss << L"Module XML Error: [SynthEdit.exe]" << doc.ErrorDesc() << L"." <<  doc.Value();
+		oss << L"Module XML Error: [SynthEdit.exe]" << doc.ErrorName() << L"." <<  doc.Value();
 		SafeMessagebox(0, oss.str().c_str(), L"", MB_OK|MB_ICONSTOP );
 
 #if defined( _DEBUG )
-		for( int i = doc.ErrorCol() - 5 ; i < doc.ErrorCol() + 5 ; ++i )
+		for( int i = doc.ErrorLineNum() - 5 ; i < doc.ErrorLineNum() + 5 ; ++i )
 		{
 			_RPT1(_CRT_WARN, "%c", xml_data[i] );
 		}
@@ -488,7 +487,7 @@ void CModuleFactory::RegisterPluginsXml( const char* xml_data )
 		return;
 	}
 
-	auto pluginList = doc.FirstChild("PluginList");
+	auto pluginList = doc.FirstChildElement("PluginList");
 
 	if(pluginList) // Check it is a plugin description (not some other XML file in UAP)
 		RegisterPluginsXml(pluginList);
@@ -512,7 +511,7 @@ void CModuleFactory::RegisterExternalPluginsXmlOnce(TiXmlNode* /* pluginList */)
 
 		// Modules database.
 		auto databaseXml = bundleinfo->getResource("database.se.xml");
-		TiXmlDocument doc;
+		tinyxml2::XMLDocument doc;
 		doc.Parse(databaseXml.c_str());
 
 		if (doc.Error())
@@ -521,19 +520,18 @@ void CModuleFactory::RegisterExternalPluginsXmlOnce(TiXmlNode* /* pluginList */)
 			return;
 		}
 
-		TiXmlHandle hDoc(&doc);
-		auto document_xml = hDoc.FirstChildElement("Document").Element();
+		auto document_xml = doc.FirstChildElement("Document");
 		RegisterPluginsXml(document_xml->FirstChildElement("PluginList"));
 	}
 }
 
-void CModuleFactory::RegisterPluginsXml(TiXmlNode* pluginList )
+void CModuleFactory::RegisterPluginsXml(tinyxml2::XMLElement* pluginList )
 {
 	// Walk all plugins.
-	for( auto node = pluginList->FirstChild( "Plugin" ); node; node = node->NextSibling( "Plugin" ) )
+	for( auto PluginElement = pluginList->FirstChildElement( "Plugin" ); PluginElement; PluginElement = PluginElement->NextSiblingElement( "Plugin" ) )
 	{
 		// check for existing
-		TiXmlElement* PluginElement = node->ToElement();
+//		TiXmlElement* PluginElement = node->ToElement();
 		wstring pluginId = Utf8ToWstring( PluginElement->Attribute("id") );
 		Module_Info3_base* mi3 = 0;
 		Module_Info* mi = ModuleFactory()->GetById( pluginId );
@@ -611,20 +609,20 @@ Module_Info::Module_Info(class ug_base *(*ug_create)(), const char* xml) :
 	, scanned_xml_gui(false)
 	, scanned_xml_parameters(false)
 {
-	TiXmlDocument doc2;
+	tinyxml2::XMLDocument doc2;
 	doc2.Parse(xml);
 
 	if (doc2.Error())
 	{
 		std::wostringstream oss;
-		oss << L"Module XML Error: [SynthEdit.exe]" << doc2.ErrorDesc() << L"." << doc2.Value();
+		oss << L"Module XML Error: [SynthEdit.exe]" << doc2.ErrorName() << L"." << doc2.Value();
 
 		SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
 	}
 	else
 	{
-		auto pluginList = doc2.FirstChild("PluginList");
-		auto node = pluginList->FirstChild("Plugin");
+		auto pluginList = doc2.FirstChildElement("PluginList");
+		auto node = pluginList->FirstChildElement("Plugin");
 		assert(node);
 		auto PluginElement = node->ToElement();
 		m_unique_id = Utf8ToWstring(PluginElement->Attribute("id"));
