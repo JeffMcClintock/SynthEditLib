@@ -1137,8 +1137,10 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 
 				if (DT_FLOAT == expectedPinDatatype && DT_FSAMPLE == pind.datatype)
 				{
+#ifdef _WIN32
 					// Elena modules seem to have sample inputs on host-controls
 					_RPT1(0, "%S\n", oss.str().c_str());
+#endif
 				}
 				else
 				{

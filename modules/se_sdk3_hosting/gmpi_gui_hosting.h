@@ -229,7 +229,7 @@ namespace GmpiGuiHosting
 			return menuPosition;
 		}
 		GMPI_QUERYINTERFACE1(gmpi::MP_IID_CONTEXT_ITEMS_SINK, gmpi::IMpContextItemSink)
-		GMPI_REFCOUNT_NO_DELETE;
+		GMPI_REFCOUNT_NO_DELETE
 	};
 
 #ifdef _WIN32
