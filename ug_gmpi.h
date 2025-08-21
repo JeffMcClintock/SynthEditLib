@@ -11,7 +11,7 @@ public:
 	ug_gmpi(class Module_Info* p_moduleType, gmpi::api::IProcessor* p_plugin);
 
 	// IProcessorHost methods
-	gmpi::ReturnCode setPin(int32_t blockRelativeTimestamp, int32_t pinId, int32_t size, const void* data) override;
+	gmpi::ReturnCode setPin(int32_t blockRelativeTimestamp, int32_t pinId, int32_t size, const uint8_t* data) override;
 	gmpi::ReturnCode setPinStreaming(int32_t blockRelativeTimestamp, int32_t pinId, bool isStreaming) override;
 	gmpi::ReturnCode setLatency(int32_t latency) override;
 	gmpi::ReturnCode sleep() override;

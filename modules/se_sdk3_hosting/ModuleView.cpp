@@ -38,7 +38,7 @@ namespace SE2
 	ReturnCode GmpiUiHelper::getFocus() { return gmpi::ReturnCode::NoSupport; }
 	ReturnCode GmpiUiHelper::releaseFocus() { return gmpi::ReturnCode::NoSupport; }
 	// IEditorHost
-	ReturnCode GmpiUiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const void* data) { return (gmpi::ReturnCode) moduleview.pinTransmit(pinId, size, data, voice); }
+	ReturnCode GmpiUiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data) { return (gmpi::ReturnCode) moduleview.pinTransmit(pinId, size, data, voice); }
 	int32_t GmpiUiHelper::getHandle() { return moduleview.handle; }
 	// IDrawingHost
 	ReturnCode GmpiUiHelper::getDrawingFactory(gmpi::api::IUnknown** returnFactory) { return moduleview.parent->getDrawingFactory(returnFactory); }
@@ -79,7 +79,7 @@ namespace SE2
 		returnHandle = moduleview.parent->Presenter()->GetPatchManager()->getParameterHandle(moduleview.handle, moduleParameterId);
 		return gmpi::ReturnCode::Ok;
 	}
-	gmpi::ReturnCode GmpiUiHelper::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const void* data)
+	gmpi::ReturnCode GmpiUiHelper::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
 	{
 		auto patchMgr = moduleview.parent->Presenter()->GetPatchManager();
 
@@ -672,7 +672,7 @@ namespace SE2
 			// Notify my module.
 			if (pluginParameters_GMPI)
 			{
-				pluginParameters_GMPI->setPin(pinId, voice, size, data);
+				pluginParameters_GMPI->setPin(pinId, voice, size, (const uint8_t*) data);
 				if (isMonoDirectional())
 				{
 					// monodirection method, mark as dirty, notify entire module later.

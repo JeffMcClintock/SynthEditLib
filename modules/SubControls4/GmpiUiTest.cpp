@@ -223,8 +223,8 @@ struct PatchMemSet final : public PluginEditorNoGui
         {
             const float safeValue = std::clamp(pinNormalized.value, 0.0f, 1.0f);
 
-            paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), &safeValue);
-            paramHost->setParameter(pinId.value, gmpi::Field::Grab, 0, sizeof(bool), &pinMouseDown.value);
+            paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), (const uint8_t*) &safeValue);
+            paramHost->setParameter(pinId.value, gmpi::Field::Grab, 0, sizeof(bool), (const uint8_t*) &pinMouseDown.value);
         }
 
         return ReturnCode::Ok;
@@ -265,7 +265,7 @@ struct PatchMemSetFloat final : public PluginEditorNoGui
     {
         if (paramHost)
         {
-            paramHost->setParameter(pinId.value, gmpi::Field::Value, 0, sizeof(float), &pinValue.value);
+            paramHost->setParameter(pinId.value, gmpi::Field::Value, 0, sizeof(float), (const uint8_t*) &pinValue.value);
         }
 
         return ReturnCode::Ok;

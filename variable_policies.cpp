@@ -57,7 +57,7 @@ int32_t MetaData_enum::GetDatatype( ParameterFieldType field, int* returnValue)
 	{
 	case FT_ENUM_LIST:
 	{
-		*returnValue = (int) TypeToEDatatype<std::wstring>::enum_value;;
+		*returnValue = (int) TypeToEDatatype<std::wstring>::enum_value;
 	}
 	break;
 

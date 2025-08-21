@@ -103,7 +103,7 @@ namespace SE2
 		gmpi::ReturnCode getFocus() override;
 		gmpi::ReturnCode releaseFocus() override;
 		// IEditorHost
-		gmpi::ReturnCode setPin(int32_t pinId, int32_t voice, int32_t size, const void* data) override;
+		gmpi::ReturnCode setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data) override;
 		int32_t getHandle() override;
 		// IDrawingHost
 		gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override;
@@ -119,7 +119,7 @@ namespace SE2
 
 		// IParameterSetter_x
 		gmpi::ReturnCode getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle) override;
-		gmpi::ReturnCode setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const void* data) override;
+		gmpi::ReturnCode setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override;
 
 		// IEmbeddedFileSupport
 		gmpi::ReturnCode findResourceUri(const char* fileName, /*const char* resourceType,*/ gmpi::api::IString* returnFullUri) override;

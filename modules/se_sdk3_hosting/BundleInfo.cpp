@@ -553,6 +553,7 @@ void BundleInfo::initPluginInfo()
     const auto path = gmpi_dynamic_linking::MP_GetDllFilename();
     isEditor =
         path.find(L"SynthEdit2.exe") != std::string::npos ||
+        path.find(L"SynthEditCL.exe") != std::string::npos ||
         path.find(L"SynthEdit.") != std::string::npos ||
         path.find(L"TIDE") == 0;
 

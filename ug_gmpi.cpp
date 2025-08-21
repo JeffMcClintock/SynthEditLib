@@ -22,7 +22,7 @@ ug_base* ug_gmpi::Clone( CUGLookupList& /*UGLookupList*/ )
 }
 
 // set an output pin
-gmpi::ReturnCode ug_gmpi::setPin( int32_t blockRelativeTimestamp, int32_t id, int32_t size, const void* data )
+gmpi::ReturnCode ug_gmpi::setPin( int32_t blockRelativeTimestamp, int32_t id, int32_t size, const uint8_t* data )
 {
 	if (plugs[id]->Direction != DR_OUT)
 	{
