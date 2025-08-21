@@ -611,7 +611,7 @@ void DrawingFrameHwndBase::OnPaint()
 void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyRects)
 {
     // prevent infinite assert dialog boxes when assert happens during painting.
-    if (!isInit.load(std::memory_order_relaxed) || reentrant || !gmpi_gui_client || dirtyRects.empty())
+    if (!isInit.load(std::memory_order_relaxed) || reentrant || dirtyRects.empty())
     {
         return;
     }
@@ -681,7 +681,15 @@ auto reverseTransform = gmpi::drawing::invert(viewTransform);
 
             graphics.PushAxisAlignedClip(toLegacy(dirtyRectDipsPanZoomed));
 
-			gmpi_gui_client->OnRender(legacyContext);
+            if (gmpi_gui_client)
+            {
+                gmpi_gui_client->OnRender(legacyContext);
+            }
+            else
+            {
+                GmpiDrawing_API::MP1_COLOR blankColor{0.f,0.f,0.f,1.f};
+                legacyContext->Clear(&blankColor);
+            }
 			graphics.PopAxisAlignedClip();
 		}
 
