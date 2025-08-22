@@ -1722,14 +1722,19 @@ void MpController::OnEndPresetChange()
 void MpController::setPreset(DawPreset const* preset)
 {
 //	_RPTN(0, "MpController::setPreset. IPC %d\n", (int)preset->ignoreProgramChangeActive);
-#if 0 //def _DEBUG
+#if ENABLE_SM_LOGGER //def _DEBUG
     auto xml = preset->toString(0);
+    /*
     static int count = 0;
     count++;
     std::string filename("/Users/jeffmcclintock/log");
     filename += std::to_string(count) + ".txt";
     std::ofstream out(filename.c_str());
     out << xml;
+    */
+    ProcessorStateMgr::logLine("MpController::setPreset ---------\n");
+    ProcessorStateMgr::logLine(xml);
+    ProcessorStateMgr::logLine("\n----------------------- ---------\n");
 #endif
 
 	constexpr int patch = 0;

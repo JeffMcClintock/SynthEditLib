@@ -13,6 +13,8 @@
 #include "ProcessorStateManager.h"
 */
 
+#define ENABLE_SM_LOGGER 0
+
 struct paramInfo
 {
 	std::vector< std::string > defaultRaw;
@@ -104,6 +106,10 @@ public:
 	{
 		return parametersInfo;
 	}
+    
+#if ENABLE_SM_LOGGER
+    static void logLine(std::string txt);
+#endif
 };
 
 // additional support for retrieving the preset from the processor in a thread-safe manner.

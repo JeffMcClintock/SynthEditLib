@@ -512,6 +512,7 @@ void SE2JUCE_Processor::setStateInformation (const void* data, int sizeInBytes)
 #endif
 
     presetCount++;
-
     dawStateManager.setPresetFromXml(chunk);
+
+    presetCount++;
 }

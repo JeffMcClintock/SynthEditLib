@@ -13,6 +13,17 @@
 #include "mfc_emulation.h"
 #endif
 
+#if ENABLE_SM_LOGGER
+
+std::ofstream outlog( "/Users/jeffmcclintock/OptimusLog.txt");
+
+void ProcessorStateMgr::logLine(std::string txt)
+{
+    outlog << txt;
+}
+
+#endif
+
 std::string normalizedToRaw(int32_t datatype, float fnormalized, double maximum, double minimum, const std::wstring& enumList)
 {
 	const double normalized = static_cast<double>(fnormalized);
