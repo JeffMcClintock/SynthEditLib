@@ -179,6 +179,8 @@ Shared/VstPreset.h
 Shared/VstPreset.cpp
 Shared/Vst2Preset.h
 Shared/Vst2Preset.cpp
+Shared/se_logger.h
+Shared/se_logger.cpp
 
 ${VST3_SDK}/pluginterfaces/base/funknown.h
 ${VST3_SDK}/pluginterfaces/base/funknown.cpp
