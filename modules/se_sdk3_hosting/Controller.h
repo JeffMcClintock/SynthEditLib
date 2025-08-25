@@ -16,6 +16,7 @@
 #include "MpParameter.h"
 #include "ControllerHost.h"
 #include "ProcessorStateManager.h"
+#include "Shared/se_logger.h"
 
 //namespace SynthEdit2
 //{
@@ -289,6 +290,11 @@ public:
 		const auto rawValue = parameter->getValueRaw(gmpi::MP_FT_VALUE, voice);
 		const float normalized = parameter->getNormalized(); // voice !!!?
 
+		if (se_logger::is_log_enabled() && parameter->parameterHandle_ == 2) // 2 = PARAM_AIP12 (not-analysed, float)
+		{
+			se_logger::log("updateGuis: isAnalysed=" + std::to_string(normalized == 0.0f) + "\n");
+		}
+
 		for (auto pa : m_guis2)
 		{
 			// Update value.
@@ -302,6 +308,11 @@ public:
 	void updateGuis(MpParameter* parameter, gmpi::FieldType fieldType, int voice = 0 )
 	{
 		auto rawValue = parameter->getValueRaw(fieldType, voice);
+
+		if (se_logger::is_log_enabled() && parameter->parameterHandle_ == 2 && gmpi::FieldType::MP_FT_VALUE == fieldType) // 2 = PARAM_AIP12 (not-analysed, float)
+		{
+			se_logger::log("updateGuis: isAnalysed=" + std::to_string(*((const float*)rawValue.data()) == 0.0f) + "\n");
+		}
 
 		for (auto pa : m_guis2)
 		{
