@@ -1,7 +1,7 @@
 #include "BinaryData.h"
 #include "SE2JUCE_Controller.h"
 #include "SE2JUCE_Processor.h"
-#include "tinyxml/tinyxml.h"
+#include "Shared/se_logger.h"
 
 MpParameterJuce::MpParameterJuce(SeJuceController* controller, int ParameterIndex, bool isInverted) :
 	MpParameter_native(controller)
@@ -343,4 +343,31 @@ void SeJuceController::initGuiParameters()
 void SeJuceController::OnLatencyChanged()
 {
 	processor->OnLatencyChanged();
+}
+
+void SeJuceController::timerCallback()
+{
+	if (const auto pdirty = juceParameters_dirty.exchange(false, std::memory_order_relaxed); pdirty)
+	{
+		for (auto p : tagToParameter)
+		{
+			p->updateFromImmediate();
+		}
+	}
+
+	if (auto preset = interrupt_preset_.exchange(nullptr, std::memory_order_relaxed); preset)
+	{
+		if (se_logger::is_log_enabled())
+		{
+			const std::string chunk = preset->toString(0);
+			se_logger::log("SeJuceController::timerCallback() setPreset(interrupt_preset_)\n");
+			se_logger::log(chunk);
+			se_logger::log("\n\n");
+		}
+
+		setPreset(preset);
+	}
+
+	// SE return MpController::OnTimer();
+	MpController::OnTimer();
 }

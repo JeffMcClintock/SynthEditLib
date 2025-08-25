@@ -13,6 +13,8 @@
 #include "FileFinder.h"
 #include "midi_defs.h"
 #include "ListBuilder.h"
+#include "Shared/se_logger.h"
+
 #include "../../mfc_emulation.h"
 #if !defined(SE_USE_JUCE_UI)
 #include "GuiPatchAutomator3.h"
@@ -1736,6 +1738,18 @@ void MpController::setPreset(DawPreset const* preset)
     ProcessorStateMgr::logLine(xml);
     ProcessorStateMgr::logLine("\n----------------------- ---------\n");
 #endif
+	if (se_logger::is_log_enabled())
+	{
+		const auto xml = preset->toString(0);
+
+		std::stringstream msg;
+
+		msg << "MpController::setPreset ----------\n";
+		msg << xml;
+		msg << " ----------\n";
+
+		se_logger::log("MpController::setPreset()\n");
+	}
 
 	constexpr int patch = 0;
 	constexpr bool updateProcessor = false;

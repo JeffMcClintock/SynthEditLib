@@ -7,6 +7,7 @@
 #include "my_msg_que_output_stream.h"
 #include "modules/tinyXml2/tinyxml2.h"
 #include "HostControls.h"
+#include "Shared/se_logger.h"
 
 #ifndef GMPI_VST3_WRAPPER
 #include "SeAudioMaster.h"
@@ -671,6 +672,11 @@ void ProcessorStateMgrVst3::setPresetFromXml(const std::string& presetString)
 // takes ownership of preset
 void ProcessorStateMgrVst3::setPresetRespectingIpc(DawPreset* preset)
 {
+	if (se_logger::is_log_enabled())
+	{
+		se_logger::log("ProcessorStateMgrVst3::setPresetRespectingIpc START\n");
+	}
+
 	// bring current preset up-to-date
 	serviceQueue(messageQueFromProcessor);
 	serviceQueue(messageQueFromController);
@@ -724,6 +730,11 @@ void ProcessorStateMgrVst3::setPresetRespectingIpc(DawPreset* preset)
 	// set the preset without messing with the IPC flag set by caller. (i.e. avoiding ProcessorStateMgr::setPreset())
 	retainPreset(preset);
 	callback(preset);
+
+	if (se_logger::is_log_enabled())
+	{
+		se_logger::log("ProcessorStateMgrVst3::setPresetRespectingIpc END\n");
+	}
 }
 
 void ProcessorStateMgrVst3::setPreset(DawPreset const* preset)

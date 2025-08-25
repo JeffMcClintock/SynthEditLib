@@ -130,24 +130,7 @@ public:
 	}
 
 // SE	bool OnTimer() override
-	void timerCallback() override // JUCE timer
-	{
-		if (const auto pdirty = juceParameters_dirty.exchange(false, std::memory_order_relaxed); pdirty)
-		{
-			for (auto p : tagToParameter)
-			{
-				p->updateFromImmediate();
-			}
-		}
-
-		if (auto preset = interrupt_preset_.exchange(nullptr, std::memory_order_relaxed); preset)
-		{
-			setPreset(preset);
-		}
-
-		// SE return MpController::OnTimer();
-		MpController::OnTimer();
-	}
+	void timerCallback() override; // JUCE timer
 
 	MpParameterJuce* getDawParameter(int nativeTag)
 	{

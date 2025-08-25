@@ -5,7 +5,7 @@
 #include "RawConversions.h"
 #include "BundleInfo.h"
 #include "../tinyXml2/tinyxml2.h"
-// #include "dsp_patch_manager.h" // enable for logging only
+#include "Shared/se_logger.h"
 
 SE2JUCE_Processor::SE2JUCE_Processor(
     std::unique_ptr<SeJuceController> pController,
@@ -37,6 +37,15 @@ SE2JUCE_Processor::SE2JUCE_Processor(
 #ifdef _DEBUG
     //_RPT0(0, "\nSE2JUCE_Processor::SE2JUCE_Processor()\n");
 #endif
+
+    {
+		const auto documentFolder = BundleInfo::instance()->getUserDocumentFolder(); // ensure folder exists.
+		const auto logFilePath = WStringToUtf8(documentFolder) + "\\" + JucePlugin_Name + ".log";
+        se_logger::set_log_filename(logFilePath);
+    }
+
+    se_logger::log("SE2JUCE_Processor::SE2JUCE_Processor() START\n");
+
     if (!controller)
     {
         controller.reset(new SeJuceController(dawStateManager));
@@ -169,6 +178,8 @@ SE2JUCE_Processor::SE2JUCE_Processor(
             restart_preset.release();
         }
 	};
+
+    se_logger::log("SE2JUCE_Processor::SE2JUCE_Processor() END\n");
 }
 
 // Ableton: called on main thread when manipulating param from generic panel.
@@ -494,6 +505,13 @@ void SE2JUCE_Processor::getStateInformation (juce::MemoryBlock& destData)
 void SE2JUCE_Processor::setStateInformation (const void* data, int sizeInBytes)
 {
     const std::string chunk(static_cast<const char*>(data), sizeInBytes);
+
+    if(se_logger::is_log_enabled())
+    {
+        se_logger::log("SE2JUCE_Processor::setStateInformation\n");
+        se_logger::log(chunk);
+        se_logger::log("\n\n");
+	}
 
 #ifdef DEBUG_LOG_PM_TO_FILE
     if(DspPatchManager::currentLoggingFile)

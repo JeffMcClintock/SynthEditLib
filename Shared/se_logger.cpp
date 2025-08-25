@@ -10,7 +10,7 @@ struct Logger
 {
 	char logdata[500000] = { 0 };
 	std::atomic<size_t> write_pos{ 0 }; // next write position (0..capacity)
-	std::string filename = "se_log.txt";
+	std::string filename;
 
 	static Logger& getInstance()
 	{
@@ -19,6 +19,9 @@ struct Logger
 	}
 	void logMessage(std::string_view message)
 	{
+		if(filename.empty()) // easy way to enable logging, set the filename.
+			return;
+
 		// Implement logging logic here (e.g., write to a file or console)
 		const size_t len = message.size();
 		for (;;)
@@ -41,7 +44,7 @@ struct Logger
 
 	~Logger()
 	{
-		if (write_pos > 0)
+		if (write_pos > 0 && !filename.empty())
 		{
 			// on exit, write to file
 			if (auto f = fopen(filename.c_str(), "wb"); f)
@@ -61,6 +64,10 @@ void log(std::string_view message)
 void set_log_filename(std::string_view filename)
 {
 	Logger::getInstance().filename = filename;
+}
+bool is_log_enabled()
+{
+	return !Logger::getInstance().filename.empty();
 }
 
 } // namespace
