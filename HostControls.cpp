@@ -128,6 +128,7 @@ static const HostControlStruct lookup[] =
 	{L"Processor/ClearTails"	, HC_CLEAR_TAILS				, DT_INT,  ControllerType::None}, // a 'trigger' style HC. Actual value don't matter, only that it changed.
 	{L"Processor/DiagnosticFlags", HC_DIAGNOSTIC_FLAGS			, DT_INT,  ControllerType::None},
 	{L"Processor/Offline"		, HC_PROCESSOR_OFFLINE			, DT_BOOL, ControllerType::None},
+	{ L"Processor/DawBypass"	, HC_PROCESS_BYPASS  			, DT_BOOL, ControllerType::None },
 	
 	// MAINTAIN ORDER TO PRESERVE OLDER WAVES EXPORTS DSP.XML consistency
 };
