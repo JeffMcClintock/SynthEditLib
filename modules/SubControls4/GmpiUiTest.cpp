@@ -40,7 +40,7 @@ class GmpiUiTest : public gmpi::editor::PluginEditor, public SsgNumberEditClient
 #else
         char buf[32];
         std::snprintf(buf, sizeof(buf), "%.2f", value);
-        std::String s(buf);
+        std::string s(buf);
 #endif
 		numberEdit.setText(s);
 	}

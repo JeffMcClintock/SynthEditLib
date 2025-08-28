@@ -81,7 +81,7 @@ T RawToValue(const void* data, [[maybe_unused]] int size)
 }
 
 template <typename T>
-T RawToValue(const void* data, size_t size = sizeof(T))
+T RawToValue(const void* data, [[maybe_unused]] size_t size = sizeof(T))
 {
 	assert(sizeof(T) == size);
 	return *((T*)data);
