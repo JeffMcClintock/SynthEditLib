@@ -1,3 +1,9 @@
+#if defined(__has_include)
+#if __has_include(<version>)
+#include <version>
+#endif
+#endif
+
 #include <optional>
 #include <algorithm>
 #include <format>
@@ -29,7 +35,13 @@ class GmpiUiTest : public gmpi::editor::PluginEditor, public SsgNumberEditClient
 
 	void updateTextFromValue()
 	{
-		const auto s = std::format("{:.2f}", value);
+#if defined(__cpp_lib_format) && (__cpp_lib_format >= 201907)
+        const auto s = std::format("{:.2f}", value);
+#else
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "%.2f", value);
+        std::String s(buf);
+#endif
 		numberEdit.setText(s);
 	}
 
