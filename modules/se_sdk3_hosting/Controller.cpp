@@ -1740,6 +1740,7 @@ void MpController::setPreset(DawPreset const* preset)
 #endif
 	if (se_logger::is_log_enabled())
 	{
+		/*
 		const auto xml = preset->toString(0);
 
 		std::stringstream msg;
@@ -1747,6 +1748,7 @@ void MpController::setPreset(DawPreset const* preset)
 		msg << "MpController::setPreset ----------\n";
 		msg << xml;
 		msg << " ----------\n";
+		*/
 
 		se_logger::log("MpController::setPreset()\n");
 	}

@@ -44,7 +44,12 @@ SE2JUCE_Processor::SE2JUCE_Processor(
         se_logger::set_log_filename(logFilePath);
     }
 
-    se_logger::log("SE2JUCE_Processor::SE2JUCE_Processor() START\n");
+    {
+		std::string msg = "SE2JUCE_Processor::SE2JUCE_Processor() START. Optimus V";
+        msg += JucePlugin_VersionString;
+        msg += "\n";
+        se_logger::log(msg);
+    }
 
     if (!controller)
     {
