@@ -113,18 +113,18 @@ public:
 			return;
 		}
 
-		if( currentValue_ == targetValue_ )
+		if (currentValue_ == targetValue_) // too fast, slow down a bit.
 		{
-			if( inverseTransitionTime_ < adaptiveHi_ )
+			if (inverseTransitionTime_ > adaptiveLo_)
 			{
-				inverseTransitionTime_ *= 1.05; // slower 'decay', kind of peak follower.
+				inverseTransitionTime_ *= 0.9;
 			}
 		}
 		else
 		{
-			if( inverseTransitionTime_ > adaptiveLo_ )
+			if (inverseTransitionTime_ < adaptiveLo_)
 			{
-				inverseTransitionTime_ *= 0.9;
+				inverseTransitionTime_ *= 1.05; // slower 'decay', kind of peak follower.
 			}
 		}
 
