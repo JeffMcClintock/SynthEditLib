@@ -209,7 +209,6 @@ target_compile_definitions (${BUILD_GMPI_PLUGIN_PROJECT_NAME} PRIVATE -D_UNICODE
 endif()
 
 if(CMAKE_HOST_WIN32)
-
 if (SE_LOCAL_BUILD)
 if(${BUILD_GMPI_PLUGIN_IS_OFFICIAL_MODULE})
     add_custom_command(TARGET ${BUILD_GMPI_PLUGIN_PROJECT_NAME}
@@ -231,5 +230,175 @@ endif()
 
 # all individual modules should be groups under "modules" solution folder
 SET_TARGET_PROPERTIES(${BUILD_GMPI_PLUGIN_PROJECT_NAME} PROPERTIES FOLDER "modules")
+
+endfunction()
+
+# GMPI 2.0 plugin. copied from GMPI SDK but without the wrappers
+function(synthedit_plugin)
+    set(options HAS_DSP HAS_GUI HAS_XML IS_OFFICIAL_MODULE)
+    set(oneValueArgs PROJECT_NAME)
+    set(multiValueArgs SOURCE_FILES)
+    cmake_parse_arguments(GMPI_PLUGIN "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if(NOT GMPI_PLUGIN_PROJECT_NAME)
+        message(FATAL_ERROR "gmpi_plugin(PROJECT_NAME <name>) is required.")
+    endif()
+
+    # Default to GMPI if no formats were specified.
+    if(NOT GMPI_PLUGIN_FORMATS_LIST)
+        set(GMPI_PLUGIN_FORMATS_LIST GMPI)
+    endif()
+
+    # add SDK files
+    set(plugin_includes
+        ${gmpi_sdk_folder}
+        ${gmpi_sdk_folder}/Core
+    )
+    
+    set(sdk_srcs
+        ${gmpi_sdk_folder}/Core/Common.h
+        ${gmpi_sdk_folder}/Core/Common.cpp
+        ${gmpi_sdk_folder}/Core/RefCountMacros.h
+        ${gmpi_sdk_folder}/Core/GmpiApiCommon.h
+        ${gmpi_sdk_folder}/Core/GmpiSdkCommon.h
+    )
+
+    if(GMPI_PLUGIN_HAS_DSP)
+        list(APPEND sdk_srcs
+            ${gmpi_sdk_folder}/Core/Processor.h
+            ${gmpi_sdk_folder}/Core/Processor.cpp
+            ${gmpi_sdk_folder}/Core/GmpiApiAudio.h
+        )
+    endif()
+
+    if(GMPI_PLUGIN_HAS_GUI)
+        list(APPEND sdk_srcs
+            ${gmpi_ui_folder}/GmpiApiDrawing.h
+            ${gmpi_sdk_folder}/Core/GmpiApiEditor.h
+            ${gmpi_ui_folder}/Drawing.h
+        )
+        list(APPEND plugin_includes ${gmpi_ui_folder})
+    endif()
+
+    if(GMPI_PLUGIN_HAS_XML)
+        set(resource_srcs
+            ${GMPI_PLUGIN_PROJECT_NAME}.xml
+        )
+
+        if(WIN32)
+            list(APPEND resource_srcs ${GMPI_PLUGIN_PROJECT_NAME}.rc)
+            source_group(resources FILES ${resource_srcs})
+        endif()
+    endif()
+
+    foreach(kind IN LISTS GMPI_PLUGIN_FORMATS_LIST)
+        if(kind STREQUAL "GMPI")
+            set(SUB_PROJECT_NAME ${GMPI_PLUGIN_PROJECT_NAME})
+        else()
+            set(SUB_PROJECT_NAME ${GMPI_PLUGIN_PROJECT_NAME}_${kind})
+        endif()
+
+        set(FORMAT_SDK_FILES ${sdk_srcs})
+
+        # Organize SDK files in IDE
+        source_group(sdk FILES ${FORMAT_SDK_FILES})
+
+        add_library(${SUB_PROJECT_NAME} MODULE
+            ${GMPI_PLUGIN_SOURCE_FILES}
+            ${FORMAT_SDK_FILES}
+            ${resource_srcs}
+            ${wrapper_srcs}
+        )
+
+        # Target-based includes
+        if(plugin_includes)
+            target_include_directories(${SUB_PROJECT_NAME} PRIVATE ${plugin_includes})
+        endif()
+
+#        synthedit_target(PROJECT_NAME ${SUB_PROJECT_NAME})
+#        function(synthedit_target)
+#    set(options)
+#    set(oneValueArgs PROJECT_NAME)
+#    set(multiValueArgs)
+#    cmake_parse_arguments(GMPI_TARGET "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+#    if(NOT GMPI_TARGET_PROJECT_NAME)
+#        message(FATAL_ERROR "gmpi_target(PROJECT_NAME <name>) is required.")
+#    endif()
+
+    # Use target-based definitions and features
+    target_compile_definitions(
+        ${SUB_PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:_DEBUG>
+        $<$<CONFIG:Release>:NDEBUG>
+    )
+    # Workspace uses C++14
+    target_compile_features(${SUB_PROJECT_NAME} PUBLIC cxx_std_17)
+
+    if(APPLE)
+        # Guard Apple-specific frameworks
+        target_link_libraries(${SUB_PROJECT_NAME} PRIVATE
+            ${COREFOUNDATION_LIBRARY}
+            ${COCOA_LIBRARY}
+            ${CORETEXT_LIBRARY}
+            ${OPENGL_LIBRARY}
+            ${IMAGEIO_LIBRARY}
+            ${COREGRAPHICS_LIBRARY}
+            ${ACCELERATE_LIBRARY}
+            ${QUARTZCORE_LIBRARY}
+        )
+    endif()
+
+    if(WIN32)
+        # Prefer bare names; MSVC resolves .lib automatically
+        target_link_libraries(${SUB_PROJECT_NAME} PRIVATE d3d11 d2d1 dwrite windowscodecs)
+        target_link_options(${SUB_PROJECT_NAME} PRIVATE "/SUBSYSTEM:WINDOWS")
+    endif()
+#endfunction()     
+
+#        set(TARGET_EXTENSION "${kind}")
+        string(TOLOWER "${kind}" TARGET_EXTENSION)
+
+        if(APPLE)
+            set_target_properties(${SUB_PROJECT_NAME}
+            PROPERTIES
+                BUNDLE TRUE
+                BUNDLE_EXTENSION "${TARGET_EXTENSION}"
+        )
+        else()
+            set_target_properties(${SUB_PROJECT_NAME}
+                PROPERTIES
+                SUFFIX ".${TARGET_EXTENSION}"
+            )
+        endif()
+    endforeach()
+
+    list(FIND GMPI_PLUGIN_FORMATS_LIST "GMPI" FIND_GMPI_INDEX)
+
+
+    # Group modules under solution folders
+    if(FIND_GMPI_INDEX GREATER_EQUAL 0)
+        set_target_properties(${GMPI_PLUGIN_PROJECT_NAME} PROPERTIES FOLDER "modules")
+    endif()
+
+if(CMAKE_HOST_WIN32)
+if (SE_LOCAL_BUILD)
+if(${BUILD_GMPI_PLUGIN_IS_OFFICIAL_MODULE})
+    add_custom_command(TARGET ${GMPI_PLUGIN_PROJECT_NAME}
+    # Run after all other rules within the target have been executed
+    POST_BUILD
+    COMMAND xcopy /c /y "\"$(OutDir)$(TargetName)$(TargetExt)\"" "\"C:\\SE\\SE16\\SynthEdit2\\mac_assets\\$(TargetName)$(TargetExt)\\Contents\\x86_64-win\\\""
+    COMMENT "Copy to SynthEdit plugin folder"
+    )
+else()
+    add_custom_command(TARGET ${GMPI_PLUGIN_PROJECT_NAME}
+    # Run after all other rules within the target have been executed
+    POST_BUILD
+    COMMAND xcopy /c /y "\"$(OutDir)$(TargetName)$(TargetExt)\"" "\"C:\\Program Files\\Common Files\\SynthEdit\\modules\\\""
+    COMMENT "Copy to SynthEdit plugin folder"
+    )
+endif()
+endif()
+endif()
 
 endfunction()
