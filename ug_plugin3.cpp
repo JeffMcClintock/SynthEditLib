@@ -5,7 +5,6 @@
 #include "./ug_plugin3.h"
 #include "SeAudioMaster.h"
 #include "iseshelldsp.h"
-#include "my_msg_que_output_stream.h"
 #include "module_info.h"
 #include "ULookup.h"
 #include "se_file_format_version.h"
@@ -201,10 +200,10 @@ int32_t ug_plugin3Base::sendMessageToGui( int32_t id, int32_t size, const void* 
 	
 	// discard any too-big message.
 	const auto totalMessageSize = 3 * static_cast<int>(sizeof(int)) + size;
-	if (!my_msg_que_output_stream::hasSpaceForMessage(queue, totalMessageSize))
+	if (!gmpi::hosting::my_msg_que_output_stream::hasSpaceForMessage(queue, totalMessageSize))
 		return gmpi::MP_FAIL;
 
-	my_msg_que_output_stream strm( queue, Handle(), "sdk");
+	gmpi::hosting::my_msg_que_output_stream strm( queue, Handle(), "sdk");
 	
 	strm << (int) ( sizeof(int) + sizeof(int) + size ); // message length.
 	strm << id;											// user provided msg_id

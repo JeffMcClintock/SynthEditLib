@@ -2,13 +2,10 @@
 #include <fstream>
 #include <math.h>
 #include "SynthRuntime.h"
-#include "my_msg_que_input_stream.h"
-#include "QueClient.h"
 #include "./SeAudioMaster.h"
 #include "./midi_defs.h"
 #include "ug_patch_automator.h"
 #include "./UniqueSnowflake.h"
-#include "./my_msg_que_output_stream.h"
 #include "module_info.h"
 #include "BundleInfo.h"
 #include "./modules/se_sdk3_hosting/Controller.h"
@@ -17,6 +14,7 @@
 #include "SeException.h"
 
 using namespace std;
+using namespace gmpi::hosting;
 
 SynthRuntime::SynthRuntime() :
 	usingTempo_(false)
@@ -32,6 +30,8 @@ void SynthRuntime::prepareToPlay(
 	shell_ = shell;
 	sampleRate = psampleRate;
 	maxBlockSize = pmaxBlockSize;
+
+	pendingControllerQueueClients.setSampleRate(psampleRate);
 
 	// this can be called multiple times, e.g. when performing an offline bounce.
 	// But we need to rebuild the DSP graph from scratch only when something fundamental changes.
@@ -409,9 +409,9 @@ void SynthRuntime::process(
 	}
 }
 
-void SynthRuntime::ServiceDspWaiters2(int sampleframes, int guiFrameRateSamples)
+void SynthRuntime::ServiceDspWaiters2(int sampleframes)
 {
-	pendingControllerQueueClients.ServiceWaitersIncremental(MessageQueToGui(), sampleframes, guiFrameRateSamples);
+	pendingControllerQueueClients.ServiceWaitersIncremental(MessageQueToGui(), sampleframes);
 	peer->Service();
 }
 

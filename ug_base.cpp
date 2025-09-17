@@ -4,7 +4,6 @@
 #include "SeAudioMaster.h"
 #include "ULookup.h"
 #include "UgDatabase.h"
-#include "my_msg_que_output_stream.h"
 #include "./modules/se_sdk3/mp_sdk_common.h"
 #include "ug_adder2.h"
 #include "ug_oversampler.h"
@@ -18,9 +17,8 @@
 #include "ug_patch_param_watcher.h"
 #include "tinyxml/tinyxml.h"
 #include "iseshelldsp.h"
-#include "my_input_stream.h"
+#include "Hosting/message_queues.h"
 #include "UniqueSnowflake.h"
-#include "./modules/shared/xplatform.h"
 #include "HostControls.h"
 #include "ug_latency_adjust.h"
 #include "ug_latency_adjust_event.h"
@@ -28,8 +26,10 @@
 #include "SeException.h"
 #include "mfc_emulation.h"
 #include "platform.h"
+#include "Hosting/message_queues.h"
 
 using namespace std;
+using namespace gmpi::hosting;
 
 // #define DEBUG_LATENCY 1
 

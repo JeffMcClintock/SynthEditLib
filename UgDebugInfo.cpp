@@ -1,13 +1,13 @@
 
 #include "UgDebugInfo.h"
 #include "EventProcessor.h"
-#include "my_msg_que_output_stream.h"
 #include "SeAudioMaster.h"
 #include "ug_base.h"
 #include "USampBlock.h"
 #include "./iseshelldsp.h"
+#include "Hosting/message_queues.h"
 
-
+using namespace gmpi::hosting;
 /*
 rdtsc is much faster, but only avail on Pentiums and above. QusryPerformanceCounter is avail on all systems
 but users slower, less accurate timers when rdtsc not available

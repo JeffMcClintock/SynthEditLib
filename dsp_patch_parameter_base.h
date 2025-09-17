@@ -1,21 +1,23 @@
 #pragma once
 #include <vector>
 #include "dsp_msg_target.h"
-#include "QueClient.h"
 #include "se_types.h"
 #include "HostControls.h"
 #include "modules/shared/xplatform.h"
 #include "modules/shared/RawView.h"
+#include "Hosting/message_queues.h"
 
-class my_input_stream;
-class my_output_stream;
 class UPlug;
 class IDspPatchManager;
+namespace gmpi { namespace hosting{
+class my_input_stream;
+class my_output_stream;
+}}
 
 typedef std::vector<class PatchStorageBase*> patchMemory_t;
 
 class dsp_patch_parameter_base :
-	public dsp_msg_target, public QueClient
+	public dsp_msg_target, public gmpi::hosting::QueClient
 {
 public:
 	dsp_patch_parameter_base();
@@ -43,12 +45,12 @@ public:
 #if defined( _DEBUG )
 	virtual std::wstring GetValueString(int patch) = 0;
 #endif
-	virtual void SerialiseValue( my_output_stream& p_stream, int voice, int patch );
-	virtual void SerialiseMetaData( my_input_stream& p_stream ) = 0;
-	virtual bool SerialiseValue( my_input_stream& p_stream, int voice, int patch );
+	virtual void SerialiseValue(gmpi::hosting::my_output_stream& p_stream, int voice, int patch );
+	virtual void SerialiseMetaData(gmpi::hosting::my_input_stream& p_stream ) = 0;
+	virtual bool SerialiseValue(gmpi::hosting::my_input_stream& p_stream, int voice, int patch );
 	virtual void CopyPlugValue( int voice, UPlug* p_plug) = 0;
 	const void* SerialiseForEvent(int voice, int& size);
-	void OnUiMsg(int p_msg_id, my_input_stream& p_stream);
+	void OnUiMsg(int p_msg_id, gmpi::hosting::my_input_stream& p_stream);
 	void setPatchMgr(IDspPatchManager* p_patch_mgr);
 
 	bool hasNormalized()
@@ -160,7 +162,7 @@ int EffectivePatch() const
 
 	// QueClient support.
 	virtual int queryQueMessageLength( int availableBytes );
-	virtual void getQueMessage( my_output_stream& outStream, int messageLength );
+	virtual void getQueMessage(gmpi::hosting::my_output_stream& outStream, int messageLength );
 
 	virtual void setMetadataRangeMinimum( double rangeMinimum ) = 0;
 	virtual void setMetadataRangeMaximum( double rangeMaximum ) = 0;

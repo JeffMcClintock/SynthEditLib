@@ -1,7 +1,6 @@
 #pragma once
 #include "ug_base.h"
-#include "./modules/se_sdk3/mp_api.h"
-#include "my_input_stream.h"
+#include "Hosting/message_queues.h"
 #include "conversion.h"
 #include "GmpiApiAudio.h"
 
@@ -265,7 +264,7 @@ public:
 		}
 	}
 
-	void OnUiNotify2(int p_msg_id, my_input_stream& p_stream) override
+	void OnUiNotify2(int p_msg_id, gmpi::hosting::my_input_stream& p_stream) override
 	{
 		ug_base::OnUiNotify2(p_msg_id, p_stream);
 

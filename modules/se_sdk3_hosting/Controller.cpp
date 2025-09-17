@@ -41,6 +41,7 @@
 #endif
 
 using namespace std;
+using namespace gmpi::hosting;
 
 MpController::~MpController()
 {
@@ -1370,7 +1371,7 @@ void MpController::initializeGui(gmpi::IMpParameterObserver* gui, int32_t parame
 	}
 }
 
-bool MpController::onQueMessageReady(int recievingHandle, int recievingMessageId, class my_input_stream& p_stream)
+bool MpController::onQueMessageReady(int recievingHandle, int recievingMessageId, my_input_stream& p_stream)
 {
 	// Processor watchdog.
 	if (dspWatchdogCounter <= 0)

@@ -43,7 +43,7 @@ public:
 	void setPatchManager(IDspPatchManager* p_patch_mgr);
 	virtual IDspPatchManager* get_patch_manager() override;
 	bool has_own_patch_manager();
-	virtual void OnUiNotify2( int p_msg_id, my_input_stream& p_stream ) override;
+	virtual void OnUiNotify2( int p_msg_id, gmpi::hosting::my_input_stream& p_stream ) override;
 	timestamp_t CalculateOversampledTimestamp( ug_container* top_container, timestamp_t timestamp );
 	void DoVoiceRefresh();
 	bool belongsTo(ug_container * container);

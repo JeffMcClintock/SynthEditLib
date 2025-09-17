@@ -1,9 +1,9 @@
-#include "WAVE.H"
 #include "module_register.h"
 #include "ug_wave_recorder.h"
 #include "modules/shared/wav_file.h"
 #include "SeAudioMaster.h"
 #include "BundleInfo.h"
+#include "conversion.h"
 
 // copied from header mmreg.h
 #define WAVE_FORMAT_PCM     1
@@ -15,6 +15,23 @@ namespace
 REGISTER_MODULE_1(L"Wave Recorder", IDS_MN_WAVE_RECORDER,IDS_MG_INPUT_OUTPUT,ug_wave_recorder,CF_STRUCTURE_VIEW,L"Sends it's input to a file.  You can record several 'tracks' of audio to your hard disk at once.");
 }
 SE_DECLARE_INIT_STATIC_FILE(ug_wave_recorder)
+
+struct wave_file_header
+{
+	char chnk1_name[4];
+	int32_t chnk1_size;
+	char chnk2_name[4];
+	char chnk3_name[4];
+	int32_t chnk3_size;
+	uint16_t wFormatTag;
+	uint16_t nChannels;
+	int32_t nSamplesPerSec;
+	int32_t nAvgBytesPerSec;
+	uint16_t nBlockAlign;
+	uint16_t wBitsPerSample;
+	char chnk4_name[4];
+	int32_t chnk4_size;
+};
 
 void ug_wave_recorder::ListInterface2(InterfaceObjectArray& PList)
 {

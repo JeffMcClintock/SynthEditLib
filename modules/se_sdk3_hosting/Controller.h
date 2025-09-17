@@ -12,11 +12,11 @@
 #include "../se_sdk3/mp_gui.h"
 #include "../shared/FileWatcher.h"
 #include "IGuiHost2.h"
-#include "interThreadQue.h"
 #include "MpParameter.h"
 #include "ControllerHost.h"
 #include "ProcessorStateManager.h"
 #include "Shared/se_logger.h"
+#include "Hosting/message_queues.h"
 
 //namespace SynthEdit2
 //{
@@ -112,7 +112,7 @@ public:
 	bool isPresetModified();
 };
 
-class MpController : public IGuiHost2, public interThreadQueUser, public se_sdk::TimerClient
+class MpController : public IGuiHost2, public gmpi::hosting::interThreadQueUser, public se_sdk::TimerClient
 {
 	friend class UndoManager;
 	friend class SubPresetManager;
@@ -164,7 +164,7 @@ protected:
 
 	GmpiGui::FileDialog nativeFileDialog;
 
-    interThreadQue message_que_dsp_to_ui;
+	gmpi::hosting::interThreadQue message_que_dsp_to_ui;
 	bool isSemControllersInitialised = false;
 
 	// see also VST3Controller.programNames
@@ -243,7 +243,7 @@ public:
 	std::vector<presetInfo> scanPresetFolder(platform_string PresetFolder, platform_string extension);
 
 	virtual void ParamToDsp(MpParameter* param, int32_t voice = 0);
-	void SerialiseParameterValueToDsp(my_msg_que_output_stream& stream, MpParameter* param, int32_t voice = 0);
+	void SerialiseParameterValueToDsp(gmpi::hosting::my_msg_que_output_stream& stream, MpParameter* param, int32_t voice = 0);
 	void UpdateProgramCategoriesHc(MpParameter * param);
 	MpParameter* createHostParameter(int32_t hostControl);
 	virtual int32_t sendSdkMessageToAudio(int32_t handle, int32_t id, int32_t size, const void* messageData) override;
@@ -322,16 +322,16 @@ public:
 
 	// interThreadQueUser
 	bool OnTimer() override;
-	bool onQueMessageReady(int handle, int msg_id, class my_input_stream& p_stream) override;
+	bool onQueMessageReady(int handle, int msg_id, gmpi::hosting::my_input_stream& p_stream) override;
 
 	void serviceGuiQueue() override
 	{
 		message_que_dsp_to_ui.pollMessage(this);
 	}
 
-	virtual IWriteableQue* getQueueToDsp() = 0;
+	virtual gmpi::hosting::IWriteableQue* getQueueToDsp() = 0;
 
-	interThreadQue* getQueueToGui()
+	gmpi::hosting::interThreadQue* getQueueToGui()
 	{
 		return &message_que_dsp_to_ui;
 	}

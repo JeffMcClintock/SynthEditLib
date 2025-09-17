@@ -5,6 +5,10 @@
 #include "modules/shared/xplatform.h"
 #include "modules/se_sdk3/hasMidiTuning.h"
 
+namespace gmpi { namespace hosting{
+class my_input_stream;
+}}
+
 struct VoiceControlState : public hasMidiTuning
 {
 	static const int maxKeys = 128;
@@ -37,7 +41,7 @@ public:
 	virtual void OnMidi(VoiceControlState* voiceState, timestamp_t timestamp, const unsigned char* midiMessage, int size, bool fromMidiCv) = 0;
 	virtual float InitializeVoiceParameters(ug_container* voiceControlContainer, timestamp_t timestamp, class Voice* voice /*int voiceId, bool hardReset*/, bool sendTrigger) = 0;// , bool patchManagerAllocatesVoices) = 0;
 	virtual void SendInitialUpdates() = 0;
-	virtual void OnUiMsg(int p_msg_id, class my_input_stream& p_stream) = 0;
+	virtual void OnUiMsg(int p_msg_id, gmpi::hosting::my_input_stream& p_stream) = 0;
 	virtual void vst_Automation(ug_container* voiceControlContainer, timestamp_t p_clock, int p_controller_id, float p_normalised_value, bool sendToMidiCv = true, bool sendToNonMidiCv = true) = 0;
 	virtual void vst_Automation2(timestamp_t p_clock, int p_controller_id, const void* data, int size) = 0;
 

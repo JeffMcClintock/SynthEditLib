@@ -15,7 +15,6 @@ class Module_Info;
 class CUGLookupList;
 class ug_container;
 class IDspPatchManager;
-class my_input_stream;
 
 // Handy macros for enum type data
 #define MIDI_CHAN_LIST1 L"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16"
@@ -193,8 +192,8 @@ public:
 
 	// communication
 	void message(std::wstring msg, int typ = 0);
-	virtual void OnUiNotify2(int /*p_msg_id*/, my_input_stream& /*p_stream*/);
-	virtual void OnUiMsg(int p_msg_id, my_input_stream& p_stream) override;
+	virtual void OnUiNotify2(int /*p_msg_id*/, gmpi::hosting::my_input_stream& /*p_stream*/);
+	virtual void OnUiMsg(int p_msg_id, gmpi::hosting::my_input_stream& p_stream) override;
 	// polyphonic setup
 	FeedbackTrace* CalcSortOrder3(int& maxSortOrderGlobal);
 	void InsertVoiceAdders();

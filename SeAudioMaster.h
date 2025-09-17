@@ -11,24 +11,22 @@
 #include <unordered_map>
 #include <list>
 #include <vector>
-#include <iostream>
 #include <fstream>
 #include <chrono>
 #include <atomic>
 #include "EventProcessor.h"
-#include "interThreadQue.h"
 #include "./dsp_msg_target.h"
 #include "./EventProcessor.h"
 #include "./ISeAudioMaster.h"
 #include "./IDspPatchManager.h"
 #include "ug_event.h"
-#include "./modules/shared/xplatform.h"
 #include "ElatencyContraintType.h"
 #include "cancellation.h"
 #include "my_VstTimeInfo.h"
 #include "iseshelldsp.h"
 #include "CpuConsumption.h"
 #include "HoverScopeAudioCollector.h"
+#include "Hosting/message_queues.h"
 
 // Waves-only, use fixed-pool memory management.
 #if defined( SE_FIXED_POOL_MEMORY_ALLOCATION )
@@ -58,8 +56,6 @@ class CDocOb;
 class ug_soundcard_out;
 class dsp_msg_target;
 class IO_base;
-class my_msg_que_input_stream;
-class my_input_stream;
 struct DawPreset;
 
 // helper struct to track lookup table list
@@ -332,7 +328,7 @@ public:
 	std::unique_ptr<HoverScopeAudioCollector> hoverScopeModule;
 };
 
-class SeAudioMaster : public EventProcessor, public interThreadQueUser, public AudioMasterBase
+class SeAudioMaster : public EventProcessor, public gmpi::hosting::interThreadQueUser, public AudioMasterBase
 {
 	friend class AudioMasterBase;
 
@@ -435,7 +431,7 @@ public:
 	void HandleEvent(SynthEditEvent* /*e*/) override;
 	void HandleInterrupt();
 	void AssignTemporaryHandle(dsp_msg_target* p_object) override;
-	bool onQueMessageReady( int handle, int msg_id, my_input_stream& p_stream ) override;
+	bool onQueMessageReady( int handle, int msg_id, gmpi::hosting::my_input_stream& p_stream ) override;
 
 	// timing
 	timestamp_t SampleClock() override
@@ -538,7 +534,7 @@ public:
 	void ServiceGuiQue() override;
 
 	// dsp_msg_target support.
-	void OnUiMsg(int p_msg_id, my_input_stream& p_stream) override;
+	void OnUiMsg(int p_msg_id, gmpi::hosting::my_input_stream& p_stream) override;
 
 	// ISeAudioMaster support.
 	void onFadeOutComplete() override;
@@ -598,7 +594,6 @@ private:
 #endif
 
 	std::vector<ug_base*> patchCableModules;
-	int guiFrameRateSamples = 0;
 
 	std::vector<float> audioBuffers;
 	//                 value               pin

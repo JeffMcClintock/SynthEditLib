@@ -18,6 +18,15 @@
 
 enum class audioMasterState { Starting, Running, AsyncRestart, Stopping, Stopped };
 
+namespace gmpi
+{
+namespace hosting
+{
+class QueClient;
+class IWriteableQue;
+}
+}
+
 class ISpecialIoModule
 {
 public:
@@ -57,10 +66,10 @@ public:
 class ISeShellDsp
 {
 public:
-	virtual class IWriteableQue* MessageQueToGui() = 0;
+	virtual gmpi::hosting::IWriteableQue* MessageQueToGui() = 0;
 	virtual void ServiceDspRingBuffers() = 0;
-	virtual void ServiceDspWaiters2(int sampleframes, int guiFrameRateSamples) = 0;
-	virtual void RequestQue( class QueClient* client, bool noWait = false ) = 0;
+	virtual void ServiceDspWaiters2(int sampleframes) = 0;
+	virtual void RequestQue(gmpi::hosting::QueClient* client, bool noWait = false ) = 0;
 	virtual void NeedTempo() = 0;
 
 	virtual std::wstring ResolveFilename(const std::wstring& name, const std::wstring& extension) = 0;

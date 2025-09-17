@@ -23,8 +23,6 @@
 #include "UgDatabase.h"
 #include "ug_io_mod.h"
 #include "USampBlock.h"
-#include "my_msg_que_input_stream.h"
-#include "my_msg_que_output_stream.h"
 #include "ug_event.h"
 #include "ug_voice_splitter.h"
 #include "tinyxml/tinyxml.h"
@@ -42,6 +40,7 @@
 #endif
 
 using namespace std;
+using namespace gmpi::hosting;
 
 #define MAX_DEBUG_BUFFERS 40
 // 16k buffer
@@ -225,9 +224,6 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 
 	EventProcessor::logFileCsv << "time,cpu,handle,name\n";
 #endif
-
-	static const int guiFrameRate = 60;
-	guiFrameRateSamples = (int)SampleRate() / guiFrameRate;
 
 #ifdef _DEBUG
 #if defined(__arm__)
@@ -560,7 +556,7 @@ void SeAudioMaster::DoProcess_plugin(int sampleframes, const float* const* input
 	} while (sampleframes > 0);
 
 	// Send updates to GUI
-	m_shell->ServiceDspWaiters2(sampleframesCopy, guiFrameRateSamples);
+	m_shell->ServiceDspWaiters2(sampleframesCopy);
 }
 
 void SeAudioMaster::DoProcess_editor(int sampleframes, const float* const* inputs, float* const* outputs, int numInputs, int numOutputs)
@@ -698,7 +694,7 @@ void SeAudioMaster::DoProcess_editor(int sampleframes, const float* const* input
 	} while (sampleframes > 0);
 
 	// Send updates to GUI
-	m_shell->ServiceDspWaiters2(sampleframesCopy, guiFrameRateSamples);
+	m_shell->ServiceDspWaiters2(sampleframesCopy);
 
 	const auto elapsed = std::chrono::steady_clock::now() - cpuStartTime;
 	UpdateCpu(std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count());

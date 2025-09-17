@@ -15,11 +15,12 @@
 #include "plug_description.h"
 #include "./iseshelldsp.h"
 #include "modules/shared/voice_allocation_modes.h"
-#include "my_msg_que_output_stream.h"
 #include "BundleInfo.h"
 #include "PresetReader.h"
 #include "SeAudioMaster.h"
+#include "Hosting/message_queues.h"
 
+using namespace gmpi::hosting;
 
 // see PatchParameter.cpp for other IDs.
 SE_DECLARE_SERIAL2(20, dsp_patch_parameter, std::wstring, MetaData_filename );
@@ -443,7 +444,7 @@ void dsp_patch_parameter_base::getQueMessage( my_output_stream& outStream, int m
 	// Write standard header. This not included in 'messageLength'.
 	outStream << Handle();
 
-	outStream << id_to_long("ppc");
+	outStream << gmpi::hosting::id_to_long("ppc");
 	outStream << messageLength;
 	// END of standard header, remainder is payload.
 

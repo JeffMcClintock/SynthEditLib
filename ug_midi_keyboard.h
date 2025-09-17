@@ -17,7 +17,7 @@ public:
 	void OnMidiData(unsigned int midi_data, timestamp_t timeStamp);
 
 	// Compatibility with "SE Keyboard (MIDI)" which may be substituted in DX GUIs.
-	void OnUiNotify2(int p_msg_id, my_input_stream& p_stream) override;
+	void OnUiNotify2(int p_msg_id, gmpi::hosting::my_input_stream& p_stream) override;
 
 private:
 	std::list<int> buffer; // internal midi buffer

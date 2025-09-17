@@ -1,5 +1,6 @@
 #pragma once
 #include "./modules/se_sdk2/se_datatypes.h"
+#include "mp_sdk_common.h"
 
 template<class U> struct SeDatatypeTraits
 {

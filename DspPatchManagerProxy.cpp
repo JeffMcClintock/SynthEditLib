@@ -6,6 +6,8 @@
 #include "./ug_patch_param_watcher.h"
 #include "./dsp_patch_parameter_base.h"
 
+using namespace gmpi::hosting;
+
 DspPatchManagerProxy::DspPatchManagerProxy(ug_container* /*patch_control_container*/, ug_oversampler* oversampler) :
 	oversampler_(oversampler)
 {

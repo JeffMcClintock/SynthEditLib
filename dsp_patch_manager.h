@@ -31,7 +31,7 @@ public:
 	{
 		return midiChannel_;
 	}
-	void OnUiMsg(int p_msg_id, my_input_stream& p_stream) override;
+	void OnUiMsg(int p_msg_id, gmpi::hosting::my_input_stream& p_stream) override;
 	void vst_setAutomationId(dsp_patch_parameter_base* p_param, int p_controller_id) override;
 
 	virtual class dsp_patch_parameter_base* GetParameter( int handle );

@@ -17,7 +17,7 @@
 #include "dsp_patch_manager.h"
 #include "tinyxml/tinyxml.h"
 #include "dsp_patch_parameter_base.h"
-#include "my_input_stream.h"
+#include "Hosting/message_queues.h"
 #include "ug_oversampler.h"
 #include "ug_midi_automator.h"
 #include "cancellation.h"
@@ -29,10 +29,13 @@
 #ifdef _DEBUG
 #include "BundleInfo.h"
 #endif
+#include "Hosting/message_queues.h"
+
+using namespace std;
+using namespace gmpi::hosting;
 
 SE_DECLARE_INIT_STATIC_FILE(ug_container);
 
-using namespace std;
 
 // Cancellation test wave recorder module.
 #ifdef CANCELLATION_TEST_ENABLE
@@ -1375,7 +1378,7 @@ void ug_container::OnUiNotify2( int p_msg_id, my_input_stream& p_stream )
 		m_patch_manager->OnUiMsg( p_msg_id, p_stream);
 	}
 #endif
-	if( p_msg_id == id_to_long("setc") ) // MIDI Channel Change
+	if( p_msg_id == gmpi::hosting::id_to_long("setc") ) // MIDI Channel Change
 	{
 		int channel;
 		p_stream >> channel;

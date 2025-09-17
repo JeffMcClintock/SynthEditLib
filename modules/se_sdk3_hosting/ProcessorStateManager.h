@@ -5,9 +5,9 @@
 #include <mutex>
 #include <functional>
 #include "TimerManager.h"
-#include "lock_free_fifo.h"
 #include "GmpiApiCommon.h"
 #include "RawView.h"
+#include "Hosting/message_queues.h"
 
 /*
 #include "ProcessorStateManager.h"
@@ -117,17 +117,17 @@ public:
 class ProcessorStateMgrVst3 : public ProcessorStateMgr, public se_sdk::TimerClient
 {
 	DawPreset presetMutable;
-	lock_free_fifo messageQueFromProcessor; // from real-time thread
-	lock_free_fifo messageQueFromController; // message thread
+	gmpi::hosting::lock_free_fifo messageQueFromProcessor; // from real-time thread
+	gmpi::hosting::lock_free_fifo messageQueFromController; // message thread
 	bool presetDirty = true;
 	std::atomic<DawPreset const*> currentPreset;
 
 	bool OnTimer() override;
-	void serviceQueue(lock_free_fifo& fifo);
+	void serviceQueue(gmpi::hosting::lock_free_fifo& fifo);
 
 protected:
 	void setPreset(DawPreset const* preset) override;
-	void QueueParameterUpdate(lock_free_fifo* fifo, int32_t handle, int32_t field, RawView rawValue, int voiceId);
+	void QueueParameterUpdate(gmpi::hosting::lock_free_fifo* fifo, int32_t handle, int32_t field, RawView rawValue, int voiceId);
 
 public:
 	ProcessorStateMgrVst3();
@@ -142,7 +142,7 @@ public:
 	void ProcessorWatchdog();
 
 	// message-thread
-	InterThreadQueBase* ControllerToStateMgrQue()
+	gmpi::hosting::InterThreadQueBase* ControllerToStateMgrQue()
 	{
 		return &messageQueFromController;
 	}

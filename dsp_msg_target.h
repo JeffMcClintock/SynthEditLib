@@ -1,6 +1,8 @@
 #pragma once
 
+namespace gmpi { namespace hosting{
 class my_input_stream;
+}}
 
 // basis of DSP module, receives messages from GUI and Document
 class dsp_msg_target
@@ -20,7 +22,7 @@ public:
 		m_handle=p_handle;
 	}
 
-	virtual void OnUiMsg(int /* p_msg_id */, my_input_stream& /* p_stream */) {}
+	virtual void OnUiMsg(int /* p_msg_id */, gmpi::hosting::my_input_stream& /* p_stream */) {}
 
 protected:
 	int m_handle = -1;

@@ -1,12 +1,16 @@
 #pragma once
 
+namespace gmpi { namespace hosting{
+class IWriteableQue;
+}}
+
 struct HoverScopeAudioCollector
 {
 	HoverScopeAudioCollector(
 		int32_t pmoduleHandle
 		, int psampleRate
 		, float* pbuffer
-		, class IWriteableQue* pqueue
+		, gmpi::hosting::IWriteableQue* pqueue
 	);
 	const float* buffer{};
 	float resultsA_[1024 + 1]; // 4x as big when oversampling. +1 for sample-rate.
@@ -21,7 +25,7 @@ struct HoverScopeAudioCollector
 	int channelsleepCount_{};
 	int captureSamples{ 400 };
 	int state = 1; // 0 = idle, 1 = waiting for trigger, 2 = waiting for trigger +ve, 3 = capturing, 4 = cruise.
-	class IWriteableQue* queue{};
+	gmpi::hosting::IWriteableQue* queue{};
 	int32_t moduleHandle{};
 
 	void process(int blockPosition, int sampleFrames);

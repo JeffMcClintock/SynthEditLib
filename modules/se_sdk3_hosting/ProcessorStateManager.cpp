@@ -3,8 +3,6 @@
 #include "RawConversions.h"
 
 #include "PresetReader.h"
-#include "my_msg_que_input_stream.h"
-#include "my_msg_que_output_stream.h"
 #include "modules/tinyXml2/tinyxml2.h"
 #include "HostControls.h"
 #include "Shared/se_logger.h"
@@ -13,6 +11,9 @@
 #include "SeAudioMaster.h"
 #include "mfc_emulation.h"
 #endif
+#include "Hosting/message_queues.h"
+
+using namespace gmpi::hosting;
 
 #if ENABLE_SM_LOGGER
 

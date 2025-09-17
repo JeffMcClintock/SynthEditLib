@@ -2,13 +2,15 @@
 #include <cmath>
 #include <algorithm>
 #include "HoverScopeAudioCollector.h"
-#include "my_msg_que_output_stream.h"
+#include "Hosting/message_queues.h"
+
+using namespace gmpi::hosting;
 
 HoverScopeAudioCollector::HoverScopeAudioCollector(
 	  int32_t pmoduleHandle
 	, int psampleRate
 	, float* pbuffer
-	, class IWriteableQue* pqueue
+	, gmpi::hosting::IWriteableQue* pqueue
 )
 	: buffer(pbuffer)
 	, sampleRate(psampleRate)

@@ -3,9 +3,11 @@
 #include "midi_defs.h"
 #include "module_register.h"
 #include "conversion.h"
-#include "my_input_stream.h"
+#include "Hosting/message_queues.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_midi_keyboard)
+
+using namespace gmpi::hosting;
 
 namespace
 {
@@ -39,7 +41,7 @@ void ug_midi_keyboard::OnUiNotify2(int p_msg_id, my_input_stream& p_stream)
 {
 	ug_base::OnUiNotify2(p_msg_id, p_stream);
 
-	if (p_msg_id == id_to_long("sdk"))
+	if (p_msg_id == gmpi::hosting::id_to_long("sdk"))
 	{
 		int size, user_msg_id;
 		p_stream >> user_msg_id;

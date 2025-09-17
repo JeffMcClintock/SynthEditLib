@@ -9,6 +9,7 @@
 #include "HostControls.h"
 
 using namespace std;
+using namespace gmpi::hosting;
 
 #define MIDI_LEARN_MENU_ITEMS L"Learn=1, UnLearn"
 

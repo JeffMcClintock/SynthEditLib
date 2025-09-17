@@ -4,15 +4,15 @@
 #include <stdint.h>
 #include <mutex>
 #include "./iseshelldsp.h"
-#include "interThreadQue.h"
 #include "./SeAudioMaster.h"
 #include "modules/shared/xplatform.h"
 #include "IProcessorMessageQues.h"
 #include "tinyxml/tinyxml.h"
+#include "Hosting/message_queues.h"
 
 struct DawPreset;
 
-class my_output_stream_temp : public my_output_stream
+class my_output_stream_temp : public gmpi::hosting::my_output_stream
 {
 public:
 	virtual void Write( const void* /*lpBuf*/, unsigned int /*nMax*/ ) {}
@@ -77,13 +77,13 @@ public:
 
 	// ISeShellDsp support.
     void ServiceDspRingBuffers() override;
-	void ServiceDspWaiters2(int sampleframes, int guiFrameRateSamples) override;
+	void ServiceDspWaiters2(int sampleframes) override;
 	void EnableIgnoreProgramChange() override
 	{
 		shell_->EnableIgnoreProgramChange();
 	}
 
-	virtual void RequestQue( class QueClient* client, bool noWait = false ) override;
+	void RequestQue(gmpi::hosting::QueClient* client, bool noWait = false ) override;
 
 	virtual void NeedTempo() override {usingTempo_=true;}
 
@@ -153,9 +153,9 @@ public:
 private:
 
 	// Communication pipes Controller<->Processor
-	QueuedUsers pendingControllerQueueClients; // parameters waiting to be sent to GUI
+	gmpi::hosting::QueuedUsers pendingControllerQueueClients; // parameters waiting to be sent to GUI
 
-	IWriteableQue* MessageQueToGui() override // ISeShellDsp interface
+	gmpi::hosting::IWriteableQue* MessageQueToGui() override // ISeShellDsp interface
 	{
 		return peer->MessageQueToGui();
 	}

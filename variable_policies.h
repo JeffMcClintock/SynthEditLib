@@ -1,6 +1,6 @@
 #pragma once
 #include <assert.h>
-#include "./my_input_stream.h"
+#include "Hosting/message_queues.h"
 #include "./TypeToEDatatype.h"
 #include "./modules/se_sdk3/mp_api.h"
 #include "IPluginGui.h"
@@ -13,8 +13,8 @@
 struct MetaData_none // standard variable, no extra data
 {
 	static MetaData_none global_metadata_none; // saves creating many instances when needed as member
-	void SerialiseMetaData( my_output_stream& ) {}
-	void SerialiseMetaData( my_input_stream& ) {}
+	void SerialiseMetaData(gmpi::hosting::my_output_stream& ) {}
+	void SerialiseMetaData(gmpi::hosting::my_input_stream& ) {}
 	virtual int32_t GetDatatype( ParameterFieldType field, int* returnValue);
 	void SetValueRaw( ParameterFieldType field, const void* data, int size );
 	void GetValueRaw2( ParameterFieldType field, const void** data, int* size );
@@ -106,11 +106,11 @@ struct MetaData_enum // enum, provides list-of-values
 		}
 	}
 	virtual void OnMetaDataChanged() {}
-	void SerialiseMetaData( my_output_stream& p_stream )
+	void SerialiseMetaData(gmpi::hosting::my_output_stream& p_stream )
 	{
 		p_stream << m_enum_list;
 	}
-	void SerialiseMetaData( my_input_stream& p_stream )
+	void SerialiseMetaData(gmpi::hosting::my_input_stream& p_stream )
 	{
 		p_stream >> m_enum_list;
 	}
@@ -173,11 +173,11 @@ struct MetaData_filename // text, provides file optional extension
 		return !m_file_ext.empty();
 	}
 	virtual void OnMetaDataChanged() {}
-	void SerialiseMetaData( my_output_stream& p_stream )
+	void SerialiseMetaData(gmpi::hosting::my_output_stream& p_stream )
 	{
 		p_stream << m_file_ext;
 	}
-	void SerialiseMetaData( my_input_stream& p_stream )
+	void SerialiseMetaData(gmpi::hosting::my_input_stream& p_stream )
 	{
 		p_stream >> m_file_ext;
 	}
@@ -260,12 +260,12 @@ struct MetaData_ranged // provides hi/lo range
 		return m_hi;
 	}
 	virtual void OnMetaDataChanged() {}
-	void SerialiseMetaData( my_output_stream& p_stream )
+	void SerialiseMetaData(gmpi::hosting::my_output_stream& p_stream )
 	{
 		p_stream << m_lo;
 		p_stream << m_hi;
 	}
-	void SerialiseMetaData( my_input_stream& p_stream )
+	void SerialiseMetaData(gmpi::hosting::my_input_stream& p_stream )
 	{
 		p_stream >> m_lo;
 		p_stream >> m_hi;

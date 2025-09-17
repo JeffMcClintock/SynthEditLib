@@ -7,6 +7,10 @@
 #include "../shared/xplatform.h"
 #include "../se_sdk3/mp_sdk_common.h"
 
+namespace gmpi { namespace hosting{
+class my_input_stream;
+}}
+
 class MpParameter : public se_sdk::TimerClient
 {
 	bool m_grabbed = false;				// true = grabbed by user clicking the GUI
@@ -66,7 +70,7 @@ public:
 	{
 		return setParameterRaw(paramField, static_cast<int32_t>(raw.size()), raw.data(), voice);
 	}
-	virtual void updateFromDsp(int recievingMessageId, class my_input_stream& strm) = 0;
+	virtual void updateFromDsp(int recievingMessageId, gmpi::hosting::my_input_stream& strm) = 0;
 	virtual int getNativeTag() = 0; // -1 = not exported to DAW.
 	virtual bool isPolyPhonic() = 0;
 	virtual int getHostControl() = 0;
@@ -114,7 +118,7 @@ public:
 
 	virtual RawView getValueRaw(gmpi::FieldType paramField, int32_t voice) override;
 	bool setParameterRaw(gmpi::FieldType paramField, int32_t size, const void * data, int32_t voice = 0) override;
-	void updateFromDsp(int recievingMessageId, class my_input_stream& strm) override;
+	void updateFromDsp(int recievingMessageId, gmpi::hosting::my_input_stream& strm) override;
 	void updateDaw() override {}
 	int getNativeTag() override;
 	virtual bool isPolyPhonic() override {

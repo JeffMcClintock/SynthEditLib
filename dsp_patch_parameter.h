@@ -37,7 +37,7 @@ public:
 	{
 		return MyTypeTraits<T>::IsVariableLengthType;
 	}
-	void SerialiseMetaData(my_input_stream& p_stream) override
+	void SerialiseMetaData(gmpi::hosting::my_input_stream& p_stream) override
 	{
 		MetaDataPolicy::SerialiseMetaData( p_stream );
 	}

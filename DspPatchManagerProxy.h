@@ -1,6 +1,10 @@
 #pragma once
 #include "IDspPatchManager.h"
 
+namespace gmpi { namespace hosting{
+class my_input_stream;
+}}
+
 // Used by oversampling containers as bridge to real patchmanager in higher container.
 class DspPatchManagerProxy :
 	public IDspPatchManager
@@ -13,7 +17,7 @@ public:
 	void OnMidi(VoiceControlState* voiceState, timestamp_t timestamp, const unsigned char* midiMessage, int size, bool fromMidiCv) override;
 	float InitializeVoiceParameters(ug_container* voiceControlContainer, timestamp_t timestamp, Voice* voice /*int voiceId, bool hardReset*/, bool sendTrigger) override;// , bool patchManagerAllocatesVoices);
 	void SendInitialUpdates() override;
-	void OnUiMsg(int p_msg_id, my_input_stream& p_stream) override;
+	void OnUiMsg(int p_msg_id, gmpi::hosting::my_input_stream& p_stream) override;
 	void vst_Automation(ug_container* voiceControlContainer, timestamp_t p_clock, int p_controller_id, float p_normalised_value, bool sendToMidiCv = true, bool sendToNonMidiCv = true) override;
 	void vst_Automation2(timestamp_t p_clock, int p_controller_id, const void* data, int size) override;
 	void setParameterNormalized( timestamp_t p_clock, int vstParameterIndex, float newValue, int32_t flags ) override; // VST3.

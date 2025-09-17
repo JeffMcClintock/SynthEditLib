@@ -60,7 +60,8 @@ ${se_shared_folder}/xp_dynamic_linking.h
 ${se_shared_folder}/xp_dynamic_linking.cpp
 ${se_shared_folder}/xplatform_modifier_keys.h
 ${se_shared_folder}/xplatform_modifier_keys.cpp
-${se_shared_folder}/lock_free_fifo.h
+${gmpi_sdk_folder}/Hosting/message_queues.h
+${gmpi_sdk_folder}/Hosting/message_queues.cpp
 )
 
 IF(WIN32)
@@ -171,9 +172,6 @@ ${se_sdk_hosting_folder}/BundleInfo.h
 ${se_sdk_hosting_folder}/IGuiHost2.h
 ${se_sdk_hosting_folder}/ElatencyContraintType.h
 ${se_sdk_hosting_folder}/PresetReader.h
-interThreadQue.cpp
-interThreadQue.h
-QueClient.h
 
 Shared/VstPreset.h
 Shared/VstPreset.cpp
@@ -267,10 +265,6 @@ MpPinIterator.h
 MySmartPtr.h
 MyTypeTraits.cpp
 MyTypeTraits.h
-my_input_stream.cpp
-my_input_stream.h
-my_msg_que_input_stream.h
-my_msg_que_output_stream.h
 notify.cpp
 notify.h
 Notify_msg.h

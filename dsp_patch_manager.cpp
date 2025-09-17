@@ -9,8 +9,6 @@
 #include <algorithm>
 #include "./dsp_patch_manager.h"
 #include "./dsp_patch_parameter_base.h"
-#include "./my_msg_que_input_stream.h"
-#include "./my_msg_que_output_stream.h"
 #include "plug_description.h"
 #include "./midi_defs.h"
 #include "./dsp_patch_parameter.h"
@@ -30,6 +28,7 @@
 using namespace std;
 using namespace GmpiMidi;
 using namespace GmpiMidiHdProtocol;
+using namespace gmpi::hosting;
 
 //messy, just to get to que
 #include "./ug_container.h"

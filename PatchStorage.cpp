@@ -2,7 +2,7 @@
 
 #include <assert.h>
 #include "PatchStorage.h"
-#include "my_input_stream.h"
+#include "Hosting/message_queues.h"
 #include "iseshelldsp.h"
 
 #ifdef __linux__
@@ -10,9 +10,10 @@
 #include <stdlib.h>
 #endif
 
-
 // how many patches
 #define PP_ARRAY_SIZE 128
+
+using namespace gmpi::hosting;
 
 PatchStorageVariableSize::PatchStorageVariableSize( int patchCount ) : patchCount_(patchCount)
 {
