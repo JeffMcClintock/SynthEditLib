@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PluginList>
+    <Plugin id="SE Blob overloader (GUI)" name="Blob overloader (GUI)" category="Diagnostic">
+        <GUI>
+            <Pin name="Value In" datatype="blob"/>
+            <Pin name="Blob size MB" datatype="int" default="1"/>
+        </GUI>
+    </Plugin>
+    <Plugin id="SE Blob Overloader (DSP)" name="Blob Overloader (DSP)" category="Diagnostic">
+        <Audio>
+            <Pin name="Mode" datatype="enum" metadata="Zero-size,4MB = 4,5MB,6MB"/>
+            <Pin name="Out" datatype="blob" direction="out"/>
+        </Audio>
+    </Plugin>
     <Plugin id="SE Bad Voltage" name="Bad Voltage" category="Diagnostic" helpUrl="StreamingState.htm">
         <Audio>
             <Pin name="Mode" datatype="enum" metadata="NaN,+inf,-inf,zero"/>
