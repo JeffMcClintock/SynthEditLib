@@ -226,8 +226,6 @@ denormal_fixer.h
 DspFilterJeff.h
 DspPatchManagerProxy.cpp
 DspPatchManagerProxy.h
-DspRingBufferReader.h
-DspRingBufferWriter.h
 dsp_msg_target.h
 dsp_patch_manager.cpp
 dsp_patch_manager.h

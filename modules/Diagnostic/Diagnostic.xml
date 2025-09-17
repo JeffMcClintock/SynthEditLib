@@ -3,7 +3,7 @@
     <Plugin id="SE Blob overloader (GUI)" name="Blob overloader (GUI)" category="Diagnostic">
         <GUI>
             <Pin name="Value In" datatype="blob"/>
-            <Pin name="Blob size MB" datatype="int" default="1"/>
+            <Pin name="Blob size MB" datatype="int" direction="out"/>
         </GUI>
     </Plugin>
     <Plugin id="SE Blob Overloader (DSP)" name="Blob Overloader (DSP)" category="Diagnostic">
