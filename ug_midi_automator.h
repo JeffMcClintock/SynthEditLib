@@ -24,7 +24,7 @@ public:
 	DECLARE_UG_BUILD_FUNC(ug_patch_automator_out);
 	DECLARE_UG_INFO_FUNC2;
 
-	void SendAutomation2( float p_normalised, int voiceId, int p_unified_controller_id, const wchar_t* sysexFormat, bool caused_by_patch_change, int* lastMidiValue);
+	void SendAutomation2( float p_normalised, int voiceId, int p_unified_controller_id, const wchar_t* sysexFormate, int* lastMidiValue);
 	ug_patch_automator_out();
 	int Open() override;
 	void sendProgramChange( int program );

@@ -28,7 +28,7 @@ namespace
 		L"MIDI In"		, DR_IN, DT_MIDI2 ,L"0",L"", 0, L"",
 		L"MIDI Out"		, DR_OUT, DT_MIDI2 ,L"",L"", 0, L"",
 		L"Hidden Output", DR_OUT, DT_MIDI2 ,L"0",L"", IO_DISABLE_IF_POS, L"",
-		L"Send All On Patch Change", DR_IN, DT_BOOL,L"0",L"", IO_MINIMISED, L"",
+		L"Send All On Patch Change", DR_IN, DT_BOOL,L"0",L"", IO_MINIMISED| IO_HIDE_PIN, L"", // UNUSED
 	};
 
 	static module_description_dsp mod =
@@ -48,7 +48,7 @@ namespace
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 ug_patch_automator::ug_patch_automator() :
-	m_send_automation_on_patch_change(false)
+	m_send_automation_on_patch_change(false) // UNUSED
 	,transmitTempo_(false)
 {
 	SetFlag(UGF_PATCH_AUTO);
@@ -92,7 +92,7 @@ void ug_patch_automator::assignPlugVariable(int p_plug_desc_id, UPlug* p_plug)
 		break;
 
 	case 4:
-		p_plug->AssignVariable( &m_send_automation_on_patch_change );
+		p_plug->AssignVariable( &m_send_automation_on_patch_change ); // UNUSED
 		break;
 
 	case 5:
@@ -144,10 +144,9 @@ int ug_patch_automator::Open()
 	ug_midi_device::Open();
 
 	// if acting as panel for external MIDI device, need to send all CCs at startup.
-	if( m_send_automation_on_patch_change )
+//	if( m_send_automation_on_patch_change )
 	{
 		// can't send controller on first block, as controls havn't registered yet
-		//RUN_AT( SampleClock() + AudioMaster()->BlockSize(), &ug_patch_automator::AutomationSendAll );
 		patch_control_container->get_patch_manager()->SendInitialUpdates();
 	}
 

@@ -2545,7 +2545,7 @@ void SeAudioMaster::SetHostControl( int hostConnect, int32_t value )
 		{
 			if (param->SetValueRaw2(&value, sizeof(value), 0, 0))
 			{
-				param->OnValueChangedFromGUI(false, 0);
+				param->OnValueChangedFromGUI(0);
 			}
 		}
 	}

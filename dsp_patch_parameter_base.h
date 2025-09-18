@@ -77,8 +77,8 @@ public:
 	}
 
 	void OnValueChanged(int voiceId = 0, timestamp_t time = -1, bool initialUpdate = false);
-	void OnValueChangedFromGUI(bool p_due_to_program_change, int voiceId, bool initialUpdate = false);
-	void SendValue(timestamp_t timestamp, int voiceId);
+	void OnValueChangedFromGUI(int voiceId, bool initialUpdate = false);
+	void SendValue(timestamp_t timestamp, int voiceId, bool isInitialUpdate = false);
 	void SendValuePt2( timestamp_t unadjusted_timestamp, class Voice* voice = 0, bool isInitialUpdate = false);
 	void SendValuePoly(timestamp_t unadjusted_timestamp, int physicalVoiceNumber, RawView value, bool isInitialUpdate = false);
 	void SetGrabbed(bool pGrabbed);
@@ -161,14 +161,14 @@ int EffectivePatch() const
 }
 
 	// QueClient support.
-	virtual int queryQueMessageLength( int availableBytes );
-	virtual void getQueMessage(gmpi::hosting::my_output_stream& outStream, int messageLength );
+	int queryQueMessageLength( int availableBytes ) override;
+	void getQueMessage(gmpi::hosting::my_output_stream& outStream, int messageLength ) override;
 
 	virtual void setMetadataRangeMinimum( double rangeMinimum ) = 0;
 	virtual void setMetadataRangeMaximum( double rangeMaximum ) = 0;
 	virtual void setMetadataTextMetadata( std::wstring metadata ) = 0;
 
-	void outputMidiAutomation(bool p_due_to_program_change, int voiceId);
+	void outputMidiAutomation(int voiceId);
 
 #if defined( _DEBUG )
 	std::string debugName;

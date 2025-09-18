@@ -183,25 +183,33 @@ void dsp_patch_parameter_base::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 	{
 	case code_to_long('p','p','c',0): // "ppc" Patch parameter change. Either Output parameter or MIDI automation
 	{
-		bool due_to_program_change;
-		p_stream >> due_to_program_change;
+//		bool due_to_program_change;
+//		p_stream >> due_to_program_change;
 		
-//		int patch;
-//		p_stream >> patch;
-
-		int voice = 0;
-		if( isPolyphonic() )
+		// Processor has only one patch, regardless of what patch the UI is using.
+		constexpr int processorPatch = 0;
+		bool changed{};
+		int32_t voice{};
+		p_stream >> voice;
+		while (voice != -1) // indicates end-of-list.
 		{
+			changed |= SerialiseValue(p_stream, voice, processorPatch);
+
+			// next voice?
 			p_stream >> voice;
 		}
 
-		// Processor has only one patch, regardless of what patch the UI is using.
-		constexpr int processorPatch = 0;
-		const auto changed = SerialiseValue( p_stream, voice, processorPatch);
+		//int voice = 0;
+		//if( isPolyphonic() )
+		//{
+		//	p_stream >> voice;
+		//}
+
+		//const auto changed = SerialiseValue( p_stream, voice, processorPatch);
 
 		if(changed && EffectivePatch() == processorPatch)
 		{
-			OnValueChangedFromGUI( due_to_program_change, voice );
+			OnValueChangedFromGUI( voice );
 		}
 //		_RPTN(_CRT_WARN, "DSP ppc %10s v=%d val=%f\n", debugName.c_str(), voice, GetValueNormalised() );
 	}
@@ -239,7 +247,7 @@ void dsp_patch_parameter_base::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 	};
 }
 
-void dsp_patch_parameter_base::outputMidiAutomation(bool p_due_to_program_change, int voiceId)
+void dsp_patch_parameter_base::outputMidiAutomation(int voiceId)
 {
 	// output MIDI automation from Patch-Automator MIDI out
 	if( hasNormalized() )
@@ -264,12 +272,12 @@ void dsp_patch_parameter_base::outputMidiAutomation(bool p_due_to_program_change
 
 			int* lastMidiValue = &( lastMidiValue_[patchmemVoice] );
 
-			midi_automator_out->SendAutomation2(GetValueNormalised(patchmemVoice), automationVoice, UnifiedControllerId(), m_controller_sysex.c_str(), p_due_to_program_change, lastMidiValue);
+			midi_automator_out->SendAutomation2(GetValueNormalised(patchmemVoice), automationVoice, UnifiedControllerId(), m_controller_sysex.c_str(), /*p_due_to_program_change,*/ lastMidiValue);
 		}
 	}
 }
 
-void dsp_patch_parameter_base::SendValue( timestamp_t unadjusted_timestamp, int voiceId )
+void dsp_patch_parameter_base::SendValue( timestamp_t unadjusted_timestamp, int voiceId, bool isInitialUpdate)
 {
 	Voice* voice = nullptr;
 
@@ -308,7 +316,7 @@ void dsp_patch_parameter_base::SendValue( timestamp_t unadjusted_timestamp, int 
 		voice = voiceControlContainer->GetVoice(static_cast<short>(voiceId));
 	}
 
-	SendValuePt2( unadjusted_timestamp, voice);
+	SendValuePt2( unadjusted_timestamp, voice, isInitialUpdate);
 }
 
 /* !!! this is wrong. Poly controllers should go to all active voices with the matching voice-ID. Not a single physical voice.
@@ -397,39 +405,22 @@ RawView dsp_patch_parameter_base::GetValueRaw2(int patch, int voice)
 	return patchMemory[voice]->GetValueRaw(patch);
 }
 
-int dsp_patch_parameter_base::queryQueMessageLength( int availableBytes )
+int dsp_patch_parameter_base::queryQueMessageLength( int /*availableBytes*/ )
 {
 	int messageLength = sizeof(hostNeedsParameterUpdate) + sizeof(int); // tailing -1
 
+	//                        voice                data size
+	const int perVoiceSize = sizeof(int32_t) + (typeIsVariableSize() ? sizeof(int32_t) : 0);
+
 	int voice = 0;
-
-	for(auto it = patchMemory.begin() ; it != patchMemory.end() ; ++it )
+	for(auto& voiceMemory : patchMemory)
 	{
-		PatchStorageBase* voiceMemory = *it;
-
 		for( int patch = voiceMemory->getPatchCount() - 1 ; patch >= 0 ; --patch )
 		{
 			if( voiceMemory->isDirty( patch ) )
 			{
-				int voiceDataSize = sizeof(int);// *2;
-
-				if( typeIsVariableSize() )
-				{
-					voiceDataSize += sizeof(int);
-				}
-
-				voiceDataSize += patchMemory[voice]->GetValueSize(patch);
-
-				// If we have enough capacity we will send this voice's data.
-				if( availableBytes >= messageLength + voiceDataSize )
-				{
-					messageLength += voiceDataSize;
-				}
-				else
-				{
-					// if no more capacity, stop here.
-					return messageLength;
-				}
+				const auto valueSize = patchMemory[voice]->GetValueSize(patch);
+				messageLength += perVoiceSize + valueSize;
 			}
 		}
 
@@ -504,13 +495,6 @@ void dsp_patch_parameter_base::UpdateUI(bool due_to_vst_automation_from_dsp_thre
 	if( isDspOnlyParameter_ )
 		return;
 
-	/*
-	#if defined( _DEBUG )
-	// testing.
-	int* temp = (int*) patchMemory[voice]->GetValue();
-	_RPT2(_CRT_WARN, "dsp_patch_parameter_base::UpdateUI this=%x, val=%d\n", this, *temp );
-	#endif
-	*/
 	if( !due_to_vst_automation_from_dsp_thread )
 	{
 		hostNeedsParameterUpdate = true;
@@ -705,7 +689,7 @@ void dsp_patch_parameter_base::UpdateOutputParameter(int voiceId, UPlug* p_plug)
 	CopyPlugValue( voiceId, p_plug );
 	UpdateUI( false, voiceId );
 
-	outputMidiAutomation(false, voiceId);
+	outputMidiAutomation(voiceId);
 
 	// This does seem to double up on dsp_patch_parameter_base::SendValuePt2(), but not always (AI Master)
 	const auto raw = GetValueRaw2(0, voiceId);
@@ -736,7 +720,7 @@ void dsp_patch_parameter_base::vst_automate2(timestamp_t timestamp, int voice, c
 		// In SE we don't re-transmit MIDI when parameter changed in response to MIDI. Only when User moves knob.
 		// There is no way of distinguishing in VST3 processor if change came from user, or from automation.
 		// So we send MIDI controllers regardless. MIDI output is kind of pointless in VST3 anyhow.
-		outputMidiAutomation(false, voice);
+		outputMidiAutomation(voice);
 #endif
 #endif
 
@@ -751,7 +735,7 @@ void dsp_patch_parameter_base::OnValueChanged(int voiceId, timestamp_t time, boo
 		time = m_patch_mgr->Container()->AudioMaster()->NextGlobalStartClock();
 	}
 
-	SendValue(time, voiceId);
+	SendValue(time, voiceId, initialUpdate);
 
 	switch (hostControlId_)
 	{
@@ -775,11 +759,11 @@ void dsp_patch_parameter_base::OnValueChanged(int voiceId, timestamp_t time, boo
 }
 
 // send new value to destination plug and send MIDI automation. UI generated (no timestamp).
-void dsp_patch_parameter_base::OnValueChangedFromGUI(bool p_due_to_program_change, int voiceId, bool initialUpdate)
+void dsp_patch_parameter_base::OnValueChangedFromGUI(int voiceId, bool initialUpdate)
 {
 //	_RPT1(_CRT_WARN, "                     PRESETS-DSP: P%d OnValueChangedFromGUI\n", m_handle);
 
-	outputMidiAutomation(p_due_to_program_change, voiceId);
+	outputMidiAutomation(voiceId);
 
 	OnValueChanged(voiceId, -1, initialUpdate);
 }

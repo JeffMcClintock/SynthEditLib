@@ -70,10 +70,10 @@ void ug_patch_automator_out::setMidiChannel( int channel )
 	midi_channel = channel;
 }
 
-void ug_patch_automator_out::SendAutomation2( float p_normalised, int voiceId, int p_unified_controller_id, const wchar_t* sysexFormat, bool caused_by_patch_change, int* lastMidiValue)
+void ug_patch_automator_out::SendAutomation2( float p_normalised, int voiceId, int p_unified_controller_id, const wchar_t* sysexFormat, int* lastMidiValue)
 {
-	if( !automator_in->m_send_automation_on_patch_change && caused_by_patch_change )
-		return;
+//	if( !automator_in->m_send_automation_on_patch_change && caused_by_patch_change )
+//		return;
 
 	// todo fix, currently garbage value.!!!!!!!!
 	int chan = max( (short)0, midi_channel ); // chan -1 -> chan 0

@@ -80,7 +80,7 @@ public:
 
 			if( patchMemory[voice]->SetValue(RawData3(newValue), RawSize(newValue), EffectivePatch() ) )
 			{
-				OnValueChangedFromGUI(false, voice);
+				OnValueChangedFromGUI(voice);
 				UpdateUI(true); // true indicates not to call setparamterautomated (sending change back to host kicks Cubase out of automation mode)
 			}
 		}

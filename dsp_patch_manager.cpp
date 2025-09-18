@@ -1724,14 +1724,14 @@ void DspPatchManager::setPresetState(const std::string& chunk, bool isAsyncResta
 		{
 			if (parameter->SetValueFromXml(presetName, 0, 0) && !isAsyncRestart)
 			{
-				parameter->OnValueChangedFromGUI(false, 0);
+				parameter->OnValueChangedFromGUI(0);
 			}
 		}
 		else if( parameter->getHostControlId() == HC_PROGRAM_CATEGORY )
 		{
 			if (parameter->SetValueFromXml(categoryName, 0, 0) && !isAsyncRestart)
 			{
-				parameter->OnValueChangedFromGUI(false, 0);
+				parameter->OnValueChangedFromGUI(0);
 			}
 		}
 	}
@@ -1782,7 +1782,7 @@ void DspPatchManager::setPresetState(const std::string& chunk, bool isAsyncResta
 				{
 					if (parameter->SetValueFromXml(xmlvalue, voiceId, preset) && !isAsyncRestart)
 					{
-						parameter->OnValueChangedFromGUI(false, voiceId);
+						parameter->OnValueChangedFromGUI(voiceId);
 					}
 				}
 			}
@@ -1819,7 +1819,7 @@ void DspPatchManager::setPreset(DawPreset const* preset)
 				const auto& v = val.rawValues_[voice];
 				if (parameter->SetValueRaw2(v.data(), static_cast<int32_t>(v.size()), patch, voice))
 				{
-					parameter->OnValueChangedFromGUI(false, voice);
+					parameter->OnValueChangedFromGUI(voice);
 				}
 			}
 		}
@@ -1859,7 +1859,7 @@ const int program_ = 0;
 	{
 		if( !parameter->isPolyphonic() )
 		{
-			parameter->OnValueChangedFromGUI( true, voiceId, true );
+			parameter->OnValueChangedFromGUI( voiceId, true );
 		}
 	}
 }
