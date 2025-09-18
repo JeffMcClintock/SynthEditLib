@@ -3,6 +3,7 @@
 // Fix for <sstream> on Mac (sstream uses undefined int_64t)
 #include "./modules/se_sdk3/mp_api.h"
 #include <sstream>
+#include <unordered_map>
 
 #include "HostControls.h"
 #include "modules/se_sdk2/se_datatypes.h"
@@ -71,6 +72,7 @@ static const HostControlStruct lookup[] =
 	{(L"Oversampling/Rate")		,HC_OVERSAMPLING_RATE			, DT_ENUM, ControllerType::None},
 	{(L"Oversampling/Filter")	, HC_OVERSAMPLING_FILTER		, DT_ENUM, ControllerType::None},
 	{(L"User/Int0")				, HC_USER_SHARED_PARAMETER_INT0	, DT_INT, ControllerType::None},
+
 	{(L"Time/BarStartPosition"), HC_TIME_BAR_START				, DT_FLOAT, ControllerType::barStartPosition << 24},
 	{(L"Time/Timesignature/Numerator"), HC_TIME_NUMERATOR		, DT_INT, ControllerType::timeSignatureNumerator << 24},
 	{(L"Time/Timesignature/Denominator"), HC_TIME_DENOMINATOR	, DT_INT, ControllerType::timeSignatureDenominator << 24},
@@ -128,9 +130,14 @@ static const HostControlStruct lookup[] =
 	{L"Processor/ClearTails"	, HC_CLEAR_TAILS				, DT_INT,  ControllerType::None}, // a 'trigger' style HC. Actual value don't matter, only that it changed.
 	{L"Processor/DiagnosticFlags", HC_DIAGNOSTIC_FLAGS			, DT_INT,  ControllerType::None},
 	{L"Processor/Offline"		, HC_PROCESSOR_OFFLINE			, DT_BOOL, ControllerType::None},
-	{ L"Process/Bypass"			, HC_PROCESS_BYPASS  			, DT_BOOL, ControllerType::None },
+	{L"Process/Bypass"			, HC_PROCESS_BYPASS  			, DT_BOOL, ControllerType::None },
 	
 	// MAINTAIN ORDER TO PRESERVE OLDER WAVES EXPORTS DSP.XML consistency
+};
+
+std::unordered_map<std::wstring, HostControls> GMPI2_alternate_spellings = {
+	  {L"Time/Numerator"  , HC_TIME_NUMERATOR}
+	, {L"Time/Denominator", HC_TIME_DENOMINATOR}
 };
 
 HostControls StringToHostControl( const wstring& txt )
@@ -150,12 +157,15 @@ HostControls StringToHostControl( const wstring& txt )
 			}
 		}
 
-//		if( j == size )
+		// GMPI 2.0 alternate spellings
+		if (auto it = GMPI2_alternate_spellings.find(txt); it != GMPI2_alternate_spellings.end())
 		{
-			// Avoiding msg box in plugin
-			assert(false);
-//			Application()->SeMessageBox( errorText ,MB_OK|MB_ICONSTOP );
+			return it->second;
 		}
+
+		// Avoiding msg box in plugin
+		assert(false);
+//		Application()->SeMessageBox( errorText ,MB_OK|MB_ICONSTOP );
 	}
 
 	return returnVal;
@@ -166,6 +176,8 @@ int GetHostControlDatatype( HostControls hostControlId )
 	const int DATAYPE_INFO_COUNT = (sizeof(lookup) / sizeof(HostControlStruct));
 	if(hostControlId < DATAYPE_INFO_COUNT)
 	{
+		assert(lookup[hostControlId].id == hostControlId); // keep the list strictly in order.
+
 		return lookup[hostControlId].datatype;
 	}
 

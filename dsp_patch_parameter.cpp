@@ -199,14 +199,6 @@ void dsp_patch_parameter_base::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 			p_stream >> voice;
 		}
 
-		//int voice = 0;
-		//if( isPolyphonic() )
-		//{
-		//	p_stream >> voice;
-		//}
-
-		//const auto changed = SerialiseValue( p_stream, voice, processorPatch);
-
 		if(changed && EffectivePatch() == processorPatch)
 		{
 			OnValueChangedFromGUI( voice );
