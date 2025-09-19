@@ -30,7 +30,7 @@ public:
 	void setValueInstant( float targetValue, int blockPosition = -1 );
 	void pulse( float pulseHeight, int blockPosition = -1 );
 	float getInstantValue();
-	void setTransitionTime( float transitionTime ); // in samples. -1 = auto.
+	void setTransitionTime( float transitionTime );
 	void subProcess( int bufferOffset, int sampleFrames, bool& canSleep )
 	{
 		(this->*(curSubProcess_))( bufferOffset, sampleFrames, canSleep );
@@ -106,7 +106,9 @@ public:
 	}
 	void setTarget(float targetValue)
 	{
-		if( currentValue_ == ( std::numeric_limits<double>::max )( ) )
+		assert(adaptiveHi_ != 0.0f); // don't forget to call Init() !
+
+		if( currentValue_ == ( std::numeric_limits<double>::max )( ) ) // detect intial update, and jump instantly to the start value.
 		{
 			currentValue_ = targetValue_ = targetValue;
 			dv = 0.0;
@@ -117,14 +119,14 @@ public:
 		{
 			if (inverseTransitionTime_ > adaptiveLo_)
 			{
-				inverseTransitionTime_ *= 0.9;
+				inverseTransitionTime_ = (std::max)(adaptiveLo_, inverseTransitionTime_ * 0.9);
 			}
 		}
 		else
 		{
 			if (inverseTransitionTime_ < adaptiveLo_)
 			{
-				inverseTransitionTime_ *= 1.05; // slower 'decay', kind of peak follower.
+				inverseTransitionTime_ = (std::min)(adaptiveLo_, inverseTransitionTime_ * 1.05); // slower 'decay', kind of peak follower.
 			}
 		}
 
@@ -132,8 +134,26 @@ public:
 		dv = ( targetValue_ - currentValue_ ) * inverseTransitionTime_;
 	}
 
+	void SetTargetWithTimeInSamples(float targetValue, float transitionTime)
+	{
+		if (currentValue_ == (std::numeric_limits<double>::max)()) // detect intial update, and jump instantly to the start value.
+		{
+			currentValue_ = targetValue_ = targetValue;
+			dv = 0.0;
+			return;
+		}
+
+		transitionTime = (std::max)(1.0f, transitionTime);
+		inverseTransitionTime_ = 1.0 / transitionTime;
+
+		targetValue_ = targetValue;
+		dv = (targetValue_ - currentValue_) * inverseTransitionTime_;
+	}
+
 	void setValueInstant(float targetValue)
 	{
+		assert(adaptiveHi_ != 0.0f); // don't forget to call Init() !
+
 		currentValue_ = targetValue_ = targetValue;
 		dv = 0.0;
 	}

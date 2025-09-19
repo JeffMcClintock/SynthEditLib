@@ -1,4 +1,3 @@
-
 #include "ug_slider.h"
 #include "module_register.h"
 
@@ -39,68 +38,60 @@ void ug_slider::ListInterface2(InterfaceObjectArray& PList)
 	LIST_VAR_UI( L"Hint", DR_OUT, DT_TEXT , L"", L"", IO_UI_COMMUNICATION|IO_MINIMISED, L""); // not counted in dsp
 }
 
-ug_slider::ug_slider() :
-	output_so(SOT_LINEAR)
-	,appearance(0)
-{
-	// drum synths get voice numbers propagated back upstream, cause engine to
-	// suspend controls along with voice. However that will cause crash when vst host trys to automate suspended control
-	// better solution would be to keep all controls in voice zero!!
-	//SetFlag(UGF_NEVER_SUSPEND);
-}
-
 int ug_slider::Open()
 {
-	ug_control::Open();
-	output_so.SetPlug( GetPlug(PLG_OUT) );
-	return 0;
-}
+	auto r = ug_control::Open();
 
-void ug_slider::Resume()
-{
-	ug_control::Resume();
-	output_so.Resume();
+	m_output_ptr = GetPlug(PLG_OUT)->GetSamplePtr();
+	smoother.Init(getSampleRate());
+
+	return r;
 }
 
 void ug_slider::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type )
 {
-	if( p_to_plug == GetPlug( PLG_PATCH_VALUE ) )
+	if (p_to_plug == GetPlug(PLG_PATCH_VALUE))
 	{
 		const float output_val = patchValue_ * 0.1f; // Voltages are divided by 10.
-		const bool smoothUpdate = p_clock > 0; // first update instant.
 
-		int smooth_amnt;
-
-		if (smoothUpdate)	// when user moves control
+		if (appearance == 8 || (appearance > 3 && appearance < 7))	// switch, minimal smoothing
 		{
-			if (appearance == 8 || (appearance > 3 && appearance < 7))	// switch, minimal smoothing
-			{
-				smooth_amnt = 4; // allow 4 samples for transition
-			}
-			else		// normal knob, fairly heavy smoothing
-			{
-				smooth_amnt = (int)getSampleRate() / 32; // allow 1/32 sec for transition
-			}
+			// allow 4 samples for transition
+			smoother.SetTargetWithTimeInSamples(output_val, 4.f);
 		}
-		else			// instant change, when patch change happens
+		else
 		{
-			smooth_amnt = 0;
+			smoother.setTarget(output_val);
 		}
 
-		output_so.Set(SampleClock(), output_val, smooth_amnt);
-		//	_RPT1(_CRT_WARN, "change output %d\n", SampleClock() );
+		ResetStaticOutput();
+		GetPlug(PLG_OUT)->setStreamingA(true, p_clock);
+
 		SET_CUR_FUNC(&ug_slider::sub_process);
 	}
 }
 
 void ug_slider::sub_process(int start_pos, int sampleframes)
 {
-	bool can_sleep = true;
-	output_so.Process( start_pos, sampleframes, can_sleep );
+	auto out = m_output_ptr + start_pos;
 
-	if( can_sleep )
+	int todo = sampleframes;
+	if (smoother.isDone())
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		todo = (std::min)(static_output_count, sampleframes);
+
+		static_output_count -= todo;
+
+		if (static_output_count <= 0)
+		{
+			SET_CUR_FUNC(&ug_base::process_sleep);
+			GetPlug(PLG_OUT)->setStreamingA(false, SampleClock());
+		}
+	}
+
+	for (int s = todo; s > 0; s--)
+	{
+		*out++ = smoother.getNext();
 	}
 }
 

@@ -144,10 +144,10 @@ void MidiToCv2::subProcess( int sampleFrames )
 		*pitch++ = pitchInterpolator_.getNext() + benderInterpolator_.getNext();
 	}
 
-	bool canSleep = true;
-	pinVelocity.subProcess(bufferOffset, sampleFrames, canSleep);
-	pinTrigger.subProcess(bufferOffset, sampleFrames, canSleep);
-	pinAftertouchOut.subProcess(bufferOffset, sampleFrames, canSleep);
+	bool canSleepUnused = true;
+	pinVelocity.subProcess(bufferOffset, sampleFrames, canSleepUnused);
+	pinTrigger.subProcess(bufferOffset, sampleFrames, canSleepUnused);
+	pinAftertouchOut.subProcess(bufferOffset, sampleFrames, canSleepUnused);
 }
 
 void MidiToCv2::CleanVelocityAndAftertouch()
