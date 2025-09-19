@@ -309,10 +309,10 @@ int ug_container::Open()
 
 	// rather convoluted, but can't use patch-store pins in this module.
 	if( automation_input_device )
-	{
-		automation_input_device->setMidiChannel( patch_control_container->get_patch_manager()->getMidiChannel() );
-		automation_output_device->setMidiChannel( patch_control_container->get_patch_manager()->getMidiChannel() );
-	}
+		automation_input_device->setMidiChannel(patch_control_container->get_patch_manager()->getMidiChannel());
+
+	if (automation_output_device)
+		automation_output_device->setMidiChannel(patch_control_container->get_patch_manager()->getMidiChannel());
 
 	//no, crashes	ug_base::Open();
 	SetFlag( UGF_OPEN ); // we aren't calling base class, so must do this here.
