@@ -1808,7 +1808,7 @@ void ug_base::connect( UPlug* from_plug, UPlug* to_plug )
 			switch (to_plug->DataType)
 			{
 			case DT_FSAMPLE:
-				converter_id = L"FloatToVolts";
+				converter_id = L"SE Float to Volts2";
 				converterInputPlug = 1;
 				converterOutputPlug = 2;
 				break;

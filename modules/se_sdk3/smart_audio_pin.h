@@ -88,13 +88,17 @@ private:
 
 class RampGeneratorAdaptive
 {
+	double dv = {};
+	double currentValue_ = {};
+	double targetValue_ = {};
+	double inverseTransitionTime_ = {};
+
 	double adaptiveHi_ = {};
 	double adaptiveLo_ = {};
 
 public:
 	RampGeneratorAdaptive() :
 		currentValue_((std::numeric_limits<double>::max)())
-		, dv(0.0)
 	{}
 
 	void Init( float sampleRate)
@@ -108,30 +112,30 @@ public:
 	{
 		assert(adaptiveHi_ != 0.0f); // don't forget to call Init() !
 
-		if( currentValue_ == ( std::numeric_limits<double>::max )( ) ) // detect intial update, and jump instantly to the start value.
+		targetValue_ = targetValue;
+
+		if( currentValue_ == ( std::numeric_limits<double>::max )() // detect intial update, and jump instantly to the start value.
+			|| currentValue_ == targetValue)						// detect spurious duplicate calls and skip adjusting the smoothing ammount.
 		{
-			currentValue_ = targetValue_ = targetValue;
+			currentValue_ = targetValue;
 			dv = 0.0;
 			return;
 		}
 
-		if (currentValue_ == targetValue_) // too fast, slow down a bit.
+		// for sudden 'jumps' like a switch output, use minimal smoothing. While keeping adaptive rate the same.
+		if(fabs(targetValue - currentValue_) > 0.45) // 4.5 Volt jump
 		{
-			if (inverseTransitionTime_ > adaptiveLo_)
-			{
-				inverseTransitionTime_ = (std::max)(adaptiveLo_, inverseTransitionTime_ * 0.9);
-			}
+			dv = (targetValue - currentValue_) * adaptiveHi_;
 		}
 		else
 		{
-			if (inverseTransitionTime_ < adaptiveLo_)
-			{
-				inverseTransitionTime_ = (std::min)(adaptiveLo_, inverseTransitionTime_ * 1.05); // slower 'decay', kind of peak follower.
-			}
-		}
+			if (currentValue_ == targetValue) // too fast, slow down a bit.
+				inverseTransitionTime_ = (std::max)(adaptiveLo_, inverseTransitionTime_ * 0.9);
+			else
+				inverseTransitionTime_ = (std::min)(adaptiveHi_, inverseTransitionTime_ * 1.05); // speed up, but less sensitive to err on side of more smoothing..
 
-		targetValue_ = targetValue;
-		dv = ( targetValue_ - currentValue_ ) * inverseTransitionTime_;
+			dv = (targetValue - currentValue_) * inverseTransitionTime_;
+		}
 	}
 
 	void SetTargetWithTimeInSamples(float targetValue, float transitionTime)
@@ -201,11 +205,6 @@ public:
 	{
 		setValueInstant(static_cast<float>(targetValue_));
 	}
-private:
-	double dv = {};
-	double currentValue_ = {};
-	double targetValue_ = {};
-	double inverseTransitionTime_ = {};
 };
 
 #endif // .H INCLUDED
