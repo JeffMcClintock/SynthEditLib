@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.30)
 
 project(Soundpipe)
 #..\se_sdk3;..\..\..\SDKs\Soundpipe\h\;..\..\..\SDKs\Soundpipe\;..\..\..\SDKs\Soundpipe\lib\dr_wav\

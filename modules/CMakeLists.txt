@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.30)
 
 include(plugin_helper.cmake)
 include(${GMPI_SDK}/gmpi_plugin.cmake)
