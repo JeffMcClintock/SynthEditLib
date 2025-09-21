@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.30)
 
 # To build SE Modules, point CMake at 'SE16' folder, not here.
 # for ARM64, use the following commands:
@@ -10,6 +10,29 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS deployment v
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for macOS" FORCE)
 set(SE_GRAPHICS_SUPPORT TRUE CACHE BOOL "Support Graphics modules")
 set(CMAKE_CXX_STANDARD 20)
+
+# CPM bootstrap (shared cache across builds)
+set(CPM_DOWNLOAD_VERSION 0.38.6)
+set(CPM_USE_NAMED_CACHE_DIRECTORIES ON)
+set(CPM_GIT_SHALLOW ON) # shallow clone for speed
+
+if(NOT DEFINED CPM_SOURCE_CACHE)
+  if(WIN32)
+    set(CPM_SOURCE_CACHE "$ENV{USERPROFILE}/.cpm" CACHE STRING "CPM cache dir")
+  else()
+    set(CPM_SOURCE_CACHE "$ENV{HOME}/.cache/CPM" CACHE STRING "CPM cache dir")
+  endif()
+endif()
+
+set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+if(NOT EXISTS "${CPM_DOWNLOAD_LOCATION}")
+  file(DOWNLOAD
+    "https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake"
+    "${CPM_DOWNLOAD_LOCATION}"
+    TLS_VERIFY ON
+  )
+endif()
+include("${CPM_DOWNLOAD_LOCATION}")
 
 set(DSP_CORE ${CMAKE_CURRENT_SOURCE_DIR})
 

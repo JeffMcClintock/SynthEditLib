@@ -108,19 +108,20 @@ public:
 		adaptiveLo_ = 1.0 / ( sampleRate * 0.050 ); // 50ms max.
 		adaptiveHi_ = 1.0 / ( sampleRate * 0.001 ); // 1ms min.
 	}
+
 	void setTarget(float targetValue)
 	{
 		assert(adaptiveHi_ != 0.0f); // don't forget to call Init() !
 
-		targetValue_ = targetValue;
-
 		if( currentValue_ == ( std::numeric_limits<double>::max )() // detect intial update, and jump instantly to the start value.
-			|| currentValue_ == targetValue)						// detect spurious duplicate calls and skip adjusting the smoothing ammount.
+			|| targetValue_ == targetValue)						    // detect spurious duplicate calls and skip adjusting the smoothing ammount.
 		{
-			currentValue_ = targetValue;
+			currentValue_ = targetValue_ = targetValue;
 			dv = 0.0;
 			return;
 		}
+
+		targetValue_ = targetValue;
 
 		// for sudden 'jumps' like a switch output, use minimal smoothing. While keeping adaptive rate the same.
 		if(fabs(targetValue - currentValue_) > 0.45) // 4.5 Volt jump
