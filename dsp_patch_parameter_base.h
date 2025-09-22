@@ -50,7 +50,7 @@ public:
 	virtual bool SerialiseValue(gmpi::hosting::my_input_stream& p_stream, int voice, int patch );
 	virtual void CopyPlugValue( int voice, UPlug* p_plug) = 0;
 	const void* SerialiseForEvent(int voice, int& size);
-	void OnUiMsg(int p_msg_id, gmpi::hosting::my_input_stream& p_stream);
+	void OnUiMsg(int p_msg_id, gmpi::hosting::my_input_stream& p_stream) override;
 	void setPatchMgr(IDspPatchManager* p_patch_mgr);
 
 	bool hasNormalized()
