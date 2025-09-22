@@ -11,6 +11,7 @@ build_gmpi_plugin(
         BoolSplitterGui.cpp
         BoolSplitterGui.h
 		BlobToBlob2.cpp
+	BlobSizeGui.cpp
         CommandTriggerGui.cpp
         CommandTriggerGui.h
         Converters.cpp

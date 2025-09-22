@@ -2,6 +2,12 @@
 
 <PluginList>
   <!-- GUI CONVERTERS -->
+    <Plugin id="SE Blob Size" name="Blob Size" category="Sub-Controls/Conversion">
+        <GUI>
+            <Pin name="Value In" datatype="blob"/>
+            <Pin name="Value Out" datatype="int" direction="out"/>
+        </GUI>
+    </Plugin>
   <Plugin id="SE FloatToFloat64Gui" name="Float To Double" category="Sub-Controls/Conversion" helpUrl="converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Float Val" direction="in" datatype="float"/>
