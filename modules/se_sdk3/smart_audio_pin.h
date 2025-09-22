@@ -8,7 +8,7 @@
 
 // This class supports audio-rate control signal outputs with smoothing.
 /*
-#include "..\se_sdk3\smart_audio_pin.h"
+#include "../se_sdk3/smart_audio_pin.h"
 */
 
 class SmartAudioPin : public AudioOutPin

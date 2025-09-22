@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ug_control.h"
-#include "..\se_sdk3\smart_audio_pin.h"
+#include "../se_sdk3/smart_audio_pin.h"
 
 class ug_slider : public ug_control
 {
