@@ -56,6 +56,16 @@ struct UniversalFactory
 	}
 };
 
+inline gmpi::drawing::Point fromLegacy(GmpiDrawing_API::MP1_POINT p)
+{
+    // MP1_POINT typically holds floats (or ints). Cast defensively.
+    return { static_cast<float>(p.x), static_cast<float>(p.y) };
+}
+inline GmpiDrawing_API::MP1_POINT toLegacy(gmpi::drawing::Point p)
+{
+    return { p.x, p.y }; // Cast not needed if MP1_POINT fields are float. Add static_cast<type>(...) if they are int.
+}
+
 // SDK3 Graphics support on Direct2D. Used by SE2JUCE, VST3 and SynthEdit2::HostedView
 // also provides a universal drawing factory for nested GMPI-UI plugins
 struct DrawingFrameBase2 :
@@ -75,8 +85,8 @@ struct DrawingFrameBase2 :
     gmpi::drawing::Size scrollPos = {};
     float zoomFactor = 1.0f;
 
-    GmpiDrawing_API::MP1_POINT currentPointerPos = {-1, -1};
-//    std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
+    GmpiDrawing_API::MP1_POINT currentPointerPos = { -1, -1 };
+    //    std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
     GmpiGui::PopupMenu contextMenu;
 
     DrawingFrameBase2();

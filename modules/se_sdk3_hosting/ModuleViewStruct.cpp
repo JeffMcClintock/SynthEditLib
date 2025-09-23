@@ -799,11 +799,11 @@ namespace SE2
 		}
 
 		// Draw pin text elements.
-		if (zoomFactor > 0.5f)
+		auto outlineBrush = g.CreateSolidColorBrush(Color::Gray);
+		if (zoomFactor > 0.1f)
 		{
 			const float pinRadius = 3.0f;
 			const auto adjustedPinRadius = pinRadius + 0.1f; // nicer pixelation, more even outline circle.
-			auto outlineBrush = g.CreateSolidColorBrush(Color::Gray);
 			auto fillBrush = g.CreateSolidColorBrush(0x000000u);
 			auto whiteBrush = g.CreateSolidColorBrush(Color::White);
 
@@ -829,61 +829,8 @@ namespace SE2
 						p.x = right;
 					}
 
-#if 0
-					/*
-					// preceptually even colors.
-					static const Color pinColors[] = {
-						Color::FromRgb(0x42A41A),   // ENUM green
-						Color::FromRgb(0xFF2A00),   // TEXT red
-						Color::FromRgb(0xF2CD24),	// MIDI2 yellow
-						Color::FromRgb(0x42A41A),   // DOUBLE
-						Color::FromRgb(0x000000),   // BOOL - black
-						Color::FromRgb(0x0037F6),   // float blue
-						Color::FromRgb(0x2D817B),   // FLOAT green-blue
-						Color::FromRgb(0x000000),	// VST
-						Color::FromRgb(0xFFAE17),	// INT orange
-						Color::FromRgb(0xFFAE17),	// INT64 orange
-						Color::FromRgb(0xE216E2),	// BLOB - crimson
-						Color::FromRgb(0xCCCCCC),	// Spare - white
-					};
-*/
-					// HCY "MyPaint"
-					static const Color pinColors[] = {
-						Color::FromRgb(0x43BE8F),   // ENUM green
-						Color::FromRgb(0xCF7B7B),   // TEXT red
-						Color::FromRgb(0x9F9E43),	// MIDI2 yellow
-						Color::FromRgb(0x9E84CF),   // DOUBLE purple
-						Color::FromRgb(0x000000),   // BOOL - black
-						Color::FromRgb(0x45B1CF),   // float blue
-						Color::FromRgb(0x43BC9A),   // FLOAT green-blue
-						Color::FromRgb(0x000000),	// VST
-						Color::FromRgb(0xCF8543),	// INT orange
-						Color::FromRgb(0xCF8543),	// INT64 orange
-						Color::FromRgb(0xCF6DC4),	// BLOB - crimson
-						Color::FromRgb(0xC4C4C4),	// Spare - white
-					};
-#else
-/*
-					// Classic SE colors
-					static const Color pinColors_old[] = {
-						Color::FromBytes(0, 255, 0),        // ENUM green
-						Color::FromBytes(255, 0, 0),        // TEXT red
-						Color::FromBytes(0xFF, 0xFF, 0),	// MIDI2 yellow
-						Color::FromBytes(0, 255, 255),      // DOUBLE
-						Color::FromBytes(0, 0, 0),          // BOOL - black.
-						Color::FromBytes(0, 0, 255),        // float blue
-						Color::FromBytes(0, 255, 255),      // FLOAT green-blue
-						Color::FromBytes(0, 0, 0),			// VST
-						Color::FromBytes(0xFF, 0x80, 0),	// INT orange
-						Color::FromBytes(245, 130, 0),		// INT64 orange
-						Color::FromBytes(0xff, 0, 0xff),	// BLOB -purple
-						Color::FromBytes(0xff, 0, 0xff),	// Class -purple
-						Color::FromBytes(255, 0, 0),		// string (utf8)
-						Color::FromBytes(255, 255, 255),	// Spare - white.
-					};
-*/
 					static const Color pinColors[][2] = {
-					//     inner      outline
+						//  inner      outline
 						{{0x00BB00u},{0x008C00u}}, // ENUM green
 						{{0xFF0000u},{0xBF0000u}}, // TEXT red
 						{{0xFFCC00u},{0xBF9900u}}, // MIDI2 yellow
@@ -899,8 +846,7 @@ namespace SE2
 						{{0xFF0000u},{0xBF0000u}}, // string (utf8) red
 						{{0xFF55FFu},{0xBF40BFu}}, // BLOB2 -purple
 						{{0xffffffu},{0x808080u}}, // Spare - white.
-				};
-#endif
+					};
 
 					// Spare container pins white.
 					const int datatype = (pin.isAutoduplicatePlug && pin.isIoPlug) ? static_cast<int>(std::size(pinColors)) - 1 : pin.datatype;
@@ -910,30 +856,33 @@ namespace SE2
 						outlineBrush.SetColor(pinColors[datatype][1]);
 						prevDatatype = datatype;
 					}
-#if 0
-					g.FillCircle(p, pinRadius + 0.5f, fillBrush);
-#else
 					const float fillRadius = hoverPin == pinIndex ? pinRadius + 1.0f : pinRadius;
 					const float outlineRadius = hoverPin == pinIndex ? adjustedPinRadius + 1.0f : adjustedPinRadius;
 
 					g.FillCircle(p, fillRadius, fillBrush);
 
-					// outline on plug circle
-					// Unconected container pins highlighted white
-					if (pin.isTiedToUnconnected)
+					if (zoomFactor > 0.25f)
 					{
-						g.DrawCircle(p, outlineRadius, whiteBrush);
+						// outline on plug circle
+						// Unconected container pins highlighted white
+						if (pin.isTiedToUnconnected)
+						{
+							g.DrawCircle(p, outlineRadius, whiteBrush);
+						}
+						else
+						{
+							g.DrawCircle(p, outlineRadius, outlineBrush);
+						}
 					}
-					else
-					{
-						g.DrawCircle(p, outlineRadius, outlineBrush);
-					}
-#endif
+
 					p.y += plugDiameter;
 				}
 				++pinIndex;
 			}
+		}
 
+		if (zoomFactor > 0.5f)
+		{
 			// Text
 			Rect r(0,0, bounds_.getWidth(), bounds_.getHeight());
 			r.top -= 1.0f;

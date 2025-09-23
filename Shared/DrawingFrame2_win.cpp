@@ -70,6 +70,8 @@ void DrawingFrameBase2::calcViewTransform()
     viewTransform = gmpi::drawing::makeScale({zoomFactor, zoomFactor});
     viewTransform *= gmpi::drawing::makeTranslation({scrollPos.width, scrollPos.height});
 
+    inv_viewTransform = invert(viewTransform);
+
     static_cast<gmpi::api::IDrawingHost*>(this)->invalidateRect(nullptr);
 }
 

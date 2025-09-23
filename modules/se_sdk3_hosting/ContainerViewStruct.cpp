@@ -103,38 +103,85 @@ namespace SE2
 		{
 			// THEME
 			const unsigned int backGroundColor = 0xACACACu; // Background color
-			//const unsigned int backGroundColor = 0xa0a0a0u; // Background color (darker)
-			//const unsigned int backGroundColor = 0x707070u; // Background color (much darker)
 			const float thickWidth = 3.0f;
 
-			g.Clear(Color(backGroundColor));
+			// Background
+			{
+				// fill in the area arround the drawing area. avoiding overdraw.
+				GmpiDrawing::Rect editingBounds{ 0.0f, 0.0f, 7968.0f, 7968.0f };
+				GmpiDrawing::Rect huge{ -100000.0f, -100000.0f, 100000.0f, 100000.0f };
+
+				auto backgroundBrush = g.CreateSolidColorBrush(GmpiDrawing::Color(0x555555u));
+				auto temp = huge;
+				temp.bottom = editingBounds.top;
+				g.FillRectangle(temp, backgroundBrush);
+
+				temp = huge;
+				temp.top = editingBounds.bottom;
+				g.FillRectangle(temp, backgroundBrush);
+
+				temp = huge;
+				temp.top = editingBounds.top - 1.0f;
+				temp.bottom = editingBounds.bottom + 1.0f;
+				temp.right = editingBounds.left;
+				g.FillRectangle(temp, backgroundBrush);
+
+				temp.left = editingBounds.right;
+				temp.right = huge.right;
+				g.FillRectangle(temp, backgroundBrush);
+
+				// fill the drawing area
+				backgroundBrush.SetColor(backGroundColor);
+				g.FillRectangle(editingBounds, backgroundBrush);
+			}
 
 			auto zoomFactor = g.GetTransform()._11; // horizontal scale.
 			// BACKGROUND GRID LINES.
+			auto brush = g.CreateSolidColorBrush(backGroundColor + 0x040404u); // grid color.
 			if (zoomFactor > 0.5f)
 			{
-				GmpiDrawing::Rect cliprect = g.GetAxisAlignedClip();
+				GmpiDrawing::Rect cliprectF = g.GetAxisAlignedClip();
+				GmpiDrawing::Rect cliprect{
+					  cliprectF.left
+					, cliprectF.top
+					, cliprectF.right
+					, cliprectF.bottom
+				};
 
-				//				auto brush = g.CreateSolidColorBrush(0xB0B0B0u); // grid color.
-				auto brush = g.CreateSolidColorBrush(backGroundColor + 0x040404u); // grid color.
 
-				const int gridSize = 12; // *about that, dpi_ / 96;
-				const int gridBoarder = 2; // 2 grids
-				const int largeGridRatio = 5; // small grids per big grid.
-				int startX = static_cast<int32_t>(cliprect.left) / gridSize;
+				cliprect.left = (std::max)(cliprect.left, 0.0f);
+				cliprect.top = (std::max)(cliprect.top, 0.0f);
+				cliprect.right = (std::min)(cliprect.right, 7968.0f);
+				cliprect.bottom = (std::min)(cliprect.bottom, 7968.0f);
+
+				constexpr int viewDimensions = 7968;
+				constexpr int gridSize = 12; // *about that, dpi_ / 96;
+				constexpr int gridBoarder = 2; // 2 grids
+				constexpr int largeGridRatio = 5; // small grids per big grid.
+				constexpr int totalGrids = viewDimensions / gridSize - 2 * gridBoarder;
+
+				// quantize start x/y to grid.
+				int startX = cliprect.left / gridSize;
 				startX = (std::max)(startX, gridBoarder);
 				startX = startX * gridSize - 1;
 
-				int startY = static_cast<int32_t>(cliprect.top) / gridSize;
+				int startY = cliprect.top / gridSize;
 				startY = (std::max)(startY, gridBoarder);
 				startY = startY * gridSize - 1;
 
-				constexpr int largeGridSize = gridSize * largeGridRatio;
-				const int lastgrid = gridSize * gridBoarder + largeGridSize * ((static_cast<int32_t>(drawingBounds.getWidth()) - 2 * gridSize * gridBoarder) / largeGridSize);
-				//				const int lastYgrid = gridSize * gridBoarder + largeGridSize * (static_cast<int32_t>(drawingBounds.getHeight() / largeGridSize - 1));
+				int endX = (cliprect.right + gridSize - 1) / gridSize;
+				endX = (std::min)(endX, totalGrids + gridBoarder);
+				endX = endX * gridSize + 1;
 
-				int endX = (std::min)(lastgrid, static_cast<int32_t>(cliprect.right));
-				int endY = (std::min)(lastgrid, static_cast<int32_t>(cliprect.bottom));
+				int endY = (cliprect.bottom + gridSize - 1) / gridSize;
+				endY = (std::min)(endY, totalGrids + gridBoarder);
+				endY = endY * gridSize + 1;
+
+				constexpr int largeGridSize = gridSize * largeGridRatio;
+//				const int lastgrid = gridSize * gridBoarder + largeGridSize * ((static_cast<int32_t>(drawingBounds.getWidth()) - 2 * gridSize * gridBoarder) / largeGridSize);
+
+//				int endX = static_cast<int32_t>(cliprect.right) - gridBoarder * gridSize; // (std::min)(lastgrid, static_cast<int32_t>(cliprect.right));
+//				int endY = static_cast<int32_t>(cliprect.bottom) - gridBoarder * gridSize; // (std::min)(lastgrid, static_cast<int32_t>(cliprect.bottom));
 
 				int thickLineCounter = ((startX + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
 				for (int x = startX; x < endX; x += gridSize)
@@ -170,10 +217,6 @@ namespace SE2
 				}
 			}
 		}
-		//else
-		//{
-		//	g.Clear(Color::LightGray);
-		//}
 #endif
 
 		return ViewBase::OnRender(drawingContext);
