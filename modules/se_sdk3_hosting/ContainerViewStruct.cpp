@@ -148,7 +148,6 @@ namespace SE2
 					, cliprectF.bottom
 				};
 
-
 				cliprect.left = (std::max)(cliprect.left, 0.0f);
 				cliprect.top = (std::max)(cliprect.top, 0.0f);
 				cliprect.right = (std::min)(cliprect.right, 7968.0f);
@@ -178,10 +177,6 @@ namespace SE2
 				endY = endY * gridSize + 1;
 
 				constexpr int largeGridSize = gridSize * largeGridRatio;
-//				const int lastgrid = gridSize * gridBoarder + largeGridSize * ((static_cast<int32_t>(drawingBounds.getWidth()) - 2 * gridSize * gridBoarder) / largeGridSize);
-
-//				int endX = static_cast<int32_t>(cliprect.right) - gridBoarder * gridSize; // (std::min)(lastgrid, static_cast<int32_t>(cliprect.right));
-//				int endY = static_cast<int32_t>(cliprect.bottom) - gridBoarder * gridSize; // (std::min)(lastgrid, static_cast<int32_t>(cliprect.bottom));
 
 				int thickLineCounter = ((startX + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
 				for (int x = startX; x < endX; x += gridSize)
@@ -196,7 +191,7 @@ namespace SE2
 					{
 						penWidth = 1;
 					}
-					g.DrawLine(x + 0.5f, startY + 0.5f, x + 0.5f, endY + 0.5f, brush, penWidth);
+					g.DrawLine(x + 0.5f, startY + 0.5f, x + 0.5f, endY - 0.5f, brush, penWidth);
 				}
 
 				thickLineCounter = ((startY + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
@@ -213,8 +208,18 @@ namespace SE2
 						penWidth = 1;
 					}
 
-					g.DrawLine(startX + 0.5f, y + 0.5f, endX + 0.5f, y + 0.5f, brush, penWidth);
+					g.DrawLine(startX + 0.5f, y + 0.5f, endX - 0.5f, y + 0.5f, brush, penWidth);
 				}
+
+				// outline entire grid to clean up 4 corners.
+//				brush.SetColor(Color::Red); // debug
+				g.DrawRectangle(
+					Rect{
+						gridSize * 2 - 0.5f, gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f
+					}
+					, brush
+					, thickWidth
+				);
 			}
 		}
 #endif
