@@ -138,8 +138,10 @@ namespace SE2
 			auto zoomFactor = g.GetTransform()._11; // horizontal scale.
 			// BACKGROUND GRID LINES.
 			auto brush = g.CreateSolidColorBrush(backGroundColor + 0x040404u); // grid color.
-			if (zoomFactor > 0.5f)
+			if (zoomFactor > 0.1f)
 			{
+				const auto drawFinegrid = zoomFactor > 0.6f;
+
 				GmpiDrawing::Rect cliprectF = g.GetAxisAlignedClip();
 				GmpiDrawing::Rect cliprect{
 					  cliprectF.left
@@ -189,6 +191,9 @@ namespace SE2
 					}
 					else
 					{
+						if (!drawFinegrid)
+							continue;
+
 						penWidth = 1;
 					}
 					g.DrawLine(x + 0.5f, startY + 0.5f, x + 0.5f, endY - 0.5f, brush, penWidth);
@@ -205,6 +210,9 @@ namespace SE2
 					}
 					else
 					{
+						if (!drawFinegrid)
+							continue;
+
 						penWidth = 1;
 					}
 
