@@ -220,7 +220,6 @@ namespace SE2
 				}
 
 				// outline entire grid to clean up 4 corners.
-//				brush.SetColor(Color::Red); // debug
 				g.DrawRectangle(
 					Rect{
 						gridSize * 2 - 0.5f, gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f
