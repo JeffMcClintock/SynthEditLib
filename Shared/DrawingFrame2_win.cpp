@@ -6,9 +6,12 @@
 #include "shlobj.h"
 #include "conversion.h"
 #include "Drawing.h"
+#include "gmpi_drawing_conversions.h"
 
 // Windows 32
 #include "modules/se_sdk3_hosting/gmpi_gui_hosting.h"
+
+using namespace legacy_converters;
 
 DrawingFrameBase2::DrawingFrameBase2()
 {

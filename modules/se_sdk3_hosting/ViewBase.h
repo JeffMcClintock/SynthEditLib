@@ -51,6 +51,14 @@ bool isIteratingChildren = false;
 		GmpiDrawing::Size DraggingModulesOffset = {};
 		GmpiDrawing::Point DraggingModulesInitialTopLeft = {};
 
+		// pan and zoom
+		gmpi::drawing::Size scrollPos = {};
+		float zoomFactor = 1.0f;
+		gmpi::drawing::Matrix3x2 viewTransform;
+		gmpi::drawing::Matrix3x2 inv_viewTransform;
+		void calcViewTransform();
+
+
 #ifdef _WIN32
 		DrawingFrameBase2* frameWindow = {};
 #endif

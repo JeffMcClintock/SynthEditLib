@@ -13,11 +13,13 @@
 #include "IGuiHost2.h"
 #include "ModuleViewStruct.h"
 #include "ConnectorViewStruct.h"
+#include "gmpi_drawing_conversions.h"
 
 using namespace std;
 using namespace gmpi;
 using namespace gmpi_gui;
 using namespace GmpiDrawing;
+using namespace legacy_converters;
 
 namespace SE2
 {
@@ -98,6 +100,12 @@ namespace SE2
 		auto color = Color::FromBytes(red & 0xff, 0x77, 0x77);
 		g.Clear(color);
 #else
+
+		const Matrix3x2 originalTransform = g.GetTransform();
+
+		// pan and zoom
+		const auto viewTransformL = originalTransform * toLegacy(viewTransform);
+		g.SetTransform(viewTransformL);
 
 //		if (viewType == CF_STRUCTURE_VIEW)
 		{
@@ -231,7 +239,11 @@ namespace SE2
 		}
 #endif
 
-		return ViewBase::OnRender(drawingContext);
+		const auto r = ViewBase::OnRender(drawingContext);
+
+		g.SetTransform(originalTransform);
+
+		return r;
 	}
 } // namespace
 

@@ -768,17 +768,70 @@ namespace SE2
 		}
 	}
 
+	void ViewBase::calcViewTransform()
+	{
+		viewTransform = gmpi::drawing::makeScale({ zoomFactor, zoomFactor });
+		viewTransform *= gmpi::drawing::makeTranslation({ scrollPos.width, scrollPos.height });
+
+		inv_viewTransform = invert(viewTransform);
+
+		invalidateRect(); // static_cast<gmpi::api::IDrawingHost*>(this)->invalidateRect(nullptr);
+	}
+
 	int32_t ViewBase::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point)
 	{
 		if (isDraggingModules)
 			return gmpi::MP_UNHANDLED;
 
-		calcMouseOverObject(flags);
+bool hasScrollbars = true; // TODO!!! disable this in plugin mode
 
-		if (!mouseOverObject)
-			return gmpi::MP_UNHANDLED;
+		// <ALT> causes scroll wheel events to pass to client
+		if ((flags & gmpi_gui_api::GG_POINTER_KEY_ALT) || !hasScrollbars)
+		{
+			calcMouseOverObject(flags);
 
-		return mouseOverObject->onMouseWheel(flags, delta, point);
+			if (!mouseOverObject)
+				return gmpi::MP_UNHANDLED;
+
+			return mouseOverObject->onMouseWheel(flags, delta, point);
+		}
+
+		// <CTRL> wheel = zoom
+		if (flags & gmpi_gui_api::GG_POINTER_KEY_CONTROL)
+		{
+			if (delta < 0)
+				zoomFactor /= 1.25f;
+			else
+				zoomFactor *= 1.25f;
+
+			zoomFactor = std::clamp(zoomFactor, 0.1f, 10.0f);
+
+			const auto before = fromLegacy(point) * inv_viewTransform;
+
+			calcViewTransform();
+
+			const auto after = fromLegacy(point) * inv_viewTransform;
+
+			//const auto before = fromLegacy(currentPointerPos);
+			//const auto after = currentPointerPosAbsolute * inv_viewTransform;
+			// 
+			// scroll to retain mouse position.
+			scrollPos.width -= (before.x - after.x) * zoomFactor;
+			scrollPos.height -= (before.y - after.y) * zoomFactor;
+		}
+		else
+		{
+			// shift+wheel = horizontal scroll.
+			if (flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT)
+				scrollPos.width += static_cast<float>(delta) * 0.25f; // 120 delta per wheel detent.
+			else
+				scrollPos.height += static_cast<float>(delta) * 0.25f; // vertical scroll
+		}
+
+		calcViewTransform(); // and redraws
+// TODO		updateScrollBars();
+
+		return gmpi::MP_OK;
 	}
 
 	int32_t ViewBase::StartCableDrag(IViewChild* fromModule, int fromPin, Point dragStartPoint, bool isHeldAlt, CableType type)
