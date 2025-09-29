@@ -36,6 +36,7 @@ struct AdornerLayer : public gmpi_gui::MpGuiGfxBase
 struct PileChildHost :
 	  public gmpi_gui::IMpGraphicsHost
 	, public gmpi::IMpUserInterfaceHost2
+	, public gmpi::api::IDialogHost
 {
 	struct Pile* parent = nullptr;
 
@@ -63,6 +64,14 @@ struct PileChildHost :
 	int32_t MP_STDCALL FindResourceU(const char* resourceName, const char* resourceType, gmpi::IString* returnString) override { return 0; }
 	int32_t MP_STDCALL LoadPresetFile_DEPRECATED(const char* presetFilePath) override { return 0; }
 
+	// IDialogHost
+	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override { return gmpi::ReturnCode::Ok; }
+	gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override { return gmpi::ReturnCode::Ok; }
+	gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener);
+	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::Ok; }
+	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::Ok; }
+
+
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{
 		*returnInterface = nullptr;
@@ -81,8 +90,24 @@ struct PileChildHost :
 			return gmpi::MP_OK;
 		}
 
+		if (iid == *(gmpi::MpGuid*)&IDialogHost::guid)
+		{
+			*returnInterface = static_cast<IDialogHost*>(this);
+			addRef();
+			return gmpi::MP_OK;
+		}
+
 		return gmpi::MP_NOSUPPORT;
 	}
+
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+	{
+		GMPI_QUERYINTERFACE(IDialogHost);
+
+		const gmpi::MpGuid& iid2 = *(const gmpi::MpGuid*)iid;
+		return (gmpi::ReturnCode)queryInterface(iid2, returnInterface);
+	}
+
 	GMPI_REFCOUNT
 };
 
@@ -91,13 +116,13 @@ struct Pile :
 	  public gmpi_gui::MpGuiGfxBase
 	, public IGraphicsRedrawClient
 	, public gmpi_gui_api::IMpKeyClient
-
 {
 	PileChildHost childhost;
 
 	std::vector<gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3>> graphics;
 	std::vector<gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2>> editors;
-
+	std::vector<gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient>> redraws;
+	
 	GmpiDrawing_API::MP1_POINT lastPoint{};
 	int32_t currentMouseLayer = -1;
 	int32_t capturedLayer = -2;
@@ -111,9 +136,11 @@ struct Pile :
 	{
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> editor;
 		gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> graphic;
+		gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> redraw;
 
 		child->queryInterface(gmpi_gui_api::IMpGraphics3::guid, graphic.asIMpUnknownPtr());
 		child->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, editor.asIMpUnknownPtr());
+		child->queryInterface(IGraphicsRedrawClient::guid, redraw.asIMpUnknownPtr());
 
 		if (graphic)
 		{
@@ -123,6 +150,10 @@ struct Pile :
 		{
 			editors.push_back(editor);
 			editor->setHost(static_cast<gmpi_gui::IMpGraphicsHost*>(&childhost));
+		}
+		if (redraw)
+		{
+			redraws.push_back(redraw);
 		}
 	}
 
@@ -151,18 +182,15 @@ struct Pile :
 	int32_t MP_STDCALL arrange(gmpi_gui::MP1_RECT finalRect)  override
 	{
 		for (auto& child : graphics)
-		{
 			child->arrange(finalRect);
-		}
+
 		return gmpi::MP_OK;
 	}
 
 	int32_t initialize() override
 	{
 		for (auto& child : editors)
-		{
 			child->initialize();
-		}
 		
 		return gmpi_gui::MpGuiGfxBase::initialize();
 	}
@@ -170,9 +198,7 @@ struct Pile :
 	int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override
 	{
 		for(auto& child : graphics)
-		{
 			child->OnRender(drawingContext);
-		}
 
 		return gmpi::MP_OK;
 	}
@@ -192,9 +218,7 @@ struct Pile :
 	int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override
 	{
 		if(auto child = graphicsChild(); child)
-		{
 			return child->onMouseWheel(flags, delta, point);
-		}
 
 		return gmpi::MP_UNHANDLED;
 	}
@@ -202,9 +226,8 @@ struct Pile :
 	int32_t MP_STDCALL onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
 	{
 		if (auto child = graphicsChild(); child)
-		{
 			child->onPointerDown(flags, point);
-		}
+
 		return gmpi::MP_OK;
 	}
 	int32_t MP_STDCALL onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
@@ -229,20 +252,22 @@ struct Pile :
 	int32_t MP_STDCALL onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
 	{
 		if (auto child = graphicsChild(); child)
-		{
 			child->onPointerUp(flags, point);
-		}
+
 		return gmpi::MP_OK;
 	}
 
-
 	// IGraphicsRedrawClient
-	void PreGraphicsRedraw() override {};
+	void PreGraphicsRedraw() override
+	{
+		for (auto& child : redraws)
+			child->PreGraphicsRedraw();
+	}
 
 	// IMpKeyClient
 	int32_t MP_STDCALL OnKeyPress(wchar_t c) override
 	{
-		for (auto& child : graphics)
+		if (auto child = graphicsChild(); child)
 		{
 			gmpi_gui_api::IMpKeyClient* keyClient = nullptr;
 			if (child->queryInterface(gmpi_gui_api::IMpKeyClient::guid, reinterpret_cast<void**>(&keyClient)) == gmpi::MP_OK)
@@ -439,9 +464,10 @@ public:
 			addRef();
 			return gmpi::MP_OK;
 		}
-
+		
 		return gmpi_gui::MpGuiGfxBase::queryInterface(iid, returnInterface);
 	}
+
 	GMPI_REFCOUNT
 };
 
@@ -453,18 +479,18 @@ inline void MP_STDCALL PileChildHost::invalidateRect(const GmpiDrawing_API::MP1_
 {
 	return parent->getGuiHost()->invalidateRect(invalidRect);
 }
-int32_t MP_STDCALL PileChildHost::setCapture()
+inline int32_t MP_STDCALL PileChildHost::setCapture()
 {
 	parent->capturedLayer = parent->currentMouseLayer;
 	parent->setCapture(); // tell parent.
 
 	return gmpi::MP_OK;
 }
-int32_t MP_STDCALL PileChildHost::getCapture(int32_t& returnValue)
+inline int32_t MP_STDCALL PileChildHost::getCapture(int32_t& returnValue)
 {
 	return parent->capturedLayer == parent->currentMouseLayer ? gmpi::MP_OK : gmpi::MP_UNHANDLED;
 }
-int32_t MP_STDCALL PileChildHost::releaseCapture()
+inline int32_t MP_STDCALL PileChildHost::releaseCapture()
 {
 	parent->capturedLayer = -2;
 
@@ -474,7 +500,12 @@ int32_t MP_STDCALL PileChildHost::releaseCapture()
 	return parent->onPointerMove(flags, parent->lastPoint); // recalc current layer
 }
 
-
+inline gmpi::ReturnCode PileChildHost::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
+{
+	gmpi::shared_ptr<gmpi::api::IDialogHost> host;
+	parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid, host.put_void());
+	return host->createKeyListener(r, returnKeyListener);
+}
 
 
 } //namespace SE2
