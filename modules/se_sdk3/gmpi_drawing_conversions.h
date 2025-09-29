@@ -39,6 +39,7 @@ namespace legacy_converters
 {
 
 inline gmpi::drawing::Point convert(GmpiDrawing_API::MP1_POINT p) { return { p.x, p.y }; }
+inline GmpiDrawing_API::MP1_POINT convert(gmpi::drawing::Point p) { return { p.x, p.y }; }
 
 
 // utilities for working with legacy graphics api.

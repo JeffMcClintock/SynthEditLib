@@ -4,16 +4,18 @@
 #include <functional>
 #include <d3d11_4.h>
 #include <span>
-#include "TimerManager.h"
 #include "GraphicsRedrawClient.h"
 #include "DirectXGfx.h"
 #include "legacy_sdk_gui2.h"
 #include "helpers/NativeUi.h"
 #include "helpers/Timer.h"
 #include "mp_gui.h"
+#include "gmpi_drawing_conversions.h"
 
 // GMPI-UI to replace custom code.
 #include "backends/DrawingFrameWin.h"
+
+using namespace legacy_converters;
 
 namespace SE2
 {
@@ -32,15 +34,15 @@ struct UniversalFactory
 	}
 };
 
-inline gmpi::drawing::Point fromLegacy(GmpiDrawing_API::MP1_POINT p)
-{
-    // MP1_POINT typically holds floats (or ints). Cast defensively.
-    return { static_cast<float>(p.x), static_cast<float>(p.y) };
-}
-inline GmpiDrawing_API::MP1_POINT toLegacy(gmpi::drawing::Point p)
-{
-    return { p.x, p.y }; // Cast not needed if MP1_POINT fields are float. Add static_cast<type>(...) if they are int.
-}
+//inline gmpi::drawing::Point fromLegacy(GmpiDrawing_API::MP1_POINT p)
+//{
+//    // MP1_POINT typically holds floats (or ints). Cast defensively.
+//    return { static_cast<float>(p.x), static_cast<float>(p.y) };
+//}
+//inline GmpiDrawing_API::MP1_POINT toLegacy(gmpi::drawing::Point p)
+//{
+//    return { p.x, p.y }; // Cast not needed if MP1_POINT fields are float. Add static_cast<type>(...) if they are int.
+//}
 
 // SDK3 Graphics support on Direct2D. Used by SE2JUCE, VST3 and SynthEdit2::HostedView
 // also provides a universal drawing factory for nested GMPI-UI plugins

@@ -1,10 +1,7 @@
 #pragma once
 #include <vector>
 #include "Drawing.h"
-#include "UgDatabase.h"
-#include "mp_gui.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
-#include "GmpiApiDrawing.h"
 
 namespace SE2
 {

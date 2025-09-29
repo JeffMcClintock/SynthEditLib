@@ -10,13 +10,9 @@
 #include "UgDatabase.h"
 #include "modules/shared/unicode_conversion.h"
 #include "RawConversions.h"
-#include "SubViewPanel.h"
-#include "DragLine.h"
-#include "modules/shared/xplatform_modifier_keys.h"
 #include "IPluginGui.h"
 #include "mfc_emulation.h"
 #include "IGuiHost2.h"
-#include "helpers/Timer.h"
 
 #ifdef _WIN32
 #include "Shared/DrawingFrame2_win.h"
@@ -471,8 +467,10 @@ namespace SE2
 
 	// #define DEBUG_HIT_TEST 1
 
-	int32_t ViewBase::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	int32_t ViewBase::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT ppoint)
 	{
+		const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
+
 #ifdef DEBUG_HIT_TEST
 		_RPT3(0, "ViewBase::onPointerDown(%x, (%f, %f))\n", flags, point.x, point.y);
 #endif
@@ -641,27 +639,27 @@ namespace SE2
 		return gmpi::MP_UNHANDLED;
 	}
 
-	int32_t ViewBase::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	int32_t ViewBase::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT ppoint)
 	{
 #if DEBUG_MOUSEOVER
 		_RPTN(0, "ViewBase::onPointerMove: [%f,%f]\n", point.x, point.y); // typeid(*m.get()).name());
 #endif
 
-		lastMovePoint = point;
+		lastMovePoint = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
 
 		if(mouseCaptureObject)
 		{
 #if DEBUG_MOUSEOVER
 			_RPTN(0, "mouseCaptureObject->onPointerMove() : %s\n", typeid(*mouseCaptureObject).name());
 #endif
-			mouseCaptureObject->onPointerMove(flags, point);
+			mouseCaptureObject->onPointerMove(flags, lastMovePoint);
 		}
 		else
 		{
 			if (isDraggingModules) // could this be handled with custom mouseCaptureObject? to remove need for check here?
 			{
 				// Snap-to-grid logic.
-				GmpiDrawing::Size delta(point.x - pointPrev.x, point.y - pointPrev.y);
+				GmpiDrawing::Size delta(lastMovePoint.x - pointPrev.x, lastMovePoint.y - pointPrev.y);
 				if (delta.width != 0.0f || delta.height != 0.0f) // avoid false snap on selection
 				{
 					const auto snapGridSize = Presenter()->GetSnapSize();
@@ -689,7 +687,7 @@ namespace SE2
 
 		if(mouseOverObject)
 		{
-			mouseOverObject->onPointerMove(flags, point);
+			mouseOverObject->onPointerMove(flags, lastMovePoint);
 		}
 
 		return gmpi::MP_OK;
@@ -845,12 +843,14 @@ namespace SE2
 
 		avoidRecusion = false;
 	}
-	int32_t ViewBase::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point)
+	int32_t ViewBase::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT ppoint)
 	{
 		if (isDraggingModules)
 			return gmpi::MP_UNHANDLED;
 
-bool hasScrollbars = true; // TODO!!! disable this in plugin mode
+		const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
+
+		const bool hasScrollbars = hscrollBar && vscrollBar;
 
 		// <ALT> causes scroll wheel events to pass to client
 		if ((flags & gmpi_gui_api::GG_POINTER_KEY_ALT) || !hasScrollbars)
@@ -873,11 +873,11 @@ bool hasScrollbars = true; // TODO!!! disable this in plugin mode
 
 			zoomFactor = std::clamp(zoomFactor, 0.1f, 10.0f);
 
-			const auto before = fromLegacy(point) * inv_viewTransform;
+			const auto before = convert(point) * inv_viewTransform;
 
 			calcViewTransform();
 
-			const auto after = fromLegacy(point) * inv_viewTransform;
+			const auto after = convert(point) * inv_viewTransform;
 
 			//const auto before = fromLegacy(currentPointerPos);
 			//const auto after = currentPointerPosAbsolute * inv_viewTransform;
@@ -1472,8 +1472,10 @@ bool hasScrollbars = true; // TODO!!! disable this in plugin mode
 		return GmpiSdk::ContextMenuHelper::onContextMenu(contextMenuCallbacks, idx);
 	}
 
-	int32_t ViewBase::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	int32_t ViewBase::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT ppoint)
 	{
+		const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
+
 		Presenter()->NotDragging();
 
 		if (!draggingNewModuleId.empty())
