@@ -143,12 +143,12 @@ namespace SE2
 				g.FillRectangle(editingBounds, backgroundBrush);
 			}
 
-			auto zoomFactor = g.GetTransform()._11; // horizontal scale.
+			auto zoom = g.GetTransform()._11; // horizontal scale.
 			// BACKGROUND GRID LINES.
 			auto brush = g.CreateSolidColorBrush(backGroundColor + 0x040404u); // grid color.
-			if (zoomFactor > 0.1f)
+			if (zoom > 0.1f)
 			{
-				const auto drawFinegrid = zoomFactor > 0.6f;
+				const auto drawFinegrid = zoom > 0.6f;
 
 				GmpiDrawing::Rect cliprectF = g.GetAxisAlignedClip();
 				GmpiDrawing::Rect cliprect{

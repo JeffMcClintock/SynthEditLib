@@ -778,6 +778,73 @@ namespace SE2
 		invalidateRect(); // static_cast<gmpi::api::IDrawingHost*>(this)->invalidateRect(nullptr);
 	}
 
+	void ViewBase::onHScroll(double newValue)
+	{
+		if (avoidRecusion)
+			return;
+
+		scrollPos.width = newValue;
+		calcViewTransform();
+	}
+
+	void ViewBase::onVScroll(double newValue)
+	{
+		if (avoidRecusion)
+			return;
+
+		scrollPos.height = newValue;
+		calcViewTransform();
+	}
+
+	void ViewBase::updateScrollBars()
+	{
+		if (!hscrollBar || !vscrollBar)
+			return;
+
+		avoidRecusion = true;
+
+		constexpr double canvasSize = 7968.0f;
+		const double visibleWidth = drawingBounds.getWidth() /*swapChainHost.ActualWidth()*/ / zoomFactor;
+		const double visibleHeight = drawingBounds.getHeight() /*swapChainHost.ActualHeight()*/ / zoomFactor;
+		const double visibleTop = (double)-scrollPos.height / zoomFactor;
+		const double visibleLeft = (double)-scrollPos.width / zoomFactor;
+		const double visibleBottom = visibleTop + visibleHeight;
+		const double visibleRight = visibleLeft + visibleWidth;
+
+		auto canScrolldH = (std::max)(0.0, canvasSize - visibleRight) + (std::max)(0.0, visibleLeft);
+		auto canScrolldV = (std::max)(0.0, canvasSize - visibleBottom) + (std::max)(0.0, visibleTop);
+		auto scrollMinY = (std::min)(visibleTop, 0.0);
+		auto scrollMinX = (std::min)(visibleLeft, 0.0);
+
+		//	_RPTN(0, "top=%f left=%f bottom=%f right=%f\n", visibleTop, visibleLeft, visibleBottom, visibleRight);
+		//_RPTN(0, "updateScrollBars: scrollPos=(%f,%f) zoom=%f\n", scrollPos.width, scrollPos.height, zoomFactor);
+		//_RPTN(0, "updateScrollBars: visibleWidth=%f visibleHeight=%f\n", visibleWidth, visibleHeight);
+
+		scrollBarSpec h;
+
+		h.Minimum = (zoomFactor * scrollMinX);
+		h.Maximum = (zoomFactor * (scrollMinX + canScrolldH));
+		h.ViewportSize = (zoomFactor * (visibleRight - visibleLeft));
+		h.Value = (zoomFactor * (visibleLeft /*+ forceRecalc*/));
+		h.LargeChange = (canScrolldH * 0.2);
+		h.SmallChange = (canScrolldH * 0.05);
+
+		hscrollBar(h);
+
+		scrollBarSpec v;
+		//_RPTN(0, "ViewportSize=%f\n", visibleBottom - visibleTop);
+		//_RPTN(0, "Can scroll=%f\n", canScrollV);
+		v.ViewportSize = (zoomFactor * (visibleBottom - visibleTop));
+		v.Minimum = (zoomFactor * scrollMinY);
+		v.Maximum = (zoomFactor * (scrollMinY + canScrolldV));
+		v.Value = (zoomFactor * (visibleTop /*+ forceRecalc*/));
+		v.LargeChange = (canScrolldV * 0.2);
+		v.SmallChange = (canScrolldV * 0.05);
+
+		vscrollBar(v);
+
+		avoidRecusion = false;
+	}
 	int32_t ViewBase::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point)
 	{
 		if (isDraggingModules)
@@ -829,7 +896,7 @@ bool hasScrollbars = true; // TODO!!! disable this in plugin mode
 		}
 
 		calcViewTransform(); // and redraws
-// TODO		updateScrollBars();
+		updateScrollBars();
 
 		return gmpi::MP_OK;
 	}

@@ -23,6 +23,16 @@ namespace SE2
 	class DragLine;
 	class ConnectorViewBase;
 
+	struct scrollBarSpec
+	{
+		double Value;
+		double Minimum;
+		double Maximum;
+		double LargeChange;
+		double SmallChange;
+		double ViewportSize;
+	};
+
 	// Base of any view that displays modules. Itself behaving as a standard graphics module.
 	class ViewBase : public gmpi_gui::MpGuiGfxBase, public IGraphicsRedrawClient, public gmpi_gui_api::IMpKeyClient
 	{
@@ -56,8 +66,8 @@ bool isIteratingChildren = false;
 		float zoomFactor = 1.0f;
 		gmpi::drawing::Matrix3x2 viewTransform;
 		gmpi::drawing::Matrix3x2 inv_viewTransform;
+		bool avoidRecusion{}; // from scroll bars
 		void calcViewTransform();
-
 
 #ifdef _WIN32
 		DrawingFrameBase2* frameWindow = {};
@@ -96,6 +106,15 @@ bool isIteratingChildren = false;
 		int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override;
 		int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override;
 		int32_t setHover(bool isMouseOverMe) override;
+
+		// notification to scrollbars
+		std::function<void(const scrollBarSpec&)> hscrollBar;
+		std::function<void(const scrollBarSpec&)> vscrollBar;
+
+		// notificate *from* scrollbars
+		void onHScroll(double newValue);
+		void onVScroll(double newValue);
+		void updateScrollBars();
 
 		void calcMouseOverObject(int32_t flags);
 		void OnChildDeleted(IViewChild* childObject);
