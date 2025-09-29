@@ -60,9 +60,6 @@ struct DrawingFrameBase2 :
 
     std::atomic<bool> isInit;
 
-    gmpi::drawing::Size scrollPos = {};
-    float zoomFactor = 1.0f;
-
     GmpiDrawing_API::MP1_POINT currentPointerPos = { -1, -1 };
     //    std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
     GmpiGui::PopupMenu contextMenu;
@@ -84,7 +81,6 @@ struct DrawingFrameBase2 :
     void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx);
     void detachClient();
     void detachAndRecreate();
-    void calcViewTransform();
     void sizeClientDips(float width, float height) override;
 
     virtual void OnPaint() = 0; // Derived should call Paint with the dirty area
@@ -161,8 +157,6 @@ struct DrawingFrameBase2 :
     }
 
     void MP_STDCALL invalidateMeasure() override {}
-
-    void OnScrolled(double x, double y, double zoom);
 
     int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
     {

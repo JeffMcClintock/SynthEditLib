@@ -63,24 +63,6 @@ void DrawingFrameBase2::detachAndRecreate()
     CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
 }
 
-void DrawingFrameBase2::OnScrolled(double x, double y, double zoom)
-{
-    scrollPos = { -static_cast<float>(x), -static_cast<float>(y) };
-    zoomFactor = static_cast<float>(zoom);
-
-    calcViewTransform();
-}
-
-void DrawingFrameBase2::calcViewTransform()
-{
-    viewTransform = gmpi::drawing::makeScale({zoomFactor, zoomFactor});
-    viewTransform *= gmpi::drawing::makeTranslation({scrollPos.width, scrollPos.height});
-
-    inv_viewTransform = invert(viewTransform);
-
-    static_cast<gmpi::api::IDrawingHost*>(this)->invalidateRect(nullptr);
-}
-
 gmpi::ReturnCode DrawingFrameBase2::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
 {
     *returnKeyListener = new gmpi::hosting::win32::PlatformKeyListener(getWindowHandle(), r);
@@ -486,8 +468,6 @@ void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZ
 
         CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
 
-        calcViewTransform();
-
         initTooltip();
 
         if (gmpi_gui_client)
@@ -675,17 +655,17 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 		GmpiDrawing::Graphics graphics(legacyContext);
 
 		graphics.BeginDraw();
-		const auto viewTransformL = toLegacy(viewTransform);
-		graphics.SetTransform(viewTransformL);
+//		const auto viewTransformL = toLegacy(viewTransform);
+//		graphics.SetTransform(viewTransformL);
 
-auto reverseTransform = gmpi::drawing::invert(viewTransform);
+//auto reverseTransform = gmpi::drawing::invert(viewTransform);
 
 		// clip and draw each rect individually (causes some objects to redraw several times)
 		for (auto& r : dirtyRects)
 		{
             const gmpi::drawing::Rect dirtyRectPixels{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
             const auto dirtyRectDips = dirtyRectPixels * WindowToDips;
-            const auto dirtyRectDipsPanZoomed = dirtyRectDips * reverseTransform; // Apply Pan and Zoom
+            const auto dirtyRectDipsPanZoomed = dirtyRectDips/* * reverseTransform*/; // Apply Pan and Zoom
 
             graphics.PushAxisAlignedClip(toLegacy(dirtyRectDipsPanZoomed));
 

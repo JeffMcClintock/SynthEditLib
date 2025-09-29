@@ -644,8 +644,8 @@ namespace SE2
 #if DEBUG_MOUSEOVER
 		_RPTN(0, "ViewBase::onPointerMove: [%f,%f]\n", point.x, point.y); // typeid(*m.get()).name());
 #endif
-
-		lastMovePoint = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
+		currentPointerPosAbsolute = convert(ppoint);
+		lastMovePoint = legacy_converters::convert(currentPointerPosAbsolute * inv_viewTransform);
 
 		if(mouseCaptureObject)
 		{
@@ -766,6 +766,49 @@ namespace SE2
 		}
 	}
 
+	void ViewBase::autoScrollStart()
+	{
+		isAutoScrolling = true;
+		startTimer(24); // ms
+	}
+
+	void ViewBase::autoScrollStop()
+	{
+		isAutoScrolling = false;
+	}
+
+	bool ViewBase::onTimer()
+	{
+		if (!isAutoScrolling)
+			return false;
+
+//		_RPTN(0, "AutoScroll [%f, %f]\n", currentPointerPosAbsolute.x, currentPointerPosAbsolute.y);
+
+		float autoScrolDx = (std::max)(0.0f, -currentPointerPosAbsolute.x) - (std::max)(0.0f, currentPointerPosAbsolute.x - drawingBounds.getWidth());
+		float autoScrolDy = (std::max)(0.0f, -currentPointerPosAbsolute.y) - (std::max)(0.0f, currentPointerPosAbsolute.y - drawingBounds.getHeight());
+
+		constexpr float maxSpeed = 22.f; // pixels per timer tick (24ms)
+		autoScrolDx = std::clamp(autoScrolDx * 0.5f, -maxSpeed, maxSpeed);
+		autoScrolDy = std::clamp(autoScrolDy * 0.5f, -maxSpeed, maxSpeed);
+
+		if (autoScrolDx != 0.f || autoScrolDy != 0.f)
+		{
+			// move the view
+			scrollPos.width += autoScrolDx;
+			scrollPos.height += autoScrolDy;
+			calcViewTransform(); // and redraws
+
+			// pointer moves (relative to the view)
+			//const auto nextMovePoint = convert(currentPointerPosAbsolute * inv_viewTransform);
+
+			int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
+			//            AddKeyStateFlags(args.KeyModifiers(), flags);
+			onPointerMove(flags, convert(currentPointerPosAbsolute));
+		}
+
+		return true;
+	}
+
 	void ViewBase::calcViewTransform()
 	{
 		viewTransform = gmpi::drawing::makeScale({ zoomFactor, zoomFactor });
@@ -773,7 +816,7 @@ namespace SE2
 
 		inv_viewTransform = invert(viewTransform);
 
-		invalidateRect(); // static_cast<gmpi::api::IDrawingHost*>(this)->invalidateRect(nullptr);
+		invalidateRect();
 	}
 
 	void ViewBase::onHScroll(double newValue)
@@ -843,11 +886,13 @@ namespace SE2
 
 		avoidRecusion = false;
 	}
+
 	int32_t ViewBase::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT ppoint)
 	{
 		if (isDraggingModules)
 			return gmpi::MP_UNHANDLED;
 
+		currentPointerPosAbsolute = convert(ppoint);
 		const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
 
 		const bool hasScrollbars = hscrollBar && vscrollBar;
@@ -873,15 +918,13 @@ namespace SE2
 
 			zoomFactor = std::clamp(zoomFactor, 0.1f, 10.0f);
 
-			const auto before = convert(point) * inv_viewTransform;
+			const auto before = point; // *inv_viewTransform;
 
 			calcViewTransform();
 
-			const auto after = convert(point) * inv_viewTransform;
+//			const auto after = convert(point) * inv_viewTransform;
+			const auto after = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
 
-			//const auto before = fromLegacy(currentPointerPos);
-			//const auto after = currentPointerPosAbsolute * inv_viewTransform;
-			// 
 			// scroll to retain mouse position.
 			scrollPos.width -= (before.x - after.x) * zoomFactor;
 			scrollPos.height -= (before.y - after.y) * zoomFactor;
@@ -1348,21 +1391,21 @@ namespace SE2
 		}
 	}
 
-	void ViewBase::autoScrollStart()
-	{
-#if defined (_WIN32)
-		if(frameWindow)
-			frameWindow->autoScrollStart();
-#endif
-	}
-
-	void ViewBase::autoScrollStop()
-	{
-#if defined (_WIN32)
-		if (frameWindow)
-			frameWindow->autoScrollStop();
-#endif
-	}
+//	void ViewBase::autoScrollStart()
+//	{
+//#if defined (_WIN32)
+//		if(frameWindow)
+//			/*frameWindow->*/autoScrollStart();
+//#endif
+//	}
+//
+//	void ViewBase::autoScrollStop()
+//	{
+//#if defined (_WIN32)
+//		if (frameWindow)
+//			/*frameWindow->*/autoScrollStop();
+//#endif
+//	}
 
 	// usefull for live reload of SEMs
 	void ViewBase::Unload()
