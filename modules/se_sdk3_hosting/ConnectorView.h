@@ -91,7 +91,7 @@ namespace SE2
 		void OnMoved(GmpiDrawing::Rect& newRect) override {}
 		void OnNodesMoved(std::vector<GmpiDrawing::Point>& newNodes) override {}
 
-		int32_t onContextMenu(int32_t idx) override;
+		int32_t vc_onContextMenu(int32_t idx) override;
 
 		int32_t fixedEndModule()
 		{
@@ -191,7 +191,7 @@ namespace SE2
 		bool isShown() override; // Indicates if module should be drawn or not (because of 'Show on Parent' state).
 		void OnVisibilityUpdate();
 		void OnRender(GmpiDrawing::Graphics& g) override;
-		void setHover(bool) override;
+		void vc_setHover(bool) override;
 		int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
 		bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
 		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override;

@@ -656,8 +656,7 @@ namespace GmpiSdk
 			contextMenu->AddItem("", 0, gmpi_gui::MP_PLATFORM_MENU_SEPARATOR);
 		}
 
-		template<class T>
-		void populateFromObject(float x, float y, T* object)
+		void populateFromObject(float x, float y, gmpi::IMpUserInterface2* object)
 		{
 			currentCallback =
 				[object](int32_t idx)

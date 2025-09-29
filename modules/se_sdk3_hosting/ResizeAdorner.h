@@ -285,7 +285,7 @@ namespace SE2
 			hitNodeX = hitNodeY = -1;
 		}
 
-		void setHover(bool mouseIsOverMe) override
+		void vc_setHover(bool mouseIsOverMe) override
 		{
 			mouseHover = mouseIsOverMe;
 //			auto redrawRect = GetClipRect();
@@ -399,7 +399,7 @@ namespace SE2
 		{
 			return gmpi::MP_OK;
 		}
-		int32_t onContextMenu(int32_t idx) override
+		int32_t vc_onContextMenu(int32_t idx) override
 		{
 			return gmpi::MP_OK;
 		}

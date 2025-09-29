@@ -17,7 +17,7 @@ namespace SE2
 	public:
 		virtual ~IViewChild() {}
 
-		virtual void setHover(bool)
+		virtual void vc_setHover(bool)
 		{}
 
 		// Similar to IMpGraphics for convenience. But don't confuse that with compatible or interchangeable.
@@ -34,7 +34,7 @@ namespace SE2
 		virtual int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) = 0;
 		virtual int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) = 0;
 		virtual int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) = 0;
-		virtual int32_t onContextMenu(int32_t idx) = 0;
+		virtual int32_t vc_onContextMenu(int32_t idx) = 0;
 		virtual std::string getToolTip(GmpiDrawing_API::MP1_POINT point) = 0;
 		virtual void receiveMessageFromAudio(void*) = 0;
 

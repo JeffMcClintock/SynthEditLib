@@ -87,7 +87,7 @@ struct enum_entry2
 	std::string text;
 };
 
-inline std::vector<enum_entry2> it_enum_list2(std::string_view enum_list)
+inline std::vector<enum_entry2> it_enum_list2(const std::string_view enum_list)
 {
 	std::vector< enum_entry2> res;
 

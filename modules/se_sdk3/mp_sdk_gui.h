@@ -320,8 +320,8 @@ public:
 	}
 
 	// IMpUserInterface2 methods
-	virtual int32_t setHost( gmpi::IMpUnknown* host ) override;
-	virtual int32_t initialize() override;
+	int32_t setHost( gmpi::IMpUnknown* host ) override;
+	int32_t initialize() override;
 
 	gmpi::IMpUserInterfaceHost2* getHost(){ return patchMemoryHost_; }
 

@@ -307,7 +307,7 @@ bool isIteratingChildren = false;
 		{
 			return 0;
 		}
-		int32_t onContextMenu(int32_t idx) override
+		int32_t vc_onContextMenu(int32_t idx) override
 		{
 			return 0;
 		}

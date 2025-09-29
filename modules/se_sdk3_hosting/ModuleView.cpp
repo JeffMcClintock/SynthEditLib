@@ -808,7 +808,7 @@ namespace SE2
 		return gmpi::MP_OK;
 	}
 
-	int32_t ModuleView::onContextMenu(int32_t idx)
+	int32_t ModuleView::vc_onContextMenu(int32_t idx)
 	{
 		return GmpiSdk::ContextMenuHelper::onContextMenu(contextMenuCallbacks, idx);
 	}
@@ -857,7 +857,7 @@ namespace SE2
 		return false;
 	}
 
-	void ModuleView::setHover(bool mouseIsOverMe)
+	void ModuleView::vc_setHover(bool mouseIsOverMe)
 	{
 		if (pluginInput_GMPI)
 		{

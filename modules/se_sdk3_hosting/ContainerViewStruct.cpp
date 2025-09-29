@@ -178,7 +178,7 @@ namespace SE2
 				endY = (std::min)(endY, totalGrids + gridBoarder);
 				endY = endY * gridSize + 1;
 
-				constexpr int largeGridSize = gridSize * largeGridRatio;
+//				constexpr int largeGridSize = gridSize * largeGridRatio;
 
 				int thickLineCounter = ((startX + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
 				for (int x = startX; x < endX; x += gridSize)

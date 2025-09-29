@@ -2262,7 +2262,7 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 		return ModuleView::onPointerMove(flags, point);
 	}
 
-	void ModuleViewStruct::setHover(bool mouseIsOverMe)
+	void ModuleViewStruct::vc_setHover(bool mouseIsOverMe)
 	{
 		if (!mouseIsOverMe && hoverPin != -1)
 		{
@@ -2270,7 +2270,7 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 			invalidateRect(0);
 		}
 
-		ModuleView::setHover(mouseIsOverMe);
+		ModuleView::vc_setHover(mouseIsOverMe);
 	}
 
 	void ModuleViewStruct::OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistanceSquared, IViewChild*& bestModule, int& bestPinIndex)

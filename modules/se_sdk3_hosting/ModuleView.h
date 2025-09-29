@@ -358,7 +358,7 @@ namespace SE2
 #endif
 		// IViewChild.
 		bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		void setHover(bool mouseIsOverMe) override;
+		void vc_setHover(bool mouseIsOverMe) override;
 
 		GmpiDrawing::Size OffsetToClient()
 		{
@@ -376,7 +376,7 @@ namespace SE2
 		int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override;
 
 		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override;
-		int32_t onContextMenu(int32_t idx) override;
+		int32_t vc_onContextMenu(int32_t idx) override;
 
 		std::string getToolTip(GmpiDrawing_API::MP1_POINT point) override;
 		void receiveMessageFromAudio(void*) override;

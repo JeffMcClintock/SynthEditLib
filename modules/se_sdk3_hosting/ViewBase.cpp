@@ -21,7 +21,9 @@
 #ifdef _WIN32
 #include "Shared/DrawingFrame2_win.h"
 #endif
+
 // #define DEBUG_HIT_TEST
+#define DEBUG_MOUSEOVER 0
 
 using namespace std;
 using namespace gmpi;
@@ -630,7 +632,7 @@ namespace SE2
 	{
 		if (!isMouseOverMe && mouseOverObject)
 		{
-			mouseOverObject->setHover(false);
+			mouseOverObject->vc_setHover(false);
 			mouseOverObject = {};
 
 			return gmpi::MP_OK;
@@ -641,10 +643,17 @@ namespace SE2
 
 	int32_t ViewBase::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 	{
+#if DEBUG_MOUSEOVER
+		_RPTN(0, "ViewBase::onPointerMove: [%f,%f]\n", point.x, point.y); // typeid(*m.get()).name());
+#endif
+
 		lastMovePoint = point;
 
 		if(mouseCaptureObject)
 		{
+#if DEBUG_MOUSEOVER
+			_RPTN(0, "mouseCaptureObject->onPointerMove() : %s\n", typeid(*mouseCaptureObject).name());
+#endif
 			mouseCaptureObject->onPointerMove(flags, point);
 		}
 		else
@@ -695,9 +704,17 @@ namespace SE2
 
 	void ViewBase::calcMouseOverObject(int32_t flags)
 	{
+#if DEBUG_MOUSEOVER
+		_RPT0(0, "ViewBase::calcMouseOverObject()\n");
+#endif
 		// when one object has captured mouse, don't highlight other objects.
 		if (mouseCaptureObject)
+		{
+#if DEBUG_MOUSEOVER
+			_RPT0(0, "Mouse already captured. exit.\n");
+#endif
 			return;
+		}
 
 		IViewChild* hitObject{};
 
@@ -705,26 +722,40 @@ namespace SE2
 		for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 		{
 			auto& m = *it;
+#if DEBUG_MOUSEOVER
+#endif
 			if(m->hitTest(flags, lastMovePoint))
 			{
+#if DEBUG_MOUSEOVER
+				_RPTN(0, "HIT: %s\n", typeid(*m.get()).name());
+#endif
 				hitObject = m.get();
 				break;
 			}
+			else
+			{
+#if DEBUG_MOUSEOVER
+				_RPTN(0, "MISS: %s\n", typeid(*m.get()).name());
+#endif
+			}
 		}
 		isIteratingChildren = false;
+
+#if DEBUG_MOUSEOVER
+#endif
 
 		if(hitObject != mouseOverObject)
 		{
 			if(mouseOverObject)
 			{
-				mouseOverObject->setHover(false);
+				mouseOverObject->vc_setHover(false);
 			}
 
 			mouseOverObject = hitObject;
 
 			if(mouseOverObject)
 			{
-				mouseOverObject->setHover(true);
+				mouseOverObject->vc_setHover(true);
 			}
 		}
 	}
@@ -1302,7 +1333,16 @@ namespace SE2
 
 		if (mouseOverObject)
 		{
-			menu.populateFromObject(x, y, mouseOverObject);
+//			menu.populateFromObject(x, y, mouseOverObject);
+
+			menu.currentCallback =
+				[this](int32_t idx)
+				{
+					return mouseOverObject->vc_onContextMenu(idx);
+				};
+
+			mouseOverObject->populateContextMenu(x, y, &menu);
+
 		}
 		return gmpi::MP_OK;
 	}
@@ -1809,7 +1849,7 @@ namespace SE2
 			}
 			break;
 
-		case 'n':
+		case 'n': // new module picker
 		case 'N':
 			if (pointerPosOrNull)
 			{
