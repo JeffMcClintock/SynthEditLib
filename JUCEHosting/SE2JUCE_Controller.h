@@ -75,7 +75,7 @@ protected:
 	std::atomic<bool> juceParameters_dirty;
 	std::vector<MpParameterJuce* > tagToParameter;			// DAW parameter Index to parameter
 	class SE2JUCE_Processor* processor = {};
-    interThreadQue queueToDsp_;
+	gmpi::hosting::interThreadQue queueToDsp_;
 	std::atomic<DawPreset const*> interrupt_preset_ = {};
 	ProcessorStateMgrVst3& dawStateManager;
 
@@ -167,20 +167,20 @@ public:
 	void OnLatencyChanged() override;
 
 	// IProcessorMessageQues
-	IWriteableQue* MessageQueToGui()  override
+	gmpi::hosting::IWriteableQue* MessageQueToGui()  override
 	{
         return &message_que_dsp_to_ui;
 	}
 	void Service()  override{} // VST3 only.
-	interThreadQue* ControllerToProcessorQue()  override
+	gmpi::hosting::interThreadQue* ControllerToProcessorQue()  override
 	{
 		return &queueToDsp_;
 	}
-	IWriteableQue* getQueueToDsp() override
+	gmpi::hosting::IWriteableQue* getQueueToDsp() override
 	{
 		return &queueToDsp_;
 	}
-	InterThreadQueBase* ControllerToStateMgrQue()
+	gmpi::hosting::InterThreadQueBase* ControllerToStateMgrQue()
 	{
 		return dawStateManager.ControllerToStateMgrQue();
 	}

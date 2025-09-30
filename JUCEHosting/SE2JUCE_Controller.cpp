@@ -2,6 +2,7 @@
 #include "SE2JUCE_Controller.h"
 #include "SE2JUCE_Processor.h"
 #include "Shared/se_logger.h"
+#include "conversion.h"
 
 MpParameterJuce::MpParameterJuce(SeJuceController* controller, int ParameterIndex, bool isInverted) :
 	MpParameter_native(controller)
@@ -313,7 +314,7 @@ void SeJuceController::ParamToDsp(MpParameter* param, int32_t voiceId)
 
 		auto& queue = *ControllerToStateMgrQue();
 
-		if (!my_msg_que_output_stream::hasSpaceForMessage(&queue, messageSize))
+		if (!gmpi::hosting::my_msg_que_output_stream::hasSpaceForMessage(&queue, messageSize))
 		{
 			// queue full. drop message.
 			// _RPTN(0, "ControllerToStateMgrQue: QUEUE FULL!!! (%d bytes message)\n", size);
@@ -321,7 +322,7 @@ void SeJuceController::ParamToDsp(MpParameter* param, int32_t voiceId)
 			return;
 		}
 
-		my_msg_que_output_stream strm(&queue, param->parameterHandle_, "ppc");
+		gmpi::hosting::my_msg_que_output_stream strm(&queue, param->parameterHandle_, "ppc");
 		strm << messageSize;
 		strm << voiceId;
 		strm << field;

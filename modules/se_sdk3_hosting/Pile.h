@@ -30,6 +30,83 @@ struct hasGmpiUiChildren
 	}
 };
 
+struct GmpiUiLayerHost :
+	  public gmpi::api::IDrawingHost
+	, public gmpi::api::IInputHost
+	, public gmpi::api::IDialogHost
+{
+	// these point to my *parent*
+	gmpi::shared_ptr<gmpi::api::IDrawingHost> drawingHost;
+	gmpi::shared_ptr<gmpi::api::IInputHost> inputHost;
+	gmpi::shared_ptr<gmpi::api::IDialogHost> dialogHost;
+
+	// IDrawingHost
+	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override
+	{
+		return drawingHost->getDrawingFactory(returnFactory);
+	}
+
+	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override
+	{
+		(void)invalidRect;
+	}
+
+	void invalidateMeasure() override
+	{
+		return;
+	}
+
+	float getRasterizationScale() override
+	{
+		return 1.0f;
+	}
+
+	// IInputHost
+	gmpi::ReturnCode setCapture() override
+	{
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode getCapture(bool& returnValue) override
+	{
+		returnValue = false;
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode releaseCapture() override
+	{
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode getFocus() override
+	{
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode releaseFocus() override
+	{
+		return gmpi::ReturnCode::Ok;
+	}
+
+	// IDialogHost
+	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override { return gmpi::ReturnCode::NoSupport;}
+	gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override { return gmpi::ReturnCode::NoSupport;}
+	gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) { return gmpi::ReturnCode::NoSupport;}
+	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::NoSupport;}
+	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::NoSupport; }
+
+
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+	{
+		GMPI_QUERYINTERFACE(IDrawingHost);
+		GMPI_QUERYINTERFACE(IDialogHost);
+		GMPI_QUERYINTERFACE(IInputHost);
+		return gmpi::ReturnCode::NoSupport;
+	}
+
+	GMPI_REFCOUNT_NO_DELETE
+};
+
 // test adorner layer. using pure GMPI-UI APIs
 // next: make this forward all calls to the GMPI-UI children.
 struct GmpiUiLayer :
@@ -43,6 +120,11 @@ struct GmpiUiLayer :
 		gmpi::shared_ptr<gmpi::api::IInputClient> editor;
 	};
 
+	gmpi::shared_ptr<gmpi::api::IDrawingHost> drawingHost;
+	gmpi::shared_ptr<gmpi::api::IInputHost> inputHost;
+	gmpi::shared_ptr<gmpi::api::IDialogHost> dialogHost;
+
+	GmpiUiLayerHost host;
 	std::vector<childInfo> children;
 
 	std::function<gmpi::ReturnCode(wchar_t)> keyHandler;
@@ -57,7 +139,7 @@ struct GmpiUiLayer :
 	{
 		int x = 9;
 	}
-	void addChild(gmpi::api::IUnknown* child, gmpi::api::IUnknown* host)
+	void addChild(gmpi::api::IUnknown* child) //, gmpi::api::IUnknown* host)
 	{
 		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
 		unknown = (gmpi::api::IUnknown*)child;
@@ -75,7 +157,7 @@ struct GmpiUiLayer :
 
 		if (graphic)
 		{
-			graphic->open(host);
+			graphic->open(static_cast<gmpi::api::IDrawingHost*>(&host));
 		}
 	}
 	
@@ -141,9 +223,19 @@ struct GmpiUiLayer :
 	}
 
 	// IDrawingClient
-	gmpi::ReturnCode open(gmpi::api::IUnknown* host) override
+	gmpi::ReturnCode open(gmpi::api::IUnknown* phost) override
 	{
-		(void)host;
+		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+		unknown = (gmpi::api::IUnknown*) phost;
+
+		drawingHost = unknown.as<gmpi::api::IDrawingHost>();
+		inputHost = unknown.as<gmpi::api::IInputHost>();
+		dialogHost = unknown.as<gmpi::api::IDialogHost>();
+
+		host.drawingHost = drawingHost;
+		host.inputHost = inputHost;
+		host.dialogHost = dialogHost;
+
 		return gmpi::ReturnCode::Ok;
 	}
 
