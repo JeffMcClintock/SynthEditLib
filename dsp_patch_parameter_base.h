@@ -65,7 +65,7 @@ public:
 
 	void setUpFromDsp( struct parameter_description* parameterDescription, class InterfaceObject* pinDescription );
 	void UpdateOutputParameter(int voice, UPlug* p_plug);
-	inline bool isPolyphonic()
+	bool isPolyphonic() const
 	{
 		return isPolyphonic_;
 	}

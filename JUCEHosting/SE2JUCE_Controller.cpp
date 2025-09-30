@@ -306,6 +306,7 @@ void SeJuceController::ParamToDsp(MpParameter* param, int32_t voiceId)
 {
 	MpController::ParamToDsp(param, voiceId);
 
+	// send a copy to the state manager
 	if (param->stateful_)
 	{
 		const auto field = gmpi::MP_FT_VALUE;

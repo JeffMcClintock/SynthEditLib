@@ -189,20 +189,35 @@ void dsp_patch_parameter_base::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 		// Processor has only one patch, regardless of what patch the UI is using.
 		constexpr int processorPatch = 0;
 		bool changed{};
-		int32_t voice{};
-		p_stream >> voice;
-		while (voice != -1) // indicates end-of-list.
-		{
-			changed |= SerialiseValue(p_stream, voice, processorPatch);
 
-			// next voice?
+		if (isPolyphonic())
+		{
+			int32_t voice{};
 			p_stream >> voice;
+			while (voice != -1) // indicates end-of-list.
+			{
+				changed |= SerialiseValue(p_stream, voice, processorPatch);
+
+				if (changed && EffectivePatch() == processorPatch)
+				{
+					OnValueChangedFromGUI(voice);
+				}
+
+				// next voice?
+				p_stream >> voice;
+			}
+		}
+		else
+		{
+			int voice{};
+
+			changed = SerialiseValue(p_stream, voice, processorPatch);
+			if (changed && EffectivePatch() == processorPatch)
+			{
+				OnValueChangedFromGUI(voice);
+			}
 		}
 
-		if(changed && EffectivePatch() == processorPatch)
-		{
-			OnValueChangedFromGUI( voice );
-		}
 //		_RPTN(_CRT_WARN, "DSP ppc %10s v=%d val=%f\n", debugName.c_str(), voice, GetValueNormalised() );
 	}
 	break;

@@ -1132,7 +1132,7 @@ void MpController::ParamToDsp(MpParameter* param, int32_t voice)
 	auto raw = param->getValueRaw(gmpi::MP_FT_VALUE, voice);
 
 	bool due_to_program_change = false;
-	int32_t recievingMessageLength = (int)(sizeof(bool) + raw.size());
+	int32_t recievingMessageLength = (int)(/*sizeof(bool) +*/ raw.size());
 	if (isVariableSize)
 	{
 		recievingMessageLength += (int)sizeof(int32_t);
@@ -1169,7 +1169,7 @@ void MpController::ParamToDsp(MpParameter* param, int32_t voice)
 	my_msg_que_output_stream stream(getQueueToDsp(), param->parameterHandle_, "ppc\0"); // "ppc"
 
 	stream << recievingMessageLength;
-	stream << due_to_program_change;
+//	stream << due_to_program_change;
 
 	if (param->isPolyPhonic())
 	{
