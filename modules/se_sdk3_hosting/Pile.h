@@ -2,7 +2,7 @@
 #include <vector>
 #include "Drawing.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
-#include "ModulePicker.h"
+//#include "ModulePicker.h"
 
 // see also GmpiUiHelper (gmpi->moduleView)  SDK3Adaptor (wraps an SKD3 plugin in a GMPI API)
 
@@ -35,66 +35,27 @@ struct GmpiUiLayerHost :
 	, public gmpi::api::IInputHost
 	, public gmpi::api::IDialogHost
 {
-	// these point to my *parent*
-	gmpi::shared_ptr<gmpi::api::IDrawingHost> drawingHost;
-	gmpi::shared_ptr<gmpi::api::IInputHost> inputHost;
-	gmpi::shared_ptr<gmpi::api::IDialogHost> dialogHost;
+	struct GmpiUiLayer* owner{};
 
 	// IDrawingHost
-	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override
-	{
-		return drawingHost->getDrawingFactory(returnFactory);
-	}
-
-	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override
-	{
-		(void)invalidRect;
-	}
-
-	void invalidateMeasure() override
-	{
-		return;
-	}
-
-	float getRasterizationScale() override
-	{
-		return 1.0f;
-	}
+	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory);
+	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
+	void invalidateMeasure() override;
+	float getRasterizationScale() override;
 
 	// IInputHost
-	gmpi::ReturnCode setCapture() override
-	{
-		return gmpi::ReturnCode::Ok;
-	}
-
-	gmpi::ReturnCode getCapture(bool& returnValue) override
-	{
-		returnValue = false;
-		return gmpi::ReturnCode::Ok;
-	}
-
-	gmpi::ReturnCode releaseCapture() override
-	{
-		return gmpi::ReturnCode::Ok;
-	}
-
-	gmpi::ReturnCode getFocus() override
-	{
-		return gmpi::ReturnCode::Ok;
-	}
-
-	gmpi::ReturnCode releaseFocus() override
-	{
-		return gmpi::ReturnCode::Ok;
-	}
+	gmpi::ReturnCode setCapture() override;
+	gmpi::ReturnCode getCapture(bool& returnValue) override;
+	gmpi::ReturnCode releaseCapture() override;
+	gmpi::ReturnCode getFocus() override;
+	gmpi::ReturnCode releaseFocus() override;
 
 	// IDialogHost
-	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override { return gmpi::ReturnCode::NoSupport;}
-	gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override { return gmpi::ReturnCode::NoSupport;}
-	gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) { return gmpi::ReturnCode::NoSupport;}
-	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::NoSupport;}
-	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::NoSupport; }
-
+	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit);
+	gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu);
+	gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener);
+	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
+	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
 	{
@@ -115,31 +76,41 @@ struct GmpiUiLayer :
 {
 	struct childInfo
 	{
+		GmpiUiLayerHost host;
 		gmpi::drawing::Rect bounds;
 		gmpi::shared_ptr<gmpi::api::IDrawingClient> graphic;
 		gmpi::shared_ptr<gmpi::api::IInputClient> editor;
+
+		childInfo(
+			  GmpiUiLayer* powner
+			, gmpi::drawing::Rect pbounds
+			, gmpi::shared_ptr<gmpi::api::IDrawingClient> pgraphic
+			, gmpi::shared_ptr<gmpi::api::IInputClient> peditor
+			) :
+			  bounds( pbounds )
+			, graphic( pgraphic )
+			, editor( peditor )
+		{
+			host.owner = powner;
+		}
 	};
 
 	gmpi::shared_ptr<gmpi::api::IDrawingHost> drawingHost;
 	gmpi::shared_ptr<gmpi::api::IInputHost> inputHost;
 	gmpi::shared_ptr<gmpi::api::IDialogHost> dialogHost;
 
-	GmpiUiLayerHost host;
-	std::vector<childInfo> children;
+	std::vector<std::unique_ptr<childInfo>> children;
 
 	std::function<gmpi::ReturnCode(wchar_t)> keyHandler;
 	bool isMeasured{ false };
 
 	GmpiUiLayer()
-	{ 
-		//gmpi::shared_ptr<gmpi::api::IDrawingClient> unknown;
-		//unknown.attach(new ModulePicker2());
-		//addChild(unknown.get(), nullptr); // test child.
-	}
-	~GmpiUiLayer()
 	{
-		int x = 9;
 	}
+	//~GmpiUiLayer()
+	//{
+	//	int x = 9;
+	//}
 	void addChild(gmpi::api::IUnknown* newchild)
 	{
 		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
@@ -148,31 +119,37 @@ struct GmpiUiLayer :
 		auto graphic = unknown.as<gmpi::api::IDrawingClient>();
 		auto editor = unknown.as<gmpi::api::IInputClient>();
 
-		children.push_back(
-			{
-				{100,100,200,200}
-				, graphic
-				, editor
-			}
+		auto info = std::make_unique<childInfo>(
+			  this
+			, gmpi::drawing::Rect{100,100,200,200}
+			, graphic
+			, editor
 		);
+
+		children.push_back( std::move(info) );
 
 		if (graphic)
 		{
-			graphic->open(static_cast<gmpi::api::IDrawingHost*>(&host));
+			graphic->open(static_cast<gmpi::api::IDrawingHost*>(&children.back()->host));
 
 			if (isMeasured)
 			{
-				auto& child = children.back();
+				auto child = children.back().get();
 				const auto size = measureChild(child);
-				child.bounds.right = child.bounds.left + size.width;
-				child.bounds.bottom = child.bounds.top + size.height;
+				child->bounds.right = child->bounds.left + size.width;
+				child->bounds.bottom = child->bounds.top + size.height;
 				arrangeChild(child);
 
-				drawingHost->invalidateRect(&child.bounds);
+				drawingHost->invalidateRect(&child->bounds);
 			}
 		}
 	}
-	
+
+	void removeChild(gmpi::api::IUnknown* oldchild)
+	{
+		std::erase_if(children, [&](const std::unique_ptr<childInfo>& c) { return c->graphic.get() == oldchild || c->editor.get() == oldchild; });
+	}
+
 	// IInputClient
 	gmpi::ReturnCode setHover(bool isMouseOverMe) override
 	{
@@ -244,33 +221,27 @@ struct GmpiUiLayer :
 		inputHost = unknown.as<gmpi::api::IInputHost>();
 		dialogHost = unknown.as<gmpi::api::IDialogHost>();
 
-		host.drawingHost = drawingHost;
-		host.inputHost = inputHost;
-		host.dialogHost = dialogHost;
-
 		return gmpi::ReturnCode::Ok;
 	}
 
-	gmpi::drawing::Size measureChild(childInfo& child)
+	gmpi::drawing::Size measureChild(childInfo* child)
 	{
-		if (!child.graphic)
+		if (!child->graphic)
 			return {};
 
 		const gmpi::drawing::Size availableSize{10000,10000};
 		gmpi::drawing::Size desiredSize{};
-		child.graphic->measure(&availableSize, &desiredSize);
+		child->graphic->measure(&availableSize, &desiredSize);
 
 		return desiredSize;
-
-		//child.bounds.right = child.bounds.left + desiredSize.width;
-		//child.bounds.bottom = child.bounds.top + desiredSize.height;
 	}
 
-	void arrangeChild(childInfo& child)
+	void arrangeChild(childInfo* child)
 	{
-		if (!child.graphic)
+		if (!child->graphic)
 			return;
-		child.graphic->arrange(&child.bounds);
+
+		child->graphic->arrange(&child->bounds);
 	}
 
 	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override
@@ -285,7 +256,7 @@ struct GmpiUiLayer :
 
 		for (auto& child : children)
 		{
-			measureChild(child);
+			measureChild(child.get());
 		}
 
 		isMeasured = true;
@@ -295,14 +266,16 @@ struct GmpiUiLayer :
 
 	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override
 	{
-		for (auto& child : children)
+		for (auto& it : children)
 		{
-			const auto size = measureChild(child);
+			auto& child = *it.get();
+
+			const auto size = measureChild(&child);
 			child.bounds.left = finalRect->left;
 			child.bounds.top = finalRect->top;
 			child.bounds.right = child.bounds.left + size.width;
 			child.bounds.bottom = child.bounds.top + size.height;
-			arrangeChild(child);
+			arrangeChild(&child);
 		}
 
 		return gmpi::ReturnCode::Ok;
@@ -319,8 +292,10 @@ struct GmpiUiLayer :
 		const auto originalTransform = g.getTransform();
 
 		gmpi::drawing::Rect childClipRect;
-		for (auto& child : children)
+		for (auto& it : children)
 		{
+			auto& child = *it.get();
+
 			if (!child.graphic)
 				continue;
 
@@ -357,6 +332,75 @@ struct GmpiUiLayer :
 	GMPI_REFCOUNT
 };
 
+
+inline gmpi::ReturnCode GmpiUiLayerHost::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
+{
+	return owner->drawingHost->getDrawingFactory(returnFactory);
+}
+
+inline void GmpiUiLayerHost::invalidateRect(const gmpi::drawing::Rect* invalidRect)
+{
+	(void)invalidRect;
+}
+
+inline void GmpiUiLayerHost::invalidateMeasure()
+{
+	return;
+}
+
+inline float GmpiUiLayerHost::getRasterizationScale()
+{
+	return 1.0f;
+}
+
+// IInputHost
+inline gmpi::ReturnCode GmpiUiLayerHost::setCapture()
+{
+	return gmpi::ReturnCode::Ok;
+}
+
+inline gmpi::ReturnCode GmpiUiLayerHost::getCapture(bool& returnValue)
+{
+	returnValue = false;
+	return gmpi::ReturnCode::Ok;
+}
+
+inline gmpi::ReturnCode GmpiUiLayerHost::releaseCapture()
+{
+	return gmpi::ReturnCode::Ok;
+}
+
+inline gmpi::ReturnCode GmpiUiLayerHost::getFocus()
+{
+	return gmpi::ReturnCode::Ok;
+}
+
+inline gmpi::ReturnCode GmpiUiLayerHost::releaseFocus()
+{
+	return gmpi::ReturnCode::Ok;
+}
+
+// IDialogHost
+inline gmpi::ReturnCode GmpiUiLayerHost::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit)
+{
+	return owner->dialogHost->createTextEdit(r, returnTextEdit);
+}
+inline gmpi::ReturnCode GmpiUiLayerHost::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu)
+{
+	return owner->dialogHost->createPopupMenu(r, returnPopupMenu);
+}
+inline gmpi::ReturnCode GmpiUiLayerHost::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
+{
+	return owner->dialogHost->createKeyListener(r, returnKeyListener);
+}
+inline gmpi::ReturnCode GmpiUiLayerHost::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog)
+{
+	return owner->dialogHost->createFileDialog(dialogType, returnDialog);
+}
+inline gmpi::ReturnCode GmpiUiLayerHost::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog)
+{
+	return owner->dialogHost->createStockDialog(dialogType, returnDialog);
+}
 
 // PileChildHost holds refcount of child plugins hosts. need to keep refcount seperate from Pile, else it never gets deleted.
 struct PileChildHost :
@@ -450,11 +494,11 @@ struct PileChildHost2 :
 	float getRasterizationScale() override { return 1.0f; } // DPI scaling
 
 	// IDialogHost
-	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::Ok; }
+	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override;
+	gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override;
+	gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override;
+	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
+	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
 	{
@@ -490,10 +534,10 @@ struct Pile :
 		childhost_sdk3.parent = this;
 		childhost_gmpi.parent = this;
 	}
-	~Pile()
-	{
-		int x = 9;;
-	}
+	//~Pile()
+	//{
+	//	int x = 9;;
+	//}
 	void addChild(gmpi::IMpUnknown* child)
 	{
 		// SDK3 child plugins.
@@ -546,7 +590,7 @@ struct Pile :
 			}
 		}
 
-		const gmpi::drawing::Size availableSize2 = convert(availableSize);
+		const gmpi::drawing::Size availableSize2 = legacy_converters::convert(availableSize);
 
 		for (auto& child : graphics_gmpi)
 		{
@@ -919,6 +963,17 @@ inline gmpi::ReturnCode PileChildHost2::getDrawingFactory(gmpi::api::IUnknown** 
 }
 inline void PileChildHost2::invalidateRect(const gmpi::drawing::Rect* invalidRect) { parent->invalidateRect((const GmpiDrawing_API::MP1_RECT*)invalidRect); }
 inline void PileChildHost2::invalidateMeasure() { parent->invalidateMeasure(); };
+inline gmpi::ReturnCode PileChildHost2::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) { return gmpi::ReturnCode::Ok; }
+inline gmpi::ReturnCode PileChildHost2::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) { return gmpi::ReturnCode::Ok; }
+inline gmpi::ReturnCode PileChildHost2::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
+{
+	gmpi::shared_ptr<gmpi::api::IDialogHost> host;
+	parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid, host.put_void());
+
+	return host->createKeyListener(r, returnKeyListener);
+}
+inline gmpi::ReturnCode PileChildHost2::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::Ok; }
+inline gmpi::ReturnCode PileChildHost2::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::Ok; }
 
 } //namespace SE2
 
