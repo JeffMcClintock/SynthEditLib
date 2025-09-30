@@ -36,6 +36,7 @@ struct GmpiUiLayerHost :
 	, public gmpi::api::IDialogHost
 {
 	struct GmpiUiLayer* owner{};
+	gmpi::drawing::Size offset{};
 
 	// IDrawingHost
 	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory);
@@ -147,7 +148,11 @@ struct GmpiUiLayer :
 
 	void removeChild(gmpi::api::IUnknown* oldchild)
 	{
-		std::erase_if(children, [&](const std::unique_ptr<childInfo>& c) { return c->graphic.get() == oldchild || c->editor.get() == oldchild; });
+		std::erase_if(children, [&](const std::unique_ptr<childInfo>& c)
+			{
+				return c->graphic.get() == oldchild || c->editor.get() == oldchild;
+			}
+		);
 	}
 
 	// IInputClient
@@ -241,6 +246,7 @@ struct GmpiUiLayer :
 		if (!child->graphic)
 			return;
 
+		child->host.offset = { child->bounds.left, child->bounds.top };
 		child->graphic->arrange(&child->bounds);
 	}
 
@@ -340,7 +346,9 @@ inline gmpi::ReturnCode GmpiUiLayerHost::getDrawingFactory(gmpi::api::IUnknown**
 
 inline void GmpiUiLayerHost::invalidateRect(const gmpi::drawing::Rect* invalidRect)
 {
-	(void)invalidRect;
+	// map to owners coord space.
+	const auto r = offsetRect(*invalidRect, offset);
+	owner->drawingHost->invalidateRect(&r);
 }
 
 inline void GmpiUiLayerHost::invalidateMeasure()
@@ -356,7 +364,7 @@ inline float GmpiUiLayerHost::getRasterizationScale()
 // IInputHost
 inline gmpi::ReturnCode GmpiUiLayerHost::setCapture()
 {
-	return gmpi::ReturnCode::Ok;
+	return owner->inputHost->setCapture();
 }
 
 inline gmpi::ReturnCode GmpiUiLayerHost::getCapture(bool& returnValue)
@@ -367,10 +375,10 @@ inline gmpi::ReturnCode GmpiUiLayerHost::getCapture(bool& returnValue)
 
 inline gmpi::ReturnCode GmpiUiLayerHost::releaseCapture()
 {
-	return gmpi::ReturnCode::Ok;
+	return owner->inputHost->releaseCapture();
 }
 
-inline gmpi::ReturnCode GmpiUiLayerHost::getFocus()
+inline gmpi::ReturnCode GmpiUiLayerHost::getFocus() // ???
 {
 	return gmpi::ReturnCode::Ok;
 }
