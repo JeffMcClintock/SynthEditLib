@@ -2016,11 +2016,11 @@ namespace SE2
 
 		case 'n': // new module picker
 		case 'N':
-			if (pointerPosOrNull)
-			{
-				if (DoModulePicker(*pointerPosOrNull))
-					return gmpi::ReturnCode::Handled;
-			}
+			//if (pointerPosOrNull)
+			//{
+			//	if (DoModulePicker(*pointerPosOrNull))
+			//		return gmpi::ReturnCode::Handled;
+			//}
 			break;
 
 		default:

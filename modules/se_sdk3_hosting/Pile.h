@@ -35,11 +35,48 @@ struct hasGmpiUiChildren
 struct GmpiUiLayer :
 	  public gmpi::api::IDrawingClient
 	, public gmpi::api::IInputClient
-	, public hasGmpiUiChildren
 {
+	struct childInfo
+	{
+		gmpi::drawing::Rect bounds;
+		gmpi::shared_ptr<gmpi::api::IDrawingClient> graphic;
+		gmpi::shared_ptr<gmpi::api::IInputClient> editor;
+	};
+
+	std::vector<childInfo> children;
+
+	std::function<gmpi::ReturnCode(wchar_t)> keyHandler;
+
 	GmpiUiLayer()
 	{ 
-		addChild(new ModulePicker2(), nullptr); // test child.
+		//gmpi::shared_ptr<gmpi::api::IDrawingClient> unknown;
+		//unknown.attach(new ModulePicker2());
+		//addChild(unknown.get(), nullptr); // test child.
+	}
+	~GmpiUiLayer()
+	{
+		int x = 9;
+	}
+	void addChild(gmpi::api::IUnknown* child, gmpi::api::IUnknown* host)
+	{
+		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+		unknown = (gmpi::api::IUnknown*)child;
+
+		auto graphic = unknown.as<gmpi::api::IDrawingClient>();
+		auto editor = unknown.as<gmpi::api::IInputClient>();
+
+		children.push_back(
+			{
+				{100,100,200,200}
+				, graphic
+				, editor
+			}
+		);
+
+		if (graphic)
+		{
+			graphic->open(host);
+		}
 	}
 	
 	// IInputClient
@@ -97,7 +134,9 @@ struct GmpiUiLayer :
 
 	gmpi::ReturnCode OnKeyPress(wchar_t c) override
 	{
-		(void)c;
+		if(keyHandler)
+			return keyHandler(c);
+
 		return gmpi::ReturnCode::Unhandled;
 	}
 
@@ -131,11 +170,27 @@ struct GmpiUiLayer :
 	{
 		gmpi::drawing::Graphics g(drawingContext);
 
-		for (auto& child : graphics_gmpi)
+		// Restrict drawing only to overall clip-rect.
+		const auto cliprect = g.getAxisAlignedClip();
+		const auto originalTransform = g.getTransform();
+
+		gmpi::drawing::Rect childClipRect;
+		for (auto& child : children)
 		{
-			child->render(drawingContext);
+			if (!child.graphic)
+				continue;
+
+			child.graphic->getClipArea(&childClipRect);
+			if (empty(intersectRect(childClipRect, cliprect)))
+				continue;
+
+			auto adjustedTransform = gmpi::drawing::makeTranslation(child.bounds.left, child.bounds.top) * originalTransform;
+			g.setTransform(adjustedTransform);
+
+			child.graphic->render(drawingContext);
 		}
 
+		g.setTransform(originalTransform);
 		return gmpi::ReturnCode::Ok;
 	}
 
@@ -290,7 +345,10 @@ struct Pile :
 	{
 		childhost_sdk3.parent = this;
 	}
-
+	~Pile()
+	{
+		int x = 9;;
+	}
 	void addChild(gmpi::IMpUnknown* child)
 	{
 		// SDK3 child plugins.
@@ -438,16 +496,26 @@ struct Pile :
 	// IMpKeyClient
 	int32_t MP_STDCALL OnKeyPress(wchar_t c) override
 	{
+		// GMPI
+		for(auto& child : editors_gmpi)
+		{
+			if (gmpi::ReturnCode::Ok == child->OnKeyPress(c))
+			{
+				return gmpi::MP_OK;
+			}
+		}
+		// SDK3
 		if (auto child = graphicsChild(); child)
 		{
-			gmpi_gui_api::IMpKeyClient* keyClient = nullptr;
+			gmpi_gui_api::IMpKeyClient* keyClient{};
 			if (child->queryInterface(gmpi_gui_api::IMpKeyClient::guid, reinterpret_cast<void**>(&keyClient)) == gmpi::MP_OK)
 			{
 				keyClient->OnKeyPress(c);
 				keyClient->release();
+				return gmpi::MP_OK;
 			}
 		}
-		return gmpi::MP_OK;
+		return gmpi::MP_UNHANDLED;
 	}
 
 #if 0
