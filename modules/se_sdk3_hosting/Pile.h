@@ -2,33 +2,160 @@
 #include <vector>
 #include "Drawing.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
+#include "ModulePicker.h"
+
+// see also GmpiUiHelper (gmpi->moduleView)  SDK3Adaptor (wraps an SKD3 plugin in a GMPI API)
 
 namespace SE2
 {
-// test adorner layer
-struct AdornerLayer : public gmpi_gui::MpGuiGfxBase
+struct hasGmpiUiChildren
 {
-	int32_t MP_STDCALL hitTest2(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
+	// GMPI child plugins
+	std::vector<gmpi::shared_ptr<gmpi::api::IDrawingClient>> graphics_gmpi;
+	std::vector<gmpi::shared_ptr<gmpi::api::IInputClient>> editors_gmpi;
+
+	void addChild(gmpi::api::IUnknown* child, gmpi::api::IUnknown* host)
 	{
-		if(point.x < 100 && point.y < 100)
-			return gmpi::MP_OK;
-		
-		return gmpi::MP_UNHANDLED;
+		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+		unknown = (gmpi::api::IUnknown*)child;
+
+		if (auto graphic = unknown.as<gmpi::api::IDrawingClient>(); graphic)
+		{
+			graphics_gmpi.push_back(graphic);
+			graphic->open(host);
+		}
+
+		if (auto editor = unknown.as<gmpi::api::IInputClient>(); editor)
+			editors_gmpi.push_back(editor);
+	}
+};
+
+// test adorner layer. using pure GMPI-UI APIs
+// next: make this forward all calls to the GMPI-UI children.
+struct GmpiUiLayer :
+	  public gmpi::api::IDrawingClient
+	, public gmpi::api::IInputClient
+	, public hasGmpiUiChildren
+{
+	GmpiUiLayer()
+	{ 
+		addChild(new ModulePicker2(), nullptr); // test child.
+	}
+	
+	// IInputClient
+	gmpi::ReturnCode setHover(bool isMouseOverMe) override
+	{
+		(void)isMouseOverMe;
+		return gmpi::ReturnCode::Ok;
 	}
 
-	int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override
+	gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
 	{
-		GmpiDrawing::Graphics g(drawingContext);
+		(void)flags;
 
-		auto r = getRect();
+		if (point.x < 100 && point.y < 100)
+			return gmpi::ReturnCode::Ok;
 
-		auto textFormat = GetGraphicsFactory().CreateTextFormat();
-		auto brush = g.CreateSolidColorBrush(GmpiDrawing::Color::Green);
-
-		g.DrawTextU("Adorner Layer", textFormat, r, brush);
-
-		return gmpi::MP_OK;
+		return gmpi::ReturnCode::Unhandled;
 	}
+
+	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
+	{
+		(void)point; (void)flags;
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override
+	{
+		(void)point; (void)flags;
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
+	{
+		(void)point; (void)flags;
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override
+	{
+		(void)point; (void)flags; (void)delta;
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink) override
+	{
+		(void)point; (void)contextMenuItemsSink;
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onContextMenu(int32_t idx) override
+	{
+		(void)idx;
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode OnKeyPress(wchar_t c) override
+	{
+		(void)c;
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	// IDrawingClient
+	gmpi::ReturnCode open(gmpi::api::IUnknown* host) override
+	{
+		(void)host;
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override
+	{
+		(void)availableSize;
+
+		if (returnDesiredSize)
+		{
+			// Minimal adornment area.
+			returnDesiredSize->width = 100.0f;
+			returnDesiredSize->height = 100.0f;
+		}
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override
+	{
+		(void)finalRect;
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+	{
+		gmpi::drawing::Graphics g(drawingContext);
+
+		for (auto& child : graphics_gmpi)
+		{
+			child->render(drawingContext);
+		}
+
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override
+	{
+		if (returnRect)
+		{
+			*returnRect = gmpi::drawing::Rect{ 0.0f, 0.0f, 100.0f, 100.0f };
+		}
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+	{
+		GMPI_QUERYINTERFACE(IInputClient);
+		GMPI_QUERYINTERFACE(IDrawingClient);
+		return gmpi::ReturnCode::NoSupport;
+	}
+
+	GMPI_REFCOUNT
 };
 
 
@@ -108,17 +235,49 @@ struct PileChildHost :
 		return (gmpi::ReturnCode)queryInterface(iid2, returnInterface);
 	}
 
-	GMPI_REFCOUNT
+	GMPI_REFCOUNT_NO_DELETE
+};
+
+struct PileChildHost2 :
+	  public gmpi::api::IDialogHost
+	, public gmpi::api::IDrawingHost
+{
+	struct Pile* parent = nullptr;
+
+	// IDrawingHost
+	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override { return gmpi::ReturnCode::Ok; }
+	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override {}
+	void invalidateMeasure() override { return; };
+	float getRasterizationScale() override { return 1.0f; } // DPI scaling
+
+	// IDialogHost
+	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override { return gmpi::ReturnCode::Ok; }
+	gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override { return gmpi::ReturnCode::Ok; }
+	gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override { return gmpi::ReturnCode::Ok; }
+	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::Ok; }
+	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::Ok; }
+
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+	{
+		GMPI_QUERYINTERFACE(IDialogHost);
+		GMPI_QUERYINTERFACE(IDrawingHost);
+		return gmpi::ReturnCode::NoSupport;
+	}
+
+	GMPI_REFCOUNT_NO_DELETE
 };
 
 // stacks a set of child elements on top of each other.
 struct Pile :
 	  public gmpi_gui::MpGuiGfxBase
-	, public IGraphicsRedrawClient
 	, public gmpi_gui_api::IMpKeyClient
+	, public IGraphicsRedrawClient
+	, public hasGmpiUiChildren
 {
-	PileChildHost childhost;
+	PileChildHost childhost_sdk3;
+	PileChildHost2 childhost_gmpi;
 
+	// SDK3 child plugins.
 	std::vector<gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3>> graphics;
 	std::vector<gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2>> editors;
 	std::vector<gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient>> redraws;
@@ -129,32 +288,38 @@ struct Pile :
 	
 	Pile()
 	{
-		childhost.parent = this;
+		childhost_sdk3.parent = this;
 	}
 
 	void addChild(gmpi::IMpUnknown* child)
 	{
-		gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> editor;
-		gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> graphic;
-		gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> redraw;
+		// SDK3 child plugins.
+		{
+			gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> editor;
+			gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> graphic;
+			gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> redraw;
 
-		child->queryInterface(gmpi_gui_api::IMpGraphics3::guid, graphic.asIMpUnknownPtr());
-		child->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, editor.asIMpUnknownPtr());
-		child->queryInterface(IGraphicsRedrawClient::guid, redraw.asIMpUnknownPtr());
+			child->queryInterface(gmpi_gui_api::IMpGraphics3::guid, graphic.asIMpUnknownPtr());
+			child->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, editor.asIMpUnknownPtr());
+			child->queryInterface(IGraphicsRedrawClient::guid, redraw.asIMpUnknownPtr());
 
-		if (graphic)
-		{
-			graphics.push_back(graphic);
+			if (graphic)
+			{
+				graphics.push_back(graphic);
+			}
+			if (editor)
+			{
+				editors.push_back(editor);
+				editor->setHost(static_cast<gmpi_gui::IMpGraphicsHost*>(&childhost_sdk3));
+			}
+			if (redraw)
+			{
+				redraws.push_back(redraw);
+			}
 		}
-		if (editor)
-		{
-			editors.push_back(editor);
-			editor->setHost(static_cast<gmpi_gui::IMpGraphicsHost*>(&childhost));
-		}
-		if (redraw)
-		{
-			redraws.push_back(redraw);
-		}
+
+		// GMPI child plugins
+		hasGmpiUiChildren::addChild((gmpi::api::IUnknown*) child, static_cast<gmpi::api::IDialogHost*>(&childhost_gmpi));
 	}
 
 	// MpGuiGfxBase
@@ -195,11 +360,17 @@ struct Pile :
 		return gmpi_gui::MpGuiGfxBase::initialize();
 	}
 
-	int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override
+	int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext_sdk3) override
 	{
 		for(auto& child : graphics)
-			child->OnRender(drawingContext);
+			child->OnRender(drawingContext_sdk3);
 
+		gmpi::shared_ptr<gmpi::drawing::api::IDeviceContext> dc;
+		drawingContext_sdk3->queryInterface(*(gmpi::MpGuid*)&gmpi::drawing::api::IDeviceContext::guid, dc.put_void());
+
+		for (auto& child : graphics_gmpi)
+			child->render(dc.get());
+			
 		return gmpi::MP_OK;
 	}
 

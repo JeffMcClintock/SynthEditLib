@@ -44,8 +44,10 @@ ${gmpi_sdk_folder}/Core/Processor.h
 ${gmpi_sdk_folder}/Core/Processor.cpp
 
 ${gmpi_ui_folder}/GmpiApiDrawing.h
+${gmpi_ui_folder}/helpers/GmpiPluginEditor.h
 ${gmpi_ui_folder}/helpers/Timer.h
 ${gmpi_ui_folder}/helpers/Timer.cpp
+${gmpi_ui_folder}/helpers/NativeUi.h
 ${gmpi_ui_folder}/helpers/ImageCache.h
 ${gmpi_ui_folder}/helpers/ImageCache.cpp
 ${gmpi_ui_folder}/helpers/ImageMetadata.h

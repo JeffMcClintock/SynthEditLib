@@ -83,6 +83,7 @@ namespace SE2
 		}
 	};
 
+	// adapts a GMPI-UI plugin to a moduleview (which uses SDK3 graphics)
 	class GmpiUiHelper :
 		  public gmpi::api::IInputHost
 		, public gmpi::api::IDialogHost
@@ -153,7 +154,7 @@ namespace SE2
 	{
 	protected:
 		Module_Info* moduleInfo;
-		GmpiUiHelper uiHelper;
+		GmpiUiHelper uiHelper; // adapts GMPI-UI plugins to ModuleView (SDK3 style)
 
 	public:
 		static const int SelectionFrameOffset = 1;
