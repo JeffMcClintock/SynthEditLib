@@ -128,6 +128,7 @@ struct GmpiUiLayer :
 	std::vector<childInfo> children;
 
 	std::function<gmpi::ReturnCode(wchar_t)> keyHandler;
+	bool isMeasured{ false };
 
 	GmpiUiLayer()
 	{ 
@@ -139,10 +140,10 @@ struct GmpiUiLayer :
 	{
 		int x = 9;
 	}
-	void addChild(gmpi::api::IUnknown* child) //, gmpi::api::IUnknown* host)
+	void addChild(gmpi::api::IUnknown* newchild)
 	{
 		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-		unknown = (gmpi::api::IUnknown*)child;
+		unknown = (gmpi::api::IUnknown*) newchild;
 
 		auto graphic = unknown.as<gmpi::api::IDrawingClient>();
 		auto editor = unknown.as<gmpi::api::IInputClient>();
@@ -158,6 +159,17 @@ struct GmpiUiLayer :
 		if (graphic)
 		{
 			graphic->open(static_cast<gmpi::api::IDrawingHost*>(&host));
+
+			if (isMeasured)
+			{
+				auto& child = children.back();
+				const auto size = measureChild(child);
+				child.bounds.right = child.bounds.left + size.width;
+				child.bounds.bottom = child.bounds.top + size.height;
+				arrangeChild(child);
+
+				drawingHost->invalidateRect(&child.bounds);
+			}
 		}
 	}
 	
@@ -239,27 +251,67 @@ struct GmpiUiLayer :
 		return gmpi::ReturnCode::Ok;
 	}
 
+	gmpi::drawing::Size measureChild(childInfo& child)
+	{
+		if (!child.graphic)
+			return {};
+
+		const gmpi::drawing::Size availableSize{10000,10000};
+		gmpi::drawing::Size desiredSize{};
+		child.graphic->measure(&availableSize, &desiredSize);
+
+		return desiredSize;
+
+		//child.bounds.right = child.bounds.left + desiredSize.width;
+		//child.bounds.bottom = child.bounds.top + desiredSize.height;
+	}
+
+	void arrangeChild(childInfo& child)
+	{
+		if (!child.graphic)
+			return;
+		child.graphic->arrange(&child.bounds);
+	}
+
 	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override
 	{
 		(void)availableSize;
 
-		if (returnDesiredSize)
+		assert(returnDesiredSize);
+
+		// Minimal adornment area.
+		returnDesiredSize->width = 100.0f;
+		returnDesiredSize->height = 100.0f;
+
+		for (auto& child : children)
 		{
-			// Minimal adornment area.
-			returnDesiredSize->width = 100.0f;
-			returnDesiredSize->height = 100.0f;
+			measureChild(child);
 		}
+
+		isMeasured = true;
+
 		return gmpi::ReturnCode::Ok;
 	}
 
 	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override
 	{
-		(void)finalRect;
+		for (auto& child : children)
+		{
+			const auto size = measureChild(child);
+			child.bounds.left = finalRect->left;
+			child.bounds.top = finalRect->top;
+			child.bounds.right = child.bounds.left + size.width;
+			child.bounds.bottom = child.bounds.top + size.height;
+			arrangeChild(child);
+		}
+
 		return gmpi::ReturnCode::Ok;
 	}
 
 	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
 	{
+		assert(isMeasured);
+
 		gmpi::drawing::Graphics g(drawingContext);
 
 		// Restrict drawing only to overall clip-rect.
@@ -392,9 +444,9 @@ struct PileChildHost2 :
 	struct Pile* parent = nullptr;
 
 	// IDrawingHost
-	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override { return gmpi::ReturnCode::Ok; }
-	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override {}
-	void invalidateMeasure() override { return; };
+	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override;
+	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
+	void invalidateMeasure() override;
 	float getRasterizationScale() override { return 1.0f; } // DPI scaling
 
 	// IDialogHost
@@ -436,6 +488,7 @@ struct Pile :
 	Pile()
 	{
 		childhost_sdk3.parent = this;
+		childhost_gmpi.parent = this;
 	}
 	~Pile()
 	{
@@ -492,8 +545,29 @@ struct Pile :
 				returnDesiredSize->height = (std::max(returnDesiredSize->height, s.height));
 			}
 		}
+
+		const gmpi::drawing::Size availableSize2 = convert(availableSize);
+
+		for (auto& child : graphics_gmpi)
+		{
+			gmpi::drawing::Size s{};
+			child->measure(&availableSize2, &s);
+
+			if (first)
+			{
+				returnDesiredSize->width = s.width;
+				returnDesiredSize->height = s.height;
+				first = false;
+			}
+			else
+			{
+				returnDesiredSize->width = (std::max(returnDesiredSize->width, s.width));
+				returnDesiredSize->height = (std::max(returnDesiredSize->height, s.height));
+			}
+		}
 		return gmpi::MP_OK;
 	}
+
 	int32_t MP_STDCALL arrange(gmpi_gui::MP1_RECT finalRect)  override
 	{
 		for (auto& child : graphics)
@@ -838,6 +912,13 @@ inline gmpi::ReturnCode PileChildHost::createKeyListener(const gmpi::drawing::Re
 	return host->createKeyListener(r, returnKeyListener);
 }
 
+inline gmpi::ReturnCode PileChildHost2::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
+{ 
+	parent->getGuiHost()->GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory);
+	return gmpi::ReturnCode::Ok;
+}
+inline void PileChildHost2::invalidateRect(const gmpi::drawing::Rect* invalidRect) { parent->invalidateRect((const GmpiDrawing_API::MP1_RECT*)invalidRect); }
+inline void PileChildHost2::invalidateMeasure() { parent->invalidateMeasure(); };
 
 } //namespace SE2
 
