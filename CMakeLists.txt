@@ -502,16 +502,17 @@ modules/shared/real_fft.cpp
 modules/shared/expression_evaluate.h
 modules/shared/expression_evaluate.cpp
 
-modules/EnvelopeAdsr/envelope.cpp
 modules/EnvelopeAdsr/Adsr.cpp
-modules/ControlsXp/FreqAnalyser.cpp
-modules/ControlsXp/FreqAnalyser3.cpp
-modules/ControlsXp/SpectrumAnalyserBase.h
-modules/ControlsXp/SpectrumAnalyserBase.cpp
-modules/ControlsXp/ListEntry.cpp
-modules/ControlsXp/Scope3.cpp
+modules/EnvelopeAdsr/envelope.cpp
 modules/Converters/FloatScaler2Gui.cpp
 modules/Converters/FloatToText.cpp
+modules/Converters/FloatToVolts2.cpp
+modules/ControlsXp/FreqAnalyser.cpp
+modules/ControlsXp/FreqAnalyser3.cpp
+modules/ControlsXp/ListEntry.cpp
+modules/ControlsXp/SpectrumAnalyserBase.h
+modules/ControlsXp/SpectrumAnalyserBase.cpp
+modules/ControlsXp/Scope3.cpp
 modules/Converters/VoltsToMidiCc.cpp
 
 modules/PatchMemory/PatchInfoGui.h

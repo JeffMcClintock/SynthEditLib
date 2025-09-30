@@ -1156,6 +1156,7 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(PatchMemoryBoolOut_Gui);
 	INIT_STATIC_FILE(VoltMeter_Gui);
 	INIT_STATIC_FILE(FloatToTextGUI_Gui);
+	INIT_STATIC_FILE(FloatToVolts2);
 	INIT_STATIC_FILE(OversamplingControl_Gui);
 	INIT_STATIC_FILE(PatchMemoryBoolGui);
 	INIT_STATIC_FILE(PatchMemoryBoolOut_Gui);

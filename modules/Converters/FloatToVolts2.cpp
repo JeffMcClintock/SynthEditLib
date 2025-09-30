@@ -14,6 +14,13 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 #include "Processor.h"
 
+// copied MACRO as GMPI SDK has no equivalent
+#ifndef SE_DECLARE_INIT_STATIC_FILE
+#define SE_DECLARE_INIT_STATIC_FILE(filename) void se_static_library_init_##filename(){}
+#endif
+
+SE_DECLARE_INIT_STATIC_FILE(FloatToVolts2);
+
 using namespace gmpi;
 
 struct FloatToVolts2 final : public Processor
