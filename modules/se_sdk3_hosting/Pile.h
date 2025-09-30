@@ -164,10 +164,14 @@ struct GmpiUiLayer :
 
 	gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
 	{
-		(void)flags;
+		for (auto& it : children)
+		{
+			if (!pointInRect(point, (*it).bounds))
+				continue;
 
-		if (point.x < 100 && point.y < 100)
-			return gmpi::ReturnCode::Ok;
+			if ((*it).editor.get())
+				return gmpi::ReturnCode::Ok;
+		}
 
 		return gmpi::ReturnCode::Unhandled;
 	}
@@ -180,7 +184,19 @@ struct GmpiUiLayer :
 
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override
 	{
-		(void)point; (void)flags;
+		for (auto& it : children)
+		{
+			if (!pointInRect(point, (*it).bounds))
+				continue;
+
+			auto child = (*it).editor.get();
+			if (!child)
+				continue;
+
+			gmpi::drawing::Point childPoint{ point.x - (*it).bounds.left, point.y - (*it).bounds.top };
+			return child->onPointerMove(childPoint, flags);
+		}
+
 		return gmpi::ReturnCode::Unhandled;
 	}
 
@@ -681,8 +697,18 @@ struct Pile :
 	{
 		lastPoint = point;
 
+		// TODO !! capturedLayer don't work now that GMPI-UI children in different vector to SDK3 children.
+
 		if(capturedLayer >= 0)
 			return graphics[capturedLayer]->onPointerMove(flags, point);
+
+		for (currentMouseLayer = static_cast<int>(editors_gmpi.size()) - 1; currentMouseLayer >= 0; --currentMouseLayer)
+		{
+			auto& child = editors_gmpi[currentMouseLayer];
+
+			if (child->hitTest(legacy_converters::convert(point), flags) == gmpi::ReturnCode::Ok)
+				return (int32_t) child->onPointerMove(legacy_converters::convert(point), flags);
+		}
 
 		for (currentMouseLayer = static_cast<int>(graphics.size()) - 1; currentMouseLayer >= 0 ; --currentMouseLayer)
 		{
