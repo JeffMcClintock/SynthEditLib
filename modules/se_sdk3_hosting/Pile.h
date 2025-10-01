@@ -346,6 +346,7 @@ struct GmpiUiLayer :
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
 	{
+		*returnInterface = {};
 		GMPI_QUERYINTERFACE(IInputClient);
 		GMPI_QUERYINTERFACE(IDrawingClient);
 		return gmpi::ReturnCode::NoSupport;
@@ -428,9 +429,10 @@ inline gmpi::ReturnCode GmpiUiLayerHost::createStockDialog(int32_t dialogType, g
 
 // PileChildHost holds refcount of child plugins hosts. need to keep refcount seperate from Pile, else it never gets deleted.
 struct PileChildHost :
-	  public gmpi_gui::IMpGraphicsHost
-	, public gmpi::IMpUserInterfaceHost2
-	, public gmpi::api::IDialogHost
+															public gmpi_gui::IMpGraphicsHost
+														, public gmpi::IMpUserInterfaceHost2
+														, public gmpi::api::IDialogHost
+
 {
 	struct Pile* parent = nullptr;
 
@@ -526,6 +528,7 @@ struct PileChildHost2 :
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
 	{
+		*returnInterface = {};
 		GMPI_QUERYINTERFACE(IDialogHost);
 		GMPI_QUERYINTERFACE(IDrawingHost);
 		return gmpi::ReturnCode::NoSupport;
@@ -536,9 +539,11 @@ struct PileChildHost2 :
 
 // stacks a set of child elements on top of each other.
 struct Pile :
-	  public gmpi_gui::MpGuiGfxBase
-	, public gmpi_gui_api::IMpKeyClient
-	, public IGraphicsRedrawClient
+	public gmpi::api::IDrawingClient
+
+								, public gmpi_gui::MpGuiGfxBase
+								, public gmpi_gui_api::IMpKeyClient
+								, public IGraphicsRedrawClient
 	, public hasGmpiUiChildren
 {
 	PileChildHost childhost_sdk3;
@@ -592,6 +597,14 @@ struct Pile :
 		// GMPI child plugins
 		hasGmpiUiChildren::addChild((gmpi::api::IUnknown*) child, static_cast<gmpi::api::IDialogHost*>(&childhost_gmpi));
 	}
+
+	// IDrawingClient
+	gmpi::ReturnCode open(gmpi::api::IUnknown* host) override { return gmpi::ReturnCode::Ok;}
+	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override { return gmpi::ReturnCode::Ok;}
+	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override { return gmpi::ReturnCode::Ok;}
+	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override { return gmpi::ReturnCode::Ok;}
+	gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override { return gmpi::ReturnCode::Ok; }
+
 
 	// MpGuiGfxBase
 	int32_t MP_STDCALL measure(gmpi_gui::MP1_SIZE availableSize, gmpi_gui::MP1_SIZE* returnDesiredSize)  override
@@ -929,6 +942,13 @@ public:
 	void DragNewModule(const char* id);
 	virtual ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) = 0;
 #endif
+
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+	{
+		*returnInterface = {};
+		GMPI_QUERYINTERFACE(IDrawingClient);
+		return gmpi::ReturnCode::NoSupport;
+	}
 
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{

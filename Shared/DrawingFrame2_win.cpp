@@ -18,6 +18,45 @@ DrawingFrameBase2::DrawingFrameBase2()
     DrawingFactory = std::make_unique<UniversalFactory>();
 }
 
+// new
+void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient) //gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx)
+{
+    detachClient();
+
+    gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+    unknown = pclient;
+
+    graphics_gmpi = unknown.as<gmpi::api::IDrawingClient>();
+
+#if 0 // TODO
+    gmpi_gui_client = gfx;
+
+    gfx->queryInterface(IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
+
+    [[maybe_unused]] auto r = gfx->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
+
+    gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> pinHost;
+    gmpi_gui_client->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pinHost.asIMpUnknownPtr());
+
+    if (pinHost)
+    {
+        pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
+        pinHost->initialize();
+    }
+#endif
+
+    if (swapChain)
+    {
+        const auto scale = 1.0 / getRasterizationScale();
+
+        sizeClientDips(
+            static_cast<float>(swapChainSize.width) * scale,
+            static_cast<float>(swapChainSize.height) * scale
+        );
+    }
+}
+
+// old
 void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx)
 {
     detachClient();
@@ -50,9 +89,11 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
 
 void DrawingFrameBase2::detachClient()
 {
-    gmpi_gui_client = {};
-    frameUpdateClient = {};
-    pluginParameters2B = {};
+    graphics_gmpi = {};
+
+                    gmpi_gui_client = {};
+                    frameUpdateClient = {};
+                    pluginParameters2B = {};
 }
 
 void DrawingFrameBase2::detachAndRecreate()
@@ -229,7 +270,7 @@ LRESULT DrawingFrameHwndBase::WindowProc(
     WPARAM wParam,
     LPARAM lParam)
 {
-    if (!gmpi_gui_client)
+    if (!gmpi_gui_client && !graphics_gmpi)
         return DefWindowProc(hwnd, message, wParam, lParam);
 
     switch (message)
@@ -307,7 +348,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         {
         case WM_MOUSEMOVE:
         {
-            r = gmpi_gui_client->onPointerMove(flags, {point.x, point.y});
+            if(gmpi_gui_client)
+                r = gmpi_gui_client->onPointerMove(flags, {point.x, point.y});
 
             // get notified when mouse leaves window
             if (!isTrackingMouse)
@@ -321,7 +363,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
                 {
                     isTrackingMouse = true;
                 }
-                gmpi_gui_client->setHover(true);
+                if (gmpi_gui_client)
+                    gmpi_gui_client->setHover(true);
             }
         }
         break;
@@ -330,7 +373,9 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         case WM_RBUTTONDOWN:
         case WM_MBUTTONDOWN:
             {
-                r = gmpi_gui_client->onPointerDown(flags, { point.x, point.y });
+                if (gmpi_gui_client)
+                    r = gmpi_gui_client->onPointerDown(flags, { point.x, point.y });
+
                 ::SetFocus(hwnd);
 
                 // Handle right-click context menu.
@@ -365,7 +410,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         case WM_MBUTTONUP:
         case WM_RBUTTONUP:
         case WM_LBUTTONUP:
-            r = gmpi_gui_client->onPointerUp(flags, { point.x, point.y });
+            if (gmpi_gui_client)
+                r = gmpi_gui_client->onPointerUp(flags, { point.x, point.y });
             break;
         }
     }
@@ -373,7 +419,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
 
     case WM_MOUSELEAVE:
         isTrackingMouse = false;
-        gmpi_gui_client->setHover(false);
+        if (gmpi_gui_client)
+            gmpi_gui_client->setHover(false);
         break;
 
     case WM_MOUSEWHEEL:
@@ -408,7 +455,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         //	flags |= gmpi_gui_api::GG_POINTER_KEY_ALT;
         //}
 
-        /*auto r =*/ gmpi_gui_client->onMouseWheel(flags, zDelta, { p.x, p.y });
+        if (gmpi_gui_client)
+            /*auto r =*/ gmpi_gui_client->onMouseWheel(flags, zDelta, { p.x, p.y });
     }
     break;
 
@@ -470,15 +518,12 @@ void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZ
 
         initTooltip();
 
-        if (gmpi_gui_client)
-        {
-            const auto scale = 1.0 / getRasterizationScale();
+        const auto scale = 1.0 / getRasterizationScale();
 
-            sizeClientDips(
-                static_cast<float>((r.right - r.left) * scale),
-                static_cast<float>((r.bottom - r.top) * scale)
-            );
-        }
+        sizeClientDips(
+            static_cast<float>((r.right - r.left) * scale),
+            static_cast<float>((r.bottom - r.top) * scale)
+        );
 
         // starting Timer last to avoid first event getting 'in-between' other init events.
         startTimer(15); // 16.66 = 60Hz. 16ms timer seems to miss v-sync. Faster timers offer no improvement to framerate.
@@ -664,7 +709,11 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 
             graphics.pushAxisAlignedClip(dirtyRectDips);
 
-            if (gmpi_gui_client)
+            if(graphics_gmpi)
+            {
+                graphics_gmpi->render(&context);
+			}
+            else if (gmpi_gui_client) // DEPRECATE THIS.
             {
                 gmpi_gui_client->OnRender(legacyContext);
             }
@@ -726,11 +775,25 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 
 void DrawingFrameBase2::sizeClientDips(float width, float height)
 {
-    GmpiDrawing_API::MP1_SIZE available{ width, height };
-    GmpiDrawing_API::MP1_SIZE desired{};
+    if (graphics_gmpi)
+    {
+        gmpi::drawing::Size available{ width, height };
+        gmpi::drawing::Size desired{};
 
-    gmpi_gui_client->measure(available, &desired);
-    gmpi_gui_client->arrange({ 0, 0, width, height });
+        graphics_gmpi->measure(&available, &desired);
+
+		gmpi::drawing::Rect finalRect{ 0, 0, width, height };
+        graphics_gmpi->arrange(&finalRect);
+    }
+
+    if (gmpi_gui_client)
+    {
+        GmpiDrawing_API::MP1_SIZE available{ width, height };
+        GmpiDrawing_API::MP1_SIZE desired{};
+
+        gmpi_gui_client->measure(available, &desired);
+        gmpi_gui_client->arrange({ 0, 0, width, height });
+    }
 }
 
 void DrawingFrameHwndBase::invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect)

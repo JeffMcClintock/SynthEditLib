@@ -54,10 +54,15 @@ struct DrawingFrameBase2 :
 {
     std::unique_ptr<UniversalFactory> DrawingFactory;
 
-    gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> frameUpdateClient;
-    gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gmpi_gui_client; // usually a ContainerView at the topmost level
-    gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2B> pluginParameters2B;
+                        gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> frameUpdateClient;
+                        gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gmpi_gui_client; // usually a ContainerView at the topmost level
+                        gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2B> pluginParameters2B;
 
+    gmpi::shared_ptr<gmpi::api::IDrawingClient> graphics_gmpi;
+
+
+    // for re-entrancy protection.
+    std::atomic<bool> reentrant = false;
     std::atomic<bool> isInit;
 
     GmpiDrawing_API::MP1_POINT currentPointerPos = { -1, -1 };
@@ -78,7 +83,8 @@ struct DrawingFrameBase2 :
     virtual void autoScrollStart() {}
     virtual void autoScrollStop() {}
 
-    void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx);
+    void attachClient(gmpi::api::IUnknown* pclient);
+                                                        void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx);
     void detachClient();
     void detachAndRecreate();
     void sizeClientDips(float width, float height) override;
