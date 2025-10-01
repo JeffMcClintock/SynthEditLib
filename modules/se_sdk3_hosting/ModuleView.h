@@ -101,8 +101,8 @@ namespace SE2
 		gmpi::ReturnCode setCapture() override;
 		gmpi::ReturnCode getCapture(bool& returnValue) override;
 		gmpi::ReturnCode releaseCapture() override;
-		//gmpi::ReturnCode getFocus() override;
-		//gmpi::ReturnCode releaseFocus() override;
+//		gmpi::ReturnCode getFocus() override;
+//		gmpi::ReturnCode releaseFocus() override;
 		// IEditorHost
 		gmpi::ReturnCode setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data) override;
 		int32_t getHandle() override;

@@ -2,7 +2,7 @@
 #include <vector>
 #include "Drawing.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
-//#include "ModulePicker.h"
+#include "SDK3Adaptor.h"
 
 // see also GmpiUiHelper (gmpi->moduleView)  SDK3Adaptor (wraps an SKD3 plugin in a GMPI API)
 
@@ -344,6 +344,7 @@ struct GmpiUiLayer :
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
 	{
+		*returnInterface = {};
 		GMPI_QUERYINTERFACE(IInputClient);
 		GMPI_QUERYINTERFACE(IDrawingClient);
 		return gmpi::ReturnCode::NoSupport;
@@ -414,11 +415,13 @@ inline gmpi::ReturnCode GmpiUiLayerHost::createStockDialog(int32_t dialogType, g
 	return owner->dialogHost->createStockDialog(dialogType, returnDialog);
 }
 
+#if 0
 // PileChildHost holds refcount of child plugins hosts. need to keep refcount seperate from Pile, else it never gets deleted.
 struct PileChildHost :
-	  public gmpi_gui::IMpGraphicsHost
-	, public gmpi::IMpUserInterfaceHost2
-	, public gmpi::api::IDialogHost
+															public gmpi_gui::IMpGraphicsHost
+														, public gmpi::IMpUserInterfaceHost2
+														, public gmpi::api::IDialogHost
+
 {
 	struct Pile* parent = nullptr;
 
@@ -492,6 +495,7 @@ struct PileChildHost :
 
 	GMPI_REFCOUNT_NO_DELETE
 };
+#endif
 
 struct PileChildHost2 :
 	  public gmpi::api::IDialogHost
@@ -514,6 +518,7 @@ struct PileChildHost2 :
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
 	{
+		*returnInterface = {};
 		GMPI_QUERYINTERFACE(IDialogHost);
 		GMPI_QUERYINTERFACE(IDrawingHost);
 		return gmpi::ReturnCode::NoSupport;
@@ -524,63 +529,427 @@ struct PileChildHost2 :
 
 // stacks a set of child elements on top of each other.
 struct Pile :
-	  public gmpi_gui::MpGuiGfxBase
-	, public gmpi_gui_api::IMpKeyClient
-	, public IGraphicsRedrawClient
-	, public hasGmpiUiChildren
+	  public gmpi::api::IDrawingClient
+	, public gmpi::api::IGraphicsRedrawClient
+	, public gmpi::api::IInputClient
 {
-	PileChildHost childhost_sdk3;
+	gmpi::shared_ptr<gmpi::api::IInputHost> inputHost;
+	gmpi::shared_ptr<gmpi::api::IDialogHost> dialogHost;
+	gmpi::shared_ptr<gmpi::api::IDrawingHost> drawingHost;
+
 	PileChildHost2 childhost_gmpi;
 
-	// SDK3 child plugins.
-	std::vector<gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3>> graphics;
-	std::vector<gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2>> editors;
-	std::vector<gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient>> redraws;
-	
-	GmpiDrawing_API::MP1_POINT lastPoint{};
+	// child plugins.
+	std::vector<gmpi::shared_ptr<gmpi::api::IDrawingClient>> graphics_gmpi;
+	std::vector<gmpi::shared_ptr<gmpi::api::IInputClient>> editors_gmpi;
+	std::vector<gmpi::shared_ptr<IGraphicsRedrawClient>> redrawers_gmpi;
+
+	gmpi::drawing::Rect bounds{};
+	gmpi::drawing::Point lastPoint{};
 	int32_t currentMouseLayer = -1;
 	int32_t capturedLayer = -2;
 	
 	Pile()
 	{
-		childhost_sdk3.parent = this;
 		childhost_gmpi.parent = this;
 	}
-	//~Pile()
-	//{
-	//	int x = 9;;
-	//}
-	void addChild(gmpi::IMpUnknown* child)
+
+	void addChild(gmpi::api::IUnknown* child)
 	{
 		// SDK3 child plugins.
+		auto maybeSdk3 = (gmpi::IMpUnknown*) child;
+		gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> sdk3_editor;
+		gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> sdk3_graphic;
+		gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> sdk3_redraw;
+
+		maybeSdk3->queryInterface(gmpi_gui_api::IMpGraphics3::guid, sdk3_graphic.asIMpUnknownPtr());
+		maybeSdk3->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, sdk3_editor.asIMpUnknownPtr());
+		maybeSdk3->queryInterface(legacy::IGraphicsRedrawClient::guid, sdk3_redraw.asIMpUnknownPtr());
+
+		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+
+		if (sdk3_editor || sdk3_graphic || sdk3_redraw)
 		{
-			gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> editor;
-			gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> graphic;
-			gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> redraw;
+			auto wrapper = new SDK3Adaptor();
+			unknown.attach(static_cast<gmpi::api::IDrawingClient*>(wrapper));
 
-			child->queryInterface(gmpi_gui_api::IMpGraphics3::guid, graphic.asIMpUnknownPtr());
-			child->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, editor.asIMpUnknownPtr());
-			child->queryInterface(IGraphicsRedrawClient::guid, redraw.asIMpUnknownPtr());
+			wrapper->attachClient(maybeSdk3);
 
-			if (graphic)
-			{
-				graphics.push_back(graphic);
-			}
-			if (editor)
-			{
-				editors.push_back(editor);
-				editor->setHost(static_cast<gmpi_gui::IMpGraphicsHost*>(&childhost_sdk3));
-			}
-			if (redraw)
-			{
-				redraws.push_back(redraw);
-			}
+			child = static_cast<gmpi::api::IDrawingClient*>(wrapper);
+		}
+		else
+		{
+			unknown = child;
 		}
 
-		// GMPI child plugins
-		hasGmpiUiChildren::addChild((gmpi::api::IUnknown*) child, static_cast<gmpi::api::IDialogHost*>(&childhost_gmpi));
+		if (auto graphic = unknown.as<gmpi::api::IDrawingClient>(); graphic)
+		{
+			graphics_gmpi.push_back(graphic);
+
+			if(drawingHost)
+				graphic->open(drawingHost.get());
+		}
+
+		if (auto editor = unknown.as<gmpi::api::IInputClient>(); editor)
+			editors_gmpi.push_back(editor);
+
+		if (auto redraw = unknown.as<IGraphicsRedrawClient>(); redraw)
+			redrawers_gmpi.push_back(redraw);
 	}
 
+	// IGraphicsRedrawClient
+	void preGraphicsRedraw() override
+	{
+		for (auto& graphic : redrawers_gmpi)
+		{
+			graphic->preGraphicsRedraw();
+		}		
+	}
+
+	// IDrawingClient
+	gmpi::ReturnCode open(gmpi::api::IUnknown* phost) override
+	{
+		gmpi::shared_ptr<gmpi::api::IUnknown> unknown(phost);
+
+		inputHost = unknown.as<gmpi::api::IInputHost>();
+		drawingHost = unknown.as<gmpi::api::IDrawingHost>();
+		dialogHost = unknown.as<gmpi::api::IDialogHost>();
+
+		for(auto& graphic : graphics_gmpi)
+		{
+			graphic->open(drawingHost.get());
+		}
+
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override
+	{
+		bool first = true;
+
+		for (auto& child : graphics_gmpi)
+		{
+			gmpi::drawing::Size s{};
+			child->measure(availableSize, &s);
+
+			if (first)
+			{
+				*returnDesiredSize = s;
+				first = false;
+			}
+			else
+			{
+				returnDesiredSize->width = (std::max(returnDesiredSize->width, s.width));
+				returnDesiredSize->height = (std::max(returnDesiredSize->height, s.height));
+			}
+		}
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override
+	{
+		bounds = *finalRect;
+
+		for (auto& child : graphics_gmpi)
+			child->arrange(finalRect);
+
+		return gmpi::ReturnCode::Ok;
+	}
+	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+	{
+		for (auto& graphic : graphics_gmpi)
+		{
+			graphic->render(drawingContext);
+		}
+		return gmpi::ReturnCode::Ok;
+	}
+	gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override
+	{
+		*returnRect = bounds;
+		return gmpi::ReturnCode::Ok;
+	}
+
+	// IInputClient
+	gmpi::ReturnCode setHover(bool isMouseOverMe) override
+	{
+		(void)isMouseOverMe;
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
+	{
+		currentMouseLayer = -1;
+		if (!pointInRect(point, bounds))
+			return gmpi::ReturnCode::Unhandled;
+
+		for (int32_t i = (int32_t)editors_gmpi.size() - 1; i >= 0; --i)
+		{
+			auto editor = editors_gmpi[i];
+			if (!editor)
+				continue;
+
+			if (editor->hitTest(point, flags) == gmpi::ReturnCode::Ok)
+			{
+				currentMouseLayer = i;
+				return gmpi::ReturnCode::Ok;
+			}
+		}
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::api::IInputClient* getEditor()
+	{
+		if (capturedLayer >= 0)
+		{
+			return editors_gmpi[capturedLayer].get();
+		}
+		else if (currentMouseLayer >= 0 && currentMouseLayer < (int32_t)editors_gmpi.size())
+		{
+			return editors_gmpi[currentMouseLayer].get();
+		}
+		return nullptr;
+	}
+
+	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
+	{
+		lastPoint = point;
+
+		if (auto editor = getEditor(); editor)
+			return editor->onPointerDown(point, flags);
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override
+	{
+		lastPoint = point;
+
+		if (capturedLayer >= 0)
+			return editors_gmpi[capturedLayer]->onPointerMove(point, flags);
+
+		// hit test each layer, topmost first.
+		for (currentMouseLayer = static_cast<int>(editors_gmpi.size()) - 1; currentMouseLayer >= 0; --currentMouseLayer)
+		{
+			auto& child = editors_gmpi[currentMouseLayer];
+
+			if (child->hitTest(point, flags) == gmpi::ReturnCode::Ok)
+				return child->onPointerMove(point, flags);
+		}
+
+		currentMouseLayer = -1;
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
+	{
+		lastPoint = point;
+
+		if (auto editor = getEditor(); editor)
+			return editor->onPointerUp(point, flags);
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override
+	{
+		lastPoint = point;
+
+		if (auto editor = getEditor(); editor)
+			return editor->onMouseWheel(point, flags, delta);
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink) override
+	{
+		if (auto editor = getEditor(); editor)
+			return editor->populateContextMenu(point, contextMenuItemsSink);
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onContextMenu(int32_t idx) override
+	{
+		if (auto editor = getEditor(); editor)
+			return editor->onContextMenu(idx);
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode OnKeyPress(wchar_t c) override
+	{
+		if (auto editor = getEditor(); editor)
+			return editor->OnKeyPress(c);
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+
+
+#if 0
+	friend class ResizeAdorner;
+	friend class ViewChild;
+
+	GmpiDrawing::Point pointPrev;
+	GmpiDrawing_API::MP1_POINT lastMovePoint = { -1, -1 };
+
+protected:
+	bool isIteratingChildren = false;
+	std::string draggingNewModuleId;
+	std::unique_ptr<GmpiSdk::ContextMenuHelper::ContextMenuCallbacks> contextMenuCallbacks;
+	bool isArranged = false;
+	bool childrenDirty = false;
+	std::vector< std::unique_ptr<IViewChild> > children;
+	std::vector<ModuleView*> children_monodirectional;
+	std::unique_ptr<IPresenter> presenter;
+
+	GmpiDrawing::Rect drawingBounds;
+	IViewChild* mouseCaptureObject = {};
+	IViewChild* mouseOverObject = {};
+	IViewChild* modulePicker = {};
+
+	bool isDraggingModules = false;
+	GmpiDrawing::Size DraggingModulesOffset = {};
+	GmpiDrawing::Point DraggingModulesInitialTopLeft = {};
+
+#ifdef _WIN32
+	DrawingFrameBase2* frameWindow = {};
+#endif
+	class ModuleViewPanel* patchAutomatorWrapper_ = {};
+
+	void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
+	class ModuleViewPanel* getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap);
+	void PreGraphicsRedraw() override;
+	void processUnidirectionalModules();
+
+public:
+	EditorViewFrame(GmpiDrawing::Size size);
+	virtual ~EditorViewFrame() { mouseOverObject = {}; }
+
+	void setDocument(SE2::IPresenter* presenter);
+	int32_t setHost(gmpi::IMpUnknown* host) override;
+
+	void Init(class IPresenter* ppresentor);
+	void BuildPatchCableNotifier(std::map<int, class ModuleView*>& guiObjectMap);
+	virtual void BuildModules(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap) = 0;
+	void initMonoDirectionalModules(std::map<int, SE2::ModuleView*>& guiObjectMap);
+
+	virtual int getViewType() = 0;
+
+	void OnChildResize(IViewChild* child);
+	void RemoveChild(IViewChild* child);
+	virtual void markDirtyChild(IViewChild* child);
+
+	int32_t measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_API::MP1_SIZE* returnDesiredSize) override;
+	int32_t arrange(GmpiDrawing_API::MP1_RECT finalRect) override;
+
+	int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
+	int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
+	int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
+	int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override;
+	int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override;
+	int32_t setHover(bool isMouseOverMe) override;
+
+	void calcMouseOverObject(int32_t flags);
+	void OnChildDeleted(IViewChild* childObject);
+	void onSubPanelMadeVisible();
+
+	int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override;
+	int32_t onContextMenu(int32_t idx) override;
+
+	GmpiDrawing_API::IMpFactory* GetDrawingFactory()
+	{
+		GmpiDrawing_API::IMpFactory* temp = nullptr;
+		getGuiHost()->GetDrawingFactory(&temp);
+		return temp;
+	}
+	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory);
+
+	//		std::string getToolTip(GmpiDrawing_API::MP1_POINT point);
+	//		int32_t getToolTip(float x, float y, gmpi::IMpUnknown* returnToolTipString) override;
+	int32_t getToolTip(GmpiDrawing_API::MP1_POINT point, gmpi::IString* returnString) override;
+
+	virtual std::string getSkinName() = 0;
+
+	virtual int32_t setCapture(IViewChild* module);
+	bool isCaptured(IViewChild* module)
+	{
+		return mouseCaptureObject == module;
+	}
+	int32_t releaseCapture();
+	//bool isMouseCaptured()
+	//{
+	//	return mouseCaptureObject != nullptr;
+	//}
+
+	virtual int32_t StartCableDrag(IViewChild* fromModule, int fromPin, GmpiDrawing::Point dragStartPoint, bool isHeldAlt, CableType type = CableType::PatchCable);
+	void OnCableMove(ConnectorViewBase* dragline);
+	int32_t EndCableDrag(GmpiDrawing_API::MP1_POINT point, ConnectorViewBase* dragline);
+	void OnPatchCablesUpdate(RawView patchCablesRaw);
+	void UpdateCablesBounds();
+	void RemoveCables(ConnectorViewBase* cable);
+	void RemoveModule(int32_t handle);
+
+	void OnChangedChildHighlight(int phandle, int flags);
+
+	void OnChildDspMessage(void* msg);
+
+	void MoveToFront(IViewChild* child);
+	void MoveToBack(IViewChild* child);
+
+	SE2::IPresenter* Presenter()
+	{
+		return presenter.get();
+	}
+
+	void OnChangedChildSelected(int handle, bool selected);
+	void OnChangedChildPosition(int phandle, GmpiDrawing::Rect& newRect);
+	void OnChangedChildNodes(int phandle, std::vector<GmpiDrawing::Point>& nodes);
+
+	void OnDragSelectionBox(int32_t flags, GmpiDrawing::Rect selectionRect);
+
+	// not to be confused with MpGuiGfxBase::invalidateRect
+	virtual void ChildInvalidateRect(const GmpiDrawing_API::MP1_RECT& invalidRect)
+	{
+		getGuiHost()->invalidateRect(&invalidRect);
+	}
+	virtual void OnChildMoved() {}
+	virtual int32_t ChildCreatePlatformTextEdit(const GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
+	{
+		return getGuiHost()->createPlatformTextEdit(const_cast<GmpiDrawing_API::MP1_RECT*>(rect), returnTextEdit);
+	}
+	virtual int32_t ChildCreatePlatformMenu(const GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
+	{
+		return getGuiHost()->createPlatformMenu(const_cast<GmpiDrawing_API::MP1_RECT*>(rect), returnMenu);
+	}
+
+	void autoScrollStart();
+	void autoScrollStop();
+	void DoClose();
+
+	IViewChild* Find(GmpiDrawing::Point& p);
+	void Unload();
+	virtual void Refresh(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap_);
+
+	virtual GmpiDrawing::Point MapPointToView(EditorViewFrame* parentView, GmpiDrawing::Point p)
+	{
+		return p;
+	}
+
+	virtual bool isShown()
+	{
+		return true;
+	}
+
+	virtual void OnPatchCablesVisibilityUpdate();
+
+	// gmpi_gui_api::IMpKeyClient
+	int32_t OnKeyPress(wchar_t c) override;
+
+	gmpi::ReturnCode onKey(int32_t key, gmpi::drawing::Point* pointerPosOrNull);
+
+	bool DoModulePicker(gmpi::drawing::Point currentPointerPos);
+	void DismissModulePicker();
+	void DragNewModule(const char* id);
+	virtual ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) = 0;
 	// MpGuiGfxBase
 	int32_t MP_STDCALL measure(gmpi_gui::MP1_SIZE availableSize, gmpi_gui::MP1_SIZE* returnDesiredSize)  override
 	{
@@ -719,7 +1088,7 @@ struct Pile :
 	}
 
 	// IGraphicsRedrawClient
-	void PreGraphicsRedraw() override
+	void preGraphicsRedraw() override
 	{
 		for (auto& child : redraws)
 			child->PreGraphicsRedraw();
@@ -749,6 +1118,7 @@ struct Pile :
 		}
 		return gmpi::MP_UNHANDLED;
 	}
+#endif
 
 #if 0
 	friend class ResizeAdorner;
@@ -783,7 +1153,7 @@ bool isIteratingChildren = false;
 
 	void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
 	class ModuleViewPanel* getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap);
-	void PreGraphicsRedraw() override;
+	void preGraphicsRedraw() override;
 	void processUnidirectionalModules();
 
 public:
@@ -918,6 +1288,16 @@ public:
 	virtual ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) = 0;
 #endif
 
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+	{
+		*returnInterface = {};
+		GMPI_QUERYINTERFACE(IInputClient);
+		GMPI_QUERYINTERFACE(IDrawingClient);
+		GMPI_QUERYINTERFACE(gmpi::api::IGraphicsRedrawClient);
+		
+		return gmpi::ReturnCode::NoSupport;
+	}
+#if 0
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{
 		*returnInterface = nullptr;
@@ -938,10 +1318,11 @@ public:
 		
 		return gmpi_gui::MpGuiGfxBase::queryInterface(iid, returnInterface);
 	}
-
+#endif
 	GMPI_REFCOUNT
 };
 
+#if 0
 inline int32_t MP_STDCALL PileChildHost::GetDrawingFactory(GmpiDrawing_API::IMpFactory** returnFactory)
 {
 	return parent->getGuiHost()->GetDrawingFactory(returnFactory);
@@ -977,25 +1358,28 @@ inline gmpi::ReturnCode PileChildHost::createKeyListener(const gmpi::drawing::Re
 	parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid, host.put_void());
 	return host->createKeyListener(r, returnKeyListener);
 }
+#endif
 
 inline gmpi::ReturnCode PileChildHost2::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
-{ 
-	parent->getGuiHost()->GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory);
+{
+	gmpi_sdk::mp_shared_ptr<gmpi_gui::IMpGraphicsHost> sdk3DrawingHost;
+	parent->drawingHost->queryInterface((const gmpi::api::Guid*) &gmpi_gui::SE_IID_GRAPHICS_HOST, sdk3DrawingHost.asIMpUnknownPtr());
+
+	sdk3DrawingHost->GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory);
 	return gmpi::ReturnCode::Ok;
 }
-inline void PileChildHost2::invalidateRect(const gmpi::drawing::Rect* invalidRect) { parent->invalidateRect((const GmpiDrawing_API::MP1_RECT*)invalidRect); }
-inline void PileChildHost2::invalidateMeasure() { parent->invalidateMeasure(); };
-inline gmpi::ReturnCode PileChildHost2::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) { return gmpi::ReturnCode::Ok; }
-inline gmpi::ReturnCode PileChildHost2::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) { return gmpi::ReturnCode::Ok; }
+inline void PileChildHost2::invalidateRect(const gmpi::drawing::Rect* invalidRect) { parent->drawingHost->invalidateRect(invalidRect); }
+inline void PileChildHost2::invalidateMeasure() { parent->drawingHost->invalidateMeasure(); };
+inline gmpi::ReturnCode PileChildHost2::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) { return parent->dialogHost->createTextEdit(r, returnTextEdit); }
+inline gmpi::ReturnCode PileChildHost2::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) { return parent->dialogHost->createPopupMenu(r, returnPopupMenu); }
 inline gmpi::ReturnCode PileChildHost2::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
 {
-	gmpi::shared_ptr<gmpi::api::IDialogHost> host;
-	parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid, host.put_void());
-
-	return host->createKeyListener(r, returnKeyListener);
+	//gmpi::shared_ptr<gmpi::api::IDialogHost> host;
+	//parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid, host.put_void());
+	return parent->dialogHost->createKeyListener(r, returnKeyListener);
 }
-inline gmpi::ReturnCode PileChildHost2::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::Ok; }
-inline gmpi::ReturnCode PileChildHost2::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::Ok; }
+inline gmpi::ReturnCode PileChildHost2::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return parent->dialogHost->createFileDialog(dialogType, returnDialog); }
+inline gmpi::ReturnCode PileChildHost2::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return parent->dialogHost->createStockDialog(dialogType, returnDialog); }
 
 } //namespace SE2
 

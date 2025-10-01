@@ -9,6 +9,7 @@
 
 namespace SE2
 {
+	class IPresenter;
 	enum class CableType { PatchCable, StructureCable };
 
 	// Children of a view inherit from this class. They may forward these calls to an SDK module.
@@ -163,7 +164,7 @@ namespace SE2
 		{
 		}
 
-		class IPresenter* Presenter();
+		IPresenter* Presenter();
 		GmpiDrawing::Point getConnectionPoint(CableType cableType, int pinIndex) override
 		{
 			return {};

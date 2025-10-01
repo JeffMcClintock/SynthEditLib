@@ -166,8 +166,15 @@ set(srcs
 Shared/AuPreset.h
 Shared/AuPreset.cpp
 
-modules/se_sdk3_hosting/IGuiHost2.h
+${se_sdk_hosting_folder}/GmpiUiToSDK3.h
+${se_sdk_hosting_folder}/SDK3Adaptor.h
+${se_sdk_hosting_folder}/SDK3Adaptor.cpp
 
+${se_sdk_hosting_folder}/IGuiHost2.h
+${se_sdk_hosting_folder}/gmpi_gui_hosting.h
+${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp
+${se_sdk_hosting_folder}/DirectXGfx.h
+${se_sdk_hosting_folder}/DirectXGfx.cpp
 ${se_sdk_hosting_folder}/Controller.h
 ${se_sdk_hosting_folder}/Controller.cpp
 ${se_sdk_hosting_folder}/MpParameter.h
@@ -460,6 +467,7 @@ variable_policies.h
 se_file_format_version.h
 conversion.h
 conversion.cpp
+modules/se_sdk3_hosting/Presenter.h
 )
 
 IF(APPLE)
@@ -473,9 +481,6 @@ modules/se_sdk3_hosting/gmpi_drawing_conversions.h
 ${GMPI_UI_SDK}/backends/DrawingFrameMac.mm
 )
 ENDIF()
-
-
-IF(SE2JUCE)
 
 # graphics modules
 IF(SE_GRAPHICS_SUPPORT)
@@ -588,6 +593,8 @@ ${se_sdk_hosting_folder}/JsonDocPresenter.h
 )
 
 ENDIF() # SE_GRAPHICS_SUPPORT
+
+IF(SE2JUCE)
 
 # non-graphics modules
 set(srcs

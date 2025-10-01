@@ -36,7 +36,7 @@ namespace SE2
 	// Base of any view that displays modules. Itself behaving as a standard graphics module.
 	class ViewBase :
 		public gmpi_gui::MpGuiGfxBase
-		, public IGraphicsRedrawClient
+		, public legacy::IGraphicsRedrawClient
 		, public gmpi_gui_api::IMpKeyClient
 		, public gmpi::TimerClient
 	{
@@ -84,7 +84,7 @@ bool isIteratingChildren = false;
 
 		void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
 		class ModuleViewPanel* getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap);
-		void PreGraphicsRedraw() override;
+		void preGraphicsRedraw() override;
 		void processUnidirectionalModules();
 
 	public:

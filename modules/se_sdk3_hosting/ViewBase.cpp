@@ -1524,9 +1524,11 @@ namespace SE2
 
 		if (!draggingNewModuleId.empty())
 		{
+			/* mouse can only be captured by the window that ecieved the mpointer-down, and then only until the next pointer-up.
 			int32_t isMouseCaptured{};
 			getGuiHost()->getCapture(isMouseCaptured);
 			if (isMouseCaptured)
+			*/
 			{
 				getGuiHost()->releaseCapture();
 				const auto moduleId = Utf8ToWstring(draggingNewModuleId); // TODO why does this get converted to UTF8 then back again?
@@ -1762,7 +1764,7 @@ namespace SE2
 		}
 	}
 
-	void ViewBase::PreGraphicsRedraw()
+	void ViewBase::preGraphicsRedraw()
 	{
 		// Get any meter updates from DSP. ( See also CSynthEditAppBase::OnTimer() )
 		Presenter()->GetPatchManager()->serviceGuiQueue();
@@ -1962,8 +1964,15 @@ namespace SE2
 	gmpi::ReturnCode ViewBase::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
 	{
 #ifdef _WIN32
-		*returnFactory = static_cast<gmpi::drawing::api::IFactory*>(&frameWindow->DrawingFactory->gmpiFactory);
-		return gmpi::ReturnCode::Ok;
+		// to get the GMPI-UI factory from teh SDK3 host, first cast the GuiHost to the gmpi::api::IDrawingHost, then get *its* factory.
+		gmpi::shared_ptr<gmpi::api::IDrawingHost> host;
+		getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDrawingHost::guid, host.put_void());
+
+		return host->getDrawingFactory(returnFactory);
+
+//		return (gmpi::ReturnCode) getGuiHost()->GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory);
+		//*returnFactory = static_cast<gmpi::drawing::api::IFactory*>(&frameWindow->DrawingFactory->gmpiFactory);
+		//return gmpi::ReturnCode::Ok;
 #endif
         return gmpi::ReturnCode::NoSupport;
 	}
