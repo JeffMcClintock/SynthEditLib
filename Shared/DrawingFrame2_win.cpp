@@ -633,7 +633,7 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 		return;
 	}
 
-    gmpi::directx::ComPtr <ID2D1DeviceContext> deviceContext;
+    gmpi::directx::ComPtr<ID2D1DeviceContext> deviceContext;
 
 	if (hdrRenderTarget) // draw onto intermediate buffer, then pass that through an effect to scale white.
     {
@@ -652,22 +652,17 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
         se::directx::UniversalGraphicsContext context(DrawingFactory.get(), deviceContext);
 
 		auto legacyContext = static_cast<GmpiDrawing_API::IMpDeviceContext*>(&context.sdk3Context);
-		GmpiDrawing::Graphics graphics(legacyContext);
+		gmpi::drawing::Graphics graphics(&context);
 
-		graphics.BeginDraw();
-//		const auto viewTransformL = toLegacy(viewTransform);
-//		graphics.SetTransform(viewTransformL);
-
-//auto reverseTransform = gmpi::drawing::invert(viewTransform);
+		graphics.beginDraw();
 
 		// clip and draw each rect individually (causes some objects to redraw several times)
 		for (auto& r : dirtyRects)
 		{
             const gmpi::drawing::Rect dirtyRectPixels{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
             const auto dirtyRectDips = dirtyRectPixels * WindowToDips;
-            const auto dirtyRectDipsPanZoomed = dirtyRectDips/* * reverseTransform*/; // Apply Pan and Zoom
 
-            graphics.PushAxisAlignedClip(toLegacy(dirtyRectDipsPanZoomed));
+            graphics.pushAxisAlignedClip(dirtyRectDips);
 
             if (gmpi_gui_client)
             {
@@ -675,13 +670,13 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
             }
             else
             {
-                GmpiDrawing_API::MP1_COLOR blankColor{0.f,0.f,0.f,1.f};
-                legacyContext->Clear(&blankColor);
+                gmpi::drawing::Color blankColor{0.f,0.f,0.f,1.f};
+                graphics.clear(blankColor);
             }
-			graphics.PopAxisAlignedClip();
+			graphics.popAxisAlignedClip();
 		}
 
-		graphics.EndDraw();
+		graphics.endDraw();
 	}
 
     // draw the intermediate buffer onto the swapchain.
