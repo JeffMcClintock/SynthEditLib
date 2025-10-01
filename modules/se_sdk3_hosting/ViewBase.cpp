@@ -5,6 +5,7 @@
 #include "ViewBase.h"
 #include "ConnectorView.h"
 #include "modules/se_sdk3_hosting/Presenter.h"
+#include "modules/se_sdk3_hosting/gmpi_drawing_conversions.h"
 #include "ResizeAdorner.h"
 #include "GuiPatchAutomator3.h"
 #include "UgDatabase.h"
@@ -644,7 +645,7 @@ namespace SE2
 #if DEBUG_MOUSEOVER
 		_RPTN(0, "ViewBase::onPointerMove: [%f,%f]\n", point.x, point.y); // typeid(*m.get()).name());
 #endif
-		currentPointerPosAbsolute = convert(ppoint);
+        currentPointerPosAbsolute = legacy_converters::convert(ppoint);
 		lastMovePoint = legacy_converters::convert(currentPointerPosAbsolute * inv_viewTransform);
 
 		if(mouseCaptureObject)
@@ -803,7 +804,7 @@ namespace SE2
 
 			int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
 			//            AddKeyStateFlags(args.KeyModifiers(), flags);
-			onPointerMove(flags, convert(currentPointerPosAbsolute));
+            onPointerMove(flags, legacy_converters::convert(currentPointerPosAbsolute));
 		}
 
 		return true;
@@ -892,7 +893,7 @@ namespace SE2
 		if (isDraggingModules)
 			return gmpi::MP_UNHANDLED;
 
-		currentPointerPosAbsolute = convert(ppoint);
+        currentPointerPosAbsolute = legacy_converters::convert(ppoint);
 		const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
 
 		const bool hasScrollbars = hscrollBar && vscrollBar;
