@@ -4,7 +4,6 @@
 #include "IViewChild.h"
 #include "xplatform.h"
 #include "Drawing.h"
-#include "UgDatabase.h"
 #include "mp_gui.h"
 #include "Presenter.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"

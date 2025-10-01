@@ -5,6 +5,7 @@
 #include "Drawing_API.h"
 #include "Drawing.h"
 #include "gmpi_gui_hosting.h"
+#include "module_register.h"
 
 namespace SE2
 {
