@@ -160,6 +160,7 @@ void Module_Info::ScanXml(tinyxml2::XMLElement* pluginData)
 		SafeMessagebox(0, L"XML: 'windowType' obsolete. Use 'graphicsApi'");
 	}
 
+	pluginData->QueryIntAttribute("flags", &flags);
 	SetPinFlag("polyphonicSource", CF_NOTESOURCE | CF_DONT_EXPAND_CONTAINER, pluginData, flags);
 	SetPinFlag("alwaysExport", CF_ALWAYS_EXPORT, pluginData, flags);
 	SetPinFlag("shellPlugin", CF_SHELL_PLUGIN, pluginData, flags);
