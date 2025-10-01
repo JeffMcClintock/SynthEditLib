@@ -8,6 +8,7 @@
 #include "IGuiHost2.h"
 #include "../shared/xplatform_modifier_keys.h"
 #include "BundleInfo.h"
+#include "module_info.h"
 
 class JsonPresenterBase : public SE2::IPresenter
 {
