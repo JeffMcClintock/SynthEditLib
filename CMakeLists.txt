@@ -39,23 +39,23 @@ set(DSP_CORE ${CMAKE_CURRENT_SOURCE_DIR})
 project(SynthEditLib)
 
 set(sdk_srcs
-${gmpi_sdk_folder}/Core/GmpiApiCommon.h
-${gmpi_sdk_folder}/Core/Processor.h
-${gmpi_sdk_folder}/Core/Processor.cpp
+${GMPI_SDK}/Core/GmpiApiCommon.h
+${GMPI_SDK}/Core/Processor.h
+${GMPI_SDK}/Core/Processor.cpp
 
-${gmpi_ui_folder}/GmpiApiDrawing.h
-${gmpi_ui_folder}/Drawing.h
-${gmpi_ui_folder}/helpers/GmpiPluginEditor.h
-${gmpi_ui_folder}/helpers/Timer.h
-${gmpi_ui_folder}/helpers/Timer.cpp
-${gmpi_ui_folder}/helpers/NativeUi.h
-${gmpi_ui_folder}/helpers/ImageCache.h
-${gmpi_ui_folder}/helpers/ImageCache.cpp
-${gmpi_ui_folder}/helpers/ImageMetadata.h
-${gmpi_ui_folder}/helpers/ImageMetadata.cpp
-${gmpi_ui_folder}/helpers/AnimatedBitmap.h
-${gmpi_ui_folder}/backends/DrawingFrameCommon.h
-${gmpi_ui_folder}/backends/DrawingFrameCommon.cpp
+${GMPI_UI_SDK}/GmpiApiDrawing.h
+${GMPI_UI_SDK}/Drawing.h
+${GMPI_UI_SDK}/helpers/GmpiPluginEditor.h
+${GMPI_UI_SDK}/helpers/Timer.h
+${GMPI_UI_SDK}/helpers/Timer.cpp
+${GMPI_UI_SDK}/helpers/NativeUi.h
+${GMPI_UI_SDK}/helpers/ImageCache.h
+${GMPI_UI_SDK}/helpers/ImageCache.cpp
+${GMPI_UI_SDK}/helpers/ImageMetadata.h
+${GMPI_UI_SDK}/helpers/ImageMetadata.cpp
+${GMPI_UI_SDK}/helpers/AnimatedBitmap.h
+${GMPI_UI_SDK}/backends/DrawingFrameCommon.h
+${GMPI_UI_SDK}/backends/DrawingFrameCommon.cpp
 
 ${se_sdk_folder}/mp_sdk_common.h
 ${se_sdk_folder}/mp_sdk_common.cpp
@@ -86,17 +86,17 @@ ${se_shared_folder}/xp_dynamic_linking.h
 ${se_shared_folder}/xp_dynamic_linking.cpp
 ${se_shared_folder}/xplatform_modifier_keys.h
 ${se_shared_folder}/xplatform_modifier_keys.cpp
-${gmpi_sdk_folder}/Hosting/message_queues.h
-${gmpi_sdk_folder}/Hosting/message_queues.cpp
+${GMPI_SDK}/Hosting/message_queues.h
+${GMPI_SDK}/Hosting/message_queues.cpp
 )
 
 IF(WIN32)
 set(sdk_srcs
   ${sdk_srcs}
-  ${gmpi_ui_folder}/backends/DrawingFrameWin.h
-  ${gmpi_ui_folder}/backends/DrawingFrameWin.cpp
-  ${gmpi_ui_folder}/backends/DirectXGfx.h
-  ${gmpi_ui_folder}/backends/DirectXGfx.cpp
+  ${GMPI_UI_SDK}/backends/DrawingFrameWin.h
+  ${GMPI_UI_SDK}/backends/DrawingFrameWin.cpp
+  ${GMPI_UI_SDK}/backends/DirectXGfx.h
+  ${GMPI_UI_SDK}/backends/DirectXGfx.cpp
   Shared/DrawingFrame2_win.h
   Shared/DrawingFrame2_win.cpp
 )
@@ -490,7 +490,7 @@ modules/se_sdk3_hosting/SynthEditCocoaView.mm
 modules/se_sdk3_hosting/CocoaGuiHost.h
 modules/se_sdk3_hosting/CocoaGuiHost.mm
 modules/se_sdk3_hosting/gmpi_drawing_conversions.h
-${gmpi_ui_folder}/backends/DrawingFrameMac.mm
+${GMPI_UI_SDK}/backends/DrawingFrameMac.mm
 )
 ENDIF()
 
@@ -664,9 +664,9 @@ ${DSP_CORE}
 ${DSP_CORE}/modules
 ${se_sdk_folder}
 ${VST3_SDK}
-${gmpi_sdk_folder}
-${gmpi_sdk_folder}/Core
-${gmpi_ui_folder}
+${GMPI_SDK}
+${GMPI_SDK}/Core
+${GMPI_UI_SDK}
 ${se_shared_folder}
 ${se_sdk_hosting_folder}
 )
