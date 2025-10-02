@@ -24,7 +24,7 @@ namespace SE2
 
 class CSynthEditDocBase;
 
-struct UniversalFactory
+struct UniversalFactory : public gmpi::api::IUnknown
 {
     gmpi::directx::Factory gmpiFactory;
     se::directx::Factory_base sdk3Factory;
@@ -32,6 +32,19 @@ struct UniversalFactory
 	UniversalFactory() : sdk3Factory(gmpiFactory.getInfo()) // SDK3 factory borrows the guts from the GMPI factory.
 	{
 	}
+
+    // dispatch queries to correct factory
+    gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+    {
+        if (*iid == *(const gmpi::api::Guid*)& GmpiDrawing_API::SE_IID_FACTORY2_MPGUI || *iid == *(const gmpi::api::Guid*)& GmpiDrawing_API::SE_IID_FACTORY_MPGUI)
+        {
+			return (gmpi::ReturnCode) sdk3Factory.queryInterface(* (const gmpi::MpGuid*) iid, returnInterface);
+        }
+         
+		return gmpiFactory.queryInterface(iid, returnInterface);
+    }
+
+    GMPI_REFCOUNT_NO_DELETE;
 };
 
 //inline gmpi::drawing::Point fromLegacy(GmpiDrawing_API::MP1_POINT p)
@@ -54,11 +67,12 @@ struct DrawingFrameBase2 :
 {
     std::unique_ptr<UniversalFactory> DrawingFactory;
 
-                        gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> frameUpdateClient;
                         gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gmpi_gui_client; // usually a ContainerView at the topmost level
                         gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2B> pluginParameters2B;
 
     gmpi::shared_ptr<gmpi::api::IDrawingClient> graphics_gmpi;
+    gmpi::shared_ptr<gmpi::api::IInputClient> input_client;
+    gmpi::shared_ptr<gmpi::api::IGraphicsRedrawClient> frameUpdateClient;
 
 
     // for re-entrancy protection.
@@ -103,7 +117,7 @@ struct DrawingFrameBase2 :
     // gmpi::api::IDrawingHost
     gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override
     {
-        *returnFactory = &DrawingFactory->gmpiFactory;
+        *returnFactory = DrawingFactory.get(); // ->gmpiFactory;
         return gmpi::ReturnCode::Ok;
     }
 

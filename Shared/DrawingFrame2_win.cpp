@@ -7,6 +7,7 @@
 #include "conversion.h"
 #include "Drawing.h"
 #include "gmpi_drawing_conversions.h"
+#include "SDK3Adaptor.h"
 
 // Windows 32
 #include "modules/se_sdk3_hosting/gmpi_gui_hosting.h"
@@ -27,6 +28,8 @@ void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient) //gmpi_sdk::m
     unknown = pclient;
 
     graphics_gmpi = unknown.as<gmpi::api::IDrawingClient>();
+    input_client = unknown.as<gmpi::api::IInputClient>();
+	frameUpdateClient = unknown.as<gmpi::api::IGraphicsRedrawClient>();
 
 #if 0 // TODO
     gmpi_gui_client = gfx;
@@ -54,16 +57,26 @@ void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient) //gmpi_sdk::m
             static_cast<float>(swapChainSize.height) * scale
         );
     }
+
+    if (graphics_gmpi)
+        graphics_gmpi->open(static_cast<gmpi::api::IDrawingHost*>(this));
 }
 
 // old
 void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx)
 {
-    detachClient();
+    auto wrapper = new SDK3Adaptor();
 
+    wrapper->attachClient(gfx.get());
+
+    attachClient(static_cast<gmpi::api::IDrawingClient*>(wrapper));
+
+
+#if 0
+    detachClient();
     gmpi_gui_client = gfx;
 
-    gfx->queryInterface(IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
+    gfx->queryInterface(legacy::IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
 
     [[maybe_unused]] auto r = gfx->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
 
@@ -85,14 +98,16 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
             static_cast<float>(swapChainSize.height) * scale
         );
     }
+#endif
 }
 
 void DrawingFrameBase2::detachClient()
 {
     graphics_gmpi = {};
+    input_client = {};
+    frameUpdateClient = {};
 
                     gmpi_gui_client = {};
-                    frameUpdateClient = {};
                     pluginParameters2B = {};
 }
 
@@ -601,7 +616,7 @@ bool DrawingFrameHwndBase::onTimer()
 
     if (frameUpdateClient)
     {
-        frameUpdateClient->PreGraphicsRedraw();
+        frameUpdateClient->preGraphicsRedraw();
     }
 
     // Queue pending drawing updates to backbuffer.

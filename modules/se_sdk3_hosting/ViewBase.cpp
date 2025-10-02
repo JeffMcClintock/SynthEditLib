@@ -1762,7 +1762,7 @@ namespace SE2
 		}
 	}
 
-	void ViewBase::PreGraphicsRedraw()
+	void ViewBase::preGraphicsRedraw()
 	{
 		// Get any meter updates from DSP. ( See also CSynthEditAppBase::OnTimer() )
 		Presenter()->GetPatchManager()->serviceGuiQueue();
