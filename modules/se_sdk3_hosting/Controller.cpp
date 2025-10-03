@@ -905,7 +905,7 @@ void MpController::undoTransanctionEnd()
 
 gmpi_gui::IMpGraphicsHost* MpController::getGraphicsHost()
 {
-#if !defined(SE_USE_JUCE_UI)
+#if SE_GRAPHICS_SUPPORT
 	for (auto g : m_guis2)
 	{
 		auto pa = dynamic_cast<GuiPatchAutomator3*>(g);

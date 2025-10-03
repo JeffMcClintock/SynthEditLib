@@ -1121,7 +1121,6 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(Waveshaper3Xp);
 	INIT_STATIC_FILE(Waveshapers);
 	INIT_STATIC_FILE(UserSettingText); // not generated automatically at present
-	INIT_STATIC_FILE(UserSettingText_Gui);
 	INIT_STATIC_FILE(UserSettingText_Controller);
 	INIT_STATIC_FILE(ImpulseResponse);
 
@@ -1130,7 +1129,8 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 //	INIT_STATIC_FILE(SignalLogger);
 
 	// when the UI is defined in JUCE, not SynthEdit, we don't include GUI modules
-#if !defined(SE_USE_JUCE_UI)
+#if SE_GRAPHICS_SUPPORT
+	INIT_STATIC_FILE(UserSettingText_Gui);
 	INIT_STATIC_FILE(Converters_GUI)
 	INIT_STATIC_FILE(FloatScaler2Gui);
 	INIT_STATIC_FILE(PatchMemoryFloat_Gui)
@@ -1180,13 +1180,12 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(MidiToCv2);
 	INIT_STATIC_FILE(RegistrationCheck) // has DSP also,but too bad.
 
-#if !defined(SE_USE_JUCE_UI)
+#if SE_GRAPHICS_SUPPORT
 	INIT_STATIC_FILE(PatchPointsGui)
-#endif
-
 	INIT_STATIC_FILE(CpuMeterGui);
 	INIT_STATIC_FILE(PatchPoints);
-	//	INIT_STATIC_FILE(Scope3);
+#endif
+
 	INIT_STATIC_FILE(VoiceMute);
 	INIT_STATIC_FILE(ug_adsr);
 	INIT_STATIC_FILE(ug_adder2);
