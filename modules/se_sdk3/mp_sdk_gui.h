@@ -362,7 +362,6 @@ public:
 		return gmpi::MP_UNHANDLED;
 	}
 
-//	GMPI_QUERYINTERFACE1(gmpi::MP_IID_GUI_PLUGIN2, gmpi::IMpUserInterface2)
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{
 		*returnInterface = 0;

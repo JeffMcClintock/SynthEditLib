@@ -47,39 +47,24 @@ struct UniversalFactory : public gmpi::api::IUnknown
     GMPI_REFCOUNT_NO_DELETE;
 };
 
-//inline gmpi::drawing::Point fromLegacy(GmpiDrawing_API::MP1_POINT p)
-//{
-//    // MP1_POINT typically holds floats (or ints). Cast defensively.
-//    return { static_cast<float>(p.x), static_cast<float>(p.y) };
-//}
-//inline GmpiDrawing_API::MP1_POINT toLegacy(gmpi::drawing::Point p)
-//{
-//    return { p.x, p.y }; // Cast not needed if MP1_POINT fields are float. Add static_cast<type>(...) if they are int.
-//}
-
 // SDK3 Graphics support on Direct2D. Used by SE2JUCE, VST3 and SynthEdit2::HostedView
 // also provides a universal drawing factory for nested GMPI-UI plugins
 struct DrawingFrameBase2 :
-    public gmpi::hosting::tempSharedD2DBase,
-    public gmpi_gui::legacy::IMpGraphicsHost,
-    public gmpi::legacy::IMpUserInterfaceHost2,
-    public gmpi::api::IDialogHost
+    public gmpi::hosting::tempSharedD2DBase
+    , public gmpi::api::IDialogHost
+    , public gmpi::api::IInputHost
 {
     std::unique_ptr<UniversalFactory> DrawingFactory;
 
-                        gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gmpi_gui_client; // usually a ContainerView at the topmost level
-                        gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2B> pluginParameters2B;
-
     gmpi::shared_ptr<gmpi::api::IDrawingClient> graphics_gmpi;
-    gmpi::shared_ptr<gmpi::api::IInputClient> input_client;
+    gmpi::shared_ptr<gmpi::api::IInputClient> editor_gmpi;
     gmpi::shared_ptr<gmpi::api::IGraphicsRedrawClient> frameUpdateClient;
-
 
     // for re-entrancy protection.
     std::atomic<bool> reentrant = false;
     std::atomic<bool> isInit;
 
-    GmpiDrawing_API::MP1_POINT currentPointerPos = { -1, -1 };
+    gmpi::drawing::Point currentPointerPos{ -1, -1 };
     //    std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
     GmpiGui::PopupMenu contextMenu;
 
@@ -132,52 +117,9 @@ struct DrawingFrameBase2 :
     gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override
     {return gmpi::ReturnCode::NoSupport;}
 
-    // IMpUserInterfaceHost2
-    int32_t MP_STDCALL pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice = 0) override
-    {
-        return gmpi::MP_FAIL;
-    }
-    int32_t MP_STDCALL createPinIterator(gmpi::IMpPinIterator** returnIterator) override
-    {
-        return gmpi::MP_FAIL;
-    }
-    int32_t MP_STDCALL getHandle(int32_t& returnValue) override
-    {
-        return gmpi::MP_FAIL;
-    }
-    int32_t MP_STDCALL sendMessageToAudio(int32_t id, int32_t size, const void* messageData) override
-    {
-        return gmpi::MP_FAIL;
-    }
-    int32_t MP_STDCALL ClearResourceUris() override
-    {
-        return gmpi::MP_FAIL;
-    }
-    int32_t MP_STDCALL RegisterResourceUri(const char* resourceName, const char* resourceType, gmpi::IString* returnString) override
-    {
-        return gmpi::MP_FAIL;
-    }
-    int32_t MP_STDCALL OpenUri(const char* fullUri, gmpi::IProtectedFile2** returnStream) override
-    {
-        return gmpi::MP_FAIL;
-    }
-    int32_t MP_STDCALL FindResourceU(const char* resourceName, const char* resourceType, gmpi::IString* returnString) override
-    {
-        return gmpi::MP_FAIL;
-    }
-    int32_t MP_STDCALL LoadPresetFile_DEPRECATED(const char* presetFilePath) override
-    {
-        return gmpi::MP_FAIL;
-    }
-
-    // IMpGraphicsHost
-    int32_t MP_STDCALL GetDrawingFactory(GmpiDrawing_API::IMpFactory** returnFactory) override
-    {
-        return DrawingFactory->sdk3Factory.queryInterface(GmpiDrawing_API::SE_IID_FACTORY2_MPGUI, (void**)returnFactory);
-    }
-
     void MP_STDCALL invalidateMeasure() override {}
 
+#if 0
     int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
     {
         if (gmpi::MpGuidEqual(&iid, (const gmpi::MpGuid*)&gmpi::api::IDrawingHost::guid))
@@ -215,13 +157,17 @@ struct DrawingFrameBase2 :
         *returnInterface = 0;
         return gmpi::MP_NOSUPPORT;
     }
+#endif
+
     gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
     {
         *returnInterface = {};
         GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
         GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
-        GMPI_QUERYINTERFACE(gmpi_gui::legacy::IMpGraphicsHost);
-        GMPI_QUERYINTERFACE(gmpi::legacy::IMpUserInterfaceHost2);
+        GMPI_QUERYINTERFACE(gmpi::api::IInputHost);
+        
+//        GMPI_QUERYINTERFACE(gmpi_gui::legacy::IMpGraphicsHost);
+//        GMPI_QUERYINTERFACE(gmpi::legacy::IMpUserInterfaceHost2);
         return gmpi::ReturnCode::NoSupport;
     }
 
@@ -278,6 +224,7 @@ public:
         WPARAM wParam,
         LPARAM lParam);
 
+    /*
     // IMpGraphicsHost (SDK3)
     void invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override;
 
@@ -289,6 +236,7 @@ public:
     int32_t createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override;
     int32_t createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override;
     int32_t createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override;
+    */
 
     // tempSharedD2DBase
     float calcWhiteLevel() override;

@@ -149,7 +149,7 @@ public:
     }
     gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
     {
-		inputHost->getFocus();
+//		inputHost->getFocus();
 
         numberEdit.show(dialogHost, &bounds);
 

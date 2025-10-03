@@ -48,8 +48,8 @@ struct GmpiUiLayerHost :
 	gmpi::ReturnCode setCapture() override;
 	gmpi::ReturnCode getCapture(bool& returnValue) override;
 	gmpi::ReturnCode releaseCapture() override;
-	gmpi::ReturnCode getFocus() override;
-	gmpi::ReturnCode releaseFocus() override;
+//	gmpi::ReturnCode getFocus() override;
+//	gmpi::ReturnCode releaseFocus() override;
 
 	// IDialogHost
 	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit);
@@ -395,15 +395,15 @@ inline gmpi::ReturnCode GmpiUiLayerHost::releaseCapture()
 	return owner->inputHost->releaseCapture();
 }
 
-inline gmpi::ReturnCode GmpiUiLayerHost::getFocus() // ???
-{
-	return gmpi::ReturnCode::Ok;
-}
-
-inline gmpi::ReturnCode GmpiUiLayerHost::releaseFocus()
-{
-	return gmpi::ReturnCode::Ok;
-}
+//inline gmpi::ReturnCode GmpiUiLayerHost::getFocus() // ???
+//{
+//	return gmpi::ReturnCode::Ok;
+//}
+//
+//inline gmpi::ReturnCode GmpiUiLayerHost::releaseFocus()
+//{
+//	return gmpi::ReturnCode::Ok;
+//}
 
 // IDialogHost
 inline gmpi::ReturnCode GmpiUiLayerHost::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit)
@@ -543,11 +543,7 @@ struct PileChildHost2 :
 struct Pile :
 	  public gmpi::api::IDrawingClient
 	, public gmpi::api::IGraphicsRedrawClient
-
-								//, public gmpi_gui::MpGuiGfxBase
-								//, public gmpi_gui_api::IMpKeyClient
-								//, public IGraphicsRedrawClient
-//	, public hasGmpiUiChildren
+	, public gmpi::api::IInputClient
 {
 	gmpi::shared_ptr<gmpi::api::IInputHost> inputHost;
 	gmpi::shared_ptr<gmpi::api::IDialogHost> dialogHost;
@@ -560,19 +556,13 @@ struct Pile :
 	std::vector<gmpi::shared_ptr<gmpi::api::IInputClient>> editors_gmpi;
 	std::vector<gmpi::shared_ptr<IGraphicsRedrawClient>> redrawers_gmpi;
 
-	// SDK3 child plugins.
-	//	PileChildHost childhost_sdk3;
-	//std::vector<gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3>> graphics;
-	//std::vector<gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2>> editors;
-	//std::vector<gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient>> redraws;
-	
-	GmpiDrawing_API::MP1_POINT lastPoint{};
+	gmpi::drawing::Rect bounds{};
+	gmpi::drawing::Point lastPoint{};
 	int32_t currentMouseLayer = -1;
 	int32_t capturedLayer = -2;
 	
 	Pile()
 	{
-//		childhost_sdk3.parent = this;
 		childhost_gmpi.parent = this;
 	}
 
@@ -595,26 +585,7 @@ struct Pile :
 			wrapper->attachClient(maybeSdk3);
 
 			child = static_cast<gmpi::api::IDrawingClient*>(wrapper);
-
-			/*
-			if (graphic)
-			{
-				graphics.push_back(graphic);
-			}
-			if (editor)
-			{
-				editors.push_back(editor);
-				editor->setHost(static_cast<gmpi_gui::IMpGraphicsHost*>(&childhost_sdk3));
-			}
-			if (redraw)
-			{
-				redraws.push_back(redraw);
-			}
-			*/
 		}
-
-		// GMPI child plugins
-		//hasGmpiUiChildren::addChild(child, static_cast<gmpi::api::IDialogHost*>(&childhost_gmpi));
 
 		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
 		unknown = child;
@@ -632,8 +603,6 @@ struct Pile :
 
 		if (auto redraw = unknown.as<IGraphicsRedrawClient>(); redraw)
 			redrawers_gmpi.push_back(redraw);
-
-		
 	}
 
 	// IGraphicsRedrawClient
@@ -662,10 +631,165 @@ struct Pile :
 		return gmpi::ReturnCode::Ok;
 	}
 
-	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override { return gmpi::ReturnCode::Ok;}
-	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override { return gmpi::ReturnCode::Ok;}
-	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override { return gmpi::ReturnCode::Ok;}
-	gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override { return gmpi::ReturnCode::Ok; }
+	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override
+	{
+		bool first = true;
+
+		for (auto& child : graphics_gmpi)
+		{
+			gmpi::drawing::Size s{};
+			child->measure(availableSize, &s);
+
+			if (first)
+			{
+				*returnDesiredSize = s;
+				first = false;
+			}
+			else
+			{
+				returnDesiredSize->width = (std::max(returnDesiredSize->width, s.width));
+				returnDesiredSize->height = (std::max(returnDesiredSize->height, s.height));
+			}
+		}
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override
+	{
+		bounds = *finalRect;
+
+		for (auto& child : graphics_gmpi)
+			child->arrange(finalRect);
+
+		return gmpi::ReturnCode::Ok;
+	}
+	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+	{
+		for (auto& graphic : graphics_gmpi)
+		{
+			graphic->render(drawingContext);
+		}
+		return gmpi::ReturnCode::Ok;
+	}
+	gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override
+	{
+		*returnRect = bounds;
+		return gmpi::ReturnCode::Ok;
+	}
+
+	// IInputClient
+	gmpi::ReturnCode setHover(bool isMouseOverMe) override
+	{
+		(void)isMouseOverMe;
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
+	{
+		currentMouseLayer = -1;
+		if (!pointInRect(point, bounds))
+			return gmpi::ReturnCode::Unhandled;
+
+		for (int32_t i = (int32_t)editors_gmpi.size() - 1; i >= 0; --i)
+		{
+			auto editor = editors_gmpi[i];
+			if (!editor)
+				continue;
+
+			if (editor->hitTest(point, flags) == gmpi::ReturnCode::Ok)
+			{
+				currentMouseLayer = i;
+				return gmpi::ReturnCode::Ok;
+			}
+		}
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::api::IInputClient* getEditor()
+	{
+		if (capturedLayer >= 0)
+		{
+			return editors_gmpi[capturedLayer].get();
+		}
+		else if (currentMouseLayer >= 0 && currentMouseLayer < (int32_t)editors_gmpi.size())
+		{
+			return editors_gmpi[currentMouseLayer].get();
+		}
+		return nullptr;
+	}
+
+	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
+	{
+		lastPoint = point;
+
+		if (auto editor = getEditor(); editor)
+			return editor->onPointerDown(point, flags);
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override
+	{
+		lastPoint = point;
+
+		if (capturedLayer >= 0)
+			return editors_gmpi[capturedLayer]->onPointerMove(point, flags);
+
+		// hit test each layer, topmost first.
+		for (currentMouseLayer = static_cast<int>(editors_gmpi.size()) - 1; currentMouseLayer >= 0; --currentMouseLayer)
+		{
+			auto& child = editors_gmpi[currentMouseLayer];
+
+			if (child->hitTest(point, flags) == gmpi::ReturnCode::Ok)
+				return child->onPointerMove(point, flags);
+		}
+
+		currentMouseLayer = -1;
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
+	{
+		lastPoint = point;
+
+		if (auto editor = getEditor(); editor)
+			return editor->onPointerUp(point, flags);
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override
+	{
+		lastPoint = point;
+
+		if (auto editor = getEditor(); editor)
+			return editor->onMouseWheel(point, flags, delta);
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink) override
+	{
+		if (auto editor = getEditor(); editor)
+			return editor->populateContextMenu(point, contextMenuItemsSink);
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode onContextMenu(int32_t idx) override
+	{
+		if (auto editor = getEditor(); editor)
+			return editor->onContextMenu(idx);
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode OnKeyPress(wchar_t c) override
+	{
+		if (auto editor = getEditor(); editor)
+			return editor->OnKeyPress(c);
+		return gmpi::ReturnCode::Unhandled;
+	}
+
 
 
 #if 0
@@ -1175,6 +1299,7 @@ public:
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
 	{
 		*returnInterface = {};
+		GMPI_QUERYINTERFACE(IInputClient);
 		GMPI_QUERYINTERFACE(IDrawingClient);
 		GMPI_QUERYINTERFACE(gmpi::api::IGraphicsRedrawClient);
 		
