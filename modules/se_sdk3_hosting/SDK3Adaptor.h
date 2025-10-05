@@ -228,6 +228,7 @@ public:
 	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
+	gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override;
 
 	gmpi::ReturnCode OnKeyPress(wchar_t c) override;
 

@@ -102,6 +102,13 @@ gmpi::ReturnCode SDK3Adaptor::OnKeyPress(wchar_t c)
 	return (ReturnCode)client.gmpi_key_client->OnKeyPress(c);
 }
 
+gmpi::ReturnCode SDK3Adaptor::onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta)
+{
+	if (!client.gmpi_gui_client)
+		return ReturnCode::Unhandled;
+
+	return (ReturnCode) client.gmpi_gui_client->onMouseWheel(flags, delta, { point.x, point.y });
+}
 
 // right-click menu
 gmpi::ReturnCode SDK3Adaptor::populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink)
