@@ -160,7 +160,7 @@ namespace legacy
 	using GmpiDrawing_API::MP1_SIZE;
 
 	// Standard Platform UI.
-	class DECLSPEC_NOVTABLE ICompletionCallback : public gmpi::IMpUnknown
+	class DECLSPEC_NOVTABLE ICompletionCallback : public gmpi::api::IUnknown
 	{
 	public:
 		virtual void MP_STDCALL OnComplete(int32_t result) = 0;
@@ -178,19 +178,23 @@ namespace legacy
 		MP_PLATFORM_SUB_MENU_END = 32,
 	};
 
-	class DECLSPEC_NOVTABLE IMpPlatformMenu : public gmpi::IMpUnknown
+	// GUID for IMpPlatformMenu
+	// {19AE8501-F207-43AC-A139-D0F84E119E4C}
+	//static const gmpi::MpGuid SE_IID_GRAPHICS_PLATFORM_MENU =
+	//{ 0x19ae8501, 0xf207, 0x43ac,{ 0xa1, 0x39, 0xd0, 0xf8, 0x4e, 0x11, 0x9e, 0x4c } };
+
+	class DECLSPEC_NOVTABLE IMpPlatformMenu : public gmpi::api::IUnknown
 	{
 	public:
 		virtual int32_t MP_STDCALL AddItem(const char* text, int32_t id, int32_t flags) = 0;
 		virtual int32_t MP_STDCALL SetAlignment(int32_t alignment) = 0;
 		virtual int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) = 0;
 		virtual int32_t MP_STDCALL GetSelectedId() = 0;
-	};
 
-	// GUID for IMpPlatformMenu
-	// {19AE8501-F207-43AC-A139-D0F84E119E4C}
-	static const gmpi::MpGuid SE_IID_GRAPHICS_PLATFORM_MENU =
-	{ 0x19ae8501, 0xf207, 0x43ac,{ 0xa1, 0x39, 0xd0, 0xf8, 0x4e, 0x11, 0x9e, 0x4c } };
+		// {19AE8501-F207-43AC-A139-D0F84E119E4C}
+		inline static const gmpi::api::Guid guid =
+		{ 0x19ae8501, 0xf207, 0x43ac,{ 0xa1, 0x39, 0xd0, 0xf8, 0x4e, 0x11, 0x9e, 0x4c } };
+	};
 
 	enum {
 		MP_FILE_DIALOG_TYPE_OPEN = 0,
@@ -198,7 +202,7 @@ namespace legacy
 	};
 
 	// FILE OPEN/SAVE DIALOG.
-	class DECLSPEC_NOVTABLE IMpFileDialog : public gmpi::IMpUnknown
+	class DECLSPEC_NOVTABLE IMpFileDialog : public gmpi::api::IUnknown
 	{
 	public:
 		virtual int32_t MP_STDCALL AddExtension(const char* extension, const char* description = "") = 0;
@@ -206,7 +210,7 @@ namespace legacy
 		virtual int32_t MP_STDCALL setInitialDirectory(const char* text) = 0;
 //		virtual int32_t MP_STDCALL Show(IMpUnknown* returnString) = 0;
 		virtual int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) = 0;
-		virtual int32_t MP_STDCALL GetSelectedFilename(IMpUnknown* returnString) = 0;
+		virtual int32_t MP_STDCALL GetSelectedFilename(gmpi::api::IUnknown* returnString) = 0;
 	};
 
 	// GUID for IMpFileDialog
@@ -215,7 +219,7 @@ namespace legacy
 	{ 0xe795d844, 0x4709, 0x479e,{ 0x9c, 0xdf, 0x71, 0xd0, 0x51, 0x6c, 0xf3, 0x53 } };
 
 	// OK/CANCEL DIALOG.
-	class DECLSPEC_NOVTABLE IMpOkCancelDialog : public gmpi::IMpUnknown
+	class DECLSPEC_NOVTABLE IMpOkCancelDialog : public gmpi::api::IUnknown
 	{
 	public:
 		virtual int32_t MP_STDCALL SetTitle(const char* text) = 0;
@@ -230,7 +234,7 @@ namespace legacy
 
 
 	// TEXT ENTRY
-	class DECLSPEC_NOVTABLE IMpPlatformText : public gmpi::api::IUnknown // gmpi::IMpUnknown
+	class DECLSPEC_NOVTABLE IMpPlatformText : public gmpi::api::IUnknown
 	{
 	public:
 		virtual int32_t MP_STDCALL SetText(const char* text) = 0;
