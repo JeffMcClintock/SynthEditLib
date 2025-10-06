@@ -1524,9 +1524,11 @@ namespace SE2
 
 		if (!draggingNewModuleId.empty())
 		{
+			/* mouse can only be captured by the window that ecieved the mpointer-down, and then only until the next pointer-up.
 			int32_t isMouseCaptured{};
 			getGuiHost()->getCapture(isMouseCaptured);
 			if (isMouseCaptured)
+			*/
 			{
 				getGuiHost()->releaseCapture();
 				const auto moduleId = Utf8ToWstring(draggingNewModuleId); // TODO why does this get converted to UTF8 then back again?
