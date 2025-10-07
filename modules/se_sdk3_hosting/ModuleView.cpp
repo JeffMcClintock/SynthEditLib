@@ -35,8 +35,6 @@ namespace SE2
 	ReturnCode GmpiUiHelper::setCapture() { return (gmpi::ReturnCode) moduleview.setCapture();}
 	ReturnCode GmpiUiHelper::getCapture(bool& returnValue) { int32_t cap{}; moduleview.getCapture(cap); returnValue = cap != 0; return gmpi::ReturnCode::Ok; }
 	ReturnCode GmpiUiHelper::releaseCapture() { return (gmpi::ReturnCode) moduleview.releaseCapture(); }
-	ReturnCode GmpiUiHelper::getFocus() { return gmpi::ReturnCode::NoSupport; }
-	ReturnCode GmpiUiHelper::releaseFocus() { return gmpi::ReturnCode::NoSupport; }
 	// IEditorHost
 	ReturnCode GmpiUiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data) { return (gmpi::ReturnCode) moduleview.pinTransmit(pinId, size, data, voice); }
 	int32_t GmpiUiHelper::getHandle() { return moduleview.handle; }

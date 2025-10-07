@@ -67,8 +67,8 @@ void DrawingFrameBase2::OnScrolled(double x, double y, double zoom)
 
 void DrawingFrameBase2::calcViewTransform()
 {
-    viewTransform = gmpi::drawing::makeScale({zoomFactor, zoomFactor});
-    viewTransform *= gmpi::drawing::makeTranslation({scrollPos.width, scrollPos.height});
+    //viewTransform = gmpi::drawing::makeScale({zoomFactor, zoomFactor});
+    //viewTransform *= gmpi::drawing::makeTranslation({scrollPos.width, scrollPos.height});
 
     static_cast<gmpi::api::IDrawingHost*>(this)->invalidateRect(nullptr);
 }
@@ -667,17 +667,17 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 		GmpiDrawing::Graphics graphics(legacyContext);
 
 		graphics.BeginDraw();
-		const auto viewTransformL = toLegacy(viewTransform);
-		graphics.SetTransform(viewTransformL);
+		//const auto viewTransformL = toLegacy(viewTransform);
+		//graphics.SetTransform(viewTransformL);
 
-auto reverseTransform = gmpi::drawing::invert(viewTransform);
+//auto reverseTransform = gmpi::drawing::invert(viewTransform);
 
 		// clip and draw each rect individually (causes some objects to redraw several times)
 		for (auto& r : dirtyRects)
 		{
             const gmpi::drawing::Rect dirtyRectPixels{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
             const auto dirtyRectDips = dirtyRectPixels * WindowToDips;
-            const auto dirtyRectDipsPanZoomed = dirtyRectDips * reverseTransform; // Apply Pan and Zoom
+            const auto dirtyRectDipsPanZoomed = dirtyRectDips;// *reverseTransform; // Apply Pan and Zoom
 
             graphics.PushAxisAlignedClip(toLegacy(dirtyRectDipsPanZoomed));
 
