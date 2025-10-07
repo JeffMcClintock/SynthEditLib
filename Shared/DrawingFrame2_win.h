@@ -106,6 +106,11 @@ struct DrawingFrameBase2 :
         return gmpi::ReturnCode::Ok;
     }
 
+    // IInputHost
+    gmpi::ReturnCode setCapture() override;
+    gmpi::ReturnCode getCapture(bool& returnValue) override;
+    gmpi::ReturnCode releaseCapture() override;
+
     // gmpi::api::IDialogHost
     gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override
     {return gmpi::ReturnCode::NoSupport;}

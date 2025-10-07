@@ -483,6 +483,7 @@ variable_policies.h
 se_file_format_version.h
 conversion.h
 conversion.cpp
+modules/se_sdk3_hosting/Presenter.h
 )
 
 IF(APPLE)
@@ -724,5 +725,5 @@ target_compile_definitions (${PROJECT_NAME} PRIVATE
 target_compile_definitions(
   ${PROJECT_NAME} PUBLIC 
   USE_SIMD_UTF_CONVERSION
-  SE_GRAPHICS_SUPPORT=${SE_GRAPHICS_SUPPORT}
+  SE_GRAPHICS_SUPPORT=$<IF:$<BOOL:${SE_GRAPHICS_SUPPORT}>,1,0>
 )

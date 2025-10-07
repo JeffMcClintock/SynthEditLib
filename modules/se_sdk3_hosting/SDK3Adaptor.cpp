@@ -188,9 +188,15 @@ int32_t SDK3AdaptorClient::queryInterface(const gmpi::MpGuid& iid, void** return
 		return gmpi::MP_OK;
 	}
 
+	// calls looking for the GMPI-UI host, should be redirected to the gmpiEditor
 	if (iid == (const gmpi::MpGuid&)gmpi::api::IDialogHost::guid)
 	{
-		return (int32_t) gmpiEditor.dialogHost->queryInterface((const gmpi::api::Guid*)&iid, returnInterface);
+		return (int32_t)gmpiEditor.dialogHost->queryInterface((const gmpi::api::Guid*)&iid, returnInterface);
+	}
+
+	if (iid == (const gmpi::MpGuid&)gmpi::api::IDrawingHost::guid)
+	{
+		return (int32_t)gmpiEditor.drawingHost->queryInterface((const gmpi::api::Guid*)&iid, returnInterface);
 	}
 
 	*returnInterface = 0;

@@ -122,6 +122,25 @@ gmpi::ReturnCode DrawingFrameBase2::createKeyListener(const gmpi::drawing::Rect*
     return gmpi::ReturnCode::Ok;
 }
 
+// IInputHost
+gmpi::ReturnCode DrawingFrameBase2::setCapture()
+{
+    ::SetCapture(getWindowHandle());
+    return gmpi::ReturnCode::Ok;
+}
+
+gmpi::ReturnCode DrawingFrameBase2::getCapture(bool& returnValue)
+{
+    returnValue = ::GetCapture() == getWindowHandle();
+    return gmpi::ReturnCode::Ok;
+}
+
+gmpi::ReturnCode DrawingFrameBase2::releaseCapture()
+{
+    ::ReleaseCapture();
+    return gmpi::ReturnCode::Ok;
+}
+
 //void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
 //{
 //    invalidateRect((const GmpiDrawing_API::MP1_RECT*)invalidRect);

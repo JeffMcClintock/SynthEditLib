@@ -1964,8 +1964,15 @@ namespace SE2
 	gmpi::ReturnCode ViewBase::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
 	{
 #ifdef _WIN32
-		*returnFactory = static_cast<gmpi::drawing::api::IFactory*>(&frameWindow->DrawingFactory->gmpiFactory);
-		return gmpi::ReturnCode::Ok;
+		// to get the GMPI-UI factory from teh SDK3 host, first cast the GuiHost to the gmpi::api::IDrawingHost, then get *its* factory.
+		gmpi::shared_ptr<gmpi::api::IDrawingHost> host;
+		getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDrawingHost::guid, host.put_void());
+
+		return host->getDrawingFactory(returnFactory);
+
+//		return (gmpi::ReturnCode) getGuiHost()->GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory);
+		//*returnFactory = static_cast<gmpi::drawing::api::IFactory*>(&frameWindow->DrawingFactory->gmpiFactory);
+		//return gmpi::ReturnCode::Ok;
 #endif
         return gmpi::ReturnCode::NoSupport;
 	}
