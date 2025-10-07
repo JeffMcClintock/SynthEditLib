@@ -26,10 +26,10 @@ using namespace gmpi::drawing;
 
 SE_DECLARE_INIT_STATIC_FILE(GmpiUiTest)
 
-class GmpiUiTest : public gmpi::editor::PluginEditor, public SsgNumberEditClient
+class GmpiUiTest : public gmpi::editor::PluginEditor, public NumberEditClient
 {
     cachedBlur blur;
-    SsgNumberEdit numberEdit;
+    NumberEdit numberEdit;
     float value{23.5f};
 	bool isHovered{};
 
