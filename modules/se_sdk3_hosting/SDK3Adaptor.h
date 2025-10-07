@@ -29,7 +29,7 @@ namespace gmpi_gui_api
 class SDK3Adaptor;
 
 // provide for running SynthEdit modules in a host that uses GMPI
-class SDK3AdaptorClient : public gmpi_gui::IMpGraphicsHost, public gmpi::IMpUserInterfaceHost2
+class SDK3AdaptorClient : public gmpi_gui::IMpGraphicsHost, public gmpi::IMpUserInterfaceHost2, public legacy::IGraphicsRedrawClient
 {
 	friend class SDK3Adaptor;
 
@@ -88,6 +88,7 @@ public:
 
 		pclient->queryInterface(gmpi_gui_api::IMpGraphics4::guid, gmpi_gui_client.asIMpUnknownPtr());
 		pclient->queryInterface(gmpi_gui_api::IMpKeyClient::guid, gmpi_key_client.asIMpUnknownPtr());
+		pclient->queryInterface(legacy::IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
 		[[maybe_unused]] auto r = pclient->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
 
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> pinHost;
@@ -106,6 +107,13 @@ public:
 		gmpi_key_client = {};
 		gmpi_gui_client = {};
 		pluginParameters2B = {};
+	}
+
+	// IGraphicsRedrawClient
+	void preGraphicsRedraw() override
+	{
+		if (frameUpdateClient)
+			frameUpdateClient->preGraphicsRedraw();
 	}
 
 	int32_t measure(float availableWidth, float availableHeight, float& returnWidth, float& returnHeight)
@@ -205,7 +213,7 @@ public:
 };
 
 // provide for running SynthEdit modules in a host that uses GMPI
-class SDK3Adaptor : public gmpi::editor::PluginEditor
+class SDK3Adaptor : public gmpi::editor::PluginEditor, public gmpi::api::IGraphicsRedrawClient
 {
 protected:
 	SDK3AdaptorClient client;
@@ -223,6 +231,9 @@ public:
 	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
 	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
 	gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override;
+
+	// IGraphicsRedrawClient
+	void preGraphicsRedraw() override;
 
 	////////////////////////////////////
 	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
@@ -302,14 +313,24 @@ public:
 		return PluginEditor::release();
 	}
 #endif
-#if 0
-	ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
-//		GMPI_QUERYINTERFACE(gmpi::api::IEditor);
-//		GMPI_QUERYINTERFACE(gmpi::api::IInputClient);
-		GMPI_QUERYINTERFACE(gmpi::api::IDrawingClient);
-		return ReturnCode::NoSupport;
+		if ((*iid) == gmpi::api::IGraphicsRedrawClient::guid || (*iid) == gmpi::api::IUnknown::guid)
+		{
+			*returnInterface = static_cast<gmpi::api::IGraphicsRedrawClient*>(this);
+			gmpi::editor::PluginEditor::addRef();
+			return gmpi::ReturnCode::Ok;
+		}
+
+		return gmpi::editor::PluginEditor::queryInterface(iid, returnInterface);
 	}
-	GMPI_REFCOUNT_NO_DELETE;
-#endif
+	int32_t addRef() override
+	{
+		return gmpi::editor::PluginEditor::addRef();
+	}
+	int32_t release() override
+	{
+		return gmpi::editor::PluginEditor::release();
+	}
 };

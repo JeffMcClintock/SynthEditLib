@@ -82,6 +82,11 @@ ReturnCode SDK3Adaptor::getClipArea(drawing::Rect* returnRect)
 	return (ReturnCode) client.getClipArea(returnRect->left, returnRect->top, returnRect->right, returnRect->bottom);
 }
 
+void SDK3Adaptor::preGraphicsRedraw()
+{
+	client.preGraphicsRedraw();
+}
+
 gmpi::ReturnCode SDK3Adaptor::onPointerDown(gmpi::drawing::Point point, int32_t flags)
 {
 	return (ReturnCode) client.onPointerDown(point.x, point.y, flags);
@@ -184,6 +189,16 @@ int32_t SDK3AdaptorClient::queryInterface(const gmpi::MpGuid& iid, void** return
 	{
 		// important to cast to correct vtable (ug_plugin3 has 2 vtables) before reinterpret cast
 		*returnInterface = reinterpret_cast<void*>(static_cast<IMpGraphicsHost*>(this));
+		addRef();
+		return gmpi::MP_OK;
+	}
+
+	if (iid == (const gmpi::MpGuid&)legacy::IGraphicsRedrawClient::guid)
+	{
+		//// cheat a bit, reply on GMPI-UI and SDK3 having exact same interface and guid for this.
+		//return (int32_t) gmpiEditor.drawingHost->queryInterface((const gmpi::api::Guid*)&iid, returnInterface);
+
+		*returnInterface = reinterpret_cast<void*>(static_cast<legacy::IGraphicsRedrawClient*>(this));
 		addRef();
 		return gmpi::MP_OK;
 	}
