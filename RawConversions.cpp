@@ -59,6 +59,29 @@ void RawData2(std::wstring value, void* *p_data, int *size)
 
 };
 */
+
+template<>
+std::string RawToValue(const void* data, int size)
+{
+	std::string temp;
+
+	if (size > 0)
+		temp.assign((char*)data, size);
+
+	return (temp);
+}
+
+template<>
+std::string RawToValue(const void* data, size_t size)
+{
+	std::string temp;
+
+	if (size > 0)
+		temp.assign((char*)data, size);
+
+	return (temp);
+}
+
 template<>
 std::wstring RawToValue(const void* data, int size)
 {
