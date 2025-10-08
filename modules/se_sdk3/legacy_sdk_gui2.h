@@ -211,6 +211,10 @@ namespace legacy
 //		virtual int32_t MP_STDCALL Show(IMpUnknown* returnString) = 0;
 		virtual int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) = 0;
 		virtual int32_t MP_STDCALL GetSelectedFilename(gmpi::api::IUnknown* returnString) = 0;
+
+		// {E795D844-4709-479E-9CDF-71D0516CF353}
+		inline static const gmpi::api::Guid guid =
+		{ 0xe795d844, 0x4709, 0x479e,{ 0x9c, 0xdf, 0x71, 0xd0, 0x51, 0x6c, 0xf3, 0x53 } };
 	};
 
 	// GUID for IMpFileDialog
@@ -225,6 +229,10 @@ namespace legacy
 		virtual int32_t MP_STDCALL SetTitle(const char* text) = 0;
 		virtual int32_t MP_STDCALL SetText(const char* text) = 0;
 		virtual int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) = 0;
+
+		// {4C0D0BFE-CF8E-4C8B-90CC-3025C269285A}
+		inline static const gmpi::api::Guid guid =
+		{ 0x4c0d0bfe, 0xcf8e, 0x4c8b,{ 0x90, 0xcc, 0x30, 0x25, 0xc2, 0x69, 0x28, 0x5a } };
 	};
 
 	// GUID for IMpOkCancelDialog
@@ -242,6 +250,10 @@ namespace legacy
 		virtual int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) = 0;
 		virtual int32_t MP_STDCALL SetAlignment(int32_t alignment) = 0;
 		virtual int32_t MP_STDCALL SetTextSize(float height) = 0;
+
+		// {A37A41CB-D731-4557-A717-A1EAD5442BE8}
+		inline static const gmpi::api::Guid guid =
+		{ 0xa37a41cb, 0xd731, 0x4557,{ 0xa7, 0x17, 0xa1, 0xea, 0xd5, 0x44, 0x2b, 0xe8 } };
 	};
 
 	// GUID for gmpi_gui::IMpPlatformText

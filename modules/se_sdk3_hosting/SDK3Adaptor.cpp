@@ -15,6 +15,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "SDK3Adaptor.h"
 #include "GmpiUiToSDK3.h"
+#include "mp_sdk_gui.h"
 
 using namespace gmpi;
 using namespace gmpi::editor;
@@ -174,6 +175,27 @@ void MP_STDCALL SDK3AdaptorClient::invalidateMeasure() {};
 int32_t MP_STDCALL SDK3AdaptorClient::setCapture() { return (int32_t) gmpiEditor.inputHost->setCapture();}
 int32_t MP_STDCALL SDK3AdaptorClient::getCapture(int32_t& returnValue) { bool ret{}; gmpiEditor.inputHost->getCapture(ret); return ret ? gmpi::MP_OK : gmpi::MP_FAIL;}
 int32_t MP_STDCALL SDK3AdaptorClient::releaseCapture() { return (int32_t) gmpiEditor.inputHost->releaseCapture();}
+int32_t MP_STDCALL SDK3AdaptorClient::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
+{
+	gmpi::shared_ptr<gmpi::api::IUnknown> unk;
+	gmpiEditor.dialogHost->createPopupMenu((gmpi::drawing::Rect*)rect, unk.put());
+
+	return (int32_t)unk->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_PLATFORM_MENU, (void**)returnMenu);
+}
+int32_t MP_STDCALL SDK3AdaptorClient::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
+{
+	gmpi::shared_ptr<gmpi::api::IUnknown> unk;
+	gmpiEditor.dialogHost->createTextEdit((gmpi::drawing::Rect*)rect, unk.put());
+
+	return (int32_t) unk->queryInterface((const gmpi::api::Guid*) &gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT, (void**)returnTextEdit);
+}
+int32_t MP_STDCALL SDK3AdaptorClient::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog)
+{
+	gmpi::shared_ptr<gmpi::api::IUnknown> unk;
+	gmpiEditor.dialogHost->createStockDialog(0, unk.put());
+
+	return (int32_t)unk->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)returnDialog);
+}
 
 int32_t SDK3AdaptorClient::queryInterface(const gmpi::MpGuid& iid, void** returnInterface)
 {
