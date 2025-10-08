@@ -65,12 +65,13 @@ void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient) //gmpi_sdk::m
 // old
 void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx)
 {
-    auto wrapper = new SDK3Adaptor();
+	auto wrapper = new SDK3Adaptor();
+    gmpi::shared_ptr<gmpi::api::IUnknown> adaptor;
+    adaptor.attach(static_cast<gmpi::api::IDrawingClient*>(wrapper));
 
     wrapper->attachClient(gfx.get());
 
-    attachClient(static_cast<gmpi::api::IDrawingClient*>(wrapper));
-
+    attachClient(adaptor.get());
 
 #if 0
     detachClient();

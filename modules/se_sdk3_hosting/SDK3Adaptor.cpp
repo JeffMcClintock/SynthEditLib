@@ -26,20 +26,6 @@ SDK3Adaptor::~SDK3Adaptor()
 	client.detach();
 }
 
-ReturnCode SDK3Adaptor::setHost(gmpi::api::IUnknown* phost)
-{
-    /* moved to open()
-
-	gmpi::editor::PluginEditor::setHost(phost);
-
-	gmpi::shared_ptr<gmpi::api::IUnknown> nativeFactory;
-	drawingHost->getDrawingFactory(nativeFactory.put());
-
-	client.setFactory(nativeFactory.get());
-*/
-	return ReturnCode::Ok;
-}
-
 void SDK3Adaptor::attachClient(gmpi::IMpUnknown* pclient)
 {
 	client.attach(/*factory.get(),*/ pclient);
@@ -52,6 +38,20 @@ void SDK3Adaptor::attachClient(gmpi::IMpUnknown* pclient)
 		client.measure(bounds.right - bounds.left, bounds.bottom - bounds.top, width, height);
 		client.arrange(bounds.left, bounds.top, bounds.right, bounds.bottom);
 	}
+}
+
+ReturnCode SDK3Adaptor::setHost(gmpi::api::IUnknown* phost)
+{
+	/* moved to open()
+
+	gmpi::editor::PluginEditor::setHost(phost);
+
+	gmpi::shared_ptr<gmpi::api::IUnknown> nativeFactory;
+	drawingHost->getDrawingFactory(nativeFactory.put());
+
+	client.setFactory(nativeFactory.get());
+*/
+	return ReturnCode::Ok;
 }
 
 // IDrawingClient
