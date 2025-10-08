@@ -48,8 +48,6 @@ struct GmpiUiLayerHost :
 	gmpi::ReturnCode setCapture() override;
 	gmpi::ReturnCode getCapture(bool& returnValue) override;
 	gmpi::ReturnCode releaseCapture() override;
-	gmpi::ReturnCode getFocus() override;
-	gmpi::ReturnCode releaseFocus() override;
 
 	// IDialogHost
 	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit);
@@ -392,16 +390,6 @@ inline gmpi::ReturnCode GmpiUiLayerHost::getCapture(bool& returnValue)
 inline gmpi::ReturnCode GmpiUiLayerHost::releaseCapture()
 {
 	return owner->inputHost->releaseCapture();
-}
-
-inline gmpi::ReturnCode GmpiUiLayerHost::getFocus() // ???
-{
-	return gmpi::ReturnCode::Ok;
-}
-
-inline gmpi::ReturnCode GmpiUiLayerHost::releaseFocus()
-{
-	return gmpi::ReturnCode::Ok;
 }
 
 // IDialogHost
