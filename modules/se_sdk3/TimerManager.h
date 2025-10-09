@@ -14,16 +14,6 @@ namespace se_sdk
 class TimerClient
 {
 public:
-#ifdef _DEBUG
-	int debugId = 0;
-
-	TimerClient()
-	{
-		static int debugIdCounter{};
-		debugId = ++debugIdCounter;
-	}
-#endif
-
 	virtual ~TimerClient();
 	virtual bool OnTimer() = 0;
 
