@@ -792,7 +792,7 @@ static const MpGuid MP_IID_UI_HOST2 =
 { 0xde009d92, 0xe281, 0x4f92, { 0x99, 0x96, 0x20, 0xf, 0x49, 0x69, 0x0, 0x28 } };
 
 enum FieldType {
-	MP_FT_VALUE
+	  MP_FT_VALUE
 	, MP_FT_SHORT_NAME
 	, MP_FT_LONG_NAME
 	, MP_FT_MENU_ITEMS
@@ -809,6 +809,7 @@ enum FieldType {
 	, MP_FT_GRAB					// (mouse down) bool
 	, MP_FT_NORMALIZED				// float
 	, MP_FT_STATEFUL				// bool
+	, MP_FT_HINT					// std::string
 };
 
 class IMpParameterObserver : public IMpUnknown

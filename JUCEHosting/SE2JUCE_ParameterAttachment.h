@@ -576,6 +576,13 @@ public:
                 handle
             )
         );
+
+		const auto hint = (std::string) controller.getParameterValue(handle, gmpi::MP_FT_HINT);
+        if (!hint.empty())
+        {
+            const auto hintWithNewlines = juce::String(hint).replace("|", "\n");
+            slider.setTooltip(hintWithNewlines);
+        }
     }
 
     // on/off button

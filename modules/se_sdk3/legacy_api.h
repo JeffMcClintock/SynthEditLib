@@ -634,6 +634,7 @@ enum FieldType {
 	, MP_FT_GRAB					// (mouse down) bool
 	, MP_FT_NORMALIZED				// float
 	, MP_FT_STATEFUL				// bool
+	, MP_FT_HINT					// std::string
 };
 
 class IMpParameterObserver : public gmpi::api::IUnknown

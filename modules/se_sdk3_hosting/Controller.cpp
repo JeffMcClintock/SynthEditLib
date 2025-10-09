@@ -263,6 +263,7 @@ void MpController::Initialize()
 		int Private = 0;
 
 		std::string Name = parameter_xml->Attribute("Name");
+		const auto hint_ptr = parameter_xml->Attribute("hint");
 		parameter_xml->QueryIntAttribute("ValueType", &dataType);
 		parameter_xml->QueryIntAttribute("Index", &ParameterTag);
 		parameter_xml->QueryIntAttribute("Handle", &ParameterHandle);
@@ -378,6 +379,7 @@ void MpController::Initialize()
 		seParameter->moduleParamId_ = moduleParamId_;
 		seParameter->stateful_ = stateful_;
 		seParameter->name_ = JmUnicodeConversions::Utf8ToWstring(Name);
+		seParameter->hint_ = hint_ptr ? hint_ptr : "";
 		seParameter->enumList_ = enumList_;
 		seParameter->ignorePc_ = ignorePc != 0;
 
