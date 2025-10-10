@@ -1097,6 +1097,7 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(Converters);
 	INIT_STATIC_FILE(FreqAnalyser2);
 	INIT_STATIC_FILE(FreqAnalyser3);
+	INIT_STATIC_FILE(FloatToVolts2);
 	INIT_STATIC_FILE(IdeLogger);
 	INIT_STATIC_FILE(ImpulseResponse);
 	INIT_STATIC_FILE(ImpulseResponse2);
@@ -1178,7 +1179,6 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 #endif
 	INIT_STATIC_FILE(MidiToCv2);
 	INIT_STATIC_FILE(RegistrationCheck) // has DSP also,but too bad.
-	INIT_STATIC_FILE(FloatToVolts2);
 
 #if SE_GRAPHICS_SUPPORT
 	INIT_STATIC_FILE(PatchPointsGui)

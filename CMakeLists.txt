@@ -607,7 +607,7 @@ modules/shared/expression_evaluate.cpp
 modules/EnvelopeAdsr/Adsr.cpp
 modules/EnvelopeAdsr/envelope.cpp
 modules/Converters/FloatToText.cpp
-modules/Converters/FloatToVolts2.cpp
+modules/FloatToVolts2/FloatToVolts2.cpp
 modules/ControlsXp/FreqAnalyser.cpp
 modules/ControlsXp/FreqAnalyser3.cpp
 modules/ControlsXp/ListEntry.cpp
