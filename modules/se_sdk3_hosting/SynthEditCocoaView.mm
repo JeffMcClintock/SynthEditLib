@@ -34,7 +34,7 @@ public:
     se::cocoa::DrawingFactory drawingFactory_SDK3;
     gmpi::cocoa::Factory drawingFactory_GMPI;
 
-    gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> frameUpdateClient;
+    gmpi_sdk::mp_shared_ptr<legacy::IGraphicsRedrawClient> frameUpdateClient;
     gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gmpi_gui_client; // usually a ContainerView at the topmost level
     gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2B> pluginParameters2B;
     
@@ -56,7 +56,7 @@ public:
 
         gmpi_gui_client = gfx;
 
-        gfx->queryInterface(IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
+        gfx->queryInterface(legacy::IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
         //    gfx->queryInterface(gmpi_gui_api::IMpKeyClient::guid, gmpi_key_client.asIMpUnknownPtr());
         [[maybe_unused]] auto r = gfx->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
 
