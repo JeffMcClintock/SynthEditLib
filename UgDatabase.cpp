@@ -1156,7 +1156,6 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(PatchMemoryBoolOut_Gui);
 	INIT_STATIC_FILE(VoltMeter_Gui);
 	INIT_STATIC_FILE(FloatToTextGUI_Gui);
-	INIT_STATIC_FILE(FloatToVolts2);
 	INIT_STATIC_FILE(OversamplingControl_Gui);
 	INIT_STATIC_FILE(PatchMemoryBoolGui);
 	INIT_STATIC_FILE(PatchMemoryBoolOut_Gui);
@@ -1179,6 +1178,7 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 #endif
 	INIT_STATIC_FILE(MidiToCv2);
 	INIT_STATIC_FILE(RegistrationCheck) // has DSP also,but too bad.
+	INIT_STATIC_FILE(FloatToVolts2);
 
 #if SE_GRAPHICS_SUPPORT
 	INIT_STATIC_FILE(PatchPointsGui)
