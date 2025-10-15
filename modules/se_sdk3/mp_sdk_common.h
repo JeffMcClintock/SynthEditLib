@@ -1321,6 +1321,7 @@ inline void VariableFromRaw<bool>( int size, const void* data, bool& returnValue
 	}
 	else
 	{
+		// GMPI passes bool as 1 byte
 		assert( size == 1 );
 		returnValue = *((bool*) data);
 	}

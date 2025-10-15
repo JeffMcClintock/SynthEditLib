@@ -348,7 +348,10 @@ void ug_base::UpdateInputVariable(SynthEditEvent* e)
 
 	case DT_BOOL:
 	{
-		*((bool*)p->io_variable) = cast_new_value != 0;
+		if(1 == e->parm2)
+			*((bool*)p->io_variable) = *(bool*)e->Data(); // GMPI bool
+		else
+			*((bool*)p->io_variable) = cast_new_value != 0; // SDK3 bool (int32_t)
 	}
 	break;
 
