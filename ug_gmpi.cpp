@@ -255,14 +255,24 @@ void ug_gmpi::DoProcess(int buffer_offset, int sampleframes)
 		if (!from->extraData)
 		{
 			auto src = reinterpret_cast<const uint8_t*>(&temp.parm3);
-			std::copy(src, src + sizeof(to->data_), to->data_);
+
+			// SE send bool vals as int32_t, convert them to real bools.
+			if(to->eventType == gmpi::api::EventType::PinSet && to->size_ == 4 && plugs[to->pinIdx]->DataType == DT_BOOL)
+			{
+				to->size_ = 1;
+				const bool val = *reinterpret_cast<const int32_t*>(src) ? 1 : 0;
+				std::copy(&val, &val + sizeof(val), to->data_);
+			}
+			else
+			{
+				std::copy(src, src + sizeof(to->data_), to->data_);
+			}
 		}
 #if _DEBUG
 		else
 		{
 			// 'extraData' should alias over the top of 'oversizeData_'
 			assert(to->oversizeData_ == (const uint8_t*)(temp.extraData));
-			// to->oversizeData_ = reinterpret_cast<uint8_t*>(temp.extraData); // 8 bytes. overwrites extraData.
 		}
 #endif
 	}
