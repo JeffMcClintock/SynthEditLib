@@ -240,6 +240,9 @@ std::wstring parseModuleId(tinyxml2::XMLDocument& doc, const char* xml)
 	if (!doc.Error())
 	{
 		auto pluginList = doc.FirstChildElement("PluginList");
+		if(!pluginList)
+			pluginList = doc.ToElement(); // try without PluginList wrapper.
+
 		auto PluginElement = pluginList->FirstChildElement("Plugin");
 		assert(PluginElement);
 		return Utf8ToWstring(PluginElement->Attribute("id"));
@@ -263,7 +266,11 @@ int32_t CModuleFactory::RegisterPluginWithXml(int subType, const char* xml, MP_C
 
 	auto mi3 = FindOrCreateModuleInfo3(uniqueId);
 
-	mi3->ScanXml(doc.FirstChildElement("PluginList")->FirstChildElement("Plugin")->ToElement());
+	auto pluginList = doc.FirstChildElement("PluginList");
+	if (!pluginList)
+		pluginList = doc.ToElement(); // try without PluginList wrapper.
+
+	mi3->ScanXml(pluginList->FirstChildElement("Plugin")->ToElement());
 
 	return mi3->RegisterPluginConstructor(subType, create);
 }
@@ -488,6 +495,8 @@ void CModuleFactory::RegisterPluginsXml( const char* xml_data )
 	}
 
 	auto pluginList = doc.FirstChildElement("PluginList");
+	if (!pluginList)
+		pluginList = doc.ToElement(); // try without PluginList wrapper.
 
 	if(pluginList) // Check it is a plugin description (not some other XML file in UAP)
 		RegisterPluginsXml(pluginList);
@@ -521,7 +530,12 @@ void CModuleFactory::RegisterExternalPluginsXmlOnce(TiXmlNode* /* pluginList */)
 		}
 
 		auto document_xml = doc.FirstChildElement("Document");
-		RegisterPluginsXml(document_xml->FirstChildElement("PluginList"));
+
+		auto pluginList = document_xml->FirstChildElement("PluginList");
+		if (!pluginList)
+			pluginList = doc.ToElement(); // try without PluginList wrapper.
+
+		RegisterPluginsXml(pluginList);
 	}
 }
 
@@ -622,6 +636,9 @@ Module_Info::Module_Info(class ug_base *(*ug_create)(), const char* xml) :
 	else
 	{
 		auto pluginList = doc2.FirstChildElement("PluginList");
+		if (!pluginList)
+			pluginList = doc2.ToElement(); // try without PluginList wrapper.
+
 		auto node = pluginList->FirstChildElement("Plugin");
 		assert(node);
 		auto PluginElement = node->ToElement();

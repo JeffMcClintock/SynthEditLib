@@ -254,7 +254,7 @@ public:
 		const std::wstring test2{ L"cat" };
 		pinFolder = test1;
 		pinFolder = test2;
-		// shitty, need updateing all the time. Better to have a "Project Folder" module
+		// shitty, needs updating all the time. Better to have a "Project Folder" module
 		pinFolder = L"C:\\SE\\SE16\\UnitTest\\Output\\";
 	}
 };

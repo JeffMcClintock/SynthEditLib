@@ -90,7 +90,7 @@ bool Module_Info3::LoadDllOnDemand()
 							auto pluginList = doc2.FirstChildElement("PluginList");
 							if (!pluginList)
 							{
-								return true; // fail
+								pluginList = doc2.ToElement(); // try without PluginList wrapper.
 							}
 
 							auto PluginElement = pluginList->FirstChildElement("Plugin");

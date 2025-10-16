@@ -1305,32 +1305,6 @@ Module_Info3_internal::Module_Info3_internal(const wchar_t* moduleId) :
 {
 }
 
-#if 0
-Module_Info3_internal::Module_Info3_internal(const char* xml) :
-	Module_Info3_base(L"")
-{
-	TiXmlDocument doc2;
-	doc2.Parse(xml);
-
-	if (doc2.Error())
-	{
-		std::wostringstream oss;
-		oss << L"Module XML Error: [SynthEdit.exe]" << doc2.ErrorDesc() << L"." << doc2.Value();
-		Messagebox(oss);
-	}
-	else
-	{
-		auto pluginList = doc2.FirstChild("PluginList");
-		auto node = pluginList->FirstChild("Plugin");
-		assert(node);
-		auto PluginElement = node->ToElement();
-		m_unique_id = Utf8ToWstring(PluginElement->Attribute("id"));
-
-		ScanXml(PluginElement);
-	}
-}
-#endif
-
 int32_t Module_Info3_internal::RegisterPluginConstructor(int subType, MP_CreateFunc2 create)
 {
 	auto res = factoryMethodList_.insert({ subType, create });
