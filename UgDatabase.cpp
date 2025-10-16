@@ -239,9 +239,10 @@ std::wstring parseModuleId(tinyxml2::XMLDocument& doc, const char* xml)
 
 	if (!doc.Error())
 	{
-		auto pluginList = doc.FirstChildElement("PluginList");
-		if(!pluginList)
-			pluginList = doc.ToElement(); // try without PluginList wrapper.
+		tinyxml2::XMLNode* pluginList = doc.FirstChildElement("PluginList");
+
+		if (!pluginList) // handle XML without <PluginList> only <Plugin>.
+			pluginList = &doc;
 
 		auto PluginElement = pluginList->FirstChildElement("Plugin");
 		assert(PluginElement);
@@ -266,9 +267,10 @@ int32_t CModuleFactory::RegisterPluginWithXml(int subType, const char* xml, MP_C
 
 	auto mi3 = FindOrCreateModuleInfo3(uniqueId);
 
-	auto pluginList = doc.FirstChildElement("PluginList");
-	if (!pluginList)
-		pluginList = doc.ToElement(); // try without PluginList wrapper.
+	tinyxml2::XMLNode* pluginList = doc.FirstChildElement("PluginList");
+
+	if (!pluginList) // handle XML without <PluginList> only <Plugin>.
+		pluginList = &doc;
 
 	mi3->ScanXml(pluginList->FirstChildElement("Plugin")->ToElement());
 
@@ -494,12 +496,13 @@ void CModuleFactory::RegisterPluginsXml( const char* xml_data )
 		return;
 	}
 
-	auto pluginList = doc.FirstChildElement("PluginList");
-	if (!pluginList)
-		pluginList = doc.ToElement(); // try without PluginList wrapper.
+	tinyxml2::XMLNode* pluginList = doc.FirstChildElement("PluginList");
+
+	if (!pluginList) // handle XML without <PluginList> only <Plugin>.
+		pluginList = &doc;
 
 	if(pluginList) // Check it is a plugin description (not some other XML file in UAP)
-		RegisterPluginsXml(pluginList);
+		RegisterPluginsXml(pluginList->ToElement());
 }
 
 void CModuleFactory::RegisterExternalPluginsXmlOnce(TiXmlNode* /* pluginList */)
@@ -531,11 +534,11 @@ void CModuleFactory::RegisterExternalPluginsXmlOnce(TiXmlNode* /* pluginList */)
 
 		auto document_xml = doc.FirstChildElement("Document");
 
-		auto pluginList = document_xml->FirstChildElement("PluginList");
+		tinyxml2::XMLNode* pluginList = document_xml->FirstChildElement("PluginList");
 		if (!pluginList)
-			pluginList = doc.ToElement(); // try without PluginList wrapper.
+			pluginList = document_xml; // try without PluginList wrapper.
 
-		RegisterPluginsXml(pluginList);
+		RegisterPluginsXml(pluginList->ToElement());
 	}
 }
 
@@ -635,9 +638,10 @@ Module_Info::Module_Info(class ug_base *(*ug_create)(), const char* xml) :
 	}
 	else
 	{
-		auto pluginList = doc2.FirstChildElement("PluginList");
-		if (!pluginList)
-			pluginList = doc2.ToElement(); // try without PluginList wrapper.
+		tinyxml2::XMLNode* pluginList = doc2.FirstChildElement("PluginList");
+
+		if (!pluginList) // handle XML without <PluginList> only <Plugin>.
+			pluginList = &doc2;
 
 		auto node = pluginList->FirstChildElement("Plugin");
 		assert(node);
