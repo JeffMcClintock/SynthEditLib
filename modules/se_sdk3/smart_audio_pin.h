@@ -114,7 +114,7 @@ public:
 		assert(adaptiveHi_ != 0.0f); // don't forget to call Init() !
 
 		if(currentValue_ == (std::numeric_limits<double>::max)() // detect intial update, and jump instantly to the start value.						    
-			|| fabsf(targetValue - currentValue_) < 0.000001f)    // too small a change, just jump to it.
+			|| fabs(targetValue - currentValue_) < 0.000001f)    // too small a change, just jump to it.
 		{
 			currentValue_ = targetValue_ = targetValue;
 			dv = 0.0;
