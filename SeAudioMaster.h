@@ -255,6 +255,7 @@ public:
 	void CancellationFreeze2(timestamp_t sample_clock);
 	void WriteCancellationData(int32_t blockSize, FILE* file);
 	bool cancellation_done = false;
+	timestamp_t cancellation_freeze_ts = -1;
 #endif
 
 	void processModules_plugin(

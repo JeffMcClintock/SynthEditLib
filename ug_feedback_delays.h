@@ -214,7 +214,18 @@ public:
 	int feedbackLatency = 0;
 };
 
+class ug_cancellation_helper : public ug_base
+{
+	timestamp_t cancellation_snapshot_time{ -1 };
 
+public:
+	DECLARE_UG_BUILD_FUNC(ug_cancellation_helper);
+	DECLARE_UG_INFO_FUNC2;
+	ug_cancellation_helper();
+
+	int Open() override;
+	void sub_process(int start_pos, int sampleframes);
+};
 
 
 
