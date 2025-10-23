@@ -162,6 +162,38 @@ DspFilters/State.h
 DspFilters/Types.h
 )
 
+set(sdk_vst3_srcs
+${VST3_SDK}/pluginterfaces/base/funknown.h
+${VST3_SDK}/pluginterfaces/base/funknown.cpp
+${VST3_SDK}/pluginterfaces/base/coreiids.cpp
+${VST3_SDK}/pluginterfaces/base/smartpointer.h
+${VST3_SDK}/pluginterfaces/base/fplatform.h
+${VST3_SDK}/pluginterfaces/base/ftypes.h
+${VST3_SDK}/pluginterfaces/base/iupdatehandler.h
+${VST3_SDK}/pluginterfaces/base/ibstream.h
+${VST3_SDK}/pluginterfaces/base/icloneable.h
+${VST3_SDK}/pluginterfaces/base/ipluginbase.h
+${VST3_SDK}/pluginterfaces/base/fstrdefs.h
+${VST3_SDK}/pluginterfaces/base/iplugincompatibility.h
+${VST3_SDK}/public.sdk/source/vst/vstpresetfile.h
+${VST3_SDK}/public.sdk/source/vst/vstpresetfile.cpp
+${VST3_SDK}/public.sdk/source/vst/vstinitiids.cpp
+${VST3_SDK}/base/source/fobject.h
+${VST3_SDK}/base/source/fobject.cpp
+${VST3_SDK}/base/source/fbuffer.h
+${VST3_SDK}/base/source/fbuffer.cpp
+${VST3_SDK}/base/source/fstring.h
+${VST3_SDK}/base/source/fstring.cpp
+${VST3_SDK}/base/source/fdebug.h
+${VST3_SDK}/base/source/fdebug.cpp
+${VST3_SDK}/base/source/baseiids.cpp
+${VST3_SDK}/base/source/updatehandler.h
+${VST3_SDK}/base/source/updatehandler.cpp
+${VST3_SDK}/base/source/classfactoryhelpers.h
+${VST3_SDK}/base/thread/include/flock.h
+${VST3_SDK}/base/thread/source/flock.cpp
+)
+
 set(srcs
 Shared/AuPreset.h
 Shared/AuPreset.cpp
@@ -193,35 +225,7 @@ Shared/Vst2Preset.cpp
 Shared/se_logger.h
 Shared/se_logger.cpp
 
-${VST3_SDK}/pluginterfaces/base/funknown.h
-${VST3_SDK}/pluginterfaces/base/funknown.cpp
-${VST3_SDK}/pluginterfaces/base/coreiids.cpp
-${VST3_SDK}/pluginterfaces/base/smartpointer.h
-${VST3_SDK}/pluginterfaces/base/fplatform.h
-${VST3_SDK}/pluginterfaces/base/ftypes.h
-${VST3_SDK}/pluginterfaces/base/iupdatehandler.h
-${VST3_SDK}/pluginterfaces/base/ibstream.h
-${VST3_SDK}/pluginterfaces/base/icloneable.h
-${VST3_SDK}/pluginterfaces/base/ipluginbase.h
-${VST3_SDK}/pluginterfaces/base/fstrdefs.h
-${VST3_SDK}/pluginterfaces/base/iplugincompatibility.h
-${VST3_SDK}/public.sdk/source/vst/vstpresetfile.h
-${VST3_SDK}/public.sdk/source/vst/vstpresetfile.cpp
-${VST3_SDK}/public.sdk/source/vst/vstinitiids.cpp
-${VST3_SDK}/base/source/fobject.h
-${VST3_SDK}/base/source/fobject.cpp
-${VST3_SDK}/base/source/fbuffer.h
-${VST3_SDK}/base/source/fbuffer.cpp
-${VST3_SDK}/base/source/fstring.h
-${VST3_SDK}/base/source/fstring.cpp
-${VST3_SDK}/base/source/fdebug.h
-${VST3_SDK}/base/source/fdebug.cpp
-${VST3_SDK}/base/source/baseiids.cpp
-${VST3_SDK}/base/source/updatehandler.h
-${VST3_SDK}/base/source/updatehandler.cpp
-${VST3_SDK}/base/source/classfactoryhelpers.h
-${VST3_SDK}/base/thread/include/flock.h
-${VST3_SDK}/base/thread/source/flock.cpp
+${sdk_vst3_srcs}
 
 UgDebugInfo.cpp
 
@@ -676,6 +680,7 @@ ${se_shared_folder}
 ${se_sdk_hosting_folder}
 )
 
+source_group(vst3_sdk FILES ${sdk_vst3_srcs})
 source_group(se_sdk FILES ${sdk_srcs})
 source_group(json FILES ${srcs_json})
 source_group(modules_internal FILES ${srcs_modules_internal})
