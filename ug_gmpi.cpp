@@ -8,6 +8,7 @@
 #include "ProtectedFile.h"
 #include "mfc_emulation.h"
 #include "RefCountMacros.h"
+#include "GmpiSdkCommon.h"
 
 ug_gmpi::ug_gmpi(class Module_Info* p_moduleType, gmpi::api::IProcessor* p_plugin) : plugin_(p_plugin)
 {
@@ -139,6 +140,24 @@ int32_t ug_gmpi::getAutoduplicatePinCount()
 		}
 	}
 	return 0;
+}
+
+void ug_gmpi::listPins(gmpi::api::IUnknown* callback)
+{
+	gmpi::shared_ptr<synthedit::IProcessorPinsCallback> plugin_callback;
+
+	callback->queryInterface(&synthedit::IProcessorPinsCallback::guid, plugin_callback.put_void());
+
+	if(plugin_callback.isNull())
+		return;
+
+	for(auto& p : plugs)
+	{
+		plugin_callback->onPin(
+			p->Direction == DR_IN ? gmpi::PinDirection::In : gmpi::PinDirection::Out,
+			(gmpi::PinDatatype)p->DataType
+		);
+	}
 }
 
 gmpi::ReturnCode ug_gmpi::queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
