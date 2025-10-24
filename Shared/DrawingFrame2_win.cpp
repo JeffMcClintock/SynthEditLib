@@ -20,15 +20,14 @@ DrawingFrameBase2::DrawingFrameBase2()
 }
 
 // new
-void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient) //gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx)
+void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient)
 {
     detachClient();
 
-    gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-    unknown = pclient;
+    gmpi::shared_ptr<gmpi::api::IUnknown> unknown(pclient);
 
-    graphics_gmpi = unknown.as<gmpi::api::IDrawingClient>();
-    editor_gmpi = unknown.as<gmpi::api::IInputClient>();
+    editor_gmpi       = unknown.as<gmpi::api::IInputClient>();
+    graphics_gmpi     = unknown.as<gmpi::api::IDrawingClient>();
 	frameUpdateClient = unknown.as<gmpi::api::IGraphicsRedrawClient>();
 
 #if 0 // TODO

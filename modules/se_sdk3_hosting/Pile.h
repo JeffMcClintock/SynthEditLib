@@ -17,7 +17,7 @@ struct hasGmpiUiChildren
 	void addChild(gmpi::api::IUnknown* child, gmpi::api::IUnknown* host)
 	{
 		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-		unknown = (gmpi::api::IUnknown*)child;
+		unknown = child;
 
 		if (auto graphic = unknown.as<gmpi::api::IDrawingClient>(); graphic)
 		{

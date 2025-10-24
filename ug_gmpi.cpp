@@ -144,9 +144,8 @@ int32_t ug_gmpi::getAutoduplicatePinCount()
 
 void ug_gmpi::listPins(gmpi::api::IUnknown* callback)
 {
-	gmpi::shared_ptr<synthedit::IProcessorPinsCallback> plugin_callback;
-
-	callback->queryInterface(&synthedit::IProcessorPinsCallback::guid, plugin_callback.put_void());
+	gmpi::shared_ptr<gmpi::api::IUnknown> unknown(callback);
+	auto plugin_callback = unknown.as<synthedit::IProcessorPinsCallback>();
 
 	if(plugin_callback.isNull())
 		return;
