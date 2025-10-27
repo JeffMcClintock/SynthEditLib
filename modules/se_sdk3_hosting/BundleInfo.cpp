@@ -178,7 +178,7 @@ std::wstring BundleInfo::getSemFolder()
     if(semFolder.empty())
         return getImbeddedFileFolder();
 
-    return semFolder; // ref CSynthEditApp::InitInstance()
+    return semFolder; // ref SynthEditApp::InitInstance()
 #else
     std::string result;
 
