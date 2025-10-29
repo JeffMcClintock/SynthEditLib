@@ -87,9 +87,9 @@ namespace SE2
 		  public gmpi::api::IInputHost
 		, public gmpi::api::IDialogHost
 		, public gmpi::api::IEditorHost
-		, public gmpi::api::IEditorHost2_x
+		, public gmpi::api::IEditorHost2
 		, public gmpi::api::IDrawingHost
-		, public gmpi::api::IParameterSetter_x
+		, public gmpi::api::IParameterSetter
 		, public synthedit::IEmbeddedFileSupport
 	{
 		class ModuleView& moduleview;
@@ -134,9 +134,9 @@ namespace SE2
 			GMPI_QUERYINTERFACE(gmpi::api::IInputHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost);
-			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost2_x);		
+			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost2);		
 			GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
-			GMPI_QUERYINTERFACE(gmpi::api::IParameterSetter_x);
+			GMPI_QUERYINTERFACE(gmpi::api::IParameterSetter);
 			GMPI_QUERYINTERFACE(synthedit::IEmbeddedFileSupport);
 			return gmpi::ReturnCode::NoSupport;
 		}
@@ -408,7 +408,7 @@ namespace SE2
 		gmpi::shared_ptr<gmpi::api::IEditor> pluginParameters_GMPI;
 		gmpi::shared_ptr<gmpi::api::IInputClient> pluginInput_GMPI;
 		gmpi::shared_ptr<gmpi::api::IDrawingClient> pluginGraphics_GMPI;
-		gmpi::shared_ptr<gmpi::api::IEditor2_x> pluginEditor2;
+		gmpi::shared_ptr<gmpi::api::IEditor2> pluginEditor2;
 
 		// SubView
 		gmpi_sdk::mp_shared_ptr<ISubView> subView;
