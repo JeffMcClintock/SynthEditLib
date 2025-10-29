@@ -339,7 +339,7 @@ namespace SE2
 		r2 = gmpi_object->queryInterface(&gmpi::api::IDrawingClient::guid, pluginGraphics_GMPI.put_void());
 		r2 = gmpi_object->queryInterface(&gmpi::api::IInputClient::guid  , pluginInput_GMPI.put_void());
 		// experimental
-		r2 = gmpi_object->queryInterface(&gmpi::api::IEditor2_x::guid    , pluginEditor2.put_void());
+		r2 = gmpi_object->queryInterface(&gmpi::api::IEditor2::guid      , pluginEditor2.put_void());
 
 		if (pluginGraphics)
 		{

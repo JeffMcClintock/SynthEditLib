@@ -221,11 +221,11 @@ struct PatchMemSet final : public PluginEditorNoGui
     Pin<float> pinNormalized;
     Pin<bool> pinMouseDown;
 
-	gmpi::shared_ptr <gmpi::api::IParameterSetter_x> paramHost;
+	gmpi::shared_ptr <gmpi::api::IParameterSetter> paramHost;
 
     ReturnCode initialize() override
     {
-        paramHost = editorHost.as<gmpi::api::IParameterSetter_x>();
+        paramHost = editorHost.as<gmpi::api::IParameterSetter>();
 		return PluginEditorBase::initialize();
     }
 
@@ -265,11 +265,11 @@ struct PatchMemSetFloat final : public PluginEditorNoGui
     Pin<int32_t> pinId;
     Pin<float> pinValue;
 
-    gmpi::shared_ptr <gmpi::api::IParameterSetter_x> paramHost;
+    gmpi::shared_ptr <gmpi::api::IParameterSetter> paramHost;
 
     ReturnCode initialize() override
     {
-        paramHost = editorHost.as<gmpi::api::IParameterSetter_x>();
+        paramHost = editorHost.as<gmpi::api::IParameterSetter>();
         return PluginEditorBase::initialize();
     }
 
@@ -313,7 +313,7 @@ struct PatchMemGet final : public PluginEditorNoGui
 
     ReturnCode initialize() override
     {
-        if (auto paramHost = editorHost.as<gmpi::api::IParameterSetter_x>(); paramHost)
+        if (auto paramHost = editorHost.as<gmpi::api::IParameterSetter>(); paramHost)
         {
             int32_t paramHandle{};
             paramHost->getParameterHandle(0, paramHandle);
