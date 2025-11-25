@@ -56,7 +56,7 @@ struct GmpiUiLayerHost :
 	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 
-	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
 		GMPI_QUERYINTERFACE(IDrawingHost);
 		GMPI_QUERYINTERFACE(IDialogHost);
@@ -342,7 +342,7 @@ struct GmpiUiLayer :
 		return gmpi::ReturnCode::Ok;
 	}
 
-	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
 		*returnInterface = {};
 		GMPI_QUERYINTERFACE(IInputClient);
@@ -485,7 +485,7 @@ struct PileChildHost :
 		return gmpi::MP_NOSUPPORT;
 	}
 
-	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
 		GMPI_QUERYINTERFACE(IDialogHost);
 
@@ -516,7 +516,7 @@ struct PileChildHost2 :
 	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 
-	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
 		*returnInterface = {};
 		GMPI_QUERYINTERFACE(IDialogHost);
@@ -1288,7 +1288,7 @@ public:
 	virtual ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) = 0;
 #endif
 
-	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
 		*returnInterface = {};
 		GMPI_QUERYINTERFACE(IInputClient);

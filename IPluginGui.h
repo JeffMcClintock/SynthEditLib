@@ -32,7 +32,6 @@ enum ParameterFieldType {
 	, FT_VST_DISPLAY_TYPE
 	, FT_VST_DISPLAY_MIN
 	, FT_VST_DISPLAY_MAX
-
 	, FT_END_OF_LIST
 };
 

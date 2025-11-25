@@ -125,7 +125,7 @@ namespace SE2
 					if (!directionE.empty() && !datatypeE.empty()) // I/O Plugs.
 					{
 						pinViewInfo info{};
-						info.name = pin_element["Name"].asString();
+					info.name = pin_element["name"].asString();
 						info.direction = (char)directionE.asInt();
 						info.datatype = (char)datatypeE.asInt();
 						auto& isGuiPin = pin_element["GuiPin"];
@@ -149,8 +149,8 @@ namespace SE2
 								if (p.plugDescID == autoCopyId && p.isAutoduplicatePlug) // could possibly clash if both GUI and DSP autoduplicating plugins exist.
 								{
 									pinViewInfo info(p);
-									if(!pin_element["Name"].isNull())
-										info.name = pin_element["Name"].asString();
+								if (!pin_element["name"].isNull())
+									info.name = pin_element["name"].asString();
 									// info.plugDescID = pinId; //? what
 									info.isAutoduplicatePlug = false;
 
@@ -159,7 +159,16 @@ namespace SE2
 								}
 							}
 						}
+					else
+					{
+						// nameable (but not autoduplicate)
+						const auto& name_e = pin_element["name"];
+						if (!name_e.isNull())
+						{
+							plugs_[pinId].name = name_e.asString();
+						}
 					}
+				}
 
 					++pinId; // Allows pinIdx to default to 1 + prev Idx. TODO, only used by slider2, could add this to exportXml.
 				}
@@ -1500,7 +1509,7 @@ namespace SE2
 
 				if (vc is Plug)
 				{
-					 PlugViewModel pm = (PlugViewModel)vc.DataContext;
+				 PlugView Model pm = (PlugView Model)vc.DataContext;
 					if (pm.isUiPlug())
 					{
 						hasGuiPins = true;

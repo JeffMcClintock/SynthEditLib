@@ -34,7 +34,7 @@ struct UniversalFactory : public gmpi::api::IUnknown
 	}
 
     // dispatch queries to correct factory
-    gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
+    gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
     {
         if (*iid == *(const gmpi::api::Guid*)& GmpiDrawing_API::SE_IID_FACTORY2_MPGUI || *iid == *(const gmpi::api::Guid*)& GmpiDrawing_API::SE_IID_FACTORY_MPGUI)
         {

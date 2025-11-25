@@ -432,7 +432,7 @@ int32_t FreqAnalyser3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCon
 	if (spectrumDecayFlag || spectrumUpdateFlag)
 	{
 		const auto plotAreaWidth = rightBorder - leftBorder;
-		updateSpectrumGraph(plotAreaWidth, r.getHeight());
+		updateSpectrumGraph(plotAreaWidth, r.getHeight(), pinDbHigh, pinDbLow );
 	}
 
 	if(geometry.isNull() && !graphValuesOptimized.empty())
