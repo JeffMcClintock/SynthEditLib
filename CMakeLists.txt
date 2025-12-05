@@ -152,7 +152,7 @@ add_library(dspfilters_objs OBJECT ${srcs_dspfilters})
 # MSVC: use /fp:precise to avoid /fp:fast; GCC/Clang: -fno-fast-math.
 target_compile_options(dspfilters_objs PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/fp:precise>
-  $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-fno-fast-math>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fno-fast-math>
 )
 
 target_compile_definitions(dspfilters_objs PUBLIC 
