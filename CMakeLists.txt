@@ -155,6 +155,10 @@ target_compile_options(dspfilters_objs PRIVATE
   $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-fno-fast-math>
 )
 
+target_compile_definitions(dspfilters_objs PUBLIC 
+    SE_USE_LIB_FACTORY=1
+)
+
 set(srcs
 Shared/AuPreset.h
 Shared/AuPreset.cpp
