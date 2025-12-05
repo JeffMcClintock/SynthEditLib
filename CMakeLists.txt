@@ -133,7 +133,17 @@ DspFilters/Params.h
 DspFilters/PoleFilter.h
 DspFilters/State.h
 DspFilters/Types.h
+
+DspFilterJeff.h
 )
+
+if(SE2JUCE)
+set(srcs_dspfilters ${srcs_dspfilters}
+modules/Filters/ButterworthLp.h
+modules/Filters/ButterworthLp.cpp
+modules/Filters/IIR_Filters2.cpp      
+)
+endif()
 
 # Build srcs_dspfilters into an object library so we can apply per-target compiler flags.
 add_library(dspfilters_objs OBJECT ${srcs_dspfilters})
@@ -235,7 +245,6 @@ CVoiceList.h
 datatype_to_id.cpp
 datatype_to_id.h
 denormal_fixer.h
-DspFilterJeff.h
 DspPatchManagerProxy.cpp
 DspPatchManagerProxy.h
 DspRingBufferReader.h
@@ -543,7 +552,6 @@ modules/UserSetting/UserSettingTextGui.cpp
 modules/VaFilters/SvFilter.cpp
 modules/BPMClock3/BpmClock3.cpp
 modules/BPMClock3/BpmTempo.cpp
-modules/Filters/ButterworthLp.cpp
 modules/Converters/Converters.cpp
 modules/Converters/BlobToBlob2.cpp
 modules/ImpulseResponse/ImpulseResponse.cpp
@@ -584,7 +592,6 @@ modules/SubControlsXp/Image2GuiXp.h
 modules/SubControlsXp/TextSubcontrol.h
 modules/UserSetting/SettingFile.h
 modules/VaFilters/SvFilter.h
-modules/Filters/ButterworthLp.h
 modules/ControlsXp/FreqAnalyser.h
 modules/Increment3/Increment3Gui.h
 modules/OscillatorNaive/OscillatorNaive.h
@@ -641,8 +648,6 @@ modules/PolyphonyControl/PolyphonyControlGui.h
 
 modules/ControlsXp/ImpulseResponse2.cpp      
 modules/ImpulseResponse/Impulse.cpp      
-modules/Filters/IIR_Filters2.cpp      
-
 )
 endif()
 
