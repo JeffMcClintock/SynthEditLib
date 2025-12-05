@@ -33,3 +33,10 @@ build_gmpi_plugin(
 )
 
 source_group(DspFilter FILES ${DSP_FILTERS_SRC})
+
+# Disable "fast math" for the dspfilters object target. screws up Butterworth HP in Release mode only
+# MSVC: use /fp:precise to avoid /fp:fast; GCC/Clang: -fno-fast-math.
+target_compile_options(${PROJECT_NAME} PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/fp:precise>
+  $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-fno-fast-math>
+)
