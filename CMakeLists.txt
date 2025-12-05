@@ -135,6 +135,17 @@ DspFilters/State.h
 DspFilters/Types.h
 )
 
+# Build srcs_dspfilters into an object library so we can apply per-target compiler flags.
+add_library(dspfilters_objs OBJECT ${srcs_dspfilters})
+
+# Disable "fast math" for the dspfilters object target. screws up Butterworth HP in Release mode only
+# MSVC: use /fp:precise to avoid /fp:fast; GCC/Clang: -fno-fast-math.
+target_compile_options(dspfilters_objs PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/fp:precise>
+  $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-fno-fast-math>
+)
+
+set(sdk_vst3_srcs
 set(srcs
 Shared/AuPreset.h
 Shared/AuPreset.cpp
@@ -663,7 +674,7 @@ MARK_AS_ADVANCED (COREFOUNDATION_LIBRARY)
 endif()
 
 include (GenerateExportHeader)
-add_library(${PROJECT_NAME} STATIC ${sdk_srcs} ${srcs} ${srcs_json} ${srcs_modules_internal} ${srcs_xml} ${srcs_dspfilters})
+add_library(${PROJECT_NAME} STATIC ${sdk_srcs} ${srcs} ${srcs_json} ${srcs_modules_internal} ${srcs_xml} $<TARGET_OBJECTS:dspfilters_objs>)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE 
   $<$<CONFIG:Debug>:_DEBUG>
