@@ -145,7 +145,6 @@ target_compile_options(dspfilters_objs PRIVATE
   $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-fno-fast-math>
 )
 
-set(sdk_vst3_srcs
 set(srcs
 Shared/AuPreset.h
 Shared/AuPreset.cpp
