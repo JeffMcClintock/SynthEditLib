@@ -160,7 +160,16 @@ DspFilters/Params.h
 DspFilters/PoleFilter.h
 DspFilters/State.h
 DspFilters/Types.h
+DspFilterJeff.h
 )
+
+if(SE2JUCE)
+set(srcs_dspfilters ${srcs_dspfilters}
+modules/Filters/ButterworthLp.h
+modules/Filters/ButterworthLp.cpp
+modules/Filters/IIR_Filters2.cpp      
+)
+endif()
 
 # Build srcs_dspfilters into an object library so we can apply per-target compiler flags.
 add_library(dspfilters_objs OBJECT ${srcs_dspfilters})
@@ -169,7 +178,11 @@ add_library(dspfilters_objs OBJECT ${srcs_dspfilters})
 # MSVC: use /fp:precise to avoid /fp:fast; GCC/Clang: -fno-fast-math.
 target_compile_options(dspfilters_objs PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/fp:precise>
-  $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-fno-fast-math>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fno-fast-math>
+)
+
+target_compile_definitions(dspfilters_objs PUBLIC 
+    SE_USE_LIB_FACTORY=1
 )
 
 set(sdk_vst3_srcs
@@ -250,7 +263,6 @@ CVoiceList.h
 datatype_to_id.cpp
 datatype_to_id.h
 denormal_fixer.h
-DspFilterJeff.h
 DspPatchManagerProxy.cpp
 DspPatchManagerProxy.h
 dsp_msg_target.h
@@ -526,6 +538,7 @@ modules/OversamplingControl/OversamplingControlGui.cpp
 modules/ControlsXp/FreqAnalyserGui.h
 modules/FloatLimiter/FloatLimiterGui.h
 modules/Increment3/Increment3Gui.h
+
 # Common GUI modules
 modules/sharedLegacyWidgets/EditWidget.h
 modules/sharedLegacyWidgets/ImageBase.h
@@ -543,6 +556,7 @@ modules/sharedLegacyWidgets/ListWidget.cpp
 modules/sharedLegacyWidgets/TextEditWidget.cpp
 modules/sharedLegacyWidgets/TextWidget.cpp
 modules/sharedLegacyWidgets/Widget.cpp
+
 modules/shared/ImageCache.h
 modules/shared/ImageCache.cpp
 modules/shared/FontCache.h
@@ -640,7 +654,6 @@ modules/UserSetting/UserSettingTextController.cpp
 modules/VaFilters/SvFilter.cpp
 modules/BPMClock3/BpmClock3.cpp
 modules/BPMClock3/BpmTempo.cpp
-modules/Filters/ButterworthLp.cpp
 modules/Converters/Converters.cpp
 modules/Converters/BlobToBlob2.cpp
 modules/ImpulseResponse/ImpulseResponse.cpp
@@ -667,14 +680,12 @@ modules/Converters/FloatToText.h
 modules/Converters/VoltsToMidiCc.h
 modules/UserSetting/SettingFile.h
 modules/VaFilters/SvFilter.h
-modules/Filters/ButterworthLp.h
 modules/ControlsXp/FreqAnalyser.h
 modules/OscillatorNaive/OscillatorNaive.h
 modules/ControlsXp/Slider.h
 modules/ControlsXp/VoltMeter.h
 modules/ControlsXp/ImpulseResponse2.cpp      
 modules/ImpulseResponse/Impulse.cpp      
-modules/Filters/IIR_Filters2.cpp      
 )
 endif()
 

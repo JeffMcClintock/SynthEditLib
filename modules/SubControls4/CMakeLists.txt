@@ -9,10 +9,10 @@ gmpi_plugin(
     FORMATS_LIST GMPI
     SOURCE_FILES 
         GmpiUiTest.cpp
-        ${gmpi_ui_folder}/helpers/Timer.h
-        ${gmpi_ui_folder}/helpers/Timer.cpp
-        ${gmpi_ui_folder}/helpers/GinBlur.h
-        ${gmpi_ui_folder}/helpers/CachedBlur.h
+        ${GMPI_UI_SDK}/helpers/Timer.h
+        ${GMPI_UI_SDK}/helpers/Timer.cpp
+        ${GMPI_UI_SDK}/helpers/GinBlur.h
+        ${GMPI_UI_SDK}/helpers/CachedBlur.h
         ${CMAKE_CURRENT_SOURCE_DIR}/../shared/simdutf/simdutf.h
         ${CMAKE_CURRENT_SOURCE_DIR}/../shared/simdutf/simdutf.cpp
 )
