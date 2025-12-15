@@ -14,7 +14,7 @@ public:
 	{
 		float phase;
 		float phase2;
-		float mod_ammount;
+		float mod_amount;
 	};
 	//	inline float get_sample( float *wavedata, const unsigned int count) const;
 	void FillSegmentTable();

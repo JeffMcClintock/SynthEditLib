@@ -125,7 +125,7 @@ struct ControllerType
 #define MIDDLE_C	65
 
 /* what is typical time between midi controller messages */
-/* (controlls ammount of smoothing applied to pitch bend etc) */
+/* (controlls amount of smoothing applied to pitch bend etc) */
 /* calculated as fraction of a second i.e 60 -> 1/60 seconds */
 #define MIDI_CONTROLLER_SMOOTHING		60
 #define MIDI_MSG(chan, type, b2, b3)	(type + chan + (b2 << 8) + (b3 << 16))

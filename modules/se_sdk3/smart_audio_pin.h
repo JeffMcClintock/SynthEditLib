@@ -121,7 +121,7 @@ public:
 			return;
 		}
 
-		// detect spurious duplicate calls and skip adjusting the smoothing ammount.
+		// detect spurious duplicate calls and skip adjusting the smoothing amount.
 		if (targetValue_ == targetValue)
 			return;
 
