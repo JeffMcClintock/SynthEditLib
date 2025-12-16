@@ -429,7 +429,7 @@ namespace gmpi_gui
 		GmpiDrawing::Rect getRect() { return rect_; };
 
 		// Simplified host access.
-		void invalidateRect(const MP1_RECT* invalidRect = 0)
+		void invalidateRect(const MP1_RECT* invalidRect = nullptr)
 		{
 			guiHost_->invalidateRect(invalidRect);
 		}
