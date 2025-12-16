@@ -157,7 +157,7 @@ namespace gmpi
 #define GMPI_QUERYINTERFACE1( INTERFACE_IID, CLASS_NAME ) \
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override \
 { \
-	*returnInterface = 0; \
+	*returnInterface = nullptr; \
 	if (iid == INTERFACE_IID || iid == gmpi::MP_IID_UNKNOWN ) \
 { \
 	*returnInterface = static_cast<CLASS_NAME*>(this); \
@@ -197,7 +197,7 @@ namespace gmpi
 #define GMPI_QUERYINTERFACE2( INTERFACE_IID, CLASS_NAME, BASE_CLASS ) \
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override \
 { \
-	*returnInterface = 0; \
+	*returnInterface = nullptr; \
 	if (iid == INTERFACE_IID ) \
 { \
 	*returnInterface = static_cast<CLASS_NAME*>(this); \
