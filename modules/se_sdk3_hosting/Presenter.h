@@ -40,6 +40,8 @@ enum class CableType;
 		virtual void SetViewPosition(GmpiDrawing_API::MP1_RECT_L positionRect) = 0;
 		virtual void GetViewScroll(int32_t& returnX, int32_t& returnY) = 0;
 		virtual void SetViewScroll(int32_t x, int32_t y) = 0;
+		virtual void SetZoomFactor(float zoomFactor) = 0;
+		virtual float GetZoomFactor() = 0;
 		virtual int GetSnapSize() = 0;
 		virtual SE2::ModuleView* HandleToObject(int handle) = 0; // Seems out-of-place, because can have two objects w same handle (module + adorner).
 		virtual void InitializeGuiObjects() = 0;

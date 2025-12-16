@@ -119,7 +119,11 @@ bool isIteratingChildren = false;
 		std::function<void(const scrollBarSpec&)> hscrollBar;
 		std::function<void(const scrollBarSpec&)> vscrollBar;
 
-		// notificate *from* scrollbars
+		// notificate *from* scrollbars or document
+		void setZoomFactor(float newZoomFactor)
+		{
+			zoomFactor = newZoomFactor;
+		}
 		void onHScroll(double newValue);
 		void onVScroll(double newValue);
 		void updateScrollBars();

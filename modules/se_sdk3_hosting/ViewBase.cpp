@@ -919,16 +919,17 @@ namespace SE2
 
 			zoomFactor = std::clamp(zoomFactor, 0.1f, 10.0f);
 
-			const auto before = point; // *inv_viewTransform;
+			const auto before = point;
 
 			calcViewTransform();
 
-//			const auto after = convert(point) * inv_viewTransform;
 			const auto after = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
 
 			// scroll to retain mouse position.
 			scrollPos.width -= (before.x - after.x) * zoomFactor;
 			scrollPos.height -= (before.y - after.y) * zoomFactor;
+
+			Presenter()->SetZoomFactor(zoomFactor);
 		}
 		else
 		{

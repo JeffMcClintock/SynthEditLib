@@ -41,8 +41,10 @@ public:
 	{
 		returnX = returnY = 0;
 	}
-	void SetViewScroll(int32_t x, int32_t y) override
-	{}
+	void SetViewScroll(int32_t x, int32_t y) override{}
+	void SetZoomFactor(float zoomFactor) override {}
+	float GetZoomFactor() override { return 1.0f; }
+
 	int GetSnapSize() override
 	{
 		return 1;
