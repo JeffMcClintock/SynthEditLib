@@ -36,8 +36,8 @@
 #if defined(CANCELLATION_TEST_ENABLE) || defined(CANCELLATION_TEST_ENABLE2)
 #include "conversion.h"
 #include "ug_oscillator2.h"
-#include "BundleInfo.h"
 #endif
+#include "BundleInfo.h"
 
 using namespace std;
 using namespace gmpi::hosting;
@@ -187,7 +187,30 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 #if (defined(CANCELLATION_TEST_ENABLE) || defined(CANCELLATION_TEST_ENABLE2))
 	getShell()->SetCancellationMode();
 #endif
+	// CANCELLATION SNAPSHOT TESTING
+	// place a file beside the plugin named e.g. MyPlugin.xml
+/* 
+	containing e.g.
 
+<?xml version="1.0" encoding="UTF-8"?>
+<Cancellation SnapshotTimestamp="200" />
+
+*/
+	{
+		const auto cancellationSettingFile = BundleInfo::instance()->getPluginPath().replace_extension("xml");
+		if (std::filesystem::exists(cancellationSettingFile))
+		{
+			tinyxml2::XMLDocument doc;
+			if (doc.LoadFile(cancellationSettingFile.string().c_str()) == tinyxml2::XML_SUCCESS)
+			{
+				if (auto root = doc.RootElement() ; root)
+				{
+					int cancellation_snapshot_timestamp = -1;
+					root->QueryIntAttribute("SnapshotTimestamp", &cancellation_snapshot_timestamp);
+				}
+			}
+		}
+	}
 	// _RPT1(_CRT_WARN, "Samplerate %f\n", m_samplerate );
 
 	// zero time structure

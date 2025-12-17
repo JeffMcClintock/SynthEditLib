@@ -165,6 +165,32 @@ std::string getSettingsFolder()
 #endif
 }
 
+std::filesystem::path BundleInfo::getPluginPath()
+{
+    std::filesystem::path path(gmpi_dynamic_linking::MP_GetDllFilename()); // get full path of executable (might be in a bundle)
+
+    int lastFolderIndex = 0;
+	for (auto it = path.begin(); it != path.end(); ++it)
+    {
+        if (it->filename() == "Contents")
+            break;
+
+        lastFolderIndex++;
+    }
+
+    std::filesystem::path pluginRootPath;
+    int folderIndex = 0;
+    for (auto it = path.begin(); it != path.end(); ++it)
+    {
+        if (folderIndex >= lastFolderIndex)
+            break;
+
+		pluginRootPath /= *it;
+    }
+
+	return pluginRootPath;
+}
+
 std::wstring BundleInfo::getSemFolder()
 {
 #if defined( _WIN32 )
@@ -299,7 +325,6 @@ std::wstring BundleInfo::getUserDocumentFolder()
 	return {};
 #endif
 }
-
 
 void BundleInfo::initPresetFolder(const char* manufacturer, const char* product)
 {

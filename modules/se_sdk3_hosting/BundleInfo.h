@@ -9,6 +9,7 @@ BundleInfo::instance()->getResource("whatever");
 
 #include <string>
 #include <vector>
+#include <filesystem>
 #include "ElatencyContraintType.h"
 
 #if !defined( _WIN32 )
@@ -84,6 +85,7 @@ public:
     
 	int32_t getPluginId(); // 4-char VST2 code to identify presets.
     const pluginInformation& getPluginInfo();
+	std::filesystem::path getPluginPath(); // root folder/file of plugin. e.g. .../Common Files/VST3/MyPlugin.vst3
 };
 
 #endif /* BundleInstance_h */
