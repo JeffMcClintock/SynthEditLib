@@ -616,6 +616,7 @@ private:
 
 	int32_t hCClearTailsNextValue = 1;
 	UPlug* hoverScopePin{};
+	timestamp_t cancellation_snapshot_timestamp = -1;
 };
 
 #endif // !defined(AFX_SEAUDIOMASTER_H__9F4E5251_C0C6_11D4_B6EE_00104B15CCF0__INCLUDED_)

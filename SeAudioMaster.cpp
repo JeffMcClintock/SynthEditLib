@@ -32,12 +32,14 @@
 #include "ug_oversampler_in.h"
 #include "mfc_emulation.h"
 #include "ProcessorStateManager.h"
+#include "BundleInfo.h"
+#include "Processor.h"
+#include "ug_gmpi.h"
 
 #if defined(CANCELLATION_TEST_ENABLE) || defined(CANCELLATION_TEST_ENABLE2)
 #include "conversion.h"
 #include "ug_oscillator2.h"
 #endif
-#include "BundleInfo.h"
 
 using namespace std;
 using namespace gmpi::hosting;
@@ -77,6 +79,37 @@ bs	time
 LookupTables SeAudioMaster::lookup_tables;
 
 gmpi_sdk::CriticalSectionXp audioMasterLock_;
+
+struct SnapshotTimer final : public gmpi::Processor
+{
+	int64_t target_time{-1};
+	int64_t time{};
+
+	void subProcess(int sampleFrames)
+	{
+		if (time <= target_time && time + sampleFrames < target_time)
+		{
+
+		}
+
+		time += sampleFrames;
+	}
+
+	void onSetPins() override
+	{
+		setSubProcess(&SnapshotTimer::subProcess);
+	}
+};
+
+namespace
+{
+auto r = gmpi::Register<SnapshotTimer>::withXml(R"XML(
+<?xml version="1.0" encoding="UTF-8"?>
+<Plugin id="SE Snapshot Timer" name="Snapshot Timer" alwaysExport="true" category="Debug">
+    <Audio/>
+</Plugin>
+)XML");
+}
 
 LookupTables::~LookupTables()
 {
@@ -187,15 +220,15 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 #if (defined(CANCELLATION_TEST_ENABLE) || defined(CANCELLATION_TEST_ENABLE2))
 	getShell()->SetCancellationMode();
 #endif
-	// CANCELLATION SNAPSHOT TESTING
-	// place a file beside the plugin named e.g. MyPlugin.xml
-/* 
-	containing e.g.
+	/* 
+	    CANCELLATION SNAPSHOT TESTING (NEW)
 
-<?xml version="1.0" encoding="UTF-8"?>
-<Cancellation SnapshotTimestamp="200" />
+	    Place a file beside the plugin named e.g. MyPlugin.xml
+		containing e.g.
 
-*/
+		<?xml version="1.0" encoding="UTF-8"?>
+		<Cancellation SnapshotTimestamp="200" />
+	*/
 	{
 		const auto cancellationSettingFile = BundleInfo::instance()->getPluginPath().replace_extension("xml");
 		if (std::filesystem::exists(cancellationSettingFile))
@@ -205,10 +238,13 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 			{
 				if (auto root = doc.RootElement() ; root)
 				{
-					int cancellation_snapshot_timestamp = -1;
-					root->QueryIntAttribute("SnapshotTimestamp", &cancellation_snapshot_timestamp);
+					root->QueryInt64Attribute("SnapshotTimestamp", &cancellation_snapshot_timestamp);
 				}
 			}
+
+			// if the file exists, we're entering cancellation mode (repeatable random number seed).
+			// if the file contains a SnapshotTimestamp attribute, we will in addition snapshot at that timestamp.
+			getShell()->SetCancellationMode(); // TODO!!!!, only does anything in SynthRuntime_editor
 		}
 	}
 	// _RPT1(_CRT_WARN, "Samplerate %f\n", m_samplerate );
@@ -421,6 +457,17 @@ void SeAudioMaster::BuildDspGraph(
 			mutedContainers
 		);
 		main_container->BuildAutomationModules();
+
+		// setup cancellation timer
+		if (cancellation_snapshot_timestamp > -1)
+		{
+			auto snapshottimer_t = ModuleFactory()->GetById(L"SE Snapshot Timer");
+			auto ug = dynamic_cast<ug_gmpi*>(snapshottimer_t->BuildSynthOb());
+			auto sst = dynamic_cast<SnapshotTimer*>(ug->plugin_.get());
+			sst->target_time = cancellation_snapshot_timestamp;
+			main_container->AddUG(ug);
+			ug->SetupWithoutCug();
+		}
 
 #if defined( _DEBUG )
 		if (!debug_missing_modules.empty())
