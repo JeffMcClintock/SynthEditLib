@@ -7,6 +7,7 @@
 #include "BundleInfo.h"
 #include "../tinyXml2/tinyxml2.h"
 #include "Shared/se_logger.h"
+#include "SE2JUCE_parameterToString.h"
 
 SE2JUCE_Processor::SE2JUCE_Processor(
     std::unique_ptr<SeJuceController> pController,
@@ -98,7 +99,10 @@ SE2JUCE_Processor::SE2JUCE_Processor(
 
     if(!customizeParameter)
     {
-        customizeParameter = [](int32_t paramID) { return juce::AudioParameterFloatAttributes{}; };
+        customizeParameter = [](int32_t paramID)
+            {
+                return juce::AudioParameterFloatAttributes().withStringFromValueFunction(displayRealNumber3);
+            };
 	}
 
     int sequentialIndex = 0;
