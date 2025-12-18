@@ -123,7 +123,6 @@ modules_internal/MPEToMIDI2.cpp
 modules_internal/RegistrationCheck.cpp
 modules_internal/VoiceMute/VoiceMute.h
 modules_internal/VoiceMute/VoiceMute.cpp
-modules_internal/SnapshotTimer.cpp
 )
 
 if(SE_GRAPHICS_SUPPORT)
