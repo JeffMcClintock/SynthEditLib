@@ -250,12 +250,14 @@ public:
 
 	virtual ~AudioMasterBase();
 
-	void CancellationFreeze(timestamp_t sample_clock);
-#ifdef CANCELLATION_TEST_ENABLE2
-	void CancellationFreeze2(timestamp_t sample_clock);
+	void CancellationFreeze3();
 	void WriteCancellationData(int32_t blockSize, FILE* file);
-	bool cancellation_done = false;
-	timestamp_t cancellation_freeze_ts = -1;
+
+void CancellationFreeze(timestamp_t sample_clock);
+#ifdef CANCELLATION_TEST_ENABLE2
+void CancellationFreeze2(timestamp_t sample_clock);
+bool cancellation_done = false;
+timestamp_t cancellation_freeze_ts = -1;
 #endif
 
 	void processModules_plugin(
@@ -346,6 +348,8 @@ public:
 
 	void DoProcess_plugin(int sampleframes, const float* const* inputs, float* const* outputs, int numInputs, int numOutputs);
 	void DoProcess_editor(int sampleframes, const float* const* inputs, float* const* outputs, int numInputs, int numOutputs);
+
+	void PostProcess(int sampleframes);
 
 	// Plugin-specific
 	void getPresetsState(std::vector< std::pair<int32_t, std::string> >& presets, bool saveRestartState);
@@ -560,8 +564,9 @@ public:
 	timestamp_t cpu_func_ts{};
 
 	std::atomic<bool> interrupt_flag = {};
-	std::atomic<bool> interupt_start_fade_out = {};
-	std::atomic<bool> interupt_module_latency_change = {};
+	std::atomic<bool> interrupt_start_fade_out = {};
+	std::atomic<bool> interrupt_module_latency_change = {};
+	std::atomic<bool> interrupt_cancellation_snapshot = {};
 	std::atomic<DawPreset const*> interrupt_preset_ = {};
 	bool interrupt_clear_delays = false;
 
@@ -617,6 +622,7 @@ private:
 	int32_t hCClearTailsNextValue = 1;
 	UPlug* hoverScopePin{};
 	timestamp_t cancellation_snapshot_timestamp = -1;
+	int watchdogCounter{};
 };
 
 #endif // !defined(AFX_SEAUDIOMASTER_H__9F4E5251_C0C6_11D4_B6EE_00104B15CCF0__INCLUDED_)

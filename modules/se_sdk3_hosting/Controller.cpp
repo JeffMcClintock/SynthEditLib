@@ -1431,6 +1431,9 @@ bool MpController::onQueMessageReady(int recievingHandle, int recievingMessageId
 		}
 		break;
 
+		case id_to_long2("wdog"): // watchdog ping
+		break;
+
 #if defined(_DEBUG) && defined(_WIN32) && 0 // BPM etc spam this
 		default:
 		{
