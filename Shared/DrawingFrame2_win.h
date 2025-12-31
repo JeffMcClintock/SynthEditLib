@@ -111,7 +111,7 @@ struct DrawingFrameBase2 :
     gmpi::ReturnCode getCapture(bool& returnValue) override;
     gmpi::ReturnCode releaseCapture() override;
 
-    // gmpi::api::IDialogHost
+	// gmpi::api::IDialogHost. derived classes need to implement these if they want dialogs.
     gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override
     {return gmpi::ReturnCode::NoSupport;}
     gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override
