@@ -275,10 +275,12 @@ void SeJuceController::ParamToProcessorAndHost(MpParameterJuce* param)
 {
     // JUCE does not provide for thread-safe notification to the processor, so handle this via the message queue.
 
+#if 0 // AI Master only
 	if (se_logger::is_log_enabled() && param->parameterHandle_ == 2 ) // 2 = PARAM_AIP12 (not-analysed, float)
 	{
 		se_logger::log("SeJuceController::ParamToProcessorAndHost() isAnalysed=" + std::to_string(param->getDawNormalized() == 0.0f) + "\n");
 	}
+#endif
 
     // NOTE: juceParameter->setValueNotifyingHost() also updates the DSP via the timer, but *only* if it detects a change in the value (which is often won't)
     ParamToDsp(param);

@@ -290,10 +290,12 @@ public:
 		const auto rawValue = parameter->getValueRaw(gmpi::MP_FT_VALUE, voice);
 		const float normalized = parameter->getNormalized(); // voice !!!?
 
+#if 0 // AI Master only
 		if (se_logger::is_log_enabled() && parameter->parameterHandle_ == 2) // 2 = PARAM_AIP12 (not-analysed, float)
 		{
 			se_logger::log("updateGuis: isAnalysed=" + std::to_string(normalized == 0.0f) + "\n");
 		}
+#endif
 
 		for (auto pa : m_guis2)
 		{
@@ -309,11 +311,12 @@ public:
 	{
 		auto rawValue = parameter->getValueRaw(fieldType, voice);
 
+#if 0 // AI Master only
 		if (se_logger::is_log_enabled() && parameter->parameterHandle_ == 2 && gmpi::FieldType::MP_FT_VALUE == fieldType) // 2 = PARAM_AIP12 (not-analysed, float)
 		{
 			se_logger::log("updateGuis: isAnalysed=" + std::to_string(*((const float*)rawValue.data()) == 0.0f) + "\n");
 		}
-
+#endif
 		for (auto pa : m_guis2)
 		{
 			pa->setParameter(parameter->parameterHandle_, fieldType, voice, rawValue.data(), (int32_t)rawValue.size());
