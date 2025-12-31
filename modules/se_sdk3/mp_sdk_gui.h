@@ -187,7 +187,7 @@ class MpGuiBase_base :
 {
 public:
 	MpGuiBase_base(IMpUnknown* host);
-	virtual ~MpGuiBase_base() {} // need virtual destructor to support deletion via pointer-to-base.
+	virtual ~MpGuiBase_base() override {} // need virtual destructor to support deletion via pointer-to-base.
 
 	void initializePin( int pinId, MpGuiPinBase& pin, MpGuiBaseMemberPtr handler );
 	void initializePin( int pinId, MpGuiPinBase& pin, MpGuiBaseMemberIndexedPtr handler );

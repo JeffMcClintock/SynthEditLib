@@ -72,12 +72,12 @@ protected:
 		parm4 = p_parm4;
 		next = 0;
 		extraData = extra;
-	};
+	}
 
 	~SynthEditEvent()
 	{
 		delete [] extraData;
-	};
+	}
 
 #endif
 

@@ -144,4 +144,4 @@ inline std::vector<enum_entry2> it_enum_list2(const std::string_view enum_list)
 	}
 
 	return res;
-};
+}

@@ -12,7 +12,7 @@ void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height, float disp
 		InixPixelToBin(pixelToBin, width, spectrumCount2, sampleRateFft);
 
 		// calc the zones of the graph that need cubic/linear/none interpolation
-		smoothedZoneHigh = linearZoneHigh = pixelToBin.size() - 1;
+		smoothedZoneHigh = linearZoneHigh = static_cast<int>(pixelToBin.size()) - 1;
 
 		float bin_per_pixel = 0.8f;
 		for (int i = 10; i < pixelToBin.size(); i++)

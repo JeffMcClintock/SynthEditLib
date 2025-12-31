@@ -1234,7 +1234,7 @@ namespace GmpiDrawing
 
 		/*
 		FromHexString: Converts a hexadecimal color to a Color object.
-		If you pass a 3-byte color, e.g. “000000” (black) we assume it’s a solid color (same as “FF000000”).
+		If you pass a 3-byte color, e.g. “000000” (black) we assume it’s a solid color (same as FF000000).
 		This makes it convenient to specify RGB without any alpha.
 		However if you pass a specific alpha, e.g. "77000000" (transparent black) we use the alpha "77".
 		*/

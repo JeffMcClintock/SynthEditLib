@@ -382,7 +382,7 @@ enum MP_ProtectedFileSeekType{ PFST_BEGIN = 0, PFST_CURRENT = 1, PFST_END = 2 };
 class IProtectedFile2 : public IMpUnknown
 {
 public:
-	virtual int32_t MP_STDCALL read(void* buffer, int64_t size, int64_t* returnBytesRead = 0) = 0;
+	virtual int32_t MP_STDCALL read(void* buffer, int64_t size, int64_t* returnBytesRead = nullptr) = 0;
 	virtual int32_t MP_STDCALL seek(int64_t distanceToMove, int32_t moveMethod, int64_t* newStreamPosition) = 0;
 	virtual int32_t MP_STDCALL getSize(int64_t* returnValue) = 0;
 };
