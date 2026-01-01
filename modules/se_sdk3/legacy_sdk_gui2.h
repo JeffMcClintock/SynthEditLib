@@ -207,8 +207,7 @@ namespace legacy
 	public:
 		virtual int32_t MP_STDCALL AddExtension(const char* extension, const char* description = "") = 0;
 		virtual int32_t MP_STDCALL SetInitialFilename(const char* text) = 0;
-		virtual int32_t MP_STDCALL setInitialDirectory(const char* text) = 0;
-//		virtual int32_t MP_STDCALL Show(IMpUnknown* returnString) = 0;
+		virtual int32_t MP_STDCALL SetInitialDirectory(const char* text) = 0;
 		virtual int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) = 0;
 		virtual int32_t MP_STDCALL GetSelectedFilename(gmpi::api::IUnknown* returnString) = 0;
 
