@@ -181,10 +181,7 @@ public:
 	}
 
 	// IMpGraphicsHostBase
-	int32_t MP_STDCALL createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override
-	{
-		return gmpi::MP_UNHANDLED;
-	}
+	int32_t MP_STDCALL createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override;
 
 	// IMpGraphicsHost
 	int32_t MP_STDCALL GetDrawingFactory(GmpiDrawing_API::IMpFactory** returnFactory) override;

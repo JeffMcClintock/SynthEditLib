@@ -197,6 +197,15 @@ int32_t MP_STDCALL SDK3AdaptorClient::createOkCancelDialog(int32_t dialogType, g
 	return (int32_t)unk->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)returnDialog);
 }
 
+int32_t MP_STDCALL SDK3AdaptorClient::createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog)
+{
+	gmpi::shared_ptr<gmpi::api::IUnknown> unk;
+	gmpiEditor.dialogHost->createFileDialog(dialogType, unk.put());
+
+	return (int32_t)unk->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_PLATFORM_FILE_DIALOG, (void**)returnFileDialog);
+}
+
+
 int32_t SDK3AdaptorClient::queryInterface(const gmpi::MpGuid& iid, void** returnInterface)
 {
 	if (iid == gmpi::MP_IID_UI_HOST2)
