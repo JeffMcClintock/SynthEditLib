@@ -35,7 +35,6 @@ public:
 
 class ISpecialIoModuleAudio : public ISpecialIoModule
 {
-public:
 };
 
 class ISpecialIoModuleAudioIn : public ISpecialIoModuleAudio
