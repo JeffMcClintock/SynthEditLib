@@ -561,7 +561,6 @@ int32_t Gmpi_Win_FileDialog::GetSelectedFilename(IMpUnknown* returnString)
 	return gmpi::MP_OK;
 }
 
-//int32_t Gmpi_Win_FileDialog::Show(IMpUnknown* returnString)
 int32_t Gmpi_Win_FileDialog::ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler)
 {
 	std::wstring primary_extension;

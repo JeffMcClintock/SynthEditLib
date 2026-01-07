@@ -82,8 +82,8 @@ private:
 // Alternate approach, just spit out a standard container which can be iterated in the usual ways.
 struct enum_entry2
 {
+	int32_t index;
 	int32_t id;
-	//		std::string_view text; // difficult when contructed from a temporary (pointed-to chars go out of scope)
 	std::string text;
 };
 
@@ -105,9 +105,11 @@ inline std::vector<enum_entry2> it_enum_list2(const std::string_view enum_list)
 		auto lo = static_cast<int32_t>(strtol(enum_list.data() + p + 1, nullptr, 10));
 		auto hi = static_cast<int32_t>(strtol(enum_list.data() + p2 + 1, nullptr, 10));
 
+		int index = 0;
 		for (int32_t i = lo; i <= hi; ++i)
 		{
-			res.push_back({ i, std::to_string(i) });
+			res.push_back({ index, i, std::to_string(i) });
+			++index;
 		}
 
 		return res;
@@ -137,7 +139,7 @@ inline std::vector<enum_entry2> it_enum_list2(const std::string_view enum_list)
 			}
 		}
 
-		res.push_back({ id, std::string(p, len) });
+		res.push_back({ id, id, std::string(p, len) });
 
 		p = p2 + 1;
 		++id;
