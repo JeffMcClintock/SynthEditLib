@@ -5,23 +5,22 @@
 #include "ViewBase.h"
 #include "ConnectorView.h"
 #include "modules/se_sdk3_hosting/Presenter.h"
+#include "modules/se_sdk3_hosting/gmpi_drawing_conversions.h"
 #include "ResizeAdorner.h"
 #include "GuiPatchAutomator3.h"
 #include "UgDatabase.h"
 #include "modules/shared/unicode_conversion.h"
 #include "RawConversions.h"
-#include "SubViewPanel.h"
-#include "DragLine.h"
-#include "modules/shared/xplatform_modifier_keys.h"
 #include "IPluginGui.h"
 #include "mfc_emulation.h"
 #include "IGuiHost2.h"
-#include "helpers/Timer.h"
 
 #ifdef _WIN32
 #include "Shared/DrawingFrame2_win.h"
 #endif
+
 // #define DEBUG_HIT_TEST
+#define DEBUG_MOUSEOVER 0
 
 using namespace std;
 using namespace gmpi;
@@ -469,8 +468,10 @@ namespace SE2
 
 	// #define DEBUG_HIT_TEST 1
 
-	int32_t ViewBase::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	int32_t ViewBase::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT ppoint)
 	{
+		const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
+
 #ifdef DEBUG_HIT_TEST
 		_RPT3(0, "ViewBase::onPointerDown(%x, (%f, %f))\n", flags, point.x, point.y);
 #endif
@@ -630,7 +631,7 @@ namespace SE2
 	{
 		if (!isMouseOverMe && mouseOverObject)
 		{
-			mouseOverObject->setHover(false);
+			mouseOverObject->vc_setHover(false);
 			mouseOverObject = {};
 
 			return gmpi::MP_OK;
@@ -639,20 +640,27 @@ namespace SE2
 		return gmpi::MP_UNHANDLED;
 	}
 
-	int32_t ViewBase::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	int32_t ViewBase::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT ppoint)
 	{
-		lastMovePoint = point;
+#if DEBUG_MOUSEOVER
+		_RPTN(0, "ViewBase::onPointerMove: [%f,%f]\n", point.x, point.y); // typeid(*m.get()).name());
+#endif
+        currentPointerPosAbsolute = legacy_converters::convert(ppoint);
+		lastMovePoint = legacy_converters::convert(currentPointerPosAbsolute * inv_viewTransform);
 
 		if(mouseCaptureObject)
 		{
-			mouseCaptureObject->onPointerMove(flags, point);
+#if DEBUG_MOUSEOVER
+			_RPTN(0, "mouseCaptureObject->onPointerMove() : %s\n", typeid(*mouseCaptureObject).name());
+#endif
+			mouseCaptureObject->onPointerMove(flags, lastMovePoint);
 		}
 		else
 		{
 			if (isDraggingModules) // could this be handled with custom mouseCaptureObject? to remove need for check here?
 			{
 				// Snap-to-grid logic.
-				GmpiDrawing::Size delta(point.x - pointPrev.x, point.y - pointPrev.y);
+				GmpiDrawing::Size delta(lastMovePoint.x - pointPrev.x, lastMovePoint.y - pointPrev.y);
 				if (delta.width != 0.0f || delta.height != 0.0f) // avoid false snap on selection
 				{
 					const auto snapGridSize = Presenter()->GetSnapSize();
@@ -680,7 +688,7 @@ namespace SE2
 
 		if(mouseOverObject)
 		{
-			mouseOverObject->onPointerMove(flags, point);
+			mouseOverObject->onPointerMove(flags, lastMovePoint);
 		}
 
 		return gmpi::MP_OK;
@@ -695,9 +703,17 @@ namespace SE2
 
 	void ViewBase::calcMouseOverObject(int32_t flags)
 	{
+#if DEBUG_MOUSEOVER
+		_RPT0(0, "ViewBase::calcMouseOverObject()\n");
+#endif
 		// when one object has captured mouse, don't highlight other objects.
 		if (mouseCaptureObject)
+		{
+#if DEBUG_MOUSEOVER
+			_RPT0(0, "Mouse already captured. exit.\n");
+#endif
 			return;
+		}
 
 		IViewChild* hitObject{};
 
@@ -705,26 +721,40 @@ namespace SE2
 		for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 		{
 			auto& m = *it;
+#if DEBUG_MOUSEOVER
+#endif
 			if(m->hitTest(flags, lastMovePoint))
 			{
+#if DEBUG_MOUSEOVER
+				_RPTN(0, "HIT: %s\n", typeid(*m.get()).name());
+#endif
 				hitObject = m.get();
 				break;
 			}
+			else
+			{
+#if DEBUG_MOUSEOVER
+				_RPTN(0, "MISS: %s\n", typeid(*m.get()).name());
+#endif
+			}
 		}
 		isIteratingChildren = false;
+
+#if DEBUG_MOUSEOVER
+#endif
 
 		if(hitObject != mouseOverObject)
 		{
 			if(mouseOverObject)
 			{
-				mouseOverObject->setHover(false);
+				mouseOverObject->vc_setHover(false);
 			}
 
 			mouseOverObject = hitObject;
 
 			if(mouseOverObject)
 			{
-				mouseOverObject->setHover(true);
+				mouseOverObject->vc_setHover(true);
 			}
 		}
 	}
@@ -737,17 +767,183 @@ namespace SE2
 		}
 	}
 
-	int32_t ViewBase::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point)
+	void ViewBase::autoScrollStart()
+	{
+		isAutoScrolling = true;
+		startTimer(24); // ms
+	}
+
+	void ViewBase::autoScrollStop()
+	{
+		isAutoScrolling = false;
+	}
+
+	bool ViewBase::onTimer()
+	{
+		if (!isAutoScrolling)
+			return false;
+
+//		_RPTN(0, "AutoScroll [%f, %f]\n", currentPointerPosAbsolute.x, currentPointerPosAbsolute.y);
+
+		float autoScrolDx = (std::max)(0.0f, -currentPointerPosAbsolute.x) - (std::max)(0.0f, currentPointerPosAbsolute.x - drawingBounds.getWidth());
+		float autoScrolDy = (std::max)(0.0f, -currentPointerPosAbsolute.y) - (std::max)(0.0f, currentPointerPosAbsolute.y - drawingBounds.getHeight());
+
+		constexpr float maxSpeed = 22.f; // pixels per timer tick (24ms)
+		autoScrolDx = std::clamp(autoScrolDx * 0.5f, -maxSpeed, maxSpeed);
+		autoScrolDy = std::clamp(autoScrolDy * 0.5f, -maxSpeed, maxSpeed);
+
+		if (autoScrolDx != 0.f || autoScrolDy != 0.f)
+		{
+			// move the view
+			scrollPos.width += autoScrolDx;
+			scrollPos.height += autoScrolDy;
+			calcViewTransform(); // and redraws
+
+			// pointer moves (relative to the view)
+			//const auto nextMovePoint = convert(currentPointerPosAbsolute * inv_viewTransform);
+
+			int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
+			//            AddKeyStateFlags(args.KeyModifiers(), flags);
+            onPointerMove(flags, legacy_converters::convert(currentPointerPosAbsolute));
+		}
+
+		return true;
+	}
+
+	void ViewBase::calcViewTransform()
+	{
+		viewTransform = gmpi::drawing::makeScale({ zoomFactor, zoomFactor });
+		viewTransform *= gmpi::drawing::makeTranslation({ scrollPos.width, scrollPos.height });
+
+		inv_viewTransform = invert(viewTransform);
+
+		invalidateRect();
+	}
+
+	void ViewBase::onHScroll(double newValue)
+	{
+		if (avoidRecusion)
+			return;
+
+		scrollPos.width = newValue;
+		calcViewTransform();
+	}
+
+	void ViewBase::onVScroll(double newValue)
+	{
+		if (avoidRecusion)
+			return;
+
+		scrollPos.height = newValue;
+		calcViewTransform();
+	}
+
+	void ViewBase::updateScrollBars()
+	{
+		if (!hscrollBar || !vscrollBar)
+			return;
+
+		avoidRecusion = true;
+
+		constexpr double canvasSize = 7968.0f;
+		const double visibleWidth = drawingBounds.getWidth() /*swapChainHost.ActualWidth()*/ / zoomFactor;
+		const double visibleHeight = drawingBounds.getHeight() /*swapChainHost.ActualHeight()*/ / zoomFactor;
+		const double visibleTop = (double)-scrollPos.height / zoomFactor;
+		const double visibleLeft = (double)-scrollPos.width / zoomFactor;
+		const double visibleBottom = visibleTop + visibleHeight;
+		const double visibleRight = visibleLeft + visibleWidth;
+
+		auto canScrolldH = (std::max)(0.0, canvasSize - visibleRight) + (std::max)(0.0, visibleLeft);
+		auto canScrolldV = (std::max)(0.0, canvasSize - visibleBottom) + (std::max)(0.0, visibleTop);
+		auto scrollMinY = (std::min)(visibleTop, 0.0);
+		auto scrollMinX = (std::min)(visibleLeft, 0.0);
+
+		//	_RPTN(0, "top=%f left=%f bottom=%f right=%f\n", visibleTop, visibleLeft, visibleBottom, visibleRight);
+		//_RPTN(0, "updateScrollBars: scrollPos=(%f,%f) zoom=%f\n", scrollPos.width, scrollPos.height, zoomFactor);
+		//_RPTN(0, "updateScrollBars: visibleWidth=%f visibleHeight=%f\n", visibleWidth, visibleHeight);
+
+		scrollBarSpec h;
+
+		h.Minimum = (zoomFactor * scrollMinX);
+		h.Maximum = (zoomFactor * (scrollMinX + canScrolldH));
+		h.ViewportSize = (zoomFactor * (visibleRight - visibleLeft));
+		h.Value = (zoomFactor * (visibleLeft /*+ forceRecalc*/));
+		h.LargeChange = (canScrolldH * 0.2);
+		h.SmallChange = (canScrolldH * 0.05);
+
+		hscrollBar(h);
+
+		scrollBarSpec v;
+		//_RPTN(0, "ViewportSize=%f\n", visibleBottom - visibleTop);
+		//_RPTN(0, "Can scroll=%f\n", canScrollV);
+		v.ViewportSize = (zoomFactor * (visibleBottom - visibleTop));
+		v.Minimum = (zoomFactor * scrollMinY);
+		v.Maximum = (zoomFactor * (scrollMinY + canScrolldV));
+		v.Value = (zoomFactor * (visibleTop /*+ forceRecalc*/));
+		v.LargeChange = (canScrolldV * 0.2);
+		v.SmallChange = (canScrolldV * 0.05);
+
+		vscrollBar(v);
+
+		avoidRecusion = false;
+	}
+
+	int32_t ViewBase::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT ppoint)
 	{
 		if (isDraggingModules)
 			return gmpi::MP_UNHANDLED;
 
-		calcMouseOverObject(flags);
+        currentPointerPosAbsolute = legacy_converters::convert(ppoint);
+		const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
 
-		if (!mouseOverObject)
-			return gmpi::MP_UNHANDLED;
+		const bool hasScrollbars = hscrollBar && vscrollBar;
 
-		return mouseOverObject->onMouseWheel(flags, delta, point);
+		// <ALT> causes scroll wheel events to pass to client
+		if ((flags & gmpi_gui_api::GG_POINTER_KEY_ALT) || !hasScrollbars)
+		{
+			calcMouseOverObject(flags);
+
+			if (!mouseOverObject)
+				return gmpi::MP_UNHANDLED;
+
+			return mouseOverObject->onMouseWheel(flags, delta, point);
+		}
+
+		// <CTRL> wheel = zoom
+		if (flags & gmpi_gui_api::GG_POINTER_KEY_CONTROL)
+		{
+			if (delta < 0)
+				zoomFactor /= 1.25f;
+			else
+				zoomFactor *= 1.25f;
+
+			zoomFactor = std::clamp(zoomFactor, 0.1f, 10.0f);
+
+			const auto before = point;
+
+			calcViewTransform();
+
+			const auto after = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
+
+			// scroll to retain mouse position.
+			scrollPos.width -= (before.x - after.x) * zoomFactor;
+			scrollPos.height -= (before.y - after.y) * zoomFactor;
+
+			Presenter()->SetZoomFactor(zoomFactor);
+		}
+		else
+		{
+			// shift+wheel = horizontal scroll.
+			if (flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT)
+				scrollPos.width += static_cast<float>(delta) * 0.25f; // 120 delta per wheel detent.
+			else
+				scrollPos.height += static_cast<float>(delta) * 0.25f; // vertical scroll
+		}
+
+		calcViewTransform(); // and redraws
+		updateScrollBars();
+
+		return gmpi::MP_OK;
 	}
 
 	int32_t ViewBase::StartCableDrag(IViewChild* fromModule, int fromPin, Point dragStartPoint, bool isHeldAlt, CableType type)
@@ -1197,21 +1393,21 @@ namespace SE2
 		}
 	}
 
-	void ViewBase::autoScrollStart()
-	{
-#if defined (_WIN32)
-		if(frameWindow)
-			frameWindow->autoScrollStart();
-#endif
-	}
-
-	void ViewBase::autoScrollStop()
-	{
-#if defined (_WIN32)
-		if (frameWindow)
-			frameWindow->autoScrollStop();
-#endif
-	}
+//	void ViewBase::autoScrollStart()
+//	{
+//#if defined (_WIN32)
+//		if(frameWindow)
+//			/*frameWindow->*/autoScrollStart();
+//#endif
+//	}
+//
+//	void ViewBase::autoScrollStop()
+//	{
+//#if defined (_WIN32)
+//		if (frameWindow)
+//			/*frameWindow->*/autoScrollStop();
+//#endif
+//	}
 
 	// usefull for live reload of SEMs
 	void ViewBase::Unload()
@@ -1302,7 +1498,16 @@ namespace SE2
 
 		if (mouseOverObject)
 		{
-			menu.populateFromObject(x, y, mouseOverObject);
+//			menu.populateFromObject(x, y, mouseOverObject);
+
+			menu.currentCallback =
+				[this](int32_t idx)
+				{
+					return mouseOverObject->vc_onContextMenu(idx);
+				};
+
+			mouseOverObject->populateContextMenu(x, y, &menu);
+
 		}
 		return gmpi::MP_OK;
 	}
@@ -1312,15 +1517,19 @@ namespace SE2
 		return GmpiSdk::ContextMenuHelper::onContextMenu(contextMenuCallbacks, idx);
 	}
 
-	int32_t ViewBase::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	int32_t ViewBase::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT ppoint)
 	{
+		const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
+
 		Presenter()->NotDragging();
 
 		if (!draggingNewModuleId.empty())
 		{
+			/* mouse can only be captured by the window that ecieved the mpointer-down, and then only until the next pointer-up.
 			int32_t isMouseCaptured{};
 			getGuiHost()->getCapture(isMouseCaptured);
 			if (isMouseCaptured)
+			*/
 			{
 				getGuiHost()->releaseCapture();
 				const auto moduleId = Utf8ToWstring(draggingNewModuleId); // TODO why does this get converted to UTF8 then back again?
@@ -1556,7 +1765,7 @@ namespace SE2
 		}
 	}
 
-	void ViewBase::PreGraphicsRedraw()
+	void ViewBase::preGraphicsRedraw()
 	{
 		// Get any meter updates from DSP. ( See also CSynthEditAppBase::OnTimer() )
 		Presenter()->GetPatchManager()->serviceGuiQueue();
@@ -1756,8 +1965,15 @@ namespace SE2
 	gmpi::ReturnCode ViewBase::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
 	{
 #ifdef _WIN32
-		*returnFactory = static_cast<gmpi::drawing::api::IFactory*>(&frameWindow->DrawingFactory->gmpiFactory);
-		return gmpi::ReturnCode::Ok;
+		// to get the GMPI-UI factory from teh SDK3 host, first cast the GuiHost to the gmpi::api::IDrawingHost, then get *its* factory.
+		gmpi::shared_ptr<gmpi::api::IDrawingHost> host;
+		getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDrawingHost::guid, host.put_void());
+
+		return host->getDrawingFactory(returnFactory);
+
+//		return (gmpi::ReturnCode) getGuiHost()->GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory);
+		//*returnFactory = static_cast<gmpi::drawing::api::IFactory*>(&frameWindow->DrawingFactory->gmpiFactory);
+		//return gmpi::ReturnCode::Ok;
 #endif
         return gmpi::ReturnCode::NoSupport;
 	}
@@ -1809,13 +2025,13 @@ namespace SE2
 			}
 			break;
 
-		case 'n':
+		case 'n': // new module picker
 		case 'N':
-			if (pointerPosOrNull)
-			{
-				if (DoModulePicker(*pointerPosOrNull))
-					return gmpi::ReturnCode::Handled;
-			}
+			//if (pointerPosOrNull)
+			//{
+			//	if (DoModulePicker(*pointerPosOrNull))
+			//		return gmpi::ReturnCode::Handled;
+			//}
 			break;
 
 		default:

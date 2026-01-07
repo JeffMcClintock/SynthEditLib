@@ -27,6 +27,11 @@ int RawSize( const wchar_t* text );
 
 // specialised for strings
 template<>
+const void* RawData3<std::string>(const std::string& value);
+template<>
+int RawSize<std::string>(const std::string& value);
+
+template<>
 const void* RawData3<std::wstring>(const std::wstring& value);
 template<>
 int RawSize<std::wstring>(const std::wstring& value);
@@ -88,6 +93,12 @@ T RawToValue(const void* data, [[maybe_unused]] size_t size = sizeof(T))
 }
 
 // specialised for string
+template<>
+std::string RawToValue<std::string>(const void* data, int size);
+template<>
+std::string RawToValue<std::string>(const void* data, size_t size);
+
+// specialised for Wstring
 template<>
 std::wstring RawToValue<std::wstring>(const void* data, int size);
 template<>

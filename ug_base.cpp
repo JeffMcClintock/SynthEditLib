@@ -348,7 +348,10 @@ void ug_base::UpdateInputVariable(SynthEditEvent* e)
 
 	case DT_BOOL:
 	{
-		*((bool*)p->io_variable) = cast_new_value != 0;
+		if(1 == e->parm2)
+			*((bool*)p->io_variable) = *(bool*)e->Data(); // GMPI bool
+		else
+			*((bool*)p->io_variable) = cast_new_value != 0; // SDK3 bool (int32_t)
 	}
 	break;
 
@@ -1808,7 +1811,8 @@ void ug_base::connect( UPlug* from_plug, UPlug* to_plug )
 			switch (to_plug->DataType)
 			{
 			case DT_FSAMPLE:
-				converter_id = L"SE Float to Volts2";
+//				converter_id = L"SE Float to Volts2"; TODO !!! fix this
+				converter_id = L"FloatToVolts";
 				converterInputPlug = 1;
 				converterOutputPlug = 2;
 				break;

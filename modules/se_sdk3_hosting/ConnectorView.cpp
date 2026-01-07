@@ -227,7 +227,7 @@ namespace SE2
 		g.SetTransform(originalTransform);
 	}
 
-	void PatchCableView::setHover(bool mouseIsOverMe)
+	void PatchCableView::vc_setHover(bool mouseIsOverMe)
 	{
 		if(isHovered != mouseIsOverMe)
 		{
@@ -369,7 +369,7 @@ namespace SE2
 		return gmpi::MP_OK;
 	}
 
-	int32_t ConnectorViewBase::onContextMenu(int32_t idx)
+	int32_t ConnectorViewBase::vc_onContextMenu(int32_t idx)
 	{
 		if (idx == 0)
 		{

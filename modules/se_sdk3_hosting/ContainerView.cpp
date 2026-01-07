@@ -11,11 +11,13 @@
 #include "SubViewPanel.h"
 #include "tinyxml/tinyxml.h"
 #include "IGuiHost2.h"
+#include "gmpi_drawing_conversions.h"
 
 using namespace std;
 using namespace gmpi;
 using namespace gmpi_gui;
 using namespace GmpiDrawing;
+using namespace legacy_converters;
 
 namespace SE2
 {
@@ -30,6 +32,12 @@ namespace SE2
 	{
 		Graphics g(drawingContext);
 
+		const Matrix3x2 originalTransform = g.GetTransform();
+
+		// pan and zoom
+		const auto viewTransformL = originalTransform * toLegacy(viewTransform);
+		g.SetTransform(viewTransformL);
+
 #if 0 //def _DEBUG
 		// Diagnose dirty rects.
 		static int red = 0; // not in release
@@ -41,7 +49,11 @@ namespace SE2
 		g.Clear(Color::LightGray);
 #endif
 
-		return ViewBase::OnRender(drawingContext);
+		const auto r = ViewBase::OnRender(drawingContext);
+
+		g.SetTransform(originalTransform);
+
+		return r;
 	}
 
 	void ContainerViewPanel::BuildModules(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap)

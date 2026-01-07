@@ -6,30 +6,88 @@
 #include "shlobj.h"
 #include "conversion.h"
 #include "Drawing.h"
+#include "gmpi_drawing_conversions.h"
+#include "SDK3Adaptor.h"
 
 // Windows 32
 #include "modules/se_sdk3_hosting/gmpi_gui_hosting.h"
+
+using namespace legacy_converters;
 
 DrawingFrameBase2::DrawingFrameBase2()
 {
     DrawingFactory = std::make_unique<UniversalFactory>();
 }
 
-void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx)
+// new
+void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient)
 {
     detachClient();
 
+    gmpi::shared_ptr<gmpi::api::IUnknown> unknown(pclient);
+
+    editor_gmpi       = unknown.as<gmpi::api::IInputClient>();
+    graphics_gmpi     = unknown.as<gmpi::api::IDrawingClient>();
+	frameUpdateClient = unknown.as<gmpi::api::IGraphicsRedrawClient>();
+
+#if 0 // TODO
     gmpi_gui_client = gfx;
 
     gfx->queryInterface(IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
-    //    gfx->queryInterface(gmpi_gui_api::IMpKeyClient::guid, gmpi_key_client.asIMpUnknownPtr());
+
     [[maybe_unused]] auto r = gfx->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
 
     gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> pinHost;
     gmpi_gui_client->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pinHost.asIMpUnknownPtr());
 
     if (pinHost)
-        pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this)); // static_cast<gmpi_gui::IMpGraphicsHost*>(this));
+    {
+        pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
+        pinHost->initialize();
+    }
+#endif
+
+    if (swapChain)
+    {
+        const auto scale = 1.0 / getRasterizationScale();
+
+        sizeClientDips(
+            static_cast<float>(swapChainSize.width) * scale,
+            static_cast<float>(swapChainSize.height) * scale
+        );
+    }
+
+    if (graphics_gmpi)
+        graphics_gmpi->open(static_cast<gmpi::api::IDrawingHost*>(this));
+}
+
+// old
+void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx)
+{
+	auto wrapper = new SDK3Adaptor();
+    gmpi::shared_ptr<gmpi::api::IUnknown> adaptor;
+    adaptor.attach(static_cast<gmpi::api::IDrawingClient*>(wrapper));
+
+    wrapper->attachClient(gfx.get());
+
+    attachClient(adaptor.get());
+
+#if 0
+    detachClient();
+    gmpi_gui_client = gfx;
+
+    gfx->queryInterface(legacy::IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
+
+    [[maybe_unused]] auto r = gfx->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
+
+    gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> pinHost;
+    gmpi_gui_client->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pinHost.asIMpUnknownPtr());
+
+    if (pinHost)
+    {
+        pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
+		pinHost->initialize();
+    }
 
     if(swapChain)
     {
@@ -40,13 +98,14 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
             static_cast<float>(swapChainSize.height) * scale
         );
     }
+#endif
 }
 
 void DrawingFrameBase2::detachClient()
 {
-    gmpi_gui_client = {};
+    graphics_gmpi = {};
+    editor_gmpi = {};
     frameUpdateClient = {};
-    pluginParameters2B = {};
 }
 
 void DrawingFrameBase2::detachAndRecreate()
@@ -57,34 +116,35 @@ void DrawingFrameBase2::detachAndRecreate()
     CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
 }
 
-void DrawingFrameBase2::OnScrolled(double x, double y, double zoom)
-{
-    scrollPos = { -static_cast<float>(x), -static_cast<float>(y) };
-    zoomFactor = static_cast<float>(zoom);
-
-    calcViewTransform();
-}
-
-void DrawingFrameBase2::calcViewTransform()
-{
-    viewTransform = gmpi::drawing::makeScale({zoomFactor, zoomFactor});
-    viewTransform *= gmpi::drawing::makeTranslation({scrollPos.width, scrollPos.height});
-
-    inv_viewTransform = invert(viewTransform);
-
-    static_cast<gmpi::api::IDrawingHost*>(this)->invalidateRect(nullptr);
-}
-
 gmpi::ReturnCode DrawingFrameBase2::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
 {
     *returnKeyListener = new gmpi::hosting::win32::PlatformKeyListener(getWindowHandle(), r);
     return gmpi::ReturnCode::Ok;
 }
 
-void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
+// IInputHost
+gmpi::ReturnCode DrawingFrameBase2::setCapture()
 {
-    invalidateRect((const GmpiDrawing_API::MP1_RECT*)invalidRect);
+    ::SetCapture(getWindowHandle());
+    return gmpi::ReturnCode::Ok;
 }
+
+gmpi::ReturnCode DrawingFrameBase2::getCapture(bool& returnValue)
+{
+    returnValue = ::GetCapture() == getWindowHandle();
+    return gmpi::ReturnCode::Ok;
+}
+
+gmpi::ReturnCode DrawingFrameBase2::releaseCapture()
+{
+    ::ReleaseCapture();
+    return gmpi::ReturnCode::Ok;
+}
+
+//void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
+//{
+//    invalidateRect((const GmpiDrawing_API::MP1_RECT*)invalidRect);
+//}
 
 float DrawingFrameHwndBase::getRasterizationScale()
 {
@@ -241,7 +301,7 @@ LRESULT DrawingFrameHwndBase::WindowProc(
     WPARAM wParam,
     LPARAM lParam)
 {
-    if (!gmpi_gui_client)
+    if (!graphics_gmpi)
         return DefWindowProc(hwnd, message, wParam, lParam);
 
     switch (message)
@@ -314,12 +374,13 @@ LRESULT DrawingFrameHwndBase::WindowProc(
             flags |= gmpi_gui_api::GG_POINTER_KEY_ALT;
         }
 
-        int32_t r;
+        gmpi::ReturnCode r{ gmpi::ReturnCode::Unhandled};
         switch (message)
         {
         case WM_MOUSEMOVE:
         {
-            r = gmpi_gui_client->onPointerMove(flags, {point.x, point.y});
+            if (editor_gmpi)
+                r = editor_gmpi->onPointerMove(point, flags);
 
             // get notified when mouse leaves window
             if (!isTrackingMouse)
@@ -333,7 +394,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
                 {
                     isTrackingMouse = true;
                 }
-                gmpi_gui_client->setHover(true);
+                if (editor_gmpi)
+                    editor_gmpi->setHover(true);
             }
         }
         break;
@@ -342,20 +404,22 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         case WM_RBUTTONDOWN:
         case WM_MBUTTONDOWN:
             {
-                r = gmpi_gui_client->onPointerDown(flags, { point.x, point.y });
+                if (editor_gmpi)
+                    r = editor_gmpi->onPointerDown(point, flags);
+
                 ::SetFocus(hwnd);
 
                 // Handle right-click context menu.
-                if (r == gmpi::MP_UNHANDLED && (flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && pluginParameters2B)
+                if (r == gmpi::ReturnCode::Unhandled && (flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && editor_gmpi)
                 {
                     contextMenu.setNull();
+/* TODO
 
                     GmpiDrawing::Rect rect(point.x, point.y, point.x + 120, point.y + 20);
                     createPlatformMenu(&rect, contextMenu.GetAddressOf());
 
                     GmpiGui::ContextItemsSinkAdaptor sink(contextMenu);
-
-                    r = pluginParameters2B->populateContextMenu(point.x, point.y, &sink);
+                    r = editor_gmpi->populateContextMenu(point, &sink);
 
                     contextMenu.ShowAsync(
                         [this](int32_t res) -> int32_t
@@ -363,21 +427,22 @@ LRESULT DrawingFrameHwndBase::WindowProc(
                             if (res == gmpi::MP_OK)
                             {
                                 const auto commandId = contextMenu.GetSelectedId();
-                                res = pluginParameters2B->onContextMenu(commandId);
+                                res = editor_gmpi->onContextMenu(commandId);
                             }
                             contextMenu = {};
                             return res;
                         }
                     );
+*/
                 }
-
             }
             break;
 
         case WM_MBUTTONUP:
         case WM_RBUTTONUP:
         case WM_LBUTTONUP:
-            r = gmpi_gui_client->onPointerUp(flags, { point.x, point.y });
+            if (editor_gmpi)
+                r = editor_gmpi->onPointerUp(point, flags);
             break;
         }
     }
@@ -385,7 +450,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
 
     case WM_MOUSELEAVE:
         isTrackingMouse = false;
-        gmpi_gui_client->setHover(false);
+        if (editor_gmpi)
+            editor_gmpi->setHover(false);
         break;
 
     case WM_MOUSEWHEEL:
@@ -420,7 +486,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         //	flags |= gmpi_gui_api::GG_POINTER_KEY_ALT;
         //}
 
-        /*auto r =*/ gmpi_gui_client->onMouseWheel(flags, zDelta, { p.x, p.y });
+        if (editor_gmpi)
+            /*auto r =*/ editor_gmpi->onMouseWheel(p, flags, zDelta);
     }
     break;
 
@@ -480,19 +547,14 @@ void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZ
 
         CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
 
-        calcViewTransform();
-
         initTooltip();
 
-        if (gmpi_gui_client)
-        {
-            const auto scale = 1.0 / getRasterizationScale();
+        const auto scale = 1.0 / getRasterizationScale();
 
-            sizeClientDips(
-                static_cast<float>((r.right - r.left) * scale),
-                static_cast<float>((r.bottom - r.top) * scale)
-            );
-        }
+        sizeClientDips(
+            static_cast<float>((r.right - r.left) * scale),
+            static_cast<float>((r.bottom - r.top) * scale)
+        );
 
         // starting Timer last to avoid first event getting 'in-between' other init events.
         startTimer(15); // 16.66 = 60Hz. 16ms timer seems to miss v-sync. Faster timers offer no improvement to framerate.
@@ -532,7 +594,7 @@ float DrawingFrameHwndBase::calcWhiteLevel()
 bool DrawingFrameHwndBase::onTimer()
 {
     auto hwnd = getWindowHandle();
-    if (hwnd == nullptr || gmpi_gui_client == nullptr)
+    if (hwnd == nullptr || graphics_gmpi == nullptr)
         return true;
 
     if (pollHdrChangesCount-- < 0)
@@ -557,20 +619,21 @@ bool DrawingFrameHwndBase::onTimer()
             ScreenToClient(hwnd, &P);
 
             const auto point = gmpi::drawing::transformPoint(WindowToDips, { static_cast<float>(P.x), static_cast<float>(P.y) });
-
+/* TODO !!???
             gmpi_sdk::MpString text;
-            gmpi_gui_client->getToolTip({point.x, point.y}, & text);
+            editor_gmpi->getToolTip({point.x, point.y}, & text);
             if (!text.str().empty())
             {
                 toolTipText = JmUnicodeConversions::Utf8ToWstring(text.str());
                 ShowToolTip();
             }
+*/
         }
     }
 
     if (frameUpdateClient)
     {
-        frameUpdateClient->PreGraphicsRedraw();
+        frameUpdateClient->preGraphicsRedraw();
     }
 
     // Queue pending drawing updates to backbuffer.
@@ -647,7 +710,7 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 		return;
 	}
 
-    gmpi::directx::ComPtr <ID2D1DeviceContext> deviceContext;
+    gmpi::directx::ComPtr<ID2D1DeviceContext> deviceContext;
 
 	if (hdrRenderTarget) // draw onto intermediate buffer, then pass that through an effect to scale white.
     {
@@ -664,38 +727,31 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
     // draw onto the intermediate buffer.
 	{
         se::directx::UniversalGraphicsContext context(DrawingFactory.get(), deviceContext);
+		gmpi::drawing::Graphics graphics(&context);
 
-		auto legacyContext = static_cast<GmpiDrawing_API::IMpDeviceContext*>(&context.sdk3Context);
-		GmpiDrawing::Graphics graphics(legacyContext);
-
-		graphics.BeginDraw();
-		const auto viewTransformL = toLegacy(viewTransform);
-		graphics.SetTransform(viewTransformL);
-
-auto reverseTransform = gmpi::drawing::invert(viewTransform);
+		graphics.beginDraw();
 
 		// clip and draw each rect individually (causes some objects to redraw several times)
 		for (auto& r : dirtyRects)
 		{
             const gmpi::drawing::Rect dirtyRectPixels{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
             const auto dirtyRectDips = dirtyRectPixels * WindowToDips;
-            const auto dirtyRectDipsPanZoomed = dirtyRectDips * reverseTransform; // Apply Pan and Zoom
 
-            graphics.PushAxisAlignedClip(toLegacy(dirtyRectDipsPanZoomed));
+            graphics.pushAxisAlignedClip(dirtyRectDips);
 
-            if (gmpi_gui_client)
+            if(graphics_gmpi)
             {
-                gmpi_gui_client->OnRender(legacyContext);
-            }
+                graphics_gmpi->render(&context);
+			}
             else
             {
-                GmpiDrawing_API::MP1_COLOR blankColor{0.f,0.f,0.f,1.f};
-                legacyContext->Clear(&blankColor);
+                gmpi::drawing::Color blankColor{0.f,0.f,0.f,1.f};
+                graphics.clear(blankColor);
             }
-			graphics.PopAxisAlignedClip();
+			graphics.popAxisAlignedClip();
 		}
 
-		graphics.EndDraw();
+		graphics.endDraw();
 	}
 
     // draw the intermediate buffer onto the swapchain.
@@ -745,21 +801,30 @@ auto reverseTransform = gmpi::drawing::invert(viewTransform);
 
 void DrawingFrameBase2::sizeClientDips(float width, float height)
 {
-    GmpiDrawing_API::MP1_SIZE available{ width, height };
-    GmpiDrawing_API::MP1_SIZE desired{};
+    if (graphics_gmpi)
+    {
+        gmpi::drawing::Size available{ width, height };
+        gmpi::drawing::Size desired{};
 
-    gmpi_gui_client->measure(available, &desired);
-    gmpi_gui_client->arrange({ 0, 0, width, height });
+        graphics_gmpi->measure(&available, &desired);
+
+		gmpi::drawing::Rect finalRect{ 0, 0, width, height };
+        graphics_gmpi->arrange(&finalRect);
+    }
 }
+//void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
+//{
+//    invalidateRect((const GmpiDrawing_API::MP1_RECT*)invalidRect);
+//}
 
-void DrawingFrameHwndBase::invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect)
+void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
 {
     GmpiDrawing::RectL r;
     if (invalidRect)
     {
         //_RPT4(_CRT_WARN, "invalidateRect r[ %d %d %d %d]\n", (int)invalidRect->left, (int)invalidRect->top, (int)invalidRect->right, (int)invalidRect->bottom);
         //r = RectToIntegerLarger(DipsToWindow.TransformRect(*invalidRect));
-		const auto actualRect = fromLegacy(*invalidRect) * DipsToWindow;
+		const auto actualRect = *invalidRect * DipsToWindow;
         r.left   = static_cast<int32_t>(floorf(actualRect.left));
         r.top    = static_cast<int32_t>(floorf(actualRect.top));
         r.right  = static_cast<int32_t>( ceilf(actualRect.right));
@@ -798,48 +863,3 @@ void DrawingFrameHwndBase::invalidateRect(const GmpiDrawing_API::MP1_RECT* inval
     backBufferDirtyRects.push_back(r);
 }
 
-int32_t DrawingFrameHwndBase::setCapture()
-{
-    ::SetCapture(getWindowHandle());
-    return gmpi::MP_OK;
-}
-
-int32_t DrawingFrameHwndBase::getCapture(int32_t& returnValue)
-{
-    returnValue = ::GetCapture() == getWindowHandle();
-    return gmpi::MP_OK;
-}
-
-int32_t DrawingFrameHwndBase::releaseCapture()
-{
-    ::ReleaseCapture();
-
-    return gmpi::MP_OK;
-}
-
-int32_t DrawingFrameHwndBase::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
-{
-    auto nativeRect = *rect * DipsToWindow;
-    *returnMenu = new GmpiGuiHosting::PGCC_PlatformMenu(getWindowHandle(), &nativeRect, DipsToWindow._22);
-    return gmpi::MP_OK;
-}
-
-int32_t DrawingFrameHwndBase::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
-{
-    auto nativeRect = *rect * DipsToWindow;
-    *returnTextEdit = new GmpiGuiHosting::PGCC_PlatformTextEntry(getWindowHandle(), &nativeRect, DipsToWindow._22);
-
-    return gmpi::MP_OK;
-}
-
-int32_t DrawingFrameHwndBase::createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog)
-{
-    *returnFileDialog = new GmpiGuiHosting::Gmpi_Win_FileDialog(dialogType, getWindowHandle());
-    return gmpi::MP_OK;
-}
-
-int32_t DrawingFrameHwndBase::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog)
-{
-    *returnDialog = new GmpiGuiHosting::Gmpi_Win_OkCancelDialog(dialogType, getWindowHandle());
-    return gmpi::MP_OK;
-}

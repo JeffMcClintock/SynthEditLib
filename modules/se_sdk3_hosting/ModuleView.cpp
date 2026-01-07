@@ -35,8 +35,8 @@ namespace SE2
 	ReturnCode GmpiUiHelper::setCapture() { return (gmpi::ReturnCode) moduleview.setCapture();}
 	ReturnCode GmpiUiHelper::getCapture(bool& returnValue) { int32_t cap{}; moduleview.getCapture(cap); returnValue = cap != 0; return gmpi::ReturnCode::Ok; }
 	ReturnCode GmpiUiHelper::releaseCapture() { return (gmpi::ReturnCode) moduleview.releaseCapture(); }
-	ReturnCode GmpiUiHelper::getFocus() { return gmpi::ReturnCode::NoSupport; }
-	ReturnCode GmpiUiHelper::releaseFocus() { return gmpi::ReturnCode::NoSupport; }
+	//ReturnCode GmpiUiHelper::getFocus() { return gmpi::ReturnCode::NoSupport; }
+	//ReturnCode GmpiUiHelper::releaseFocus() { return gmpi::ReturnCode::NoSupport; }
 	// IEditorHost
 	ReturnCode GmpiUiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data) { return (gmpi::ReturnCode) moduleview.pinTransmit(pinId, size, data, voice); }
 	int32_t GmpiUiHelper::getHandle() { return moduleview.handle; }
@@ -339,7 +339,7 @@ namespace SE2
 		r2 = gmpi_object->queryInterface(&gmpi::api::IDrawingClient::guid, pluginGraphics_GMPI.put_void());
 		r2 = gmpi_object->queryInterface(&gmpi::api::IInputClient::guid  , pluginInput_GMPI.put_void());
 		// experimental
-		r2 = gmpi_object->queryInterface(&gmpi::api::IEditor2_x::guid    , pluginEditor2.put_void());
+		r2 = gmpi_object->queryInterface(&gmpi::api::IEditor2::guid      , pluginEditor2.put_void());
 
 		if (pluginGraphics)
 		{
@@ -808,7 +808,7 @@ namespace SE2
 		return gmpi::MP_OK;
 	}
 
-	int32_t ModuleView::onContextMenu(int32_t idx)
+	int32_t ModuleView::vc_onContextMenu(int32_t idx)
 	{
 		return GmpiSdk::ContextMenuHelper::onContextMenu(contextMenuCallbacks, idx);
 	}
@@ -857,7 +857,7 @@ namespace SE2
 		return false;
 	}
 
-	void ModuleView::setHover(bool mouseIsOverMe)
+	void ModuleView::vc_setHover(bool mouseIsOverMe)
 	{
 		if (pluginInput_GMPI)
 		{

@@ -189,7 +189,7 @@ void ug_midi_to_cv::ListInterface2(InterfaceObjectArray& PList)
 	LIST_VAR3(L"Bender", m_bender, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN, L"");
 	LIST_VAR3(L"Voice/PortamentoEnable", m_portamento_enable, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN | IO_PAR_POLYPHONIC, L"");
 	LIST_VAR3(L"HoldPedal", m_hold_pedal, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN, L"");
-	// can't do yet.	LIST_VAR3(L"RPN-Raw/0", m_bend_ammount, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN, L""); // Bend Ammount
+	// can't do yet.	LIST_VAR3(L"RPN-Raw/0", m_bend_amount, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN, L""); // Bend amount
 //	LIST_VAR3(L"GlideStartPitch", GlideStartPitch_, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN, L"");
 }
 

@@ -5,7 +5,6 @@
 #include "./cancellation.h"
 #include "SeAudioMaster.h"
 
-
 SE_DECLARE_INIT_STATIC_FILE(ug_feedback_delays)
 
 #define PN_IN1 0
@@ -472,4 +471,32 @@ REGISTER_MODULE_1(L"SE Feedback Delay - Blob", L"Feedback - Blob",
 	L"Special/Feedback", ug_feedback_delay_blob,
 	CF_STRUCTURE_VIEW | CF_IS_FEEDBACK,
 	L"");
+}
+
+/////////////////////////
+namespace
+{
+REGISTER_MODULE_1(L"SE: Cancellation Helper", L"Cancellation Helper",
+	L"Debug", ug_cancellation_helper,
+	CF_STRUCTURE_VIEW,
+	L"");
+}
+
+// Fill an array of InterfaceObjects with plugs and parameters
+void ug_cancellation_helper::ListInterface2(InterfaceObjectArray& PList)
+{
+}
+
+ug_cancellation_helper::ug_cancellation_helper()
+{
+
+}
+int ug_cancellation_helper::Open()
+{
+	return 0;
+}
+
+void ug_cancellation_helper::sub_process(int start_pos, int sampleframes)
+{
+
 }

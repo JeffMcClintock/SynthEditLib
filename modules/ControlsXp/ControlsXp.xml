@@ -135,13 +135,13 @@
         <Audio>
             <Pin name="Capture Data A" datatype="blob" direction="out" private="true" parameterId="0"/>
             <Pin name="Signal in" datatype="float" rate="audio" linearInput="true"/>
-            <Pin name="FFT Size" datatype="enum" default="2048" isMinimised="true" metadata="1024=1024,2048=2048,4096=4096,8192=8192,16384=16384"/>
-            <Pin name="Update Rate" datatype="enum" default="10" isMinimised="true" metadata="1 Hz=1,5 Hz=5,10 Hz=10,20 Hz=20,30 Hz=30,40 Hz=40,60 Hz=60"/>
+            <Pin name="FFT Size" datatype="enum" default="2048" metadata="1024=1024,2048=2048,4096=4096,8192=8192,16384=16384"/>
+            <Pin name="Update Rate" datatype="enum" default="10" metadata="1 Hz=1,5 Hz=5,10 Hz=10,20 Hz=20,30 Hz=30,40 Hz=40,60 Hz=60"/>
         </Audio>
         <GUI graphicsApi="GmpiGui">
             <Pin name="Capture Data A" datatype="blob" private="true" parameterId="0"/>
-            <Pin name="dB High" datatype="int" default="20" isMinimised="true"/>
-            <Pin name="dB Low" datatype="int" default="-80" isMinimised="true"/>
+            <Pin name="dB High" datatype="int" default="6" />
+            <Pin name="dB Low" datatype="int" default="-120" />
         </GUI>
     </Plugin>
 

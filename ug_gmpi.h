@@ -18,6 +18,7 @@ public:
 	int32_t getBlockSize() override;
 	float getSampleRate() override;
 	int32_t getHandle() override;
+	void listPins(gmpi::api::IUnknown* callback) override;
 
 	// IEmbeddedFileSupport
 	gmpi::ReturnCode findResourceUri(const char* fileName, gmpi::api::IString* returnFullUri) override;

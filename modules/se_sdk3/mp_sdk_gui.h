@@ -187,7 +187,7 @@ class MpGuiBase_base :
 {
 public:
 	MpGuiBase_base(IMpUnknown* host);
-	virtual ~MpGuiBase_base() {} // need virtual destructor to support deletion via pointer-to-base.
+	virtual ~MpGuiBase_base() override {} // need virtual destructor to support deletion via pointer-to-base.
 
 	void initializePin( int pinId, MpGuiPinBase& pin, MpGuiBaseMemberPtr handler );
 	void initializePin( int pinId, MpGuiPinBase& pin, MpGuiBaseMemberIndexedPtr handler );
@@ -320,8 +320,8 @@ public:
 	}
 
 	// IMpUserInterface2 methods
-	virtual int32_t setHost( gmpi::IMpUnknown* host ) override;
-	virtual int32_t initialize() override;
+	int32_t setHost( gmpi::IMpUnknown* host ) override;
+	int32_t initialize() override;
 
 	gmpi::IMpUserInterfaceHost2* getHost(){ return patchMemoryHost_; }
 
@@ -362,7 +362,6 @@ public:
 		return gmpi::MP_UNHANDLED;
 	}
 
-//	GMPI_QUERYINTERFACE1(gmpi::MP_IID_GUI_PLUGIN2, gmpi::IMpUserInterface2)
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
 	{
 		*returnInterface = 0;

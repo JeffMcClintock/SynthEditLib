@@ -4,11 +4,11 @@
 #include "IViewChild.h"
 #include "xplatform.h"
 #include "Drawing.h"
-#include "UgDatabase.h"
 #include "mp_gui.h"
 #include "Presenter.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
 #include "GmpiApiDrawing.h"
+#include "helpers/Timer.h"
 
 namespace GmpiGuiHosting
 {
@@ -23,14 +23,29 @@ namespace SE2
 	class DragLine;
 	class ConnectorViewBase;
 
+	struct scrollBarSpec
+	{
+		double Value;
+		double Minimum;
+		double Maximum;
+		double LargeChange;
+		double SmallChange;
+		double ViewportSize;
+	};
+
 	// Base of any view that displays modules. Itself behaving as a standard graphics module.
-	class ViewBase : public gmpi_gui::MpGuiGfxBase, public IGraphicsRedrawClient, public gmpi_gui_api::IMpKeyClient
+	class ViewBase :
+		public gmpi_gui::MpGuiGfxBase
+		, public legacy::IGraphicsRedrawClient
+		, public gmpi_gui_api::IMpKeyClient
+		, public gmpi::TimerClient
 	{
 		friend class ResizeAdorner;
 		friend class ViewChild;
 		
 		GmpiDrawing::Point pointPrev;
 		GmpiDrawing_API::MP1_POINT lastMovePoint = { -1, -1 };
+		gmpi::drawing::Point currentPointerPosAbsolute = { -1, -1 };
 
 	protected:
 bool isIteratingChildren = false;
@@ -51,6 +66,17 @@ bool isIteratingChildren = false;
 		GmpiDrawing::Size DraggingModulesOffset = {};
 		GmpiDrawing::Point DraggingModulesInitialTopLeft = {};
 
+		// pan and zoom
+		gmpi::drawing::Size scrollPos = {};
+		float zoomFactor = 1.0f;
+		gmpi::drawing::Matrix3x2 viewTransform;
+		gmpi::drawing::Matrix3x2 inv_viewTransform;
+		bool avoidRecusion{}; // from scroll bars
+		bool isAutoScrolling = false;
+
+		void calcViewTransform();
+		bool onTimer() override;
+
 #ifdef _WIN32
 		DrawingFrameBase2* frameWindow = {};
 #endif
@@ -58,7 +84,7 @@ bool isIteratingChildren = false;
 
 		void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
 		class ModuleViewPanel* getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap);
-		void PreGraphicsRedraw() override;
+		void preGraphicsRedraw() override;
 		void processUnidirectionalModules();
 
 	public:
@@ -88,6 +114,21 @@ bool isIteratingChildren = false;
 		int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override;
 		int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override;
 		int32_t setHover(bool isMouseOverMe) override;
+
+		// notification to scrollbars
+		std::function<void(const scrollBarSpec&)> hscrollBar;
+		std::function<void(const scrollBarSpec&)> vscrollBar;
+
+		// notificate *from* scrollbars or document
+		void setZoomFactor(float newZoomFactor)
+		{
+			zoomFactor = newZoomFactor;
+		}
+		void onHScroll(double newValue);
+		void onVScroll(double newValue);
+		void updateScrollBars();
+		void autoScrollStart();
+		void autoScrollStop();
 
 		void calcMouseOverObject(int32_t flags);
 		void OnChildDeleted(IViewChild* childObject);
@@ -162,8 +203,6 @@ bool isIteratingChildren = false;
 			return getGuiHost()->createPlatformMenu(const_cast<GmpiDrawing_API::MP1_RECT*>(rect), returnMenu);
 		}
 
-		void autoScrollStart();
-		void autoScrollStop();
 		void DoClose();
 
 		IViewChild* Find(GmpiDrawing::Point& p);
@@ -307,7 +346,7 @@ bool isIteratingChildren = false;
 		{
 			return 0;
 		}
-		int32_t onContextMenu(int32_t idx) override
+		int32_t vc_onContextMenu(int32_t idx) override
 		{
 			return 0;
 		}

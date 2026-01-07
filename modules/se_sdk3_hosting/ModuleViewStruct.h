@@ -66,7 +66,7 @@ public:
 	int32_t OnDoubleClicked(int32_t flags, GmpiDrawing_API::MP1_POINT point);
 	int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
 	int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-	void setHover(bool mouseIsOverMe) override;
+	void vc_setHover(bool mouseIsOverMe) override;
 
 	void OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, IViewChild*& bestModule, int& bestPinIndex) override;
 

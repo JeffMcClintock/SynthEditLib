@@ -1,18 +1,25 @@
 #include "SE2JUCE_Processor.h"
+#if SE_GRAPHICS_SUPPORT
 #include "SE2JUCE_Editor.h"
-
+#endif
 #include "unicode_conversion.h"
 #include "RawConversions.h"
 #include "BundleInfo.h"
 #include "../tinyXml2/tinyxml2.h"
 #include "Shared/se_logger.h"
+#include "SE2JUCE_parameterToString.h"
 
 SE2JUCE_Processor::SE2JUCE_Processor(
     std::unique_ptr<SeJuceController> pController,
     std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter
 ) :
     controller(std::move(pController))
-    , createEditorFunction([this]() { return new SynthEditEditor(*this, *controller.get()); })
+#if SE_GRAPHICS_SUPPORT
+   , createEditorFunction([this]()
+        {
+                return new SynthEditEditor(*this, *controller.get());
+        })
+#endif
 
     // init the midi converter
     ,midiConverter(
@@ -92,7 +99,10 @@ SE2JUCE_Processor::SE2JUCE_Processor(
 
     if(!customizeParameter)
     {
-        customizeParameter = [](int32_t paramID) { return juce::AudioParameterFloatAttributes{}; };
+        customizeParameter = [](int32_t paramID)
+            {
+                return juce::AudioParameterFloatAttributes().withStringFromValueFunction(displayRealNumber3);
+            };
 	}
 
     int sequentialIndex = 0;

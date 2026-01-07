@@ -116,11 +116,12 @@ void FreqAnalyser3Gui::onValueChanged()
 		const auto data = pinSpectrum.getValue().getData();
 
 		const auto newSpectrumCount = (std::max)(0, -1 + static_cast<int>(size / sizeof(float)));
+		const auto oldSpectrumCount = static_cast<int>(rawSpectrum.size()) - 1;
 
 		rawSpectrum.assign((float*)data, (float*)data + size / sizeof(float));
 		auto newSampleRateFft = ((float*)data)[newSpectrumCount]; // last entry used for sample-rate.
 
-		if (sampleRateFft != newSampleRateFft)
+		if (sampleRateFft != newSampleRateFft || newSpectrumCount != oldSpectrumCount)
 		{
 			cachedBackground_ = nullptr;
 			sampleRateFft = newSampleRateFft;
@@ -432,7 +433,7 @@ int32_t FreqAnalyser3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCon
 	if (spectrumDecayFlag || spectrumUpdateFlag)
 	{
 		const auto plotAreaWidth = rightBorder - leftBorder;
-		updateSpectrumGraph(plotAreaWidth, r.getHeight());
+		updateSpectrumGraph(plotAreaWidth, r.getHeight(), pinDbHigh, pinDbLow );
 	}
 
 	if(geometry.isNull() && !graphValuesOptimized.empty())

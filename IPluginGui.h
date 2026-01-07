@@ -10,7 +10,7 @@
 enum ParameterFieldType {
 	FT_VALUE
 	, FT_SHORT_NAME
-	, FT_LONG_NAME
+	, FT_LONG_NAME				// slash separated path
 	, FT_MENU_ITEMS
 	, FT_MENU_SELECTION
 	, FT_RANGE_LO
@@ -25,6 +25,7 @@ enum ParameterFieldType {
 	, FT_GRAB					// (mouse down) bool
 	, FT_NORMALIZED				// float
 	, FT_STATEFUL				// bool. aka persistant
+	, FT_HINT					// std::string
 
 	, FT_HOST_PARAMETER = 50	// bool
 	, FT_VST_PARAMETER_INDEX

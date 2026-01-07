@@ -34,8 +34,9 @@ public:
 
 	int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext ) override
 	{
-		auto r = getRect();
 		Graphics g(drawingContext);
+
+		auto r = getRect();
 		ClipDrawingToBounds cd(g, r);
 
 		auto textFormat = GetGraphicsFactory().CreateTextFormat();

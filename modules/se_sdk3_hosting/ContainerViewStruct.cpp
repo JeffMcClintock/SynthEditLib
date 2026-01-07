@@ -13,11 +13,13 @@
 #include "IGuiHost2.h"
 #include "ModuleViewStruct.h"
 #include "ConnectorViewStruct.h"
+#include "gmpi_drawing_conversions.h"
 
 using namespace std;
 using namespace gmpi;
 using namespace gmpi_gui;
 using namespace GmpiDrawing;
+using namespace legacy_converters;
 
 namespace SE2
 {
@@ -99,6 +101,12 @@ namespace SE2
 		g.Clear(color);
 #else
 
+		const Matrix3x2 originalTransform = g.GetTransform();
+
+		// pan and zoom
+		const auto viewTransformL = originalTransform * toLegacy(viewTransform);
+		g.SetTransform(viewTransformL);
+
 //		if (viewType == CF_STRUCTURE_VIEW)
 		{
 			// THEME
@@ -135,11 +143,13 @@ namespace SE2
 				g.FillRectangle(editingBounds, backgroundBrush);
 			}
 
-			auto zoomFactor = g.GetTransform()._11; // horizontal scale.
+			auto zoom = g.GetTransform()._11; // horizontal scale.
 			// BACKGROUND GRID LINES.
 			auto brush = g.CreateSolidColorBrush(backGroundColor + 0x040404u); // grid color.
-			if (zoomFactor > 0.5f)
+			if (zoom > 0.1f)
 			{
+				const auto drawFinegrid = zoom > 0.6f;
+
 				GmpiDrawing::Rect cliprectF = g.GetAxisAlignedClip();
 				GmpiDrawing::Rect cliprect{
 					  cliprectF.left
@@ -176,7 +186,7 @@ namespace SE2
 				endY = (std::min)(endY, totalGrids + gridBoarder);
 				endY = endY * gridSize + 1;
 
-				constexpr int largeGridSize = gridSize * largeGridRatio;
+//				constexpr int largeGridSize = gridSize * largeGridRatio;
 
 				int thickLineCounter = ((startX + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
 				for (int x = startX; x < endX; x += gridSize)
@@ -189,6 +199,9 @@ namespace SE2
 					}
 					else
 					{
+						if (!drawFinegrid)
+							continue;
+
 						penWidth = 1;
 					}
 					g.DrawLine(x + 0.5f, startY + 0.5f, x + 0.5f, endY - 0.5f, brush, penWidth);
@@ -205,6 +218,9 @@ namespace SE2
 					}
 					else
 					{
+						if (!drawFinegrid)
+							continue;
+
 						penWidth = 1;
 					}
 
@@ -212,7 +228,6 @@ namespace SE2
 				}
 
 				// outline entire grid to clean up 4 corners.
-//				brush.SetColor(Color::Red); // debug
 				g.DrawRectangle(
 					Rect{
 						gridSize * 2 - 0.5f, gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f
@@ -224,7 +239,11 @@ namespace SE2
 		}
 #endif
 
-		return ViewBase::OnRender(drawingContext);
+		const auto r = ViewBase::OnRender(drawingContext);
+
+		g.SetTransform(originalTransform);
+
+		return r;
 	}
 } // namespace
 

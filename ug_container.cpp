@@ -23,7 +23,6 @@
 #include "cancellation.h"
 #include "iseshelldsp.h"
 #include "modules/shared/PatchCables.h"
-#include "cancellation.h"
 #include "ug_oversampler_in.h"
 #include "mfc_emulation.h"
 #ifdef _DEBUG

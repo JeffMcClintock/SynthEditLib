@@ -189,20 +189,35 @@ void dsp_patch_parameter_base::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 		// Processor has only one patch, regardless of what patch the UI is using.
 		constexpr int processorPatch = 0;
 		bool changed{};
-		int32_t voice{};
-		p_stream >> voice;
-		while (voice != -1) // indicates end-of-list.
-		{
-			changed |= SerialiseValue(p_stream, voice, processorPatch);
 
-			// next voice?
+		if (isPolyphonic())
+		{
+			int32_t voice{};
 			p_stream >> voice;
+			while (voice != -1) // indicates end-of-list.
+			{
+				changed |= SerialiseValue(p_stream, voice, processorPatch);
+
+				if (changed && EffectivePatch() == processorPatch)
+				{
+					OnValueChangedFromGUI(voice);
+				}
+
+				// next voice?
+				p_stream >> voice;
+			}
+		}
+		else
+		{
+			int voice{};
+
+			changed = SerialiseValue(p_stream, voice, processorPatch);
+			if (changed && EffectivePatch() == processorPatch)
+			{
+				OnValueChangedFromGUI(voice);
+			}
 		}
 
-		if(changed && EffectivePatch() == processorPatch)
-		{
-			OnValueChangedFromGUI( voice );
-		}
 //		_RPTN(_CRT_WARN, "DSP ppc %10s v=%d val=%f\n", debugName.c_str(), voice, GetValueNormalised() );
 	}
 	break;
@@ -713,6 +728,10 @@ void dsp_patch_parameter_base::vst_automate2(timestamp_t timestamp, int voice, c
 		// There is no way of distinguishing in VST3 processor if change came from user, or from automation.
 		// So we send MIDI controllers regardless. MIDI output is kind of pointless in VST3 anyhow.
 		outputMidiAutomation(voice);
+#else
+
+		// lastMidiValue_ represents the *previous* value of the parameter, we need to clear it otherwise a change back to the prev value will fail to send MIDI.
+		lastMidiValue_[voice] = INT_MAX;
 #endif
 #endif
 

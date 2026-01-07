@@ -39,20 +39,23 @@ set(DSP_CORE ${CMAKE_CURRENT_SOURCE_DIR})
 project(SynthEditLib)
 
 set(sdk_srcs
-${gmpi_sdk_folder}/Core/GmpiApiCommon.h
-${gmpi_sdk_folder}/Core/Processor.h
-${gmpi_sdk_folder}/Core/Processor.cpp
+${GMPI_SDK}/Core/GmpiApiCommon.h
+${GMPI_SDK}/Core/Processor.h
+${GMPI_SDK}/Core/Processor.cpp
 
-${gmpi_ui_folder}/GmpiApiDrawing.h
-${gmpi_ui_folder}/helpers/Timer.h
-${gmpi_ui_folder}/helpers/Timer.cpp
-${gmpi_ui_folder}/helpers/ImageCache.h
-${gmpi_ui_folder}/helpers/ImageCache.cpp
-${gmpi_ui_folder}/helpers/ImageMetadata.h
-${gmpi_ui_folder}/helpers/ImageMetadata.cpp
-${gmpi_ui_folder}/helpers/AnimatedBitmap.h
-${gmpi_ui_folder}/backends/DrawingFrameCommon.h
-${gmpi_ui_folder}/backends/DrawingFrameCommon.cpp
+${GMPI_UI_SDK}/GmpiApiDrawing.h
+${GMPI_UI_SDK}/Drawing.h
+${GMPI_UI_SDK}/helpers/GmpiPluginEditor.h
+${GMPI_UI_SDK}/helpers/Timer.h
+${GMPI_UI_SDK}/helpers/Timer.cpp
+${GMPI_UI_SDK}/helpers/NativeUi.h
+${GMPI_UI_SDK}/helpers/ImageCache.h
+${GMPI_UI_SDK}/helpers/ImageCache.cpp
+${GMPI_UI_SDK}/helpers/ImageMetadata.h
+${GMPI_UI_SDK}/helpers/ImageMetadata.cpp
+${GMPI_UI_SDK}/helpers/AnimatedBitmap.h
+${GMPI_UI_SDK}/backends/DrawingFrameCommon.h
+${GMPI_UI_SDK}/backends/DrawingFrameCommon.cpp
 
 ${se_sdk_folder}/mp_sdk_common.h
 ${se_sdk_folder}/mp_sdk_common.cpp
@@ -83,17 +86,17 @@ ${se_shared_folder}/xp_dynamic_linking.h
 ${se_shared_folder}/xp_dynamic_linking.cpp
 ${se_shared_folder}/xplatform_modifier_keys.h
 ${se_shared_folder}/xplatform_modifier_keys.cpp
-${gmpi_sdk_folder}/Hosting/message_queues.h
-${gmpi_sdk_folder}/Hosting/message_queues.cpp
+${GMPI_SDK}/Hosting/message_queues.h
+${GMPI_SDK}/Hosting/message_queues.cpp
 )
 
 IF(WIN32)
 set(sdk_srcs
   ${sdk_srcs}
-  ${gmpi_ui_folder}/backends/DrawingFrameWin.h
-  ${gmpi_ui_folder}/backends/DrawingFrameWin.cpp
-  ${gmpi_ui_folder}/backends/DirectXGfx.h
-  ${gmpi_ui_folder}/backends/DirectXGfx.cpp
+  ${GMPI_UI_SDK}/backends/DrawingFrameWin.h
+  ${GMPI_UI_SDK}/backends/DrawingFrameWin.cpp
+  ${GMPI_UI_SDK}/backends/DirectXGfx.h
+  ${GMPI_UI_SDK}/backends/DirectXGfx.cpp
   Shared/DrawingFrame2_win.h
   Shared/DrawingFrame2_win.cpp
 )
@@ -115,14 +118,8 @@ modules/tinyXml2/tinyxml2.cpp
 
 set(srcs_modules_internal
 modules_internal/Blob2Test.cpp
-modules_internal/CadmiumModules.cpp
-modules_internal/CpuMeter/CpuMeterGui.cpp
 modules_internal/MIDI2Converter.cpp
 modules_internal/MPEToMIDI2.cpp
-modules_internal/PatchPoints.cpp
-modules_internal/PatchPointsGui.h
-modules_internal/PatchPointsGui.cpp
-modules_internal/PrefabBrowser/PrefabBrowserGui.cpp
 modules_internal/RegistrationCheck.cpp
 modules_internal/VoiceMute/VoiceMute.h
 modules_internal/VoiceMute/VoiceMute.cpp
@@ -131,6 +128,12 @@ modules_internal/VoiceMute/VoiceMute.cpp
 if(SE_GRAPHICS_SUPPORT)
 set(srcs_modules_internal
 ${srcs_modules_internal}
+modules_internal/CadmiumModules.cpp
+modules_internal/PatchPoints.cpp
+modules_internal/PatchPointsGui.h
+modules_internal/PatchPointsGui.cpp
+modules_internal/PrefabBrowser/PrefabBrowserGui.cpp
+modules_internal/CpuMeter/CpuMeterGui.cpp
 modules/SubControls4/GmpiUiTest.cpp
 modules/SubControls4/half.hpp
 modules/SubControls4/NumberEditClient.h
@@ -157,52 +160,32 @@ DspFilters/Params.h
 DspFilters/PoleFilter.h
 DspFilters/State.h
 DspFilters/Types.h
+DspFilterJeff.h
 )
 
-set(srcs
-Shared/AuPreset.h
-Shared/AuPreset.cpp
+if(SE2JUCE)
+set(srcs_dspfilters ${srcs_dspfilters}
+modules/Filters/ButterworthLp.h
+modules/Filters/ButterworthLp.cpp
+modules/Filters/IIR_Filters2.cpp      
+)
+endif()
 
-modules/se_sdk3_hosting/IGuiHost2.h
+# Build srcs_dspfilters into an object library so we can apply per-target compiler flags.
+add_library(dspfilters_objs OBJECT ${srcs_dspfilters})
 
-${se_sdk_hosting_folder}/gmpi_gui_hosting.h
-${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp
-${se_sdk_hosting_folder}/DirectXGfx.h
-${se_sdk_hosting_folder}/DirectXGfx.cpp
-${se_sdk_hosting_folder}/Controller.h
-${se_sdk_hosting_folder}/Controller.cpp
-${se_sdk_hosting_folder}/ViewBase.h
-${se_sdk_hosting_folder}/ViewBase.cpp
-${se_sdk_hosting_folder}/ContainerView.h
-${se_sdk_hosting_folder}/ContainerView.cpp
-${se_sdk_hosting_folder}/SubViewPanel.h
-${se_sdk_hosting_folder}/SubViewPanel.cpp
-${se_sdk_hosting_folder}/MpParameter.h
-${se_sdk_hosting_folder}/MpParameter.cpp
-${se_sdk_hosting_folder}/ConnectorView.h
-${se_sdk_hosting_folder}/ConnectorView.cpp
-${se_sdk_hosting_folder}/ModuleView.h
-${se_sdk_hosting_folder}/ModuleView.cpp
-${se_sdk_hosting_folder}/GmpiResourceManager.h
-${se_sdk_hosting_folder}/GmpiResourceManager.cpp
-${se_sdk_hosting_folder}/GuiPatchAutomator3.h
-${se_sdk_hosting_folder}/GuiPatchAutomator3.cpp
-${se_sdk_hosting_folder}/IViewChild.h
-${se_sdk_hosting_folder}/IViewChild.cpp
-${se_sdk_hosting_folder}/JsonDocPresenter.h
-${se_sdk_hosting_folder}/BundleInfo.cpp
-${se_sdk_hosting_folder}/BundleInfo.h
-${se_sdk_hosting_folder}/IGuiHost2.h
-${se_sdk_hosting_folder}/ElatencyContraintType.h
-${se_sdk_hosting_folder}/PresetReader.h
+# Disable "fast math" for the dspfilters object target. screws up Butterworth HP in Release mode only
+# MSVC: use /fp:precise to avoid /fp:fast; GCC/Clang: -fno-fast-math.
+target_compile_options(dspfilters_objs PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/fp:precise>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fno-fast-math>
+)
 
-Shared/VstPreset.h
-Shared/VstPreset.cpp
-Shared/Vst2Preset.h
-Shared/Vst2Preset.cpp
-Shared/se_logger.h
-Shared/se_logger.cpp
+target_compile_definitions(dspfilters_objs PUBLIC 
+    SE_USE_LIB_FACTORY=1
+)
 
+set(sdk_vst3_srcs
 ${VST3_SDK}/pluginterfaces/base/funknown.h
 ${VST3_SDK}/pluginterfaces/base/funknown.cpp
 ${VST3_SDK}/pluginterfaces/base/coreiids.cpp
@@ -232,6 +215,40 @@ ${VST3_SDK}/base/source/updatehandler.cpp
 ${VST3_SDK}/base/source/classfactoryhelpers.h
 ${VST3_SDK}/base/thread/include/flock.h
 ${VST3_SDK}/base/thread/source/flock.cpp
+)
+
+set(srcs
+Shared/AuPreset.h
+Shared/AuPreset.cpp
+
+${se_sdk_hosting_folder}/GmpiUiToSDK3.h
+${se_sdk_hosting_folder}/SDK3Adaptor.h
+${se_sdk_hosting_folder}/SDK3Adaptor.cpp
+
+${se_sdk_hosting_folder}/IGuiHost2.h
+${se_sdk_hosting_folder}/gmpi_gui_hosting.h
+${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp
+${se_sdk_hosting_folder}/DirectXGfx.h
+${se_sdk_hosting_folder}/DirectXGfx.cpp
+${se_sdk_hosting_folder}/Controller.h
+${se_sdk_hosting_folder}/Controller.cpp
+${se_sdk_hosting_folder}/MpParameter.h
+${se_sdk_hosting_folder}/MpParameter.cpp
+${se_sdk_hosting_folder}/GmpiResourceManager.h
+${se_sdk_hosting_folder}/GmpiResourceManager.cpp
+${se_sdk_hosting_folder}/BundleInfo.cpp
+${se_sdk_hosting_folder}/BundleInfo.h
+${se_sdk_hosting_folder}/ElatencyContraintType.h
+${se_sdk_hosting_folder}/PresetReader.h
+
+Shared/VstPreset.h
+Shared/VstPreset.cpp
+Shared/Vst2Preset.h
+Shared/Vst2Preset.cpp
+Shared/se_logger.h
+Shared/se_logger.cpp
+
+${sdk_vst3_srcs}
 
 UgDebugInfo.cpp
 
@@ -246,7 +263,6 @@ CVoiceList.h
 datatype_to_id.cpp
 datatype_to_id.h
 denormal_fixer.h
-DspFilterJeff.h
 DspPatchManagerProxy.cpp
 DspPatchManagerProxy.h
 dsp_msg_target.h
@@ -477,6 +493,7 @@ variable_policies.h
 se_file_format_version.h
 conversion.h
 conversion.cpp
+modules/se_sdk3_hosting/Presenter.h
 )
 
 IF(APPLE)
@@ -486,116 +503,41 @@ modules/se_sdk3_hosting/EventHelper.h
 modules/se_sdk3_hosting/SynthEditCocoaView.mm
 modules/se_sdk3_hosting/CocoaGuiHost.h
 modules/se_sdk3_hosting/CocoaGuiHost.mm
-${gmpi_ui_folder}/backends/DrawingFrameMac.mm
+modules/se_sdk3_hosting/gmpi_drawing_conversions.h
+${GMPI_UI_SDK}/backends/DrawingFrameMac.mm
 )
 ENDIF()
 
-
-IF(SE2JUCE)
+# graphics modules
+IF(SE_GRAPHICS_SUPPORT)
 set(srcs
 ${srcs}
-modules/shared/real_fft.h
-modules/shared/real_fft.cpp
-modules/shared/expression_evaluate.h
-modules/shared/expression_evaluate.cpp
-
-modules/EnvelopeAdsr/envelope.cpp
-modules/EnvelopeAdsr/Adsr.cpp
-modules/ControlsXp/FreqAnalyser.cpp
-modules/ControlsXp/FreqAnalyser3.cpp
-modules/ControlsXp/SpectrumAnalyserBase.h
-modules/ControlsXp/SpectrumAnalyserBase.cpp
-modules/ControlsXp/ListEntry.cpp
-modules/ControlsXp/Scope3.cpp
 modules/Converters/FloatScaler2Gui.cpp
-modules/Converters/FloatToText.cpp
-modules/Converters/VoltsToMidiCc.cpp
-
-modules/PatchMemory/PatchInfoGui.h
 modules/PatchMemory/PatchMemoryBoolGui.h
-modules/PatchMemory/PatchMemoryBoolOutGui.h
 modules/PatchMemory/PatchMemoryFloatGui.h
+modules/PatchMemory/PatchMemoryBoolOutGui.h
 modules/PatchMemory/PatchMemoryFloatOutGui.h
-modules/PatchMemory/PatchMemoryList.h
-modules/PatchMemory/PatchMemoryListGui.h
 modules/PatchMemory/PatchMemoryTextOutGui.h
-
-modules/PatchMemory/PatchMemoryBool.cpp
-modules/PatchMemory/PatchMemoryFloat.cpp
-modules/PatchMemory/PatchMemoryInt.cpp
-modules/PatchMemory/PatchMemoryList.cpp
-modules/PatchMemory/PatchMemoryText.cpp
-modules/PatchMemory/PatchBrowserGui.cpp
-modules/PatchMemory/PatchInfoGui.cpp
+modules/PatchMemory/PatchInfoGui.h
+modules/PatchMemory/PatchMemoryListGui.h
 modules/PatchMemory/PatchMemoryBoolGui.cpp
 modules/PatchMemory/PatchMemoryBoolOutGui.cpp
 modules/PatchMemory/PatchMemoryfloatGui.cpp
 modules/PatchMemory/PatchMemoryFloatOutGui.cpp
 modules/PatchMemory/PatchMemoryListGui.cpp
 modules/PatchMemory/PatchMemoryTextOutGui.cpp
-
 modules/FloatLimiter/FloatLimiterGui.cpp
-modules/SubControlsXp/Image2GuiXp.cpp
-modules/SubControlsXp/PanelGroupGui.cpp
-modules/SubControlsXp/PlainImageGui.cpp
-modules/PolyphonyControl/PolyphonyControlGui.cpp
-modules/SubControlsXp/PopupMenuGui.cpp
-modules/SubControlsXp/TextEntry4Gui.cpp
-modules/SubControlsXp/TextSubcontrol.cpp
-modules/UserSetting/UserSettingText.cpp
-modules/UserSetting/UserSettingTextController.cpp
-modules/UserSetting/UserSettingTextGui.cpp
-modules/VaFilters/SvFilter.cpp
-modules/BPMClock3/BpmClock3.cpp
-modules/BPMClock3/BpmTempo.cpp
-modules/Filters/ButterworthLp.cpp
-modules/Converters/Converters.cpp
-modules/Converters/BlobToBlob2.cpp
-modules/ImpulseResponse/ImpulseResponse.cpp
-modules/Increment3/Increment3Gui.cpp
-modules/Inverter/Inverter.cpp
-modules/MidiPlayer2/MidiToGate.cpp
-"modules/MIDI Logger/IdeLogger.cpp"
-modules/Converters/my_type_convert.cpp
-modules/NoteExpression/NoteExpression.cpp
-modules/OscillatorNaive/OscillatorNaive.cpp
-modules/OversamplingControl/OversamplingControlGui.cpp
-modules/ControlsXp/Slider.cpp
-modules/SoftDistortion/SoftDistortion.cpp
-modules/Switches/Switches.cpp
-modules/Switches/SilenceGate.cpp
-modules/Converters/UnitConverter.cpp
-modules/ControlsXp/VoltMeter.cpp
-modules/ControlsXp/Waveshaper3Xp.cpp
-modules/Waveshapers/Waveshapers.cpp
-modules/EnvelopeAdsr/Adsr.h
-modules/EnvelopeAdsr/Envelope.h
-modules/ControlsXp/ClassicControlGuiBase.h
-modules/ControlsXp/FreqAnalyserGui.h
-modules/ControlsXp/ListEntry.h
-modules/ControlsXp/Scope3.h
 modules/ControlsXp/Scope3Gui.h
 modules/ControlsXp/SliderGui.h
 modules/ControlsXp/VoltMeterGui.h
 modules/BoolInverter/BoolInverterGui.h
-modules/Converters/Converters.h
 modules/Converters/ConvertersGui.h
-modules/Converters/FloatToText.h
-modules/Converters/VoltsToMidiCc.h
-
-modules/sharedLegacyWidgets/BitmapWidget.h
+modules/UserSetting/UserSettingTextGui.cpp
+modules/Increment3/Increment3Gui.cpp
+modules/OversamplingControl/OversamplingControlGui.cpp
+modules/ControlsXp/FreqAnalyserGui.h
 modules/FloatLimiter/FloatLimiterGui.h
-modules/SubControlsXp/Image2GuiXp.h
-modules/SubControlsXp/TextSubcontrol.h
-modules/UserSetting/SettingFile.h
-modules/VaFilters/SvFilter.h
-modules/Filters/ButterworthLp.h
-modules/ControlsXp/FreqAnalyser.h
 modules/Increment3/Increment3Gui.h
-modules/OscillatorNaive/OscillatorNaive.h
-modules/OversamplingControl/OversamplingControlGui.h
-modules/ControlsXp/Slider.h
-modules/ControlsXp/VoltMeter.h
 
 # Common GUI modules
 modules/sharedLegacyWidgets/EditWidget.h
@@ -607,7 +549,6 @@ modules/sharedLegacyWidgets/TextEditWidget.h
 modules/sharedLegacyWidgets/TextWidget.h
 modules/sharedLegacyWidgets/Widget.h
 modules/sharedLegacyWidgets/WidgetHost.h
-
 modules/sharedLegacyWidgets/BitmapWidget.cpp
 modules/sharedLegacyWidgets/EditWidget.cpp
 modules/sharedLegacyWidgets/ImageBase.cpp
@@ -631,7 +572,6 @@ modules/ControlsXp/Scope3Gui.cpp
 modules/ControlsXp/SliderGui.h
 modules/ControlsXp/SliderGui.cpp
 modules/ControlsXp/VoltMeterGui.cpp
-
 modules/SubControlsXp/PanelGroupGui.h
 modules/SubControlsXp/PopupMenuGui.h
 modules/SubControlsXp/ListEntry4Gui.cpp
@@ -639,33 +579,129 @@ modules/SubControlsXp/ListEntry4Gui.h
 modules/SubControlsXp/TextEntry4Gui.h
 modules/SubControlsXp/PlainImageGui.h
 modules/SubControlsXp/PlainImageGui.cpp
-
 modules/BoolInverter/BoolInverterGui.cpp
 modules/Converters/ConvertersGui.cpp
 modules/PolyphonyControl/PolyphonyControlGui.h
+modules/sharedLegacyWidgets/BitmapWidget.h
+modules/SubControlsXp/Image2GuiXp.h
+modules/SubControlsXp/TextSubcontrol.h
+modules/SubControlsXp/Image2GuiXp.cpp
+modules/SubControlsXp/PanelGroupGui.cpp
+modules/SubControlsXp/PlainImageGui.cpp
+modules/PolyphonyControl/PolyphonyControlGui.cpp
+modules/SubControlsXp/PopupMenuGui.cpp
+modules/SubControlsXp/TextEntry4Gui.cpp
+modules/SubControlsXp/TextSubcontrol.cpp
+modules/PatchMemory/PatchBrowserGui.cpp
+modules/PatchMemory/PatchInfoGui.cpp
+modules/ControlsXp/ClassicControlGuiBase.h
+modules/OversamplingControl/OversamplingControlGui.h
 
-modules/ControlsXp/ImpulseResponse2.cpp      
-modules/ImpulseResponse/Impulse.cpp      
-modules/Filters/IIR_Filters2.cpp      
+${se_sdk_hosting_folder}/GuiPatchAutomator3.h
+${se_sdk_hosting_folder}/GuiPatchAutomator3.cpp
+${se_sdk_hosting_folder}/IViewChild.h
+${se_sdk_hosting_folder}/IViewChild.cpp
+${se_sdk_hosting_folder}/IGuiHost2.h
+${se_sdk_hosting_folder}/ViewBase.h
+${se_sdk_hosting_folder}/ViewBase.cpp
+${se_sdk_hosting_folder}/gmpi_gui_hosting.h
+${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp
+${se_sdk_hosting_folder}/ContainerView.h
+${se_sdk_hosting_folder}/ContainerView.cpp
+${se_sdk_hosting_folder}/SubViewPanel.h
+${se_sdk_hosting_folder}/SubViewPanel.cpp
+${se_sdk_hosting_folder}/ConnectorView.h
+${se_sdk_hosting_folder}/ConnectorView.cpp
+${se_sdk_hosting_folder}/ModuleView.h
+${se_sdk_hosting_folder}/ModuleView.cpp
+${se_sdk_hosting_folder}/DirectXGfx.h
+${se_sdk_hosting_folder}/DirectXGfx.cpp
+${se_sdk_hosting_folder}/JsonDocPresenter.h
 
 )
-endif()
 
-# message(STATUS "DSP_CORE: ${DSP_CORE}")
-# message(STATUS "se_sdk_folder: ${se_sdk_folder}")
+ENDIF() # SE_GRAPHICS_SUPPORT
+
+IF(SE2JUCE)
+
+# non-graphics modules
+set(srcs
+${srcs}
+modules/shared/real_fft.h
+modules/shared/real_fft.cpp
+modules/shared/expression_evaluate.h
+modules/shared/expression_evaluate.cpp
+
+modules/EnvelopeAdsr/Adsr.cpp
+modules/EnvelopeAdsr/envelope.cpp
+modules/Converters/FloatToText.cpp
+modules/FloatToVolts2/FloatToVolts2.cpp
+modules/ControlsXp/FreqAnalyser.cpp
+modules/ControlsXp/FreqAnalyser3.cpp
+modules/ControlsXp/ListEntry.cpp
+modules/ControlsXp/SpectrumAnalyserBase.h
+modules/ControlsXp/SpectrumAnalyserBase.cpp
+modules/ControlsXp/Scope3.cpp
+modules/Converters/VoltsToMidiCc.cpp
+modules/PatchMemory/PatchMemoryList.h
+modules/PatchMemory/PatchMemoryBool.cpp
+modules/PatchMemory/PatchMemoryFloat.cpp
+modules/PatchMemory/PatchMemoryInt.cpp
+modules/PatchMemory/PatchMemoryList.cpp
+modules/PatchMemory/PatchMemoryText.cpp
+modules/UserSetting/UserSettingText.cpp
+modules/UserSetting/UserSettingTextController.cpp
+modules/VaFilters/SvFilter.cpp
+modules/BPMClock3/BpmClock3.cpp
+modules/BPMClock3/BpmTempo.cpp
+modules/Converters/Converters.cpp
+modules/Converters/BlobToBlob2.cpp
+modules/ImpulseResponse/ImpulseResponse.cpp
+modules/Inverter/Inverter.cpp
+modules/MidiPlayer2/MidiToGate.cpp
+"modules/MIDI Logger/IdeLogger.cpp"
+modules/Converters/my_type_convert.cpp
+modules/NoteExpression/NoteExpression.cpp
+modules/OscillatorNaive/OscillatorNaive.cpp
+modules/ControlsXp/Slider.cpp
+modules/SoftDistortion/SoftDistortion.cpp
+modules/Switches/Switches.cpp
+modules/Switches/SilenceGate.cpp
+modules/Converters/UnitConverter.cpp
+modules/ControlsXp/VoltMeter.cpp
+modules/ControlsXp/Waveshaper3Xp.cpp
+modules/Waveshapers/Waveshapers.cpp
+modules/EnvelopeAdsr/Adsr.h
+modules/EnvelopeAdsr/Envelope.h
+modules/ControlsXp/ListEntry.h
+modules/ControlsXp/Scope3.h
+modules/Converters/Converters.h
+modules/Converters/FloatToText.h
+modules/Converters/VoltsToMidiCc.h
+modules/UserSetting/SettingFile.h
+modules/VaFilters/SvFilter.h
+modules/ControlsXp/FreqAnalyser.h
+modules/OscillatorNaive/OscillatorNaive.h
+modules/ControlsXp/Slider.h
+modules/ControlsXp/VoltMeter.h
+modules/ControlsXp/ImpulseResponse2.cpp      
+modules/ImpulseResponse/Impulse.cpp      
+)
+endif()
 
 include_directories(
 ${DSP_CORE}
 ${DSP_CORE}/modules
 ${se_sdk_folder}
 ${VST3_SDK}
-${gmpi_sdk_folder}
-${gmpi_sdk_folder}/Core
-${gmpi_ui_folder}
+${GMPI_SDK}
+${GMPI_SDK}/Core
+${GMPI_UI_SDK}
 ${se_shared_folder}
 ${se_sdk_hosting_folder}
 )
 
+source_group(vst3_sdk FILES ${sdk_vst3_srcs})
 source_group(se_sdk FILES ${sdk_srcs})
 source_group(json FILES ${srcs_json})
 source_group(modules_internal FILES ${srcs_modules_internal})
@@ -678,7 +714,7 @@ MARK_AS_ADVANCED (COREFOUNDATION_LIBRARY)
 endif()
 
 include (GenerateExportHeader)
-add_library(${PROJECT_NAME} STATIC ${sdk_srcs} ${srcs} ${srcs_json} ${srcs_modules_internal} ${srcs_xml} ${srcs_dspfilters})
+add_library(${PROJECT_NAME} STATIC ${sdk_srcs} ${srcs} ${srcs_json} ${srcs_modules_internal} ${srcs_xml} $<TARGET_OBJECTS:dspfilters_objs>)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE 
   $<$<CONFIG:Debug>:_DEBUG>
@@ -716,5 +752,5 @@ target_compile_definitions (${PROJECT_NAME} PRIVATE
 target_compile_definitions(
   ${PROJECT_NAME} PUBLIC 
   USE_SIMD_UTF_CONVERSION
-  SE_GRAPHICS_SUPPORT=${SE_GRAPHICS_SUPPORT}
+  SE_GRAPHICS_SUPPORT=$<IF:$<BOOL:${SE_GRAPHICS_SUPPORT}>,1,0>
 )

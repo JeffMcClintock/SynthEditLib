@@ -263,6 +263,7 @@ void MpController::Initialize()
 		int Private = 0;
 
 		std::string Name = parameter_xml->Attribute("Name");
+		const auto hint_ptr = parameter_xml->Attribute("hint");
 		parameter_xml->QueryIntAttribute("ValueType", &dataType);
 		parameter_xml->QueryIntAttribute("Index", &ParameterTag);
 		parameter_xml->QueryIntAttribute("Handle", &ParameterHandle);
@@ -378,6 +379,7 @@ void MpController::Initialize()
 		seParameter->moduleParamId_ = moduleParamId_;
 		seParameter->stateful_ = stateful_;
 		seParameter->name_ = JmUnicodeConversions::Utf8ToWstring(Name);
+		seParameter->hint_ = hint_ptr ? hint_ptr : "";
 		seParameter->enumList_ = enumList_;
 		seParameter->ignorePc_ = ignorePc != 0;
 
@@ -905,7 +907,7 @@ void MpController::undoTransanctionEnd()
 
 gmpi_gui::IMpGraphicsHost* MpController::getGraphicsHost()
 {
-#if !defined(SE_USE_JUCE_UI)
+#if SE_GRAPHICS_SUPPORT
 	for (auto g : m_guis2)
 	{
 		auto pa = dynamic_cast<GuiPatchAutomator3*>(g);
@@ -1132,7 +1134,7 @@ void MpController::ParamToDsp(MpParameter* param, int32_t voice)
 	auto raw = param->getValueRaw(gmpi::MP_FT_VALUE, voice);
 
 	bool due_to_program_change = false;
-	int32_t recievingMessageLength = (int)(sizeof(bool) + raw.size());
+	int32_t recievingMessageLength = (int)(/*sizeof(bool) +*/ raw.size());
 	if (isVariableSize)
 	{
 		recievingMessageLength += (int)sizeof(int32_t);
@@ -1169,7 +1171,7 @@ void MpController::ParamToDsp(MpParameter* param, int32_t voice)
 	my_msg_que_output_stream stream(getQueueToDsp(), param->parameterHandle_, "ppc\0"); // "ppc"
 
 	stream << recievingMessageLength;
-	stream << due_to_program_change;
+//	stream << due_to_program_change;
 
 	if (param->isPolyPhonic())
 	{
@@ -1427,6 +1429,9 @@ bool MpController::onQueMessageReady(int recievingHandle, int recievingMessageId
 		{
 			OnLatencyChanged();
 		}
+		break;
+
+		case id_to_long2("wdog"): // watchdog ping
 		break;
 
 #if defined(_DEBUG) && defined(_WIN32) && 0 // BPM etc spam this

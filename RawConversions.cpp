@@ -6,7 +6,13 @@
 template<>
 int RawSize(const std::wstring& value)
 {
-	return (int) (sizeof(wchar_t) * value.size());
+	return (int)(sizeof(wchar_t) * value.size());
+}
+
+template<>
+int RawSize(const std::string& value)
+{
+	return (int) value.size();
 }
 
 typedef wchar_t* wide_char_ptr;
@@ -22,6 +28,18 @@ int RawSize<wide_char_ptr>(const wide_char_ptr& value)
 {
 	return (int) (sizeof(wchar_t) * wcslen(value));
 }
+
+template<>
+const void* RawData3<std::string>(const std::string& value)
+{
+	return value.data();
+};
+
+//template<>
+//int RawSize<const char*>(const char* value)
+//{
+//	return (int) strlen(value);
+//}
 
 
 template<>
@@ -59,6 +77,29 @@ void RawData2(std::wstring value, void* *p_data, int *size)
 
 };
 */
+
+template<>
+std::string RawToValue(const void* data, int size)
+{
+	std::string temp;
+
+	if (size > 0)
+		temp.assign((char*)data, size);
+
+	return temp;
+}
+
+template<>
+std::string RawToValue(const void* data, size_t size)
+{
+	std::string temp;
+
+	if (size > 0)
+		temp.assign((char*)data, size);
+
+	return temp;
+}
+
 template<>
 std::wstring RawToValue(const void* data, int size)
 {
@@ -67,7 +108,7 @@ std::wstring RawToValue(const void* data, int size)
 	if (size > 0)
 		temp.assign((wchar_t*)data, size / sizeof(wchar_t));
 
-	return (temp);
+	return temp;
 }
 
 template<>
@@ -78,7 +119,7 @@ std::wstring RawToValue(const void* data, size_t size)
 	if (size > 0)
 		temp.assign((wchar_t*)data, size / sizeof(wchar_t));
 
-	return (temp);
+	return temp;
 }
 
 template<>

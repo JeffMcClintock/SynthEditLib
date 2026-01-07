@@ -18,6 +18,10 @@ int getFieldDatatype( ParameterFieldType fieldType )
 		return DT_TEXT;
 		break;
 
+	case FT_HINT:
+		return DT_STRING_UTF8;
+		break;
+
 	case FT_GRAB:
 	case FT_PRIVATE:
 	case FT_STATEFUL:

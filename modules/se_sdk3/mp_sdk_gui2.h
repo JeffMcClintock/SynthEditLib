@@ -219,7 +219,6 @@ namespace gmpi_gui
 		virtual int32_t MP_STDCALL AddExtension(const char* extension, const char* description = "") = 0;
 		virtual int32_t MP_STDCALL SetInitialFilename(const char* text) = 0;
 		virtual int32_t MP_STDCALL setInitialDirectory(const char* text) = 0;
-//		virtual int32_t MP_STDCALL Show(IMpUnknown* returnString) = 0;
 		virtual int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) = 0;
 		virtual int32_t MP_STDCALL GetSelectedFilename(IMpUnknown* returnString) = 0;
 	};
@@ -429,7 +428,7 @@ namespace gmpi_gui
 		GmpiDrawing::Rect getRect() { return rect_; };
 
 		// Simplified host access.
-		void invalidateRect(const MP1_RECT* invalidRect = 0)
+		void invalidateRect(const MP1_RECT* invalidRect = nullptr)
 		{
 			guiHost_->invalidateRect(invalidRect);
 		}
@@ -656,8 +655,7 @@ namespace GmpiSdk
 			contextMenu->AddItem("", 0, gmpi_gui::MP_PLATFORM_MENU_SEPARATOR);
 		}
 
-		template<class T>
-		void populateFromObject(float x, float y, T* object)
+		void populateFromObject(float x, float y, gmpi::IMpUserInterface2* object)
 		{
 			currentCallback =
 				[object](int32_t idx)

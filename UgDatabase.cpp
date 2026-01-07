@@ -239,7 +239,11 @@ std::wstring parseModuleId(tinyxml2::XMLDocument& doc, const char* xml)
 
 	if (!doc.Error())
 	{
-		auto pluginList = doc.FirstChildElement("PluginList");
+		tinyxml2::XMLNode* pluginList = doc.FirstChildElement("PluginList");
+
+		if (!pluginList) // handle XML without <PluginList> only <Plugin>.
+			pluginList = &doc;
+
 		auto PluginElement = pluginList->FirstChildElement("Plugin");
 		assert(PluginElement);
 		return Utf8ToWstring(PluginElement->Attribute("id"));
@@ -263,7 +267,12 @@ int32_t CModuleFactory::RegisterPluginWithXml(int subType, const char* xml, MP_C
 
 	auto mi3 = FindOrCreateModuleInfo3(uniqueId);
 
-	mi3->ScanXml(doc.FirstChildElement("PluginList")->FirstChildElement("Plugin")->ToElement());
+	tinyxml2::XMLNode* pluginList = doc.FirstChildElement("PluginList");
+
+	if (!pluginList) // handle XML without <PluginList> only <Plugin>.
+		pluginList = &doc;
+
+	mi3->ScanXml(pluginList->FirstChildElement("Plugin")->ToElement());
 
 	return mi3->RegisterPluginConstructor(subType, create);
 }
@@ -487,10 +496,13 @@ void CModuleFactory::RegisterPluginsXml( const char* xml_data )
 		return;
 	}
 
-	auto pluginList = doc.FirstChildElement("PluginList");
+	tinyxml2::XMLNode* pluginList = doc.FirstChildElement("PluginList");
+
+	if (!pluginList) // handle XML without <PluginList> only <Plugin>.
+		pluginList = &doc;
 
 	if(pluginList) // Check it is a plugin description (not some other XML file in UAP)
-		RegisterPluginsXml(pluginList);
+		RegisterPluginsXml(pluginList->ToElement());
 }
 
 void CModuleFactory::RegisterExternalPluginsXmlOnce(TiXmlNode* /* pluginList */)
@@ -521,7 +533,12 @@ void CModuleFactory::RegisterExternalPluginsXmlOnce(TiXmlNode* /* pluginList */)
 		}
 
 		auto document_xml = doc.FirstChildElement("Document");
-		RegisterPluginsXml(document_xml->FirstChildElement("PluginList"));
+
+		tinyxml2::XMLNode* pluginList = document_xml->FirstChildElement("PluginList");
+		if (!pluginList)
+			pluginList = document_xml; // try without PluginList wrapper.
+
+		RegisterPluginsXml(pluginList->ToElement());
 	}
 }
 
@@ -621,7 +638,11 @@ Module_Info::Module_Info(class ug_base *(*ug_create)(), const char* xml) :
 	}
 	else
 	{
-		auto pluginList = doc2.FirstChildElement("PluginList");
+		tinyxml2::XMLNode* pluginList = doc2.FirstChildElement("PluginList");
+
+		if (!pluginList) // handle XML without <PluginList> only <Plugin>.
+			pluginList = &doc2;
+
 		auto node = pluginList->FirstChildElement("Plugin");
 		assert(node);
 		auto PluginElement = node->ToElement();
@@ -1097,6 +1118,7 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(Converters);
 	INIT_STATIC_FILE(FreqAnalyser2);
 	INIT_STATIC_FILE(FreqAnalyser3);
+	INIT_STATIC_FILE(FloatToVolts2);
 	INIT_STATIC_FILE(IdeLogger);
 	INIT_STATIC_FILE(ImpulseResponse);
 	INIT_STATIC_FILE(ImpulseResponse2);
@@ -1121,7 +1143,6 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(Waveshaper3Xp);
 	INIT_STATIC_FILE(Waveshapers);
 	INIT_STATIC_FILE(UserSettingText); // not generated automatically at present
-	INIT_STATIC_FILE(UserSettingText_Gui);
 	INIT_STATIC_FILE(UserSettingText_Controller);
 	INIT_STATIC_FILE(ImpulseResponse);
 
@@ -1130,7 +1151,8 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 //	INIT_STATIC_FILE(SignalLogger);
 
 	// when the UI is defined in JUCE, not SynthEdit, we don't include GUI modules
-#if !defined(SE_USE_JUCE_UI)
+#if SE_GRAPHICS_SUPPORT
+	INIT_STATIC_FILE(UserSettingText_Gui);
 	INIT_STATIC_FILE(Converters_GUI)
 	INIT_STATIC_FILE(FloatScaler2Gui);
 	INIT_STATIC_FILE(PatchMemoryFloat_Gui)
@@ -1179,13 +1201,12 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(MidiToCv2);
 	INIT_STATIC_FILE(RegistrationCheck) // has DSP also,but too bad.
 
-#if !defined(SE_USE_JUCE_UI)
+#if SE_GRAPHICS_SUPPORT
 	INIT_STATIC_FILE(PatchPointsGui)
-#endif
-
 	INIT_STATIC_FILE(CpuMeterGui);
 	INIT_STATIC_FILE(PatchPoints);
-	//	INIT_STATIC_FILE(Scope3);
+#endif
+
 	INIT_STATIC_FILE(VoiceMute);
 	INIT_STATIC_FILE(ug_adsr);
 	INIT_STATIC_FILE(ug_adder2);

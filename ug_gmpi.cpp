@@ -8,6 +8,7 @@
 #include "ProtectedFile.h"
 #include "mfc_emulation.h"
 #include "RefCountMacros.h"
+#include "GmpiSdkCommon.h"
 
 ug_gmpi::ug_gmpi(class Module_Info* p_moduleType, gmpi::api::IProcessor* p_plugin) : plugin_(p_plugin)
 {
@@ -141,6 +142,23 @@ int32_t ug_gmpi::getAutoduplicatePinCount()
 	return 0;
 }
 
+void ug_gmpi::listPins(gmpi::api::IUnknown* callback)
+{
+	gmpi::shared_ptr<gmpi::api::IUnknown> unknown(callback);
+	auto plugin_callback = unknown.as<synthedit::IProcessorPinsCallback>();
+
+	if(plugin_callback.isNull())
+		return;
+
+	for(auto& p : plugs)
+	{
+		plugin_callback->onPin(
+			p->Direction == DR_IN ? gmpi::PinDirection::In : gmpi::PinDirection::Out,
+			(gmpi::PinDatatype)p->DataType
+		);
+	}
+}
+
 gmpi::ReturnCode ug_gmpi::queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
 {
 	*returnInterface = {};
@@ -255,14 +273,24 @@ void ug_gmpi::DoProcess(int buffer_offset, int sampleframes)
 		if (!from->extraData)
 		{
 			auto src = reinterpret_cast<const uint8_t*>(&temp.parm3);
-			std::copy(src, src + sizeof(to->data_), to->data_);
+
+			// SE send bool vals as int32_t, convert them to real bools.
+			if(to->eventType == gmpi::api::EventType::PinSet && to->size_ == 4 && plugs[to->pinIdx]->DataType == DT_BOOL)
+			{
+				to->size_ = 1;
+				const bool val = *reinterpret_cast<const int32_t*>(src) ? 1 : 0;
+				std::copy(&val, &val + sizeof(val), to->data_);
+			}
+			else
+			{
+				std::copy(src, src + sizeof(to->data_), to->data_);
+			}
 		}
 #if _DEBUG
 		else
 		{
 			// 'extraData' should alias over the top of 'oversizeData_'
 			assert(to->oversizeData_ == (const uint8_t*)(temp.extraData));
-			// to->oversizeData_ = reinterpret_cast<uint8_t*>(temp.extraData); // 8 bytes. overwrites extraData.
 		}
 #endif
 	}

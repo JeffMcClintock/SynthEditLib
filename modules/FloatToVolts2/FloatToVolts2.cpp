@@ -14,6 +14,12 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 #include "Processor.h"
 #include "../se_sdk3/smart_audio_pin.h" // for the RampGeneratorAdaptive
+// copied MACRO as GMPI SDK has no equivalent
+#ifndef SE_DECLARE_INIT_STATIC_FILE
+#define SE_DECLARE_INIT_STATIC_FILE(filename) void se_static_library_init_##filename(){}
+#endif
+
+SE_DECLARE_INIT_STATIC_FILE(FloatToVolts2);
 
 using namespace gmpi;
 
@@ -39,7 +45,7 @@ struct FloatToVolts2 final : public Processor
 
 	void subProcess( int sampleFrames )
 	{
-		if (smoother.isDone())
+		if (smoother.isDone() && pinVoltsOut.isStreaming())
 		{
 			pinVoltsOut.setStreaming(false, 0);
 		}
@@ -54,7 +60,7 @@ struct FloatToVolts2 final : public Processor
 
 	void onSetPins() override
 	{
-		if(pinSmoothing.isUpdated() )
+		if( pinSmoothing.isUpdated() )
 		{
 			const auto target = 0.1f * pinFloatIn.getValue();
 			switch (pinSmoothing.getValue())
@@ -76,7 +82,7 @@ struct FloatToVolts2 final : public Processor
 				break;
 			}
 		}
-		if (pinFloatIn.isUpdated())
+		if( pinFloatIn.isUpdated() )
 		{
 			const auto target = 0.1f * pinFloatIn.getValue();
 			switch (pinSmoothing.getValue())
@@ -93,11 +99,11 @@ struct FloatToVolts2 final : public Processor
 			case 3: // None
 				smoother.setValueInstant(target);
 				break;
-			}
 		}
 
 		// Set state of output audio pins.
 		pinVoltsOut.setStreaming(true);
+		}
 
 		// Set processing method.
 		setSubProcess(&FloatToVolts2::subProcess);
@@ -109,7 +115,7 @@ namespace
 auto r = gmpi::Register<FloatToVolts2>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
 <PluginList>
-    <Plugin id="SE Float to Volts2" name="Float to Volts2" category="Debug">
+    <Plugin id="SE Float to Volts2" name="Float to Volts2" category="Conversion">
         <Audio>
             <Pin name="Smoothing" datatype="enum" metadata="Auto, Fast (4 samp), Smooth (30ms), None"/>
             <Pin name="Float In" datatype="float"/>

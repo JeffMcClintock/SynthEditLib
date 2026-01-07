@@ -2,6 +2,7 @@
 #include "SE2JUCE_Controller.h"
 #include "SE2JUCE_Processor.h"
 #include "Shared/se_logger.h"
+#include "conversion.h"
 
 MpParameterJuce::MpParameterJuce(SeJuceController* controller, int ParameterIndex, bool isInverted) :
 	MpParameter_native(controller)
@@ -274,10 +275,12 @@ void SeJuceController::ParamToProcessorAndHost(MpParameterJuce* param)
 {
     // JUCE does not provide for thread-safe notification to the processor, so handle this via the message queue.
 
+#if 0 // AI Master only
 	if (se_logger::is_log_enabled() && param->parameterHandle_ == 2 ) // 2 = PARAM_AIP12 (not-analysed, float)
 	{
 		se_logger::log("SeJuceController::ParamToProcessorAndHost() isAnalysed=" + std::to_string(param->getDawNormalized() == 0.0f) + "\n");
 	}
+#endif
 
     // NOTE: juceParameter->setValueNotifyingHost() also updates the DSP via the timer, but *only* if it detects a change in the value (which is often won't)
     ParamToDsp(param);
@@ -305,6 +308,7 @@ void SeJuceController::ParamToDsp(MpParameter* param, int32_t voiceId)
 {
 	MpController::ParamToDsp(param, voiceId);
 
+	// send a copy to the state manager
 	if (param->stateful_)
 	{
 		const auto field = gmpi::MP_FT_VALUE;
@@ -313,7 +317,7 @@ void SeJuceController::ParamToDsp(MpParameter* param, int32_t voiceId)
 
 		auto& queue = *ControllerToStateMgrQue();
 
-		if (!my_msg_que_output_stream::hasSpaceForMessage(&queue, messageSize))
+		if (!gmpi::hosting::my_msg_que_output_stream::hasSpaceForMessage(&queue, messageSize))
 		{
 			// queue full. drop message.
 			// _RPTN(0, "ControllerToStateMgrQue: QUEUE FULL!!! (%d bytes message)\n", size);
@@ -321,7 +325,7 @@ void SeJuceController::ParamToDsp(MpParameter* param, int32_t voiceId)
 			return;
 		}
 
-		my_msg_que_output_stream strm(&queue, param->parameterHandle_, "ppc");
+		gmpi::hosting::my_msg_que_output_stream strm(&queue, param->parameterHandle_, "ppc");
 		strm << messageSize;
 		strm << voiceId;
 		strm << field;

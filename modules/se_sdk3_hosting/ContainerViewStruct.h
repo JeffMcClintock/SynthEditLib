@@ -1,13 +1,5 @@
 #pragma once
 #include "ViewBase.h"
-//#include <vector>
-//#include <memory>
-//#include "./DrawingFrame_win32.h"
-
-namespace SE2
-{
-	class IPresenter;
-}
 
 namespace SE2
 {

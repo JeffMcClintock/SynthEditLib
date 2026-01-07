@@ -83,13 +83,14 @@ namespace SE2
 		}
 	};
 
+	// adapts a GMPI-UI plugin to a moduleview (which uses SDK3 graphics)
 	class GmpiUiHelper :
 		  public gmpi::api::IInputHost
 		, public gmpi::api::IDialogHost
 		, public gmpi::api::IEditorHost
-		, public gmpi::api::IEditorHost2_x
+		, public gmpi::api::IEditorHost2
 		, public gmpi::api::IDrawingHost
-		, public gmpi::api::IParameterSetter_x
+		, public gmpi::api::IParameterSetter
 		, public synthedit::IEmbeddedFileSupport
 	{
 		class ModuleView& moduleview;
@@ -100,8 +101,7 @@ namespace SE2
 		gmpi::ReturnCode setCapture() override;
 		gmpi::ReturnCode getCapture(bool& returnValue) override;
 		gmpi::ReturnCode releaseCapture() override;
-		gmpi::ReturnCode getFocus() override;
-		gmpi::ReturnCode releaseFocus() override;
+
 		// IEditorHost
 		gmpi::ReturnCode setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data) override;
 		int32_t getHandle() override;
@@ -136,9 +136,9 @@ namespace SE2
 			GMPI_QUERYINTERFACE(gmpi::api::IInputHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost);
-			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost2_x);		
+			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost2);		
 			GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
-			GMPI_QUERYINTERFACE(gmpi::api::IParameterSetter_x);
+			GMPI_QUERYINTERFACE(gmpi::api::IParameterSetter);
 			GMPI_QUERYINTERFACE(synthedit::IEmbeddedFileSupport);
 			return gmpi::ReturnCode::NoSupport;
 		}
@@ -153,7 +153,7 @@ namespace SE2
 	{
 	protected:
 		Module_Info* moduleInfo;
-		GmpiUiHelper uiHelper;
+		GmpiUiHelper uiHelper; // adapts GMPI-UI plugins to ModuleView (SDK3 style)
 
 	public:
 		static const int SelectionFrameOffset = 1;
@@ -358,7 +358,7 @@ namespace SE2
 #endif
 		// IViewChild.
 		bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		void setHover(bool mouseIsOverMe) override;
+		void vc_setHover(bool mouseIsOverMe) override;
 
 		GmpiDrawing::Size OffsetToClient()
 		{
@@ -376,7 +376,7 @@ namespace SE2
 		int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override;
 
 		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override;
-		int32_t onContextMenu(int32_t idx) override;
+		int32_t vc_onContextMenu(int32_t idx) override;
 
 		std::string getToolTip(GmpiDrawing_API::MP1_POINT point) override;
 		void receiveMessageFromAudio(void*) override;
@@ -410,7 +410,7 @@ namespace SE2
 		gmpi::shared_ptr<gmpi::api::IEditor> pluginParameters_GMPI;
 		gmpi::shared_ptr<gmpi::api::IInputClient> pluginInput_GMPI;
 		gmpi::shared_ptr<gmpi::api::IDrawingClient> pluginGraphics_GMPI;
-		gmpi::shared_ptr<gmpi::api::IEditor2_x> pluginEditor2;
+		gmpi::shared_ptr<gmpi::api::IEditor2> pluginEditor2;
 
 		// SubView
 		gmpi_sdk::mp_shared_ptr<ISubView> subView;

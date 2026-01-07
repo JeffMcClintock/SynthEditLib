@@ -215,6 +215,34 @@ struct XmlSaveHelper
 		xml->SetAttribute("cx", (int)value.width);
 		xml->SetAttribute("cy", (int)value.height);
 	}
+
+	template<>
+	void operator()(const char* name, const std::vector<std::wstring>& values)
+	{
+		auto xml = XmlParent->GetDocument()->NewElement(name);
+		XmlParent->LinkEndChild(xml);
+
+		for (auto& s : values)
+		{
+			auto fileE = XmlParent->GetDocument()->NewElement("string");
+			fileE->SetText(WStringToUtf8(s).c_str());
+			xml->InsertEndChild(fileE);
+		}
+	}
+
+	template<>
+	void operator()(const char* name, const std::vector<std::string>& values)
+	{
+		auto xml = XmlParent->GetDocument()->NewElement(name);
+		XmlParent->LinkEndChild(xml);
+
+		for (auto& s : values)
+		{
+			auto fileE = XmlParent->GetDocument()->NewElement("string");
+			fileE->SetText(s.c_str());
+			xml->InsertEndChild(fileE);
+		}
+	}
 };
 
 struct XmlLoadHelper
@@ -245,15 +273,13 @@ struct XmlLoadHelper
 	template<>
 	void operator()(const char* name, std::wstring& value)
 	{
+		value = {};
+
 		const char* temp{};
 		errorCode = XmlParent->QueryStringAttribute(name, &temp);
 		if (errorCode == tinyxml2::XML_SUCCESS)
 		{
 			value = Utf8ToWstring(temp);
-		}
-		else
-		{
-			value = {};
 		}
 	}
 
@@ -275,21 +301,21 @@ struct XmlLoadHelper
 	template<>
 	void operator()(const char* name, std::string& value)
 	{
+		value = {};
+
 		const char* temp{};
 		errorCode = XmlParent->QueryStringAttribute(name, &temp);
 		if (errorCode == tinyxml2::XML_SUCCESS)
 		{
 			value = temp;
 		}
-		else
-		{
-			value = {};
-		}
 	}
 
 	template<>
 	void operator()(const char* name, GmpiDrawing::RectL& value)
 	{
+		value = {};
+
 		auto xml = XmlParent->FirstChildElement(name);
 		if (xml == nullptr)
 			return;
@@ -320,6 +346,8 @@ struct XmlLoadHelper
 	template<>
 	void operator()(const char* name, GmpiDrawing::PointL& value)
 	{
+		value = {};
+
 		auto xml = XmlParent->FirstChildElement(name);
 		if (xml == nullptr)
 			return;
@@ -340,6 +368,8 @@ struct XmlLoadHelper
 	template<>
 	void operator()(const char* name, GmpiDrawing::SizeL& value)
 	{
+		value = {};
+
 		auto xml = XmlParent->FirstChildElement(name);
 		if (xml == nullptr)
 			return;
@@ -356,77 +386,34 @@ struct XmlLoadHelper
 			return;
 		value.height = temp;
 	}
-#ifdef _MFC_VER
 
-	// MFC types Support.
 	template<>
-	void operator()(const char* name, CRect& value)
+	void operator()(const char* name, std::vector<std::wstring>& values)
 	{
+		values.clear();
+
 		auto xml = XmlParent->FirstChildElement(name);
-		if (xml == nullptr)
+		if (!xml)
 			return;
 
-		int temp = 0;
-
-		errorCode = xml->QueryIntAttribute("l", &temp);
-		if (errorCode != tinyxml2::XML_SUCCESS)
-			return;
-		value.left = temp;
-
-		errorCode = xml->QueryIntAttribute("r", &temp);
-		if (errorCode != tinyxml2::XML_SUCCESS)
-			return;
-		value.right = temp;
-
-		errorCode = xml->QueryIntAttribute("t", &temp);
-		if (errorCode != tinyxml2::XML_SUCCESS)
-			return;
-		value.top = temp;
-
-		errorCode = xml->QueryIntAttribute("b", &temp);
-		if (errorCode != tinyxml2::XML_SUCCESS)
-			return;
-		value.bottom = temp;
+		for (auto fileE = xml->FirstChildElement("string"); fileE; fileE = fileE->NextSiblingElement())
+		{
+			values.push_back(Utf8ToWstring(fileE->GetText()));
+		}
 	}
 
 	template<>
-	void operator()(const char* name, CPoint& value)
+	void operator()(const char* name, std::vector<std::string>& values)
 	{
+		values.clear();
+
 		auto xml = XmlParent->FirstChildElement(name);
-		if (xml == nullptr)
+		if (!xml)
 			return;
 
-		int temp = 0;
-
-		errorCode = xml->QueryIntAttribute("x", &temp);
-		if (errorCode != tinyxml2::XML_SUCCESS)
-			return;
-		value.x = temp;
-
-		errorCode = xml->QueryIntAttribute("y", &temp);
-		if (errorCode != tinyxml2::XML_SUCCESS)
-			return;
-		value.y = temp;
+		for (auto fileE = xml->FirstChildElement("string"); fileE; fileE = fileE->NextSiblingElement())
+		{
+			values.push_back(fileE->GetText());
+		}
 	}
-
-	template<>
-	void operator()(const char* name, CSize& value)
-	{
-		auto xml = XmlParent->FirstChildElement(name);
-		if (xml == nullptr)
-			return;
-
-		int temp = 0;
-
-		errorCode = xml->QueryIntAttribute("cx", &temp);
-		if (errorCode != tinyxml2::XML_SUCCESS)
-			return;
-		value.cx = temp;
-
-		errorCode = xml->QueryIntAttribute("cy", &temp);
-		if (errorCode != tinyxml2::XML_SUCCESS)
-			return;
-		value.cy = temp;
-	}
-#endif // MFC
 };

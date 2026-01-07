@@ -87,11 +87,10 @@ bool Module_Info3::LoadDllOnDemand()
 						}
 						else
 						{
-							auto pluginList = doc2.FirstChildElement("PluginList");
-							if (!pluginList)
-							{
-								return true; // fail
-							}
+							tinyxml2::XMLNode* pluginList = doc2.FirstChildElement("PluginList");
+
+							if (!pluginList) // handle XML without <PluginList> only <Plugin>.
+								pluginList = &doc2;
 
 							auto PluginElement = pluginList->FirstChildElement("Plugin");
 							if (!PluginElement)

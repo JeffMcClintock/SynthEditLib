@@ -2,7 +2,7 @@
 #include "helpers/Timer.h"
 #include "../shared/simdutf/simdutf.h"
 
-struct SsgNumberEditClient
+struct NumberEditClient
 {
     virtual void repaintText() = 0;
     virtual void setEditValue(std::string value) = 0;
@@ -126,9 +126,9 @@ public:
 	}
 };
 
-class SsgNumberEdit : public gmpi::TimerClient, public gmpi::api::IKeyListenerCallback // juce::Component, public juce::Timer, public juce::ModalComponentManager::Callback
+class NumberEdit : public gmpi::TimerClient, public gmpi::api::IKeyListenerCallback // juce::Component, public juce::Timer, public juce::ModalComponentManager::Callback
 {
-    SsgNumberEditClient& client;
+    NumberEditClient& client;
     int timerCounter = 0;
 
     int selectedFrom = -1;
@@ -138,11 +138,11 @@ class SsgNumberEdit : public gmpi::TimerClient, public gmpi::api::IKeyListenerCa
     gmpi::shared_ptr<gmpi::api::IKeyListener> listener;
 
 public:
-    SsgNumberEdit(SsgNumberEditClient& pclient) : client(pclient)
+    NumberEdit(NumberEditClient& pclient) : client(pclient)
     {
 //        setWantsKeyboardFocus(true);
     }
-    ~SsgNumberEdit()
+    ~NumberEdit()
     {
 //        juce::Desktop::getInstance().removeGlobalMouseListener(this);
     }

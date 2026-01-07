@@ -206,9 +206,12 @@ RawView MpParameter::getValueRaw(gmpi::FieldType paramField, int32_t voice)
 
 	case gmpi::MP_FT_SHORT_NAME:
 	case gmpi::MP_FT_LONG_NAME:
-	{
 		return RawView(name_);
-	}
+		break;
+
+	case  gmpi::MP_FT_HINT:
+		return RawView(hint_);
+		break;
 
 	case gmpi::MP_FT_MENU_SELECTION:
 		return RawView(zero);

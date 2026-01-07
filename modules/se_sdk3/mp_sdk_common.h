@@ -157,7 +157,7 @@ namespace gmpi
 #define GMPI_QUERYINTERFACE1( INTERFACE_IID, CLASS_NAME ) \
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override \
 { \
-	*returnInterface = 0; \
+	*returnInterface = nullptr; \
 	if (iid == INTERFACE_IID || iid == gmpi::MP_IID_UNKNOWN ) \
 { \
 	*returnInterface = static_cast<CLASS_NAME*>(this); \
@@ -197,7 +197,7 @@ namespace gmpi
 #define GMPI_QUERYINTERFACE2( INTERFACE_IID, CLASS_NAME, BASE_CLASS ) \
 	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override \
 { \
-	*returnInterface = 0; \
+	*returnInterface = nullptr; \
 	if (iid == INTERFACE_IID ) \
 { \
 	*returnInterface = static_cast<CLASS_NAME*>(this); \
@@ -382,7 +382,7 @@ enum MP_ProtectedFileSeekType{ PFST_BEGIN = 0, PFST_CURRENT = 1, PFST_END = 2 };
 class IProtectedFile2 : public IMpUnknown
 {
 public:
-	virtual int32_t MP_STDCALL read(void* buffer, int64_t size, int64_t* returnBytesRead = 0) = 0;
+	virtual int32_t MP_STDCALL read(void* buffer, int64_t size, int64_t* returnBytesRead = nullptr) = 0;
 	virtual int32_t MP_STDCALL seek(int64_t distanceToMove, int32_t moveMethod, int64_t* newStreamPosition) = 0;
 	virtual int32_t MP_STDCALL getSize(int64_t* returnValue) = 0;
 };
@@ -745,6 +745,7 @@ enum FieldType {
 	, MP_FT_GRAB					// (mouse down) bool
 	, MP_FT_NORMALIZED				// float
 	, MP_FT_STATEFUL				// bool
+	, MP_FT_HINT					// std::string
 };
 
 class IMpParameterObserver : public IMpUnknown
@@ -1320,6 +1321,7 @@ inline void VariableFromRaw<bool>( int size, const void* data, bool& returnValue
 	}
 	else
 	{
+		// GMPI passes bool as 1 byte
 		assert( size == 1 );
 		returnValue = *((bool*) data);
 	}

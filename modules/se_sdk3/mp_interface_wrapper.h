@@ -103,7 +103,7 @@ namespace GmpiSdk
 			{
 				return (!isNull());
 			}
-			gmpi::IMpUnknown*& Unknown() { return m_ptr.get(); };
+			gmpi::IMpUnknown*& Unknown() { return m_ptr.get(); }
 			inline bool isNull() const
 			{
 				auto nonConstThis = const_cast<Object*>(this);

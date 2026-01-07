@@ -190,13 +190,13 @@ retry1b:
 				goto retry1b; // very important not to go recalc x2 (small numerical errors/rounding can cause endless looping)
 			}
 
-			y1 = segments[m_segment].mod_ammount;
-			y2 = segments[m_segment+1].mod_ammount;
+			y1 = segments[m_segment].mod_amount;
+			y2 = segments[m_segment+1].mod_amount;
 		}
 		else
 		{
 retry2:
-			x2 = segments[m_segment+1].phase + modulation * segments[m_segment+1].mod_ammount;
+			x2 = segments[m_segment+1].phase + modulation * segments[m_segment+1].mod_amount;
 
 			if( x >= x2 )
 			{
@@ -205,7 +205,7 @@ retry2:
 			}
 
 retry2b:
-			x1 = segments[m_segment  ].phase + modulation * segments[m_segment  ].mod_ammount;
+			x1 = segments[m_segment  ].phase + modulation * segments[m_segment  ].mod_amount;
 
 			if( x < x1 )
 			{
@@ -338,13 +338,13 @@ void ug_oscillator_pd::sub_process_fp(int start_pos, int sampleframes)
 				goto retry1b;
 			}
 
-			y1 = segments[m_segment].mod_ammount;
-			y2 = segments[m_segment+1].mod_ammount;
+			y1 = segments[m_segment].mod_amount;
+			y2 = segments[m_segment+1].mod_amount;
 		}
 		else
 		{
 			retry2:
-			x2 = segments[m_segment+1].phase + modulation * segments[m_segment+1].mod_ammount;
+			x2 = segments[m_segment+1].phase + modulation * segments[m_segment+1].mod_amount;
 
 			if( x >= x2 )
 			{
@@ -353,7 +353,7 @@ void ug_oscillator_pd::sub_process_fp(int start_pos, int sampleframes)
 			}
 
 			retry2b:
-			x1 = segments[m_segment  ].phase + modulation * segments[m_segment  ].mod_ammount;
+			x1 = segments[m_segment  ].phase + modulation * segments[m_segment  ].mod_amount;
 
 			if( x < x1 )
 			{
@@ -464,13 +464,13 @@ void ug_oscillator_pd::FillSegmentTable()
 		case 0: // SAW
 			{
 				segments[i].phase		= 0.0;
-				segments[i].mod_ammount	= 0.f;
+				segments[i].mod_amount	= 0.f;
 				i++;
 				segments[i].phase		= 0.5;
-				segments[i].mod_ammount	= -0.5;
+				segments[i].mod_amount	= -0.5;
 				i++;
 				segments[i].phase		= 1.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 			}
 			break;
@@ -478,41 +478,41 @@ void ug_oscillator_pd::FillSegmentTable()
 		case 1:	// SQR
 			{
 				segments[i].phase		= 0.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 				segments[i].phase		= 0.0;
-				segments[i].mod_ammount	= 0.25;
+				segments[i].mod_amount	= 0.25;
 				i++;
 				segments[i].phase		= 0.5;
-				segments[i].mod_ammount	= -0.25;
+				segments[i].mod_amount	= -0.25;
 				i++;
 				segments[i].phase		= 0.5;
-				segments[i].mod_ammount	= 0.25;
+				segments[i].mod_amount	= 0.25;
 				i++;
 				segments[i].phase		= 1.0;
-				segments[i].mod_ammount	= -0.25;
+				segments[i].mod_amount	= -0.25;
 				i++;
 				segments[i].phase		= 1.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 				/* cool pulse wave
 								segments[i].phase		= 0.0;
-								segments[i].mod_ammount	= 0.0;
+								segments[i].mod_amount	= 0.0;
 								i++;
 								segments[i].phase		= 0.25;
-								segments[i].mod_ammount	= -0.25;
+								segments[i].mod_amount	= -0.25;
 								i++;
 								segments[i].phase		= 0.25;
-								segments[i].mod_ammount	= 0.25;
+								segments[i].mod_amount	= 0.25;
 								i++;
 								segments[i].phase		= 0.75;
-								segments[i].mod_ammount	= -0.25;
+								segments[i].mod_amount	= -0.25;
 								i++;
 								segments[i].phase		= 0.75;
-								segments[i].mod_ammount	= 0.25;
+								segments[i].mod_amount	= 0.25;
 								i++;
 								segments[i].phase		= 1.0;
-								segments[i].mod_ammount	= 0.0;
+								segments[i].mod_amount	= 0.0;
 								i++;
 				*/
 			}
@@ -521,16 +521,16 @@ void ug_oscillator_pd::FillSegmentTable()
 		case 2: // CASIO PULSE
 			{
 				segments[i].phase		= 0.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 				segments[i].phase		= 0.0;
-				segments[i].mod_ammount	= 0.5;
+				segments[i].mod_amount	= 0.5;
 				i++;
 				segments[i].phase		= 1.0;
-				segments[i].mod_ammount	= -0.5;
+				segments[i].mod_amount	= -0.5;
 				i++;
 				segments[i].phase		= 1.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 			}
 			break;
@@ -538,16 +538,16 @@ void ug_oscillator_pd::FillSegmentTable()
 		case 4: // Half SINE
 			{
 				segments[i].phase		= 0.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 				segments[i].phase		= 0.5;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 				segments[i].phase		= 1.0;
-				segments[i].mod_ammount	= -0.5;
+				segments[i].mod_amount	= -0.5;
 				i++;
 				segments[i].phase		= 1.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 			}
 			break;
@@ -556,15 +556,15 @@ void ug_oscillator_pd::FillSegmentTable()
 			{
 				segments[i].phase		= 0.0;
 				segments[i].phase2		= 0.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 				segments[i].phase		= 0.5;
 				segments[i].phase2		= 1.0;
-				segments[i].mod_ammount	= -0.5;
+				segments[i].mod_amount	= -0.5;
 				i++;
 				segments[i].phase		= 1.0;
 				segments[i].phase2		= 2.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 				/*
 								m_cycle_count++;
@@ -577,19 +577,19 @@ void ug_oscillator_pd::FillSegmentTable()
 								i++;
 								segments[i].phase		= 1.0;
 								segments[i].phase2		= 1.0;
-								segments[i].mod_ammount	= 0.0;
+								segments[i].mod_amount	= 0.0;
 								i++;
 				*/
 				/*
 
 								segments[i].phase		= 0.0;
-								segments[i].mod_ammount	= 0.0;
+								segments[i].mod_amount	= 0.0;
 								i++;
 								segments[i].phase		= 0.5;
-								segments[i].mod_ammount	= 0.5;
+								segments[i].mod_amount	= 0.5;
 								i++;
 								segments[i].phase		= 1.0;
-								segments[i].mod_ammount	= 0.0;
+								segments[i].mod_amount	= 0.0;
 								i++;
 
 								m_cycle_count++;
@@ -597,13 +597,13 @@ void ug_oscillator_pd::FillSegmentTable()
 								m_wrap_idx[m_cycle_count] = i;
 
 								segments[i].phase		= 0.0;
-								segments[i].mod_ammount	= 0.0;
+								segments[i].mod_amount	= 0.0;
 								i++;
 								segments[i].phase		= 0.5;
-								segments[i].mod_ammount	= -0.5;
+								segments[i].mod_amount	= -0.5;
 								i++;
 								segments[i].phase		= 1.0;
-								segments[i].mod_ammount	= 0.0;
+								segments[i].mod_amount	= 0.0;
 								i++;*/
 			}
 			break;
@@ -612,10 +612,10 @@ void ug_oscillator_pd::FillSegmentTable()
 			{
 				m_reso_section[m_cycle_count] = true;
 				segments[i].phase		= 0.0;
-				segments[i].mod_ammount	= 1.0;
+				segments[i].mod_amount	= 1.0;
 				i++;
 				segments[i].phase		= 1.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 			}
 			break;
@@ -624,13 +624,13 @@ void ug_oscillator_pd::FillSegmentTable()
 			{
 				m_reso_section[m_cycle_count] = true;
 				segments[i].phase		= 0.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 				segments[i].phase		= 0.5;
-				segments[i].mod_ammount	= 1.0;
+				segments[i].mod_amount	= 1.0;
 				i++;
 				segments[i].phase		= 1.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 			}
 			break;
@@ -639,13 +639,13 @@ void ug_oscillator_pd::FillSegmentTable()
 			{
 				m_reso_section[m_cycle_count] = true;
 				segments[i].phase		= 0.0;
-				segments[i].mod_ammount	= 1.0;
+				segments[i].mod_amount	= 1.0;
 				i++;
 				segments[i].phase		= 0.5;
-				segments[i].mod_ammount	= 1.0;
+				segments[i].mod_amount	= 1.0;
 				i++;
 				segments[i].phase		= 1.0;
-				segments[i].mod_ammount	= 0.0;
+				segments[i].mod_amount	= 0.0;
 				i++;
 			}
 			break;

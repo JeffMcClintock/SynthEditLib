@@ -641,7 +641,7 @@ namespace SE2
 #endif
 	}
 
-	void ConnectorView2::setHover(bool mouseIsOverMe)
+	void ConnectorView2::vc_setHover(bool mouseIsOverMe)
 	{
 		mouseHover = mouseIsOverMe;
 

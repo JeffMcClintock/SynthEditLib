@@ -251,33 +251,33 @@ function(synthedit_plugin)
 
     # add SDK files
     set(plugin_includes
-        ${gmpi_sdk_folder}
-        ${gmpi_sdk_folder}/Core
+        ${GMPI_SDK}
+        ${GMPI_SDK}/Core
     )
     
     set(sdk_srcs
-        ${gmpi_sdk_folder}/Core/Common.h
-        ${gmpi_sdk_folder}/Core/Common.cpp
-        ${gmpi_sdk_folder}/Core/RefCountMacros.h
-        ${gmpi_sdk_folder}/Core/GmpiApiCommon.h
-        ${gmpi_sdk_folder}/Core/GmpiSdkCommon.h
+        ${GMPI_SDK}/Core/Common.h
+        ${GMPI_SDK}/Core/Common.cpp
+        ${GMPI_SDK}/Core/RefCountMacros.h
+        ${GMPI_SDK}/Core/GmpiApiCommon.h
+        ${GMPI_SDK}/Core/GmpiSdkCommon.h
     )
 
     if(GMPI_PLUGIN_HAS_DSP)
         list(APPEND sdk_srcs
-            ${gmpi_sdk_folder}/Core/Processor.h
-            ${gmpi_sdk_folder}/Core/Processor.cpp
-            ${gmpi_sdk_folder}/Core/GmpiApiAudio.h
+            ${GMPI_SDK}/Core/Processor.h
+            ${GMPI_SDK}/Core/Processor.cpp
+            ${GMPI_SDK}/Core/GmpiApiAudio.h
         )
     endif()
 
     if(GMPI_PLUGIN_HAS_GUI)
         list(APPEND sdk_srcs
-            ${gmpi_ui_folder}/GmpiApiDrawing.h
-            ${gmpi_sdk_folder}/Core/GmpiApiEditor.h
-            ${gmpi_ui_folder}/Drawing.h
+            ${GMPI_UI_SDK}/GmpiApiDrawing.h
+            ${GMPI_SDK}/Core/GmpiApiEditor.h
+            ${GMPI_UI_SDK}/Drawing.h
         )
-        list(APPEND plugin_includes ${gmpi_ui_folder})
+        list(APPEND plugin_includes ${GMPI_UI_SDK})
     endif()
 
     if(GMPI_PLUGIN_HAS_XML)

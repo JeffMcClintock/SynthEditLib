@@ -121,7 +121,7 @@ namespace SE2
 		{
 			return gmpi::MP_UNHANDLED;
 		}
-		void setHover(bool mouseIsOverMe) override;
+		void vc_setHover(bool mouseIsOverMe) override;
 
 		void OnMoved(GmpiDrawing::Rect& newRect) override
 		{

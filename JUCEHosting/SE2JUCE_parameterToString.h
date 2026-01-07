@@ -155,3 +155,52 @@ inline juce::String displayRealNumberD2(double value)
 
     return juce::String(txt);
 }
+
+inline juce::String displayRealNumber2(float value, int /*maxLen*/)
+{
+	return displayRealNumberD2(static_cast<double>(value));
+}
+
+// 2 decimal points max, none over 100.0
+// 0.02
+// 1.22
+// 10.2
+// 110
+inline juce::String displayRealNumberD3(double value)
+{
+    char txt[12];
+    if (fabs(value) < 10.)
+    {
+#if defined(_MSC_VER)
+        sprintf_s(txt, "%.2f", value);
+#else
+        sprintf(txt, "%.2f", value);
+#endif
+    }
+    else
+    {
+        if (fabs(value) < 100.)
+        {
+#if defined(_MSC_VER)
+            sprintf_s(txt, "%.1f", value);
+#else
+            sprintf(txt, "%.1f", value);
+#endif
+        }
+        else
+        {
+#if defined(_MSC_VER)
+            sprintf_s(txt, "%.0f", value);
+#else
+            sprintf(txt, "%.0f", value);
+#endif
+        }
+    }
+
+    return juce::String(txt);
+}
+
+inline juce::String displayRealNumber3(float value, int /*maxLen*/)
+{
+    return displayRealNumberD3(static_cast<double>(value));
+}

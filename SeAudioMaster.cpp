@@ -32,11 +32,13 @@
 #include "ug_oversampler_in.h"
 #include "mfc_emulation.h"
 #include "ProcessorStateManager.h"
+#include "BundleInfo.h"
+#include "Processor.h"
+#include "ug_gmpi.h"
 
 #if defined(CANCELLATION_TEST_ENABLE) || defined(CANCELLATION_TEST_ENABLE2)
 #include "conversion.h"
 #include "ug_oscillator2.h"
-#include "BundleInfo.h"
 #endif
 
 using namespace std;
@@ -77,6 +79,41 @@ bs	time
 LookupTables SeAudioMaster::lookup_tables;
 
 gmpi_sdk::CriticalSectionXp audioMasterLock_;
+
+struct SnapshotTimer final : public gmpi::Processor
+{
+	int64_t target_time{-1};
+	int64_t time{};
+
+	void subProcess(int sampleFrames)
+	{
+		if (time <= target_time && time + sampleFrames < target_time)
+		{
+			auto audioMaster = dynamic_cast<ug_base*>(host.get())->AudioMaster2();
+			audioMaster->interrupt_cancellation_snapshot = true;
+			audioMaster->TriggerInterrupt();
+		}
+
+		time += sampleFrames;
+	}
+
+	gmpi::ReturnCode open(gmpi::api::IUnknown* phost) override
+	{
+		setSubProcess(&SnapshotTimer::subProcess);
+		setSleep(false);
+		return gmpi::Processor::open(phost);
+	}
+};
+
+namespace
+{
+auto r = gmpi::Register<SnapshotTimer>::withXml(R"XML(
+<?xml version="1.0" encoding="UTF-8"?>
+<Plugin id="SE Snapshot Timer" name="Snapshot Timer" alwaysExport="true" category="Debug">
+    <Audio/>
+</Plugin>
+)XML");
+}
 
 LookupTables::~LookupTables()
 {
@@ -169,7 +206,7 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 	,next_master_clock(0)
 	,m_sample_clock(0)
 	,interrupt_flag( false )	// flag software interupt
-	,interupt_start_fade_out(false)
+	,interrupt_start_fade_out(false)
 	,maxLatency(0)
 	,block_start_clock(0)
 	,m_shell(p_shell)
@@ -187,7 +224,33 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 #if (defined(CANCELLATION_TEST_ENABLE) || defined(CANCELLATION_TEST_ENABLE2))
 	getShell()->SetCancellationMode();
 #endif
+	/* 
+	    CANCELLATION SNAPSHOT TESTING (NEW)
 
+	    Place a file beside the plugin named e.g. MyPlugin.xml
+		containing e.g.
+
+		<?xml version="1.0" encoding="UTF-8"?>
+		<Cancellation SnapshotTimestamp="200" />
+	*/
+	{
+		const auto cancellationSettingFile = BundleInfo::instance()->getPluginPath().replace_extension("xml");
+		if (std::filesystem::exists(cancellationSettingFile))
+		{
+			tinyxml2::XMLDocument doc;
+			if (doc.LoadFile(cancellationSettingFile.string().c_str()) == tinyxml2::XML_SUCCESS)
+			{
+				if (auto root = doc.RootElement() ; root)
+				{
+					root->QueryInt64Attribute("SnapshotTimestamp", &cancellation_snapshot_timestamp);
+				}
+			}
+
+			// if the file exists, we're entering cancellation mode (repeatable random number seed).
+			// if the file contains a SnapshotTimestamp attribute, we will in addition snapshot at that timestamp.
+			getShell()->SetCancellationMode(); // TODO!!!!, only does anything in SynthRuntime_editor
+		}
+	}
 	// _RPT1(_CRT_WARN, "Samplerate %f\n", m_samplerate );
 
 	// zero time structure
@@ -399,6 +462,17 @@ void SeAudioMaster::BuildDspGraph(
 		);
 		main_container->BuildAutomationModules();
 
+		// setup cancellation timer
+		if (cancellation_snapshot_timestamp > -1)
+		{
+			auto snapshottimer_t = ModuleFactory()->GetById(L"SE Snapshot Timer");
+			auto ug = dynamic_cast<ug_gmpi*>(snapshottimer_t->BuildSynthOb());
+			auto sst = dynamic_cast<SnapshotTimer*>(ug->plugin_.get());
+			sst->target_time = cancellation_snapshot_timestamp;
+			main_container->AddUG(ug);
+			ug->SetupWithoutCug();
+		}
+
 #if defined( _DEBUG )
 		if (!debug_missing_modules.empty())
 		{
@@ -556,7 +630,7 @@ void SeAudioMaster::DoProcess_plugin(int sampleframes, const float* const* input
 	} while (sampleframes > 0);
 
 	// Send updates to GUI
-	m_shell->ServiceDspWaiters2(sampleframesCopy);
+	PostProcess(sampleframesCopy);
 }
 
 void SeAudioMaster::DoProcess_editor(int sampleframes, const float* const* inputs, float* const* outputs, int numInputs, int numOutputs)
@@ -694,10 +768,30 @@ void SeAudioMaster::DoProcess_editor(int sampleframes, const float* const* input
 	} while (sampleframes > 0);
 
 	// Send updates to GUI
-	m_shell->ServiceDspWaiters2(sampleframesCopy);
+	PostProcess(sampleframesCopy);
 
 	const auto elapsed = std::chrono::steady_clock::now() - cpuStartTime;
 	UpdateCpu(std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count());
+}
+
+void SeAudioMaster::PostProcess(int sampleframes)
+{
+	m_shell->ServiceDspWaiters2(sampleframes);
+
+	watchdogCounter -= sampleframes;
+	if (watchdogCounter < 0)
+	{
+		watchdogCounter = static_cast<int>(m_samplerate) / 2; // 1/2 second
+
+		auto queue = getShell()->MessageQueToGui();
+
+		if (my_msg_que_output_stream::hasSpaceForMessage(queue, 0))
+		{
+			my_msg_que_output_stream strm(queue, Handle(), "wdog"); // Processor watchdog.
+			strm << (int32_t)0; // message length.
+			strm.Send();
+		}
+	}
 }
 
 void SeAudioMaster::MidiIn( int delta, const unsigned char* MidiMsg, int length )
@@ -1225,7 +1319,7 @@ void SeAudioMaster::TriggerRestart()
 	state = audioMasterState::AsyncRestart;
 //	_RPT0(0, "audioMasterState::AsyncRestart\n");
 
-	interupt_start_fade_out = true;
+	interrupt_start_fade_out = true;
 	TriggerInterrupt();
 }
 
@@ -1244,7 +1338,7 @@ void SeAudioMaster::TriggerShutdown()
 	state = audioMasterState::Stopping;
 //	_RPT0(0, "audioMasterState::Stopping\n");
 
-	interupt_start_fade_out = true;
+	interrupt_start_fade_out = true;
 	TriggerInterrupt();
 }
 
@@ -1259,9 +1353,9 @@ void SeAudioMaster::HandleInterrupt()
 		Patchmanager_->setPreset(preset);
 	}
 
-	if( interupt_start_fade_out )
+	if( interrupt_start_fade_out )
 	{
-		interupt_start_fade_out = false;
+		interrupt_start_fade_out = false;
 
 		if (audioOutModule) // will be null under automated testing.
 		{
@@ -1273,9 +1367,9 @@ void SeAudioMaster::HandleInterrupt()
 		}
 	}
 
-	if(interupt_module_latency_change)
+	if(interrupt_module_latency_change)
 	{
-		interupt_module_latency_change = false;
+		interrupt_module_latency_change = false;
 
 		bool latencyNeedsCalculating = false;
 		const auto& moduleLatencies = getShell()->GetModuleLatencies();
@@ -1314,6 +1408,12 @@ void SeAudioMaster::HandleInterrupt()
 			_RPT0(0, "interrupt_clear_delays - ignored (sampleclock == 0)\n");
 		}
 	}
+
+	if (interrupt_cancellation_snapshot)
+	{
+		interrupt_cancellation_snapshot = false;
+		CancellationFreeze3();
+	}
 }
 
 void SeAudioMaster::SetModuleLatency(int32_t handle, int32_t latency)
@@ -1341,7 +1441,7 @@ void SeAudioMaster::SetModuleLatency(int32_t handle, int32_t latency)
 		(*it).second = latency;
 	}
 
-	interupt_module_latency_change = true;
+	interrupt_module_latency_change = true;
 	TriggerInterrupt();
 }
 
@@ -1485,7 +1585,31 @@ void AudioMasterBase::CancellationFreeze([[maybe_unused]] timestamp_t sample_clo
 	}
 #endif
 }
- 
+
+void AudioMasterBase::CancellationFreeze3()
+{
+	const int32_t blockSize = BlockSize();
+
+	// determin output folder in users Documents
+	std::filesystem::path outputFolder(BundleInfo::instance()->getUserDocumentFolder());
+	outputFolder /= "cancellation" / BundleInfo::instance()->getPluginPath().filename().replace_extension("");
+	std::filesystem::create_directories(outputFolder);
+
+	std::filesystem::path filename = outputFolder / "snapshot.raw";
+
+	FILE* file = fopen(filename.string().c_str(), "wb");
+
+	if (!file)
+		return;
+
+	// Write blocksize
+	fwrite(&blockSize, sizeof(blockSize), 1, file);
+
+	WriteCancellationData(blockSize, file);
+
+	fclose(file);
+}
+
 #ifdef CANCELLATION_TEST_ENABLE2
 void AudioMasterBase::CancellationFreeze2(timestamp_t sample_clock)
 {
@@ -1523,6 +1647,7 @@ void AudioMasterBase::CancellationFreeze2(timestamp_t sample_clock)
 		fclose(file);
 	}
 }
+#endif
 
 void AudioMasterBase::WriteCancellationData(int32_t blockSize, FILE* file)
 {
@@ -1593,7 +1718,6 @@ void AudioMasterBase::WriteCancellationData(int32_t blockSize, FILE* file)
 	}
 }
 
-#endif
 
 void AudioMasterBase::processModules_plugin(
 	int lBlockPosition
@@ -2234,7 +2358,7 @@ int SeAudioMaster::Open( )
 void SeAudioMaster::UpdateUI()
 {
 	my_msg_que_output_stream strm( getShell()->MessageQueToGui(), Handle(), "refr");
-	strm << (int) 0; // message length.
+	strm << (int32_t) 0; // message length.
 	strm.Send();
 }
 

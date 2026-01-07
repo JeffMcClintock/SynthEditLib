@@ -463,7 +463,7 @@ enum MP_ProtectedFileSeekType{ PFST_BEGIN = 0, PFST_CURRENT = 1, PFST_END = 2 };
 class IProtectedFile2 : public IMpUnknown
 {
 public:
-	virtual int32_t MP_STDCALL read(void* buffer, int64_t size, int64_t* returnBytesRead = 0) = 0;
+	virtual int32_t MP_STDCALL read(void* buffer, int64_t size, int64_t* returnBytesRead = nullptr) = 0;
 	virtual int32_t MP_STDCALL seek(int64_t distanceToMove, int32_t moveMethod, int64_t* newStreamPosition) = 0;
 	virtual int32_t MP_STDCALL getSize(int64_t* returnValue) = 0;
 };
@@ -792,7 +792,7 @@ static const MpGuid MP_IID_UI_HOST2 =
 { 0xde009d92, 0xe281, 0x4f92, { 0x99, 0x96, 0x20, 0xf, 0x49, 0x69, 0x0, 0x28 } };
 
 enum FieldType {
-	MP_FT_VALUE
+	  MP_FT_VALUE
 	, MP_FT_SHORT_NAME
 	, MP_FT_LONG_NAME
 	, MP_FT_MENU_ITEMS
@@ -809,6 +809,7 @@ enum FieldType {
 	, MP_FT_GRAB					// (mouse down) bool
 	, MP_FT_NORMALIZED				// float
 	, MP_FT_STATEFUL				// bool
+	, MP_FT_HINT					// std::string
 };
 
 class IMpParameterObserver : public IMpUnknown
@@ -990,18 +991,18 @@ namespace gmpi_sdk
 	template<class wrappedObjT>
 	class mp_shared_ptr
 	{
-		wrappedObjT* obj;
+        wrappedObjT* obj{};
 
 	public:
-		mp_shared_ptr() : obj(0)
+		mp_shared_ptr()
 		{
 		}
 
-		explicit mp_shared_ptr(wrappedObjT* newobj) : obj(0)
+		explicit mp_shared_ptr(wrappedObjT* newobj)
 		{
 			Assign(newobj);
 		}
-		mp_shared_ptr(const mp_shared_ptr<wrappedObjT>& value) : obj(0)
+		mp_shared_ptr(const mp_shared_ptr<wrappedObjT>& value)
 		{
 			Assign(value.obj);
 		}
@@ -1064,14 +1065,14 @@ namespace gmpi_sdk
 		}
 		void** asIMpUnknownPtr()
 		{
-			assert(obj == 0); // Free it before you re-use it!
+			assert(obj == nullptr); // Free it before you re-use it!
 							  //			return reinterpret_cast<void**>(&obj);
 			return reinterpret_cast<void**>(&obj);
 		}
 
 		bool isNull()
 		{
-			return obj == 0;
+			return obj == nullptr;
 		}
 
 	private:
