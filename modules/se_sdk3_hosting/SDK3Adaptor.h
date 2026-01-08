@@ -212,10 +212,9 @@ public:
 // provide for running SynthEdit modules in a host that uses GMPI
 class SDK3Adaptor : public gmpi::editor::PluginEditor, public gmpi::api::IGraphicsRedrawClient
 {
-protected:
+public:
 	SDK3AdaptorClient client;
 
-public:
 	SDK3Adaptor() : client(*this){}
 	~SDK3Adaptor();
 	gmpi::ReturnCode setHost(gmpi::api::IUnknown* phost) override;
