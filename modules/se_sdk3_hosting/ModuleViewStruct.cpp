@@ -61,13 +61,8 @@ namespace SE2
 		auto& module_element = *context;
 		const bool isContainer = moduleInfo->UniqueId() == L"Container";
 
-		{
-			name = module_element.get("title", Json::Value("")).asString();
-		}
-
-		{
-			muted = module_element.get("muted", Json::Value(false)).asBool();
-		}
+		name = module_element.get("title", Json::Value("")).asString();
+		muted = module_element.get("muted", Json::Value(false)).asBool();
 
 /* we no longer lock structure
 		const bool locked = false;

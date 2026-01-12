@@ -170,19 +170,19 @@ namespace SE2
 				constexpr int totalGrids = viewDimensions / gridSize - 2 * gridBoarder;
 
 				// quantize start x/y to grid.
-				int startX = cliprect.left / gridSize;
+				int startX = static_cast<int>(cliprect.left) / gridSize;
 				startX = (std::max)(startX, gridBoarder);
 				startX = startX * gridSize - 1;
 
-				int startY = cliprect.top / gridSize;
+				int startY = static_cast<int>(cliprect.top) / gridSize;
 				startY = (std::max)(startY, gridBoarder);
 				startY = startY * gridSize - 1;
 
-				int endX = (cliprect.right + gridSize - 1) / gridSize;
+				int endX = (static_cast<int>(cliprect.right) + gridSize - 1) / gridSize;
 				endX = (std::min)(endX, totalGrids + gridBoarder);
 				endX = endX * gridSize + 1;
 
-				int endY = (cliprect.bottom + gridSize - 1) / gridSize;
+				int endY = (static_cast<int>(cliprect.bottom) + gridSize - 1) / gridSize;
 				endY = (std::min)(endY, totalGrids + gridBoarder);
 				endY = endY * gridSize + 1;
 
