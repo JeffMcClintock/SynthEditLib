@@ -1,7 +1,7 @@
 
 #include "GmpiResourceManager.h"
 #include <string>
-#include <regex> 
+//#include <regex> 
 #include "conversion.h"
 #include "BundleInfo.h"
 #include "ProtectedFile.h"
@@ -112,9 +112,14 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 		{
 			// Cope with "encoded" full filenames. e.g. "C___synth edit projects__scat graphics__duck.png" ( was "C:\\synth edit projects\scat graphics\duck.png")
 			std::wstring imbeddedName(resourceNameL);
-			imbeddedName = std::regex_replace(imbeddedName, std::basic_regex<wchar_t>(L"/"), L"__");
-			imbeddedName = std::regex_replace(imbeddedName, std::basic_regex<wchar_t>(L"\\\\"), L"__"); // single backslash (escaped twice).
-			imbeddedName = std::regex_replace(imbeddedName, std::basic_regex<wchar_t>(L":"), L"_");
+			replacein(imbeddedName, (L"/"), (L"__"));
+			replacein(imbeddedName, (L"\\"), (L"__")); // single backslash (escaped twice).
+			replacein(imbeddedName, (L":"), (L"_"));
+
+			// failed to compile with toolset 143
+			//imbeddedName = std::regex_replace(imbeddedName, std::basic_regex<wchar_t>(L"/"), L"__");
+			//imbeddedName = std::regex_replace(imbeddedName, std::basic_regex<wchar_t>(L"\\\\"), L"__"); // single backslash (escaped twice).
+			//imbeddedName = std::regex_replace(imbeddedName, std::basic_regex<wchar_t>(L":"), L"_");
 			searchPaths.push_back(combine_path_and_file(standardFolder, imbeddedName));
 
 			// Paths to non-default, non-standard skin files.  e.g. skins/PD303/UniqueKnob.png (where same image is NOT in default folder).
@@ -125,7 +130,8 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 				if (p != string::npos)
 				{
 					auto imbeddedName2 = resourceNameL.substr(p + 7);
-					imbeddedName2 = std::regex_replace(imbeddedName2, std::basic_regex<wchar_t>(L"\\\\"), L"__"); // single backslash (escaped twice).
+					// imbeddedName2 = std::regex_replace(imbeddedName2, std::basic_regex<wchar_t>(L"\\\\"), L"__"); // single backslash (escaped twice).
+					replacein(imbeddedName2, (L"\\"), (L"__")); // single backslash (escaped twice).
 					searchPaths.push_back(combine_path_and_file(standardFolder, imbeddedName2)); // prepend resource folder.
 				}
 			}
