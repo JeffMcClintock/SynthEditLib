@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <span>
 #include <assert.h>
 
 // Holds a BLOB (owning the data) convertible to RawView
@@ -91,8 +92,11 @@ public:
 	explicit RawView(const T& v) : data_(&v), size_(sizeof(v)) {}
 
 	// Overloaded constructors for non POD data.
-	RawView(const std::string& v) : data_(v.data()), size_(v.size() * sizeof(v[0])) {}
+	RawView(const std::string& v) : data_(v.data()), size_(v.size()) {}
 	RawView(const std::wstring& v) : data_(v.data()), size_(v.size() * sizeof(v[0])) {}
+	RawView(const std::vector<uint8_t>& v) : data_(v.data()), size_(v.size()) {}
+	RawView(std::span<uint8_t> v) : data_(v.data()), size_(v.size()) {}
+	
 	RawView(const char* v) : data_(v), size_(strlen(v)) {}
 	RawView(const RawData& v) : data_(v.data()), size_(v.size()) {}
 
