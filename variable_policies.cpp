@@ -53,6 +53,8 @@ float MetaData_none::NormalisedFromValue(bool value)
 
 int32_t MetaData_enum::GetDatatype( ParameterFieldType field, int* returnValue)
 {
+	*returnValue = DT_NONE;
+
 	switch(field)
 	{
 	case FT_ENUM_LIST:
@@ -62,7 +64,6 @@ int32_t MetaData_enum::GetDatatype( ParameterFieldType field, int* returnValue)
 	break;
 
 	default:
-		assert(false);
 		return gmpi::MP_FAIL;
 	};
 

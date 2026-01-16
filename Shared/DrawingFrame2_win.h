@@ -50,7 +50,7 @@ struct UniversalFactory : public gmpi::api::IUnknown
 // SDK3 Graphics support on Direct2D. Used by SE2JUCE, VST3 and SynthEdit2::HostedView
 // also provides a universal drawing factory for nested GMPI-UI plugins
 struct DrawingFrameBase2 :
-    public gmpi::hosting::tempSharedD2DBase
+      public gmpi::hosting::tempSharedD2DBase
     , public gmpi::api::IDialogHost
     , public gmpi::api::IInputHost
 {
@@ -65,7 +65,6 @@ struct DrawingFrameBase2 :
     std::atomic<bool> isInit;
 
     gmpi::drawing::Point currentPointerPos{ -1, -1 };
-    //    std::chrono::time_point<std::chrono::steady_clock> frameCountTime;
     GmpiGui::PopupMenu contextMenu;
 
     DrawingFrameBase2();
