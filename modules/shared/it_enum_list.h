@@ -115,6 +115,7 @@ inline std::vector<enum_entry2> it_enum_list2(const std::string_view enum_list)
 		return res;
 	}
 
+	int32_t index = 0;
 	int32_t id = 0;
 	for (auto p = enum_list.data(); p < enum_list.data() + enum_list.size();)
 	{
@@ -139,10 +140,11 @@ inline std::vector<enum_entry2> it_enum_list2(const std::string_view enum_list)
 			}
 		}
 
-		res.push_back({ id, id, std::string(p, len) });
+		res.push_back({ index, id, std::string(p, len) });
 
 		p = p2 + 1;
 		++id;
+		++index;
 	}
 
 	return res;
