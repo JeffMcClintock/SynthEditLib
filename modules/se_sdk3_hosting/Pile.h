@@ -222,7 +222,7 @@ struct GmpiUiLayer :
 		return gmpi::ReturnCode::Unhandled;
 	}
 
-	gmpi::ReturnCode OnKeyPress(wchar_t c) override
+	gmpi::ReturnCode onKeyPress(wchar_t c) override
 	{
 		if(keyHandler)
 			return keyHandler(c);
@@ -775,10 +775,10 @@ struct Pile :
 		return gmpi::ReturnCode::Unhandled;
 	}
 
-	gmpi::ReturnCode OnKeyPress(wchar_t c) override
+	gmpi::ReturnCode onKeyPress(wchar_t c) override
 	{
 		if (auto editor = getEditor(); editor)
-			return editor->OnKeyPress(c);
+			return editor->onKeyPress(c);
 		return gmpi::ReturnCode::Unhandled;
 	}
 

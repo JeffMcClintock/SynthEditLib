@@ -237,7 +237,7 @@ public:
 	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override;
 
-	gmpi::ReturnCode OnKeyPress(wchar_t c) override;
+	gmpi::ReturnCode onKeyPress(wchar_t c) override;
 
 	// right-click menu
 	gmpi::ReturnCode populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink) override;

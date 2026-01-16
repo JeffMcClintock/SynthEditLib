@@ -155,7 +155,7 @@ public:
 
         return inputHost->releaseCapture();
     }
-    gmpi::ReturnCode OnKeyPress(wchar_t c) override
+    gmpi::ReturnCode onKeyPress(wchar_t c) override
     {
         return ReturnCode::Handled;
     }
@@ -621,9 +621,9 @@ protected:
 public:
     TextEntry4Gui()
     {
-        callback.callback = [this](ReturnCode result)
+        callback.onSuccess = [this](const std::string& text)
             {
-                pinValueOut = callback.text;
+                pinValueOut = text;
             };
     }
 

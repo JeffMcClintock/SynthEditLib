@@ -103,7 +103,7 @@ gmpi::ReturnCode SDK3Adaptor::onPointerUp(gmpi::drawing::Point point, int32_t fl
 	return (ReturnCode)client.onPointerUp(point.x, point.y, flags);
 }
 
-gmpi::ReturnCode SDK3Adaptor::OnKeyPress(wchar_t c)
+gmpi::ReturnCode SDK3Adaptor::onKeyPress(wchar_t c)
 {
 	return (ReturnCode)client.gmpi_key_client->OnKeyPress(c);
 }
