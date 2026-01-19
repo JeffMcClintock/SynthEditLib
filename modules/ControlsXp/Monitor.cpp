@@ -247,7 +247,6 @@ public:
 		if( pinEngineOverloadtest.isUpdated() )
 		{
 			if (pinEngineOverloadtest.getValue())
-				//				Sleep(300);
 				std::this_thread::sleep_for(300ms);
 		}
 

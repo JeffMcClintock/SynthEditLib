@@ -49,7 +49,7 @@ int serializeCancelationSnapshot(const char* filename, std::vector<mod_an>& resu
 	auto file = fopen(filename, "rb");
 	if (!file)
 	{
-		_RPT0(0, "Cancelation: CAN'T OPEN FILE\n");
+//		_RPT0(0, "Cancelation: CAN'T OPEN FILE\n");
 
 		return -1;
 	}
@@ -168,6 +168,7 @@ struct pinIdentity
 
 void printAudioData(char AorB, const std::vector<float>& data)
 {
+#ifdef _WIN32
 #ifdef _DEBUG
 	bool allSame = true;
 	for (auto f : data)
@@ -188,6 +189,7 @@ void printAudioData(char AorB, const std::vector<float>& data)
 		}
 	}
 	_RPT0(0, "}\n");
+#endif
 #endif
 }
 
@@ -258,12 +260,12 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 
 	if (blockSize != blockSizeB)
 	{
-		_RPT0(0, "The two snapshots should be captured at the same blocksize.\n");
+//		_RPT0(0, "The two snapshots should be captured at the same blocksize.\n");
 		assert(blockSize == blockSizeB);
 		return;
 	}
 
-	_RPT2(0, "Snapshot A: %d pins. Snapshot B: %d pins.\n", resultsA.size(), resultsB.size());
+//	_RPT2(0, "Snapshot A: %d pins. Snapshot B: %d pins.\n", resultsA.size(), resultsB.size());
 
 #if 0
 	_RPT0(0, "======================== FILE A =================================\n");
@@ -437,7 +439,7 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 			myfile << "Channels: " << 1 << std::endl << std::endl;
 		}
 
-		_RPT1(0, "%s", myfile.str().c_str());
+//		_RPT1(0, "%s", myfile.str().c_str());
 	}
 
 	auto& sortedResults = app->Document()->cancellationResults;
@@ -512,7 +514,7 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 			}
 		}
 	}
-	_RPT1(0, "%d errors\n", errorWireCount);
+//	_RPT1(0, "%d errors\n", errorWireCount);
 
 	std::sort(sortedResults.begin(), sortedResults.end(), [](const cancelCompare2& n1, const cancelCompare2& n2) {
 		return n1.errorMax > n2.errorMax;
@@ -527,7 +529,7 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 	*/
 	if (sortedResults.empty())
 	{
-		_RPT0(0, "NO CANCELLATION ERROR\n");
+//		_RPT0(0, "NO CANCELLATION ERROR\n");
 		return;
 	}
 
@@ -537,7 +539,7 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 		candidatesSorted.push_back({ c.first, c.second.inError, c.second.outError });
 	}
 
-	_RPT0(0, "\n===============================\nTop cancellation error modules\n");
+//	_RPT0(0, "\n===============================\nTop cancellation error modules\n");
 	std::sort(candidatesSorted.begin(), candidatesSorted.end(), [](const inouterror& n1, const inouterror& n2) {
 
 		const auto n1IsTempModule = n1.moduleId.handle < 0;
@@ -581,7 +583,7 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 				moduleName = cur_module->getType()->UniqueId();
 			}
 		}
-
+#ifdef _WIN32
 		_RPTN(0, "V%2d %12d (0x%08x) ", c.moduleId.voice, c.moduleId.handle, c.moduleId.handle);
 		if (c.inError == -300.f)
 		{
@@ -609,12 +611,13 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 			_RPT1(0, "out:%7.2f\t", c.outError);
 		}
 		_RPT1(0, "%S\n", moduleName.c_str());
-
+#endif
+        
 		// Print pin samples
 		if (rank < 10 || 1481061631 == c.moduleId.handle) /// !!! you can put a particular module handle here for a deeper printout !!!
 		{
 			// inputs
-			_RPT0(0, "INPUTS\n");
+//			_RPT0(0, "INPUTS\n");
 			{
 				for (auto& r : cancellationErrors)
 				{
@@ -655,7 +658,7 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 			}
 
 			// outputs
-			_RPT0(0, "OUTPUTS\n");
+//			_RPT0(0, "OUTPUTS\n");
 			for (auto& r : cancellationErrors)
 			{
 				if (r.first != c.moduleId)
@@ -675,7 +678,7 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 					printAudioData('B', pinB.audioData);
 				}
 			}
-			_RPT0(0, "\n");
+//			_RPT0(0, "\n");
 		}
 
 #if 0
@@ -738,7 +741,7 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 		++rank;
 	}
 
-	_RPT0(0, "\n===============================\n");
+//	_RPT0(0, "\n===============================\n");
 
 #endif
 }
