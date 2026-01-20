@@ -82,7 +82,12 @@ CFBundleRef CreatePluginBundleRef()
 					fprintf (stdout, "Could not determine bundle location.\n");
 					return 0; // unexpected
 				}
-//				name.remove (delPos, name.length () - delPos);
+                
+                const auto folderName = name.substr(p + 1);
+                
+                if(1 == i && folderName != "Contents" ) // then it aint a bundle
+                    return {};
+                
                 name = name.substr(0, p);
 
             }
@@ -206,12 +211,10 @@ std::wstring BundleInfo::getSemFolder()
 
     return semFolder; // ref SynthEditApp::InitInstance()
 #else
-    std::string result;
-
-    CFBundleRef br = CreatePluginBundleRef();
     
-	if ( br ) // getBundleRef ())
+    if(CFBundleRef br = CreatePluginBundleRef();br)
 	{
+        std::string result;
         CFURLRef url2 = CFBundleCopyBuiltInPlugInsURL (br);
         char filePath2[PATH_MAX] = "";
         if (url2)
@@ -223,9 +226,12 @@ std::wstring BundleInfo::getSemFolder()
             CFRelease(url2);
         }
         ReleasePluginBundleRef(br);
+        
+        return Utf8ToWstring(result.c_str());
     }
     
-    return Utf8ToWstring(result.c_str());
+    return semFolder; // ref SynthEditApp::InitInstance()
+
 #endif
 }
 
@@ -578,7 +584,7 @@ void BundleInfo::initPluginInfo()
     const auto path = gmpi_dynamic_linking::MP_GetDllFilename();
     isEditor =
         path.find(L"SynthEdit2.exe") != std::string::npos ||
-        path.find(L"SynthEditCL.exe") != std::string::npos ||
+        path.find(L"SynthEditCL") != std::string::npos ||
         path.find(L"SynthEdit.") != std::string::npos ||
         path.find(L"TIDE") == 0;
 
