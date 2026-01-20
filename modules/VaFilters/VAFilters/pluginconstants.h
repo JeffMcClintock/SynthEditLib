@@ -302,7 +302,7 @@ inline double stringToFloat(char* p)
 
 inline int stringToInt(char* p)
 {
-	return atol (p);
+	return static_cast<int>(atol(p));
 }
 
 // user must delete char array when done!

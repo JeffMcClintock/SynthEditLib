@@ -115,7 +115,7 @@ public:
 		resultsWindowed_[FFT_SIZE / 2] *= resultsWindowed_[FFT_SIZE / 2];
 
 		// FFT produces half the original data.
-		const int datasize = (1 + resultsWindowed_.size() / 2) * sizeof(resultsWindowed_[0]);
+		const int datasize = static_cast<int32_t>((1 + resultsWindowed_.size() / 2) * sizeof(resultsWindowed_[0]));
 
 		// Add an extra member communicating sample-rate to GUI.
 		// !! overwrites nyquist value?

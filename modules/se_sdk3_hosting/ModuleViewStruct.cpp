@@ -977,7 +977,7 @@ namespace SE2
 				const float yMiddle = scopeRect.top + yScale;
 				const float dx = scopeRect.getWidth() / numPoints; // static_cast<float>(hoverScopeWaveform->size());
 				Point p{ scopeRect.left, 0.f };
-				const int indexMask = std::size(movingPeaks) - 1;
+				const int indexMask = static_cast<int>(std::size(movingPeaks)) - 1;
 
 				// top line
 				for (int i = 0; i < numPoints * 2; i += 2)

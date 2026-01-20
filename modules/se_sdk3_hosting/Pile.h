@@ -39,7 +39,7 @@ struct GmpiUiLayerHost :
 	gmpi::drawing::Size offset{};
 
 	// IDrawingHost
-	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory);
+	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override;
 	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
 	void invalidateMeasure() override;
 	float getRasterizationScale() override;
@@ -50,9 +50,9 @@ struct GmpiUiLayerHost :
 	gmpi::ReturnCode releaseCapture() override;
 
 	// IDialogHost
-	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit);
-	gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu);
-	gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener);
+	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override;
+	gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override;
+	gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override;
 	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 

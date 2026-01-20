@@ -164,7 +164,7 @@ public:
 		case 0xF0: // SYSEX
 			fwrite(msg.begin(), 1, 1, outputStream); // write F0
 			// write length
-			WriteVarLen(outputStream, msg.size() - 1);
+			WriteVarLen(outputStream, static_cast<int>(msg.size()) - 1);
 			//write SYSex bytes
 			fwrite(msg.begin() + 1, 1, msg.size() - 1, outputStream);
 			lastSentTick = thisTick;

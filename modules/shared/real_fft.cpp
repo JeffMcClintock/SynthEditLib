@@ -210,10 +210,10 @@ void WindowedFft::ComputeMagnitudeSpectrum(const float* samples, std::vector<flo
 	}
 
 	// Perform forward FFT, inplace.
-	realft2(spectrum.data(), spectrum.size(), 1);
+	realft2(spectrum.data(), static_cast<unsigned int>(spectrum.size()), 1);
 
 	// convert to magnitude in dB.
-	int resultSize = spectrum.size() / 2;
+	const auto resultSize = spectrum.size() / 2;
 	magnitudeSpectrum.resize(resultSize);
 
 	if (magnitudeSpectrum.size() != resultSize)

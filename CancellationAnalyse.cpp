@@ -2,7 +2,7 @@
 #include <vector>
 #include <sstream>
 #include "SynthEditDocBase.h"
-#include "syntheditappbase.h"
+#include "SynthEditAppBase.h"
 #include "CUG.h"
 #include "module_info.h"
 
