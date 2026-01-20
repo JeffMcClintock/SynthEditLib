@@ -1682,7 +1682,7 @@ std::unique_ptr<const DawPreset> MpController::getPreset(std::string presetNameO
 #if 0 // ??
 	{
 		char buffer[20];
-		sprintf(buffer, "%08x", BundleInfo::instance()->getPluginId());
+		spr intf(buffer, "%08x", BundleInfo::instance()->getPluginId());
 		element->SetAttribute("pluginId", buffer);
 	}
 #endif
