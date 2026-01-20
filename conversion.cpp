@@ -87,20 +87,9 @@ int StringToInt(const char* string, int p_base)
 
 std::wstring DoubleToString(double val)
 {
-	//	s.Format((L"%f"),val);
 	std::wostringstream oss;
 	oss << val;
-	std::wstring s = oss.str();
-	/*
-	// remove pesky trailing zeros (and period)
-	int last = s.size() - 1;
-	while( s[last] == (L'0') )
-		last--;
-	if( s[last] == (L'.') )
-		last--;
-	s = Left(s,last+1);
-	*/
-	return s;
+	return oss.str();
 }
 
 // Loses information, for display purposes only, not serialization.
