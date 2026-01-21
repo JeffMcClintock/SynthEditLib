@@ -10,7 +10,6 @@
 #include "GmpiResourceManager.h"
 #include "./Presenter.h"
 #include "BundleInfo.h"
-#include "FileFinder.h"
 #include "midi_defs.h"
 #include "ListBuilder.h"
 #include "Shared/se_logger.h"
@@ -569,33 +568,41 @@ std::vector< MpController::presetInfo > MpController::scanPresetFolder(platform_
 {
 	std::vector< presetInfo > returnValues;
 
-	const auto searchString = PresetFolder + platform_string(_T("*.")) + extension;
 	const bool isXmlPreset = ToUtf8String(extension) == "xmlpreset";
+	const std::filesystem::path presetDir(PresetFolder);
+	const auto targetExtension = std::filesystem::path(extension).wstring();
+	const auto extWithDot = targetExtension.empty() ? std::wstring{} : std::wstring(L".") + targetExtension;
 
-	FileFinder it(searchString.c_str());
-	for (; !it.done(); ++it)
+	std::error_code ec;
+	for (const auto& entry : std::filesystem::directory_iterator(presetDir, ec))
 	{
-		if (!(*it).isFolder)
+		if (ec)
+			break;
+
+		if (!entry.is_regular_file())
+			continue;
+
+		if (!extWithDot.empty() && entry.path().extension().wstring() != extWithDot)
+			continue;
+
+		const auto sourceFilename = entry.path();
+
+		std::string xml;
+		if (isXmlPreset)
 		{
-			const auto sourceFilename = (*it).fullPath;
+			FileToString(sourceFilename.native(), xml);
+		}
+		else
+		{
+			xml = loadNativePreset(sourceFilename.wstring());
+		}
 
-			std::string xml;
-			if (isXmlPreset)
+		if (!xml.empty())
+		{
+			const auto preset = parsePreset(sourceFilename.wstring(), xml);
+			if(!preset.filename.empty()) // avoid ones that fail to parse
 			{
-				FileToString(sourceFilename, xml);
-            }
-			else
-			{
-                xml = loadNativePreset(ToWstring(sourceFilename));
-			}
-
-			if (!xml.empty())
-			{
-				const auto preset = parsePreset(ToWstring(sourceFilename), xml);
-				if(!preset.filename.empty()) // avoid ones that fail to parse
-				{
-					returnValues.push_back(preset);
-				}
+				returnValues.push_back(preset);
 			}
 		}
 	}

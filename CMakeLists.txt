@@ -72,8 +72,6 @@ ${se_sdk_folder}/ProtectedFile.h
 
 ${se_shared_folder}/it_enum_list.h
 ${se_shared_folder}/it_enum_list.cpp
-${se_shared_folder}/FileFinder.h
-${se_shared_folder}/FileFinder.cpp
 ${se_shared_folder}/FileWatcher.h
 ${se_shared_folder}/FileWatcher.cpp
 ${se_shared_folder}/PatchCables.h
