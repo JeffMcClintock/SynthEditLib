@@ -37,9 +37,9 @@ public:
 //	void RegisterPins(TiXmlNode* plugin_data, int32_t plugin_sub_type);
 
 	virtual int getClassType() {return 1;} // 0 - Module_Info3, 1 - Module_Info, 2 - Module_Info3_internal, 3 - Module_Info_Plugin
-	bool scanned_xml_dsp;
-	bool scanned_xml_gui;
-	bool scanned_xml_parameters;
+	bool scanned_xml_dsp = false;
+	bool scanned_xml_gui = false;
+	bool scanned_xml_parameters = false;
 
 #if defined( _DEBUG)
 	bool load_failed_gui = false;
@@ -178,15 +178,15 @@ protected:
 
 	Module_Info(); // serialisation only
 
-	ug_base* (*dsp_create)();
+	ug_base* (*dsp_create)() = nullptr;
 
 	void ClearPlugs();
 
 public:
 	std::wstring m_unique_id;
-	int sid_name;	// resource string id for localised name
-	int sid_group;
-	int flags;		// flags to denote special properties (accessable only internally) CF_* see also ug_flags
+	int sid_name = 0;	// resource string id for localised name
+	int sid_group = 0;
+	int flags = 0;		// flags to denote special properties (accessable only internally) CF_* see also ug_flags
 
 	// alternate method of storing name, not using resource-based strings (eases porting to SDK)
 	std::wstring m_name;
@@ -204,7 +204,7 @@ public:
 	module_info_parameter_t m_parameters;
 	std::vector<patchpoint_description> patchPoints;
 
-	int latency;
+	int latency = 0;
 
 	void SetUnavailable()
 	{
@@ -215,9 +215,9 @@ public:
 	bool isShellPlugin();
 
 protected:
-	bool m_module_dll_available = {}; // Is the SEM present on local system? (or just a placeholder).
+	bool m_module_dll_available = true; // Is the SEM present on local system? (or just a placeholder).
 
 private:
 	bool m_serialise_me = false; // flags if this info needs storing in project file (because this module used in patch)
-	bool m_loaded_into_database;
+	bool m_loaded_into_database = true;
 };

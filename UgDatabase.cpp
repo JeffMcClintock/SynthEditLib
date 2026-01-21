@@ -599,32 +599,13 @@ void CModuleFactory::RegisterPluginsXml(tinyxml2::XMLElement* pluginList )
 }
 
 Module_Info::Module_Info(const std::wstring& p_unique_id) :
-	flags(0)
-	,m_unique_id(p_unique_id)
-	,dsp_create(0)
-	,sid_name(0)//-1)
-	,sid_group(0)//-1)
-	,m_loaded_into_database(true)
-	,m_module_dll_available(true)
-	, latency(0)
-	, scanned_xml_dsp(false)
-	, scanned_xml_gui(false)
-	, scanned_xml_parameters(false)
+	m_unique_id(p_unique_id)
 {
 	//_RPT0(_CRT_WARN, "create Module_Info\n" );
 }
 
 Module_Info::Module_Info(class ug_base *(*ug_create)(), const char* xml) :
-	flags(0)
-	, dsp_create(ug_create)
-	, sid_name(0)
-	, sid_group(0)
-	, m_loaded_into_database(true)
-	, m_module_dll_available(true)
-	, latency(0)
-	, scanned_xml_dsp(false)
-	, scanned_xml_gui(false)
-	, scanned_xml_parameters(false)
+	dsp_create(ug_create)
 {
 	tinyxml2::XMLDocument doc2;
 	doc2.Parse(xml);
@@ -654,16 +635,7 @@ Module_Info::Module_Info(class ug_base *(*ug_create)(), const char* xml) :
 
 Module_Info::Module_Info() :
 	m_loaded_into_database(false)
-	,m_module_dll_available(true)
-	,dsp_create(0)
-	,sid_name(0)
-	,sid_group(0)
-	,flags(0)
-	, latency(0)
-	, scanned_xml_dsp(false)
-	, scanned_xml_gui(false)
-	, scanned_xml_parameters(false)
-{}; // serialisation only
+{} // serialisation only
 
 // REGISTER_MODULE_3_BC
 Module_Info::Module_Info(const wchar_t* p_unique_id, int p_sid_name, int p_sid_group_name, CDocOb *( *cug_create )( Module_Info* ), ug_base *( *ug_create )( ), int p_flags) :
@@ -672,25 +644,8 @@ Module_Info::Module_Info(const wchar_t* p_unique_id, int p_sid_name, int p_sid_g
 	,dsp_create(ug_create)
 	,sid_name(p_sid_name)
 	,sid_group(p_sid_group_name)
-	,m_loaded_into_database(true)
-	,m_module_dll_available(true)
-	, latency(0)
-	, scanned_xml_dsp(false)
-	, scanned_xml_gui(false)
-	, scanned_xml_parameters(false)
 {
-	//_RPT0(_CRT_WARN, "create Module_Info\n" );
 	flags |= CF_OLD_STYLE_LISTINTERFACE;
-	/*testing
-		if( p_type == 126 )
-		{
-			for(int i = 0; i < name.size() ; i++ )
-			{
-				wchar_t c = name[i];
-				_RPT2(_CRT_WARN, "%c %d\n", c, (int)c );
-			}
-		}
-		*/
 	SetupPlugs();
 }
 
@@ -698,16 +653,8 @@ Module_Info::Module_Info(const wchar_t* p_unique_id, const wchar_t* name, const 
 flags(p_flags)
 , m_unique_id(p_unique_id)
 , dsp_create(ug_create)
-, sid_name(0)
-, sid_group(0)
 , m_name(name)
 , m_group_name(group_name)
-, m_loaded_into_database(true)
-, m_module_dll_available(true)
-, latency(0)
-, scanned_xml_dsp(false)
-, scanned_xml_gui(false)
-, scanned_xml_parameters(false)
 {
 	flags |= CF_OLD_STYLE_LISTINTERFACE;
 
@@ -724,7 +671,6 @@ std::wstring Module_Info::GetHelpUrl()
 {
 	return helpUrl_;
 }
-
 
 void Module_Info::ClearPlugs()
 {
