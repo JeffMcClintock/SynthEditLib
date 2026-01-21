@@ -250,14 +250,13 @@ public:
 	void onGraphStart() override	// called on very first sample.
 	{
 		MpBase2::onGraphStart();
-#ifdef _DEBUG
-		std::string test1{ "moose" };
-		const std::wstring test2{ L"cat" };
-		pinFolder = test1;
-		pinFolder = test2;
-#endif
+
 		// shitty, needs updating all the time. Better to have a "Project Folder" module
+#ifdef _WIN32
 		pinFolder = L"C:\\SE\\SE16\\UnitTest\\Output\\";
+#else
+        pinFolder = L"Documents/SynthEdit/UnitTest/Output/";
+#endif
 	}
 };
 
