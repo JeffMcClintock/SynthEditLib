@@ -48,12 +48,11 @@ bool Module_Info3::LoadDllOnDemand()
 {
 	if (!dllHandle)
 	{
+#ifdef _WIN32
+        // this is a module description from a project file, that don't exist locally?
 		if (filename.empty())
-		{
-			// this is a module description from a project file, that don't exist locally.
 			return true;
-		}
-
+#endif
 		LoadDll(); // load on demand
 
 		if (dllHandle && isShellPlugin() && isSummary()) // shell plugins need info fleshed out.
@@ -122,12 +121,17 @@ bool Module_Info3::LoadDllOnDemand()
 void Module_Info3::LoadDll()
 {
 	//	_RPT1(_CRT_WARN, "Module_Info3::LoadDll %s\n", filename );
-	std::wstring load_filename = filename;
 
 	// if we are loading a project with incompatible modules. Don't attempt to load dll until it's upgraded. Editor-only
 	if (m_incompatible_with_current_module)
 		return;
 
+#ifdef _WIN32
+    std::wstring load_filename = filename;
+#else
+    std::wstring load_filename = macSemBundlePath;
+#endif
+    
 //#if !defined( SE_ED IT_SUPPORT ) && defined( SE_TARGET_PLU GIN ) && SE_EXTERNAL_SEM_SUPPORT==1
 	{
 		// plugin uses relative pathnames, editor uses full paths
