@@ -146,7 +146,7 @@ std::string getPlatformPluginsFolder()
     SHGetFolderPathA(NULL, CSIDL_PROGRAM_FILES_COMMON, NULL, SHGFP_TYPE_CURRENT, path);
     return path;
 #else
-    return "/Library/Audio/Plugins/";
+    return "/Library/Audio/Plug-Ins/";
 #endif
 }
 

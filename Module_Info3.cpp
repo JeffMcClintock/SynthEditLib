@@ -119,6 +119,7 @@ Module_Info3::Module_Info3( const std::wstring& file_and_dir, const std::wstring
 
 int Module_Info3::ModuleTechnology()
 {
+    // dodgy, only works when plugin binary file available. OK, since we only need this when scanning binary for XML (to determine native string type)
     const bool isGMPI = GetExtension(filename) == L"gmpi" || GetExtension(macSemBundlePath) == L"gmpi";
     return isGMPI ? MT_GMPI : MT_SDK3;
 }
