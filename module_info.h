@@ -158,10 +158,10 @@ public:
 
 	bool hasDspModule();
 
-	virtual bool FileInUse()
-	{
-		return false;
-	}
+	//virtual bool FileInUse()
+	//{
+	//	return false;
+	//}
 
 	virtual bool fromExternalDll(){ return false;}
 

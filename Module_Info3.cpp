@@ -16,14 +16,108 @@ using namespace gmpi;
 using namespace gmpi_sdk;
 using namespace gmpi_dynamic_linking;
 
-Module_Info3::Module_Info3() :// serialisation only
-dllHandle(0)
+void PluginHolder::load()
+{
+	if (dllHandle || pluginPath.empty())
+		return;
+
+	// Get a handle to the DLL module.
+#if defined( _WIN32)
+	if (MP_DllLoad(&dllHandle, pluginPath.c_str()))
+	{
+		// load failed, try it as a bundle.
+		const auto bundleFilepath = pluginPath / L"Contents" / L"x86_64 - win" / pluginPath.filename();
+		MP_DllLoad(&dllHandle, bundleFilepath.c_str());
+
+		if (dllHandle) // all good.
+			return;
+
+		DWORD err_code = GetLastError();
+		LPTSTR lpMsgBuf = nullptr;
+		FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			err_code,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+			(LPTSTR)&lpMsgBuf,
+			0,
+			NULL
+		);
+
+		std::wstring errorMessage = lpMsgBuf;
+		LocalFree(lpMsgBuf);
+	}
+#else
+
+	assert(exists(pluginPath / L"Contents"); // mac plugins must be a bundle.
+
+	// Create a path to the bundle
+	CFStringRef pluginPathStringRef = CFStringCreateWithCString(NULL, pluginPath.c_str(), kCFStringEncodingUTF8);
+
+	CFURLRef bundleUrl = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
+		pluginPathStringRef, kCFURLPOSIXPathStyle, true);
+	if (!bundleUrl) {
+		printf("Couldn't make URL reference for plugin\n");
+		return;
+	}
+
+	// Open the bundle
+	dllHandle = (DLL_HANDLE)CFBundleCreate(kCFAllocatorDefault, bundleUrl);
+	CFRelease(bundleUrl);
+	CFRelease(pluginPathStringRef);
+
+	if (!dllHandle) {
+		printf("Couldn't create bundle reference\n");
+		return;
+	}
+#endif
+}
+
+gmpi::MP_DllEntry PluginHolder::getFactory()
+{
+	if (!dllHandle)
+		return nullptr;
+
+	const char* gmpi_dll_entrypoint_name = "MP_GetFactory";
+
+	gmpi::MP_DllEntry dll_entry_point{};
+
+#if defined( _WIN32)
+	auto r = gmpi_dynamic_linking::MP_DllSymbol(dllHandle, gmpi_dll_entrypoint_name, (void**)&dll_entry_point);
+	if (r != gmpi::MP_OK)
+		return nullptr;
+	return dll_entry_point;
+#else
+	return (gmpi::MP_DllEntry)CFBundleGetFunctionPointerForName((CFBundleRef)dllHandle, CFSTR("MP_GetFactory"));
+#endif
+}
+
+void PluginHolder::unload()
+{
+	if (dllHandle)
+	{
+#if defined( _WIN32)
+		MP_DllUnload(dllHandle);
+#else
+		CFBundleUnloadExecutable((CFBundleRef)dllHandle);
+		CFRelease((CFBundleRef)dllHandle);
+#endif
+	}
+}
+
+PluginHolder::~PluginHolder()
+{
+	unload();
+}
+
+Module_Info3::Module_Info3() // serialisation only
 {
 }
 
 Module_Info3::Module_Info3( const std::wstring& file_and_dir, const std::wstring& overridingCategory ) :
 	filename(file_and_dir)
-	,dllHandle(0)
 {
 	if( !overridingCategory.empty() )
 	{
@@ -31,95 +125,81 @@ Module_Info3::Module_Info3( const std::wstring& file_and_dir, const std::wstring
 	}
 }
 
-Module_Info3::~Module_Info3()
-{
-	Unload();
-}
-
 // developer mode only, reload dll if user has updated it
 void Module_Info3::ReLoadDll()
 {
-	Unload();
+	holder.unload();
 	SetupPlugs();
 }
 
-// returns true if dll not available
+// returns false if dll not available
 bool Module_Info3::LoadDllOnDemand()
 {
-	if (!dllHandle)
-	{
-#ifdef _WIN32
-        // this is a module description from a project file, that don't exist locally?
-		if (filename.empty())
-			return true;
-#endif
-		LoadDll(); // load on demand
+	// if we are loading a project with incompatible modules. Don't attempt to load dll until it's upgraded. Editor-only
+	if (m_incompatible_with_current_module)
+		return false;
 
-		if (dllHandle && isShellPlugin() && isSummary()) // shell plugins need info fleshed out.
-		{
-			if(auto factory = getFactory2(); factory)
-			{
-// yes did.				assert(false); // should get here with VST wrappers
-				gmpi_sdk::mp_shared_ptr<gmpi::IMpShellFactory> shellFactory;
-				{
-					auto r = factory->queryInterface(gmpi::MP_IID_SHELLFACTORY, shellFactory.asIMpUnknownPtr());
-					gmpi_sdk::MpString s;
-					r = shellFactory->getPluginInformation(m_unique_id.c_str(), s.getUnknown());
+	if (holder.isLoaded())
+		return true;
 
-					// scan XML.
-					if (r != gmpi::MP_OK)
-					{
-						// Shell does not have this plugin.
-						return true; // fail
-					}
+	holder.load();
 
-					{
-						tinyxml2::XMLDocument doc2;
-						doc2.Parse(s.c_str());
+	if(!holder.isLoaded())
+		return false;
+
+	if (!isShellPlugin() || !isSummary()) // shell plugins need info fleshed out.
+		return true;
+
+	auto factory = getFactory2();
+
+	if(!factory)
+		return false;
+
+	gmpi_sdk::mp_shared_ptr<gmpi::IMpShellFactory> shellFactory;
+	auto r = factory->queryInterface(gmpi::MP_IID_SHELLFACTORY, shellFactory.asIMpUnknownPtr());
+	gmpi_sdk::MpString s;
+	r = shellFactory->getPluginInformation(m_unique_id.c_str(), s.getUnknown());
+
+	// scan XML.
+	if (r != gmpi::MP_OK)		// Shell does not have this plugin.
+		return false;
+
+	tinyxml2::XMLDocument doc2;
+	doc2.Parse(s.c_str());
 						
-						if( doc2.Error() )
-						{
-							std::wostringstream oss;
-							oss << L"Module XML Error: [SynthEdit.exe]" << doc2.ErrorName() << L"." << doc2.Value();
-							SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
-							assert(false);
-						}
-						else
-						{
-							tinyxml2::XMLNode* pluginList = doc2.FirstChildElement("PluginList");
-
-							if (!pluginList) // handle XML without <PluginList> only <Plugin>.
-								pluginList = &doc2;
-
-							auto PluginElement = pluginList->FirstChildElement("Plugin");
-							if (!PluginElement)
-							{
-								return true; // fail
-							}
-
-							// check for existing
-							std::wstring plugin_id = Utf8ToWstring(PluginElement->Attribute("id"));
-
-							// can be caused by saving the same dll with different unique ID. e.g. by saving PD303 from it's prefab twice. Without re-scanning VSTs.
-							if (plugin_id != UniqueId())
-							{
-								return true; // fail
-							}
-
-							scanned_xml_dsp = scanned_xml_gui = false; // prevent spurious warnings.
-							ScanXml(PluginElement);
-						}
-					}
-				}
-			}
-		}
+	if( doc2.Error() )
+	{
+		std::wostringstream oss;
+		oss << L"Module XML Error: [SynthEdit.exe]" << doc2.ErrorName() << L"." << doc2.Value();
+		SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
+		assert(false);
+		return false;
 	}
+	tinyxml2::XMLNode* pluginList = doc2.FirstChildElement("PluginList");
 
-	return !static_cast<bool>(dllHandle);
+	if (!pluginList) // handle XML without <PluginList> only <Plugin>.
+		pluginList = &doc2;
+
+	auto PluginElement = pluginList->FirstChildElement("Plugin");
+	if (!PluginElement)
+		return false;
+
+	// check for existing
+	std::wstring plugin_id = Utf8ToWstring(PluginElement->Attribute("id"));
+
+	// can be caused by saving the same dll with different unique ID. e.g. by saving PD303 from it's prefab twice. Without re-scanning VSTs.
+	if (plugin_id != UniqueId())
+		return false;
+
+	scanned_xml_dsp = scanned_xml_gui = false; // prevent spurious warnings.
+	ScanXml(PluginElement);
+
+	return true;
 }
 
-void Module_Info3::LoadDll()
+void Module_Info3::LoadDll_old()
 {
+#if 0
 	//	_RPT1(_CRT_WARN, "Module_Info3::LoadDll %s\n", filename );
 
 	// if we are loading a project with incompatible modules. Don't attempt to load dll until it's upgraded. Editor-only
@@ -150,10 +230,11 @@ void Module_Info3::LoadDll()
 		}
 #else
     	// int32_t r = MP_DllLoad( &dllHandle, load_filename.c_str() );
+	CFStringRef dirs[] = { CFStringCreateWithCString(NULL, fullPath.c_str(), kCFStringEncodingUTF8) };
 
 		// Create a path to the bundle
 		CFStringRef pluginPathStringRef = CFStringCreateWithCString(NULL,
-			WStringToUtf8( load_filename ).c_str(), kCFStringEncodingASCII);
+			WStringToUtf8( load_filename ).c_str(), kCFStringEncodingUTF8);
 
 		CFURLRef bundleUrl = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
 		pluginPathStringRef, kCFURLPOSIXPathStyle, true);
@@ -219,8 +300,11 @@ void Module_Info3::LoadDll()
 	oss << errorMessage << L": " << load_filename << L".";
 	SafeMessagebox(0, oss.str().c_str(), L"", MB_OK|MB_ICONSTOP );
 	assert(false);
+
+#endif
 }
 
+#if 0
 void Module_Info3::Unload()
 {
 #if defined( _WIN32)
@@ -246,20 +330,19 @@ void Module_Info3::Unload()
 #endif
 
 }
+#endif
 
 gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> Module_Info3::getFactory2()
 {
-	if (LoadDllOnDemand())
-	{
+	if (!LoadDllOnDemand())
 		return {};
-	}
 
-	int32_t r;
+	int32_t r{};
 
 	gmpi::MP_DllEntry dll_entry_point = {};
 #ifdef _WIN32
 	const char* gmpi_dll_entrypoint_name = "MP_GetFactory";
-	r = MP_DllSymbol(dllHandle, gmpi_dll_entrypoint_name, (void**)&dll_entry_point);
+	r = MP_DllSymbol(holder.getHandle(), gmpi_dll_entrypoint_name, (void**)&dll_entry_point);
 #else
 	dll_entry_point = (gmpi::MP_DllEntry)CFBundleGetFunctionPointerForName((CFBundleRef)dllHandle, CFSTR("MP_GetFactory"));
 #endif        
@@ -336,30 +419,11 @@ gmpi::IMpUnknown* Module_Info3::Build( int subType, bool quietFail )
 
 ug_base* Module_Info3::BuildSynthOb()
 {
-	if( LoadDllOnDemand() || !m_dsp_registered )
+	if( !LoadDllOnDemand() || !m_dsp_registered )
 	{
 		return 0;
 	}
-#if 0
-	gmpi::MP_DllEntry dll_entry_point;
-int32_t r;
-#ifdef _WIN32
-	const char* gmpi_dll_entrypoint_name = "MP_GetFactory";
-	r = MP_DllSymbol( dllHandle, gmpi_dll_entrypoint_name, (void**) &dll_entry_point );
-#else
-    dll_entry_point = NULL;
-    dll_entry_point = (gmpi::MP_DllEntry) CFBundleGetFunctionPointerForName((CFBundleRef) dllHandle, CFSTR("MP_GetFactory"));
-    if(dll_entry_point == 0) {
-		printf("Couldn't get a pointer to plugin's main()\n");
-//		CFBundleUnloadExecutable(dllHandle);
-//		CFRelease(dllHandle);
-		return 0;
-        }
-#endif        
- 
-	gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> factoryBase;
-	r = dll_entry_point(factoryBase.asIMpUnknownPtr());
-#endif
+
 	auto factoryBase = getFactory2();
     if(!factoryBase)
     {

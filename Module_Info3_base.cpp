@@ -1265,7 +1265,7 @@ void Module_Info3_base::SetupPlugs()
 {
 	assert(false && "todo");
 	/*
-		if( LoadDllOnDemand() )
+		if( !LoadDllOnDemand() )
 		{
 			return;
 		}
@@ -1283,12 +1283,6 @@ void Module_Info3_base::SetupPlugs()
 		}
 	*/
 }
-
-// SDK3 don't suuport DOcOb at present, hopefully won't need to.
-//class CDocOb* Module_Info3_base::BuildDocObject()
-//{
-//	return doc_create(this);
-//}
 
 ug_base* Module_Info3_base::BuildSynthOb()
 {
