@@ -15,7 +15,7 @@ class TiXmlNode;
 typedef std::map<int, class InterfaceObject*> module_info_pins_t;
 typedef std::map<int, struct parameter_description*> module_info_parameter_t; // { param-id, param_ptr }
 
-enum {MT_INTERNAL, MT_SDK2, MT_SDK3 }; // module technology types
+enum {MT_INTERNAL, MT_SDK2, MT_SDK3, MT_GMPI}; // module technology types
 enum MpWindowTypes { MP_WINDOW_TYPE_NONE, MP_WINDOW_TYPE_HWND, MP_WINDOW_TYPE_COMPOSITED, MP_WINDOW_TYPE_WPF, MP_WINDOW_TYPE_WPF_INTERNAL, MP_WINDOW_TYPE_VSTGUI, MP_WINDOW_TYPE_XP, MP_WINDOW_TYPE_CADMIUM
 };
 
@@ -30,11 +30,6 @@ protected:
 public:
 	void RegisterParameters(tinyxml2::XMLElement* parameters);
 	void RegisterPins(tinyxml2::XMLElement* plugin_data, int32_t plugin_sub_type);
-
-//	void ScanPinXml(TiXmlNode* xmlObjects, module_info_pins_t* pinlist, int32_t plugin_sub_type);
-//	void RegisterPin(class TiXmlElement* pin, module_info_pins_t* pinlist, int32_t plugin_sub_type, int& nextPinId);
-//	void RegisterParameters(class TiXmlNode* parameters);
-//	void RegisterPins(TiXmlNode* plugin_data, int32_t plugin_sub_type);
 
 	virtual int getClassType() {return 1;} // 0 - Module_Info3, 1 - Module_Info, 2 - Module_Info3_internal, 3 - Module_Info_Plugin
 	bool scanned_xml_dsp = false;

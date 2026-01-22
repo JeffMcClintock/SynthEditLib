@@ -75,17 +75,14 @@ gmpi::MP_DllEntry PluginHolder::getFactory()
 	if (!dllHandle)
 		return nullptr;
 
-	const char* gmpi_dll_entrypoint_name = "MP_GetFactory";
-
-	gmpi::MP_DllEntry dll_entry_point{};
-
 #if defined( _WIN32)
-	auto r = gmpi_dynamic_linking::MP_DllSymbol(dllHandle, gmpi_dll_entrypoint_name, (void**)&dll_entry_point);
+    gmpi::MP_DllEntry dll_entry_point{};
+	auto r = gmpi_dynamic_linking::MP_DllSymbol(dllHandle, "MP_GetFactory", (void**)&dll_entry_point);
 	if (r != gmpi::MP_OK)
 		return nullptr;
 	return dll_entry_point;
 #else
-	return (gmpi::MP_DllEntry)CFBundleGetFunctionPointerForName((CFBundleRef)dllHandle, CFSTR("MP_GetFactory"));
+	return (gmpi::MP_DllEntry) CFBundleGetFunctionPointerForName((CFBundleRef)dllHandle, CFSTR("MP_GetFactory"));
 #endif
 }
 
@@ -118,6 +115,12 @@ Module_Info3::Module_Info3( const std::wstring& file_and_dir, const std::wstring
 	{
 		m_group_name = overridingCategory;
 	}
+}
+
+int Module_Info3::ModuleTechnology()
+{
+    const bool isGMPI = GetExtension(filename) == L"gmpi" || GetExtension(macSemBundlePath) == L"gmpi";
+    return isGMPI ? MT_GMPI : MT_SDK3;
 }
 
 // developer mode only, reload dll if user has updated it
@@ -334,18 +337,10 @@ gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> Module_Info3::getFactory2()
 
 	int32_t r{};
 
-	gmpi::MP_DllEntry dll_entry_point = {};
-#ifdef _WIN32
-	const char* gmpi_dll_entrypoint_name = "MP_GetFactory";
-	r = MP_DllSymbol(holder.getHandle(), gmpi_dll_entrypoint_name, (void**)&dll_entry_point);
-#else
-	dll_entry_point = (gmpi::MP_DllEntry)CFBundleGetFunctionPointerForName((CFBundleRef)dllHandle, CFSTR("MP_GetFactory"));
-#endif        
+	auto dll_entry_point = holder.getFactory();
 
 	if (!dll_entry_point)
-	{
 		return {};
-	}
 
 	gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> factory;
 	r = dll_entry_point(factory.asIMpUnknownPtr());

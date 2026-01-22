@@ -1092,7 +1092,7 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 
 	// Datatype.
 	{
-		if (expectedPinDatatype == DT_ENUM && MT_SDK3 == ModuleTechnology())
+		if (expectedPinDatatype == DT_ENUM && MT_SDK3 <= ModuleTechnology())
 		{
 			expectedPinDatatype = DT_INT;
 		}
@@ -1134,7 +1134,7 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 						if (pin_datatype.size() > 6)
 							pind.classname = pin_datatype.substr(6);
 					}
-					else if (pind.datatype == DT_TEXT && GetExtension(Filename()) == L"gmpi")
+					else if (pind.datatype == DT_TEXT && MT_GMPI == ModuleTechnology())
 					{
 						// by default GMPI uses UTF-8 encoding for strings. (SE uses UCS16)
 						pind.datatype = DT_STRING_UTF8;

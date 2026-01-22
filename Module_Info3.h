@@ -73,6 +73,7 @@ void LoadDll_old();
 
 	bool LoadDllOnDemand();
 	int getClassType() override { return 0; } // 0 - Module_Info3, 1 - Module_Info, 2 - Module_Info3_internal, 3 - Module_Info_Plugin
+    int ModuleTechnology() override;
 
 	/* TODO
 	std::pair< gmpi_dynamic_linking::DLL_HANDLE, std::wstring > getDllInfo()
@@ -82,9 +83,8 @@ void LoadDll_old();
 	*/
 
 	std::wstring filename;
+    PluginHolder holder;
 
 protected:
 	Module_Info3(); // serialisation only
-
-	PluginHolder holder;
 };
