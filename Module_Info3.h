@@ -14,11 +14,16 @@
 class PluginHolder
 {
 	gmpi_dynamic_linking::DLL_HANDLE dllHandle = {};
-	std::filesystem::path pluginPath;
+	std::filesystem::path pluginPath; // actual dll on Windows (possible inside bundle), enclosing Bundle folder on macOS (not the binary)
 
 public:
+	PluginHolder() = default;
+	PluginHolder(std::filesystem::path binary_path)
+	{
+		setPluginPath(binary_path);
+	}
 	~PluginHolder();
-
+	
 	bool isLoaded() const
 	{
 		return dllHandle != 0;

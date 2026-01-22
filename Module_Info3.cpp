@@ -21,17 +21,12 @@ void PluginHolder::load()
 	if (dllHandle || pluginPath.empty())
 		return;
 
-	// Get a handle to the DLL module.
+	// Get a handle to the DLL.
 #if defined( _WIN32)
+	assert(!exists(pluginPath / L"Contents")); // win plugins must be a dll (not it's bundle).
+
 	if (MP_DllLoad(&dllHandle, pluginPath.c_str()))
 	{
-		// load failed, try it as a bundle.
-		const auto bundleFilepath = pluginPath / L"Contents" / L"x86_64 - win" / pluginPath.filename();
-		MP_DllLoad(&dllHandle, bundleFilepath.c_str());
-
-		if (dllHandle) // all good.
-			return;
-
 		DWORD err_code = GetLastError();
 		LPTSTR lpMsgBuf = nullptr;
 		FormatMessage(
@@ -51,7 +46,7 @@ void PluginHolder::load()
 	}
 #else
 
-	assert(exists(pluginPath / L"Contents"); // mac plugins must be a bundle.
+	assert(exists(pluginPath / L"Contents")); // mac plugins must be a bundle.
 
 	// Create a path to the bundle
 	CFStringRef pluginPathStringRef = CFStringCreateWithCString(NULL, pluginPath.c_str(), kCFStringEncodingUTF8);
