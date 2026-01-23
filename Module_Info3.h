@@ -28,6 +28,10 @@ public:
 	{
 		return dllHandle != 0;
 	}
+	std::filesystem::path getPluginPath() const
+	{
+		return pluginPath;
+	}
 	void setPluginPath(std::filesystem::path pPath)
 	{
 		pluginPath = pPath;

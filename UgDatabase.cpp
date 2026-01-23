@@ -753,21 +753,9 @@ CModuleFactory::~CModuleFactory()
 #endif
 }
 
-void CModuleFactory::ClearModuleDb( const std::wstring& p_extension )
+void CModuleFactory::ClearPrefabs()
 {
-	for( auto it = PrefabFileNames.begin() ;  it != PrefabFileNames.end() ; )
-	{
-		std::wstring extension = GetExtension( *it );
-
-		if( extension.compare( p_extension ) == 0 )
-		{
-			it = PrefabFileNames.erase(it);
-		}
-		else
-		{
-			++it;
-		}
-	}
+	PrefabFileNames.clear();
 }
 
 // On save, relevant module infos are flagged for saving

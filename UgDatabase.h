@@ -47,7 +47,7 @@ public:
 	void ClearSerialiseFlags(bool isExportingPlugin = false);
 
 	// Editor support.
-	void ClearModuleDb( const std::wstring& p_extension ); // clears either prefabs or vst plugins depending on extension arg.
+	void ClearPrefabs();
 
 	std::map<std::wstring, Module_Info*> module_list; // maps menu id to module identifier
 #if defined(_DEBUG)
