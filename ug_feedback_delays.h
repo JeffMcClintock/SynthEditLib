@@ -78,6 +78,7 @@ public:
 		SET_CUR_FUNC(&ug_base::process_sleep);
 	}
 
+    __attribute__((visibility("hidden")))
 	static ug_base* CreateObject(){return new ug_feedback_delay_base<DATATYPE, DIRECTION>;}
 	ug_base* Create() override
 	{

@@ -300,7 +300,8 @@ public:
 		}
 	}
 
-	static ug_base * CreateObject(){ return new ug_plugin3<IGmpiPluginType, IGmpiEventType>(); }
+    __attribute__((visibility("hidden")))
+    static ug_base * CreateObject(){ return new ug_plugin3<IGmpiPluginType, IGmpiEventType>(); }
 	ug_base * Create() override{ return CreateObject(); }
 
 	gmpi_sdk::mp_shared_ptr<IGmpiPluginType> plugin_;

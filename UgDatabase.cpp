@@ -221,7 +221,10 @@ int32_t RegisterPluginWithXml_lib(int subType, const char* xml, MP_CreateFunc2 c
 // register an internal ug_base derived module.
 namespace internalSdk
 {
-	bool RegisterPlugin(ug_base *(*ug_create)(), const char* xml)
+#if defined(__APPLE__)
+__attribute__((visibility("hidden")))
+#endif
+    bool RegisterPlugin(ug_base *(*ug_create)(), const char* xml)
 	{
 		return ModuleFactory()->RegisterModule( new Module_Info(ug_create, xml) );
 	}
