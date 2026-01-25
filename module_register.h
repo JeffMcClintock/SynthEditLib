@@ -50,7 +50,13 @@ bool teststaticinit_##filename = ModuleFactory()->debugInitCheck( #filename );
 #define SE_DECLARE_INIT_STATIC_FILE(filename) void se_static_library_init_##filename(){}
 #endif
 
+#if defined(__APPLE__)
+__attribute__((visibility("hidden")))
+#endif
 bool ModuleFactory_RegisterModule(const wchar_t* p_unique_id, int p_sid_name, int p_sid_group_name, class CDocOb* (*cug_create)(class Module_Info*), class ug_base* (*ug_create)(), int p_flags);
+#if defined(__APPLE__)
+__attribute__((visibility("hidden")))
+#endif
 bool ModuleFactory_RegisterModule(const wchar_t* p_unique_id, const wchar_t* name, const wchar_t* group_name, class CDocOb* (*cug_create)(Module_Info*), class ug_base* (*ug_create)(), int p_flags);
 
 // structure modules, using default CUG as GUI class
