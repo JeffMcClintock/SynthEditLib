@@ -25,7 +25,11 @@ class IDspPatchManager;
 #define	IMPLEMENT_UG_INFO_FUNC2(class_name) void class_name::ListInterface2(InterfaceObjectArray &PList)
 
 // static and dynamic contructors
+#if defined(__APPLE__)
+#define	DECLARE_UG_BUILD_FUNC(class_name) static __attribute__((visibility("hidden"))) ug_base * CreateObject(){return new class_name;}; __attribute__((visibility("hidden"))) ug_base * Create() override {return CreateObject();}
+#else
 #define	DECLARE_UG_BUILD_FUNC(class_name) static ug_base * CreateObject(){return new class_name;}; ug_base * Create() override {return CreateObject();}
+#endif
 
 // Macros to be used to init a Interface Object in unit_gen::ListInterface
 // more eficient in terms of code size.
