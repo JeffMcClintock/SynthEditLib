@@ -300,7 +300,9 @@ public:
 		}
 	}
 
-    __attribute__((visibility("hidden")))
+#if defined(__APPLE__)
+	__attribute__((visibility("hidden")))
+#endif
     static ug_base * CreateObject(){ return new ug_plugin3<IGmpiPluginType, IGmpiEventType>(); }
 	ug_base * Create() override{ return CreateObject(); }
 

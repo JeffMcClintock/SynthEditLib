@@ -190,6 +190,9 @@ static void GetModuleProperties(module_description& module)
 	module.flags = CF_STRUCTURE_VIEW | CF_PANEL_VIEW;
 }
 
+#if defined(__APPLE__)
+__attribute__((visibility("hidden")))
+#endif
 static bool GetPinProperties(int index, pin_description& properties)
 {
 	switch (index)
