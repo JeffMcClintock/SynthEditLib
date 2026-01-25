@@ -69,12 +69,18 @@ class ug_base;
 
 namespace internalSdk
 {
-	bool RegisterPlugin(ug_base *(*ug_create)(), const char* xml);
+#if defined(__APPLE__)
+__attribute__((visibility("hidden")))
+#endif
+    bool RegisterPlugin(ug_base *(*ug_create)(), const char* xml);
 
 	template< class moduleClass >
 	struct Register
 	{
-		static bool withXml(const char* xml)
+#if defined(__APPLE__)
+__attribute__((visibility("hidden")))
+#endif
+        static bool withXml(const char* xml)
 		{
 			return internalSdk::RegisterPlugin(
 				[]() -> ug_base* { return new moduleClass(); },

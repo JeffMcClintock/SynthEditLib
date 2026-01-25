@@ -300,7 +300,10 @@ public:
 		}
 	}
 
-	static ug_base * CreateObject(){ return new ug_plugin3<IGmpiPluginType, IGmpiEventType>(); }
+#if defined(__APPLE__)
+	__attribute__((visibility("hidden")))
+#endif
+    static ug_base * CreateObject(){ return new ug_plugin3<IGmpiPluginType, IGmpiEventType>(); }
 	ug_base * Create() override{ return CreateObject(); }
 
 	gmpi_sdk::mp_shared_ptr<IGmpiPluginType> plugin_;
