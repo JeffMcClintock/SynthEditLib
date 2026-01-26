@@ -10,7 +10,7 @@
 #include "modules/shared/xplatform.h"
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "UgDatabase2.h"
-#include "ProtectedFile.h"
+#include "interfaceobject.h"
 #include "RawConversions.h"
 #include "DragLine.h"
 #include "SubViewPanel.h"
@@ -18,7 +18,6 @@
 #include "../SynthEdit/cpu_accumulator.h"
 #include "ResizeAdorner.h"
 #include "modules/shared/GraphHelpers.h"
-#include "IGuiHost2.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
 #include "mfc_emulation.h"
 

@@ -1,37 +1,24 @@
 #pragma once
-#include "InterfaceObject.h"
 
 // Flags for special CUG types CUG::getType()->GetFlags()
 #define CF_IO_MOD       4
-
 // This UG controls polyphony (!!could use unit_gen flag UGF_POLYPHONIC_GENERATOR?)
 #define CF_NOTESOURCE   32
-
 // ANY CONTAINER WITH A NOTESOURCE/Automator etc can't be expanded 'inline'
 // because each container assumes only one.
 #define CF_DONT_EXPAND_CONTAINER    64
-
 // visible on control panel
 #define CF_PANEL_VIEW               0x0080
-
 // visible on structure view
 #define CF_STRUCTURE_VIEW           0x0100
-// #define CF_DUMMY_VIEW				0x0200
 #define CF_AUTOMATION_VIEW          0x0800
 #define CF_OLD_STYLE_LISTINTERFACE  0x1000
-
 #define CF_DEBUG_VIEW               0x8000
-
 #define CF_SHELL_PLUGIN             0x10000
 #define CF_IS_FEEDBACK              0x20000
-
 // ONLY PIGYBACKED DURING SERIALISE TO MAINTAIN FILE-FORMAT.
 #define CF_RACK_MODULE_FLAG         0x40000
-
 #define CF_ALWAYS_EXPORT			(1 << 25)	// e.g. Voice-Mute.
-
-
-typedef void (*ListInterface_ptr)(InterfaceObjectArray&);
 
 // Ensure linker includes file in static-library. See also INIT_STATIC_FILE in UgDatabase.cpp
 #ifdef SE_DECLARE_INIT_STATIC_FILE

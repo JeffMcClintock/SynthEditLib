@@ -14,6 +14,7 @@
 #include "IPluginGui.h"
 #include "mfc_emulation.h"
 #include "IGuiHost2.h"
+#include "interfaceobject.h"
 
 #ifdef _WIN32
 #include "Shared/DrawingFrame2_win.h"
