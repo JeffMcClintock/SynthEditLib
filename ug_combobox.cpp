@@ -18,7 +18,7 @@ short appearance; // only here to satisfy  LIST_VAR3  macro
 void ug_combobox::ListInterface2(InterfaceObjectArray& PList)
 {
 	//////////////////////////// ug_control::ListInterface2(PList);
-	LIST_VAR3( L"Channel", trash_sample_ptr, DR_IN, DT_ENUM , L"-1", MIDI_CHAN_LIST,IO_DISABLE_IF_POS|IO_IGNORE_PATCH_CHANGE|IO_POLYPHONIC_ACTIVE, L"MIDI Channel");
+	LIST_VAR3( L"Channel", trash_sample_ptr, DR_IN, DT_ENUM , L"-1", L"",IO_DISABLE_IF_POS|IO_IGNORE_PATCH_CHANGE|IO_POLYPHONIC_ACTIVE, L"MIDI Channel");
 	// these two retained only as dummy connections to MIDI automator (to ensure correct Sort Order)
 	LIST_VAR3N( L"MIDI In", DR_IN, DT_MIDI2 , L"0", L"", IO_DISABLE_IF_POS, L"");
 	LIST_VAR3N( L"MIDI Out", DR_OUT, DT_MIDI2 , L"", L"", IO_DISABLE_IF_POS, L"");
@@ -50,7 +50,7 @@ int ug_combobox::Open()
 {
 	ug_control::Open();
 	//done by ug_control		patch _control_container->RegAutomatedParameter(this);
-	SET_CUR_FUNC( &ug_base::process_sleep );
+	SET_PROCESS_FUNC( &ug_base::process_sleep );
 	return 0;
 }
 

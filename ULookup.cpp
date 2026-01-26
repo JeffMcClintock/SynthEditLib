@@ -1,11 +1,9 @@
 
 #include "ULookup.h"
 #include <assert.h>
-#include <math.h>
-
 #include "./modules/shared/xplatform.h"
 #include "ug_base.h"
-
+#include "sample.h"
 
 static const int GuardValue = 123454321;
 

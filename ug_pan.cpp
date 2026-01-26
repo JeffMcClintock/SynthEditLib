@@ -1,4 +1,6 @@
 
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <algorithm>
 #include <mutex>
 #include "ug_pan.h"
@@ -7,7 +9,6 @@
 #include "ULookup.h"
 #include "resource.h"
 #include "module_register.h"
-#include <math.h>
 
 SE_DECLARE_INIT_STATIC_FILE(ug_pan)
 
@@ -85,18 +86,18 @@ void ug_pan::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_state)
 	{
 		if( fade_type == 0 ) // linear
 		{
-			SET_CUR_FUNC( &ug_pan::sub_process_pan_linear );
+			SET_PROCESS_FUNC( &ug_pan::sub_process_pan_linear );
 		}
 		else
 		{
-			SET_CUR_FUNC( &ug_pan::sub_process_pan );
+			SET_PROCESS_FUNC( &ug_pan::sub_process_pan );
 		}
 	}
 	else
 	{
 		if( GetPlug(PLG_INPUT)->getState() == ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_pan::sub_process );
+			SET_PROCESS_FUNC( &ug_pan::sub_process );
 
 			// If panned hard one side, set other side st_static.
 			if( multiplier_l == 0.0f )
@@ -112,14 +113,14 @@ void ug_pan::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_state)
 		else
 		{
 			ResetStaticOutput();
-			SET_CUR_FUNC( &ug_pan::sub_process_static );
+			SET_PROCESS_FUNC( &ug_pan::sub_process_static );
 		}
 	}
 
 	if( out_stat < ST_RUN )
 	{
 		ResetStaticOutput();
-		SET_CUR_FUNC( &ug_pan::sub_process_static );
+		SET_PROCESS_FUNC( &ug_pan::sub_process_static );
 	}
 
 	OutputChange( p_clock, GetPlug(PLG_LEFT_OUT), out_stat_l );
@@ -297,7 +298,7 @@ void ug_pan::InitFadeTables(ug_base* p_ug, ULookup * &sin_table, ULookup * &sqr_
 	{
 		for( int j = 0 ; j < TABLE_SIZE + 2; j++ )
 		{
-			float temp_float = sinf( 0.5f * PI * (float)j / (float)TABLE_SIZE );
+			float temp_float = sinf( 0.5f * M_PI * (float)j / (float)TABLE_SIZE );
 			sin_table->SetValue( j, temp_float );
 		}
 

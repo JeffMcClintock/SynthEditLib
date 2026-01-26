@@ -363,7 +363,7 @@ void ug_adder2::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_sta
 		if (!previousOutputStatic || previousStaticOutput != static_input_sum)
 		{
 			ResetStaticOutput();
-			SET_CUR_FUNC(&ug_adder2::sub_process_static);
+			SET_PROCESS_FUNC(&ug_adder2::sub_process_static);
 			GetPlug(0)->TransmitState(p_clock, ST_STATIC);
 		}
 	}
@@ -371,11 +371,11 @@ void ug_adder2::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_sta
 	{
 		if( static_input_sum == 0.f )
 		{
-			SET_CUR_FUNC( &ug_adder2::sub_process );
+			SET_PROCESS_FUNC( &ug_adder2::sub_process );
 		}
 		else
 		{
-			SET_CUR_FUNC( &ug_adder2::sub_process_mixed );
+			SET_PROCESS_FUNC( &ug_adder2::sub_process_mixed );
 		}
 		GetPlug(0)->TransmitState(p_clock, ST_RUN);
 	}

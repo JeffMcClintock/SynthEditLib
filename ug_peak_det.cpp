@@ -100,16 +100,16 @@ void ug_peak_det::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type /*p
 
 		if( input1_status < ST_RUN )
 		{
-			SET_CUR_FUNC(&ug_peak_det::sub_process_settling);
+			SET_PROCESS_FUNC(&ug_peak_det::sub_process_settling);
 		}
 		else
 		{
-			SET_CUR_FUNC( &ug_peak_det::sub_process );
+			SET_PROCESS_FUNC( &ug_peak_det::sub_process );
 		}
 	}
 	else
 	{
-		SET_CUR_FUNC( &ug_peak_det::sub_process_all_run );
+		SET_PROCESS_FUNC( &ug_peak_det::sub_process_all_run );
 	}
 
 	GetPlug(PN_OUTPUT)->TransmitState( p_clock, ST_RUN );
@@ -155,7 +155,7 @@ void ug_peak_det::sub_process_settling(int start_pos, int sampleframes)
 	if ( fabs(current_level-i) < INSIGNIFICANT_SAMPLE ) // y1n = current output
 	{
 		ResetStaticOutput();
-		SET_CUR_FUNC(&ug_peak_det::process_static);
+		SET_PROCESS_FUNC(&ug_peak_det::process_static);
 	}
 }
 
@@ -175,7 +175,7 @@ void ug_peak_det::process_static(int start_pos, int sampleframes)
 
 	if (static_output_count <= 0)
 	{
-		SET_CUR_FUNC(&ug_base::process_sleep);
+		SET_PROCESS_FUNC(&ug_base::process_sleep);
 		GetPlug(PN_OUTPUT)->TransmitState(SampleClock() + sampleframes, ST_STOP);
 	}
 }

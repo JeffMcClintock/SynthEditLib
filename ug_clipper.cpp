@@ -31,7 +31,7 @@ void ug_clipper::ListInterface2(InterfaceObjectArray& PList)
 int ug_clipper::Open()
 {
 	ug_base::Open();
-	SET_CUR_FUNC( &ug_clipper::sub_process );
+	SET_PROCESS_FUNC( &ug_clipper::sub_process );
 	return 0;
 }
 
@@ -45,12 +45,12 @@ void ug_clipper::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_st
 
 	if( out_stat < ST_RUN )
 	{
-		SET_CUR_FUNC( &ug_clipper::process_all_stop );
+		SET_PROCESS_FUNC( &ug_clipper::process_all_stop );
 		ResetStaticOutput();
 	}
 	else
 	{
-		SET_CUR_FUNC( &ug_clipper::sub_process );
+		SET_PROCESS_FUNC( &ug_clipper::sub_process );
 	}
 
 	GetPlug(PN_OUT)->TransmitState( p_clock, out_stat );

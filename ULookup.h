@@ -1,11 +1,12 @@
 // ULookup Table, Stores a function in a table for quick access
 //
 #pragma once
-#include "sample.h"
 #include <assert.h>
 
 #include <algorithm>
 #include <string>
+
+#define VoltageToFrequency(freq) ( 440.f * powf(2.f, (freq) - 5.f ) )
 
 // Handy. No clipping. Limits must be enforced by caller.
 inline float fastInterpolationNoClip( float index, int tableSize, float* lookupTable )

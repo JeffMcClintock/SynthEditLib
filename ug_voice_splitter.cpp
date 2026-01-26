@@ -19,7 +19,7 @@ ug_voice_splitter::ug_voice_splitter() :
 	, current_output_plug(NULL)
 	, current_output_plug_number(-2)
 {
-	SET_CUR_FUNC(&ug_voice_splitter::sub_process);
+	SET_PROCESS_FUNC(&ug_voice_splitter::sub_process);
 
 	// Prevent downstream modules being polyphonic.
 	SetFlag(UGF_POLYPHONIC_DOWNSTREAM|UGF_VOICE_SPLITTER);
@@ -46,11 +46,11 @@ void ug_voice_splitter::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_ty
 
 	if (p_state == ST_RUN)
 	{
-		SET_CUR_FUNC(&ug_voice_splitter::sub_process);
+		SET_PROCESS_FUNC(&ug_voice_splitter::sub_process);
 	}
 	else
 	{
-		SET_CUR_FUNC(&ug_voice_splitter::sub_process_static);
+		SET_PROCESS_FUNC(&ug_voice_splitter::sub_process_static);
 		ResetStaticOutput();
 	}
 }
@@ -106,7 +106,7 @@ int ug_voice_splitter::Open()
 	}
 #endif
 
-	SET_CUR_FUNC(&ug_base::process_sleep);
+	SET_PROCESS_FUNC(&ug_base::process_sleep);
 	OnNewSetting();
 
 	return 0;

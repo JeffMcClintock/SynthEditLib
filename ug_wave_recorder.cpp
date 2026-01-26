@@ -190,7 +190,7 @@ void ug_wave_recorder::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug, state
 			// allow render to 'null device' for benchmarking purposes
 			if (FileName.empty() || open_file() != 0)
 			{
-				SET_CUR_FUNC(&ug_base::process_nothing);
+				SET_PROCESS_FUNC(&ug_base::process_nothing);
 			}
 			else
 			{
@@ -244,11 +244,11 @@ int ug_wave_recorder::open_file()
 
 		if (n_channels == 1)
 		{
-			SET_CUR_FUNC(&ug_wave_recorder::sub_process_to_file_mono);
+			SET_PROCESS_FUNC(&ug_wave_recorder::sub_process_to_file_mono);
 		}
 		else
 		{
-			SET_CUR_FUNC(&ug_wave_recorder::sub_process_to_file_stereo);
+			SET_PROCESS_FUNC(&ug_wave_recorder::sub_process_to_file_stereo);
 		}
 	}
 	else				// 32 bit float
@@ -257,11 +257,11 @@ int ug_wave_recorder::open_file()
 
 		if (n_channels == 1)
 		{
-			SET_CUR_FUNC(&ug_wave_recorder::sub_process_to_file_float_mono);
+			SET_PROCESS_FUNC(&ug_wave_recorder::sub_process_to_file_float_mono);
 		}
 		else
 		{
-			SET_CUR_FUNC(&ug_wave_recorder::sub_process_to_file_float_stereo);
+			SET_PROCESS_FUNC(&ug_wave_recorder::sub_process_to_file_float_stereo);
 		}
 	}
 
@@ -352,7 +352,7 @@ void ug_wave_recorder::TimeUp() // Preset time limit is up
 	}
 
 	CloseFile();
-	SET_CUR_FUNC(&ug_base::process_nothing);
+	SET_PROCESS_FUNC(&ug_base::process_nothing);
 }
 
 void ug_wave_recorder::sub_process_to_file_float_stereo(int start_pos, int sampleframes)

@@ -166,8 +166,12 @@ void Voice::Suspend2( timestamp_t /*p_clock*/ )
 	for (auto u : UGClones)
 	{
 		assert(u->GetPolyphonic());
+
+		// u->Suspend();
+		if (0 == (u->flags & UGF_NEVER_SUSPEND))
 		{
-			u->Suspend();
+			u->AudioMaster()->SuspendModule(u);
+			u->SetFlag(UGF_SUSPENDED);
 		}
 	}
 

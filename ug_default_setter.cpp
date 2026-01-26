@@ -21,7 +21,7 @@ int ug_default_setter::Open()
 {
 	ug_base::Open();
 	// NO PREVENTS WAKE ON PLUG DEFAULT CHANGE AudioMaster()->SuspendProcess( this ); // don't wast time on calling Do Process
-	SET_CUR_FUNC( &ug_base::process_sleep );
+	SET_PROCESS_FUNC( &ug_base::process_sleep );
 
 	// send inital updates on all outputs.
 	//AddEvent( new_SynthEditEvent( SampleClock(), UET_UI_NOTIFY, NUG_UPDATE_OUTPUT, 0, 0,0) );

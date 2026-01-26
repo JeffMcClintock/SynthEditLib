@@ -58,11 +58,11 @@ int ug_vst_in::Open()
 
 	if( count == 0 )
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 	}
 	else
 	{
-		SET_CUR_FUNC( &ug_vst_in::sub_process );
+		SET_PROCESS_FUNC( &ug_vst_in::sub_process );
 	}
 
 	return 0;

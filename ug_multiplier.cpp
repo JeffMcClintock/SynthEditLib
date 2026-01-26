@@ -72,30 +72,30 @@ void ug_multiplier::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p
 
 	if (bypassPlug >= 0)
 	{
-		SET_CUR_FUNC(&ug_multiplier::process_bypass);
+		SET_PROCESS_FUNC(&ug_multiplier::process_bypass);
 	}
 	else
 	{
 		if (out_stat < ST_RUN)
 		{
-			SET_CUR_FUNC(&ug_math_base::process_both_stop1);
+			SET_PROCESS_FUNC(&ug_math_base::process_both_stop1);
 			ResetStaticOutput();
 		}
 		else
 		{
 			if (input1_status < ST_RUN)
 			{
-				SET_CUR_FUNC(&ug_math_base::process_B_run);
+				SET_PROCESS_FUNC(&ug_math_base::process_B_run);
 			}
 			else
 			{
 				if (input2_status < ST_RUN)
 				{
-					SET_CUR_FUNC(&ug_math_base::process_A_run);
+					SET_PROCESS_FUNC(&ug_math_base::process_A_run);
 				}
 				else
 				{
-					SET_CUR_FUNC(&ug_math_base::process_both_run);
+					SET_PROCESS_FUNC(&ug_math_base::process_both_run);
 				}
 			}
 		}

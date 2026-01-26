@@ -20,12 +20,12 @@ void ug_generic_1_1::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type 
 
 	if( p_state == ST_RUN )
 	{
-		SET_CUR_FUNC( &ug_generic_1_1::sub_process );
+		SET_PROCESS_FUNC( &ug_generic_1_1::sub_process );
 	}
 	else
 	{
 		ResetStaticOutput();
-		SET_CUR_FUNC( &ug_generic_1_1::sub_process_static );
+		SET_PROCESS_FUNC( &ug_generic_1_1::sub_process_static );
 	}
 }
 
@@ -37,7 +37,7 @@ void ug_generic_1_1::sub_process_static(int start_pos, int sampleframes)
 
 int ug_generic_1_1::Open()
 {
-	SET_CUR_FUNC( &ug_generic_1_1::sub_process );
+	SET_PROCESS_FUNC( &ug_generic_1_1::sub_process );
 	return ug_base::Open();
 }
 

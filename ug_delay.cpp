@@ -87,23 +87,23 @@ void ug_delay::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_stat
 			if( fb_state == ST_RUN )
 			{
                 myProcessPtr s = &ug_delay::subProcess<PolicyModulationDigitalChanging, PolicyInterpolationLinear, PolicyFeedbackModulated >;
-				SET_CUR_FUNC( s );
+				SET_PROCESS_FUNC( s );
 
 			}
 			else
 			{
-				SET_CUR_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationDigitalChanging, PolicyInterpolationLinear, PolicyFeedbackFixed >) );
+				SET_PROCESS_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationDigitalChanging, PolicyInterpolationLinear, PolicyFeedbackFixed >) );
 			}
 		}
 		else // Not modulated.
 		{
 			if( fb_state == ST_RUN )
 			{
-				SET_CUR_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationFixed, PolicyInterpolationLinear, PolicyFeedbackModulated >) );
+				SET_PROCESS_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationFixed, PolicyInterpolationLinear, PolicyFeedbackModulated >) );
 			}
 			else
 			{
-				SET_CUR_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationFixed, PolicyInterpolationLinear, PolicyFeedbackFixed >) );
+				SET_PROCESS_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationFixed, PolicyInterpolationLinear, PolicyFeedbackFixed >) );
 			}
 		}
 	}
@@ -113,26 +113,26 @@ void ug_delay::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_stat
 		{
 			if( fb_state == ST_RUN )
 			{
-				//SET_CUR_FUNC( &ug_delay::sub_process_modulated_feedback );
-				SET_CUR_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationDigitalChanging, PolicyInterpolationNone, PolicyFeedbackModulated >) );
+				//SET_PROCESS_FUNC( &ug_delay::sub_process_modulated_feedback );
+				SET_PROCESS_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationDigitalChanging, PolicyInterpolationNone, PolicyFeedbackModulated >) );
 			}
 			else
 			{
-				//SET_CUR_FUNC( &ug_delay::sub_process_modulated );
-				SET_CUR_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationDigitalChanging, PolicyInterpolationNone, PolicyFeedbackFixed >) );
+				//SET_PROCESS_FUNC( &ug_delay::sub_process_modulated );
+				SET_PROCESS_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationDigitalChanging, PolicyInterpolationNone, PolicyFeedbackFixed >) );
 			}
 		}
 		else // not modulate.
 		{
 			if( fb_state == ST_RUN )
 			{
-				//SET_CUR_FUNC( &ug_delay::sub_process_feedback );
-				SET_CUR_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationFixed, PolicyInterpolationNone, PolicyFeedbackModulated >) );
+				//SET_PROCESS_FUNC( &ug_delay::sub_process_feedback );
+				SET_PROCESS_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationFixed, PolicyInterpolationNone, PolicyFeedbackModulated >) );
 			}
 			else
 			{
-				//SET_CUR_FUNC( &ug_delay::sub_process );
-				SET_CUR_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationFixed, PolicyInterpolationNone, PolicyFeedbackFixed >) );
+				//SET_PROCESS_FUNC( &ug_delay::sub_process );
+				SET_PROCESS_FUNC( (myProcessPtr) (&ug_delay::subProcess<PolicyModulationFixed, PolicyInterpolationNone, PolicyFeedbackFixed >) );
 			}
 		}
 	}
@@ -147,7 +147,7 @@ void ug_delay::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_stat
 	if( GetPlug(PN_SIGNAL)->getState() < ST_RUN )
 	{
 		current_process_func = process_function;
-		SET_CUR_FUNC( &ug_delay::sub_process_static );
+		SET_PROCESS_FUNC( &ug_delay::sub_process_static );
 	}
 }
 

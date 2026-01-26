@@ -20,7 +20,7 @@ void ug_midi_device::ListInterface2(InterfaceObjectArray& PList)
 
 int ug_midi_device::Open()
 {
-	SET_CUR_FUNC( &ug_base::process_sleep );
+	SET_PROCESS_FUNC( &ug_base::process_sleep );
 	return ug_base::Open();
 }
 

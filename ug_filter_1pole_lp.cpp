@@ -72,7 +72,7 @@ int ug_filter_1pole::Open()
 	if( !lookup_table->GetInitialised() )
 	{
 //		lookup_table->SetSize(TABLE_SIZE + 2);
-		float const1 = - PI2 / getSampleRate();
+		float const1 = - (2.0 * M_PI) / getSampleRate();
 
 		for( int j = 0 ; j < lookup_table->GetSize(); j++ )
 		{
@@ -84,7 +84,7 @@ int ug_filter_1pole::Open()
 			// https://dsp.stackexchange.com/questions/54086/single-pole-iir-low-pass-filter-which-is-the-correct-formula-for-the-decay-coe
 #if 0 //def _DEBUG
 			{
-				const auto y = 1.0 - cos(PI2 * freq_hz / getSampleRate());
+				const auto y = 1.0 - cos((2.0 * M_PI) * freq_hz / getSampleRate());
 				const auto alpha = -y + sqrt(y * y + 2.0 * y); // exact 1 - 'l'
 
 				_RPTN(0, "%f, %f\n", l, 1.0 - alpha);
@@ -101,11 +101,11 @@ int ug_filter_1pole::Open()
 /*
 	if( low_pass_mode )
 	{
-		SET_CUR_FUNC( &ug_filter_1pole::process_all_lp );
+		SET_PROCESS_FUNC( &ug_filter_1pole::process_all_lp );
 	}
 	else
 	{
-		SET_CUR_FUNC( &ug_filter_1pole::process_all_hp );
+		SET_PROCESS_FUNC( &ug_filter_1pole::process_all_hp );
 	}
 */
 
@@ -145,11 +145,11 @@ void ug_filter_1pole::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type
 	{
 		if( low_pass_mode )
 		{
-			SET_CUR_FUNC( &ug_filter_1pole::process_all_lp );
+			SET_PROCESS_FUNC( &ug_filter_1pole::process_all_lp );
 		}
 		else
 		{
-			SET_CUR_FUNC( &ug_filter_1pole::process_all_hp );
+			SET_PROCESS_FUNC( &ug_filter_1pole::process_all_hp );
 		}
 	}
 	else
@@ -160,22 +160,22 @@ void ug_filter_1pole::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type
 		{
 			if( settling )
 			{
-				SET_CUR_FUNC( &ug_filter_1pole::process_fixed_freq_lp_settling );
+				SET_PROCESS_FUNC( &ug_filter_1pole::process_fixed_freq_lp_settling );
 			}
 			else
 			{
-				SET_CUR_FUNC( &ug_filter_1pole::process_fixed_freq_lp );
+				SET_PROCESS_FUNC( &ug_filter_1pole::process_fixed_freq_lp );
 			}
 		}
 		else
 		{
 			if( settling )
 			{
-				SET_CUR_FUNC( &ug_filter_1pole::process_fixed_freq_hp_settling );
+				SET_PROCESS_FUNC( &ug_filter_1pole::process_fixed_freq_hp_settling );
 			}
 			else
 			{
-				SET_CUR_FUNC( &ug_filter_1pole::process_fixed_freq_hp );
+				SET_PROCESS_FUNC( &ug_filter_1pole::process_fixed_freq_hp );
 			}
 		}
 	}
@@ -203,7 +203,7 @@ void ug_filter_1pole::process_fixed_freq_lp_settling(int start_pos, int samplefr
 		y1n = input;
 		output_quiet = true;
 		ResetStaticOutput();
-		SET_CUR_FUNC( &ug_filter_1pole::process_static );
+		SET_PROCESS_FUNC( &ug_filter_1pole::process_static );
 	}
 }
 
@@ -226,7 +226,7 @@ void ug_filter_1pole::process_fixed_freq_hp_settling(int start_pos, int samplefr
 		y1n = input;
 		output_quiet = true;
 		ResetStaticOutput();
-		SET_CUR_FUNC( &ug_filter_1pole::process_static );
+		SET_PROCESS_FUNC( &ug_filter_1pole::process_static );
 	}
 }
 
@@ -316,7 +316,7 @@ void ug_filter_1pole::process_static(int start_pos, int sampleframes)
 
 	if( static_output_count <= 0 )
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 		GetPlug(PN_OUTPUT)->TransmitState( SampleClock() + sampleframes, ST_STOP );
 	}
 }
@@ -342,7 +342,7 @@ void ug_filter_1pole::freq_change( float p_pitch )
 		}
 
 		freq_hz = min( freq_hz, getSampleRate() * 0.495f); // limit to 1/2 sample rate
-		l = exp( -PI2 * freq_hz / getSampleRate()); // approximation
+		l = exp( -(2.0 * M_PI) * freq_hz / getSampleRate()); // approximation
 	}
 
 	k = 1.f - l;

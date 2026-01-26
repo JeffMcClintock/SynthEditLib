@@ -113,13 +113,13 @@ public:
 					count_items_lower_half += 1.0f;
 				}
 
-				//					AngleInc = (PI + 2.0 * startAngle) / (itemCount - 1.0);
+				//					AngleInc = (M_PI + 2.0 * startAngle) / (itemCount - 1.0);
 				AngleInc = (float)M_PI / count_items_lower_half;
 				startAngle = -AngleInc * (CountPerSide - 1.0f) / 2.0f;
 			}
 			else
 			{
-				startAngle = -asin(highest_item / radius);// - PI / 2.0;
+				startAngle = -asin(highest_item / radius);// - M_PI / 2.0;
 				AngleInc = -2.0f * startAngle / (CountPerSide - 1.0f);
 
 				if (CountPerSide == 1.0f)
@@ -265,7 +265,7 @@ public:
 				}
 
 				float angle = startAngle + item_index * AngleInc;
-				//				_RPT3(_CRT_WARN, "angle %.2f (count %d/%d) ", angle * 180.0 / PI, (int) item_index,(int)itemCount );
+				//				_RPT3(_CRT_WARN, "angle %.2f (count %d/%d) ", angle * 180.0 / M_PI, (int) item_index,(int)itemCount );
 				float ly = sin(angle) * radius;
 				float lx = cos(angle) * radius;// - text_size.cy / 2;
 											   //				_RPT2(_CRT_WARN, "at (%d,%d)\n", (int) lx,(int)ly );

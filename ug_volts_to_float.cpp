@@ -1,4 +1,5 @@
 
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include "ug_volts_to_float.h"
 #include "resource.h"
@@ -96,7 +97,7 @@ int ug_volts_to_float::Open()
 	// meter meant to respond in 20ms, that's 50Hz, set LP to 100 to be sure
 	// Balistics set elswhere, this is just the RMS average filter
 	const float cuttof_freq = 100; // hz
-	low_pass_cof = exp( -PI2 * cuttof_freq / getSampleRate());
+	low_pass_cof = exp( -(2.0 * M_PI) * cuttof_freq / getSampleRate());
 	return 0;
 }
 
@@ -204,7 +205,7 @@ void ug_volts_to_float::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug, stat
 			}
 			else
 			{
-				SET_CUR_FUNC(audio_routine);
+				SET_PROCESS_FUNC(audio_routine);
 
 				if (!monitor_routine_running)
 				{
@@ -269,7 +270,7 @@ void ug_volts_to_float::mode_change()
 	}
 
 	monitor_routine = static_cast <ug_func> (&ug_volts_to_float::monitor);
-	SET_CUR_FUNC( audio_routine );
+	SET_PROCESS_FUNC( audio_routine );
 }
 
 void ug_volts_to_float::monitor()
@@ -360,11 +361,11 @@ void ug_volts_to_float::monitor()
 	if( monitor_done )
 	{
 		monitor_routine_running = false;
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 	}
 	else
 	{
-		SET_CUR_FUNC( audio_routine ); // must be restarted
+		SET_PROCESS_FUNC( audio_routine ); // must be restarted
 		RUN_AT( SampleClock() + delay, &ug_volts_to_float::monitor );
 	}
 

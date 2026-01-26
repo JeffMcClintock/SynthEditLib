@@ -47,7 +47,7 @@ void ug_fixed_values_bool::ListInterface2(InterfaceObjectArray& PList)
 int ug_fixed_values::Open()
 {
 	int r = ug_base::Open();
-	SET_CUR_FUNC(&ug_base::process_sleep);
+	SET_PROCESS_FUNC(&ug_base::process_sleep);
 
 	for(auto p : plugs)
 	{

@@ -28,7 +28,7 @@ ug_notesource::ug_notesource() :
 	,m_poly_mode_old(VA_POLY_HARD) // hard steal.
 {
 	SetFlag(UGF_POLYPHONIC | UGF_POLYPHONIC_GENERATOR /* moved to redirector| UGF_UPSTREAM_PATCH_MGR*/ /* | UGF_NEVER_SUSPEND */);
-	SET_CUR_FUNC( &ug_notesource::sub_process );
+	SET_PROCESS_FUNC( &ug_notesource::sub_process );
 }
 
 void ug_notesource::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_state )
@@ -265,7 +265,7 @@ ug_midi_to_cv::ug_midi_to_cv() :
 	,ignoreNoteOnPitch_(false)
 	, m_held(false)
 {
-	SET_CUR_FUNC( &ug_midi_to_cv::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_to_cv::sub_process );
 	SetFlag(UGF_POLYPHONIC_GENERATOR_CLONED| UGF_HAS_HELPER_MODULE |UGF_DELAYED_GATE_NOTESOURCE);
 }
 
@@ -425,7 +425,7 @@ void ug_midi_to_cv::sub_process(int start_pos, int sampleframes)
 
 	if( can_sleep )
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 	}
 }
 
@@ -442,7 +442,7 @@ void ug_midi_to_cv::PitchBend( float bend_amt)
 
 	if( send_stat_change && pitch_bend_increment != 0 ) // ensure bend amnt not zero
 	{
-		SET_CUR_FUNC( &ug_midi_to_cv::sub_process );
+		SET_PROCESS_FUNC( &ug_midi_to_cv::sub_process );
 		ResetStaticOutput();
 		OutputChange( SampleClock(), GetPlug(PLG_PITCH), ST_RUN );
 	}
@@ -452,7 +452,7 @@ void ug_midi_to_cv::PitchBend( float bend_amt)
 
 void ug_midi_to_cv::Aftertouch(float val)
 {
-	SET_CUR_FUNC( &ug_midi_to_cv::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_to_cv::sub_process );
 	aftertouch_so.Set( SampleClock(), val );
 }
 
@@ -528,7 +528,7 @@ void ug_midi_to_cv::Retune( float pitch )
 		OutputChange(SampleClock(), GetPlug(PLG_PITCH), ST_STATIC);
 	}
 
-	SET_CUR_FUNC( &ug_midi_to_cv::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_to_cv::sub_process );
 }
 
 /*
@@ -590,7 +590,7 @@ void ug_midi_to_cv::NoteOn2( /*short chan,*/ short VoiceId, float velocity, floa
 	_RPT4(_CRT_WARN, "V%d ug_midi_to_cv::NoteOn() clock=%d pitch %f vel %f\n", pp_voice_num, (int)SampleClock(), pitch, velocity);
 #endif
 
-	SET_CUR_FUNC( &ug_midi_to_cv::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_to_cv::sub_process );
 
 	// set pitch bend to correct setting for this chan
 	pitch_bend = pitch_bend_target = bender_to_voltage(m_bend_amt); //  chan_info[chan].bender);
@@ -669,7 +669,7 @@ void ug_midi_to_cv::NoteOn2( /*short chan,*/ short VoiceId, float velocity, floa
                 }
 
                 // this ug needs to track portamento
-                SET_CUR_FUNC(&ug_midi_to_cv::sub_process );
+                SET_PROCESS_FUNC(&ug_midi_to_cv::sub_process );
             }
 		}
 	}
@@ -696,7 +696,7 @@ void ug_midi_to_cv::NoteOn2( /*short chan,*/ short VoiceId, float velocity, floa
 void ug_midi_to_cv::NoteOff( /*short chan,*/ short NoteNum, short NoteVel)
 {
 	//	_RPT2(_CRT_WARN, "V%d ug_midi_to_cv::NoteOff() clock=%d\n", pp_voice_num, SampleClock() );
-	SET_CUR_FUNC( &ug_midi_to_cv::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_to_cv::sub_process );
 	//	_RPT0(_CRT_WARN, "active\n" );
 	//	_RPT2(_CRT_WARN, "V%d ug_midi_to_cv gate=0 clock=%d\n", pp_voice_num, SampleClock() );
 	RUN_AT( SampleClock() + 3, &ug_midi_to_cv::delay_gate_off );
@@ -713,7 +713,7 @@ void ug_midi_to_cv::delay_gate_on()
 	_RPT2(_CRT_WARN, "V%d ug_midi_to_cv gate=1 clock=%d\n", pp_voice_num, SampleClock());
 #endif
 	// When resetting gate in response to voice-stealing (voice-active -> 0 ). May be running sub-process-sleep and need to restart sub-process.
-	SET_CUR_FUNC( &ug_midi_to_cv::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_to_cv::sub_process );
 	gate_so.Set( SampleClock(), 1.0f );
 	lastGateHi = SampleClock();
 }
@@ -730,7 +730,7 @@ void ug_midi_to_cv::delay_gate_off()
 	_RPT2(_CRT_WARN, "V%d ug_midi_to_cv delay_gate=0 clock=%d\n", pp_voice_num, SampleClock());
 #endif
 	// When resetting gate in response to voice-stealing (voice-active -> 0 ). May be running sub-process-sleep and need to restart sub-process.
-	SET_CUR_FUNC( &ug_midi_to_cv::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_to_cv::sub_process );
 	gate_so.Set( SampleClock(), 0.0f );
 }
 

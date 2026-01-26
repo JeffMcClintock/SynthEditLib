@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include "ug_base.h"
 #include "ug_container.h"
@@ -9,7 +10,6 @@
 #include "ug_oversampler.h"
 #include "ug_plugin3.h"
 #include "UMidiBuffer2.h"
-#include "midi_defs.h"
 #include "./IDspPatchManager.h"
 #include "./dsp_patch_parameter_base.h"
 #include "ug_event.h"
@@ -26,7 +26,6 @@
 #include "SeException.h"
 #include "mfc_emulation.h"
 #include "platform.h"
-#include "Hosting/message_queues.h"
 
 using namespace std;
 using namespace gmpi::hosting;
@@ -100,8 +99,8 @@ ug_base::ug_base() : EventProcessor()
 ,latencySamples(0)
 ,cumulativeLatencySamples(LATENCY_NOT_SET)
 {
-	SET_CUR_FUNC( &ug_base::process_nothing ); // moved here from Open(). as it was overidding derived classes initialisation
-	//	SET_CUR_FUNC( &ug_base::process_sleep ); // messed up MIDI somehow
+	SET_PROCESS_FUNC( &ug_base::process_nothing ); // moved here from Open(). as it was overidding derived classes initialisation
+	//	SET_PROCESS_FUNC( &ug_base::process_sleep ); // messed up MIDI somehow
 #ifdef _DEBUG_MOOSE
 	++instanceCounter;
 	_RPT1(_CRT_WARN, "modules instances %d\n", instanceCounter );
@@ -2250,9 +2249,9 @@ const float* ug_base::GetInterpolationtable()
 				// position on x axis
 				double o = (double) i / INTERPOLATION_DIV;
 				// filter impulse response
-				double sinc = sin( PI * o ) / ( PI * o );
+				double sinc = sin( M_PI * o ) / ( M_PI * o );
 				// apply tailing function
-				double hanning = cos( 0.5 * PI * i / ( INTERPOLATION_DIV * table_width ) );
+				double hanning = cos( 0.5 * M_PI * i / ( INTERPOLATION_DIV * table_width ) );
 				float windowed_sinc = (float)(sinc * hanning * hanning);
 				//				_RPT4(_CRT_WARN,"%3d %+.5f   %+.5f %+.5f\n", i, windowed_sinc, sinc, hanning );
 				assert( table_index >= 0 && table_index < table_entries * 2);

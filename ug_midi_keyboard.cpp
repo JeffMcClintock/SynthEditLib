@@ -28,7 +28,7 @@ void ug_midi_keyboard::ListInterface2(InterfaceObjectArray& PList)
 
 ug_midi_keyboard::ug_midi_keyboard()
 {
-	SET_CUR_FUNC( &ug_midi_keyboard::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_keyboard::sub_process );
 }
 
 void ug_midi_keyboard::OnMidiData(unsigned int midi_data, timestamp_t timeStamp)
@@ -63,7 +63,7 @@ void ug_midi_keyboard::OnNoteOn(int p_note_num)
 {
 	assert( p_note_num >= 0 && p_note_num < 128 );
 	Wake();
-	SET_CUR_FUNC( &ug_midi_keyboard::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_keyboard::sub_process );
 	int vel = 90;
 	int chan = std::max( 0, (int)channel ); // chan -1 -> chan 0
 	int midi_data = chan + NOTE_ON + (p_note_num & 0x7f) * 0x100 + vel * 0x10000; // some note on
@@ -83,7 +83,7 @@ void ug_midi_keyboard::OnNoteOff(int p_note_num)
 {
 	assert( p_note_num >= 0 && p_note_num < 128 );
 	Wake();
-	SET_CUR_FUNC( &ug_midi_keyboard::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_keyboard::sub_process );
 	int vel = 64;
 	int chan = std::max( 0, (int)channel ); // chan -1 -> chan 0
 	int midi_data = chan + NOTE_OFF + (p_note_num & 0x7f) * 0x100 + vel * 0x10000; // some note on

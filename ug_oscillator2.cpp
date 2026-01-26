@@ -4,6 +4,7 @@
 -Is there a way to specify how SE oscillators would "sync" for different flavors of that Prophet 5 sync type lead? 
 */
 
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <algorithm>
 #include <iomanip>
@@ -449,12 +450,12 @@ void ug_oscillator2::ChooseProcessFunction( int blockPos )
 	switch( waveform )
 	{
 	case 5:
-		SET_CUR_FUNC( &ug_oscillator2::process_white_noise );
+		SET_PROCESS_FUNC( &ug_oscillator2::process_white_noise );
 		return;
 		break;
 
 	case 6:
-		SET_CUR_FUNC( &ug_oscillator2::process_pink_noise );
+		SET_PROCESS_FUNC( &ug_oscillator2::process_pink_noise );
 		return;
 		break;
 
@@ -479,23 +480,23 @@ void ug_oscillator2::ChooseProcessFunction( int blockPos )
 			switch( waveform )
 			{
 			case 2:	// ramp
-				SET_CUR_FUNC (&ug_oscillator2::sub_process_ramp);
+				SET_PROCESS_FUNC (&ug_oscillator2::sub_process_ramp);
 				break;
 
 			case 4: // pulse
 				if( GetPlug(PN_PW)->getState() == ST_RUN )
 				{
-					SET_CUR_FUNC (&ug_oscillator2::sub_process_pw_pulse);
+					SET_PROCESS_FUNC (&ug_oscillator2::sub_process_pw_pulse);
 				}
 				else
 				{
-					SET_CUR_FUNC (&ug_oscillator2::sub_process_pulse);
+					SET_PROCESS_FUNC (&ug_oscillator2::sub_process_pulse);
 				}
 
 				break;
 
 			default:
-				SET_CUR_FUNC (&ug_oscillator2::sub_process);
+				SET_PROCESS_FUNC (&ug_oscillator2::sub_process);
 				break;
 			}
 		}
@@ -504,23 +505,23 @@ void ug_oscillator2::ChooseProcessFunction( int blockPos )
 			switch( waveform )
 			{
 			case 2:	// ramp
-				SET_CUR_FUNC (&ug_oscillator2::sub_process_pitch_ramp);
+				SET_PROCESS_FUNC (&ug_oscillator2::sub_process_pitch_ramp);
 				break;
 
 			case 4: // pulse
 				if( GetPlug(PN_PW)->getState() == ST_RUN )
 				{
-					SET_CUR_FUNC (&ug_oscillator2::sub_process_pw_pitch_pulse);
+					SET_PROCESS_FUNC (&ug_oscillator2::sub_process_pw_pitch_pulse);
 				}
 				else
 				{
-					SET_CUR_FUNC (&ug_oscillator2::sub_process_pitch_pulse);
+					SET_PROCESS_FUNC (&ug_oscillator2::sub_process_pitch_pulse);
 				}
 
 				break;
 
 			default:
-				SET_CUR_FUNC (&ug_oscillator2::sub_process_pitch);
+				SET_PROCESS_FUNC (&ug_oscillator2::sub_process_pitch);
 				break;
 			}
 		}
@@ -532,23 +533,23 @@ void ug_oscillator2::ChooseProcessFunction( int blockPos )
 			switch( waveform )
 			{
 			case 2:	// ramp
-				SET_CUR_FUNC (&ug_oscillator2::sub_process_phase_ramp);
+				SET_PROCESS_FUNC (&ug_oscillator2::sub_process_phase_ramp);
 				break;
 
 			case 4: // pulse
 				if( GetPlug(PN_PW)->getState() == ST_RUN )
 				{
-					SET_CUR_FUNC (&ug_oscillator2::sub_process_pw_phase_pulse);
+					SET_PROCESS_FUNC (&ug_oscillator2::sub_process_pw_phase_pulse);
 				}
 				else
 				{
-					SET_CUR_FUNC (&ug_oscillator2::sub_process_phase_pulse);
+					SET_PROCESS_FUNC (&ug_oscillator2::sub_process_phase_pulse);
 				}
 
 				break;
 
 			default:
-				SET_CUR_FUNC (&ug_oscillator2::sub_process_phase);
+				SET_PROCESS_FUNC (&ug_oscillator2::sub_process_phase);
 				break;
 			}
 		}
@@ -557,23 +558,23 @@ void ug_oscillator2::ChooseProcessFunction( int blockPos )
 			switch( waveform )
 			{
 			case 2:	// ramp
-				SET_CUR_FUNC (&ug_oscillator2::sub_process_fp_ramp);
+				SET_PROCESS_FUNC (&ug_oscillator2::sub_process_fp_ramp);
 				break;
 
 			case 4: // pulse
 				if( GetPlug(PN_PW)->getState() == ST_RUN )
 				{
-					SET_CUR_FUNC (&ug_oscillator2::sub_process_pw_fp_pulse);
+					SET_PROCESS_FUNC (&ug_oscillator2::sub_process_pw_fp_pulse);
 				}
 				else
 				{
-					SET_CUR_FUNC (&ug_oscillator2::sub_process_fp_pulse);
+					SET_PROCESS_FUNC (&ug_oscillator2::sub_process_fp_pulse);
 				}
 
 				break;
 
 			default:
-				SET_CUR_FUNC (&ug_oscillator2::sub_process_fp);
+				SET_PROCESS_FUNC (&ug_oscillator2::sub_process_fp);
 				break;
 			}
 		}
@@ -585,7 +586,7 @@ void ug_oscillator2::ChooseProcessFunction( int blockPos )
 
 	if( GetPlug(PN_SYNC)->getState() == ST_RUN || cross_fade_samples > 0 )
 	{
-		SET_CUR_FUNC( &ug_oscillator2::process_with_sync );
+		SET_PROCESS_FUNC( &ug_oscillator2::process_with_sync );
 
 		if( wave_fade_samples > 0 )
 		{
@@ -596,7 +597,7 @@ void ug_oscillator2::ChooseProcessFunction( int blockPos )
 	{
 		if( wave_fade_samples > 0 )
 		{
-			SET_CUR_FUNC( &ug_oscillator2::process_wave_crossfade );
+			SET_PROCESS_FUNC( &ug_oscillator2::process_wave_crossfade );
 		}
 	}
 }
@@ -1673,7 +1674,7 @@ void ug_oscillator2::FillWaveTable( ug_base* ug, float sampleRate, wavetable_arr
 	wa.clear();
 	const int table_size = SAW_TABLE_SIZE;
 	const int nyquist_inc = table_size / 2;
-	double precalc_const1 = PI2 / (double) table_size;
+	double precalc_const1 = (2.0 * M_PI) / (double) table_size;
 	const double min_wt_gap = exp( log(2.) * 6 / 12 ); //6 semitones per wavetable minimum
 	double max_inc,min_inc;
 	int partial, next_partial = 0;
@@ -1775,7 +1776,7 @@ void ug_oscillator2::FillWaveTable( ug_base* ug, float sampleRate, wavetable_arr
 				for( int h = partial ; h >= 0 ; h -- )
 				{
 					// windowing function to reduce gibbs phenomena (hamming)
-					float window = 0.54f + 0.46f * cosf( ((float)harmonic[h] - 1.f) * PI / (partial+1) );
+					float window = 0.54f + 0.46f * cosf( ((float)harmonic[h] - 1.f) * M_PI / (partial+1) );
 //					_RPT3(_CRT_WARN, "Harm %3d lev %f Gibbs %f\n",(int)harmonic[h], level[h], window  );
 					level_windowed[h] = level[h] * window;
 				}

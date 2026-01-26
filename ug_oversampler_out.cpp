@@ -448,11 +448,11 @@ void ug_oversampler_out::OnFirstSample()
 {
 	if (firMode)
 	{
-		SET_CUR_FUNC(&ug_oversampler_out::subProcessFirFilter);
+		SET_PROCESS_FUNC(&ug_oversampler_out::subProcessFirFilter);
 	}
 	else
 	{
-		SET_CUR_FUNC( &ug_oversampler_out::subProcessDownsample );
+		SET_PROCESS_FUNC( &ug_oversampler_out::subProcessDownsample );
 	}
 
 	for (auto p : OutsidePlugs)
@@ -872,7 +872,7 @@ int ug_oversampler_in::Open()
 
 void ug_oversampler_in::OnFirstSample()
 {
-	SET_CUR_FUNC( &ug_oversampler_in::subProcessUpsample );
+	SET_PROCESS_FUNC( &ug_oversampler_in::subProcessUpsample );
 }
 
 void ug_oversampler_in::HandleEvent(SynthEditEvent* e)

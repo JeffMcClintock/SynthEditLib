@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include "./SampleOscillator2.h"
 #include "./csoundfont.h"
@@ -483,7 +484,7 @@ float* SoundfontOscillator2::GetInterpolationtable()
 		int i;
 		const int table_width = INTERPOLATION_POINTS / 2;
 		const int table_entries = ( table_width + 1 ) * INTERPOLATION_DIV;
-		const float PI = 3.14159265358979323846f;
+//		const float M_PI = 3.14159265358979323846f;
 
 		for( int sub_table = 0 ; sub_table < INTERPOLATION_DIV ; sub_table++ )
 		{
@@ -494,10 +495,10 @@ float* SoundfontOscillator2::GetInterpolationtable()
 				// position on x axis
 				double o = (double) i / INTERPOLATION_DIV;
 				// filter impulse response
-				double sinc = sin( PI * o ) / ( PI * o );
+				double sinc = sin( M_PI * o ) / ( M_PI * o );
 				
 				// apply tailing function
-				double hanning = cos( 0.5 * PI * i / ( INTERPOLATION_DIV * table_width ) );
+				double hanning = cos( 0.5 * M_PI * i / ( INTERPOLATION_DIV * table_width ) );
 				float windowed_sinc = (float)(sinc * hanning * hanning);
 
 				assert( (table_index-x) >= 0 && (table_index-x) < tableSize_ );

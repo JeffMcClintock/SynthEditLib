@@ -30,7 +30,7 @@ IMPLEMENT_UG_INFO_FUNC2(ug_test_tone)
 
 ug_test_tone::ug_test_tone()
 {
-	SET_CUR_FUNC( &ug_test_tone::sub_process );
+	SET_PROCESS_FUNC( &ug_test_tone::sub_process );
 }
 
 // This is called when the input changes state

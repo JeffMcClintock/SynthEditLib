@@ -71,7 +71,7 @@ void ug_system_command::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_ty
 
 	if( in_state == ST_RUN )
 	{
-		SET_CUR_FUNC( &ug_system_command::sub_process );
+		SET_PROCESS_FUNC( &ug_system_command::sub_process );
 		ResetStaticOutput();
 	}
 	else
@@ -84,7 +84,7 @@ ug_system_command::ug_system_command() :
 	cur_state(false)
 	,in_state(ST_STOP)
 {
-	// handled by Open()	SET_CUR_FUNC( sub_process );
+	// handled by Open()	SET_PROCESS_FUNC( sub_process );
 }
 
 void ug_system_command::input_changed()
@@ -148,7 +148,7 @@ void ug_system_command::input_changed()
 
 		}
 
-		SET_CUR_FUNC( &ug_system_command::sub_process );
+		SET_PROCESS_FUNC( &ug_system_command::sub_process );
 		ResetStaticOutput();
 	}
 }

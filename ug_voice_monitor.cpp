@@ -257,7 +257,7 @@ void ug_voice_monitor::InputSetup()
 int ug_voice_monitor::Open()
 {
 	ug_adder2::Open();
-	SET_CUR_FUNC(&ug_base::process_nothing);
+	SET_PROCESS_FUNC(&ug_base::process_nothing);
 
 	// Synth voices will call open() during note-on
 	// Drums call open on all voices before any note on.

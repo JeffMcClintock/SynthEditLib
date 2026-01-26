@@ -276,7 +276,7 @@ ug_container::ug_container() :
 	, nextRefreshVoice_(-1)
 {
 	push_back(new Voice(this, 0));		// create voice zero
-	SET_CUR_FUNC(&ug_base::process_sleep);
+	SET_PROCESS_FUNC(&ug_base::process_sleep);
 }
 
 ug_container::~ug_container()

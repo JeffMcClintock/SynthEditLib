@@ -87,7 +87,7 @@ int ug_filter_biquad::Open()
 	}
 
 	ug_base::Open();
-	SET_CUR_FUNC( &ug_filter_biquad::process_all );
+	SET_PROCESS_FUNC( &ug_filter_biquad::process_all );
 	//	OnModeChange();
 	// moog init
 	xnm1 = y1nm1 = y2nm1 = y3nm1 = 0.f;
@@ -136,18 +136,18 @@ void ug_filter_biquad::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_typ
 
 	if( GetPlug(PN_PITCH)->getState() == ST_RUN || GetPlug(PN_RESON)->getState() == ST_RUN)
 	{
-		SET_CUR_FUNC( &ug_filter_biquad::process_all );
+		SET_PROCESS_FUNC( &ug_filter_biquad::process_all );
 	}
 	else
 	{
 		if( GetPlug(PN_SIGNAL)->getState() == ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_filter_biquad::process_fixed_freq );
+			SET_PROCESS_FUNC( &ug_filter_biquad::process_fixed_freq );
 		}
 		else
 		{
 			// special version with extra denormal removal
-			SET_CUR_FUNC( &ug_filter_biquad::process_no_input );
+			SET_PROCESS_FUNC( &ug_filter_biquad::process_no_input );
 		}
 	}
 
@@ -302,7 +302,7 @@ void ug_filter_biquad::process_static(int start_pos, int sampleframes)
 
 	if( static_output_count <= 0 )
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 //		GetPlug(PN_OUTPUT)->TransmitState( SampleClock(), ST_STOP );
 	}
 }
@@ -420,7 +420,7 @@ void ug_filter_biquad::StabilityCheck()
 				{
 					output_quiet = true;
 					GetPlug(PN_OUTPUT)->TransmitState( SampleClock(), ST_STOP );
-					SET_CUR_FUNC( &ug_base::process_sleep );
+					SET_PROCESS_FUNC( &ug_base::process_sleep );
 					return;
 				}
 			}
@@ -438,7 +438,7 @@ void ug_filter_biquad::StabilityCheck()
 				output_quiet = true;
 				ResetStaticOutput();
 				GetPlug(PN_OUTPUT)->TransmitState( SampleClock(), ST_STOP );
-				SET_CUR_FUNC( process_static );
+				SET_PROCESS_FUNC( process_static );
 				return;
 			}
 			*/

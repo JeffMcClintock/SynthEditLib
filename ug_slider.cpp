@@ -16,7 +16,7 @@ REGISTER_MODULE_1(L"Slider", IDS_MN_SLIDER,IDS_MG_CONTROLS,ug_slider ,CF_STRUCTU
 void ug_slider::ListInterface2(InterfaceObjectArray& PList)
 {
 	//////////////////////////// ug_control::ListInterface2(PList);
-	LIST_VAR3( L"Channel", trash_sample_ptr, DR_IN, DT_ENUM , L"-1", MIDI_CHAN_LIST,IO_DISABLE_IF_POS|IO_IGNORE_PATCH_CHANGE|IO_POLYPHONIC_ACTIVE, L"MIDI Channel");
+	LIST_VAR3( L"Channel", trash_sample_ptr, DR_IN, DT_ENUM , L"-1", L"", IO_DISABLE_IF_POS | IO_IGNORE_PATCH_CHANGE | IO_POLYPHONIC_ACTIVE, L"MIDI Channel");
 	// these two retained only as dummy connections to MIDI automator (to ensure correct Sort Order)
 	LIST_VAR3N( L"MIDI In",  DR_IN, DT_MIDI2 , L"0", L"", IO_DISABLE_IF_POS, L"");
 	LIST_VAR3N(L"MIDI Out", DR_OUT, DT_MIDI2 , L"", L"", IO_DISABLE_IF_POS, L"");
@@ -68,7 +68,7 @@ void ug_slider::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type )
 		ResetStaticOutput();
 		GetPlug(PLG_OUT)->setStreamingA(true, p_clock);
 
-		SET_CUR_FUNC(&ug_slider::sub_process);
+		SET_PROCESS_FUNC(&ug_slider::sub_process);
 	}
 }
 
@@ -85,7 +85,7 @@ void ug_slider::sub_process(int start_pos, int sampleframes)
 
 		if (static_output_count <= 0)
 		{
-			SET_CUR_FUNC(&ug_base::process_sleep);
+			SET_PROCESS_FUNC(&ug_base::process_sleep);
 			GetPlug(PLG_OUT)->setStreamingA(false, SampleClock());
 		}
 	}

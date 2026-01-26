@@ -40,7 +40,7 @@ ug_patch_param_setter::ug_patch_param_setter()
 
 int ug_patch_param_setter::Open()
 {
-	SET_CUR_FUNC( &ug_base::process_sleep );
+	SET_PROCESS_FUNC( &ug_base::process_sleep );
 	auto r = ug_base::Open();
 
 	RUN_AT(SampleClock(), &ug_patch_param_setter::SendPendingOutputChanges);
@@ -49,7 +49,7 @@ int ug_patch_param_setter::Open()
 	{
 		VoiceRefreshPeriod_ = AudioMaster()->BlockSize() * 4;
 		EventProcessor::AddEvent(new_SynthEditEvent(SampleClock() + VoiceRefreshPeriod_ * 2, UET_VOICE_REFRESH, 0, 0, 0, 0));
-		SET_CUR_FUNC(&ug_base::process_nothing); // lighter than process_sleep
+		SET_PROCESS_FUNC(&ug_base::process_nothing); // lighter than process_sleep
 	}
 
 	return r;

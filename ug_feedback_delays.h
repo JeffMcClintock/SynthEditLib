@@ -75,7 +75,7 @@ public:
 	ug_feedback_delay_base() :
 		mate(0)
 	{
-		SET_CUR_FUNC(&ug_base::process_sleep);
+		SET_PROCESS_FUNC(&ug_base::process_sleep);
 	}
 
 #if defined(__APPLE__)

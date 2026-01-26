@@ -27,6 +27,7 @@
 #include "CpuConsumption.h"
 #include "HoverScopeAudioCollector.h"
 #include "Hosting/message_queues.h"
+#include "ug_base.h"
 
 // Waves-only, use fixed-pool memory management.
 #if defined( SE_FIXED_POOL_MEMORY_ALLOCATION )

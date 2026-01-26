@@ -61,11 +61,11 @@ void ug_cross_fade::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p
 	{
 		if( fade_type == 0 ) // linear
 		{
-			SET_CUR_FUNC( &ug_cross_fade::sub_process_mix_linear );
+			SET_PROCESS_FUNC( &ug_cross_fade::sub_process_mix_linear );
 		}
 		else
 		{
-			SET_CUR_FUNC( &ug_cross_fade::sub_process_mix );
+			SET_PROCESS_FUNC( &ug_cross_fade::sub_process_mix );
 		}
 
 		out_stat = ST_RUN;
@@ -74,12 +74,12 @@ void ug_cross_fade::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p
 	{
 		if( out_stat == ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_cross_fade::sub_process );
+			SET_PROCESS_FUNC( &ug_cross_fade::sub_process );
 		}
 		else
 		{
 			ResetStaticOutput();
-			SET_CUR_FUNC( &ug_cross_fade::sub_process_static );
+			SET_PROCESS_FUNC( &ug_cross_fade::sub_process_static );
 		}
 	}
 

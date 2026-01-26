@@ -39,24 +39,24 @@ void ug_math_base::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_
 
 	if( out_stat < ST_RUN )
 	{
-		SET_CUR_FUNC( &ug_math_base::process_both_stop1 );
+		SET_PROCESS_FUNC( &ug_math_base::process_both_stop1 );
 		ResetStaticOutput();
 	}
 	else
 	{
 		if( input1_status < ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_math_base::process_B_run );
+			SET_PROCESS_FUNC( &ug_math_base::process_B_run );
 		}
 		else
 		{
 			if( input2_status < ST_RUN )
 			{
-				SET_CUR_FUNC( &ug_math_base::process_A_run );
+				SET_PROCESS_FUNC( &ug_math_base::process_A_run );
 			}
 			else
 			{
-				SET_CUR_FUNC( &ug_math_base::process_both_run );
+				SET_PROCESS_FUNC( &ug_math_base::process_both_run );
 			}
 		}
 	}
@@ -77,7 +77,7 @@ void ug_math_base::process_both_stop1(int start_pos, int sampleframes)
 
 	process_A_run( start_pos, 1 ); // calculate one output value
 	static_output_val = *(out1_ptr + start_pos);
-	SET_CUR_FUNC( &ug_math_base::process_both_stop2 );
+	SET_PROCESS_FUNC( &ug_math_base::process_both_stop2 );
 
 	if( --sampleframes > 0 )
 	{

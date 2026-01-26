@@ -21,7 +21,7 @@ log envelopes in combination with expo VCAs and VCFs.
 
 ug_envelope::ug_envelope()
 {
-	//	SET_CUR_FUNC( sub_process );
+	//	SET_PROCESS_FUNC( sub_process );
 	current_segment_func = static_cast <process_func_ptr> ( &ug_envelope_base::sub_process7 );
 	// this is derived from ug_control (for multistage env). so need to ignore program changes
 	ignore_prog_change = true;
@@ -63,11 +63,11 @@ void ug_envelope::ChooseSubProcess()
 	// what main process to use
 	if( GetPlug(pn_gate)->getState() == ST_RUN )
 	{
-		SET_CUR_FUNC(&ug_envelope_base::process_with_gate);
+		SET_PROCESS_FUNC(&ug_envelope_base::process_with_gate);
 	}
 	else
 	{
-		SET_CUR_FUNC(&ug_envelope_base::sub_process);
+		SET_PROCESS_FUNC(&ug_envelope_base::sub_process);
 	}
 
 	if( fixed_increment == 0.f ) // sustain or end
@@ -222,7 +222,7 @@ void ug_envelope::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_s
 		//		_RPT2(_CRT_WARN, "%d ug_envelope::PlugStateChange. %.3f\n",SampleClock(), GetPlug(pn_gate)->getValue() );
 		if(	p_state == ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_envelope_base::process_with_gate );
+			SET_PROCESS_FUNC( &ug_envelope_base::process_with_gate );
 		}
 		else
 		{
@@ -565,7 +565,7 @@ void ug_envelope::sub_process3(int start_pos, int sampleframes)
 		// if gate stopped, can sleep , else must keep watching it
 		if( GetPlug(pn_gate)->getState() != ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_base::process_sleep );
+			SET_PROCESS_FUNC( &ug_base::process_sleep );
 		}
 
 		current_segment_func = static_cast <process_func_ptr> ( sub_process7 ); // do nothing sub-process
@@ -786,7 +786,7 @@ void ug_envelope::next_segment() // Called when envelope section ends
 	// ug may be asleep (if gate was not running)
 	if( GetPlug(pn_gate)->getState() != ST_RUN )
 	{
-		SET_CUR_FUNC( sub_process );
+		SET_PROCESS_FUNC( sub_process );
 	}
 
 	ChooseSubProcess();

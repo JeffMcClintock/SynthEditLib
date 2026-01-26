@@ -1,10 +1,11 @@
 
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <algorithm>
 #include <mutex>
 #include "ug_filter_sv.h"
 
 #include "ULookup.h"
-#include <math.h>
 #include <float.h>
 #include "resource.h"
 #include "module_register.h"
@@ -118,7 +119,7 @@ int ug_filter_sv::Open()
 		{
 			float freq_hz = VoltageToFrequency( 10.f * (float)j / (float)TABLE_SIZE );
 			freq_hz = min(freq_hz, getSampleRate()/2); // help prevent numeric overflow when temp mult by MAX_SAMPLE
-			float temp = 2.f * PI * freq_hz / getSampleRate();
+			float temp = 2.f * M_PI * freq_hz / getSampleRate();
 			lookup_table->SetValue( j, temp );
 		}
 
@@ -143,7 +144,7 @@ int ug_filter_sv::Open()
 	}
 
 	ug_base::Open();
-	SET_CUR_FUNC( &ug_filter_sv::process_all );
+	SET_PROCESS_FUNC( &ug_filter_sv::process_all );
 	only_lp_used = false;
 	only_hp_used = false;
 
@@ -190,7 +191,7 @@ void ug_filter_sv::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_
 		{
 			fixed_quality_factor = CalcQ( GetPlug( PN_RESON )->getValue() );
 			max_stable_freq = CalcMSF( GetPlug( PN_RESON )->getValue() );
-			assert( max_stable_freq < PI ); // limit to < nyquist
+			assert( max_stable_freq < M_PI ); // limit to < nyquist
 			factor1 = CalcFreqFactor( GetPlug( PN_PITCH )->getValue() );
 			// if either pitch or resonance change, limit frequency factor
 			factor1 = min( factor1, max_stable_freq );
@@ -204,7 +205,7 @@ void ug_filter_sv::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_
 
 	if( GetPlug(PN_RESON)->getState() == ST_RUN )
 	{
-		SET_CUR_FUNC( &ug_filter_sv::process_all );
+		SET_PROCESS_FUNC( &ug_filter_sv::process_all );
 	}
 	else
 	{
@@ -214,11 +215,11 @@ void ug_filter_sv::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_
 			if( GetPlug(PN_PITCH)->getState() == ST_RUN )
 			{
 				//			_RPT1(_CRT_WARN, "process_both_run %d\n", SampleClock() );
-				SET_CUR_FUNC( &ug_filter_sv::process_both_run );
+				SET_PROCESS_FUNC( &ug_filter_sv::process_both_run );
 			}
 			else
 			{
-				SET_CUR_FUNC( &ug_filter_sv::process_fixed_lp );
+				SET_PROCESS_FUNC( &ug_filter_sv::process_fixed_lp );
 				//			_RPT1(_CRT_WARN, "process_fixed_lp %d\n", SampleClock() );
 			}
 		}
@@ -226,12 +227,12 @@ void ug_filter_sv::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_
 		{
 			if( only_hp_used && GetPlug(PN_PITCH)->getState() != ST_RUN) // and resonance fixed
 			{
-				SET_CUR_FUNC( &ug_filter_sv::process_fixed_hp );
+				SET_PROCESS_FUNC( &ug_filter_sv::process_fixed_hp );
 				//			_RPT1(_CRT_WARN, "process_fixed_lp %d\n", SampleClock() );
 			}
 			else
 			{
-				SET_CUR_FUNC( &ug_filter_sv::process_all );
+				SET_PROCESS_FUNC( &ug_filter_sv::process_all );
 			}
 		}
 	}
@@ -282,7 +283,7 @@ void ug_filter_sv::process_all(int start_pos, int sampleframes)
 				freq_hz = 10000.f * idx;
 			}
 
-			f1 = PI2 * freq_hz / getSampleRate();
+			f1 = (2.0 * M_PI) * freq_hz / getSampleRate();
 		}
 
 		// limit q to resonable values (under 9.992V)
@@ -333,7 +334,7 @@ void ug_filter_sv::process_static(int start_pos, int sampleframes)
 
 	if( static_output_count <= 0 )
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 		SetOutputState( SampleClock() + sampleframes, ST_STOP );
 	}
 }
@@ -370,7 +371,7 @@ void ug_filter_sv::process_both_run(int start_pos, int sampleframes)
 			else
 			{
 				float freq_hz = VoltageToFrequency( idx * 10.f );
-				f1 = PI2 * freq_hz / getSampleRate();
+				f1 = (2.0 * M_PI) * freq_hz / getSampleRate();
 			}
 
 			f1 = min( f1, l_max_stable_freq );
@@ -386,7 +387,7 @@ void ug_filter_sv::process_both_run(int start_pos, int sampleframes)
 		{
 			// calc freq factor
 			float freq_hz = 10000.f * *pitch++;
-			f1 = PI2 * freq_hz / getSampleRate();
+			f1 = (2.0 * M_PI) * freq_hz / getSampleRate();
 			f1 = min( f1, l_max_stable_freq );
 			l_lp += l_bp * f1;
 			float hi_pass = *in++ - l_bp * quality - l_lp;
@@ -506,7 +507,7 @@ void ug_filter_sv::OverflowCheck()
 				band_pass = 0.f;
 				output_quiet = true;
 				ResetStaticOutput();
-				SET_CUR_FUNC( &ug_filter_sv::process_static );
+				SET_PROCESS_FUNC( &ug_filter_sv::process_static );
 				return;
 			}
 		}
@@ -577,7 +578,7 @@ float ug_filter_sv::CalcFreqFactor(float p_pitch)
 			freq_hz = 10000.f * p_pitch;
 		}
 
-		result = PI2 * freq_hz / getSampleRate();
+		result = (2.0 * M_PI) * freq_hz / getSampleRate();
 
 		if( result < 0.00001f ) // experimentally obtained
 			result = 0.00001f;

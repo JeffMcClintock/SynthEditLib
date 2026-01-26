@@ -171,7 +171,7 @@ int ug_patch_automator::Open()
 			guiQueServicePeriod_ *= bs;
 			assert( guiQueServicePeriod_ > 0 );
 			EventProcessor::AddEvent( new_SynthEditEvent( SampleClock() + guiQueServicePeriod_, UET_SERVICE_GUI_QUE , 0, 0, 0, 0 ));
-			SET_CUR_FUNC(&ug_base::process_nothing); // lower CPU than process_sleep
+			SET_PROCESS_FUNC(&ug_base::process_nothing); // lower CPU than process_sleep
 		}
 	}
 
@@ -272,7 +272,7 @@ void ug_patch_automator::UpdateTempo( my_VstTimeInfo* pTimeInfo )
 
 		if (timeInfo.TransportRun())
 		{
-			SET_CUR_FUNC( &ug_patch_automator::process_timing );
+			SET_PROCESS_FUNC( &ug_patch_automator::process_timing );
 		}
 		else
 		{
@@ -281,7 +281,7 @@ void ug_patch_automator::UpdateTempo( my_VstTimeInfo* pTimeInfo )
 			float v = static_cast<float>(timeInfo.ppqPos);
 			patch_manager->vst_Automation2(SampleClock(), ControllerType::SongPosition << 24, &v, sizeof(v));
 
-			SET_CUR_FUNC( &ug_base::process_sleep );
+			SET_PROCESS_FUNC( &ug_base::process_sleep );
 		}
 	}
 

@@ -460,7 +460,7 @@ void ug_vca::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_state 
 	// Check that output stat is actually changing
 	if( out_stat < ST_RUN )
 	{
-		SET_CUR_FUNC( &ug_vca::process_both_stop );
+		SET_PROCESS_FUNC( &ug_vca::process_both_stop );
 
 		if (GetPlug(PN_OUT)->isStreaming() || staticLevel_ != newStaticLevel)
 		{
@@ -476,22 +476,22 @@ void ug_vca::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_state 
 		{
 			if (fixed_gain == 1.0f)
 			{
-				SET_CUR_FUNC(&ug_vca::process_bypass);
+				SET_PROCESS_FUNC(&ug_vca::process_bypass);
 			}
 			else
 			{
-				SET_CUR_FUNC(&ug_vca::process_vol_fixed);
+				SET_PROCESS_FUNC(&ug_vca::process_vol_fixed);
 			}
 		}
 		else
 		{
 			if( scale_type == 2 )
 			{
-				SET_CUR_FUNC( &ug_vca::process_both_run_linear );
+				SET_PROCESS_FUNC( &ug_vca::process_both_run_linear );
 			}
 			else
 			{
-				SET_CUR_FUNC(&ug_vca::process_both_run );
+				SET_PROCESS_FUNC(&ug_vca::process_both_run );
 			}
 		}
 		GetPlug(PN_OUT)->TransmitState( p_clock, out_stat );

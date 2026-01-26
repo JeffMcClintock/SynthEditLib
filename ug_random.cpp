@@ -29,7 +29,7 @@ void ug_random::sub_process(int start_pos, int sampleframes)
 
 	if( can_sleep )
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 	}
 }
 
@@ -62,7 +62,7 @@ void ug_random::ChangeOutput()
 	constexpr float scale = 1.f / (float)RAND_MAX;
 	float output_val = scale * (float) rand();
 	output_so.Set( SampleClock(), output_val, 1 );
-	SET_CUR_FUNC( &ug_random::sub_process );
+	SET_PROCESS_FUNC( &ug_random::sub_process );
 	//	ResetStaticOutput();
 }
 

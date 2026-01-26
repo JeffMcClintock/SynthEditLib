@@ -207,12 +207,12 @@ void ug_feedback_delay::onSetPin(timestamp_t p_clock, UPlug* /* p_to_plug */, st
 
 	if( p_state == ST_RUN )
 	{
-		SET_CUR_FUNC(&ug_feedback_delay::sub_process);
+		SET_PROCESS_FUNC(&ug_feedback_delay::sub_process);
 	}
 	else
 	{
 		ResetStaticOutput();
-		SET_CUR_FUNC(&ug_feedback_delay::sub_process_static);
+		SET_PROCESS_FUNC(&ug_feedback_delay::sub_process_static);
 	}
 }
 
@@ -233,7 +233,7 @@ void ug_feedback_delay::sub_process_static(int start_pos, int sampleframes)
 int ug_feedback_delay::Open()
 {
 	ug_midi_device::Open();
-	SET_CUR_FUNC(&ug_feedback_delay::sub_process);
+	SET_PROCESS_FUNC(&ug_feedback_delay::sub_process);
 	// to satisfy debug code
 	OutputChange(0, GetPlug(PN_OUT1), ST_STATIC);
 
@@ -367,7 +367,7 @@ int ug_feedback_delay_out::Open()
 	OutputChange(0, GetPlug(PN_OUT1), ST_STATIC);
 	RUN_AT(SampleClock(), &ug_feedback_delay_out::OnFirstSample);
 
-	SET_CUR_FUNC(&ug_feedback_delay_out::sub_process);
+	SET_PROCESS_FUNC(&ug_feedback_delay_out::sub_process);
 	return 0;
 }
 

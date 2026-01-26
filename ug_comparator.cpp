@@ -116,24 +116,24 @@ void ug_comparator::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p
 
 	if( out_stat < ST_RUN )
 	{
-		SET_CUR_FUNC( &ug_comparator::process_both_stop );
+		SET_PROCESS_FUNC( &ug_comparator::process_both_stop );
 		ResetStaticOutput();
 	}
 	else
 	{
 		if( input1_status < ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_comparator::process_B_run );
+			SET_PROCESS_FUNC( &ug_comparator::process_B_run );
 		}
 		else
 		{
 			if( input2_status < ST_RUN )
 			{
-				SET_CUR_FUNC( &ug_comparator::process_A_run );
+				SET_PROCESS_FUNC( &ug_comparator::process_A_run );
 			}
 			else
 			{
-				SET_CUR_FUNC( &ug_comparator::process_both_run );
+				SET_PROCESS_FUNC( &ug_comparator::process_both_run );
 			}
 		}
 	}

@@ -1,5 +1,6 @@
 
 #include <algorithm>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include "ug_oscillator_pd.h"
 
@@ -95,7 +96,7 @@ int ug_oscillator_pd::Open()
 	FillSegmentTable();
 
 	//DC removal filter, 7 Hz
-	m_dc_filter_const = 2.f * sinf( PI * 7.f / getSampleRate() );
+	m_dc_filter_const = 2.f * sinf( M_PI * 7.f / getSampleRate() );
 	OutputChange( SampleClock(), GetPlug(PN_OUTPUT), ST_RUN );
 	return 0;
 }
@@ -124,22 +125,22 @@ void ug_oscillator_pd::ChooseProcessFunction()
 	{
 		if( GetPlug(PN_PITCH)->getState() == ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_oscillator_pd::sub_process_overload_pitch );
+			SET_PROCESS_FUNC( &ug_oscillator_pd::sub_process_overload_pitch );
 		}
 		else
 		{
-			SET_CUR_FUNC( &ug_oscillator_pd::sub_process_overload );
+			SET_PROCESS_FUNC( &ug_oscillator_pd::sub_process_overload );
 		}
 	}
 	else
 	{
 		if( GetPlug(PN_PITCH)->getState() == ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_oscillator_pd::sub_process );
+			SET_PROCESS_FUNC( &ug_oscillator_pd::sub_process );
 		}
 		else
 		{
-			SET_CUR_FUNC( &ug_oscillator_pd::sub_process_fp );
+			SET_PROCESS_FUNC( &ug_oscillator_pd::sub_process_fp );
 		}
 	}
 }
@@ -266,7 +267,7 @@ retry2b:
 /*
 float dist( float phase, float modulation _depth )
 {
-//    phase = phase % (PI * 2);
+//    phase = phase % (M_PI * 2);
 	float PI = 0.5;
 	float new_phase;
 	float breakpoint = ( 1 - modulation _depth ) * PI / 2;

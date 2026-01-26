@@ -9,7 +9,7 @@ public:
 	,nrpn(0)
 	,ignore_prog_change(0)
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 	};
 
 //	DECLARE_UG_INFO_FUNC2;

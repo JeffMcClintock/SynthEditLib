@@ -57,7 +57,7 @@ ug_patch_automator_out::ug_patch_automator_out() :
 	last_out_timestamp(0)
 	,lastRpnHeader_(INT_MAX)
 {
-	SET_CUR_FUNC( &ug_base::process_sleep );
+	SET_PROCESS_FUNC( &ug_base::process_sleep );
 
 	for( int i = 0 ; i < 128 ; ++i )
 	{

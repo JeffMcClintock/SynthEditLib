@@ -61,14 +61,14 @@ void ug_wave_player::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type 
 
 			if (open_file()) // fails
 			{
-				SET_CUR_FUNC(&ug_wave_player::sub_process_file_silence); // prevent crash
+				SET_PROCESS_FUNC(&ug_wave_player::sub_process_file_silence); // prevent crash
 				OutputChange(p_clock, GetPlug(PN_OUT1), ST_STOP);
 				OutputChange(p_clock, GetPlug(PN_OUT2), ST_STOP);
 				return;
 			}
 
 			play_flag = false;
-			SET_CUR_FUNC(&ug_wave_player::sub_process_file);
+			SET_PROCESS_FUNC(&ug_wave_player::sub_process_file);
 			current_process_func = static_cast <process_func_ptr> (&ug_wave_player::sub_process_file_silence);
 		}
 	}
@@ -83,11 +83,11 @@ void ug_wave_player::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type 
 			// check file loaded ok
 			if (cursor)
 			{
-				SET_CUR_FUNC(&ug_wave_player::sub_process_file); // wake up
+				SET_PROCESS_FUNC(&ug_wave_player::sub_process_file); // wake up
 			}
 			else
 			{
-				SET_CUR_FUNC(&ug_wave_player::sub_process_file_silence); // prevent crash
+				SET_PROCESS_FUNC(&ug_wave_player::sub_process_file_silence); // prevent crash
 				OutputChange(p_clock, GetPlug(PN_OUT1), ST_STOP);
 				OutputChange(p_clock, GetPlug(PN_OUT2), ST_STOP);
 			}
@@ -448,7 +448,7 @@ void ug_wave_player::retrigger_sample(timestamp_t p_sampleclock)
 
 	cursor->Reset();
 
-	SET_CUR_FUNC(&ug_wave_player::sub_process_file);
+	SET_PROCESS_FUNC(&ug_wave_player::sub_process_file);
 
 	if (cursor->ChannelsCount() == 1)
 	{

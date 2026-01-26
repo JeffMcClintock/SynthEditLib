@@ -9,7 +9,7 @@ ug_logic_complex::ug_logic_complex() :
 	,outputs(0)
 	,inputs_running(false)
 {
-	SET_CUR_FUNC( &ug_logic_complex::sub_process );
+	SET_PROCESS_FUNC( &ug_logic_complex::sub_process );
 }
 
 ug_logic_complex::~ug_logic_complex()
@@ -112,7 +112,7 @@ void ug_logic_complex::sub_process(int start_pos, int sampleframes)
 
 	if( can_sleep && !inputs_running )
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 	}
 }
 
@@ -173,14 +173,14 @@ void ug_logic_complex::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_typ
 		if( p->Direction == DR_IN && p->getState() == ST_RUN )
 		{
 			inputs_running = true;
-			SET_CUR_FUNC( &ug_logic_complex::process_run );
+			SET_PROCESS_FUNC( &ug_logic_complex::process_run );
 			return;
 		}
 	}
 
 	// implied 'else'
 	inputs_running = false;
-	SET_CUR_FUNC( &ug_logic_complex::sub_process );
+	SET_PROCESS_FUNC( &ug_logic_complex::sub_process );
 	input_changed();
 }
 

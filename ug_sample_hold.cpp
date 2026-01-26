@@ -39,11 +39,11 @@ void ug_sample_hold::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type 
 	if( GetPlug(PLG_SIGNAL)->getState() < ST_RUN && GetPlug(PLG_HOLD)->getState() < ST_RUN )
 	{
 		ResetStaticOutput();
-		SET_CUR_FUNC( &ug_sample_hold::sub_process_static );
+		SET_PROCESS_FUNC( &ug_sample_hold::sub_process_static );
 	}
 	else
 	{
-		SET_CUR_FUNC( &ug_sample_hold::sub_process );
+		SET_PROCESS_FUNC( &ug_sample_hold::sub_process );
 	}
 }
 

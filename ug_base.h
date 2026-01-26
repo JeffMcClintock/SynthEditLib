@@ -5,20 +5,7 @@
 #include "UPlug.h"
 #include "ug_flags.h"
 #include "EventProcessor.h"
-#include "sample.h"
-#include "ISeAudioMaster.h"
-
-class ULookup;
-class ULookup_Integer;
-class SeAudioMaster;
-class Module_Info;
-class CUGLookupList;
-class ug_container;
-class IDspPatchManager;
-
-// Handy macros for enum type data
-#define MIDI_CHAN_LIST1 L"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16"
-#define MIDI_CHAN_LIST L"All=-1," MIDI_CHAN_LIST1
+#include "SeAudioMaster.h"
 
 // return info about plugs
 #define	DECLARE_UG_INFO_FUNC2	void ListInterface2(InterfaceObjectArray &PList) override
@@ -41,33 +28,7 @@ class IDspPatchManager;
 // GUI-only plug
 #define LIST_VAR_UI( P1,   P3,P4,P5,P6,P7,P8 ) ListPin(PList, nullptr, (P1),P3,P4,(P5),(P6),P7,(P8) );
 
-#define MIDDLE_A  69
-const float PI = 3.14159265358979323846f;
-const float PI2 = (2.0f * PI);
-
-#define VoltageToFrequency(freq) ( 440.f * powf(2.f, (freq) - 5.f ) )
-// !!that division could be replaced with multiplication
-// old #define FrequencyToVoltage(freq) ( logf(freq) / 0.69314718055994529f - 3.7813597135246599f)
-// precise definition is: LOG(B13/440)/LOG(2) + 5 Simplified is: LOG(freq*4/55)/LOG(2)
-#define FrequencyToVoltage(freq) ( 1.442695041f * logf( 0.07272727273f * freq ) )
-
-// define msgs sent from UI to ug via NotifyUg()
-//#define NUG_ON_DEBUG_INFO			0
-//#define NUG_UPDATE_OUTPUT			1
-#define NUG_INITIAL_UPDATE_OUTPUT	2
-#define NUG_NOTE_ON					3
-#define NUG_NOTE_OFF				4
-//#define NUG_DEBUG_RUN_LIST			6
-#define NUG_UPDATE_ENV				7
-#define NUG_VST_AUTO_ID_CHANGE		8
-#define NUG_RELOAD_FILE				9
-
-// static cast much safer than old style.. (process_func_ptr)
-#define DEBUG_TIMESTAMP
 #define SET_PROCESS_FUNC(func)	process_function = static_cast <process_func_ptr> (func);
-
-// backward compat
-#define SET_CUR_FUNC(func) SET_PROCESS_FUNC(func)
 
 class ug_base;
 
@@ -116,11 +77,11 @@ public:
 	ug_base();
 	virtual ~ug_base();
 	virtual ug_base* Create() = 0;
-	virtual ug_base* Clone( CUGLookupList& UGLookupList );
-	virtual ug_base* Copy( ISeAudioMaster* audiomaster, CUGLookupList& UGLookupList );
+	virtual ug_base* Clone(class CUGLookupList& UGLookupList );
+	virtual ug_base* Copy(class ISeAudioMaster* audiomaster, CUGLookupList& UGLookupList );
 	virtual void BuildHelperModule() {}
 
-	virtual void Setup( class ISeAudioMaster* am, class TiXmlElement* xml );
+	virtual void Setup( ISeAudioMaster* am, class TiXmlElement* xml );
 	void SetupWithoutCug();
 	void DeleteAllPlugs();
 	virtual void QueProgramChange( timestamp_t p_clock, int p_patch_num ); // SDK2 only
@@ -133,24 +94,12 @@ public:
 
 		if( static_output_count <= 0 )
 		{
-			SET_CUR_FUNC( &ug_base::process_sleep );
+			SET_PROCESS_FUNC( &ug_base::process_sleep );
 		}
 	}
 	bool IsSuspended()
 	{
 		return (flags & UGF_SUSPENDED) != 0;
-	}
-
-	inline void Suspend()
-	{
-		// this should only be called from ug_base_ex in response to UET_SUSPEND events
-		// should not be called directly by module.
-
-		if(flags & UGF_NEVER_SUSPEND)
-			return;
-
-		AudioMaster()->SuspendModule(this);
-		SetFlag(UGF_SUSPENDED);
 	}
 
 	virtual void Resume();
@@ -244,7 +193,7 @@ public:
 	void connect_oversampler_safe(UPlug * from_plug, UPlug * to_plug);
 	void connect( UPlug* from_plug, UPlug* to_plug );
 	virtual void CloneConnectorsFrom( ug_base* FromUG, CUGLookupList& UGLookupList );
-	/*virtual */ void CopyConnectorsFrom( ug_base* FromUG, CUGLookupList& UGLookupList );
+	void CopyConnectorsFrom( ug_base* FromUG, CUGLookupList& UGLookupList );
 	void SetupClone( ug_base* clone );
 	int GetPlugCount()
 	{
@@ -273,8 +222,8 @@ public:
 	bool AddBypassRoute(int32_t inPlugIdx, int32_t outPlugIdx);
 	bool AddBypassRoutePt2(UPlug* bypassSourcePlug, UPlug* outPlug);
 
-	void CreateSharedLookup2( const std::wstring& id, ULookup * & lookup_ptr, int sample_rate, size_t p_size, bool create = true, SharedLookupScope scope = SLS_ONE_MODULE );
-	void CreateSharedLookup2( const std::wstring& id, ULookup_Integer * & lookup_ptr, int sample_rate, size_t p_size, bool create = true, SharedLookupScope scope = SLS_ONE_MODULE );
+	void CreateSharedLookup2( const std::wstring& id, class ULookup * & lookup_ptr, int sample_rate, size_t p_size, bool create = true, SharedLookupScope scope = SLS_ONE_MODULE );
+	void CreateSharedLookup2( const std::wstring& id, class ULookup_Integer * & lookup_ptr, int sample_rate, size_t p_size, bool create = true, SharedLookupScope scope = SLS_ONE_MODULE );
 	int32_t allocateSharedMemory( const wchar_t* table_name, void** table_pointer, float sample_rate, int32_t size_in_bytes, int32_t& ret_need_initialise, int scope = SLS_ONE_MODULE );
 	const float* GetInterpolationtable();
 	
@@ -292,7 +241,7 @@ public:
 
 	process_func_ptr process_function;
 
-	static ULookup* m_shared_interpolation_table;
+	static class ULookup* m_shared_interpolation_table;
 
 	static bool trash_bool_ptr;
 	static float* trash_sample_ptr;
@@ -341,5 +290,5 @@ protected:
 
 	class Module_Info* moduleType;
 	int cumulativeLatencySamples;
-	static const int LATENCY_NOT_SET = 0xffffffff; //  (numeric_limits<int>::min)();
+	static const int LATENCY_NOT_SET = 0xffffffff;
 };

@@ -40,7 +40,7 @@ void ug_monostable::sub_process(int start_pos, int sampleframes)
 			//			pulse_end();
 			pulse_off_time = SE_TIMESTAMP_MAX;
 			output = 0.f;
-			SET_CUR_FUNC( &ug_monostable::sub_process );
+			SET_PROCESS_FUNC( &ug_monostable::sub_process );
 			ResetStaticOutput();
 			OutputChange( l_sampleclock, GetPlug(PN_OUT1), ST_ONE_OFF );
 		}
@@ -107,7 +107,7 @@ void ug_monostable::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p
 
 		if( in_state == ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_monostable::sub_process );
+			SET_PROCESS_FUNC( &ug_monostable::sub_process );
 			//why			ResetStaticOutput();
 		}
 		else
@@ -127,7 +127,7 @@ ug_monostable::ug_monostable() :
 
 int ug_monostable::Open()
 {
-	SET_CUR_FUNC( &ug_monostable::sub_process );
+	SET_PROCESS_FUNC( &ug_monostable::sub_process );
 	// This must happen b4 first stat change arrives
 	RUN_AT( SampleClock(), &ug_monostable::OnFirstSample );
 	return ug_base::Open();
@@ -148,7 +148,7 @@ void ug_monostable::input_changed()
 		if( cur_state && output == 0.f )
 		{
 			output = 0.5;
-			SET_CUR_FUNC( &ug_monostable::sub_process );
+			SET_PROCESS_FUNC( &ug_monostable::sub_process );
 			ResetStaticOutput();
 			OutputChange( SampleClock(), GetPlug(PN_OUT1), ST_ONE_OFF );
 			float delay = GetPlug(PN_PULSE_LEN)->getValue();
@@ -169,7 +169,7 @@ void ug_monostable::pulse_end()
 {
 	pulse_off_time = SE_TIMESTAMP_MAX;
 	output = 0.f;
-	SET_CUR_FUNC( &ug_monostable::sub_process );
+	SET_PROCESS_FUNC( &ug_monostable::sub_process );
 	ResetStaticOutput();
 	OutputChange( SampleClock(), GetPlug(PN_OUT1), ST_ONE_OFF );
 }

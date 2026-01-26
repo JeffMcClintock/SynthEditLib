@@ -10,6 +10,7 @@
 #include "SeAudioMaster.h"
 #include "BundleInfo.h"
 #include "Base64.h"
+#include "sample.h"
 
 using namespace std;
 

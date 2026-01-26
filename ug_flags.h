@@ -26,7 +26,7 @@ enum UgFlags
 	,UGF_DEBUG_POLY_LAST		= (1 << 14)
 	,UGF_OVERWRITING_BUFFERS	= (1 << 15)
 	,UGF_DONT_CHECK_BUFFERS		= (1 << 16)
-	,UGF_SEND_TIMEINFO_TO_HOST	= (1 << 17)
+
 	// UG THAT HANDLES PARAMETER UPDATES FROM GUI VIA PATCH MANAGER
 	,UGF_PARAMETER_SETTER		= (1 << 18)
 	// UG THAT PASSES OUTPUT PARAMETERS UPDATES TO THE GUI VIA PATCH MANAGER
@@ -36,7 +36,6 @@ enum UgFlags
 	,UGF_VOICE_MUTE				= (1 << 21)	// ALWAYS INSERTED BEFORE VOICE-ADDER (but should be ignored by InsertVoiceAdders() )
 	,UGF_DEFAULT_SETTER			= (1 << 22)
 	,UGF_UPSTREAM_PARAMETER		= (1 << 23)	// Module processing MIDI input to Patch-Automator.
-//	,UGF_ALWAYS_EXPORT			= (1 << 25)	// e.g. Voice-Mute. moved to CF_ flags
 	,UGF_HAS_HELPER_MODULE		= (1 << 26)	// e.g. Poly-to-Mono.
 	, UGF_NEVER_SUSPEND = (1 << 27)
 	, UGF_ENSURE_AFTER_PA = (1 << 27)		// This oversampler does not have it's own patch-manager, 

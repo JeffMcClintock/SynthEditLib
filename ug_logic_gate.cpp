@@ -24,7 +24,7 @@ ug_logic_gate::ug_logic_gate() :
 	,in_ptr(NULL)
 	,output_changed( true )
 {
-	SET_CUR_FUNC( &ug_logic_gate::sub_process );
+	SET_PROCESS_FUNC( &ug_logic_gate::sub_process );
 }
 
 ug_logic_gate::~ug_logic_gate()
@@ -82,7 +82,7 @@ void ug_logic_gate::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p
 		overall_input_status = max( overall_input_status, in_state[c] );
 	}
 
-	SET_CUR_FUNC( &ug_logic_gate::sub_process ); // wake up
+	SET_PROCESS_FUNC( &ug_logic_gate::sub_process ); // wake up
 }
 
 void ug_logic_gate::sub_process(int start_pos, int sampleframes)
@@ -161,7 +161,7 @@ void ug_logic_gate::RecalcOutput( timestamp_t p_sample_clock )
 		OutputChange( p_sample_clock, GetPlug(L"Output"), ST_ONE_OFF );
 		//			_RPT1(_CRT_WARN, "ug_logic_AND::tick() output = %f\n", SampleToVoltage(output) );
 		ResetStaticOutput();
-		SET_CUR_FUNC( &ug_logic_gate::sub_process );
+		SET_PROCESS_FUNC( &ug_logic_gate::sub_process );
 	}
 }
 

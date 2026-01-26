@@ -47,9 +47,9 @@ void ug_float_to_volts::assignPlugVariable(int p_plug_desc_id, UPlug* p_plug)
 int ug_float_to_volts::Open()
 {
 	ug_base::Open();
-	SET_CUR_FUNC( &ug_float_to_volts::sub_process );
+	SET_PROCESS_FUNC( &ug_float_to_volts::sub_process );
 	value_out_so.SetPlug( GetPlug(PD_VALUE_OUT) );
-	SET_CUR_FUNC( &ug_base::process_sleep );
+	SET_PROCESS_FUNC( &ug_base::process_sleep );
 	//	RUN_AT( SampleClock(), OnFirstSample );
 	return 0;
 }
@@ -74,7 +74,7 @@ void ug_float_to_volts::sub_process(int start_pos, int sampleframes)
 
 	if( can_sleep )
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 	}
 }
 
@@ -105,6 +105,6 @@ void ug_float_to_volts::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_ty
 		}
 
 		value_out_so.Set( p_clock, m_input * 0.1f, smooth_amnt );
-		SET_CUR_FUNC( &ug_float_to_volts::sub_process );
+		SET_PROCESS_FUNC( &ug_float_to_volts::sub_process );
 	}
 }

@@ -123,7 +123,7 @@ int ug_vst_out::Open()
 void ug_vst_out::ChooseProcess()
 {
     // We can't know if we are in replacing mode or not till host called process, defer decision till then.
-	SET_CUR_FUNC( &ug_vst_out::sub_process_check_mode );
+	SET_PROCESS_FUNC( &ug_vst_out::sub_process_check_mode );
 }
 
 void ug_vst_out::HandleEvent(SynthEditEvent* e)
@@ -158,7 +158,7 @@ void ug_vst_out::sub_process_check_mode(int start_pos, int sampleframes)
         sb = ( &ug_vst_out::subProcessTemplate<ProcessNotFading>);
     }
     
-    SET_CUR_FUNC( sb );
+    SET_PROCESS_FUNC( sb );
 
 	(this->*(process_function))( start_pos, sampleframes );
 }
@@ -178,7 +178,7 @@ void ug_vst_out::startFade(bool isDucked )
         targetLevel = 1.0f;
     }
 
-    SET_CUR_FUNC( &ug_vst_out::sub_process_check_mode );
+    SET_PROCESS_FUNC( &ug_vst_out::sub_process_check_mode );
 }
 /* not needed at present
 
@@ -188,6 +188,6 @@ void ug_vst_out::MuteUntilTailReset()
 	_RPT0(0, "ug_vst_out::MuteUntilTailReset()\n");
 
 	fadeLevel_ = targetLevel = 0.0f;
-	SET_CUR_FUNC(&ug_vst_out::sub_process_check_mode);
+	SET_PROCESS_FUNC(&ug_vst_out::sub_process_check_mode);
 }
 */

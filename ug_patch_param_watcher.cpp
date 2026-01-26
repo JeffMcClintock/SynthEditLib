@@ -40,7 +40,7 @@ ug_patch_param_watcher::ug_patch_param_watcher() :
 	mayby need a mono one on voice zero, and poly ones on other voices. !!!
 	*/
 	SetFlag(UGF_NEVER_SUSPEND /*|UGF_PARAMETER_WATCHER*/);
-	SET_CUR_FUNC( &ug_base::process_sleep );
+	SET_PROCESS_FUNC( &ug_base::process_sleep );
 }
 
 void ug_patch_param_watcher::CreatePlug(int32_t parameterHandle, UPlug* plug)

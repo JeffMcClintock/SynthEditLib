@@ -27,7 +27,7 @@ ug_midi_controllers::ug_midi_controllers() :
 			}
 		)
 {
-	SET_CUR_FUNC( &ug_midi_controllers::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_controllers::sub_process );
 }
 
 //!! plug names to reflect controller?
@@ -91,7 +91,7 @@ int ug_midi_controllers::Open()
 		output_info[3].curve_type = SOT_LOW_PASS;
 	#endif
 	*/
-	SET_CUR_FUNC( &ug_midi_controllers::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_controllers::sub_process );
 	return 0;
 }
 
@@ -106,7 +106,7 @@ void ug_midi_controllers::sub_process(int start_pos, int sampleframes)
 
 	if( can_sleep )
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 	}
 }
 
@@ -166,7 +166,7 @@ void ug_midi_controllers::onMidi2Message(const gmpi::midi::message_view & msg)
 
 void ug_midi_controllers::ChangeOutput(timestamp_t p_sample_clock, UPlug* plug, float new_val)
 {
-	SET_CUR_FUNC( &ug_midi_controllers::sub_process );
+	SET_PROCESS_FUNC( &ug_midi_controllers::sub_process );
 
 	for( auto& info : output_info )
 	{

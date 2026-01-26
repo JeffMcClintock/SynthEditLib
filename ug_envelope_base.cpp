@@ -35,7 +35,7 @@ ug_envelope_base::ug_envelope_base() :
 	,output_ptr(NULL)
 	,gate_state(false)
 {
-	SET_CUR_FUNC( &ug_envelope_base::sub_process );
+	SET_PROCESS_FUNC( &ug_envelope_base::sub_process );
 	current_segment_func = static_cast <process_func_ptr> ( &ug_envelope_base::sub_process7 );
 }
 
@@ -160,7 +160,7 @@ void ug_envelope_base::sub_process3(int start_pos, int sampleframes)
 		// if gate stopped, can sleep , else must keep watching it
 		if( GetPlug(pn_gate)->getState() != ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_base::process_sleep );
+			SET_PROCESS_FUNC( &ug_base::process_sleep );
 		}
 
 		current_segment_func = static_cast <process_func_ptr> ( &ug_envelope_base::sub_process7 ); // do nothing sub-process
@@ -306,7 +306,7 @@ void ug_envelope_base::next_segment() // Called when envelope section ends
 	// ug may be asleep (if gate was not running)
 	if( GetPlug(pn_gate)->getState() != ST_RUN )
 	{
-		SET_CUR_FUNC( &ug_envelope_base::sub_process );
+		SET_PROCESS_FUNC( &ug_envelope_base::sub_process );
 	}
 
 	//	float debug_gate = GetPlug(pn_gate)->getValue();

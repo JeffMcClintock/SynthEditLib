@@ -36,7 +36,7 @@ ug_voltage_to_enum::ug_voltage_to_enum() :
 	m_enum_vals(0)
 	,enum_out(0)
 {
-	SET_CUR_FUNC( &ug_voltage_to_enum::sub_process );
+	SET_PROCESS_FUNC( &ug_voltage_to_enum::sub_process );
 }
 
 ug_voltage_to_enum::~ug_voltage_to_enum()
@@ -85,12 +85,12 @@ void ug_voltage_to_enum::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_t
 	{
 		if( p_state == ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_voltage_to_enum::sub_process );
+			SET_PROCESS_FUNC( &ug_voltage_to_enum::sub_process );
 		}
 		else
 		{
 			OnChange( p_clock, p_to_plug->getValue() );
-			SET_CUR_FUNC( &ug_base::process_sleep );
+			SET_PROCESS_FUNC( &ug_base::process_sleep );
 		}
 	}
 }
@@ -226,7 +226,7 @@ ug_int_to_enum::ug_int_to_enum() :
 	m_enum_vals(0)
 	, enum_out(0)
 {
-//	SET_CUR_FUNC(&ug_int_to_enum::sub_process);
+//	SET_PROCESS_FUNC(&ug_int_to_enum::sub_process);
 }
 
 ug_int_to_enum::~ug_int_to_enum()
@@ -277,12 +277,12 @@ void ug_int_to_enum::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type 
 	{
 		//if (p_state == ST_RUN)
 		//{
-		//	SET_CUR_FUNC(&ug_int_to_enum::sub_process);
+		//	SET_PROCESS_FUNC(&ug_int_to_enum::sub_process);
 		//}
 		//else
 		//{
 			OnChange(p_clock, m_in);// p_to_plug->getValue());
-			SET_CUR_FUNC(&ug_base::process_sleep);
+			SET_PROCESS_FUNC(&ug_base::process_sleep);
 		//}
 	}
 }

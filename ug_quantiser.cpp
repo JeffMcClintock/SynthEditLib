@@ -31,14 +31,14 @@ void ug_quantiser::onSetPin( timestamp_t p_clock, UPlug* p_to_plug, state_type p
 
 	if( input1_status == ST_RUN && input2_status < ST_RUN && GetPlug(PN_INPUT2)->getValue() <= 0.0f)
 	{
-		SET_CUR_FUNC( &ug_quantiser::processBypass );
+		SET_PROCESS_FUNC( &ug_quantiser::processBypass );
 		GetPlug(PN_OUT)->TransmitState(p_clock, input1_status);
 	}
 	else
 	{
 		if( input1_status < ST_RUN && GetPlug(PN_INPUT1)->getValue() == 0.0f) // Input zero and stopped. Will still process, but by outputing ST_ONE_OFF it will allow voice to sleep.
 		{
-			SET_CUR_FUNC(&ug_math_base::process_both_stop1);
+			SET_PROCESS_FUNC(&ug_math_base::process_both_stop1);
 			ResetStaticOutput();
 			GetPlug(PN_OUT)->TransmitState(p_clock, ST_ONE_OFF);
 		}

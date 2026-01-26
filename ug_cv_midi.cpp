@@ -91,12 +91,12 @@ void ug_cv_midi::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_st
 	{
 		if( GetPlug(PN_GATE)->getState() == ST_RUN )
 		{
-			SET_CUR_FUNC( &ug_cv_midi::sub_process );
+			SET_PROCESS_FUNC( &ug_cv_midi::sub_process );
 		}
 		else
 		{
 			gate_changed();
-			SET_CUR_FUNC( &ug_base::process_sleep );
+			SET_PROCESS_FUNC( &ug_base::process_sleep );
 		}
 	}
 }

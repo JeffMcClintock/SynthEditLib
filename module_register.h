@@ -11,9 +11,7 @@
 #define CF_PANEL_VIEW               0x0080
 // visible on structure view
 #define CF_STRUCTURE_VIEW           0x0100
-#define CF_AUTOMATION_VIEW          0x0800
 #define CF_OLD_STYLE_LISTINTERFACE  0x1000
-#define CF_DEBUG_VIEW               0x8000
 #define CF_SHELL_PLUGIN             0x10000
 #define CF_IS_FEEDBACK              0x20000
 // ONLY PIGYBACKED DURING SERIALISE TO MAINTAIN FILE-FORMAT.

@@ -79,7 +79,7 @@ void ug_logic_not::input_changed()
 			output = 0.5f;
 		}
 
-		SET_CUR_FUNC( &ug_logic_not::sub_process );
+		SET_PROCESS_FUNC( &ug_logic_not::sub_process );
 		ResetStaticOutput();
 		OutputChange( SampleClock(), GetPlug(PN_OUT1), ST_ONE_OFF );
 	}
@@ -93,7 +93,7 @@ void ug_logic_not::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_
 
 	if( in_state == ST_RUN )
 	{
-		SET_CUR_FUNC( &ug_logic_not::sub_process );
+		SET_PROCESS_FUNC( &ug_logic_not::sub_process );
 		ResetStaticOutput();
 	}
 	else

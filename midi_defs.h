@@ -44,6 +44,9 @@
 #define MIDI_CC_ALL_NOTES_OFF	123
 #define MIDI_CC_ALL_SOUND_OFF	120
 
+#define MIDI_CHAN_LIST1 L"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16"
+#define MIDI_CHAN_LIST L"All=-1," MIDI_CHAN_LIST1
+
 /* What's the bigget SYSEX SE can handle. */
 #define MAX_SYSEX_SIZE	64
 
@@ -122,7 +125,8 @@ struct ControllerType
 
 	static bool isPolyphonic(int controller);
 };
-#define MIDDLE_C	65
+#define MIDDLE_A  69
+#define MIDDLE_C  65
 
 /* what is typical time between midi controller messages */
 /* (controlls amount of smoothing applied to pitch bend etc) */

@@ -20,7 +20,7 @@ public:
 	int Open() override
 	{
 		int r = ug_base::Open();
-		SET_CUR_FUNC(&ug_base::process_sleep);
+		SET_PROCESS_FUNC(&ug_base::process_sleep);
 
 		for (auto p : plugs)
 		{

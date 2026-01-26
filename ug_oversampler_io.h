@@ -170,10 +170,10 @@ public:
 				// position on x axis
 				double o = i2 + (factor - sub_table) / (double)factor;
 				assert(o != 0.0); // else div by zero.
-				double sinc = sin(PI * o) / (PI * o);
+				double sinc = sin(M_PI * o) / (M_PI * o);
 
 				// apply tailing function
-				double hanning = cos(0.5 * PI * o / (double)tableWidth);
+				double hanning = cos(0.5 * M_PI * o / (double)tableWidth);
 				float windowed_sinc = (float)(sinc * hanning * hanning);
 
 				*dest++ = windowed_sinc;
@@ -214,7 +214,7 @@ public:
 				double gaussian = exp(-(o * o)) / M_PI;
 
 				// apply tailing function
-				double hanning = cos(0.5 * PI * o / (double)tableWidth);
+				double hanning = cos(0.5 * M_PI * o / (double)tableWidth);
 				float windowed = (float)(gaussian * hanning * hanning);
 
 				*dest++ = static_cast<float>(windowed);

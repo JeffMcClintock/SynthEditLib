@@ -1,7 +1,7 @@
 #pragma once
 
-#include "sample.h"
-#include "math.h"
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include "se_types.h"
 #include "ug_base.h"
 #include "UPlug.h"
@@ -260,7 +260,7 @@ private:
 void InitLowPass( float p_end, int p_sample_count)
 {
 	float freq_hz = 0.30f * plug->UG->getSampleRate() / p_sample_count; // smooth at update freq / 2 (nyquist)
-	m_filter_constant = expf( -PI2 * freq_hz / plug->UG->getSampleRate());
+	m_filter_constant = expf( -(2.0 * M_PI) * freq_hz / plug->UG->getSampleRate());
 #if defined( zero_stuffed )
 	scale = 0.63 * (float) p_sample_count;
 #else

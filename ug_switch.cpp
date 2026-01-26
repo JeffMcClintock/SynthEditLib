@@ -26,7 +26,7 @@ ug_switch::ug_switch() :
 {
 	//SetFlag(UGF_SSE_OVERWRITES_BUFFER_END;
 	SetFlag(UGF_SSE_OVERWRITES_BUFFER_END);
-	SET_CUR_FUNC( &ug_switch::sub_process );
+	SET_PROCESS_FUNC( &ug_switch::sub_process );
 }
 
 ug_switch::~ug_switch()
@@ -84,20 +84,20 @@ void ug_switch::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug, state_type p
 
 	if( numOutputs < 1 )
 	{
-		SET_CUR_FUNC( &ug_base::process_sleep );
+		SET_PROCESS_FUNC( &ug_base::process_sleep );
 	}
 	else
 	{
 		if( cur_state == ST_RUN )
 		{
 			// any prev outputs still clearing buffers?
-			SET_CUR_FUNC( &ug_switch::sub_process );
+			SET_PROCESS_FUNC( &ug_switch::sub_process );
 
 			for(int i = numOutputs-1; i >= 0 ; i-- )
 			{
 				if( static_output_counts[i] > 0 )
 				{
-					SET_CUR_FUNC( &ug_switch::sub_process2 );
+					SET_PROCESS_FUNC( &ug_switch::sub_process2 );
 					break;
 				}
 			}
@@ -108,7 +108,7 @@ void ug_switch::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug, state_type p
 		else
 		{
 			static_output_counts[current_output_plug_number - PLG_OUT1] = AudioMaster()->BlockSize();
-			SET_CUR_FUNC( &ug_switch::sub_process_static );
+			SET_PROCESS_FUNC( &ug_switch::sub_process_static );
 			ResetStaticOutput();
 		}
 	}
@@ -228,7 +228,7 @@ void ug_switch::sub_process2(int start_pos, int sampleframes)
 	{
 		if( process_function == static_cast<process_func_ptr>(&ug_switch::sub_process2) ) // and not sub_process_static
 		{
-			SET_CUR_FUNC(&ug_switch::sub_process);
+			SET_PROCESS_FUNC(&ug_switch::sub_process);
 		}
 	}
 
@@ -280,7 +280,7 @@ ug_switch2::ug_switch2() :
 {
 	//SetFlag(UGF_SSE_OVERWRITES_BUFFER_END;
 	SetFlag(UGF_SSE_OVERWRITES_BUFFER_END);
-	SET_CUR_FUNC( &ug_switch2::sub_process );
+	SET_PROCESS_FUNC( &ug_switch2::sub_process );
 }
 
 void ug_switch2::ListInterface2(InterfaceObjectArray& PList)
@@ -421,17 +421,17 @@ void ug_switch2::OnOutStatChanged( state_type /*new_state*/ )
 {
 	if( numInputs < 1 ) // no connections yet
 	{
-		SET_CUR_FUNC( &ug_switch2::sub_process_no_inputs );
+		SET_PROCESS_FUNC( &ug_switch2::sub_process_no_inputs );
 		return;
 	}
 
 	if( in_state[safe_in_num] == ST_RUN )
 	{
-		SET_CUR_FUNC( &ug_switch2::sub_process );
+		SET_PROCESS_FUNC( &ug_switch2::sub_process );
 	}
 	else
 	{
-		SET_CUR_FUNC( &ug_switch2::sub_process_static );
+		SET_PROCESS_FUNC( &ug_switch2::sub_process_static );
 		ResetStaticOutput();
 	}
 }
