@@ -1,11 +1,9 @@
 
 #include "ug_sample_hold.h"
-
+#include "resource.h"
 #include "module_register.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_sample_hold)
-
-
 
 namespace
 {

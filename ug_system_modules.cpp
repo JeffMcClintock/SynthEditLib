@@ -1,3 +1,4 @@
+#include "resource.h"
 #include "ug_latency_adjust.h"
 #include "ug_latency_adjust_event.h"
 #include "ug_base.h"

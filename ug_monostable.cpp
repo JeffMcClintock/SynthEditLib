@@ -2,6 +2,7 @@
 #include "ug_monostable.h"
 #include "Logic.h"
 #include "SeAudioMaster.h"
+#include "resource.h"
 #include "module_register.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_monostable)

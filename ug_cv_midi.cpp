@@ -1,6 +1,7 @@
 // Base class for unit gens that control note creation
 
 #include <algorithm>
+#include "resource.h"
 #include "ug_cv_midi.h"
 #include "midi_defs.h"
 #include "mp_midi.h"

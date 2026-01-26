@@ -1,5 +1,6 @@
 
 #include "ug_midi_automator.h"
+#include "resource.h"
 #include "module_register.h"
 #include "midi_defs.h"
 #include "ug_patch_automator.h"

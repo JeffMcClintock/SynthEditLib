@@ -2,6 +2,7 @@
 #include <assert.h>
 #include "ug_adder2.h"
 
+#include "resource.h"
 #include "module_register.h"
 #include "ug_container.h"
 #include "UgDatabase.h"

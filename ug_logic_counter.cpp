@@ -1,6 +1,7 @@
 
 #include "ug_logic_counter.h"
 #include "Logic.h"
+#include "resource.h"
 #include "module_register.h"
 #include "./modules/se_sdk3/mp_sdk_audio.h"
 

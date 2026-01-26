@@ -3,6 +3,7 @@
 #include <math.h>
 #include "ug_voltage_to_enum.h"
 #include "modules/se_sdk3/it_enum_list.h"
+#include "resource.h"
 #include "module_register.h"
 #include "tinyxml/tinyxml.h"
 #include "conversion.h"

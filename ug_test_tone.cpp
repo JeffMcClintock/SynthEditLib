@@ -2,11 +2,8 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "ug_test_tone.h"
-
-#include "ug_test_tone.h"
-
+#include "resource.h"
 #include "module_register.h"
-
 
 SE_DECLARE_INIT_STATIC_FILE(ug_test_tone)
 

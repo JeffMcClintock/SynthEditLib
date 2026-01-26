@@ -1,7 +1,7 @@
 
 #include "ug_fixed_values.h"
+#include "resource.h"
 #include "module_register.h"
-#include "modules/se_sdk3/mp_sdk_audio.h"
 #include "SeAudioMaster.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_fixed_values)

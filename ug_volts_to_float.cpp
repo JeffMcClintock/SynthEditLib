@@ -1,7 +1,7 @@
 
 #include <math.h>
 #include "ug_volts_to_float.h"
-#include "conversion.h"
+#include "resource.h"
 #include "module_register.h"
 #include "UgDatabase.h"
 

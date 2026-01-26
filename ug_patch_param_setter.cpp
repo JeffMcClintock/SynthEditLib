@@ -1,5 +1,6 @@
 
 #include "ug_patch_param_setter.h"
+#include "resource.h"
 #include "module_register.h"
 
 #include "ug_event.h"

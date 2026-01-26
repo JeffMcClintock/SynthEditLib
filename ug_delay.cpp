@@ -1,10 +1,6 @@
 
-#include <math.h>
-
 #include "ug_delay.h"
-
-#include "SeAudioMaster.h"
-#include "conversion.h"
+#include "resource.h"
 #include "module_register.h"
 #include "./modules/shared/xplatform.h"
 

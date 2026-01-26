@@ -1,5 +1,6 @@
 
 #include "ug_vst_in.h"
+#include "resource.h"
 #include "module_register.h"
 
 #ifdef CANCELLATION_TEST_ENABLE2
@@ -11,7 +12,6 @@ SE_DECLARE_INIT_STATIC_FILE(ug_vst_in)
 
 // macros suck.
 #undef min
-
 
 namespace
 {

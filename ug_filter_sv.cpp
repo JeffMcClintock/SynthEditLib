@@ -6,7 +6,7 @@
 #include "ULookup.h"
 #include <math.h>
 #include <float.h>
-#include "conversion.h"
+#include "resource.h"
 #include "module_register.h"
 #include "SeAudioMaster.h"
 #include "./modules/shared/xplatform.h"

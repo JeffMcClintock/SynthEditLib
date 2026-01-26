@@ -98,7 +98,6 @@ void Module_Info3_base::ScanXml(tinyxml2::XMLElement* pluginE)
 
 //harmless in other situations.	if (CSynthEditDocBase::serializingMode == SERT_SEM_CACHE)
 	{
-//		macSemBundlePath[UniqueId()] = Utf8ToWstring(pluginE->Attribute("macSemBundlePath"));
 		macSemBundlePath = Utf8ToWstring(pluginE->Attribute("macSemBundlePath"));
 	}
 

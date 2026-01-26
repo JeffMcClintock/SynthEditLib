@@ -1,5 +1,6 @@
 
 #include <algorithm>
+#include "resource.h"
 #include "ug_cross_fade.h"
 
 #include "ug_pan.h"

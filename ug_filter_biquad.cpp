@@ -4,10 +4,8 @@
 
 #include "ULookup.h"
 #include <math.h>
-#include <float.h>
 #include <mutex>
-#include "conversion.h"
-#include "SeAudioMaster.h"
+#include "resource.h"
 #include "module_register.h"
 #include "./modules/shared/xplatform.h"
 

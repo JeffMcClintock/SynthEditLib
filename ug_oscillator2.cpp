@@ -6,7 +6,6 @@
 
 #include <math.h>
 #include <algorithm>
-#include <limits>
 #include <iomanip>
 #include <sstream>
 #include <mutex>
@@ -14,8 +13,8 @@
 
 #include "ULookup.h"
 #include "SeAudioMaster.h"
+#include "resource.h"
 #include "module_register.h"
-#include "./modules/shared/xplatform.h"
 
 using namespace std;
 

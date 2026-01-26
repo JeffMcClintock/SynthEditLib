@@ -1,5 +1,6 @@
 
 
+#include "resource.h"
 #include "ug_denormal_stop.h"
 
 #include <math.h>

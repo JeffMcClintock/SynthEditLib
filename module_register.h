@@ -1,6 +1,4 @@
 #pragma once
-#include "resource.h"
-//#include "UgDatabase.h"
 #include "InterfaceObject.h"
 
 // Flags for special CUG types CUG::getType()->GetFlags()

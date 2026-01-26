@@ -5,6 +5,7 @@
 
 #include "ug_vca.h"
 #include "ULookup.h"
+#include "resource.h"
 #include "module_register.h"
 #include <math.h>
 

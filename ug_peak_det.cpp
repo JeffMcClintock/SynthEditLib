@@ -3,7 +3,7 @@
 #include "ug_peak_det.h"
 
 #include <math.h>
-#include "conversion.h"
+#include "resource.h"
 #include "module_register.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_peak_det)

@@ -5,10 +5,9 @@
 #include "midi_defs.h"
 #include "ug_container.h"
 #include "SeAudioMaster.h"
+#include "resource.h"
 #include "module_register.h"
-#include "ug_event.h"
 #include "modules/shared/voice_allocation_modes.h"
-#include "iseshelldsp.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_midi_to_cv)
 

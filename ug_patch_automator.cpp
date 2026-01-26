@@ -3,13 +3,11 @@
 #include "ug_patch_automator.h"
 #include "ug_container.h"
 #include "midi_defs.h"
+#include "resource.h"
 #include "module_register.h"
 #include "IDspPatchManager.h"
 #include "ug_event.h"
-#include "midi_defs.h"
-#include "iseshelldsp.h"
 #include "math.h"
-#include "BundleInfo.h"
 #include "UgDatabase.h"
 
 using namespace std;

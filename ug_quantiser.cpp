@@ -2,11 +2,10 @@
 #include <algorithm>
 #include "ug_quantiser.h"
 #include <math.h>
+#include "resource.h"
 #include "module_register.h"
 
 using namespace std;
-
-
 
 SE_DECLARE_INIT_STATIC_FILE(ug_quantiser)
 

@@ -1,4 +1,5 @@
 
+#include "resource.h"
 #include "ug_combobox.h"
 #include "module_register.h"
 

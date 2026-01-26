@@ -1,6 +1,7 @@
 
 #include "ug_midi_filter.h"
 #include "midi_defs.h"
+#include "resource.h"
 #include "module_register.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_midi_filter)

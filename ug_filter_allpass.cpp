@@ -1,4 +1,5 @@
 
+#include "resource.h"
 #include <algorithm>
 #include <mutex>
 #include "ug_filter_allpass.h"

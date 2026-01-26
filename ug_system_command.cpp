@@ -6,6 +6,7 @@
 
 #include "ug_system_command.h"
 #include "Logic.h"
+#include "resource.h"
 #include "module_register.h"
 
 // Note: Windows 10S does not permit CreateProcessW(). Moved this to "Old" modules.

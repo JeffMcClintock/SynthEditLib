@@ -1,5 +1,6 @@
 
 #include "ug_wave_player.h"
+#include "resource.h"
 #include "module_register.h"
 #include "iseshelldsp.h"
 #include "BundleInfo.h"

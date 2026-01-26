@@ -4,7 +4,7 @@
 
 #include "./dsp_patch_parameter_base.h"
 #include "./ug_container.h"
-#include "./midi_defs.h"
+#include "resource.h"
 #include "module_register.h"
 #include "ug_midi_automator.h"
 #include "./IDspPatchManager.h"

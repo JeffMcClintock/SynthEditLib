@@ -1,4 +1,5 @@
 
+#include "resource.h"
 #include "ug_float_to_volts.h"
 #include "module_register.h"
 #include "UgDatabase.h"

@@ -1,4 +1,5 @@
 
+#include "resource.h"
 #include <math.h>
 #include "ug_generic_1_1.h"
 #include "module_register.h"

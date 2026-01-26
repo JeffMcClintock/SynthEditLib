@@ -1,4 +1,5 @@
 
+#include "resource.h"
 #include "ug_denormal_detect.h"
 #include "module_register.h"
 

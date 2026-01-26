@@ -5,12 +5,11 @@
 #include "ug_container.h"
 
 #include "SeAudioMaster.h"
-#include "midi_defs.h"
 #include "UgDatabase.h"
 #include "./IDspPatchManager.h"
 #include "./ug_patch_param_watcher.h"
+#include "resource.h"
 #include "module_register.h"
-#include "ug_event.h"
 #include "ug_patch_automator.h"
 #include "modules/shared/voice_allocation_modes.h"
 #include "ug_patch_param_setter.h"

@@ -1,6 +1,7 @@
 
 #include "ug_midi_keyboard.h"
 #include "midi_defs.h"
+#include "resource.h"
 #include "module_register.h"
 #include "conversion.h"
 #include "Hosting/message_queues.h"

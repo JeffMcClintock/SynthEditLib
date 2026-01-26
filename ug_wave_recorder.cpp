@@ -1,3 +1,4 @@
+#include "resource.h"
 #include "module_register.h"
 #include "ug_wave_recorder.h"
 #include "modules/shared/wav_file.h"

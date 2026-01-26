@@ -5,6 +5,7 @@
 #include "ug_midi_controllers.h"
 #include "midi_defs.h"
 #include "SeAudioMaster.h"
+#include "resource.h"
 #include "module_register.h"
 #include "./modules/se_sdk3/mp_midi.h"
 

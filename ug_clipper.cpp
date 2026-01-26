@@ -1,5 +1,6 @@
 
 #include "ug_clipper.h"
+#include "resource.h"
 #include "module_register.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_clipper)

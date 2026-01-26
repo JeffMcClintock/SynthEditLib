@@ -1,3 +1,4 @@
+#include "resource.h"
 #include "ug_io_mod.h"
 #include "module_register.h"
 #include "ug_event.h"

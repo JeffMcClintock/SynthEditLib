@@ -1,8 +1,8 @@
 
 #include <algorithm>
 #include "ug_logic_gate.h"
-
 #include "Logic.h"
+#include "resource.h"
 #include "module_register.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_logic_gate)

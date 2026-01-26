@@ -2,8 +2,7 @@
 #include <random>
 #include "ug_random.h"
 #include "mp_sdk_audio.h"
-#include "Logic.h"
-#include "conversion.h"
+#include "resource.h"
 #include "module_register.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_random)

@@ -6,7 +6,7 @@
 #include "ug_filter_1pole_lp.h"
 #include <mutex>
 #include "ULookup.h"
-#include "conversion.h"
+#include "resource.h"
 #include "module_register.h"
 #include "./modules/shared/xplatform.h"
 

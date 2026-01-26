@@ -2,14 +2,13 @@
 #define _USE_MATH_DEFINES
 #include <mutex>
 #include <cmath>
-#include <math.h>
 
 #include <algorithm>
 #include "ug_vca.h"
 
 #include "ULookup.h"
+#include "resource.h"
 #include "module_register.h"
-#include "./modules/shared/xplatform.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_vca)
 

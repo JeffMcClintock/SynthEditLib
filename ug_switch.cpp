@@ -2,11 +2,9 @@
 #include <algorithm>
 #include <cmath>
 #include "ug_switch.h"
-#include "ug_switch2.h"
-
 #include "SeAudioMaster.h"
+#include "resource.h"
 #include "module_register.h"
-
 
 SE_DECLARE_INIT_STATIC_FILE(ug_switch)
 

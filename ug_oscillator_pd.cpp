@@ -5,6 +5,7 @@
 
 #include "ULookup.h"
 #include "ug_oscillator2.h"
+#include "resource.h"
 #include "module_register.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_oscillator_pd)

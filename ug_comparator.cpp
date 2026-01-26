@@ -1,5 +1,6 @@
 
 #include <algorithm>
+#include "resource.h"
 #include "ug_comparator.h"
 
 #include "module_register.h"
