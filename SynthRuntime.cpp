@@ -12,6 +12,7 @@
 #include "UgDatabase.h"
 #include "mfc_emulation.h"
 #include "SeException.h"
+#include "FeedbackTrace.h"
 
 using namespace std;
 using namespace gmpi::hosting;

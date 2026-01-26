@@ -10,7 +10,7 @@
 #include "modules/shared/xplatform.h"
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "UgDatabase2.h"
-#include "interfaceobject.h"
+#include "InterfaceObject.h"
 #include "RawConversions.h"
 #include "DragLine.h"
 #include "SubViewPanel.h"

@@ -238,7 +238,7 @@ public:
 
 	virtual void IterateContainersDepthFirst(std::function<void(ug_container*)>& /*f*/) {}
 
-	Module_Info* getModuleType()
+	class Module_Info* getModuleType()
 	{
 		return moduleType;
 	}
