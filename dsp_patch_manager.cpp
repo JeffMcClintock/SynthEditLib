@@ -1851,8 +1851,6 @@ const int program_ = 0;
 
 	// Send MIDI program change.
 	 Container()->automation_output_device->sendProgramChange( program_ );
-	// inform legacy SDK2 modules.
-	Container()->SendProgChange( Container(), program_ );
 	const int voiceId = 0; // assume poly param all Ignore PC.
 
 	for( auto parameter : m_parameters )
@@ -1863,30 +1861,6 @@ const int program_ = 0;
 		}
 	}
 }
-
-#if 0
-void DspPatchManager::UpdateProgram( int program )
-{
-	// avoid spurious change when update already came from DSP via MIDI PC.
-	if( program_ == program )
-	{
-		return;
-	}
-
-	int previousProgram = program_;
-	setProgram( program );
-
-	// Send MIDI program change.
-	Container()->automation_output_device->sendProgramChange( program_ );
-	// inform legacy SDK2 modules.
-	Container()->SendProgChange( Container(), program_ );
-
-	for( auto parameter : m_parameters )
-	{
-		parameter->OnPatchChanged( previousProgram, program );
-	}
-}
-#endif
 
 void DspPatchManager::setupContainerHandles(ug_container* subContainer)
 {

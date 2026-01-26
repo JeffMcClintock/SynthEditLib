@@ -27,7 +27,7 @@
 #ifdef _DEBUG
 #include "BundleInfo.h"
 #endif
-#include "Hosting/message_queues.h"
+#include "FeedbackTrace.h"
 
 using namespace std;
 using namespace gmpi::hosting;
@@ -1348,26 +1348,6 @@ IDspPatchManager* ug_container::get_patch_manager()
 
 	return ug_base::get_patch_manager();
 }
-
-/*
-void ug_container::HandleEvent(SynthEditEvent* e)
-{
-	// send event to ug
-	switch( e->eventType )
-	{
-	case UET_PROG_CHANGE:
-	{
-		// handle container's having patch slaved to parent (yet having own MIDI-CV)
-		// not common, because usually when patch slaved to parent, container is expanded 'inline', exception is sub-container's with MIDI-CV
-		SendProgChange( patch_control_container, e->parm1 );
-	}
-	break;
-
-	default:
-		ug_base::HandleEvent( e );
-	};
-}
-*/
 
 void ug_container::OnUiNotify2( int p_msg_id, my_input_stream& p_stream )
 {

@@ -1230,38 +1230,6 @@ bool Voice::SetNoteSource(ug_base* m)
 	return false;
 }
 
-void VoiceList::SendProgChange( ug_container* p_patch_control_container, int patch)
-{
-	//	front()->SendProgChange( p_original_container, patch ); // all controls are in voice zero(for synths), what about waveshaper?
-	// Drum trigger moves each control to appropriate voice. Waveshapers etc will be spead over all voices
-	for (auto v : *this)
-	{
-		v->SendProgChange( p_patch_control_container, patch );
-	}
-}
-
-void Voice::SendProgChange( ug_container* p_patch_control_container, int patch )
-{
-	if( !open )
-		return;
-
-	if( ! UGClones.empty() )
-	{
-		// can't actually do prog change till start of next block, as some upstream ug's may have already processed 'this' block
-		timestamp_t next_block_start_clock =  UGClones.front()->AudioMaster()->NextGlobalStartClock();
-
-		for (auto u : UGClones)
-		{
-			// because ugs get moved around during build process(inline expansion), they may end up in different container
-			if( u->patch_control_container == p_patch_control_container )
-			{
-				u->QueProgramChange( next_block_start_clock, patch );
-			}
-		}
-	}
-}
-
-
 ug_base* Voice::findIoMod()
 {
 	for( auto& u : UGClones)

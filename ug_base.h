@@ -19,7 +19,6 @@
 #endif
 
 // Macros to be used to init a Interface Object in unit_gen::ListInterface
-// more eficient in terms of code size.
 #define LIST_PIN( P1,P3,P5,P6,P7,P8 ) ListPin(PList, nullptr, P1, P3, DT_FSAMPLE,(P5),(P6),P7,(P8) );
 #define LIST_PIN2( P1,P1B,P3,P5,P6,P7,P8 ) ListPin(PList, nullptr, P1, P3, DT_FSAMPLE, (P5), (P6), P7, (P8), &(P1B) );
 #define LIST_VAR3( P1,P2,P3,P4,P5,P6,P7,P8 ) ListPin(PList, (void *) &P2, (P1),P3,P4,(P5),(P6),P7,(P8) );
@@ -35,26 +34,6 @@ class ug_base;
 typedef void (ug_base::* process_func_ptr)(int start_pos, int sampleframes); // Pointer to sound processing member function
 
 enum SetDownstreamErrors { SDS_OK, SDS_POLYPHONIC_FEEDBACK };
-
-// List of modules involved in feedback path.
-struct feedbackPin
-{
-	feedbackPin(UPlug* pin);
-	int32_t moduleHandle;
-	int32_t pinIndex;
-	std::wstring debugModuleName;
-};
-
-struct FeedbackTrace
-{
-	std::list< std::pair<feedbackPin, feedbackPin> > feedbackConnectors;
-	int reason_;
-
-	FeedbackTrace(int reason) : reason_(reason) {}
-	void AddLine(UPlug* from, UPlug* to);
-
-	void DebugDump();
-};
 
 void CreateMidiRedirector(ug_base* midiCv);
 
@@ -73,7 +52,7 @@ public:
 	}
 
 	void SetUnusedPlugs2();
-	// construction
+
 	ug_base();
 	virtual ~ug_base();
 	virtual ug_base* Create() = 0;
@@ -83,8 +62,6 @@ public:
 
 	virtual void Setup( ISeAudioMaster* am, class TiXmlElement* xml );
 	void SetupWithoutCug();
-	void DeleteAllPlugs();
-	virtual void QueProgramChange( timestamp_t p_clock, int p_patch_num ); // SDK2 only
 
 	void ResetStaticOutput();
 	void SleepMode();
@@ -138,7 +115,6 @@ public:
 	void HandleEvent(SynthEditEvent* e) override;
 	void SendPendingOutputChanges();
 
-	//void OnDelConnector(int pinIndex);
 	virtual void ListInterface2(InterfaceObjectArray& /*PList*/) {}
 	virtual int Open();
 	virtual int Close();
@@ -165,19 +141,19 @@ public:
 	virtual void PPPropogateVoiceNum(int n);
 	virtual void PPPropogateVoiceNumUp(int n);
 	virtual void CloneContainerVoices() {} // only for containers.
-	inline bool GetPolyphonic()
+	inline bool GetPolyphonic() const
 	{
 		return (flags & UGF_POLYPHONIC) != 0;
 	}
-	bool IgnoredByVoiceMonitor()
+	bool IgnoredByVoiceMonitor() const
 	{
 		return (flags & UGF_VOICE_MON_IGNORE) != 0;  // Module always ignored by voice-monitor. e.g. [Scopes, Freq Analyser2, Volts-to-Float]
 	}
-	bool GetPolyGen()
+	bool GetPolyGen() const
 	{
 		return (flags & UGF_POLYPHONIC_GENERATOR) != 0;
 	}	// set if ug spawns new notes (UNotesource)
-	bool GetPolyAgregate()
+	bool GetPolyAgregate() const
 	{
 		return (flags & UGF_POLYPHONIC_AGREGATOR) != 0;
 	}	// set if ug sums voices (IO Mod )
@@ -199,18 +175,15 @@ public:
 	{
 		return (int) plugs.size();
 	}
-//	UPlug* GetPlugById(int id);
 #if defined( _DEBUG )
 	UPlug* GetPlug(int p_index);
 #else
-	inline UPlug* GetPlug(int p_index)
+	UPlug* GetPlug(int p_index)
 	{
 		return plugs[p_index];
 	}
 #endif
 	UPlug* GetPlug(const std::wstring& plug_name);
-
-	virtual void OnProgChange(short /*chan*/,int /*patch_num*/) {}
 
 	virtual IDspPatchManager* get_patch_manager();
 	ug_container* ParentContainer()
@@ -231,7 +204,6 @@ public:
 	{
 		return flags;
 	}
-	virtual bool isEventListEmpty();
 
 	int pp_voice_num;
 	std::vector<UPlug*> plugs;

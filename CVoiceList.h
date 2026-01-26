@@ -71,7 +71,6 @@ public:
 	void RemoveUG( ug_base* ug );
 	void DoneCheck(timestamp_t timeStamp);
 	ug_base* findIoMod();
-	void SendProgChange( ug_container* p_patch_control_container, int patch);
 	void NoteOff( timestamp_t p_clock );
 	void reassignVoiceId( short noteNumber );
 	void NoteMute( timestamp_t p_clock );
@@ -217,7 +216,6 @@ public:
 	void suspendVoice(timestamp_t timestamp, int physicalVoice);
 	void OnVoiceSuspended( timestamp_t p_clock );
 	void ReRouteContainers();
-	void SendProgChange( ug_container* p_patch_control_container, int patch );
 	Voice* GetVoice( /*short chan,*/ short MidiNoteNumber );
 	void AddUG( ug_base* ug );
 	void CloseAll();

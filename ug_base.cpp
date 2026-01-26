@@ -11,7 +11,6 @@
 #include "ug_plugin3.h"
 #include "UMidiBuffer2.h"
 #include "./IDspPatchManager.h"
-#include "./dsp_patch_parameter_base.h"
 #include "ug_event.h"
 #include "ug_patch_param_setter.h"
 #include "ug_patch_param_watcher.h"
@@ -26,6 +25,7 @@
 #include "SeException.h"
 #include "mfc_emulation.h"
 #include "platform.h"
+#include "FeedbackTrace.h"
 
 using namespace std;
 using namespace gmpi::hosting;
@@ -109,22 +109,14 @@ ug_base::ug_base() : EventProcessor()
 
 ug_base::~ug_base()
 {
-	DeleteAllPlugs();
+	// Delete all plugs
+	for (auto p : plugs)
+		delete p;
+
 #ifdef _DEBUG_MOOSE
 	--instanceCounter;
 	_RPT1(_CRT_WARN, "modules instances %d\n", instanceCounter );
 #endif
-}
-
-void ug_base::DeleteAllPlugs()
-{
-	// Delete all plugs
-	for( auto p : plugs )
-	{
-		delete p;
-	}
-
-	plugs.clear();
 }
 
 #if defined( _DEBUG )
@@ -2434,11 +2426,6 @@ void ug_base::HandleEvent(SynthEditEvent* e)
 	};
 }
 
-bool ug_base::isEventListEmpty()
-{
-	return events.empty();
-}
-
 // send ug to sleep at first opertunity,
 // won't actually sleep untill no events remain
 void ug_base::process_sleep(int /*start_pos*/, int /*sampleframes*/)
@@ -2497,11 +2484,6 @@ void ug_base::SleepMode()
 void ug_base::ResetStaticOutput()
 {
 	static_output_count = AudioMaster()->BlockSize();
-}
-
-void ug_base::QueProgramChange( timestamp_t /*p_clock*/, int /*p_patch_num*/ )
-{
-	// SDK2 only now. see ug_plugin.
 }
 
 void ug_base::SetPolyphonic(bool p)
