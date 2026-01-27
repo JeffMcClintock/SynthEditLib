@@ -185,6 +185,11 @@ void ug_wave_recorder::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug, state
 	{
 		if (plug_number == PN_FILE)
 		{
+			std::wstring msg = L"Wave Recorder: Writing to file: ";
+			msg += FileName;
+			WriteConsole(0, msg.c_str(), msg.size(), 0, 0);
+
+
 			wo_pointer = buffer;
 
 			// allow render to 'null device' for benchmarking purposes
