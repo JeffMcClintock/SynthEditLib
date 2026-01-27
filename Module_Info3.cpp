@@ -108,9 +108,16 @@ Module_Info3::Module_Info3() // serialisation only
 {
 }
 
-Module_Info3::Module_Info3( const std::wstring& file_and_dir, const std::wstring& overridingCategory ) :
-	filename(file_and_dir)
+Module_Info3::Module_Info3( const std::wstring& file_and_dir, const std::wstring& overridingCategory )
 {
+#ifdef _WIN32
+    filename = file_and_dir;
+#else
+    macSemBundlePath = file_and_dir;
+#endif
+    
+    holder.setPluginPath(file_and_dir);
+        
 	if( !overridingCategory.empty() )
 	{
 		m_group_name = overridingCategory;
