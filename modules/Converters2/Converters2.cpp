@@ -67,3 +67,37 @@ auto r = Register<FirstNonEmpty>::withXml(R"XML(
 </Plugin>
 )XML");
 }
+
+
+struct OsDetect final : public Processor
+{
+	BoolOutPin pinIsWindows;
+	BoolOutPin pinIsMac;
+
+	OsDetect() = default;
+
+	void onGraphStart() override	// called on very first sample.
+	{
+#ifdef _WIN32
+		pinIsWindows = true;
+		pinIsMac = false;
+#else
+		pinIsWindows = false;
+		pinIsMac = true;
+#endif
+		Processor::onGraphStart();
+	}
+};
+
+namespace
+{
+auto r2 = Register<OsDetect>::withXml(R"XML(
+<?xml version="1.0" encoding="UTF-8"?>
+<Plugin id="SE Operating System" name="Operating System Detect" category="Special">
+    <Audio>
+        <Pin name="Windows" datatype="bool" direction="out"/>
+        <Pin name="macOS" datatype="bool" direction="out"/>
+    </Audio>
+</Plugin>
+)XML");
+}
