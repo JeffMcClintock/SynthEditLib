@@ -1,3 +1,4 @@
+#include <iostream>
 #include "resource.h"
 #include "module_register.h"
 #include "ug_wave_recorder.h"
@@ -188,7 +189,7 @@ void ug_wave_recorder::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug, state
 			std::wstring msg = L"Wave Recorder: Writing to file: ";
 			msg += FileName;
 			WriteConsole(0, msg.c_str(), msg.size(), 0, 0);
-
+			std::wcout << msg << std::endl;
 
 			wo_pointer = buffer;
 
