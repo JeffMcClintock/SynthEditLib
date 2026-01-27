@@ -38,8 +38,6 @@ void PatchParameter_base::Export(tinyxml2::XMLElement* parameters_xml, ExportFor
 
 		parameters_xml->LinkEndChild(parameter_xml.release());
 	}
-
-
 */
 
 #pragma once
@@ -111,23 +109,6 @@ struct Archive2
 
 struct XmlSaveHelper
 {
-	/* bit messy
-	// value to xml
-	template< typename T >
-	auto& toCompatible(const T& value)
-	{
-		return value;
-	}
-
-	template<>
-	auto& toCompatible(const std::wstring& value)
-	{
-		static std::string temp;
-		temp = WStringToUtf8(value);
-		return temp.c_str();
-	}
-	*/
-
 	tinyxml2::XMLElement* XmlParent;
 	int errorCode = 0;
 	XmlSaveHelper(tinyxml2::XMLElement* pXmlParent) : XmlParent(pXmlParent) {}

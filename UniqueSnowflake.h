@@ -24,13 +24,6 @@ public:
 		return m_unique_handle >= 0;
 	}
 
-/*
-	template< class Serializer >
-	void Serialise2(Serializer& s)
-	{
-		s("handle", m_unique_handle);
-	}
-*/
 	template< class Serializer >
 	void SerialiseB(Archive2& ar)
 	{

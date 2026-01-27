@@ -1,3 +1,4 @@
+#pragma once
 #ifndef NOTIFY_H__
 #define NOTIFY_H__
 #include <vector>
@@ -7,7 +8,6 @@ class Notifier;
 class Notifiable
 {
 public:
-
 	virtual ~Notifiable();
 	virtual void OnNotify(Notifier* sender, int lHint, void* pHint = 0) = 0;
 	void AddWatcher( Notifier* p_notifier )
@@ -37,9 +37,7 @@ public:
 	inline void NotifyFast(int p_msg_id, void* pHint = 0)
 	{
 		for (auto observer : m_observers)
-		{
 			observer->OnNotify(this, p_msg_id, pHint);
-		}
 	}
 private:
 	std::vector<Notifiable*> m_observers;
