@@ -5,6 +5,7 @@
 #include <tuple>
 #include <fstream>
 
+#pragma pack(push,1)
 struct MYWAVEFORMATEX
 {
 	uint16_t  wFormatTag;         /* format type */
@@ -44,6 +45,7 @@ struct SamplerChunk
 	int32_t       cbSamplerData;
 	struct SampleLoop Loops[8]; // actual number is variable. We will read 8 maximum.
 };
+#pragma pack(pop)
 
 #define  WAVE_FORMAT_IEEE_FLOAT 0x0003  /*  Microsoft Corporation  */
 

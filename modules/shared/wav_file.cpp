@@ -133,11 +133,10 @@ void WavFile::write( const std::string & filename, unsigned int bps )
 		}
 
 		myfile.write((char*)&wav_head, 44);
-		float* samples[2];
+
+		std::vector<float*> samples;
 		for (int c = 0; c < wav_head.nChannels; ++c)
-		{
-			samples[c] = src + c * sample_count;
-		}
+			samples.push_back(src + c * sample_count);
 
 		if (floatFormat)
 		{
