@@ -18,6 +18,7 @@ REGISTER_MODULE_1(L"Wave Recorder", IDS_MN_WAVE_RECORDER,IDS_MG_INPUT_OUTPUT,ug_
 }
 SE_DECLARE_INIT_STATIC_FILE(ug_wave_recorder)
 
+#pragma pack(push,1)
 struct wave_file_header
 {
 	char chnk1_name[4];
@@ -34,6 +35,7 @@ struct wave_file_header
 	char chnk4_name[4];
 	int32_t chnk4_size;
 };
+#pragma pack(pop)
 
 void ug_wave_recorder::ListInterface2(InterfaceObjectArray& PList)
 {

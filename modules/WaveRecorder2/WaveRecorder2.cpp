@@ -242,7 +242,7 @@ void WaveRecorder2::CloseFile()
 		fseek(outputStream, 0, SEEK_SET);
 
 		// Complete header with number of frames.
-		waveHeader.chnk4_size = (LONG)( sampleFrameCount * waveHeader.nChannels * waveHeader.wBitsPerSample / 8);
+		waveHeader.chnk4_size = (int32_t)(sampleFrameCount * waveHeader.nChannels * waveHeader.wBitsPerSample / 8);
 		waveHeader.chnk1_size = waveHeader.chnk4_size + 36;
 
 		if( fwrite(&waveHeader, 1, sizeof(waveHeader), outputStream) != sizeof(waveHeader) )

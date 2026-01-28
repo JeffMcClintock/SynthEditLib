@@ -5,28 +5,24 @@
 #include <memory>
 #include <vector>
 
-#ifndef _MSC_VER
-typedef int32_t LONG;
-typedef int16_t SHORT;
-#endif
-
-
+#pragma pack(push,1)
 struct wave_file_header2
 {
 	char chnk1_name[4];
-	LONG chnk1_size;
+	int32_t chnk1_size;
 	char chnk2_name[4];
 	char chnk3_name[4];
-	LONG chnk3_size;
-	SHORT wFormatTag;
-	SHORT nChannels;
-	LONG nSamplesPerSec;
-	LONG nAvgBytesPerSec;
-	SHORT nBlockAlign;
-	SHORT wBitsPerSample;
+	int32_t chnk3_size;
+	int16_t wFormatTag;
+	int16_t nChannels;
+	int32_t nSamplesPerSec;
+	int32_t nAvgBytesPerSec;
+	int16_t nBlockAlign;
+	int16_t wBitsPerSample;
 	char chnk4_name[4];
-	LONG chnk4_size;
+	int32_t chnk4_size;
 };
+#pragma pack(pop)
 
 class WaveRecorder2 : public MpBase2
 {
