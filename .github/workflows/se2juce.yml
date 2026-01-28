@@ -12,6 +12,9 @@ jobs:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     
+    permissions:
+      contents: read
+    
     strategy:
       fail-fast: false
       matrix:
