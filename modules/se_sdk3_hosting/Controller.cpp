@@ -268,17 +268,15 @@ void MpController::Initialize()
 		parameter_xml->QueryIntAttribute("Handle", &ParameterHandle);
 		parameter_xml->QueryIntAttribute("Private", &Private);
 
-		if (dataType == DT_TEXT || dataType == DT_BLOB)
+		if (dataType == DT_STRING_UTF8 || dataType == DT_TEXT || dataType == DT_BLOB || dataType == DT_BLOB2)
 		{
 			Private = 1; // VST and AU can't handle this type of parameter.
 		}
-		else
+
+		if (Private == 0)
 		{
-			if (Private != 0)
-			{
-				// Check parameter is numeric and a valid type.
-				assert(dataType == DT_ENUM || dataType == DT_DOUBLE || dataType == DT_BOOL || dataType == DT_FLOAT || dataType == DT_INT || dataType == DT_INT64);
-			}
+			// Check parameter is numeric and a valid type.
+			assert(dataType == DT_ENUM || dataType == DT_DOUBLE || dataType == DT_BOOL || dataType == DT_FLOAT || dataType == DT_INT || dataType == DT_INT64);
 		}
 
 		int stateful_ = 1;
