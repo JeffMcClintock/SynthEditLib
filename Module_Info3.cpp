@@ -130,7 +130,13 @@ void Module_Info3::ScanXml(tinyxml2::XMLElement* pluginE)
 int Module_Info3::ModuleTechnology()
 {
     // dodgy, only works when plugin binary file available. OK, since we only need this when scanning binary for XML (to determine native string type)
-    const bool isGMPI = GetExtension(Filename()) == L"gmpi" || GetExtension(macSemBundlePath) == L"gmpi";
+    const bool isGMPI =
+        GetExtension(Filename()) == L"gmpi"
+#ifdef _WIN32
+        || GetExtension(macSemBundlePath) == L"gmpi"
+#endif
+    ;
+    
     return isGMPI ? MT_GMPI : MT_SDK3;
 }
 
