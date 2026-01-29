@@ -1,6 +1,7 @@
 #include <math.h>
 #include <algorithm>
 #include <climits> // INT_MAX
+#include <iostream>
 #include "./MidiPlayer2.h"
 #include "smf.h"
 #include "../shared/unicode_conversion.h"
@@ -263,6 +264,14 @@ int MidiPlayer2::loadMidiFile()
 	const auto fullFilename = host.resolveFilename(fname);
 	auto file = host.openUri(fullFilename);
 	const int64_t file_size = file.size();
+    
+    if(file_size <= 0)
+    {
+        delete [] buffer;
+        buffer = 0;
+        message( L"MIDI File not found!");
+        return 1;
+    }
 	
 	buffer = new unsigned char[file_size + 2];
 	file.read( (char*) buffer, file_size );
@@ -657,6 +666,7 @@ void MidiPlayer2::message( const wchar_t* txt )
 #ifdef _WIN32
 	::MessageBox(0, txt, L"MidiPlayer2", MB_OK );
 #else
+    std::cout << "MidiPlayer2: " << JmUnicodeConversions::WStringToUtf8(txt) << std::endl;
     assert(false); // TODO.
 #endif
 }
