@@ -82,8 +82,8 @@ private:
 	dsp_automation_map_type vst_automation_map;
 	ug_container* m_container;
 	int midiChannel_;
-	// this just increments each time a voice is reset.
-	int nextVoiceReset_ = 1;
+	// HC_VOICE_TRIGGER this just increments each time a voice is reset. modules can ignore value zero which is sent on initial update (not a actual note).
+	float nextVoiceReset_ = 0.0f;
 
 	// used only in plugins, but harmless in editor.
 	std::vector<dsp_patch_parameter_base*> parameterIndexes_; // VST-Host's parameter ID's.

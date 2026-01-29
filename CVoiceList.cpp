@@ -387,7 +387,6 @@ bool VoiceList::AttemptNoteOn(timestamp_t timestamp, int MidiKeyNumber, int useP
 	{
 		// When using drum-trigger, voice may not exist...
 		// when output connected only to Volt-Meter AND annother output connected to same voltmeter.
-		// drum trigger handles case when only one output conencted to meter OK.
 		if (usePhysicalVoice < (int)size())
 		{
 			voice = at(usePhysicalVoice);

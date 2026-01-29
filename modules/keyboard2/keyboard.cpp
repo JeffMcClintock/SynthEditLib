@@ -81,10 +81,8 @@ void Keyboard::onSetPins()  // one or more pins_ updated.  Check pin update flag
 		}
 	}
 
-	if( pinTrigger.isUpdated() && pinTrigger != 0.0f )
+	if( pinTrigger.isUpdated() && pinTrigger != 0.0f ) // trigger is a incrementing float with no inherent meaning, except that zero is a initial value that should be ignored.
 	{
-		// currently sends a pulse on first sample, not really needed.
-
 //		_RPT1(_CRT_WARN, "Keyboard::onSetPins Trigger=%f\n", (double) pinTrigger );
 		pinTriggerOut.pulse( 10.0f );
 
