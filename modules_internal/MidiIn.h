@@ -55,7 +55,7 @@ class MidiIn final : public MpBase2, public ISpecialIoModule
 
 	unsigned short incoming_rpn[16];
 	// RPNs are 14 bit values, so this value never occurs, represents "no rpn"
-	static const unsigned short NULL_RPN = 0xffff;
+	inline static const unsigned short NULL_RPN = 0xffff;
 	void cntrl_update_msb(unsigned short& var, short hb) const
 	{
 		var = (var & 0x7f) + (hb << 7);	// mask off high bits and replace
