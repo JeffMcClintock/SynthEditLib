@@ -1,6 +1,7 @@
 #include <math.h>
 #include <algorithm>
 #include <climits> // INT_MAX
+#include <iostream>
 #include "./MidiPlayer2.h"
 #include "smf.h"
 #include "../shared/unicode_conversion.h"
@@ -644,8 +645,6 @@ void MidiPlayer2::MidiClockStop( int bufferOffset )
 		pinMIDIOut.send(&msg, 1, bufferOffset);
 	}
 }
-
-#include <iostream>
 
 void MidiPlayer2::Done()
 {
