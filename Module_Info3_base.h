@@ -31,7 +31,6 @@ public:
 	int ug_flags;
 	std::wstring m_description;
 	int m_window_type = MP_WINDOW_TYPE_NONE;
-	std::wstring macSemBundlePath; // record path to mac SEM, editor-only
 
 	inline static const MI3Flags flagNames[6] = {
 	{ "polyphonicSource"	, UGF_POLYPHONIC_GENERATOR,			UGF_POLYPHONIC_GENERATOR | UGF_POLYPHONIC },

@@ -51,6 +51,8 @@ class Module_Info3 : public Module_Info3_base
 public:
 	Module_Info3( const std::wstring& file_and_dir, const std::wstring& overridingCategory = L"" );
 
+	void ScanXml(tinyxml2::XMLElement* xmlData) override;
+
 	bool OnDemandLoad() override
 	{
 		return LoadDllOnDemand();
@@ -60,12 +62,10 @@ public:
 		return m_parameters.empty() && gui_plugs.empty() && plugs.empty(); // reasonable guess.
 	}
 
-void LoadDll_old();
-//void Unload();
 	void ReLoadDll();
 	std::wstring Filename() override
 	{
-		return filename;
+		return holder.getPluginPath().wstring();
 	}
 
 	gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> getFactory2();
@@ -86,8 +86,11 @@ void LoadDll_old();
 	}
 	*/
 
-	std::wstring filename;
-    PluginHolder holder;
+#ifdef _WIN32
+	std::wstring macSemBundlePath; // path to mac SEM on windows-only, where it can be a different file.
+#endif
+	// path to the plugin for the current platform (win or mac).
+	PluginHolder holder;
 
 protected:
 	Module_Info3(); // serialisation only

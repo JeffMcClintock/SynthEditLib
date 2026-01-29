@@ -9,7 +9,6 @@ class Module_Info3_internal : public Module_Info3_base
 {
 public:
 	Module_Info3_internal(const wchar_t* moduleId);
-//	Module_Info3_internal(const char* xml);
 
 	int32_t RegisterPluginConstructor( int subType, MP_CreateFunc2 create );
 	bool fromExternalDll() override { return false;}

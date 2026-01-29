@@ -110,12 +110,6 @@ Module_Info3::Module_Info3() // serialisation only
 
 Module_Info3::Module_Info3( const std::wstring& file_and_dir, const std::wstring& overridingCategory )
 {
-#ifdef _WIN32
-    filename = file_and_dir;
-#else
-    macSemBundlePath = file_and_dir;
-#endif
-    
     holder.setPluginPath(file_and_dir);
         
 	if( !overridingCategory.empty() )
@@ -124,10 +118,19 @@ Module_Info3::Module_Info3( const std::wstring& file_and_dir, const std::wstring
 	}
 }
 
+void Module_Info3::ScanXml(tinyxml2::XMLElement* pluginE)
+{
+#ifdef _WIN32
+	macSemBundlePath = Utf8ToWstring(pluginE->Attribute("macSemBundlePath"));
+#endif
+
+	Module_Info3_base::ScanXml(pluginE);
+}
+
 int Module_Info3::ModuleTechnology()
 {
     // dodgy, only works when plugin binary file available. OK, since we only need this when scanning binary for XML (to determine native string type)
-    const bool isGMPI = GetExtension(filename) == L"gmpi" || GetExtension(macSemBundlePath) == L"gmpi";
+    const bool isGMPI = GetExtension(Filename()) == L"gmpi" || GetExtension(macSemBundlePath) == L"gmpi";
     return isGMPI ? MT_GMPI : MT_SDK3;
 }
 
@@ -203,9 +206,9 @@ bool Module_Info3::LoadDllOnDemand()
 	return true;
 }
 
+#if 0
 void Module_Info3::LoadDll_old()
 {
-#if 0
 	//	_RPT1(_CRT_WARN, "Module_Info3::LoadDll %s\n", filename );
 
 	// if we are loading a project with incompatible modules. Don't attempt to load dll until it's upgraded. Editor-only
@@ -306,11 +309,8 @@ void Module_Info3::LoadDll_old()
 	oss << errorMessage << L": " << load_filename << L".";
 	SafeMessagebox(0, oss.str().c_str(), L"", MB_OK|MB_ICONSTOP );
 	assert(false);
-
-#endif
 }
 
-#if 0
 void Module_Info3::Unload()
 {
 #if defined( _WIN32)

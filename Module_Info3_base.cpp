@@ -96,20 +96,6 @@ void Module_Info3_base::ScanXml(tinyxml2::XMLElement* pluginE)
 		SetPinFlag(fn.name, fn.writeFlags, pluginE, ug_flags);
 	}
 
-    // don't overwrite a valid file path during scanning
-	{
-        // If we're scanning a binary the file path has already been set in the constructor, and the modules own XML won't have this attribute.
-        const auto XmlMacSemBundlePath = Utf8ToWstring(pluginE->Attribute("macSemBundlePath"));
-        if(macSemBundlePath.empty())
-        {
-            macSemBundlePath = XmlMacSemBundlePath;
-            
-            #ifdef __APPLE__
-                holder.setPluginPath(macSemBundlePath);
-            #endif
-        }
-	}
-
 	auto guiX = pluginE->FirstChildElement("GUI");
 	if (guiX)
 	{
