@@ -1214,7 +1214,8 @@ void SeAudioMaster::end_run()
 		else
 		{
 			// cause audio driver to stop ASAP (important for unit tests to record correct length of wavefile).
-			state = audioMasterState::Stopping;
+			processingState = audioMasterState::Stopping;
+			_RPT0(0, "audioMasterState::Stopping\n");
 			getShell()->OnFadeOutComplete();
 		}
 	}
@@ -1313,11 +1314,11 @@ void SeAudioMaster::HandleEvent(SynthEditEvent* e)
 void SeAudioMaster::TriggerRestart()
 {
 	// may come from UI thread.
-	if (state != audioMasterState::Running)
+	if (processingState != audioMasterState::Running)
 		return;
 
-	state = audioMasterState::AsyncRestart;
-//	_RPT0(0, "audioMasterState::AsyncRestart\n");
+	processingState = audioMasterState::AsyncRestart;
+	_RPT0(0, "audioMasterState::AsyncRestart\n");
 
 	interrupt_start_fade_out = true;
 	TriggerInterrupt();
@@ -1331,12 +1332,12 @@ void SeAudioMaster::ClearDelaysUnsafe()
 
 void SeAudioMaster::TriggerShutdown()
 {
-	if (state == audioMasterState::Stopped)
+	if (processingState == audioMasterState::Stopped)
 		return;
 
 	// may come from UI thread.
-	state = audioMasterState::Stopping;
-//	_RPT0(0, "audioMasterState::Stopping\n");
+	processingState = audioMasterState::Stopping;
+	_RPT0(0, "audioMasterState::Stopping\n");
 
 	interrupt_start_fade_out = true;
 	TriggerInterrupt();
@@ -2311,8 +2312,8 @@ int SeAudioMaster::Open( )
 {
 	DenormalFixer flushDenormals;
 
-	state = audioMasterState::Starting;
-//	_RPT0(0, "audioMasterState::Starting\n");
+	processingState = audioMasterState::Starting;
+	_RPT0(0, "audioMasterState::Starting\n");
 
 	assert( m_sample_clock == 0 );
 
@@ -2347,10 +2348,10 @@ int SeAudioMaster::Open( )
 
 	activeModules.SortAll(nonExecutingModules);
 
-	assert(state == audioMasterState::Starting);
+	assert(processingState == audioMasterState::Starting);
 
-	state = audioMasterState::Running;
-//	_RPT0(0, "audioMasterState::Running\n");
+	processingState = audioMasterState::Running;
+	_RPT0(0, "audioMasterState::Running\n");
 
 	return 0;
 }

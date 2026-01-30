@@ -574,7 +574,7 @@ public:
 	bool synth_thread_running;
 	bool synth_thread_started;
 	static int profileBlockSize;
-	std::atomic<audioMasterState> state = audioMasterState::Stopped;
+	std::atomic<audioMasterState> processingState = audioMasterState::Stopped;
 
 protected:
 	void UpdateUI();

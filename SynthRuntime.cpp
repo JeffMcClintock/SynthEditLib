@@ -255,7 +255,7 @@ void SynthRuntime::process(
 		if (dspBuilderThread.joinable())
 			dspBuilderThread.join();
 
-		generator->state = audioMasterState::Stopped;
+		generator->processingState = audioMasterState::Stopped;
 		_RPT0(0, "audioMasterState::Stopped\n");
 	}
 	break;
@@ -322,7 +322,7 @@ void SynthRuntime::process(
 		// race condition message_que_dsp_to_ui.Reset();
 		pendingControllerQueueClients.Reset();
 
-		const auto generatorStateWas = generator->state.load();
+		const auto generatorStateWas = generator->processingState.load();
 
 		// start chain reaction of sound object destruction
 		generator->Close();
@@ -396,7 +396,7 @@ void SynthRuntime::process(
 		{
 			assert(generatorStateWas == audioMasterState::Stopping);
 
-			generator->state = audioMasterState::Stopped;
+			generator->processingState = audioMasterState::Stopped;
 			_RPT0(0, "audioMasterState::Stopped\n");
 			_RPT0(0, "eRuntimeState::stopped\n");
 			runtimeState.store(eRuntimeState::stopped, std::memory_order_release);
