@@ -14,16 +14,6 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 #include "Processor.h"
 
-/*
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#define WIN32_LEAN_AND_MEAN
-#include "Windows.h"
-#endif
-*/
-
 using namespace gmpi;
 
 struct EnvironmentVariable final : public Processor
@@ -40,24 +30,8 @@ struct EnvironmentVariable final : public Processor
             return;
         }
 
-#if 0 //def _WIN32
-        auto needed = GetEnvironmentVariableA(name.c_str(), nullptr, 0);
-        if (needed == 0)
-        {
-            // Not found.
-            pinEnvironmentVariableValue = "";
-            return;
-        }
-
-        std::string res;
-        res.resize(static_cast<size_t>(needed - 1));
-
-        GetEnvironmentVariableA(name.c_str(), res.data(), needed);
-        pinEnvironmentVariableValue = res;
-#else
         const char* v = std::getenv(name.c_str());
         pinEnvironmentVariableValue = v ? v : "";
-#endif
 	}
 };
 
