@@ -1,9 +1,9 @@
 // Modifier keys xplatform code.
 #ifdef _WIN32
+#undef  WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#ifndef NOMINMAX
+#undef  NOMINMAX
 #define NOMINMAX
-#endif
 #include "windows.h"
 #else
 // TODO MAC>

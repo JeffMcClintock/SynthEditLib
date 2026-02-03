@@ -1,5 +1,8 @@
 #ifdef _WIN32
+#undef  WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#undef  NOMINMAX
+#define NOMINMAX
 #include <Windows.h>
 #include <direct.h>
 #endif

@@ -11,10 +11,10 @@
 #include "Core/GmpiApiAudio.h"
 
 #if defined( _WIN32 )
+#undef  WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#ifndef NOMINMAX
+#undef  NOMINMAX
 #define NOMINMAX
-#endif
 #include <Windows.h>
 #include "Shlobj.h"
 #endif

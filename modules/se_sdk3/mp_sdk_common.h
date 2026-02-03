@@ -114,10 +114,10 @@ namespace gmpi
 
 // Platform specific definitions.
 #if defined(_WIN32)
+#undef  WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#ifndef NOMINMAX
+#undef  NOMINMAX
 #define NOMINMAX
-#endif
 #include "windows.h"
 #define MP_PLATFORM_WIN32	1
 #define MP_STDCALL		__stdcall

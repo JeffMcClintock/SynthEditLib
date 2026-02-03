@@ -18,11 +18,10 @@
 
 //include headers required for directory traversal
 #if defined(_WIN32)
-    //disable useless stuff before adding windows.h
+#undef  WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#ifndef NOMINMAX
+#undef  NOMINMAX
 #define NOMINMAX
-#endif
 #include <windows.h>
 #else
     #include "dirent.h"
