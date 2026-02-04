@@ -21,7 +21,6 @@
 #include "./IDspPatchManager.h"
 #include "ug_event.h"
 #include "ElatencyContraintType.h"
-#include "cancellation.h"
 #include "my_VstTimeInfo.h"
 #include "iseshelldsp.h"
 #include "CpuConsumption.h"
@@ -253,13 +252,6 @@ public:
 
 	void CancellationFreeze3();
 	void WriteCancellationData(int32_t blockSize, FILE* file);
-
-void CancellationFreeze(timestamp_t sample_clock);
-#ifdef CANCELLATION_TEST_ENABLE2
-void CancellationFreeze2(timestamp_t sample_clock);
-bool cancellation_done = false;
-timestamp_t cancellation_freeze_ts = -1;
-#endif
 
 	void processModules_plugin(
 		int lBlockPosition

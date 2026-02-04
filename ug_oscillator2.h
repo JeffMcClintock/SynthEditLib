@@ -3,7 +3,6 @@
 #include "sample.h"
 #include "ug_base.h"
 #include "ULookup.h"
-#include "cancellation.h"
 
 typedef std::vector<SharedOscWaveTable> wavetable_array;
 

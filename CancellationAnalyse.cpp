@@ -1,6 +1,9 @@
 
 #include <vector>
 #include <sstream>
+#include <filesystem>
+#include <algorithm>
+#include <ShlObj.h>
 #include "SynthEditDocBase.h"
 #include "SynthEditAppBase.h"
 #include "CUG.h"
@@ -247,16 +250,65 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 {
 #if defined( _DEBUG )
 
-	const char* filenameA = "C:\\temp\\cancellation\\SE16\\snapshotA.raw";
-	const char* filenameB = "C:\\temp\\cancellation\\SE16\\snapshotB.raw";
+    auto getDocumentsPath = []() -> std::filesystem::path
+    {
+        PWSTR path = nullptr;
+        const auto hr = SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &path);
+        if (FAILED(hr) || !path)
+        {
+            return {};
+        }
+
+        std::filesystem::path result(path);
+        CoTaskMemFree(path);
+        return result;
+    };
+
+    const auto documents = getDocumentsPath();
+    if (documents.empty())
+        return;
+
+    const auto baseFolder = documents / L"cancellation" / L"SpacePro";
+
+    std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> rawFiles;
+
+    try
+    {
+        for (const auto& entry : std::filesystem::directory_iterator(baseFolder))
+        {
+            if (!entry.is_regular_file())
+                continue;
+
+            const auto ext = entry.path().extension();
+            if (ext == L".raw" || ext == L".RAW")
+            {
+                rawFiles.emplace_back(entry.path(), entry.last_write_time());
+            }
+        }
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    if (rawFiles.size() < 2)
+        return;
+
+    std::sort(rawFiles.begin(), rawFiles.end(), [](const auto& a, const auto& b)
+        {
+            return a.second > b.second; // newest first
+        });
+
+    const auto filenameA = rawFiles[0].first.string();
+    const auto filenameB = rawFiles[1].first.string();
 
 	std::vector<mod_an> resultsA;
-	const auto blockSize = serializeCancelationSnapshot(filenameA, resultsA);
+    const auto blockSize = serializeCancelationSnapshot(filenameA.c_str(), resultsA);
 	if (blockSize <= 0)
 		return;
 
 	std::vector<mod_an> resultsB;
-	const auto blockSizeB = serializeCancelationSnapshot(filenameB, resultsB);
+    const auto blockSizeB = serializeCancelationSnapshot(filenameB.c_str(), resultsB);
 
 	if (blockSize != blockSizeB)
 	{
@@ -614,7 +666,7 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 #endif
         
 		// Print pin samples
-		if (rank < 10 || 1481061631 == c.moduleId.handle) /// !!! you can put a particular module handle here for a deeper printout !!!
+		if (rank < 10 /* || 1481061631 == c.moduleId.handle */) /// !!! you can put a particular module handle here for a deeper printout !!!
 		{
 			// inputs
 //			_RPT0(0, "INPUTS\n");

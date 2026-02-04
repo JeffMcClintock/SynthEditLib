@@ -2,7 +2,6 @@
 #include "ug_feedback_delays.h"
 #include "ug_container.h"
 #include "module_register.h"
-#include "./cancellation.h"
 #include "SeAudioMaster.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_feedback_delays)
@@ -344,24 +343,6 @@ ug_feedback_delay_out::ug_feedback_delay_out() : feedback_in(0)
 
 int ug_feedback_delay_out::Open()
 {
-#if 0
-	// Setup pointers to mates.
-	if (pp_voice_num == 0)
-	{
-		auto to = this; // only voice1 has pointer to helper (initially).
-		auto from = to->feedback_in;
-
-		while (to)
-		{
-			to->feedback_in = from;
-			from->feedback_out = to;
-
-			from = (ug_feedback_delay*) from->m_next_clone;
-			to = (ug_feedback_delay_out*) to->m_next_clone;
-		}
-	}
-#endif
-
 	ug_base::Open();
 
 	OutputChange(0, GetPlug(PN_OUT1), ST_STATIC);

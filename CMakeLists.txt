@@ -251,7 +251,6 @@ ${sdk_vst3_srcs}
 UgDebugInfo.cpp
 
 Base64.h
-cancellation.h
 CMakeLists.txt
 conversion.cpp
 conversion.h

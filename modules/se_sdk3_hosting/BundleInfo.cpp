@@ -174,23 +174,13 @@ std::filesystem::path BundleInfo::getPluginPath()
 {
     std::filesystem::path path(gmpi_dynamic_linking::MP_GetDllFilename()); // get full path of executable (might be in a bundle)
 
-    int lastFolderIndex = 0;
+    std::filesystem::path pluginRootPath;
 	for (auto it = path.begin(); it != path.end(); ++it)
     {
         if (it->filename() == "Contents")
             break;
 
-        lastFolderIndex++;
-    }
-
-    std::filesystem::path pluginRootPath;
-    int folderIndex = 0;
-    for (auto it = path.begin(); it != path.end(); ++it)
-    {
-        if (folderIndex >= lastFolderIndex)
-            break;
-
-		pluginRootPath /= *it;
+        pluginRootPath /= *it;
     }
 
 	return pluginRootPath;

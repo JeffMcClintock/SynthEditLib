@@ -36,11 +36,6 @@
 #include "Processor.h"
 #include "ug_gmpi.h"
 
-#if defined(CANCELLATION_TEST_ENABLE) || defined(CANCELLATION_TEST_ENABLE2)
-#include "conversion.h"
-#include "ug_oscillator2.h"
-#endif
-
 using namespace std;
 using namespace gmpi::hosting;
 
@@ -87,7 +82,7 @@ struct SnapshotTimer final : public gmpi::Processor
 
 	void subProcess(int sampleFrames)
 	{
-		if (time <= target_time && time + sampleFrames < target_time)
+		if (time >= target_time && time < target_time + sampleFrames)
 		{
 			auto audioMaster = dynamic_cast<ug_base*>(host.get())->AudioMaster2();
 			audioMaster->interrupt_cancellation_snapshot = true;
@@ -221,20 +216,21 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 
 	setSampleRate( p_samplerate );
 
-#if (defined(CANCELLATION_TEST_ENABLE) || defined(CANCELLATION_TEST_ENABLE2))
-	getShell()->SetCancellationMode();
-#endif
 	/* 
 	    CANCELLATION SNAPSHOT TESTING (NEW)
 
-	    Place a file beside the plugin named e.g. MyPlugin.xml
+	    Place a file beside the plugin named e.g. "C:\Program Files\Common Files\VST3\SpacePro.xml"
 		containing e.g.
 
 		<?xml version="1.0" encoding="UTF-8"?>
 		<Cancellation SnapshotTimestamp="200" />
+
+		Cancellation snapshot data will be written to e.g.
+		"C:\Users\jef\OneDrive\Documents\cancellation\SpacePro\snapshot.raw"
 	*/
 	{
 		const auto cancellationSettingFile = BundleInfo::instance()->getPluginPath().replace_extension("xml");
+
 		if (std::filesystem::exists(cancellationSettingFile))
 		{
 			tinyxml2::XMLDocument doc;
@@ -591,11 +587,6 @@ void SeAudioMaster::DoProcess_plugin(int sampleframes, const float* const* input
 
 		if (remain_in_block == 0)
 		{
-#ifdef CANCELLATION_TEST_ENABLE2
-			// only freeze once entire block filled.
-			CancellationFreeze2(m_sample_clock);
-#endif
-
 			block_start_clock = next_bsc;
 			next_bsc += block_size;
 			remain_in_block = block_size;
@@ -619,9 +610,6 @@ void SeAudioMaster::DoProcess_plugin(int sampleframes, const float* const* input
 
 			current_run_ug = 0;
 
-#ifdef CANCELLATION_TEST_ENABLE
-			CancellationFreeze(m_sample_clock);
-#endif
 			m_sample_clock += to_do;
 			sampleframes -= to_do;
 			assert(m_sample_clock >= block_start_clock);
@@ -652,7 +640,7 @@ void SeAudioMaster::DoProcess_editor(int sampleframes, const float* const* input
 	const auto cpuStartTime = std::chrono::steady_clock::now();
 
 	// not possible to do random block sizes since DoProcessVST rolled into this function
-#if 0 // defined(_DEBUG) && !(defined(CANCELLATION_TEST_ENABLE) || defined(CANCELLATION_TEST_ENABLE2))
+#if 0 // defined(_DEBUG) && !(defined(CANCELLATION _TEST_ENABLE) || defined(CANCELLATION _TEST_ENABLE2))
 	static bool debugReentrantFlag = false; // not in VST.
 
 	if (!debugReentrantFlag && SeAudioMaster::GetDebugFlag(DBF_RANDOMISE_BLOCK_SIZE))
@@ -702,11 +690,6 @@ void SeAudioMaster::DoProcess_editor(int sampleframes, const float* const* input
 
 		if (remain_in_block == 0)
 		{
-#ifdef CANCELLATION_TEST_ENABLE2
-			// only freeze once entire block filled.
-			CancellationFreeze2(m_sample_clock);
-#endif
-
 			block_start_clock = next_bsc;
 			next_bsc += block_size;
 			remain_in_block = block_size;
@@ -757,9 +740,6 @@ void SeAudioMaster::DoProcess_editor(int sampleframes, const float* const* input
 
 			current_run_ug = 0;
 
-#ifdef CANCELLATION_TEST_ENABLE
-			CancellationFreeze(m_sample_clock);
-#endif
 			m_sample_clock += to_do;
 			sampleframes -= to_do;
 			assert(m_sample_clock >= block_start_clock);
@@ -1521,72 +1501,6 @@ void SeAudioMaster::ServiceGuiQue()
 	getShell()->ServiceDspRingBuffers();
 }
 
-void AudioMasterBase::CancellationFreeze([[maybe_unused]] timestamp_t sample_clock)
-{
-#ifdef CANCELLATION_TEST_ENABLE
-	static bool done = false;
-	if (sample_clock >= CANCELLATION_SNAPSHOT_TIMESTAMP && !done)
-	{
-		done = true;
-		auto blockSize = BlockSize();
-		string outputFolder;
-#ifdef _WIN32
-		outputFolder = "C:";
-#endif
-		outputFolder += "/temp/cancellation/" CANCELLATION_BRANCH;
-
-		CreateFolderRecursive(Utf8ToWstring(outputFolder));
-
-		for (auto it = activeModules.begin(); it != activeModules.end(); ++it)
-		{
-			auto ug = dynamic_cast<ug_base*>(*it);
-			int idx = 0;
-			bool printedModuleXml = false;
-			for (auto plg : ug->plugs)
-			{
-				if (plg->DataType == DT_FSAMPLE)
-				{
-					if (plg->Direction == DR_OUT)
-					{
-						auto block_ptr = plg->GetSampleBlock();
-						auto o = block_ptr->GetBlock(); // +lBlockPosition;
-/*
-						if (!printedModuleXml)
-						{
-							printedModuleXml = true;
-							_RPTW2(_CRT_WARN, L"<Module name=\"%s\" handle=\"%d\">\n", ug->DebugModuleName().c_str(), ug->Handle());
-						}
-						_RPTW2(_CRT_WARN, L"  <Pin idx=\"%d\" value=\"%f\" />\n", idx, (float)*o);
-
-*/
-// set filename based on target handle and plug.
-						{
-							std::ostringstream oss;
-							oss << outputFolder <<
-								"/m_" << ug->Handle()
-								<< "_" << ug->GetSortOrder()
-								<< "_" << plg->getPlugIndex()
-								<< ".raw";
-
-							auto file = fopen(oss.str().c_str(), "wb");
-
-							fwrite(o, sizeof(float), blockSize, file);
-
-							fclose(file);
-						}
-					}
-				}
-				++idx;
-			}
-			if (printedModuleXml)
-			{
-				_RPTW0(_CRT_WARN, L"</Module>\n");
-			}
-		}
-	}
-#endif
-}
-
 void AudioMasterBase::CancellationFreeze3()
 {
 	const int32_t blockSize = BlockSize();
@@ -1596,7 +1510,20 @@ void AudioMasterBase::CancellationFreeze3()
 	outputFolder /= "cancellation" / BundleInfo::instance()->getPluginPath().filename().replace_extension("");
 	std::filesystem::create_directories(outputFolder);
 
-	std::filesystem::path filename = outputFolder / "snapshot.raw";
+	// add time and date to filename to make unique per session.
+	const auto now = std::chrono::system_clock::now();
+	const auto tt = std::chrono::system_clock::to_time_t(now);
+	std::tm localTime{};
+#if defined(_WIN32)
+	localtime_s(&localTime, &tt);
+#else
+	localtime_r(&tt, &localTime);
+#endif
+	std::wostringstream stampedName;
+	stampedName << L"snapshot_"
+		<< std::put_time(&localTime, L"%Y%m%d_%H%M%S.raw");
+
+	std::filesystem::path filename = outputFolder / stampedName.str();
 
 	FILE* file = fopen(filename.string().c_str(), "wb");
 
@@ -1611,45 +1538,6 @@ void AudioMasterBase::CancellationFreeze3()
 	fclose(file);
 }
 
-#ifdef CANCELLATION_TEST_ENABLE2
-void AudioMasterBase::CancellationFreeze2(timestamp_t sample_clock)
-{
-	if (sample_clock >= CANCELLATION_SNAPSHOT_TIMESTAMP && !cancellation_done)
-	{
-		cancellation_done = true;
-
-		const int32_t blockSize = BlockSize();
-		string outputFolder;
-#ifdef _WIN32
-		outputFolder = "C:";
-#else
-        const auto documents = BundleInfo::instance()->getUserDocumentFolder();
-		outputFolder = WStringToUtf8(documents);
-#endif
-		outputFolder += "/temp/cancellation/" CANCELLATION_BRANCH;
-
-		CreateFolderRecursive(Utf8ToWstring(outputFolder));
-
-		FILE* file = {};
-		{
-			std::ostringstream oss;
-			oss << outputFolder << "/snapshot.raw";
-			file = fopen(oss.str().c_str(), "wb");
-		}
-  
-        if(!file)
-            return;
-
-		// Write blocksize
-		fwrite(&blockSize, sizeof(blockSize), 1, file);
-
-		WriteCancellationData(blockSize, file);
-
-		fclose(file);
-	}
-}
-#endif
-
 void AudioMasterBase::WriteCancellationData(int32_t blockSize, FILE* file)
 {
 	for (auto it = activeModules.inclusiveBegin(); it != activeModules.inclusiveEnd(); ++it)
@@ -1660,9 +1548,7 @@ void AudioMasterBase::WriteCancellationData(int32_t blockSize, FILE* file)
 		if (auto cont = dynamic_cast<ug_container*>(ug); cont)
 		{
 			if (dynamic_cast<ug_oversampler*>(ug->AudioMaster()))
-			{
 				continue;
-			}
 		}
 
 		const int32_t pinCount = static_cast<int32_t>(std::count_if(

@@ -1,17 +1,11 @@
 
+#undef  NOMINMAX
+#define NOMINMAX
 #include "ug_vst_in.h"
 #include "resource.h"
 #include "module_register.h"
 
-#ifdef CANCELLATION_TEST_ENABLE2
-#define _USE_MATH_DEFINES
-#include <math.h>
-#endif
-
 SE_DECLARE_INIT_STATIC_FILE(ug_vst_in)
-
-// macros suck.
-#undef min
 
 namespace
 {
@@ -77,7 +71,7 @@ void ug_vst_in::sub_process(int start_pos, int sampleframes)
 {
 	int out_num = 0;
 
-#ifdef CANCELLATION_TEST_ENABLE2
+#if 0 // def CANCELLATION _TEST_ENABLE2
 	const auto m_increment = M_PI * 2.0 * 1000. / getSampleRate();
 
 	float phase;

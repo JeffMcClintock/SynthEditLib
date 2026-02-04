@@ -2,16 +2,11 @@
 
 #include "ug_base.h"
 #include "UMidiBuffer2.h"
-#include "cancellation.h"
 #include "mp_midi.h"
 #include "iseshelldsp.h"
 
 class ug_vst_in : public ug_base, public ISpecialIoModuleAudioIn
 {
-#ifdef CANCELLATION_TEST_ENABLE2
-    float m_phase = 0.f;
-#endif
-
 public:
 	ug_vst_in();
 	~ug_vst_in();
