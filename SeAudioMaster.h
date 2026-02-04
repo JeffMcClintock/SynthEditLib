@@ -252,7 +252,10 @@ public:
 
 	void CancellationFreeze3();
 	void WriteCancellationData(int32_t blockSize, FILE* file);
-
+	bool isInCancellationMode() override
+	{
+		return cancellation_snapshot_timestamp > -1;
+	}
 	void processModules_plugin(
 		int lBlockPosition
 		, int sampleframes
@@ -322,6 +325,7 @@ public:
 	std::vector<class ug_base*> m_cpu_parents;
 	int cpu_block_rate = 1;
 	std::unique_ptr<HoverScopeAudioCollector> hoverScopeModule;
+	timestamp_t cancellation_snapshot_timestamp = -1;
 };
 
 class SeAudioMaster : public EventProcessor, public gmpi::hosting::interThreadQueUser, public AudioMasterBase
@@ -614,7 +618,6 @@ private:
 
 	int32_t hCClearTailsNextValue = 1;
 	UPlug* hoverScopePin{};
-	timestamp_t cancellation_snapshot_timestamp = -1;
 	int watchdogCounter{};
 };
 

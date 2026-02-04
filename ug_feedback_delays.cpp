@@ -3,6 +3,7 @@
 #include "ug_container.h"
 #include "module_register.h"
 #include "SeAudioMaster.h"
+#include <algorithm>
 
 SE_DECLARE_INIT_STATIC_FILE(ug_feedback_delays)
 
@@ -169,6 +170,13 @@ void ug_feedback_delay::sub_process(int start_pos, int sampleframes)
 #endif // CANCELLATION_TEST_ENABLE
 }
 
+void ug_feedback_delay::sub_process_silence(int start_pos, int sampleframes)
+{
+	float* out = feedback_out->output1_ptr + start_pos;
+
+	std::fill_n(out, sampleframes, 0.0f);
+}
+
 void ug_feedback_delay::onSetPin(timestamp_t p_clock, UPlug* /* p_to_plug */, state_type p_state)
 {
 	// Feedback modules tends to circulate unnesc ST_STATIC indefinatly, wasting
@@ -204,14 +212,21 @@ void ug_feedback_delay::onSetPin(timestamp_t p_clock, UPlug* /* p_to_plug */, st
 
 	m_last_output_stat = p_state;
 
-	if( p_state == ST_RUN )
+	if (isInCancellationMode)
 	{
-		SET_PROCESS_FUNC(&ug_feedback_delay::sub_process);
+		SET_PROCESS_FUNC(&ug_feedback_delay::sub_process_silence);
 	}
 	else
 	{
-		ResetStaticOutput();
-		SET_PROCESS_FUNC(&ug_feedback_delay::sub_process_static);
+		if (p_state == ST_RUN)
+		{
+			SET_PROCESS_FUNC(&ug_feedback_delay::sub_process);
+		}
+		else
+		{
+			ResetStaticOutput();
+			SET_PROCESS_FUNC(&ug_feedback_delay::sub_process_static);
+		}
 	}
 }
 
@@ -242,6 +257,8 @@ int ug_feedback_delay::Open()
 
 	feedbackLatencyMs = 1000.f * feedbackLatency / getSampleRate();
 	RUN_AT(SampleClock(), &ug_feedback_delay::OnFirstSample);
+
+	isInCancellationMode = AudioMaster()->isInCancellationMode();
 
 	return 0;
 }

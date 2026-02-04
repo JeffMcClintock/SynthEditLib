@@ -501,7 +501,7 @@ void ug_container::ConnectPatchCables()
 				// For Patch Cables, remove existing connection to default-setter.
 				if (toPlug->connections.size() == 1)
 				{
-					// Not sure if latency adjustment might be connected. If so need to setect it.
+					// Not sure if latency adjustment might be connected. If so need to disconnect it.
 					assert(toPlug->connections.front()->UG->getModuleType()->UniqueId() != L"SE LatencyAdjust");
 
 					if (toPlug->connections.front()->UG->GetFlag(UGF_DEFAULT_SETTER))

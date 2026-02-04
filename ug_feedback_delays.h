@@ -9,6 +9,7 @@ void BypassFeedbackModule(ug_base* u, int voice);
 class ug_feedback_delay : public ug_midi_device
 {
 	timestamp_t end_time;
+	bool isInCancellationMode{};
 
   public:
     ug_feedback_delay();
@@ -31,7 +32,9 @@ class ug_feedback_delay : public ug_midi_device
     int Open() override;
 	void OnFirstSample();
     void sub_process(int start_pos, int sampleframes);
-    void sub_process_static(int start_pos, int sampleframes);
+	void sub_process_static(int start_pos, int sampleframes);
+	void sub_process_silence(int start_pos, int sampleframes);
+	
     struct FeedbackTrace* PPSetDownstream() override;
     virtual void PPPropogateVoiceNum(int n) override;
     ug_base *Clone(CUGLookupList &UGLookupList) override;
@@ -158,12 +161,15 @@ public:
 		{
 			if constexpr (DIRECTION == DR_IN) // Feedback-in module
 			{
-				auto delayed_event = new_SynthEditEventB(
-					e->timeStamp, e->eventType, e->parm1, e->parm2, e->parm3, e->parm4, e->extraData);
+				if (!isInCancellationMode)
+				{
+					auto delayed_event = new_SynthEditEventB(
+						e->timeStamp, e->eventType, e->parm1, e->parm2, e->parm3, e->parm4, e->extraData);
 
-				e->extraData = 0; // transfer extra data without re-allocating.
-				delayed_event->timeStamp += feedbackLatency;
-				mate->AddEvent(delayed_event);
+					e->extraData = 0; // transfer extra data without re-allocating.
+					delayed_event->timeStamp += feedbackLatency;
+					mate->AddEvent(delayed_event);
+				}
 			}
 			else // Feedback-out (helper) module
 			{
@@ -193,6 +199,8 @@ public:
 			feedbackLatency = mate->SortOrder < SortOrder ? AudioMaster()->BlockSize() : 0;
 		}
 
+		isInCancellationMode = AudioMaster()->isInCancellationMode();
+
 		return 0;
 	}
 
@@ -215,6 +223,7 @@ public:
 
 	class ug_base* mate;
 	int feedbackLatency = 0;
+	bool isInCancellationMode{};
 };
 
 class ug_cancellation_helper : public ug_base

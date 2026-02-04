@@ -21,6 +21,7 @@ public:
 	virtual timestamp_t BlockStartClock() = 0;
 	virtual int latencyCompensationMax() = 0;
 	virtual bool SilenceOptimisation() = 0;
+	virtual bool isInCancellationMode() = 0;
 	virtual void InsertBlockDev(class EventProcessor* p_dev) = 0;
 	virtual void SuspendModule(class ug_base* p_module) = 0;
 	virtual void Wake(EventProcessor* ug) = 0;
