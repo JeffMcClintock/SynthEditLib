@@ -240,8 +240,6 @@ int MidiPlayer2::loadMidiFile()
 {
 	memset( trackInfo_, 0, sizeof(trackInfo_) );
 
-//	unsigned short format;
-//	format = 0;
 	tracks = 0;
 	ppqn = 0;
 	counter = 0;
@@ -269,7 +267,10 @@ int MidiPlayer2::loadMidiFile()
     {
         delete [] buffer;
         buffer = 0;
-        message( L"MIDI File not found!");
+        
+        auto msg = JmUnicodeConversions::Utf8ToWstring("MidiPlayer2::loadMidiFile() MIDI File not found : " + fullFilename);
+        
+        message(msg.c_str());
         return 1;
     }
 	
@@ -667,7 +668,6 @@ void MidiPlayer2::message( const wchar_t* txt )
 	::MessageBox(0, txt, L"MidiPlayer2", MB_OK );
 #else
     std::cout << "MidiPlayer2: " << JmUnicodeConversions::WStringToUtf8(txt) << std::endl;
-    assert(false); // TODO.
 #endif
 }
 

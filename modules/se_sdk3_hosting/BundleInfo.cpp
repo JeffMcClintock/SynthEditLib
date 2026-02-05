@@ -208,10 +208,9 @@ std::wstring BundleInfo::getSemFolder()
 
     if(semFolder.empty())
         return getImbeddedFileFolder();
-
-    return semFolder; // ref SynthEditApp::InitInstance()
 #else
-    
+
+#if 0 // ???
     if(CFBundleRef br = CreatePluginBundleRef();br)
 	{
         std::string result;
@@ -229,10 +228,9 @@ std::wstring BundleInfo::getSemFolder()
         
         return Utf8ToWstring(result.c_str());
     }
-    
-    return semFolder; // ref SynthEditApp::InitInstance()
-
 #endif
+#endif
+    return semFolder; // ref SynthEditApp::InitInstance()
 }
 
 std::wstring BundleInfo::getResourceFolder()
