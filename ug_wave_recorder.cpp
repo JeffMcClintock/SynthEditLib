@@ -225,11 +225,10 @@ int ug_wave_recorder::open_file()
 	}
 
 	// Write empty wave file header
-	wave_file_header wav_head;
+	wave_file_header wav_head{};
 
 	try
 	{
-		//f1.Write( &wav_head, 44 );
 		fwrite(&wav_head, 1, 44, fileHandle);
 	}
 	catch (...)
@@ -285,7 +284,6 @@ int ug_wave_recorder::open_file()
 	}
 
 	RUN_AT(SampleClock() + total_samples - 1, &ug_wave_recorder::TimeUp);
-	//	sample_count = total_samples;
 	sample_count = 0;
 
 	return 0;
@@ -297,11 +295,10 @@ void ug_wave_recorder::CloseFile()
 		return;
 
 	flush_buffer();	// Write any remaining data to file
-	//f1.SeekToBegin();	// Rewind buffer to file header
 	fseek(fileHandle, 0, SEEK_SET);
 
 	// Write file header
-	wave_file_header wav_head;
+	wave_file_header wav_head{};
 	memcpy(wav_head.chnk1_name, "RIFF", 4);
 	memcpy(wav_head.chnk2_name, "WAVE", 4);
 	memcpy(wav_head.chnk3_name, "fmt ", 4);
@@ -309,11 +306,11 @@ void ug_wave_recorder::CloseFile()
 
 	if (current_format == 0)
 	{
-		wav_head.wFormatTag = WAVE_FORMAT_PCM;
+		wav_head.wFormatTag = kWaveFormatPcm;
 	}
 	else
 	{
-		wav_head.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
+		wav_head.wFormatTag = kWaveFormatIeeeFloat;
 	}
 
 	wav_head.wBitsPerSample = static_cast<uint16_t>(bits_per_sample);
@@ -327,7 +324,6 @@ void ug_wave_recorder::CloseFile()
 
 	try
 	{
-		//f1.Write(&wav_head, 44);
 		fwrite(&wav_head, 1, 44, fileHandle);
 	}
 	catch (...)
@@ -338,7 +334,6 @@ void ug_wave_recorder::CloseFile()
 
 	//	std::wstring filename = f1.GetFilePath();
 	//	_RPT2(_CRT_WARN, "ug_wave_recorder::Closing %x thread %x\n", f1.m_hFile, AfxGetThread() );
-//	f1.Close();	// Close the file
 	fclose(fileHandle);
 
 #if 0 // avoid linking winmm

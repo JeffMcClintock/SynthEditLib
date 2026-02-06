@@ -48,7 +48,8 @@ struct SamplerChunk
 };
 #pragma pack(pop)
 
-#define  WAVE_FORMAT_IEEE_FLOAT 0x0003  /*  Microsoft Corporation  */
+inline constexpr uint16_t kWaveFormatPcm = 1;
+inline constexpr uint16_t kWaveFormatIeeeFloat = 0x0003;
 
 class WavFile
 {
