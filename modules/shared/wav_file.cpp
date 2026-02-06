@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <codecvt>
 #include <locale>
+#include <stdexcept>
 #include "./unicode_conversion.h"
 
 #ifndef WAVE_FORMAT_PCM
@@ -57,12 +58,9 @@ std::string toOperatingSystemFilename(const std::string& filename)
 //!
 //!	\param filename is the name or path of an AIFF samples file
 //
-WavFile::WavFile( const std::string & filename, int maxChannels, int extraInterpolationSamples) :
-	rate_( 1 ),		// rate will be overwritten on import
-    numchans_( 1 ),
-	numFrames_(0)
+WavFile::WavFile( const std::string & filename, int maxChannels, int extraInterpolationSamples)
 {
-	readWavData( filename, maxChannels, extraInterpolationSamples);
+    readWavData( filename, maxChannels, extraInterpolationSamples);
 }
 
 
@@ -87,7 +85,7 @@ void WavFile::write( const std::string & filename, unsigned int bps )
 	static const unsigned int ValidSizes[] = { 8, 16, 24, 32 };
 	if ( std::find(std::begin(ValidSizes), std::end(ValidSizes), bps ) == std::end(ValidSizes))
 	{
-		throw( "Invalid bits-per-sample." );
+		throw std::runtime_error("Invalid bits-per-sample.");
 	}
 
 	{
@@ -129,7 +127,7 @@ void WavFile::write( const std::string & filename, unsigned int bps )
 		myfile.open(toOperatingSystemFilename(filename), ios_base::out | ios_base::binary | ios_base::trunc);
 		if (!myfile)
 		{
-			throw("Can't save wave file.");
+			throw std::runtime_error("Can't save wave file.");
 		}
 
 		myfile.write((char*)&wav_head, 44);
@@ -249,13 +247,12 @@ void WavFile::readWavData( const std::string & filename, int maxChannels, int ex
 	myfile.open(toOperatingSystemFilename(filename), ios_base::in | ios_base::binary);
 	if (!myfile)
 	{
-// not a bug.		throw("File not found, or corrupted.");
 		return;
 	}
 
 	MYWAVEFORMATEX waveheader;
-	char* wave_data = 0;
-	unsigned int wave_data_bytes{};
+	std::vector<char> waveData;
+	std::size_t waveDataBytes{};
 
 	memset(&waveheader, 0, sizeof(waveheader));
 
@@ -265,7 +262,7 @@ void WavFile::readWavData( const std::string & filename, int maxChannels, int ex
 
 	if (chunkName[0] != 'R' || chunkName[1] != 'I' || chunkName[2] != 'F' || chunkName[3] != 'F') // RIFF.
 	{
-		throw("Input stream doesn't comply with the RIFF specification");
+		throw std::runtime_error("Input stream doesn't comply with the RIFF specification");
 		return;
 	}
 
@@ -275,7 +272,7 @@ void WavFile::readWavData( const std::string & filename, int maxChannels, int ex
 	myfile.read((char*)&chunkName, 4);
 	if (chunkName[0] != 'W' || chunkName[1] != 'A' || chunkName[2] != 'V' || chunkName[3] != 'E')
 	{
-		throw( "Input stream doesn't comply with the WAVE specification");
+		throw std::runtime_error("Input stream doesn't comply with the WAVE specification");
 		return;
 	}
 
@@ -286,46 +283,58 @@ void WavFile::readWavData( const std::string & filename, int maxChannels, int ex
 		myfile.read((char*)&chunkName, 4);
 		myfile.read((char*)&chunkLength, 4);
 
+		if (chunkLength < 0)
+		{
+			throw std::runtime_error("Corrupt WAVE chunk length");
+		}
+
 		if (chunkName[0] == 'f' && chunkName[1] == 'm' && chunkName[2] == 't' && chunkName[3] == ' ') //  "fmt "
 		{
 			myfile.read((char*)&waveheader, (std::min)((size_t)chunkLength, sizeof(waveheader)));
 			if (waveheader.wBitsPerSample == 0) // this.SignificantBitsPerSample == 0)
 			{
-				throw( "The input stream uses an unhandled SignificantBitsPerSample parameter");
+				throw std::runtime_error("The input stream uses an unhandled SignificantBitsPerSample parameter");
 				return;
 			}
 			if (chunkLength > sizeof(waveheader))
 			{
-				myfile.ignore(chunkLength - sizeof(waveheader));
+				myfile.ignore(static_cast<std::streamsize>(chunkLength - sizeof(waveheader)));
 			}
 		}
 		else
 		{
 			if (chunkName[0] == 'd' && chunkName[1] == 'a' && chunkName[2] == 't' && chunkName[3] == 'a') //  "data"
 			{
-				wave_data_bytes = chunkLength;
-				assert(wave_data == nullptr);
-				wave_data = new char[wave_data_bytes];
-				myfile.read(wave_data, wave_data_bytes);
+				waveDataBytes = static_cast<std::size_t>(chunkLength);
+				waveData.resize(waveDataBytes);
+				myfile.read(waveData.data(), static_cast<std::streamsize>(waveDataBytes));
 			}
 			else
 			{
 				// Next chunk.
-				myfile.ignore(chunkLength);
+				myfile.ignore(static_cast<std::streamsize>(chunkLength));
 			}
 		}
 	}
 
+	if (waveheader.nBlockAlign == 0 || waveDataBytes == 0)
+	{
+		samples_.clear();
+		numFrames_ = 0;
+		numchans_ = 0;
+		return;
+	}
+
 	rate_ = waveheader.nSamplesPerSec;
-	numFrames_ = wave_data_bytes / waveheader.nBlockAlign;
+	numFrames_ = static_cast<int>(waveDataBytes / waveheader.nBlockAlign);
 	numchans_ = std::min(maxChannels, (int)waveheader.nChannels);
-//	int channelsIgnored = waveheader.nChannels - numchans_;
 
 	int totalSamples = numchans_ * (numFrames_ + extraInterpolationSamples * 2);
 
 	samples_.assign(totalSamples, 0.0);
 
 	float* dest = samples_.data();
+	const char* wave_data = waveData.empty() ? nullptr : waveData.data();
 	{
 		for (unsigned int channel = 0; channel < numchans_; ++channel)
 		{
@@ -342,11 +351,6 @@ void WavFile::readWavData( const std::string & filename, int maxChannels, int ex
 				{
 				case 8:
 				{
-					//for (int i = 0; i < numFrames_; ++i)
-					//{
-					//	*dest++ = multiplier * (((unsigned char*)wave_data)[j] - 128.0f);
-					//	j += waveheader.nChannels;
-					//}
 
 					constexpr float toFloatMultiplier = 1.f / (1 << 7);
 
@@ -362,12 +366,6 @@ void WavFile::readWavData( const std::string & filename, int maxChannels, int ex
 
 				case 16:
 				{
-					//for (int i = 0; i < numFrames_; ++i)
-					//{
-					//	*dest++ = multiplier * ((short*)wave_data)[j];
-					//	j += waveheader.nChannels;
-					//}
-
 					constexpr float toFloatMultiplier = 1.f / (1 << 15);
 
 					auto i16 = ((int16_t*)wave_data) + channel;
@@ -382,14 +380,6 @@ void WavFile::readWavData( const std::string & filename, int maxChannels, int ex
 				case 24:
 				{
 					constexpr int sampleBytes = 3;
-					//unsigned char* src = (unsigned char*)wave_data + sampleBytes * channel;
-
-					//for (int i = 0; i < numFrames_; ++i)
-					//{
-					//	int intSample = (src[0] << 8) + (src[1] << 16) + (src[2] << 24);
-					//	*dest++ = multiplier * intSample;
-					//	src += sampleBytes * waveheader.nChannels;
-					//}
 
 					constexpr float toFloatMultiplier = 1.f / (1 << 31);
 
@@ -405,12 +395,6 @@ void WavFile::readWavData( const std::string & filename, int maxChannels, int ex
 
 				case 32:
 				{
-					//for (int i = 0; i < numFrames_; ++i)
-					//{
-					//	*dest++ = multiplier * ((int32_t*)wave_data)[j];
-					//	j += waveheader.nChannels;
-					//}
-
 					constexpr float toFloatMultiplier = 1.f / (1 << 31);
 
 					auto i32 = ((int32_t*)wave_data) + channel;
@@ -424,7 +408,6 @@ void WavFile::readWavData( const std::string & filename, int maxChannels, int ex
 
 				default:
 				{
-					//					message(L"This WAVE file format is not supported.  Convert it to 16 bit uncompressed mono or stereo.");
 				}
 
 				}
@@ -432,15 +415,9 @@ void WavFile::readWavData( const std::string & filename, int maxChannels, int ex
 
 			break;
 
-			case 03: // WAVE_FORMAT_IEEE_FLOAT:
+		case WAVE_FORMAT_IEEE_FLOAT:
 				if (waveheader.wBitsPerSample == 32)
 				{
-					//for (int i = 0; i < numFrames_; ++i)
-					//{
-					//	*dest++ = ((float*)wave_data)[j];
-					//	j += waveheader.nChannels;
-					//}
-
 					auto f32 = ((float*)wave_data) + channel;
 					for (int i = 0; i < numFrames_; ++i)
 					{
@@ -451,13 +428,11 @@ void WavFile::readWavData( const std::string & filename, int maxChannels, int ex
 				break;
 
 			default:
-				//		message(L"This WAVE file format is not supported.  Convert it to PCM or Float.");
 				;
 			};
 		}
 	}
 
-	delete[] wave_data;
 }
 
 std::unique_ptr<WavFileCursor> WavFileStreaming::open(const std::string& pfilename)
@@ -473,7 +448,6 @@ std::unique_ptr<WavFileCursor> WavFileStreaming::open(const std::string& pfilena
 	myfile.open(toOperatingSystemFilename(filename), ios_base::in | ios_base::binary);
 	if (!myfile)
 	{
-		// not a bug.		throw("File not found, or corrupted.");
 		return nullptr;
 	}
 
@@ -483,8 +457,7 @@ std::unique_ptr<WavFileCursor> WavFileStreaming::open(const std::string& pfilena
 
 	if (chunkName[0] != 'R' || chunkName[1] != 'I' || chunkName[2] != 'F' || chunkName[3] != 'F') // RIFF.
 	{
-		throw("Input stream doesn't comply with the RIFF specification");
-//		return nullptr;
+		throw std::runtime_error("Input stream doesn't comply with the RIFF specification");
 	}
 
 	myfile.read((char*)&chunkLength, 4);
@@ -493,8 +466,7 @@ std::unique_ptr<WavFileCursor> WavFileStreaming::open(const std::string& pfilena
 	myfile.read((char*)&chunkName, 4);
 	if (chunkName[0] != 'W' || chunkName[1] != 'A' || chunkName[2] != 'V' || chunkName[3] != 'E')
 	{
-		throw("Input stream doesn't comply with the WAVE specification");
-//		return nullptr;
+		throw std::runtime_error("Input stream doesn't comply with the WAVE specification");
 	}
 
 	while (!myfile.eof())
@@ -510,8 +482,7 @@ std::unique_ptr<WavFileCursor> WavFileStreaming::open(const std::string& pfilena
 			myfile.read((char*)&waveheader, (std::min)((size_t)chunkLength, expectedSize));
 			if (waveheader.wBitsPerSample == 0)
 			{
-				throw("The input stream uses an unhandled SignificantBitsPerSample parameter");
-//				return nullptr;
+				throw std::runtime_error("The input stream uses an unhandled SignificantBitsPerSample parameter");
 			}
 
 			// Float wave sample should be 32 bit, hovever cooledit 96 saves
@@ -523,7 +494,7 @@ std::unique_ptr<WavFileCursor> WavFileStreaming::open(const std::string& pfilena
 
 			if (chunkLength > expectedSize)
 			{
-				myfile.ignore(chunkLength - expectedSize);
+				myfile.ignore(static_cast<std::streamsize>(chunkLength - expectedSize));
 			}
 		}
 		else
@@ -535,13 +506,7 @@ std::unique_ptr<WavFileCursor> WavFileStreaming::open(const std::string& pfilena
 				// note fileposition of first sample.
 				wavedata_offset = myfile.tellg();
 
-				/* read immediate.
-				assert(wave_data == nullptr);
-				wave_data = new char[wave_data_bytes];
-				myfile.read(wave_data, wave_data_bytes);
-				*/
-
-				myfile.ignore(chunkLength);
+				myfile.ignore(static_cast<std::streamsize>(chunkLength));
 			}
 			else
 			{
@@ -551,7 +516,7 @@ std::unique_ptr<WavFileCursor> WavFileStreaming::open(const std::string& pfilena
 					myfile.read((char*)&m_sampler_data, (std::min)((size_t)chunkLength, expectedSize));
 					if (chunkLength > expectedSize)
 					{
-						myfile.ignore(chunkLength - expectedSize);
+						myfile.ignore(static_cast<std::streamsize>(chunkLength - expectedSize));
 					}
 
 					// cope with corrupt files
@@ -563,7 +528,7 @@ std::unique_ptr<WavFileCursor> WavFileStreaming::open(const std::string& pfilena
 				else
 				{
 					// Next chunk.
-					myfile.ignore(chunkLength);
+					myfile.ignore(static_cast<std::streamsize>(chunkLength));
 				}
 			}
 		}
@@ -574,8 +539,7 @@ std::unique_ptr<WavFileCursor> WavFileStreaming::open(const std::string& pfilena
 	case WAVE_FORMAT_PCM:
 		if (waveheader.wBitsPerSample != 8 && waveheader.wBitsPerSample != 16 && waveheader.wBitsPerSample != 24 && waveheader.wBitsPerSample != 32)
 		{
-			throw("This WAVE file format is not supported.  Convert it to 16 bit uncompressed mono or stereo.");
-//			return nullptr;
+			throw std::runtime_error("This WAVE file format is not supported.  Convert it to 16 bit uncompressed mono or stereo.");
 		}
 
 		break;
@@ -583,14 +547,12 @@ std::unique_ptr<WavFileCursor> WavFileStreaming::open(const std::string& pfilena
 	case WAVE_FORMAT_IEEE_FLOAT:
 		if (waveheader.wBitsPerSample != 32 ) //&& waveheader.wBitsPerSample != 64)
 		{
-			throw("This WAVE file format is not supported.  Convert it to 16 bit uncompressed mono or stereo.");
-//			return nullptr;
+			throw std::runtime_error("This WAVE file format is not supported.  Convert it to 16 bit uncompressed mono or stereo.");
 		}
 		break;
 
 	default:
-		throw("This WAVE file format is not supported.  Convert it to PCM or Float");
-//		return nullptr;
+		throw std::runtime_error("This WAVE file format is not supported.  Convert it to PCM or Float");
 	};
 
 	if (totalSampleFrames == 0 || wavedata_offset == std::streampos(-1))
@@ -754,7 +716,6 @@ std::tuple<const float*, int> WavFileCursor::GetMoreSamples(bool gate)
     {
         // Read samples off disk.
         auto dest = buffer.data() + bufferWriteStart;
-        // _RPT1(_CRT_WARN, "DiskSamplesToBuffer %d\n", static_cast<int>(sampleReadCount));
         DiskSamplesToBuffer(sampleData->waveheader, static_cast<int>(sampleReadCount), dest);
     }
 	auto returnData = buffer.data() + overlapSamples;

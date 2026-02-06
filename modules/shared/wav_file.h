@@ -1,9 +1,10 @@
 #pragma once
+#include <cstdint>
+#include <fstream>
 #include <memory>
 #include <string>
-#include <vector>
 #include <tuple>
-#include <fstream>
+#include <vector>
 
 #pragma pack(push,1)
 struct MYWAVEFORMATEX
@@ -16,7 +17,7 @@ struct MYWAVEFORMATEX
 	uint16_t  wBitsPerSample;     /* number of bits per sample of mono data */
 	uint16_t  cbSize;             /* the count in bytes of the size of */
 								  /* extra information (after cbSize) */
-};// MYWAVEFORMATEX; //, *PWAVEFORMATEX, NEAR *NPWAVEFORMATEX, FAR *LPWAVEFORMATEX;
+};
 
 // http://www.borg.com/~jglatt/tech/wave.htm
 struct SampleLoop
@@ -57,10 +58,10 @@ public:
 //  -- types --
 
     //! The type of the sample storage in an WavFile.
-    typedef std::vector< float > samples_type;
+    using samples_type = std::vector<float>;
     
     //! The type of all size parameters for WavFile.
-    typedef samples_type::size_type size_type;
+    using size_type = samples_type::size_type;
     
     //! Initialize an instance of WavFile by importing sample data from
     //! the file having the specified filename or path.
@@ -91,17 +92,17 @@ public:
 
     //! Return the number of channels of audio samples represented by
     //! this WavFile, 1 for mono, 2 for stereo.
-    unsigned int numChannels( void ) const;
+    [[nodiscard]] unsigned int numChannels( void ) const;
 
     //! Return the number of sample frames represented in this WavFile.
     //! A sample frame contains one sample per channel for a single sample
     //! interval (e.g. mono and stereo samples files having a sample rate of
     //! 44100 Hz both have 44100 sample frames per second of audio samples).
-    size_type numFrames( void ) const;
+    [[nodiscard]] size_type numFrames( void ) const;
 
     //! Return the sampling freqency in Hz for the sample data in this
     //! WavFile.
-    double sampleRate( void ) const;
+    [[nodiscard]] double sampleRate( void ) const;
     
     //! Return a reference (or const reference) to the vector containing
     //! the floating-point sample data for this WavFile.
@@ -109,7 +110,7 @@ public:
 
     //! Return a const reference (or const reference) to the vector containing
     //! the floating-point sample data for this WavFile.
-    const samples_type & samples( void ) const;
+    [[nodiscard]] const samples_type & samples( void ) const;
 
 //  -- export --
 
@@ -125,7 +126,7 @@ public:
     void write( const std::string & filename, unsigned int bps = 16 );
 
 private:
-    double rate_ = 44100.0;     // sample rate
+    double rate_ = 1.0;     // sample rate
     unsigned int numchans_ = 1;
 	int numFrames_ = 0;
     samples_type samples_;      // floating point samples [-1.0, 1.0]
@@ -136,12 +137,12 @@ private:
 
 struct WavFileCursor
 {
-	static const int SampleBufferOverlap = 4;
+	static constexpr int SampleBufferOverlap = 4;
 
 	std::ifstream myfile;
 	class WavFileStreaming* sampleData;
-	int SampleRate();
-	int ChannelsCount();
+	[[nodiscard]] int SampleRate() const;
+	[[nodiscard]] int ChannelsCount() const;
 	std::vector<float> buffer;
 	std::vector<char> conversionBuffer;
 	int64_t samplePosition = 0;
@@ -152,7 +153,7 @@ struct WavFileCursor
 
 	void DiskSamplesToBuffer(MYWAVEFORMATEX & waveheader, int sampleReadCount, float* dest);
 
-	std::tuple<const float*, int> GetMoreSamples(bool gate);
+	[[nodiscard]] std::tuple<const float*, int> GetMoreSamples(bool gate);
 
 	void Reset();
 };
@@ -168,7 +169,7 @@ class WavFileStreaming
 	std::string filename;
 
 public:
-	unsigned int totalSamples()
+	[[nodiscard]] unsigned int totalSamples() const
 	{
 		return totalSampleFrames * waveheader.nChannels;
 	}
@@ -176,12 +177,12 @@ public:
 	std::unique_ptr<WavFileCursor> open(const std::string& filename);
 };
 
-inline int WavFileCursor::SampleRate()
+inline int WavFileCursor::SampleRate() const
 {
 	return sampleData->waveheader.nSamplesPerSec;
 }
 
-inline int WavFileCursor::ChannelsCount()
+inline int WavFileCursor::ChannelsCount() const
 {
 	return sampleData->waveheader.nChannels;
 }
