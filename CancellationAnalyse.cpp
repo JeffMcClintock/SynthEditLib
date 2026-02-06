@@ -3,7 +3,9 @@
 #include <sstream>
 #include <filesystem>
 #include <algorithm>
+#if defined( _DEBUG ) && defined( _WIN32 )
 #include <ShlObj.h>
+#endif
 #include "SynthEditDocBase.h"
 #include "SynthEditAppBase.h"
 #include "CUG.h"
@@ -248,7 +250,7 @@ std::vector< std::pair< moduleIdentity, std::string > > getOrphans(const std::ve
 
 void CancellationAnalyse(CSynthEditAppBase* app)
 {
-#if defined( _DEBUG )
+#if defined( _DEBUG ) && defined( _WIN32 )
 
     auto getDocumentsPath = []() -> std::filesystem::path
     {
