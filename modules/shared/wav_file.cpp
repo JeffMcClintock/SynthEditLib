@@ -48,11 +48,11 @@ constexpr std::string_view kSmplId = "smpl";
 
 [[nodiscard]] std::filesystem::path toPath(const std::string& filename)
 {
-	return std::filesystem::u8path(filename);
+	// In C++20, u8path is deprecated. Use char8_t iterator constructor instead.
+	auto p = reinterpret_cast<const char8_t*>(filename.data());
+	return std::filesystem::path(p, p + filename.size());
 }
 
-
-// -- construction --
 
 // ---------------------------------------------------------------------------
 //	WavFile constructor from filename
@@ -60,7 +60,7 @@ constexpr std::string_view kSmplId = "smpl";
 //!	Initialize an instance of WavFile by importing sample data from
 //!	the file having the specified filename or path.
 //!
-//!	\param filename is the name or path of an AIFF samples file
+//!	\param filename is the name or path of an wav file
 //
 WavFile::WavFile( const std::string & filename, int maxChannels, int extraInterpolationSamples)
 {
@@ -78,7 +78,7 @@ WavFile::WavFile( const std::string & filename, int maxChannels, int extraInterp
 //!	signed integer samples of the specified size, in bits
 //!	(8, 16, 24, or 32).
 //!
-//!	\param filename is the name or path of the AIFF samples file
+//!	\param filename is the name or path of the wav file
 //!	to be created or overwritten.
 //!	\param bps is the number of bits per sample to store in the
 //!	samples file (8, 16, 24, or 32).If unspeicified, 16 bits
@@ -105,7 +105,6 @@ void WavFile::write( const std::string & filename, unsigned int bps )
 		std::ranges::copy(kWaveId, wav_head.chnk2_name);
 		std::ranges::copy(kFmtId, wav_head.chnk3_name);
 		std::ranges::copy(kDataId, wav_head.chnk4_name);
-
 
 		if (floatFormat)
 		{
