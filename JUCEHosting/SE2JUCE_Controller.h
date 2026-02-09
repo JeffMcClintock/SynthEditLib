@@ -83,7 +83,10 @@ public:
 	SeJuceController(
 		ProcessorStateMgrVst3& dawState
 	);
-	virtual ~SeJuceController() {}
+	virtual ~SeJuceController()
+	{
+		stopTimer();
+	}
 
 	virtual void Initialize(SE2JUCE_Processor* pprocessor) 
 	{
