@@ -639,8 +639,8 @@ struct Pile :
 			}
 			else
 			{
-				returnDesiredSize->width = (std::max(returnDesiredSize->width, s.width));
-				returnDesiredSize->height = (std::max(returnDesiredSize->height, s.height));
+				returnDesiredSize->width = (std::max)(returnDesiredSize->width, s.width);
+				returnDesiredSize->height = (std::max)(returnDesiredSize->height, s.height);
 			}
 		}
 		return gmpi::ReturnCode::Ok;

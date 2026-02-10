@@ -15,7 +15,7 @@
 #include "DragLine.h"
 #include "SubViewPanel.h"
 #include "SubViewCadmium.h"
-#include "../SynthEdit/cpu_accumulator.h"
+#include "cpu_accumulator.h"
 #include "ResizeAdorner.h"
 #include "modules/shared/GraphHelpers.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
