@@ -18,25 +18,6 @@ REGISTER_MODULE_1(L"Wave Recorder", IDS_MN_WAVE_RECORDER,IDS_MG_INPUT_OUTPUT,ug_
 }
 SE_DECLARE_INIT_STATIC_FILE(ug_wave_recorder)
 
-#pragma pack(push,1)
-struct wave_file_header
-{
-	char chnk1_name[4];
-	int32_t chnk1_size;
-	char chnk2_name[4];
-	char chnk3_name[4];
-	int32_t chnk3_size;
-	uint16_t wFormatTag;
-	uint16_t nChannels;
-	int32_t nSamplesPerSec;
-	int32_t nAvgBytesPerSec;
-	uint16_t nBlockAlign;
-	uint16_t wBitsPerSample;
-	char chnk4_name[4];
-	int32_t chnk4_size;
-};
-#pragma pack(pop)
-
 void ug_wave_recorder::ListInterface2(InterfaceObjectArray& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)
@@ -91,8 +72,8 @@ int ug_wave_recorder::Close()
 		__int64 end_time;
 		QueryPerformanceCounter((LARGE_INTEGER*)&end_time);
 		__int64 elapsed = end_time - start_time;
-		double sample_generate_time = (double)elapsed / lpFrequency;
-		double sample_play_time = SampleClock() / getSampleRate();
+		double sample_generate_time = static_cast<double>(elapsed) / static_cast<double>(lpFrequency);
+		double sample_play_time = static_cast<double>(SampleClock()) / static_cast<double>(getSampleRate());
 		double efficiency = 100 * sample_play_time / sample_generate_time;
 
 		if (SeAudioMaster::profileBlockSize)
@@ -126,7 +107,7 @@ int ug_wave_recorder::Close()
 				{
 					sum += time;
 				}
-				double mean = sum / allTimings.size();
+				double mean = sum / static_cast<double>(allTimings.size());
 				std::sort(allTimings.begin(), allTimings.end());
 				double median = allTimings[allTimings.size() / 2];
 
@@ -157,7 +138,7 @@ void ug_wave_recorder::flush_buffer()
 		try
 		{
 			//f1.Write(buffer, static_cast<UINT>(buf_count) );
-			fwrite(buffer, 1, buf_count, fileHandle);
+			fwrite(buffer, 1, static_cast<size_t>(buf_count), fileHandle);
 		}
 		catch (...)
 		{
@@ -316,11 +297,11 @@ void ug_wave_recorder::CloseFile()
 	wav_head.wBitsPerSample = static_cast<uint16_t>(bits_per_sample);
 	wav_head.chnk3_size = 16;
 	wav_head.nChannels = static_cast<uint16_t>(n_channels);
-	wav_head.chnk4_size = (int32_t)(sample_count * wav_head.wBitsPerSample / 8 * wav_head.nChannels);
+	wav_head.chnk4_size = static_cast<int32_t>(sample_count * wav_head.wBitsPerSample / 8 * wav_head.nChannels);
 	wav_head.chnk1_size = wav_head.chnk4_size + 36;
-	wav_head.nSamplesPerSec = (int)getSampleRate();
+	wav_head.nSamplesPerSec = static_cast<int>(getSampleRate());
 	wav_head.nAvgBytesPerSec = wav_head.nSamplesPerSec * wav_head.nChannels * wav_head.wBitsPerSample / 8;
-	wav_head.nBlockAlign = wav_head.wBitsPerSample / 8 * wav_head.nChannels;
+	wav_head.nBlockAlign = static_cast<uint16_t>(wav_head.wBitsPerSample / 8 * wav_head.nChannels);
 
 	try
 	{

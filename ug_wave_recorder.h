@@ -49,7 +49,7 @@ private:
 
 	// various info from wave files
 	uint16_t wFormatTag, nBlockAlign, wBitsPerSample;
+	short current_format;
 	int nSamplesPerSec, nAvgBytesPerSec, num_samples;
 	int n_channels;
-	short current_format;
 };

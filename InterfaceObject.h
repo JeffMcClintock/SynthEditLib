@@ -170,12 +170,12 @@ protected:
 	InterfaceObject() : m_id(-1) {}
 
 	EDirection	Direction;
+	EPlugDataType datatype;
 	std::wstring		Name;
 	std::wstring		DefaultVal;
 	std::wstring		subtype;		// info for enum and range type
 	int			Flags;
 
-	EPlugDataType datatype;
 	std::string classname;
 
 	void* address;

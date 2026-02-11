@@ -206,6 +206,11 @@ public:
 	}
 
 	int pp_voice_num;
+	int latencySamples;
+	// sleep mode variables
+	int static_output_count;
+	int cumulativeLatencySamples;
+
 	std::vector<UPlug*> plugs;
 
 	ug_container* parent_container;
@@ -220,8 +225,6 @@ public:
 	ug_base* m_clone_of; // used for iterating clones
 	ug_base* m_next_clone; // used for iterating clones
 
-	// sleep mode variables
-	int static_output_count;
 	void UpdateInputVariable(SynthEditEvent* e);
 	ug_base* CloneOf();
 
@@ -255,12 +258,9 @@ public:
 	virtual void OnBufferReassigned() {}
 	virtual void ReRoutePlugs() {}
 
-	int latencySamples;
-
 protected:
 	static void ListPin(InterfaceObjectArray& PList, void* addr, const wchar_t* p_name, EDirection p_direction, EPlugDataType p_datatype, const wchar_t* def_val, const wchar_t* unused = L"-1", int flags = 0, const wchar_t* p_comment = L"", float** p_sample_ptr = nullptr);
 
 	class Module_Info* moduleType;
-	int cumulativeLatencySamples;
 	static const int LATENCY_NOT_SET = 0xffffffff;
 };

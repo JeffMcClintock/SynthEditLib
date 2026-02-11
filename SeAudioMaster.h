@@ -583,12 +583,12 @@ protected:
 private:
 	std::map<int,dsp_msg_target*> m_handle_map; // maps handle to module address
 	int temporaryHandle_;
+	int32_t maxLatency;
 
 	IDspPatchManager* Patchmanager_ = {}; // Plugin only
 
 	static LookupTables lookup_tables;
 	std::vector<class ug_patch_automator*> patchAutomators_;
-	int32_t maxLatency;
 	bool enableSleepOptimisation;
 
 // Waves-only, use fixed-pool memory management.
@@ -616,8 +616,8 @@ private:
 	std::string presetChunkIn_; // store preset from DAW while real-time thread reads it async
 	std::string presetChunkOut_; // store preset from processor so DAW can read it async
 
-	int32_t hCClearTailsNextValue = 1;
 	UPlug* hoverScopePin{};
+	int32_t hCClearTailsNextValue = 1;
 	int watchdogCounter{};
 };
 

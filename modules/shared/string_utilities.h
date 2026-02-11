@@ -6,7 +6,7 @@
 
 #include <string>
 #include <algorithm>
-#include "../shared/xplatform.h"
+#include "./xplatform.h"
 
 inline std::wstring Left(const std::wstring& s, size_t count)
 {

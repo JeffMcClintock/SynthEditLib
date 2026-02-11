@@ -7,6 +7,24 @@
 #include <vector>
 
 #pragma pack(push,1)
+
+struct wave_file_header
+{
+	char chnk1_name[4];
+	int32_t chnk1_size;
+	char chnk2_name[4];
+	char chnk3_name[4];
+	int32_t chnk3_size;
+	uint16_t wFormatTag;
+	uint16_t nChannels;
+	int32_t nSamplesPerSec;
+	int32_t nAvgBytesPerSec;
+	uint16_t nBlockAlign;
+	uint16_t wBitsPerSample;
+	char chnk4_name[4];
+	int32_t chnk4_size;
+};
+
 struct MYWAVEFORMATEX
 {
 	uint16_t  wFormatTag;         /* format type */
@@ -164,10 +182,10 @@ class WavFileStreaming
 	friend struct WavFileCursor;
 
 	MYWAVEFORMATEX waveheader;
-	SamplerChunk m_sampler_data;
 	std::streampos wavedata_offset;
-	unsigned int totalSampleFrames; // i.e. per channel.
 	std::string filename;
+	unsigned int totalSampleFrames; // i.e. per channel.
+	SamplerChunk m_sampler_data;
 
 public:
 	[[nodiscard]] unsigned int totalSamples() const

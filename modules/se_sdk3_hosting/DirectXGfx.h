@@ -1221,7 +1221,7 @@ struct UniversalGraphicsContext : public gmpi::directx::GraphicsContext_base
 		{
 			return gmpi::directx::GraphicsContext_base::queryInterface(iid, returnInterface);
 		}
-		if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI) || *iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
+		if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
 		{
 			return (gmpi::ReturnCode)sdk3Context.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
 		}
@@ -1244,7 +1244,7 @@ struct UniversalGraphicsContext_win7 : public gmpi::directx::GraphicsContext_bas
 		{
 			return gmpi::directx::GraphicsContext_base::queryInterface(iid, returnInterface);
 		}
-		if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI) || *iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
+		if (*iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI))
 		{
 			return (gmpi::ReturnCode)sdk3Context.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
 		}
