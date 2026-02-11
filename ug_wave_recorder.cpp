@@ -188,19 +188,19 @@ void ug_wave_recorder::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug, state
 	{
 		if (plug_number == PN_FILE)
 		{
-			std::wstring msg = L"Wave Recorder: Writing to file: ";
-			msg += FileName;
-			std::wcout << msg << std::endl;
+			const auto l_filename = AudioMaster()->getShell()->ResolveFilename(FileName, L"wav");
 
 			wo_pointer = buffer;
 
 			// allow render to 'null device' for benchmarking purposes
 			if (FileName.empty() || open_file() != 0)
 			{
+				std::wcout << L"Wave Recorder: failed to open: " << l_filename << std::endl;
 				SET_PROCESS_FUNC(&ug_base::process_nothing);
 			}
 			else
 			{
+				std::wcout << L"Wave Recorder: Writing to file: " << l_filename << std::endl;
 				RUN_AT(SampleClock() + (8 * BUF_SIZE) / (bits_per_sample * n_channels), &ug_wave_recorder::flush_buffer);
 			}
 		}
