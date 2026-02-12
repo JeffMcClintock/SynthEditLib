@@ -27,6 +27,7 @@
 #include "BundleInfo.h"
 #endif
 #include "FeedbackTrace.h"
+#include "mp_sdk_audio.h"
 
 using namespace std;
 using namespace gmpi::hosting;

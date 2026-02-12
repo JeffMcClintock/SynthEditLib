@@ -1,9 +1,7 @@
 #pragma once
-#include "ug_base.h"
-#include "modules/se_sdk3/mp_sdk_audio.h"
 #include <vector>
-
-enum HostControls;
+#include "ug_base.h"
+#include "HostControls.h"
 
 class ug_patch_param_setter : public ug_base
 {
