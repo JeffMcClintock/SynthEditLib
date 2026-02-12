@@ -21,7 +21,6 @@
 #include "ug_midi_automator.h"
 #include "iseshelldsp.h"
 #include "modules/shared/PatchCables.h"
-#include "ug_oversampler_in.h"
 #include "mfc_emulation.h"
 #ifdef _DEBUG
 #include "BundleInfo.h"
