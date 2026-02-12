@@ -1052,9 +1052,8 @@ void MpController::OnSetHostControl(int hostControl, int32_t paramField, int32_t
             if (patchCommand > 3)
             {
                 nativeFileDialog.AddExtension("xmlbank", "XML Bank");
-                auto fullPath = WStringToUtf8(BundleInfo::instance()->getUserDocumentFolder());
-                combinePathAndFile(fullPath.c_str(), "bank.xmlbank");
-                nativeFileDialog.SetInitialFullPath(fullPath);
+                auto fullPath = BundleInfo::instance()->getUserDocumentFolder() / "bank.xmlbank";
+                nativeFileDialog.SetInitialFullPath((char*) fullPath.generic_u8string().c_str());
             }
             else // Load/Save Preset
             {
