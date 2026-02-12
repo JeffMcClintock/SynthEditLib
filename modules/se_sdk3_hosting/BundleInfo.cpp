@@ -8,7 +8,6 @@
 #include "it_enum_list.h"
 #include "xp_dynamic_linking.h"
 #include "GmpiSdkCommon.h"
-#include "Core/GmpiApiAudio.h"
 
 #if defined( _WIN32 )
 #undef  WIN32_LEAN_AND_MEAN
@@ -293,28 +292,24 @@ std::wstring BundleInfo::getImbeddedFileFolder()
 }
 
 // Plugins only.
-std::wstring BundleInfo::getUserDocumentFolder()
+std::filesystem::path BundleInfo::getUserDocumentFolder()
 {
 #if defined( _WIN32 )
 
 	// Correct folder (user presets). [MYDOCUMENTS]/VST3 Presets/$COMPANY/$PLUGIN-NAME/
 	wchar_t myDocumentsPath[MAX_PATH];
 	SHGetFolderPathW(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, myDocumentsPath);
-	std::wstring myDocuments(myDocumentsPath);
-	std::wstring folderPath{ myDocuments };
-	folderPath += L"\\";
-
-	return folderPath;
+	return std::filesystem::path{ myDocumentsPath } / L"";
 
 #else // Mac.
     const char *homeDir = getenv("HOME");
     
     if(homeDir)
-        return Utf8ToWstring(homeDir);
+        return std::filesystem::path{ homeDir };
     
     const struct passwd* pwd = getpwuid(getuid());
     if (pwd)
-        return Utf8ToWstring(pwd->pw_dir);
+        return std::filesystem::path{ pwd->pw_dir };
     
 	return {};
 #endif
@@ -378,7 +373,7 @@ std::wstring BundleInfo::getPresetFolder()
     
     // Note: !!! This folder may not exist, which will result in presets being saved in 'Documents' (and never scanned by preset browser)
     // might be prefereable to check if this directory exists, and if not fallback to 'Documents' on mac
-    result = result + L"/Library/Audio/Presets/";
+    result = result.wstring() + L"/Library/Audio/Presets/";
 
 	result = result + Utf8ToWstring(info_.vendorName) + L"/"+ pluginName + L"/";
 
@@ -530,7 +525,7 @@ std::string BundleInfo::getResource( const char* resourceId )
 #endif // JUCE
 }
 
-int32_t BundleInfo::getPluginId() // 4-char VST2 code to identify presets.
+int32_t BundleInfo::getPluginId() // 4-character VST2 code to identify presets.
 {
     assert(-1 != info_.pluginId || isEditor);
 	return info_.pluginId;
@@ -695,9 +690,9 @@ void BundleInfo::initPluginInfo()
 
             // Note: !!! This folder may not exist, which will result in presets being saved in 'Documents' (and never scanned by preset browser)
             // might be preferable to check if this directory exists, and if not fallback to 'Documents' on mac
-            result = result + L"/Library/Audio/Presets/";
+            result = result.wstring() + L"/Library/Audio/Presets/";
 
-            presetFolder = result + Utf8ToWstring(info_.vendorName) + L"/"+ pluginName + L"/";
+            presetFolder = result.wstring() + Utf8ToWstring(info_.vendorName) + L"/"+ pluginName + L"/";
          }
     }
 }

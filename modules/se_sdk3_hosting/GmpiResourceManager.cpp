@@ -116,10 +116,6 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 			replacein(imbeddedName, (L"\\"), (L"__")); // single backslash (escaped twice).
 			replacein(imbeddedName, (L":"), (L"_"));
 
-			// failed to compile with toolset 143
-			//imbeddedName = std::regex_replace(imbeddedName, std::basic_regex<wchar_t>(L"/"), L"__");
-			//imbeddedName = std::regex_replace(imbeddedName, std::basic_regex<wchar_t>(L"\\\\"), L"__"); // single backslash (escaped twice).
-			//imbeddedName = std::regex_replace(imbeddedName, std::basic_regex<wchar_t>(L":"), L"_");
 			searchPaths.push_back(combine_path_and_file(standardFolder, imbeddedName));
 
 			// Paths to non-default, non-standard skin files.  e.g. skins/PD303/UniqueKnob.png (where same image is NOT in default folder).

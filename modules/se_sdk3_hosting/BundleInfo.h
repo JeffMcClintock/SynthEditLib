@@ -78,7 +78,7 @@ public:
     {
         return presetFolder;
     }
-	std::wstring getUserDocumentFolder();
+	std::filesystem::path getUserDocumentFolder();
 	std::wstring getImbeddedFileFolder();
     std::wstring getResourceFolder();
 	std::wstring getSemFolder();
