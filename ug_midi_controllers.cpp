@@ -35,7 +35,7 @@ ug_midi_controllers::ug_midi_controllers() :
 #define PLG_BENDER (1 + PLG_AFTERTOUCH_MC )
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_midi_controllers::ListInterface2(InterfaceObjectArray& PList)
+void ug_midi_controllers::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// bypass, different order.	ug_midi_device::ListInterface2(PList);	// Call base class
 	//	ug_base::ListInterface2(PList);	// Call base class

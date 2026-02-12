@@ -29,7 +29,7 @@ ug_wave_player::ug_wave_player()
 	buffer_pointer[2] = 0; // end marker
 }
 
-void ug_wave_player::ListInterface2(InterfaceObjectArray& PList)
+void ug_wave_player::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Wave_in, ppactive, Default,Range/enum list
 	LIST_PIN2( L"Gate", gate_ptr, DR_IN, L"10", L"", IO_POLYPHONIC_ACTIVE, L"Triggers wave file playback");

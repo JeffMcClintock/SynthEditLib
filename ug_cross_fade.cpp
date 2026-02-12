@@ -24,7 +24,7 @@ REGISTER_MODULE_1(L"X-Mix", IDS_MN_X_MIX,IDS_MG_MODIFIERS,ug_cross_fade ,CF_STRU
 #define PLG_CURVE_TYPE	4
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_cross_fade::ListInterface2(InterfaceObjectArray& PList)
+void ug_cross_fade::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Template, ppactive, Default,Range/enum list
 	LIST_PIN2( L"Input A",input1_ptr, DR_IN, L"0", L"",IO_LINEAR_INPUT, L"");

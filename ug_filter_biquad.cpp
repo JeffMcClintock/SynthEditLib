@@ -35,7 +35,7 @@ int trash;
 float* trash2;
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_filter_biquad::ListInterface2(InterfaceObjectArray& PList)
+void ug_filter_biquad::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)
 	// defid used to name a enum list or range of values

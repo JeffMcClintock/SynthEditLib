@@ -26,6 +26,7 @@
 #include "mfc_emulation.h"
 #include "platform.h"
 #include "FeedbackTrace.h"
+#include "InterfaceObject.h"
 
 using namespace std;
 using namespace gmpi::hosting;
@@ -40,7 +41,7 @@ ULookup* ug_base::m_shared_interpolation_table;
 float ug_base::cpu_conversion_const;
 float ug_base::cpu_conversion_const2;
 
-void ug_base::ListPin(InterfaceObjectArray& PList, void* addr, const wchar_t* p_name, EDirection p_direction, EPlugDataType p_datatype, const wchar_t* def_val, const wchar_t* unused , int flags, const wchar_t* p_comment, float** p_sample_ptr )
+void ug_base::ListPin(std::vector<class InterfaceObject*>& PList, void* addr, const wchar_t* p_name, EDirection p_direction, EPlugDataType p_datatype, const wchar_t* def_val, const wchar_t* unused , int flags, const wchar_t* p_comment, float** p_sample_ptr )
 {
 	PList.push_back(new_InterfaceObjectA(addr, p_name, p_direction, p_datatype, def_val, unused, flags, p_comment, p_sample_ptr));
 }

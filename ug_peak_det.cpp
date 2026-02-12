@@ -28,7 +28,7 @@ REGISTER_MODULE_1(L"Peak Follower", IDS_MN_PEAK_FOLLOWER,IDS_MG_MODIFIERS,ug_pea
 #define PN_OUTPUT	3
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_peak_det::ListInterface2(InterfaceObjectArray& PList)
+void ug_peak_det::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Template, ppactive, Default,Range/enum list
 	LIST_PIN2( L"Signal in",input_ptr, DR_IN, L"0", L"", IO_POLYPHONIC_ACTIVE, L"Input signal");

@@ -7,7 +7,7 @@
 SE_DECLARE_INIT_STATIC_FILE(ug_generic_1_1)
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_generic_1_1::ListInterface2(InterfaceObjectArray& PList)
+void ug_generic_1_1::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	LIST_PIN2( L"Signal in",in1_ptr,  DR_IN, L"0", L"", IO_POLYPHONIC_ACTIVE, L"");
 	LIST_PIN2( L"Signal Out",out1_ptr,  DR_OUT, L"", L"", 0, L"");

@@ -4,25 +4,18 @@
 #include <assert.h>
 #include <sstream>
 #include "./modules/se_sdk3/mp_api.h"
-#include "./modules/shared/xp_dynamic_linking.h"
 #include "UgDatabase.h"
 #include "ug_base.h"
-#include "./modules/se_sdk3/MpString.h"
 #include "./modules/tinyXml2/tinyxml2.h"
 #include "conversion.h"
-#include "RawConversions.h"
 #include "mfc_emulation.h"
 #include "SafeMessageBox.h"
-
 
 #include "Module_Info3_internal.h"
 #include "IPluginGui.h"
 #include "tinyxml/tinyxml.h"
-//#include "version.h"
-#include "HostControls.h"
-#include "midi_defs.h"
 #include "./modules/shared/xplatform.h"
-#include "./modules/shared/xp_dynamic_linking.h"
+#include "InterfaceObject.h"
 #include "BundleInfo.h"
 #include "platform.h"
 

@@ -14,7 +14,7 @@ SE_DECLARE_INIT_STATIC_FILE(ug_midi_to_cv)
 #define PN_CHAN 1
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_notesource::ListInterface2(InterfaceObjectArray& PList)
+void ug_notesource::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, NoteSource, ppactive, Default, defid (index into unit_gen::PlugFormats)
 	LIST_VAR3N( L"MIDI In", DR_IN, DT_MIDI2 , L"0", L"", 0, L"");
@@ -152,7 +152,7 @@ namespace
 #define PLG_HOLD_PEDAL			26
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_midi_to_cv::ListInterface2(InterfaceObjectArray& PList)
+void ug_midi_to_cv::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	ug_notesource::ListInterface2(PList);	// Call base class
 	//           ("Plug Name",variable, direction,datatype,"Default","enum list/range", flags, "comment");

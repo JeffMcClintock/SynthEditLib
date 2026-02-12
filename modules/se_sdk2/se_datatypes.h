@@ -1,6 +1,6 @@
+#pragma once
 #if !defined(_se_datatypes_h_inc_)
 #define _se_datatypes_h_inc_
-#pragma once
 #include <cstdint>
 
 // handy macro to pack a 4 char message id into an int

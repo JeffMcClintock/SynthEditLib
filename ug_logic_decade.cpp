@@ -9,7 +9,7 @@ namespace
 REGISTER_MODULE_1(L"Decade Counter", IDS_MN_DECADE_COUNTER,IDS_MG_DEBUG,ug_logic_decade ,CF_STRUCTURE_VIEW,L"When triggered, send MIDI note messages");
 }
 
-void ug_logic_decade::ListInterface2(InterfaceObjectArray& PList)
+void ug_logic_decade::ListInterface2(std::vector<class InterfaceObject*>& PList)
 
 {
 	ug_base::ListInterface2(PList);	// Call base class

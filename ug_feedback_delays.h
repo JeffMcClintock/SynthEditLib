@@ -90,7 +90,7 @@ public:
 		return CreateObject();
 	}
 
-	void ListInterface2(InterfaceObjectArray &PList) override
+	void ListInterface2(std::vector<class InterfaceObject*>&PList) override
 	{
 		if constexpr (DIRECTION == DR_IN)
 		{

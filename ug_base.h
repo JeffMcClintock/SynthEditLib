@@ -1,15 +1,14 @@
 #pragma once
 
-#include <list>
 #include <functional>
+#include "ISeAudioMaster.h"
 #include "UPlug.h"
 #include "ug_flags.h"
 #include "EventProcessor.h"
-#include "SeAudioMaster.h"
 
 // return info about plugs
-#define	DECLARE_UG_INFO_FUNC2	void ListInterface2(InterfaceObjectArray &PList) override
-#define	IMPLEMENT_UG_INFO_FUNC2(class_name) void class_name::ListInterface2(InterfaceObjectArray &PList)
+#define	DECLARE_UG_INFO_FUNC2	void ListInterface2(std::vector<class InterfaceObject*> &PList) override
+#define	IMPLEMENT_UG_INFO_FUNC2(class_name) void class_name::ListInterface2(std::vector<class InterfaceObject*> &PList)
 
 // static and dynamic contructors
 #if defined(__APPLE__)
@@ -19,16 +18,18 @@
 #endif
 
 // Macros to be used to init a Interface Object in unit_gen::ListInterface
-#define LIST_PIN( P1,P3,P5,P6,P7,P8 ) ListPin(PList, nullptr, P1, P3, DT_FSAMPLE,(P5),(P6),P7,(P8) );
-#define LIST_PIN2( P1,P1B,P3,P5,P6,P7,P8 ) ListPin(PList, nullptr, P1, P3, DT_FSAMPLE, (P5), (P6), P7, (P8), &(P1B) );
-#define LIST_VAR3( P1,P2,P3,P4,P5,P6,P7,P8 ) ListPin(PList, (void *) &P2, (P1),P3,P4,(P5),(P6),P7,(P8) );
+#define LIST_PIN( P1,P3,P5,P6,P7,P8 ) ListPin(PList, nullptr, P1, P3, DT_FSAMPLE,(P5),(P6),P7,(P8));
+#define LIST_PIN2( P1,P1B,P3,P5,P6,P7,P8 ) ListPin(PList, nullptr, P1, P3, DT_FSAMPLE, (P5), (P6), P7, (P8), &(P1B));
+#define LIST_VAR3( P1,P2,P3,P4,P5,P6,P7,P8 ) ListPin(PList, (void *) &P2, (P1),P3,P4,(P5),(P6),P7,(P8));
 // Same, with null variable address.
-#define LIST_VAR3N( P1,  P3,P4,P5,P6,P7,P8 ) ListPin(PList, nullptr, (P1),P3,P4,(P5),(P6),P7,(P8) );
+#define LIST_VAR3N( P1,  P3,P4,P5,P6,P7,P8 ) ListPin(PList, nullptr, (P1),P3,P4,(P5),(P6),P7,(P8));
 // GUI-only plug
-#define LIST_VAR_UI( P1,   P3,P4,P5,P6,P7,P8 ) ListPin(PList, nullptr, (P1),P3,P4,(P5),(P6),P7,(P8) );
+#define LIST_VAR_UI( P1,   P3,P4,P5,P6,P7,P8 ) ListPin(PList, nullptr, (P1),P3,P4,(P5),(P6),P7,(P8));
 
-#define SET_PROCESS_FUNC(func)	process_function = static_cast <process_func_ptr> (func);
+#define SET_PROCESS_FUNC(func) process_function = static_cast <process_func_ptr>(func);
 
+class IDspPatchManager;
+class ug_container;
 class ug_base;
 
 typedef void (ug_base::* process_func_ptr)(int start_pos, int sampleframes); // Pointer to sound processing member function
@@ -115,7 +116,7 @@ public:
 	void HandleEvent(SynthEditEvent* e) override;
 	void SendPendingOutputChanges();
 
-	virtual void ListInterface2(InterfaceObjectArray& /*PList*/) {}
+	virtual void ListInterface2(std::vector<class InterfaceObject*>& /*PList*/) {}
 	virtual int Open();
 	virtual int Close();
 
@@ -259,7 +260,7 @@ public:
 	virtual void ReRoutePlugs() {}
 
 protected:
-	static void ListPin(InterfaceObjectArray& PList, void* addr, const wchar_t* p_name, EDirection p_direction, EPlugDataType p_datatype, const wchar_t* def_val, const wchar_t* unused = L"-1", int flags = 0, const wchar_t* p_comment = L"", float** p_sample_ptr = nullptr);
+	static void ListPin(std::vector<class InterfaceObject*>& PList, void* addr, const wchar_t* p_name, EDirection p_direction, EPlugDataType p_datatype, const wchar_t* def_val, const wchar_t* unused = L"-1", int flags = 0, const wchar_t* p_comment = L"", float** p_sample_ptr = nullptr);
 
 	class Module_Info* moduleType;
 	static const int LATENCY_NOT_SET = 0xffffffff;

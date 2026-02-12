@@ -15,7 +15,7 @@ REGISTER_MODULE_1(L"ADSR", IDS_MN_ADSR,IDS_MG_OLD,ug_adsr ,CF_STRUCTURE_VIEW,L"T
 #define PN_SUSTAIN	3
 #define PN_RELEASE	4
 
-void ug_adsr::ListInterface2(InterfaceObjectArray& PList)
+void ug_adsr::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)
 	// defid used to name a enum list or range of values

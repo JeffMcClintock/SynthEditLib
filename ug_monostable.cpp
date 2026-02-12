@@ -18,7 +18,7 @@ REGISTER_MODULE_1(L"Monostable", IDS_MN_MONOSTABLE,IDS_MG_LOGIC,ug_monostable ,C
 #define PN_OUT1			2
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_monostable::ListInterface2(InterfaceObjectArray& PList)
+void ug_monostable::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	LIST_PIN2( L"Signal in",in1_ptr,  DR_IN, L"0", L"", IO_POLYPHONIC_ACTIVE, L"");
 	LIST_PIN( L"Pulse Length (ds)",  DR_IN, L"0.1", L"", IO_POLYPHONIC_ACTIVE, L"10 Volt = 1 Second");

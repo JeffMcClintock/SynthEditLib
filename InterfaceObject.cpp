@@ -1,6 +1,7 @@
 
 #include <assert.h>
 #include <typeinfo>
+#include "InterfaceObject.h"
 #include "UPlug.h"
 #include "conversion.h"
 #include "./plug_description.h"

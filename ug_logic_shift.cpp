@@ -20,7 +20,7 @@ REGISTER_MODULE_1(L"Shift Register", IDS_MN_SHIFT_REGISTER,IDS_MG_LOGIC,ug_logic
 
 
 
-void ug_logic_shift::ListInterface2(InterfaceObjectArray& PList)
+void ug_logic_shift::ListInterface2(std::vector<class InterfaceObject*>& PList)
 
 {
 	ug_base::ListInterface2(PList);	// Call base class

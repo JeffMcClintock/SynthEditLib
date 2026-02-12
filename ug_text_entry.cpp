@@ -13,7 +13,7 @@ REGISTER_MODULE_1(L"Text Entry", IDS_MN_TEXT_ENTRY,IDS_MG_CONTROLS,ug_text_entry
 #define PLG_PATCH_VALUE 8
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_text_entry::ListInterface2(InterfaceObjectArray& PList)
+void ug_text_entry::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	//////////////////////////// ug_control::ListInterface2(PList);
 	LIST_VAR3( L"Channel", trash_sample_ptr, DR_IN, DT_ENUM , L"-1", L"", IO_DISABLE_IF_POS | IO_IGNORE_PATCH_CHANGE | IO_POLYPHONIC_ACTIVE, L"MIDI Channel");

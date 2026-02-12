@@ -56,7 +56,7 @@ public:
 	void RouteDummyPinToPatchAutomator(UPlug* pin);
 	
 	// controls need to be able to access midi automator if present
-	ug_patch_automator* automation_input_device;
+	class ug_patch_automator* automation_input_device;
 	class ug_patch_automator_out* automation_output_device;
 
 private:

@@ -49,7 +49,7 @@ namespace
 
 	bool res = ModuleFactory()->RegisterModule(mod);
 }
-void LatencyAdjustEventBased2::ListInterface2(InterfaceObjectArray& /*PList*/) {}
+void LatencyAdjustEventBased2::ListInterface2(std::vector<class InterfaceObject*>& /*PList*/) {}
 
 
 

@@ -2,11 +2,18 @@
 // Describes a UG's input or output variable. (What it's called and its address)
 #pragma once
 
-#include "InterfaceObject.h"
+#include <cassert>
+#include <cstdint>
+#include <string>
+#include <vector>
 #include "se_types.h"
+#include "modules/se_sdk2/se_datatypes.h"
 
 class ug_base;
 class midi_output;
+class InterfaceObject;
+
+namespace gmpi {class ISharedBlob;}
 
 // An 'Active' input can't combine voices.
 // eg osc freq, adding several note pitchs into an osc freq is not the same as
@@ -178,16 +185,11 @@ public:
 
 protected:
 	timestamp_t m_last_one_off_time;
-
-private:
 	int uniqueId_; // not unique on autoduplicating plugs. hence not much use.
-
-protected:
 	state_type state;		// Is it active or dormant. depreciated with SDK3
 
 public:
 	UPlugFlags flags;
-
 	std::string currentRawValue; // used to store the last value sent. For hover-pins
 #if defined( _DEBUG )
 	// need to ensure all modules send status on all pins at startup (since V1.1)
@@ -198,14 +200,10 @@ public:
 
 	void SetRange(int from_idx, int count, float value)
 	{
-//		assert(from_idx >= 0 && from_idx < debugBlocksize_);
-//		assert(from_idx + count <= debugBlocksize_);
 		assert(count > 0);
 
 		for (int b = from_idx; b < from_idx + count; b++)
-		{
 			m_buffer.buffer[b] = value;
-		}
 	}
 };
 

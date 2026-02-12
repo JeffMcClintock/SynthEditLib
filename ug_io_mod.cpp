@@ -10,7 +10,7 @@ namespace
 REGISTER_MODULE_1(L"IO Mod", IDS_MN_IO_MOD,0,ug_io_mod , /*CF_HAS_IO_PLUGS|*/CF_IO_MOD|CF_STRUCTURE_VIEW,L"Provides a link in/out of a container.  Any plug you connect to this will appear as a plug on the outside of the container (and vice versa).");
 }
 
-void ug_io_mod::ListInterface2(InterfaceObjectArray& PList)
+void ug_io_mod::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)
 	// defid used to name a enum list or range of values

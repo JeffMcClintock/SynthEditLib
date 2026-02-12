@@ -19,7 +19,7 @@ REGISTER_MODULE_1(L"OS Command", IDS_MN_OS_COMMAND,IDS_MG_OLD,ug_system_command,
 }
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_system_command::ListInterface2(InterfaceObjectArray& PList)
+void ug_system_command::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	LIST_PIN2( L"Trigger in",in1_ptr,  DR_IN, L"0", L"", IO_POLYPHONIC_ACTIVE, L"Whenever this input exceeds 3.33 Volts, the DOS command is executed.");
 	LIST_VAR3( L"Command",m_command, DR_IN,DT_TEXT, L"", L"", 0, L"The DOS command to execute.");

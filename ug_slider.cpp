@@ -13,7 +13,7 @@ REGISTER_MODULE_1(L"Slider", IDS_MN_SLIDER,IDS_MG_CONTROLS,ug_slider ,CF_STRUCTU
 #define PLG_PATCH_VALUE 12
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_slider::ListInterface2(InterfaceObjectArray& PList)
+void ug_slider::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	//////////////////////////// ug_control::ListInterface2(PList);
 	LIST_VAR3( L"Channel", trash_sample_ptr, DR_IN, DT_ENUM , L"-1", L"", IO_DISABLE_IF_POS | IO_IGNORE_PATCH_CHANGE | IO_POLYPHONIC_ACTIVE, L"MIDI Channel");

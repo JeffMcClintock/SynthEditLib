@@ -4,13 +4,13 @@
 #include "ug_container.h"
 #include "./modules/se_sdk3/mp_sdk_common.h"
 #include "module_info.h"
-#include "ug_patch_param_setter.h"
 #include "UMidiBuffer2.h"
-#include "./modules/shared/RawView.h"
 #include "SeAudioMaster.h"
 #include "BundleInfo.h"
 #include "Base64.h"
 #include "sample.h"
+#include "InterfaceObject.h"
+#include "ug_patch_param_setter.h"
 
 using namespace std;
 

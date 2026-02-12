@@ -30,7 +30,7 @@ REGISTER_MODULE_1(L"Pan", IDS_MN_PAN,IDS_MG_MODIFIERS,ug_pan ,CF_STRUCTURE_VIEW,
 #define PLG_CURVE_TYPE	5
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_pan::ListInterface2(InterfaceObjectArray& PList)
+void ug_pan::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Template, ppactive, Default,Range/enum list
 	LIST_PIN2(L"Input", input1_ptr, DR_IN, L"0", L"",IO_LINEAR_INPUT, L"Audio signal input");

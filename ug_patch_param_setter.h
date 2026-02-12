@@ -3,6 +3,8 @@
 #include "modules/se_sdk3/mp_sdk_audio.h"
 #include <vector>
 
+enum HostControls;
+
 class ug_patch_param_setter : public ug_base
 {
 public:

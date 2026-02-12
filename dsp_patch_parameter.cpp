@@ -19,6 +19,7 @@
 #include "PresetReader.h"
 #include "SeAudioMaster.h"
 #include "Hosting/message_queues.h"
+#include "InterfaceObject.h"
 
 using namespace gmpi::hosting;
 

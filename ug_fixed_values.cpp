@@ -18,28 +18,28 @@ namespace
 }
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_fixed_values::ListInterface2(InterfaceObjectArray& PList)
+void ug_fixed_values::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Template, ppactive, Default,Range/enum list
 	LIST_PIN( L"Spare Value", DR_OUT, L"0", L"", IO_AUTODUPLICATE|IO_RENAME|IO_SETABLE_OUTPUT|IO_CUSTOMISABLE, L"Pre-Set Voltage");
 }
 
-void ug_fixed_values_text::ListInterface2(InterfaceObjectArray& PList)
+void ug_fixed_values_text::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	LIST_VAR_UI(L"Spare Value", DR_OUT, DT_TEXT, L"", L"", IO_AUTODUPLICATE | IO_RENAME | IO_SETABLE_OUTPUT | IO_CUSTOMISABLE, L"");
 }
 
-void ug_fixed_values_float::ListInterface2(InterfaceObjectArray& PList)
+void ug_fixed_values_float::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	LIST_VAR_UI(L"Spare Value", DR_OUT, DT_FLOAT, L"", L"", IO_AUTODUPLICATE | IO_RENAME | IO_SETABLE_OUTPUT | IO_CUSTOMISABLE, L"");
 }
 
-void ug_fixed_values_int::ListInterface2(InterfaceObjectArray& PList)
+void ug_fixed_values_int::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	LIST_VAR_UI(L"Spare Value", DR_OUT, DT_INT, L"", L"", IO_AUTODUPLICATE | IO_RENAME | IO_SETABLE_OUTPUT | IO_CUSTOMISABLE, L"");
 }
 
-void ug_fixed_values_bool::ListInterface2(InterfaceObjectArray& PList)
+void ug_fixed_values_bool::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	LIST_VAR_UI(L"Spare Value", DR_OUT, DT_BOOL, L"", L"", IO_AUTODUPLICATE | IO_RENAME | IO_SETABLE_OUTPUT | IO_CUSTOMISABLE, L"");
 }

@@ -28,7 +28,7 @@ ug_voice_splitter::ug_voice_splitter() :
 #define PLG_IN		0
 #define PLG_OUT1	1
 
-void ug_voice_splitter::ListInterface2(InterfaceObjectArray& PList)
+void ug_voice_splitter::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into ug_base::PlugFormats)
 	LIST_PIN2(L"Input", in_ptr, DR_IN, L"0", L"", 0, L"");

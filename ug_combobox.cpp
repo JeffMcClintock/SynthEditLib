@@ -15,7 +15,7 @@ REGISTER_MODULE_1(L"List Entry", IDS_MN_LIST_ENTRY,IDS_MG_CONTROLS, ug_combobox 
 
 short appearance; // only here to satisfy  LIST_VAR3  macro
 
-void ug_combobox::ListInterface2(InterfaceObjectArray& PList)
+void ug_combobox::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	//////////////////////////// ug_control::ListInterface2(PList);
 	LIST_VAR3( L"Channel", trash_sample_ptr, DR_IN, DT_ENUM , L"-1", L"",IO_DISABLE_IF_POS|IO_IGNORE_PATCH_CHANGE|IO_POLYPHONIC_ACTIVE, L"MIDI Channel");

@@ -4,7 +4,6 @@
 #pragma once
 
 #include <memory>
-#include <cmath>
 #include "./dsp_msg_target.h"
 #include "./ug_event.h"
 #include "./ug_flags.h"

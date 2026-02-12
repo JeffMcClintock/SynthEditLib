@@ -18,7 +18,7 @@ using namespace std;
 using namespace gmpi;
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_patch_param_setter::ListInterface2(InterfaceObjectArray& PList)
+void ug_patch_param_setter::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// used to keep this module downstream of MIDI automator (no MIDI data ever sent)
 	LIST_VAR3N( L"MIDI In",  DR_IN, DT_MIDI2 , L"0", L"", 0, L"");

@@ -49,7 +49,7 @@ ug_voice_combiner::ug_voice_combiner()
 /////////////////////////////////////////////////////////////////
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_adder2::ListInterface2(InterfaceObjectArray& PList)
+void ug_adder2::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)
 	// defid used to name a enum list or range of values

@@ -19,7 +19,7 @@ REGISTER_MODULE_1(L"Delay2", IDS_MN_DELAY2,IDS_MG_EFFECTS,ug_delay2,CF_STRUCTURE
 #define PN_FEEDBACK	5
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_delay::ListInterface2(InterfaceObjectArray& PList)
+void ug_delay::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, range/enum list
 	// defid used to name a enum list or range of values
@@ -33,7 +33,7 @@ void ug_delay::ListInterface2(InterfaceObjectArray& PList)
 	LIST_PIN2( L"Feedback", feedback_ptr, DR_IN, L"0", L"10,0,10,0",IO_POLYPHONIC_ACTIVE, L"");
 }
 
-void ug_delay2::ListInterface2(InterfaceObjectArray& PList)
+void ug_delay2::ListInterface2(std::vector<class InterfaceObject*>& PList)
 
 {
 	// IO Var, Direction, Datatype, Name, Default, range/enum list

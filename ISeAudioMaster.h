@@ -1,11 +1,13 @@
-/*
-#include "SeAudioMaster.h"
-*/
+#pragma once
 #if !defined(ISEAUDIOMASTER_H_INCLUDED_)
 #define ISEAUDIOMASTER_H_INCLUDED_
 
-#pragma once
+/*
+#include "ISeAudioMaster.h"
+*/
+
 #include "se_types.h"
+#include "ug_event.h"
 
 enum SharedLookupScope { SLS_ONE_MODULE, SLS_ALL_MODULES };
 

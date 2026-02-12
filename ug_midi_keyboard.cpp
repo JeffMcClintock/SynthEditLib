@@ -18,7 +18,7 @@ REGISTER_MODULE_1(L"KeyBoard", IDS_MN_KEYBOARD,IDS_MG_OLD,ug_midi_keyboard ,CF_S
 #define PLG_MIDI_OUT 1
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_midi_keyboard::ListInterface2(InterfaceObjectArray& PList)
+void ug_midi_keyboard::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, MIDI In, Default, defid (index into ug_base::PlugFormats)
 	//                                                   extra unnesc entry makes it's compatible with other Chan pins.

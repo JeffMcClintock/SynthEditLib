@@ -26,7 +26,7 @@ public:
 
 	void input_changed() override;
 
-	void ListInterface2(InterfaceObjectArray& PList) override;
+	void ListInterface2(std::vector<class InterfaceObject*>& PList) override;
 
 protected:
 

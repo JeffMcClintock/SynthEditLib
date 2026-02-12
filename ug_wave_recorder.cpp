@@ -18,7 +18,7 @@ REGISTER_MODULE_1(L"Wave Recorder", IDS_MN_WAVE_RECORDER,IDS_MG_INPUT_OUTPUT,ug_
 }
 SE_DECLARE_INIT_STATIC_FILE(ug_wave_recorder)
 
-void ug_wave_recorder::ListInterface2(InterfaceObjectArray& PList)
+void ug_wave_recorder::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)
 	// defid used to name a enum list or range of values

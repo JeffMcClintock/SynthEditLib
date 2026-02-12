@@ -19,7 +19,7 @@ REGISTER_MODULE_1(L"MIDI Automator Output", IDS_MN_MIDI_AUTOMATOR_OUTPUT,IDS_MG_
 #define PLG_MIDI_OUT 2 //0
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_midi_automator::ListInterface2(InterfaceObjectArray& PList)
+void ug_midi_automator::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)
 	LIST_VAR3( L"Channel", midi_channel/*midi_in.channel()*/, DR_IN, DT_ENUM , L"-1", MIDI_CHAN_LIST,IO_IGNORE_PATCH_CHANGE|IO_POLYPHONIC_ACTIVE, L"MIDI Channel selection");
@@ -36,7 +36,7 @@ ug_midi_automator::ug_midi_automator()
 
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_patch_automator_out::ListInterface2(InterfaceObjectArray& PList)
+void ug_patch_automator_out::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)
 	// defid used to name a enum list or range of values

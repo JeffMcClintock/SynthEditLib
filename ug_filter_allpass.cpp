@@ -34,7 +34,7 @@ REGISTER_MODULE_1(L"All Pass", IDS_MN_ALL_PASS,IDS_MG_FILTERS,ug_filter_allpass 
 #define PN_FREQ_SCALE	4
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_filter_allpass::ListInterface2(InterfaceObjectArray& PList)
+void ug_filter_allpass::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	LIST_PIN2( L"Signal",	input_ptr,	DR_IN,L"0", L"", IO_LINEAR_INPUT, L"");
 	LIST_PIN2( L"Pitch",pitch_ptr,		DR_IN,L"5", L"", IO_POLYPHONIC_ACTIVE, L"Controls the Filter's 'Cutoff'. 1 Volt per Octave");

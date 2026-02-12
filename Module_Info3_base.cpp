@@ -4,6 +4,7 @@
 #include "./modules/se_sdk3/mp_api.h"
 #include <sstream>
 
+#include "InterfaceObject.h"
 #include "Module_Info3_base.h"
 #include "Module_Info3_internal.h"
 

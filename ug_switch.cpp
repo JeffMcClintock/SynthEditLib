@@ -41,7 +41,7 @@ ug_switch::~ug_switch()
 #define PLG_OUT		1
 #define PLG_IN1		2
 
-void ug_switch::ListInterface2(InterfaceObjectArray& PList)
+void ug_switch::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	//ug_base::ListInterface2(PList);	// Call base class
 	// IO Var, Direction, Datatype, Name, Default, defid (index into ug_base::PlugFormats)
@@ -283,7 +283,7 @@ ug_switch2::ug_switch2() :
 	SET_PROCESS_FUNC( &ug_switch2::sub_process );
 }
 
-void ug_switch2::ListInterface2(InterfaceObjectArray& PList)
+void ug_switch2::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	ug_base::ListInterface2(PList);	// Call base class
 	// IO Var, Direction, Datatype, Name, Default, defid (index into ug_base::PlugFormats)

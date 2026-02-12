@@ -26,7 +26,7 @@ ug_midi_filter::ug_midi_filter() :
 }
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_midi_filter::ListInterface2(InterfaceObjectArray& PList)
+void ug_midi_filter::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Template, ppactive, Default,Range/enum list
 	LIST_VAR3N( L"MIDI In",  DR_IN, DT_MIDI2 , L"", L"", 0, L"MIDI Input Plug");

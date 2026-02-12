@@ -20,7 +20,7 @@ REGISTER_MODULE_1(L"Step Counter2", IDS_MN_STEP_COUNTER2,IDS_MG_LOGIC,ug_logic_c
 REGISTER_MODULE_1(L"Step Counter", IDS_MN_STEP_COUNTER,IDS_MG_DEBUG,ug_logic_counter ,CF_STRUCTURE_VIEW,L"");
 }
 
-void ug_logic_counter::ListInterface2(InterfaceObjectArray& PList)
+void ug_logic_counter::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	ug_base::ListInterface2(PList);	// Call base class
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)

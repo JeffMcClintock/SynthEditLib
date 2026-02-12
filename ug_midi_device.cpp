@@ -10,7 +10,7 @@ ug_midi_device::ug_midi_device():
 }
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_midi_device::ListInterface2(InterfaceObjectArray& PList)
+void ug_midi_device::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	ug_base::ListInterface2(PList);	// Call base class
 	// IO Var, Direction, Datatype, NoteSource, ppactive, Default, defid (index into ug_base::PlugFormats)

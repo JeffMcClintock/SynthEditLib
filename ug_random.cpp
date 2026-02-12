@@ -15,7 +15,7 @@ REGISTER_MODULE_1( L"random", IDS_MN_RANDOM,IDS_MG_OLD,ug_random,CF_STRUCTURE_VI
 #define PLG_OUT 1
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_random::ListInterface2(InterfaceObjectArray& PList)
+void ug_random::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	LIST_VAR3( L"Trigger in",m_trigger,  DR_IN,DT_BOOL, L"1", L"", IO_POLYPHONIC_ACTIVE, L"");
 	LIST_PIN( L"Output", DR_OUT, L"", L"", 0, L"");

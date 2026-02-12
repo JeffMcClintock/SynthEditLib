@@ -18,7 +18,7 @@ REGISTER_MODULE_1(L"Binary Counter", IDS_MN_BINARY_COUNTER,IDS_MG_LOGIC,ug_logic
 
 
 
-void ug_logic_Bin_Count::ListInterface2(InterfaceObjectArray& PList)
+void ug_logic_Bin_Count::ListInterface2(std::vector<class InterfaceObject*>& PList)
 
 {
 	ug_base::ListInterface2(PList);	// Call base class

@@ -32,7 +32,7 @@ ug_logic_gate::~ug_logic_gate()
 	delete [] in_ptr;
 }
 
-void ug_logic_gate::ListInterface2(InterfaceObjectArray& PList)
+void ug_logic_gate::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	//	ug_base::ListInterface2(PList);	// Call base class
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)

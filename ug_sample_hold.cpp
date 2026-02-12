@@ -15,7 +15,7 @@ REGISTER_MODULE_1(L"Sample and Hold", IDS_MN_SAMPLE_AND_HOLD,IDS_MG_MODIFIERS,ug
 #define PLG_OUTPUT		2
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_sample_hold::ListInterface2(InterfaceObjectArray& PList)
+void ug_sample_hold::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)
 	LIST_PIN2( L"Audio", input_ptr, DR_IN, L"8", L"", IO_LINEAR_INPUT, L"");

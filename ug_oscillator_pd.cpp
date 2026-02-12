@@ -40,7 +40,7 @@ sawtooth, square, pulse, double sine, saw-pulse, resonance 1 (sawtooth), resonan
 */
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_oscillator_pd::ListInterface2(InterfaceObjectArray& PList)
+void ug_oscillator_pd::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	LIST_PIN2( L"Pitch", pitch_ptr, DR_IN, L"5", L"100, 0, 10, 0", IO_POLYPHONIC_ACTIVE, L"1 Volt per Octave, 5V = Middle A");
 	LIST_PIN2( L"Modulation Depth", modulation_ptr, DR_IN, L"5", L"", IO_POLYPHONIC_ACTIVE, L"Controls Waveshape distortion. 0 to 10 Volts = 0 to 100%");

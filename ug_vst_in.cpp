@@ -13,7 +13,7 @@ REGISTER_MODULE_1(L"VST Input", IDS_MN_VST_INPUT,IDS_MG_DEBUG,ug_vst_in ,0,L"");
 }
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_vst_in::ListInterface2(InterfaceObjectArray& PList)
+void ug_vst_in::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into unit_gen::PlugFormats)
 	// defid used to name a enum list or range of values

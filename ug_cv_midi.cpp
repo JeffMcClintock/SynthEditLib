@@ -25,7 +25,7 @@ REGISTER_MODULE_1(L"Trigger to MIDI", IDS_MN_TRIGGER_TO_MIDI,IDS_MG_MIDI,ug_cv_m
 #define PN_MIDI_OUT 4
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_cv_midi::ListInterface2(InterfaceObjectArray& PList)
+void ug_cv_midi::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, NoteSource, ppactive, Default, defid (index into unit_gen::PlugFormats)
 	LIST_PIN2( L"Gate",gate_ptr,	DR_IN, L"0", L"", IO_POLYPHONIC_ACTIVE, L"Triggers the Note on message");

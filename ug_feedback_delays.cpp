@@ -20,7 +20,7 @@ REGISTER_MODULE_1(L"Feedback Delay", L"Feedback - Volts",
 }
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_feedback_delay::ListInterface2(InterfaceObjectArray &PList)
+void ug_feedback_delay::ListInterface2(std::vector<class InterfaceObject*>&PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into
 	// unit_gen::PlugFormats)
@@ -334,7 +334,7 @@ ug_base* ug_feedback_delay_out::Clone(CUGLookupList& UGLookupList)
 }
 
 ///////////////////////////////////////////////////////////////
-void ug_feedback_delay_out::ListInterface2(InterfaceObjectArray &PList)
+void ug_feedback_delay_out::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// first one non-funcional except for dummy connection to mate.
 	LIST_VAR3N(L"", DR_IN, DT_MIDI, L"0", L"", 0, L"");
@@ -481,7 +481,7 @@ REGISTER_MODULE_1(L"SE: Cancellation Helper", L"Cancellation Helper",
 }
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_cancellation_helper::ListInterface2(InterfaceObjectArray& PList)
+void ug_cancellation_helper::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 }
 

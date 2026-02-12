@@ -49,7 +49,7 @@ f = 2.0 * (x - (x3 / 6.0) + (x5 / 120.0) - ( x7 / 5040.0));
 #define PN_FREQ_SCALE	7
 
 // Fill an array of InterfaceObjects with plugs and parameters
-void ug_filter_sv::ListInterface2(InterfaceObjectArray& PList)
+void ug_filter_sv::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
 	// IO Var, Direction, Datatype, Name, Default, defid (index into ::PlugFormats)
 	// defid used to name a enum list or range of values
