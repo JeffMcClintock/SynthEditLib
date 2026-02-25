@@ -413,9 +413,8 @@ namespace SE2
 			return false;
 		}
 
-		void setSelected(bool selected) override
-		{
-		}
+		void setSelected(bool selected) override {}
+		void preDelete() override {}
 
 		GmpiDrawing::Point getConnectionPoint(CableType cableType, int pinIndex) override
 		{

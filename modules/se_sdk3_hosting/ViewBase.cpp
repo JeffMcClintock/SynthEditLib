@@ -1212,22 +1212,25 @@ namespace SE2
 		}
 	}
 
+	// remove one module without invalidating entire view.
 	void ViewBase::RemoveModule(int32_t handle)
 	{
 		if (mouseOverObject && mouseOverObject->getModuleHandle() == handle)
-		{
 			mouseOverObject = nullptr;
-		}
 
 		assert(!isIteratingChildren);
 
-		std::erase_if( children,
-			[handle](const std::unique_ptr<IViewChild>& child) -> bool
-			{
-				return child->getModuleHandle() == handle;
-			}
-		);
+		auto it = std::find_if(children.begin(), children.end(), [handle](const std::unique_ptr<IViewChild>& child) {
+			return child->getModuleHandle() == handle;
+		});
 
+		if (it != children.end())
+		{
+			auto& mod = *it;
+			mod->preDelete();
+
+			children.erase(it);
+		}
 	}
 
 	void ViewBase::OnChangedChildHighlight(int phandle, int flags)

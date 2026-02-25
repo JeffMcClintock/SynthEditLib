@@ -754,6 +754,33 @@ namespace SE2
 		return false;
 	}
 
+	// not a normal deletion of entire view, but a selective deletion of one module.
+	// remove all connection to prevent crashes when module tries to send data to already deleted module.
+	void ModuleView::preDelete()
+	{
+		for (auto& it : connections_)
+		{
+			auto& connector = it.second;
+			auto& other = *(connector.otherModule_);
+			auto otherPinIdx = connector.otherModulePinIndex_;
+
+			for (auto it = other.connections_.begin(); it != other.connections_.end(); ++it)
+			{
+				auto& connection = (*it).second;
+				if (connection.otherModule_ == this && connection.otherModulePinIndex_ == connector.myPinIndex_)
+				{
+					it = other.connections_.erase(it);
+					break;
+				}
+			}
+
+			//for (auto it = other.connections_.find(otherPinIdx); it != other.connections_.end() && (*it).first == otherPinIdx; ++it)
+			//	it = other.connections_.erase(it);
+		}
+
+		connections_.clear();
+	}
+
 	std::string ModuleView::getToolTip(GmpiDrawing_API::MP1_POINT point)
 	{
 		if (pluginGraphics2)

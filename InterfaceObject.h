@@ -174,11 +174,11 @@ protected:
 	std::wstring		Name;
 	std::wstring		DefaultVal;
 	std::wstring		subtype;		// info for enum and range type
-	int			Flags;
+	int			Flags = 0;
 
 	std::string classname;
 
-	void* address;
+	void* address = {};
 	int m_id; // sequential number
 	int parameterId_;
 	int parameterFieldId_;

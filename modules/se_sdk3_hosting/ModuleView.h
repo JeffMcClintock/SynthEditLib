@@ -145,8 +145,8 @@ namespace SE2
 		GMPI_REFCOUNT
 	};
 
-	class ModuleView : public
-		ViewChild
+	class ModuleView :
+		  public ViewChild
 		, public gmpi::IMpUserInterfaceHost2
 		, public gmpi::IMpUserInterfaceHost
 		, public gmpi_gui::IMpGraphicsHost
@@ -166,7 +166,10 @@ namespace SE2
 
 		ModuleView(const wchar_t* typeId, ViewBase* pParent, int handle);
 		ModuleView(Json::Value* context, ViewBase* pParent);
-
+		~ModuleView()
+		{
+			int x = 9;
+		}
 		Module_Info* getModuleType()
 		{
 			return moduleInfo;
@@ -434,6 +437,7 @@ namespace SE2
 		bool mouseCaptured = false;
 		bool dirty{ true };
 		virtual bool isRackModule() = 0;
+		void preDelete() override;
 
 		GMPI_REFCOUNT_NO_DELETE;
 	};

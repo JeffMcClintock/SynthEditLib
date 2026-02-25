@@ -39,6 +39,7 @@ namespace SE2
 		virtual int32_t vc_onContextMenu(int32_t idx) = 0;
 		virtual std::string getToolTip(GmpiDrawing_API::MP1_POINT point) = 0;
 		virtual void receiveMessageFromAudio(void*) = 0;
+		virtual void preDelete() = 0; // for optimisation when removing a single module, so that we can avoid destroying and recreating entire view.
 
 		// Additions
 		virtual int32_t getModuleHandle() = 0;
@@ -171,6 +172,6 @@ namespace SE2
 		}
 
 		bool imCaptured();
+		void preDelete() override {}
 	};
-
 }
