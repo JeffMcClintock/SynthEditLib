@@ -27,7 +27,7 @@ public:
 	gmpi::ReturnCode clearResourceUris() override { return gmpi::ReturnCode::NoSupport; }
 
 	// IPinCount
-	int32_t getAutoduplicatePinCount() override;
+	int32_t getAutoduplicatePinCount_deprecated() override;
 
 	// ug_base overides
 	ug_base* Create() override;
