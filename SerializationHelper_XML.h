@@ -45,6 +45,7 @@ void PatchParameter_base::Export(tinyxml2::XMLElement* parameters_xml, ExportFor
 #include "modules/tinyXml2/tinyxml2.h"
 #include "conversion.h"
 #include "Drawing.h"
+#include "experimental/observable.h"
 
 enum ExportFormatType {
 	 SAT_SYNTHEDIT_DSP
@@ -224,6 +225,18 @@ struct XmlSaveHelper
 			xml->InsertEndChild(fileE);
 		}
 	}
+
+	template< typename T >
+	void operator()(const char* name, const gmpi_forms::State<T>& value)
+	{
+		operator()(name, (const T&)value.get());
+	}
+
+	template< typename T >
+	void operator()(const char* name, const gmpi_forms::State<T>& value, T defaultValue)
+	{
+		operator()(name, (const T&)value.get(), defaultValue);
+	}
 };
 
 struct XmlLoadHelper
@@ -249,6 +262,22 @@ struct XmlLoadHelper
 		{
 			value = defaultValue;
 		}
+	}
+
+	template< typename T >
+	void operator()(const char* name, gmpi_forms::State<T>& value)
+	{
+		T valueTemp{};
+		operator()(name, valueTemp);
+		value.set(valueTemp);
+	}
+
+	template< typename T >
+	void operator()(const char* name, gmpi_forms::State<T>& value, T defaultValue)
+	{
+		T valueTemp{};
+		operator()(name, valueTemp, defaultValue);
+		value.set(valueTemp);
 	}
 
 	template<>
@@ -289,6 +318,21 @@ struct XmlLoadHelper
 		if (errorCode == tinyxml2::XML_SUCCESS)
 		{
 			value = temp;
+		}
+	}
+
+	template<>
+	void operator()(const char* name, std::string& value, std::string defaultValue)
+	{
+		const char* temp{};
+		errorCode = XmlParent->QueryStringAttribute(name, &temp);
+		if (errorCode == tinyxml2::XML_SUCCESS)
+		{
+			value = temp;
+		}
+		else
+		{
+			value = defaultValue;
 		}
 	}
 

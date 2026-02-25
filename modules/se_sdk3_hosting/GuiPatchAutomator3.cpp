@@ -90,10 +90,10 @@ int GuiPatchAutomator3::Register(int moduleHandle, int moduleParamId, ParameterF
 	if (moduleParamId < 0)
 	{
 		auto it = parameterToPinIndex_.find(makePinIndexKey(parameterHandle, paramField));
-	if (it != parameterToPinIndex_.end())
-	{
-		return (*it).second;
-	}
+		if (it != parameterToPinIndex_.end())
+		{
+			return (*it).second;
+		}
 	}
 #ifdef _DEBUG
 	else
