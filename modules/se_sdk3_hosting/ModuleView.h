@@ -166,10 +166,8 @@ namespace SE2
 
 		ModuleView(const wchar_t* typeId, ViewBase* pParent, int handle);
 		ModuleView(Json::Value* context, ViewBase* pParent);
-		~ModuleView()
-		{
-			int x = 9;
-		}
+		~ModuleView() = default;
+
 		Module_Info* getModuleType()
 		{
 			return moduleInfo;
