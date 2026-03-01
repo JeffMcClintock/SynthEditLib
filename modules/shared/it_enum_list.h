@@ -149,3 +149,34 @@ inline std::vector<enum_entry2> it_enum_list2(const std::string_view enum_list)
 
 	return res;
 }
+
+inline enum_entry2 enum_list_lookup_id(const std::string_view enum_list, int32_t enum_value)
+{
+	for (auto& [index, id, text] : it_enum_list2(enum_list))
+	{
+		if (id == enum_value)
+			return { index, id, text };
+	}
+	return {};
+}
+
+
+inline enum_entry2 enum_list_lookup_index(const std::string_view enum_list, int32_t enum_index)
+{
+	const auto enums = it_enum_list2(enum_list);
+
+	if(enum_index >= 0 && enum_index < enums.size())
+		return enums[enum_index];
+
+	return {};
+}
+
+inline enum_entry2 enum_lookup_text(const std::string_view enum_list, const std::string_view text)
+{
+	for (auto& [index, id, text2] : it_enum_list2(enum_list))
+	{
+		if (text2 == text)
+			return { index, id, text2 };
+	}
+	return {};
+}
