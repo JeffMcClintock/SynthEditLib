@@ -42,6 +42,7 @@ void PatchcableDiagGui::onSetPatchcableXml()
 int32_t PatchcableDiagGui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext )
 {
 	Graphics g(drawingContext);
+	ClipDrawingToBounds x(g, getRect());
 
 	auto textFormat = GetGraphicsFactory().CreateTextFormat();
 	auto brush = g.CreateSolidColorBrush(Color::Black);

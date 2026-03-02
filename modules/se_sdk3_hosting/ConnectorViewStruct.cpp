@@ -54,6 +54,12 @@ namespace SE2
 		return 0.0f;
 	}
 
+	bool isClose(const Point& p1, const Point& p2)
+	{
+		const float closeDistanceSquared = 0.01f;
+		return Vector2D::FromPoints(p1, p2).LengthSquared() < closeDistanceSquared;
+	}
+
 	void ConnectorView2::CreateGeometry()
 	{
 		GmpiDrawing::Factory factory(parent->GetDrawingFactory());
@@ -93,6 +99,18 @@ namespace SE2
 		}
 
 		nodesInclusive.push_back(to_);
+
+		// remove overlapping points. (causes failure to draw entire path)
+		for (auto it = std::begin(nodesInclusive) + 1; it != std::end(nodesInclusive) - 1; )
+		{
+			const auto& prev = *(it - 1);
+			const auto& p = *it;
+
+			if (isClose(p, prev))
+				it = nodesInclusive.erase(it);
+			else
+				++it;
+		}
 
 		if (lineType_ == CURVEY)
 		{
@@ -513,7 +531,7 @@ namespace SE2
 
 	int32_t ConnectorView2::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 	{
-	if (imCaptured() || draggingNode == -1) //if (!parent->getCapture() || draggingNode == -1)
+		if (imCaptured() && draggingNode == -1)
 		{
 			return ConnectorViewBase::onPointerUp(flags, point);
 		}
