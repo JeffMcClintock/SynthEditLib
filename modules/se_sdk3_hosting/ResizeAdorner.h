@@ -257,6 +257,10 @@ namespace SE2
 		{
 			return isOverlapped(GmpiDrawing::Rect(selectionRect), GmpiDrawing::Rect(GetOutlineRect()));
 		}
+		float hitTestFuzzy(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
+		{
+			return hitTest(flags, point) ? 0.0f : 10000.0f;
+		}
 
 		std::string getToolTip(GmpiDrawing_API::MP1_POINT point) override
 		{
@@ -446,9 +450,7 @@ namespace SE2
 			const float outerThickness = ResizeHandleRadius; // hits count slightly outside line.
 			outerRect.Inflate(outerThickness);
 			if(!outerRect.ContainsPoint(point))
-			{
 				return false;
-			}
 
 			const auto pointLocal = GmpiDrawing::Point(point) - GmpiDrawing::Size(bounds.left, bounds.top);
 

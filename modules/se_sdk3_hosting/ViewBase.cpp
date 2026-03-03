@@ -644,7 +644,7 @@ namespace SE2
 	int32_t ViewBase::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT ppoint)
 	{
 #if DEBUG_MOUSEOVER
-		_RPTN(0, "ViewBase::onPointerMove: [%f,%f]\n", point.x, point.y); // typeid(*m.get()).name());
+		_RPTN(0, "ViewBase::onPointerMove: [%f,%f]\n", ppoint.x, ppoint.y);
 #endif
         currentPointerPosAbsolute = legacy_converters::convert(ppoint);
 		lastMovePoint = legacy_converters::convert(currentPointerPosAbsolute * inv_viewTransform);
@@ -691,6 +691,20 @@ namespace SE2
 		{
 			mouseOverObject->onPointerMove(flags, lastMovePoint);
 		}
+		else
+		{
+			/*
+			// not over anything, allow for extended-rage hitting of pins to create new line.
+				// 4x drawn size is maximum snap distance.
+			constexpr float maxSnapRangeSquared = 4 * sharedGraphicResources_struct::plugDiameter * sharedGraphicResources_struct::plugDiameter; // 4x drawn size is maximum snap distance.
+			float bestDistanceSquared = maxSnapRangeSquared;
+
+			ModuleView* bestModule{};
+			for (auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
+				(*it)->OnCableDrag(dragline, dragline->dragPoint(), bestDistanceSquared, bestModule, newModulePin);
+			*/
+
+		}
 
 		return gmpi::MP_OK;
 	}
@@ -705,7 +719,7 @@ namespace SE2
 	void ViewBase::calcMouseOverObject(int32_t flags)
 	{
 #if DEBUG_MOUSEOVER
-		_RPT0(0, "ViewBase::calcMouseOverObject()\n");
+		_RPT0(0, "\n\nViewBase::calcMouseOverObject()\n");
 #endif
 		// when one object has captured mouse, don't highlight other objects.
 		if (mouseCaptureObject)
@@ -717,6 +731,8 @@ namespace SE2
 		}
 
 		IViewChild* hitObject{};
+		float bestScore = 25.0f;	// maximum distance from mouse pointer to be considered a 'hit' (e.g. for hitting pins slightly off-target).
+									// objects can impose a lower threshhold. e.g. structureview is 12 pixels max.
 
 		isIteratingChildren = true;
 		for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
@@ -724,25 +740,31 @@ namespace SE2
 			auto& m = *it;
 #if DEBUG_MOUSEOVER
 #endif
-			if(m->hitTest(flags, lastMovePoint))
+			auto score = m->hitTestFuzzy(flags, lastMovePoint);
+
+#if DEBUG_MOUSEOVER
+			if (score < 30.f)
+			{
+				_RPTN(0, "%s : %f pixels\n", typeid(*m.get()).name(), score);
+			}
+#endif
+
+			if(score < bestScore) // 'hard' hit test-> && score == 0.0f)
 			{
 #if DEBUG_MOUSEOVER
 				_RPTN(0, "HIT: %s\n", typeid(*m.get()).name());
 #endif
 				hitObject = m.get();
-				break;
+				bestScore = score;
 			}
 			else
 			{
-#if DEBUG_MOUSEOVER
-				_RPTN(0, "MISS: %s\n", typeid(*m.get()).name());
-#endif
+//#if DEBUG_MOUSEOVER
+//				_RPTN(0, "MISS: %s\n", typeid(*m.get()).name());
+//#endif
 			}
 		}
 		isIteratingChildren = false;
-
-#if DEBUG_MOUSEOVER
-#endif
 
 		if(hitObject != mouseOverObject)
 		{
@@ -999,32 +1021,33 @@ namespace SE2
 		return gmpi::MP_OK;
 	}
 
+	//std::pair< IViewChild*, int> closestPin(CableType type)
+	//{
+
+	//}
+
 	void ViewBase::OnCableMove(ConnectorViewBase* dragline)
 	{
-		float bestDistanceSquared = 2 * sharedGraphicResources_struct::plugDiameter; // 4x drawn size is maximum snap distance.
-		bestDistanceSquared *= bestDistanceSquared;
+		// 4x drawn size is maximum snap distance.
+		constexpr float maxSnapRangeSquared = 4 * sharedGraphicResources_struct::plugDiameter * sharedGraphicResources_struct::plugDiameter; // 4x drawn size is maximum snap distance.
+		float bestDistanceSquared = maxSnapRangeSquared;
 
-		IViewChild* bestModule = nullptr;
+		ModuleView* bestModule{};
 		int bestPinIndex = 0;
 		for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
-		{
 			(*it)->OnCableDrag(dragline, dragline->dragPoint(), bestDistanceSquared, bestModule, bestPinIndex);
-		}
 
-		if(bestModule)
-		{
-			// snap line to pin.
-			if(dragline->draggingFromEnd == 0)
-			{
-				dragline->from_ = bestModule->getConnectionPoint(dragline->type, bestPinIndex);
-				dragline->from_ = dynamic_cast<ModuleView*>(bestModule)->parent->MapPointToView(this, dragline->from_);
-			}
-			else
-			{
-				dragline->to_ = bestModule->getConnectionPoint(dragline->type, bestPinIndex);
-				dragline->to_ = dynamic_cast<ModuleView*>(bestModule)->parent->MapPointToView(this, dragline->to_);
-			}
-		}
+		if (!bestModule)
+			return;
+
+		auto pinLocation = bestModule->getConnectionPoint(dragline->type, bestPinIndex);
+		pinLocation = bestModule->parent->MapPointToView(this, pinLocation);
+
+		// snap line to pin.
+		if(dragline->draggingFromEnd == 0)
+			dragline->from_ = pinLocation;
+		else
+			dragline->to_ = pinLocation;
 	}
 
 	// moving an existing cable
@@ -1066,14 +1089,13 @@ namespace SE2
 			int newModulePin = -1;
 
 			{
-				float bestDistanceSquared = 2 * sharedGraphicResources_struct::plugDiameter; // 4x drawn size is maximum snap distance.
-				bestDistanceSquared *= bestDistanceSquared;
+				// 2x drawn size is maximum snap distance.
+				constexpr float maxSnapRangeSquared = 4 * sharedGraphicResources_struct::plugDiameter * sharedGraphicResources_struct::plugDiameter; // 4x drawn size is maximum snap distance.
+				float bestDistanceSquared = maxSnapRangeSquared;
 
-				IViewChild* bestModule = nullptr;
+				ModuleView* bestModule{};
 				for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
-				{
 					(*it)->OnCableDrag(dragline, dragline->dragPoint(), bestDistanceSquared, bestModule, newModulePin);
-				}
 
 				if(bestModule)
 					newModuleHandle = bestModule->getModuleHandle();

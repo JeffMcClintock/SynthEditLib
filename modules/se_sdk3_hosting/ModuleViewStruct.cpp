@@ -2117,6 +2117,32 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 		return GmpiDrawing::Point(bounds_.right, y);
 	}
 
+	float ModuleViewStruct::hitTestFuzzy(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	{
+		constexpr float fuzzyLimit = 12.f;
+		constexpr float solidHit = 0.f;
+		constexpr float totalMiss = 100000.f;
+
+		if (!isVisable())
+			return totalMiss;
+
+		const auto r = getLayoutRect();
+
+		if (r.ContainsPoint(point))
+			return solidHit;
+
+		auto r2 = r;
+		r2.Inflate(fuzzyLimit, fuzzyLimit);
+
+		r2.top -= 16.0f; // allow for title bar.
+
+		if (!r2.ContainsPoint(point))
+			return totalMiss;
+
+		// return distance to outline
+		return max(max(r.left - point.x, point.x - r.right), max(r.top - point.y, point.y - r.bottom));
+	}
+
 	// Return pin under mouse and second, if it hit connection point (1) or only plug text (0).
 	std::pair<int,int> ModuleViewStruct::getPinUnderMouse(GmpiDrawing_API::MP1_POINT point)
 	{
@@ -2276,13 +2302,13 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 		ModuleView::vc_setHover(mouseIsOverMe);
 	}
 
-	void ModuleViewStruct::OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistanceSquared, IViewChild*& bestModule, int& bestPinIndex)
+	void ModuleViewStruct::OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistanceSquared, ModuleView*& bestModule, int& bestPinIndex)
 	{
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
 		if (dragline->type == CableType::StructureCable)
 		{
-			auto point = dragPoint; // dragline->dragPoint();
+			auto point = dragPoint;
 
 			const float pinHitRadius = bestDistanceSquared;
 

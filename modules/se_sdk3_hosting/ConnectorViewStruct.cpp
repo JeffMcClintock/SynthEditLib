@@ -488,7 +488,7 @@ namespace SE2
 	int32_t ConnectorView2::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 	{
 		// dragging something.
-	if (imCaptured()) //if (parent->getCapture())
+		if (imCaptured())
 		{
 			// dragging a node.
 			if (draggingNode != -1)
@@ -498,7 +498,7 @@ namespace SE2
 				if (delta.width != 0.0f || delta.height != 0.0f) // avoid false snap on selection
 				{
 					const float halfGrid = snapGridSize * 0.5f;
-					
+
 					GmpiDrawing::Point snapReference = nodes[draggingNode];
 
 					// nodes snap to center of grid, not lines of grid like modules do

@@ -6,11 +6,10 @@
 #include "modules/se_sdk3_hosting/gmpi_gui_hosting.h"
 #include "InterfaceObject.h"
 #include "IGuiHost2.h"
-#include "../shared/xplatform_modifier_keys.h"
 #include "BundleInfo.h"
 #include "module_info.h"
 
-class JsonPresenterBase : public SE2::IPresenter
+class JsonPresenterBase : public PresenterBase
 {
 protected:
 	SE2::ViewBase* view = {};
@@ -219,23 +218,6 @@ public:
 	IGuiHost2* getPatchManager()
 	{
 		return controller_;
-	}
-
-	bool CanConnect(SE2::CableType cabletype, int32_t fromModule, int fromPin, int32_t toModule, int toPin) override
-	{
-		auto fromUg = HandleToObject(fromModule);
-		auto toUg = HandleToObject(toModule);
-
-		if (fromUg == nullptr || toUg == nullptr)
-			return false;
-
-		auto fromType = fromUg->getModuleType();
-		auto toType = toUg->getModuleType();
-
-		int toPinDirection = toType->plugs[toPin]->GetDirection();
-		int fromPinDirection = fromType->plugs[fromPin]->GetDirection();
-
-		return fromPinDirection != toPinDirection;
 	}
 
 	bool AddPatchCable(int32_t fromModule, int fromPin, int32_t toModule, int toPin, int colorIndex, bool placeAtBack) override

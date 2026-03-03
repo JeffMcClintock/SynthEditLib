@@ -321,7 +321,7 @@ namespace SE2
 
 	int32_t ConnectorViewBase::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 	{
-		if (imCaptured()) //parent->getCapture())
+		if (imCaptured())
 		{
 			if (draggingFromEnd == 0)
 				from_ = point;

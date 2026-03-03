@@ -51,7 +51,7 @@ int32_t SubView::StartCableDrag(SE2::IViewChild* fromModule, int fromPin, Point 
 	return moduleview->parent->StartCableDrag(fromModule, fromPin, dragStartPoint, isHeldAlt);
 }
 
-void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::IViewChild*& bestModule, int& bestPinIndex)
+void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex)
 {
 	dragPoint -= offset_;
 

@@ -12,7 +12,7 @@ namespace SE2
 //class DECLSPEC_NOVTABLE ISubView : public gmpi::IMpUnknown
 //{
 //public:
-//	virtual void OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::IViewChild*& bestModule, int& bestPinIndex) = 0;
+//	virtual void OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex) = 0;
 //	virtual bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT* point) = 0;
 //	virtual bool MP_STDCALL isVisible() = 0;
 //};
@@ -121,7 +121,7 @@ public:
 	int32_t StartCableDrag(SE2::IViewChild* fromModule, int fromPin, GmpiDrawing::Point dragStartPoint, bool isHeldAlt, SE2::CableType type) override;
 
 	// ISubView
-	void OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::IViewChild*& bestModule, int& bestPinIndex) override;
+	void OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex) override;
 	bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT* point) override;
 	bool MP_STDCALL isVisible() override
 	{

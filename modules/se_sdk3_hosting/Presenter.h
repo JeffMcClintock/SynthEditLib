@@ -78,3 +78,9 @@ enum class CableType;
 		// - HERE --
 	};
 }
+
+class PresenterBase : public SE2::IPresenter
+{
+public:
+	bool CanConnect(SE2::CableType cabletype, int32_t fromModule, int fromPin, int32_t toModule, int toPin) override;
+};

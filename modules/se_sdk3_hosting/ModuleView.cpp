@@ -773,9 +773,6 @@ namespace SE2
 					break;
 				}
 			}
-
-			//for (auto it = other.connections_.find(otherPinIdx); it != other.connections_.end() && (*it).first == otherPinIdx; ++it)
-			//	it = other.connections_.erase(it);
 		}
 
 		connections_.clear();
@@ -873,15 +870,7 @@ namespace SE2
 
 	bool ModuleView::hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 	{
-		if (isVisable())
-		{
-			auto bounds = getLayoutRect();
-			if (bounds.ContainsPoint(point))
-			{
-				return true;
-			}
-		}
-		return false;
+		return isVisable() && getLayoutRect().ContainsPoint(point);
 	}
 
 	void ModuleView::vc_setHover(bool mouseIsOverMe)
@@ -998,7 +987,7 @@ namespace SE2
 		return clientHit && ((flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) == 0) ? gmpi::MP_OK : gmpi::MP_UNHANDLED;
 	}
 
-	void ModuleView::OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistanceSquared, IViewChild*& bestModule, int& bestPinIndex)
+	void ModuleView::OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistanceSquared, ModuleView*& bestModule, int& bestPinIndex)
 	{
 		if (dragline->type != CableType::PatchCable)
 			return;

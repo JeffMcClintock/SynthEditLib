@@ -34,7 +34,7 @@ class IViewChild;
 class DECLSPEC_NOVTABLE ISubView : public gmpi::IMpUnknown
 {
 public:
-	virtual void OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::IViewChild*& bestModule, int& bestPinIndex) = 0;
+	virtual void OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex) = 0;
 	virtual bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT* point) = 0;
 	virtual bool MP_STDCALL isVisible() = 0;
 	virtual void process() = 0;
@@ -382,7 +382,7 @@ namespace SE2
 		std::string getToolTip(GmpiDrawing_API::MP1_POINT point) override;
 		void receiveMessageFromAudio(void*) override;
 
-		void OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, IViewChild*& bestModule, int& bestPinIndex) override;
+		void OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, ModuleView*& bestModule, int& bestPinIndex) override;
 		GmpiDrawing::Point getConnectionPoint(CableType cableType, int pinIndex) override;
 		std::vector<patchpoint_description>* getPatchPoints();
 
@@ -511,6 +511,10 @@ namespace SE2
 		}
 		bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
 		bool hitTestR(int32_t flags, GmpiDrawing_API::MP1_RECT selectionRect) override;
+		float hitTestFuzzy(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
+		{
+			return hitTest(flags, point) ? 0.0f : 10000.0f;
+		}
 
 		bool isShown() override;
 		bool isDraggable(bool editEnabled) override;

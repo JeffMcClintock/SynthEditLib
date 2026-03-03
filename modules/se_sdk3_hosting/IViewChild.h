@@ -31,6 +31,7 @@ namespace SE2
 		virtual void OnRender(GmpiDrawing::Graphics& g) = 0;
 		virtual bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point) = 0;
 		virtual bool hitTestR(int32_t flags, GmpiDrawing_API::MP1_RECT rect) = 0;
+		virtual float hitTestFuzzy(int32_t flags, GmpiDrawing_API::MP1_POINT point) = 0;
 		virtual int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) = 0;
 		virtual int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) = 0;
 		virtual int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) = 0;
@@ -67,7 +68,7 @@ namespace SE2
 		{
 			return false;
 		}
-		virtual void OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, IViewChild*& bestModule, int& bestPinIndex)
+		virtual void OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, class ModuleView*& bestModule, int& bestPinIndex)
 		{
 		}
 
@@ -155,6 +156,10 @@ namespace SE2
 		bool hitTestR(int32_t flags, GmpiDrawing_API::MP1_RECT selectionRect) override
 		{
 			return isOverlapped(GmpiDrawing::Rect(selectionRect), getLayoutRect());
+		}
+		float hitTestFuzzy(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
+		{
+			return getLayoutRect().ContainsPoint(point);
 		}
 
 		std::string getToolTip(GmpiDrawing_API::MP1_POINT point) override

@@ -491,6 +491,7 @@ se_file_format_version.h
 conversion.h
 conversion.cpp
 modules/se_sdk3_hosting/Presenter.h
+modules/se_sdk3_hosting/Presenter.cpp
 )
 
 IF(APPLE)
