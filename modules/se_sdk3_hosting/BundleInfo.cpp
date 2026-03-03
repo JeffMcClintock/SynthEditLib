@@ -538,7 +538,7 @@ const BundleInfo::pluginInformation& BundleInfo::getPluginInfo()
 
 void BundleInfo::initPluginInfo()
 {
-#ifdef SELIB_HAS_FILESYSTEM
+#if 1 // def SELIB_HAS_FILESYSTEM
     const std::filesystem::path path(gmpi_dynamic_linking::MP_GetDllFilename());
 
     // are we in the editor?
@@ -546,6 +546,7 @@ void BundleInfo::initPluginInfo()
     {
         isEditor =
             filename.find(L"SynthEdit2.exe") != std::string::npos ||
+            filename.find(L"SynthEditCL") != std::string::npos ||
             filename.find(L"SynthEdit.") != std::string::npos ||
             filename.find(L"TIDE") == 0;
     }

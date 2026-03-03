@@ -9,10 +9,9 @@
 #include <math.h>
 #include <assert.h>
 #include <cctype>
+#include <format>
 #include <sys/stat.h> // mkdir
-#ifdef SELIB_HAS_FILESYSTEM
 #include <filesystem>
-#endif
 #include "conversion.h"
 #include "modules/se_sdk3/it_enum_list.h"
 #include "midi_defs.h"
@@ -164,6 +163,22 @@ std::wstring FloatToString(float val, int p_decimal_places) // better becuase it
 	*/
 	return s;
 }
+
+// for displaying a floating point value with 'enough' accuracy.
+// should retain one trailing zero after point to indicate that's it's a float not an integer.
+std::string NiceDoubleToString(double value)
+{
+	if (!std::isfinite(value))
+	{
+		return {};
+	}
+
+	const auto absValue = std::fabs(value);
+	const int precision = absValue < 0.001 ? 1 : absValue < 1.0 ? 3 : absValue < 10.0 ? 2 : absValue < 100.0 ? 1 : 0;
+
+	return std::format("{:.{}f}", value, precision);
+}
+
 
 // bigdog  -> bigdog
 // big dog -> 'big dog'
@@ -1022,14 +1037,14 @@ void FileToString(const platform_string& path, std::string& buffer)
 // Works only if user has permissions.
 bool CreateFolderRecursive(std::wstring folderPath)
 {
-#ifdef SELIB_HAS_FILESYSTEM
 	std::filesystem::path path(folderPath);
 
 	assert(!folderPath.empty());
 	assert(path.is_absolute());
 
 	return std::filesystem::create_directories(path);
-#else
+
+#if 0 // old way
 	vector<wstring> paths;
 
 	while (folderPath.size() > 2)  // C:
