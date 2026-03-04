@@ -970,6 +970,11 @@ namespace SE2
 			auto brush = g.CreateSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
 			g.FillRoundedRectangle({ scopeRect, 3.0f }, brush);
 
+			// axis line
+			const float midY = scopeRect.top + scopeRect.getHeight() * 0.5f;
+			brush.SetColor(Color(0, 0, 0.0f, 0.7f));
+			g.DrawLine({ scopeRect.left, midY }, { scopeRect.right, midY }, brush, 0.5f);
+
 			brush.SetColor(Color::Lime);
 
 			if (scopeIsWave)
