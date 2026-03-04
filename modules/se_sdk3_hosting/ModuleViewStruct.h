@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include "ModuleView.h"
 
 namespace SE2
