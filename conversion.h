@@ -17,6 +17,7 @@ int StringToInt(const std::wstring& string, int p_base = 10);
 int StringToInt(const char* string, int p_base = 10);
 std::wstring DoubleToString(double val);
 std::string NiceDoubleToString(double value);
+std::string NiceFormatted(std::wstring value, EPlugDataType datatype);
 std::string QuoteStringIfSpaces(const std::string& s);
 std::string UnQuoteStringIfSpaces(const std::string& s);
 std::wstring FloatToString(float val, int p_decimal_places = -1); // better

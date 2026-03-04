@@ -954,10 +954,8 @@ namespace SE2
 		}
 
 		// Hover scope
-		if (hoverPin > -1)
+		if (hoverPin > -1 && !hoverScopeText.empty())
 		{
-//			const auto& pin = plugs_[hoverPin];
-
 			const auto scopeRect = calcScopeRect(hoverPin);
 
 			auto brush = g.CreateSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
@@ -965,7 +963,7 @@ namespace SE2
 
 			brush.SetColor(Color::LimeGreen);
 
-			if (scopeIsWave) //hoverScopeWaveform)
+			if (scopeIsWave)
 			{
 #if 1
 				auto geometry = g.GetFactory().CreatePathGeometry();
@@ -1044,7 +1042,7 @@ namespace SE2
 	{
 		hoverScopeText = text;
 
-		if (hoverPin > -1)
+		if (hoverPin > -1 && !hoverScopeText.empty())
 		{
 			const auto& pin = plugs_[hoverPin];
 
@@ -2281,6 +2279,8 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 			{
 				hoverPin = newHoverPin;
 				hoverScopeWaveform = {};
+				scopeIsWave = false;
+				hoverScopeText.clear();
 
 				Presenter()->setHoverScopePin(handle, newHoverPin);
 

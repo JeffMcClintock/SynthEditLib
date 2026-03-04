@@ -179,6 +179,30 @@ std::string NiceDoubleToString(double value)
 	return std::format("{:.{}f}", value, precision);
 }
 
+// formatted sensible for display
+std::string NiceFormatted(std::wstring value, EPlugDataType datatype)
+{
+	switch (datatype)
+	{
+	case DT_BOOL:
+		return atoi(WStringToUtf8(value).c_str()) == 0 ? "false" : "true";
+
+	case DT_INT:
+	case DT_INT64:
+		return std::to_string(atoi(WStringToUtf8(value).c_str()));
+
+	case DT_FLOAT:
+	case DT_DOUBLE:
+	case DT_FSAMPLE:
+		return NiceDoubleToString(atof(WStringToUtf8(value).c_str()));
+
+	case DT_TEXT:
+	case DT_STRING_UTF8:
+	default:
+		return WStringToUtf8(value);
+	}
+}
+
 
 // bigdog  -> bigdog
 // big dog -> 'big dog'
