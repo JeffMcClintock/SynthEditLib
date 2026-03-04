@@ -9,7 +9,6 @@
 #include <math.h>
 #include <assert.h>
 #include <cctype>
-#include <format>
 #include <sys/stat.h> // mkdir
 #include <filesystem>
 #include "conversion.h"
@@ -24,6 +23,16 @@
 #if _MSC_VER >= 1600 // Not Avail in VS2005.
 //#include <cvt/wstring>
 #include <codecvt>
+#endif
+
+#if defined(__APPLE__) && defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && (__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 130300)
+#define SE_USE_STD_FORMAT_FLOAT 0
+#else
+#define SE_USE_STD_FORMAT_FLOAT 1
+#endif
+
+#if SE_USE_STD_FORMAT_FLOAT
+#include <format>
 #endif
 
 using namespace std;
@@ -177,7 +186,13 @@ std::string NiceDoubleToString(double value)
 	const auto absValue = std::fabs(value);
 	const int precision = absValue < 0.001 ? 1 : absValue < 1.0 ? 3 : absValue < 10.0 ? 2 : absValue < 100.0 ? 1 : 0;
 
+	#if SE_USE_STD_FORMAT_FLOAT
 	return std::format("{:.{}f}", value, precision);
+	#else
+	std::ostringstream oss;
+	oss << std::fixed << std::setprecision(precision) << value;
+	return oss.str();
+	#endif
 }
 
 // formatted sensible for display. input is value as a human readable string.
