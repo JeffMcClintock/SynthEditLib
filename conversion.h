@@ -4,6 +4,7 @@
 #include "./modules/se_sdk2/se_datatypes.h"
 #include "./modules/shared/string_utilities.h"
 #include "se_types.h"
+#include "RawView.h"
 
 // collection of handy general purpose routines
 
@@ -18,6 +19,7 @@ int StringToInt(const char* string, int p_base = 10);
 std::wstring DoubleToString(double val);
 std::string NiceDoubleToString(double value);
 std::string NiceFormatted(std::wstring value, EPlugDataType datatype);
+std::string NiceFormatted(const RawView raw, EPlugDataType datatype);
 std::string QuoteStringIfSpaces(const std::string& s);
 std::string UnQuoteStringIfSpaces(const std::string& s);
 std::wstring FloatToString(float val, int p_decimal_places = -1); // better

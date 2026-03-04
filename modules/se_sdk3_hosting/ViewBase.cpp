@@ -229,7 +229,7 @@ namespace SE2
 
 										auto raw = ParseToRaw(dt, default_element.asString());
 
-										wrapper->setPin(0, 0, pinId, 0, (int32_t)raw.size(), (void*)(&raw[0]));
+										wrapper->setPin(0, 0, pinId, 0, (int32_t)raw.size(), (void*)raw.data());
 
 										alreadSetDefault.push_back(pinId);
 									}

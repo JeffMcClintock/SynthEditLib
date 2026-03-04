@@ -15,13 +15,6 @@
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
 #include "mfc_emulation.h"
 
-//#include "modules/shared/xplatform_modifier_keys.h"
-//#include "UgDatabase2.h"
-//#include "RawConversions.h"
-//#include "DragLine.h"
-//#include "SubViewPanel.h"
-//#include "SubViewCadmium.h"
-
 using namespace gmpi;
 using namespace std;
 using namespace GmpiDrawing_API;
@@ -209,6 +202,9 @@ namespace SE2
 		{
 			p.indexCombined = pinIndexCombined++;
 		}
+
+		// technically don't need DSP pins here.
+		editorPinValues = std::make_unique<std::vector<std::vector<uint8_t>>>(plugs_.size());
 
 		// Sort visually.
 		/* screws up hit detectiosn
@@ -2272,14 +2268,9 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 		{
 			int newHoverPin = -1;
 
-			auto toPin = getPinUnderMouse(point);
-			if (toPin.first >= 0)
-			{
-				if (toPin.second == 0) // Hit connection circle.
-				{
-					newHoverPin = toPin.first;
-				}
-			}
+			auto pin = getPinUnderMouse(point);
+			if (pin.first >= 0 && pin.second == 0) // Hit connection circle.
+				newHoverPin = pin.first;
 
 			if (hoverPin != newHoverPin)
 			{
@@ -2289,9 +2280,24 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 				hoverScopeText.clear();
 				std::fill(std::begin(movingPeaks), std::end(movingPeaks), -99.0f);
 
-				Presenter()->setHoverScopePin(handle, newHoverPin);
+				int dspHoverPin = hoverPin;
 
-				invalidateRect(0);
+				if (hoverPin >= 0)
+				{
+					if (plugs_[hoverPin].isGuiPlug)
+					{
+						if (editorPinValues)
+						{
+							auto& raw = editorPinValues->at(hoverPin);
+
+							dspHoverPin = -1; // CUG has nothing to do.
+							hoverScopeText = NiceFormatted(raw, (EPlugDataType) plugs_[hoverPin].datatype);
+						}
+					}
+				}
+				Presenter()->setHoverScopePin(handle, dspHoverPin);
+
+				invalidateRect(nullptr);
 			}
 		}
 
@@ -2303,7 +2309,7 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 		if (!mouseIsOverMe && hoverPin != -1)
 		{
 			hoverPin = -1;
-			invalidateRect(0);
+			invalidateRect(nullptr);
 		}
 
 		ModuleView::vc_setHover(mouseIsOverMe);

@@ -16,6 +16,7 @@
 #include "modules/se_sdk3/it_enum_list.h"
 #include "midi_defs.h"
 #include "IPluginGui.h"
+#include "RawConversions.h"
 
 #include "mfc_emulation.h"
 
@@ -179,7 +180,7 @@ std::string NiceDoubleToString(double value)
 	return std::format("{:.{}f}", value, precision);
 }
 
-// formatted sensible for display
+// formatted sensible for display. input is value as a human readable string.
 std::string NiceFormatted(std::wstring value, EPlugDataType datatype)
 {
 	switch (datatype)
@@ -200,6 +201,36 @@ std::string NiceFormatted(std::wstring value, EPlugDataType datatype)
 	case DT_STRING_UTF8:
 	default:
 		return WStringToUtf8(value);
+	}
+}
+
+// formatted sensible for display. input is value as raw bytes.
+std::string NiceFormatted(const RawView raw, EPlugDataType datatype)
+{
+	// check data is the right size, raw can be empty.
+	const auto expectedSize = getDataTypeSize(datatype);
+	if(expectedSize != 0 && expectedSize != raw.size())
+		return "???";
+
+	switch (datatype)
+	{
+	case DT_BOOL:
+		return (bool) raw ? "true" : "false";
+	case DT_INT:
+		return std::to_string((int32_t) raw);
+	case DT_INT64:
+		return std::to_string((int64_t)raw);
+	case DT_FLOAT:
+	case DT_FSAMPLE:
+		return NiceDoubleToString((float) raw);
+	case DT_DOUBLE:
+		return NiceDoubleToString((double)raw);
+	case DT_TEXT:
+		return WStringToUtf8((std::wstring)raw);
+	case DT_STRING_UTF8:
+		return (std::string)raw;
+	default:
+		return "???";
 	}
 }
 
