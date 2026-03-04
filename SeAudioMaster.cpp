@@ -1223,43 +1223,67 @@ void SeAudioMaster::UpdateCpu(int64_t nanosecondsElapsed)
 		// hover-scope
 		if (hoverScopePin)
 		{
-			if (DT_FSAMPLE == hoverScopePin->DataType)
+			if (DT_FSAMPLE != hoverScopePin->DataType)
 			{
-				/*
-				const float currentValue = hoverScopePin->GetSamplePtr()[0];
-
-				my_msg_que_output_stream strm(queue, hoverScopePin->UG->Handle(), "hvsd");
-				strm << static_cast<int32_t>(sizeof(float)); // message length.
-				strm << currentValue;
-				strm.Send();
-				*/
-
-			}
-			else
-			{
-				UPlug* ValuePin{};
-				if (hoverScopePin->Direction == DR_IN)
-				{
-					ValuePin = hoverScopePin->connections.empty() ? nullptr : hoverScopePin->connections[0];
-				}
-				else
-				{
-					ValuePin = hoverScopePin;
-				}
+				UPlug* ValuePin = 
+					hoverScopePin->Direction == DR_IN ?
+					(hoverScopePin->connections.empty() ? nullptr : hoverScopePin->connections[0])
+					: hoverScopePin;
 
 				if (ValuePin)
 				{
-					RawView rview(ValuePin->currentRawValue);
+					RawView raw(ValuePin->currentRawValue);
 
-					if (DT_FLOAT == hoverScopePin->DataType)
+					std::string text;
+					switch (hoverScopePin->DataType)
 					{
-						const auto currentValue = (float)rview;
+					case DT_FLOAT:
+						text = NiceDoubleToString((float) raw);
+						break;
 
-						my_msg_que_output_stream strm(queue, hoverScopePin->UG->Handle(), "hvsd");
-						strm << static_cast<int32_t>(sizeof(float)); // message length.
-						strm << currentValue;
-						strm.Send();
+					case DT_DOUBLE:
+						text = NiceDoubleToString((double) raw);
+						break;
+
+					case DT_INT:
+						text = std::to_string((int32_t) raw);
+						break;
+
+					case DT_INT64:
+						text = std::to_string((int64_t)raw);
+						break;
+
+					case DT_BOOL:
+						text = ((bool)raw) ? "true" : "false";
+						break;
+
+					case DT_TEXT:
+						text = WStringToUtf8((std::wstring)raw);
+						break;
+
+					case DT_STRING_UTF8:
+						text = (std::string)raw;
+						break;
+
+					case DT_ENUM:
+						{
+							my_msg_que_output_stream strm(queue, hoverScopePin->UG->Handle(), "hvse");
+							strm << static_cast<int32_t>(sizeof(int32_t)); // message length.
+							strm << ((int32_t) raw);
+							strm.Send();
+							return;
+						}
+						break;
+
+					default:
+						text = "??";
+						break;
 					}
+
+					my_msg_que_output_stream strm(queue, hoverScopePin->UG->Handle(), "hvsv");
+					strm << static_cast<int32_t>(text.size() + sizeof(int32_t)); // message length.
+					strm << text;
+					strm.Send();
 				}
 			}
 		}

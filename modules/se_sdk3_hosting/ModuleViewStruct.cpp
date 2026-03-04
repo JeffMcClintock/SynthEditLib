@@ -8,18 +8,19 @@
 #include "ConnectorView.h"
 #include "UgDatabase.h"
 #include "modules/shared/xplatform.h"
-#include "modules/shared/xplatform_modifier_keys.h"
-#include "UgDatabase2.h"
 #include "InterfaceObject.h"
-#include "RawConversions.h"
-#include "DragLine.h"
-#include "SubViewPanel.h"
-#include "SubViewCadmium.h"
 #include "cpu_accumulator.h"
 #include "ResizeAdorner.h"
 #include "modules/shared/GraphHelpers.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
 #include "mfc_emulation.h"
+
+//#include "modules/shared/xplatform_modifier_keys.h"
+//#include "UgDatabase2.h"
+//#include "RawConversions.h"
+//#include "DragLine.h"
+//#include "SubViewPanel.h"
+//#include "SubViewCadmium.h"
 
 using namespace gmpi;
 using namespace std;
@@ -1046,6 +1047,10 @@ namespace SE2
 		{
 			const auto& pin = plugs_[hoverPin];
 
+			if (pin.datatype == DT_ENUM)
+			{
+			}
+
 			GmpiDrawing::Rect scopeRect{ 0, 0, 50, sharedGraphicResources_struct::plugDiameter };
 
 			scopeRect.Offset(pin.direction == DR_IN ? -scopeRect.getWidth() - 2 : bounds_.getWidth() + 2, static_cast<float>(hoverPin * sharedGraphicResources_struct::plugDiameter));
@@ -1055,6 +1060,7 @@ namespace SE2
 		}
 		scopeIsWave = false;
 	}
+
 	void ModuleViewStruct::SetHoverScopeWaveform(std::unique_ptr< std::vector<float> > data)
 	{
 #if 0
