@@ -192,6 +192,7 @@ std::wstring BundleInfo::getSemFolder()
     if (pluginIsBundle)
     {
         const auto path = gmpi_dynamic_linking::MP_GetDllFilename();
+		assert(path.rfind(L"Contents") != std::string::npos); // if this fails, we might not be running in a bundle, or the bundle structure is wrong.
         return path.substr(0, path.rfind(L"Contents")) + L"Contents/Plugins/";
     }
 
@@ -553,6 +554,7 @@ void BundleInfo::initPluginInfo()
 
 
     // are we in a bundle? path contains "*.vst3/Contents/"
+    pluginIsBundle = false;
 	std::string bundleExtension;
     for(auto it = path.begin(); it != path.end(); ++it)
     {
