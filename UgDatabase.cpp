@@ -15,6 +15,7 @@
 #include "IPluginGui.h"
 #include "tinyxml/tinyxml.h"
 #include "./modules/shared/xplatform.h"
+//#include "./modules/shared/xm_dynamic_linking.h"
 #include "InterfaceObject.h"
 #include "BundleInfo.h"
 #include "platform.h"
@@ -35,7 +36,7 @@ typedef std::pair <std::wstring, Module_Info*> string_mod_info_pair;
 
 using namespace std;
 using namespace gmpi_sdk;
-using namespace gmpi_dynamic_linking;
+//using namespace gmpi_dynamic_linking;
 
 std::mutex RegisterExternalPluginsXmlOnce_lock;
 
