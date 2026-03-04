@@ -41,21 +41,18 @@ void HoverScopeAudioCollector::process(int blockPosition, int sampleFrames)
 			resultsA_[index_++] = pointMin;
 			resultsA_[index_++] = pointMax;
 
-//			if (index_ >= captureSamples)
-			{
-				const int32_t valueCount = index_;
-				const int32_t totalBytes = static_cast<int32_t>(sizeof(float)) * valueCount;
+			const int32_t valueCount = index_;
+			const int32_t totalBytes = static_cast<int32_t>(sizeof(float)) * valueCount;
 
-				my_msg_que_output_stream strm(queue, moduleHandle, "hvsw"); // hoverscope waveform.
-				strm << static_cast<int32_t>(totalBytes + sizeof(int32_t)); // message size (waveform + count)
-				strm << valueCount;
-				strm.Write(resultsA_, totalBytes);
-				strm.Send();
+			my_msg_que_output_stream strm(queue, moduleHandle, "hvsw"); // hoverscope waveform.
+			strm << static_cast<int32_t>(totalBytes + sizeof(int32_t)); // message size (waveform + count)
+			strm << valueCount;
+			strm.Write(resultsA_, totalBytes);
+			strm.Send();
 
-				index_ = 0;
-				pointMin = *signalA;
-				pointMax = *signalA;
-			}
+			index_ = 0;
+			pointMin = *signalA;
+			pointMax = *signalA;
 		}
 		else
 		{

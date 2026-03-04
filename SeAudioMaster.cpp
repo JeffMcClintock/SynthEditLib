@@ -1494,17 +1494,14 @@ void SeAudioMaster::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 				assert(hoverModule->plugs.size() > pinIdx && pinIdx >= 0);
 				hoverScopePin = hoverModule->GetPlug(pinIdx);
 
-				if (hoverScopePin)
+				if (hoverScopePin && hoverScopePin->DataType == DT_FSAMPLE)
 				{
-					if (hoverScopePin->DataType == DT_FSAMPLE)
-					{
-						hoverScopeModule = std::make_unique<HoverScopeAudioCollector>(
-							hoverScopePin->UG->Handle()
-							, static_cast<int>(SampleRate())
-							, hoverScopePin->GetSamplePtr()
-							, getShell()->MessageQueToGui()
-						);
-					}
+					hoverScopeModule = std::make_unique<HoverScopeAudioCollector>(
+						hoverScopePin->UG->Handle()
+						, static_cast<int>(SampleRate())
+						, hoverScopePin->GetSamplePtr()
+						, getShell()->MessageQueToGui()
+					);
 				}
 			}
 		}

@@ -655,22 +655,31 @@ namespace SE2
 		constexpr auto& plugDiameter = sharedGraphicResources_struct::plugDiameter;
 		Rect scopeRect{ 0, 0, 48, scopeIsWave ? plugDiameter * 2.0f : plugDiameter};
 
-		float visiblePinrank = -0.5f;
+		float y = 0.5f * plugDiameter;
 		for (const auto& pin : plugs_)
 		{
 			if (pin.isVisible)
 			{
 				if (pin.indexCombined == hoverPin)
 				{
-					scopeRect.Offset(pin.direction == DR_IN ? -scopeRect.getWidth() - 2 : bounds_.getWidth() + 2, visiblePinrank * plugDiameter);
+					float w = 48.f;
+					float h2 = scopeIsWave ? plugDiameter : plugDiameter * 0.6f;
+					float x = pin.direction == DR_IN ? -w - 2 : bounds_.getWidth() + 2;
+					return
+					{
+						x,
+						y - h2,
+						x + w,
+						y + h2
+					};
 					break;
 				}
 
-				visiblePinrank++;
+				y += plugDiameter;
 			}
 		}
 
-		return scopeRect;
+		return {};
 	}
 	
 	void ModuleViewStruct::OnRender(GmpiDrawing::Graphics& g)
@@ -961,7 +970,7 @@ namespace SE2
 			auto brush = g.CreateSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
 			g.FillRoundedRectangle({ scopeRect, 3.0f }, brush);
 
-			brush.SetColor(Color::LimeGreen);
+			brush.SetColor(Color::Lime);
 
 			if (scopeIsWave)
 			{
