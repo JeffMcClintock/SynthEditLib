@@ -653,7 +653,7 @@ namespace SE2
 	Rect ModuleViewStruct::calcScopeRect(int pinIdx)
 	{
 		constexpr auto& plugDiameter = sharedGraphicResources_struct::plugDiameter;
-		Rect scopeRect{ 0, 0, 48, plugDiameter * 2.0f };
+		Rect scopeRect{ 0, 0, 48, scopeIsWave ? plugDiameter * 2.0f : plugDiameter};
 
 		float visiblePinrank = -0.5f;
 		for (const auto& pin : plugs_)
@@ -676,7 +676,6 @@ namespace SE2
 	void ModuleViewStruct::OnRender(GmpiDrawing::Graphics& g)
 	{
 		constexpr auto& plugDiameter = sharedGraphicResources_struct::plugDiameter;
-//		constexpr auto plugTextSize = sharedGraphicResources_struct::plugTextSize;
 
 #if 0 // debug layout and clip rects
 		g.FillRectangle(GetClipRect(),   g.CreateSolidColorBrush(Color::FromArgb(0x200000ff)));
@@ -960,13 +959,12 @@ namespace SE2
 			const auto scopeRect = calcScopeRect(hoverPin);
 
 			auto brush = g.CreateSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
-			g.FillRectangle(scopeRect, brush);
+			g.FillRoundedRectangle({ scopeRect, 3.0f }, brush);
 
 			brush.SetColor(Color::LimeGreen);
 
 			if (scopeIsWave)
 			{
-#if 1
 				auto geometry = g.GetFactory().CreatePathGeometry();
 				auto sink = geometry.Open();
 
@@ -978,59 +976,47 @@ namespace SE2
 				const int indexMask = static_cast<int>(std::size(movingPeaks)) - 1;
 
 				// top line
+				bool begun{};
 				for (int i = 0; i < numPoints * 2; i += 2)
 				{
 					int j = indexMask & (movingPeaksIdx + i);
 
-					p.y = yMiddle - yScale * movingPeaks[j];
-					if (i == 0)
-						sink.BeginFigure(p);
-					else
-						sink.AddLine(p);
+					if (movingPeaks[j] > -90.0f)
+					{
+						p.y = yMiddle - yScale * movingPeaks[j];
+						if (!begun)
+						{
+							sink.BeginFigure(p);
+							begun = true;
+						}
+						else
+						{
+							sink.AddLine(p);
+						}
+					}
 
 					p.x += dx;
 				}
 
-				// bottom line
-				for (int i = numPoints * 2 - 1; i > 0; i -= 2)
+				if (begun)
 				{
-					int j = indexMask & (movingPeaksIdx + i);
+					// bottom line
+					for (int i = numPoints * 2 - 1; i > 0; i -= 2)
+					{
+						int j = indexMask & (movingPeaksIdx + i);
 
-					p.x -= dx;
-					p.y = yMiddle - yScale * movingPeaks[j];
-					sink.AddLine(p);
-				}
-				sink.EndFigure(FigureEnd::Open);
-				sink.Close();
+						if (movingPeaks[j] <= -90.0f)
+							break;
 
-				g.DrawGeometry(geometry, brush, 1.0f);
-
-#else
-
-				auto geometry = g.GetFactory().CreatePathGeometry();
-				auto sink = geometry.Open();
-
-				const float yScale = scopeRect.getHeight() * 0.5f;
-				const float yMiddle = scopeRect.top + yScale;
-				const float dx = scopeRect.getWidth() / static_cast<float>(hoverScopeWaveform->size());
-				Point p{ scopeRect.left, 0.f };
-
-				for (int i = 0; i < hoverScopeWaveform->size(); ++i)
-				{
-					p.y = yMiddle - yScale * (*hoverScopeWaveform)[i];
-					if (i == 0)
-						sink.BeginFigure(p);
-					else
+						p.x -= dx;
+						p.y = yMiddle - yScale * movingPeaks[j];
 						sink.AddLine(p);
+					}
+					sink.EndFigure(FigureEnd::Open);
+					sink.Close();
 
-					p.x += dx;
+					g.DrawGeometry(geometry, brush, 1.0f);
 				}
-
-				sink.EndFigure(FigureEnd::Open);
-				sink.Close();
-
-				g.DrawGeometry(geometry, brush, 1.0f);
-#endif
 			}
 			else
 			{
@@ -2287,6 +2273,7 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 				hoverScopeWaveform = {};
 				scopeIsWave = false;
 				hoverScopeText.clear();
+				std::fill(std::begin(movingPeaks), std::end(movingPeaks), -99.0f);
 
 				Presenter()->setHoverScopePin(handle, newHoverPin);
 

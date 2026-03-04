@@ -1267,6 +1267,7 @@ void SeAudioMaster::UpdateCpu(int64_t nanosecondsElapsed)
 
 					case DT_ENUM:
 						{
+							// special case: can't get enum text, so delegate that to CUG::OnDspMsg().
 							my_msg_que_output_stream strm(queue, hoverScopePin->UG->Handle(), "hvse");
 							strm << static_cast<int32_t>(sizeof(int32_t)); // message length.
 							strm << ((int32_t) raw);
