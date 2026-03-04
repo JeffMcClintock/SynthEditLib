@@ -655,10 +655,6 @@ namespace SE2
 		if (recursionStopper_ < 10)
 		{
 			++recursionStopper_;
-
-			if (editorPinValues)
-				editorPinValues->at(pinId).assign((uint8_t*)data, size + (uint8_t*)data);
-
 #if 0
 			auto c = (const char*)data;
 			_RPT3(_CRT_WARN, "ModuleView[%S]::setPin: pin=%d, voice=%d val=", moduleInfo->GetName().c_str(), pinId, voice);

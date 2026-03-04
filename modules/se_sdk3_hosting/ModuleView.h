@@ -161,8 +161,6 @@ namespace SE2
 
 		bool initialised_;
 		std::vector<int> inputPinIds;
-		// retains current pin value for displaying on hoverscopes.
-		std::unique_ptr < std::vector<std::vector<uint8_t> >> editorPinValues;
 		bool ignoreMouse;
 		int SortOrder = -1;
 
@@ -224,9 +222,6 @@ namespace SE2
 		// Plugin UI updates a parameter.
 		int32_t pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice) override
 		{
-			if (editorPinValues)
-				editorPinValues->at(pinId).assign((uint8_t*)data, size + (uint8_t*)data);
-
 			auto it = connections_.find(pinId);
 			while (it != connections_.end() && (*it).first == pinId)
 			{
@@ -347,7 +342,7 @@ namespace SE2
 
 		void initialize();
 
-		int32_t setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data);
+		virtual int32_t setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data);
 
 		bool isPinConnected(int pinIndex)
 		{

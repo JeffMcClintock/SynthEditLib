@@ -958,7 +958,7 @@ namespace SE2
 			g.SetTransform(transform);
 		}
 
-		// Hover scope
+		// HOVER SCOPE
 		if (hoverPin > -1 && !hoverScopeText.empty())
 		{
 			const auto scopeRect = calcScopeRect(hoverPin);
@@ -966,15 +966,16 @@ namespace SE2
 			auto brush = g.CreateSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
 			g.FillRoundedRectangle({ scopeRect, 3.0f }, brush);
 
-			// axis line
-			const float midY = scopeRect.top + scopeRect.getHeight() * 0.5f;
-			brush.SetColor(Color(0, 0, 0.0f, 0.7f));
-			g.DrawLine({ scopeRect.left, midY }, { scopeRect.right, midY }, brush, 0.5f);
-
-			brush.SetColor(Color::Lime);
 
 			if (scopeIsWave)
 			{
+				// axis line
+				const float midY = scopeRect.top + scopeRect.getHeight() * 0.5f;
+				brush.SetColor(Color(0, 0, 0.0f, 0.7f));
+				g.DrawLine({ scopeRect.left, midY }, { scopeRect.right, midY }, brush, 0.5f);
+
+				brush.SetColor(Color::Lime);
+
 				auto geometry = g.GetFactory().CreatePathGeometry();
 				auto sink = geometry.Open();
 
@@ -1030,9 +1031,42 @@ namespace SE2
 			}
 			else
 			{
+				brush.SetColor(Color::Yellow);
 				g.DrawTextU(hoverScopeText.c_str(), resources->tf_plugs_left, scopeRect, brush);
 			}
 		}
+	}
+
+	int32_t ModuleViewStruct::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)
+	{
+		if (editorPinValues)
+		{
+			editorPinValues->at(pinId).assign((uint8_t*)data, size + (uint8_t*)data);
+			if (pinId == hoverPin)
+			{
+				hoverScopeText = NiceFormatted(editorPinValues->at(pinId), (EPlugDataType)plugs_[hoverPin].datatype);
+				invalidateMyRect(calcScopeRect(hoverPin));
+			}
+		}
+
+		return ModuleView::setPin(fromModule, fromPinId, pinId, voice, size, data);
+	}
+
+	int32_t ModuleViewStruct::pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice)
+	{
+		if (editorPinValues)
+		{
+			editorPinValues->at(pinId).assign((uint8_t*)data, size + (uint8_t*)data);
+
+			if (pinId == hoverPin)
+			{
+				hoverScopeText = NiceFormatted(editorPinValues->at(pinId), (EPlugDataType)plugs_[hoverPin].datatype);
+				invalidateMyRect(calcScopeRect(hoverPin));
+				_RPTN(0, "hoverScopeText: %s\n", hoverScopeText.c_str());
+			}
+		}
+
+		return ModuleView::pinTransmit(pinId, size, data, voice);
 	}
 
 	void ModuleViewStruct::SetHoverScopeText(const char* text)
@@ -1043,16 +1077,7 @@ namespace SE2
 		{
 			const auto& pin = plugs_[hoverPin];
 
-			if (pin.datatype == DT_ENUM)
-			{
-			}
-
-			GmpiDrawing::Rect scopeRect{ 0, 0, 50, sharedGraphicResources_struct::plugDiameter };
-
-			scopeRect.Offset(pin.direction == DR_IN ? -scopeRect.getWidth() - 2 : bounds_.getWidth() + 2, static_cast<float>(hoverPin * sharedGraphicResources_struct::plugDiameter));
-
-			scopeRect.Offset(bounds_.left, bounds_.top);
-			parent->ChildInvalidateRect(scopeRect);
+			invalidateMyRect(calcScopeRect(hoverPin));
 		}
 		scopeIsWave = false;
 	}
@@ -1076,8 +1101,7 @@ namespace SE2
 		movingPeaksIdx &= (std::size(movingPeaks) - 1);
 
 		auto scopeRect = calcScopeRect(hoverPin);
-		scopeRect.Offset(bounds_.left, bounds_.top);
-		parent->ChildInvalidateRect(scopeRect);
+		invalidateMyRect(scopeRect);
 
 		scopeIsWave = true;
 #endif
@@ -2425,6 +2449,13 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
             // just redraw.
             invalidateRect(nullptr);
         }
+	}
+
+	// invalidate something on the structure view itself (not the plugin area)
+	void ModuleViewStruct::invalidateMyRect(GmpiDrawing::Rect localRect)
+	{
+		localRect.Offset(bounds_.left, bounds_.top);
+		parent->ChildInvalidateRect(localRect);
 	}
 
 } // namespace.

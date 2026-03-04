@@ -42,6 +42,8 @@ class ModuleViewStruct : public ModuleView
 		return cpuInfo != nullptr;
 	}
 	cpu_accumulator* cpuInfo = {};
+	// retains current pin value for displaying on hoverscopes.
+	std::unique_ptr < std::vector<std::vector<uint8_t> >> editorPinValues;
 
 public:
 
@@ -59,6 +61,10 @@ public:
 	{
 		return muted;
 	}
+
+	int32_t setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data) override;
+	int32_t pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice) override;
+
 
 	virtual int32_t measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize) override;
 	virtual int32_t arrange(GmpiDrawing::Rect finalRect) override;
@@ -89,5 +95,6 @@ public:
 		return false;
 	}
 	void invalidateMeasure() override;
+	void invalidateMyRect(GmpiDrawing::Rect localRect);
 };
 }
