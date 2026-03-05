@@ -1050,21 +1050,26 @@ namespace SE2
 			dragline->to_ = pinLocation;
 	}
 
-	// moving an existing cable
 	int32_t ViewBase::EndCableDrag(GmpiDrawing_API::MP1_POINT point, ConnectorViewBase* dragline)
 	{
-		bool presenterGonnaRefresh = false;
-		
+		assert(mouseCaptureObject != dragline); // caller should have released capture.
+		if (mouseCaptureObject == dragline)
+			releaseCapture();
+
+		const auto dragLineRect = dragline->GetClipRect();
+		invalidateRect(&dragLineRect);
+
 		if(dragline->type == CableType::StructureCable)
 		{
 			for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 			{
 				if((*it)->EndCableDrag(point, dragline))
-				{
-					presenterGonnaRefresh = true;
-					break;
-				}
+					return gmpi::MP_OK; // connection made OK.
 			}
+
+			// unsuccessful, remove drag-line.
+			RemoveChild(dragline); // WARNING children vector renewed, pointer no longer valid.
+			return gmpi::MP_OK;
 		}
 		else
 		{
@@ -1085,11 +1090,10 @@ namespace SE2
 				existingModulePin = dragline->fromPin();
 			}
 
+			// which pin (if any) did cable land on?
 			int newModuleHandle = -1;
 			int newModulePin = -1;
-
 			{
-				// 2x drawn size is maximum snap distance.
 				constexpr float maxSnapRangeSquared = 4 * sharedGraphicResources_struct::plugDiameter * sharedGraphicResources_struct::plugDiameter; // 4x drawn size is maximum snap distance.
 				float bestDistanceSquared = maxSnapRangeSquared;
 
@@ -1100,70 +1104,65 @@ namespace SE2
 				if(bestModule)
 					newModuleHandle = bestModule->getModuleHandle();
 			}
-			
-			// dragline to be deleted, save nesc info.
-			const auto fromModuleHandle = dragline->fromModuleHandle();
-			const auto fromModulePin = dragline->fromPin();
-			const auto toModuleHandle = dragline->toModuleHandle();
-			const auto toModulePin = dragline->toPin();
-			const auto draggingFromEnd = dragline->draggingFromEnd;
-			int colorIndex = 0;
-			if (auto patchcable = dynamic_cast<PatchCableView*>(dragline); patchcable)
-			{
-				colorIndex = patchcable->getColorIndex();
-			}
 
-			// In the case of dragging the end of an existing cable, erase old route.
-			Presenter()->RemovePatchCable(fromModuleHandle, fromModulePin, toModuleHandle, toModulePin);
+			const bool wasConnected = dragline->fromModuleHandle() != -1 && dragline->toModuleHandle() != -1;
 
-			if(newModuleHandle != -1)
+			if (newModuleHandle == -1) // didn't hit any pin.
 			{
-				bool droppedBackInPlace;
-				if(draggingFromEnd == 0)
+				if (wasConnected)
 				{
-					droppedBackInPlace = newModuleHandle == fromModuleHandle && newModulePin == fromModulePin;
+					// remove the cable from the model. The view will refresh automatically, deleting the dragline.
+					Presenter()->RemovePatchCable(
+						dragline->fromModuleHandle(),
+						dragline->fromPin(),
+						dragline->toModuleHandle(),
+						dragline->toPin()
+					);
 				}
 				else
 				{
-					droppedBackInPlace = newModuleHandle == toModuleHandle && newModulePin == toModulePin;
+					RemoveChild(dragline); // WARNING children vector renewed, pointer no longer valid.
 				}
-
-				if(existingModuleHandle >= 0)
-				{
-					presenterGonnaRefresh = Presenter()->AddPatchCable(existingModuleHandle, existingModulePin, newModuleHandle, newModulePin, colorIndex, droppedBackInPlace);
-				}
+				return gmpi::MP_OK;
 			}
 
-			if (!presenterGonnaRefresh)
-				invalidateRect();
-		}
+			// we did hit, was it back in the original pin?
+			bool droppedBackInPlace{};
+			if (dragline->draggingFromEnd == 0)
+				droppedBackInPlace = newModuleHandle == dragline->fromModuleHandle() && newModulePin == dragline->fromPin();
+			else
+				droppedBackInPlace = newModuleHandle == dragline->toModuleHandle() && newModulePin == dragline->toPin();
 
-		// avoid erasing the drawline immediatly if it's going to result in a new line anyhow (to avoid jarring wait for new line to appear).
-		// we're relying on a complete refresh to discard the temporary drag-line
-		if (!presenterGonnaRefresh)
-		{
-			// Remove drag line.
-			for (auto it = children.begin(); it != children.end(); ++it)
+			if (droppedBackInPlace) // then nothing changes.
 			{
-				if (dragline == (*it).get())
-				{
-					if (mouseCaptureObject == dragline)
-					{
-						releaseCapture();
-					}
-					if (mouseOverObject == dragline)
-						mouseOverObject = {};
-
-					const auto dragLineRect = (*it)->GetClipRect();
-					invalidateRect(&dragLineRect);
-
-					assert(!isIteratingChildren);
-					it = children.erase(it);
-					break;
-				}
+				dragline->draggingFromEnd = -1;
+				return gmpi::MP_OK;
 			}
-		}
 
+			int colorIndex = 0;
+			if (auto patchcable = dynamic_cast<PatchCableView*>(dragline); patchcable)
+				colorIndex = patchcable->getColorIndex();
+
+			if (wasConnected)
+			{
+				// remove the cable from the model. The view will refresh automatically, deleting the dragline.
+				Presenter()->RemovePatchCable(
+					dragline->fromModuleHandle(),
+					dragline->fromPin(),
+					dragline->toModuleHandle(),
+					dragline->toPin()
+				);
+			}
+			else
+			{
+				// attempt to add new line may or may not refresh view, remove dragline to avoid dead-line in view if it doesn't.
+				RemoveChild(dragline); // WARNING children vector renewed, pointer no longer valid.
+			}
+			dragline = {};
+
+			// brand new connection.
+			Presenter()->AddPatchCable(existingModuleHandle, existingModulePin, newModuleHandle, newModulePin, colorIndex, droppedBackInPlace);
+		}
 		return gmpi::MP_OK;
 	}
 
