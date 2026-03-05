@@ -1171,11 +1171,8 @@ namespace SE2
 		// update cables
 		for(auto& c : children)
 		{
-			auto l = dynamic_cast<ConnectorViewBase*>(c.get());
-			if(l)
-			{
+			if(auto l = dynamic_cast<ConnectorViewBase*>(c.get()); l)
 				l->OnModuleMoved();
-			}
 		}
 	}
 
@@ -1201,18 +1198,17 @@ namespace SE2
 
 		const auto firstNewLine = children.size();
 
+		assert(!isIteratingChildren);
+
 		SE2::PatchCables cableList(patchCablesRaw);
 		for(auto& c : cableList.cables)
 		{
 			auto module1 = Presenter()->HandleToObject(c.fromUgHandle);
 			auto module2 = Presenter()->HandleToObject(c.toUgHandle);
 
-			if (module1 == nullptr || module2 == nullptr)
-				continue;
-
-			//			_RPT2(_CRT_WARN, "New Cable %x -> %x\n", c.fromUgHandle, c.toUgHandle);
-			assert(!isIteratingChildren);
-			children.push_back(std::make_unique<PatchCableView>(this, c.fromUgHandle, c.fromUgPin, c.toUgHandle, c.toUgPin, c.colorIndex));
+			// avoid creating pointless PatchCableViews when the patch points are not visible.
+			if (module1 && module2)
+				children.push_back(std::make_unique<PatchCableView>(this, c.fromUgHandle, c.fromUgPin, c.toUgHandle, c.toUgPin, c.colorIndex));
 		}
 
 		for(auto i = firstNewLine; i < children.size(); ++i)
