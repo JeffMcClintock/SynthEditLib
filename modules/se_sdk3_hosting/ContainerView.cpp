@@ -15,8 +15,8 @@
 
 using namespace std;
 using namespace gmpi;
-using namespace gmpi_gui;
-using namespace GmpiDrawing;
+//using namespace gmpi_gui;
+using namespace gmpi::drawing;
 using namespace legacy_converters;
 
 namespace SE2
@@ -28,15 +28,16 @@ namespace SE2
 		ViewBase::Refresh(context, guiObjectMap);
 	}
 
-	int32_t ContainerViewPanel::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
+//	int32_t ContainerViewPanel::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
+	gmpi::ReturnCode ContainerViewPanel::render(gmpi::drawing::api::IDeviceContext* drawingContext)
 	{
 		Graphics g(drawingContext);
 
-		const Matrix3x2 originalTransform = g.GetTransform();
+		const Matrix3x2 originalTransform = g.getTransform();
 
 		// pan and zoom
-		const auto viewTransformL = originalTransform * toLegacy(viewTransform);
-		g.SetTransform(viewTransformL);
+		const auto viewTransformL = originalTransform * /*toLegacy*/(viewTransform);
+		g.setTransform(viewTransformL);
 
 #if 0 //def _DEBUG
 		// Diagnose dirty rects.
@@ -46,12 +47,12 @@ namespace SE2
 		g.Clear(color);
 #else
 
-		g.Clear(Color::LightGray);
+		g.clear(Colors::LightGray);
 #endif
 
-		const auto r = ViewBase::OnRender(drawingContext);
+		const auto r = ViewBase::render(drawingContext);
 
-		g.SetTransform(originalTransform);
+		g.setTransform(originalTransform);
 
 		return r;
 	}

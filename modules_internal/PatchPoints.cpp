@@ -110,7 +110,8 @@ public:
 		// get the XML describing the patch cables
 		RawView raw(pinPatchCableXml.rawData(), (size_t)pinPatchCableXml.rawSize());
 
-		dynamic_cast<SE2::ModuleView*>(getHost())->parent->OnPatchCablesUpdate(raw);
+//		dynamic_cast<SE2::ModuleView*>(getHost())->parent->OnPatchCablesUpdate(raw);
+		dynamic_cast<SE2::Sdk3Helper*>(getHost())->OnPatchCablesUpdate(raw);
 	}
 
 private:

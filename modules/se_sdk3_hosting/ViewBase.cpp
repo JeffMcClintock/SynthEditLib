@@ -26,12 +26,12 @@
 using namespace std;
 using namespace gmpi;
 using namespace gmpi_gui;
-using namespace GmpiDrawing;
+using namespace gmpi::drawing;
 using namespace GmpiGuiHosting;
 
 namespace SE2
 {
-	ViewBase::ViewBase(GmpiDrawing::Size size) :
+	ViewBase::ViewBase(gmpi::drawing::Size size) :
 		drawingBounds{ 0, 0, size.width, size.height }
 	{
 	}
@@ -40,13 +40,496 @@ namespace SE2
 	{
 		Init(ppresentor);
 	}
-
-	int32_t ViewBase::setHost(gmpi::IMpUnknown* host)
+#if 0 
+	gmpi::ReturnCode ViewBase::open(gmpi::api::IUnknown* host)
 	{
+		if (inputHost_)
+		{
+			inputHost_->release();
+			inputHost_ = {};
+		}
+
+		if (drawingHost_)
+		{
+			drawingHost_->release();
+			drawingHost_ = {};
+		}
+
+		host->queryInterface(&gmpi::api::IDrawingHost::guid, reinterpret_cast<void**>(&drawingHost_));
+		host->queryInterface(&gmpi::api::IInputHost::guid, reinterpret_cast<void**>(&inputHost_));
+
 #if defined(_WIN32)
 		frameWindow = dynamic_cast<DrawingFrameBase2*>(host);
 #endif
-		return gmpi_gui::MpGuiGfxBase::setHost(host);
+
+		return drawingHost_ ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::NoSupport;
+	}
+#endif 
+	gmpi::ReturnCode ViewBase::render(gmpi::drawing::api::IDeviceContext* drawingContext)
+	{
+		Graphics g(drawingContext);
+
+		// Restrict drawing only to overall clip-rect.
+		auto cliprect = g.getAxisAlignedClip();
+		//_RPT4(_CRT_WARN, "OnRender    clip[ %d %d %d %d]\n", (int)cliprect.left, (int)cliprect.top, (int)cliprect.right, (int)cliprect.bottom);
+
+		const Matrix3x2 originalTransform = g.getTransform();
+
+		for(auto& m : children)
+		{
+			auto b = m->getClipArea();
+			if(overlaps(b, cliprect))
+			{
+				if(dynamic_cast<ConnectorViewBase*>(m.get()))
+				{
+					g.setTransform(originalTransform);
+				}
+				else
+				{
+					auto layoutRect = m->getLayoutRect();
+					auto adjustedTransform = makeTranslation(layoutRect.left, layoutRect.top) * originalTransform;
+					g.setTransform(adjustedTransform);
+				}
+
+				m->render(g);
+				//				_RPT0(_CRT_WARN, "X");
+			}
+		}
+
+		g.setTransform(originalTransform);
+
+		return gmpi::ReturnCode::Ok; // static_cast<gmpi::ReturnCode>(OnRender(reinterpret_cast<GmpiDrawing_API::IMpDeviceContext*>(drawingContext)));
+	}
+
+	// all clicks are hit on a view.
+	// legacy host-facing hit-test entry point.
+	gmpi::ReturnCode ViewBase::hitTest(gmpi::drawing::Point point, int32_t flags)
+	{
+		return gmpi::ReturnCode::Ok;
+		/* ?
+		(void)flags;
+		auto p = point;
+		return Find(p) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
+		*/
+	}
+
+#if 0 // handled by base class, to be removed.
+	gmpi::ReturnCode ViewBase::measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize)
+	{
+		if (!availableSize || !returnDesiredSize)
+			return gmpi::ReturnCode::Fail;
+
+		return static_cast<gmpi::ReturnCode>(measure(*availableSize, returnDesiredSize));
+	}
+
+	gmpi::ReturnCode ViewBase::arrange(const gmpi::drawing::Rect* finalRect)
+	{
+		if (!finalRect)
+			return gmpi::ReturnCode::Fail;
+
+		return static_cast<gmpi::ReturnCode>(arrange(*finalRect));
+	}
+
+	gmpi::ReturnCode ViewBase::getClipArea(gmpi::drawing::Rect* returnRect)
+	{
+		if (!returnRect)
+			return gmpi::ReturnCode::Fail;
+
+		*returnRect = drawingBounds;
+		return gmpi::ReturnCode::Ok;
+	}
+
+#endif
+
+	gmpi::ReturnCode ViewBase::onPointerDown(gmpi::drawing::Point point, int32_t flags)
+	{
+		//const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
+		point = point * inv_viewTransform;
+
+#ifdef DEBUG_HIT_TEST
+		_RPT3(0, "ViewBase::onPointerDown(%x, (%f, %f))\n", flags, point.x, point.y);
+#endif
+		Presenter()->NotDragging();
+
+		// handle edge-case of mouse clicking without any prior 'OnMove' (e.g. after clicking to make a pop-up menu disappear).
+		// ensures that 'mouseOverObject' is correct.
+		if(lastMovePoint.x != point.x || lastMovePoint.y != point.y)
+		{
+			// clear out click-related flags.
+			const auto simulatedFlags = flags &
+				~(
+					gmpi_gui_api::GG_POINTER_FLAG_INCONTACT |
+					gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON |
+					gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON |
+					gmpi_gui_api::GG_POINTER_FLAG_THIRDBUTTON |
+					gmpi_gui_api::GG_POINTER_FLAG_FOURTHBUTTON
+					);
+
+			onPointerMove(point, simulatedFlags);
+		}
+
+		if(mouseCaptureObject)
+		{
+#ifdef DEBUG_HIT_TEST
+			_RPT1(0, "mouseCaptureObject=%x\n", mouseCaptureObject);
+#endif
+
+			/*return*/ mouseCaptureObject->onPointerDown(point, flags);
+			return gmpi::ReturnCode::Ok;
+		}
+
+		// account for objects appearing without mouse moving (e.g. show-on-parent changing on previous click).
+		calcMouseOverObject(flags);
+
+		IViewChild* hitObject = nullptr;
+		if(mouseOverObject)
+		{
+			auto result = mouseOverObject->onPointerDown(point, flags);
+			// Module has captured mouse. Let it take over.
+			if(mouseCaptureObject)
+			{
+#ifdef DEBUG_HIT_TEST
+				_RPT0(0, " and captured\n");
+#endif
+				return gmpi::ReturnCode::Ok;
+			}
+
+			// module didn't capture mouse, drag object around.
+			if(result == gmpi::ReturnCode::Ok) // Ok indicates mouse 'hit'
+				hitObject = mouseOverObject;
+
+#if 0 // TODO used to be supported. needed? (object handles click itself but without capturing mouse)
+			if(result == gmpi::MP_HANDLED) // indicates mouse 'hit' AND handled already.
+			{
+#ifdef DEBUG_HIT_TEST
+				_RPT0(0, " and not captured\n");
+#endif
+				return result; // no further handling needed.
+			}
+#ifdef DEBUG_HIT_TEST
+			_RPT0(0, "\n");
+#endif
+#endif
+		}
+
+		if(modulePicker && hitObject != modulePicker)
+			DismissModulePicker();
+
+		// Mouse 'hit' module, but module did not capture it. Drag module if selected.
+		if(hitObject)
+		{
+			// Left-click (drag object)
+			if((flags & gmpi_gui_api::GG_POINTER_FLAG_NEW) != 0 &&
+				(flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0 &&
+				hitObject->getSelected() &&
+				hitObject->isDraggable(Presenter()->editEnabled())
+				)
+			{
+#ifdef DEBUG_HIT_TEST
+				_RPT0(0, "Dragging Object\n");
+#endif
+				pointPrev = point;
+
+				isDraggingModules = true;
+				DraggingModulesOffset = {};
+				DraggingModulesInitialTopLeft = { hitObject->getLayoutRect().left, hitObject->getLayoutRect().top };
+
+				if(inputHost)
+					inputHost->setCapture();
+				autoScrollStart();
+			}
+		}
+		else
+		{
+#ifdef DEBUG_HIT_TEST
+			_RPT0(0, "Nothing hit \n");
+#endif
+
+			// Nothing hit, clear selection (left click only).
+			if((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
+			{
+				Presenter()->ObjectClicked(-1, flags); //gmpi::modifier_keys::getHeldKeys());
+
+				if(Presenter()->editEnabled())
+				{
+					assert((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0); // Drag selection box.
+					assert(!isIteratingChildren);
+					children.push_back(std::unique_ptr<IViewChild>(new SelectionDragBox(this, point)));
+					autoScrollStart();
+					return gmpi::ReturnCode::Ok;
+				}
+			}
+		}
+
+		// indicate successful hit.
+		return hitObject ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode ViewBase::onPointerMove(gmpi::drawing::Point point, int32_t flags)
+	{
+#if DEBUG_MOUSEOVER
+		_RPTN(0, "ViewBase::onPointerMove: [%f,%f]\n", ppoint.x, ppoint.y);
+#endif
+		currentPointerPosAbsolute = point; // legacy_converters::convert(ppoint);
+		lastMovePoint = currentPointerPosAbsolute * inv_viewTransform; // legacy_converters::convert(currentPointerPosAbsolute * inv_viewTransform);
+
+		if(mouseCaptureObject)
+		{
+#if DEBUG_MOUSEOVER
+			_RPTN(0, "mouseCaptureObject->onPointerMove() : %s\n", typeid(*mouseCaptureObject).name());
+#endif
+			mouseCaptureObject->onPointerMove(lastMovePoint, flags);
+		}
+		else
+		{
+			if(isDraggingModules) // could this be handled with custom mouseCaptureObject? to remove need for check here?
+			{
+				// Snap-to-grid logic.
+				gmpi::drawing::Size delta(lastMovePoint.x - pointPrev.x, lastMovePoint.y - pointPrev.y);
+				if(delta.width != 0.0f || delta.height != 0.0f) // avoid false snap on selection
+				{
+					const auto snapGridSize = Presenter()->GetSnapSize();
+
+					gmpi::drawing::Point dragModuleTopLeft = DraggingModulesInitialTopLeft + DraggingModulesOffset;
+					gmpi::drawing::Point newPoint = dragModuleTopLeft + delta;
+
+					newPoint.x = floorf((snapGridSize / 2 + newPoint.x) / snapGridSize) * snapGridSize;
+					newPoint.y = floorf((snapGridSize / 2 + newPoint.y) / snapGridSize) * snapGridSize;
+					auto snapDelta = newPoint - dragModuleTopLeft;
+
+					pointPrev += snapDelta;
+
+					if(snapDelta.width != 0.0 || snapDelta.height != 0.0)
+					{
+						Presenter()->DragSelection(snapDelta);
+						DraggingModulesOffset += snapDelta;
+					}
+				}
+				return gmpi::ReturnCode::Ok;
+			}
+		}
+
+		calcMouseOverObject(flags);
+
+		if(mouseOverObject)
+		{
+			mouseOverObject->onPointerMove(lastMovePoint, flags);
+		}
+		else
+		{
+			/*
+			// not over anything, allow for extended-rage hitting of pins to create new line.
+				// 4x drawn size is maximum snap distance.
+			constexpr float maxSnapRangeSquared = 4 * sharedGraphicResources_struct::plugDiameter * sharedGraphicResources_struct::plugDiameter; // 4x drawn size is maximum snap distance.
+			float bestDistanceSquared = maxSnapRangeSquared;
+
+			ModuleView* bestModule{};
+			for (auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
+				(*it)->OnCableDrag(dragline, dragline->dragPoint(), bestDistanceSquared, bestModule, newModulePin);
+			*/
+
+		}
+
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode ViewBase::onPointerUp(gmpi::drawing::Point point, int32_t flags)
+	{
+		//const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
+		point *= inv_viewTransform;
+
+		Presenter()->NotDragging();
+
+		if(!draggingNewModuleId.empty())
+		{
+			/* mouse can only be captured by the window that ecieved the mpointer-down, and then only until the next pointer-up.
+			int32_t isMouseCaptured{};
+			getGuiHost()->getCapture(isMouseCaptured);
+			if (isMouseCaptured)
+			*/
+			{
+				if(inputHost)
+					inputHost->releaseCapture();
+				const auto moduleId = Utf8ToWstring(draggingNewModuleId); // TODO why does this get converted to UTF8 then back again?
+				Presenter()->AddModule(moduleId.c_str(), point);
+			}
+			draggingNewModuleId.clear();
+		}
+
+		if(mouseCaptureObject)
+		{
+			mouseCaptureObject->onPointerUp(point, flags);
+		}
+
+#ifdef _DEBUG
+		if(mouseCaptureObject)
+		{
+			_RPT0(_CRT_WARN, "WARNING: GUI MODULE DID NOT RELEASE MOUSECAPTURE!!!\n");
+		}
+#endif
+
+		if(isDraggingModules)
+		{
+			isDraggingModules = false;
+			releaseCapture();
+			autoScrollStop();
+		}
+		
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode ViewBase::onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta)
+	{
+		if(isDraggingModules)
+			return gmpi::ReturnCode::Unhandled;
+
+		currentPointerPosAbsolute = point;
+		point *= inv_viewTransform;
+
+		const bool hasScrollbars = hscrollBar && vscrollBar;
+
+		// <ALT> causes scroll wheel events to pass to client
+		if((flags & gmpi_gui_api::GG_POINTER_KEY_ALT) || !hasScrollbars)
+		{
+			calcMouseOverObject(flags);
+
+			if(!mouseOverObject)
+				return gmpi::ReturnCode::Unhandled;
+
+			mouseOverObject->onMouseWheel(point, flags, delta);
+			return gmpi::ReturnCode::Ok;
+		}
+
+		// <CTRL> wheel = zoom
+		if(flags & gmpi_gui_api::GG_POINTER_KEY_CONTROL)
+		{
+			if(delta < 0)
+				zoomFactor /= 1.25f;
+			else
+				zoomFactor *= 1.25f;
+
+			zoomFactor = std::clamp(zoomFactor, 0.1f, 10.0f);
+
+			const auto before = point;
+
+			calcViewTransform();
+
+			const auto after = currentPointerPosAbsolute * inv_viewTransform;
+
+			// scroll to retain mouse position.
+			scrollPos.width -= (before.x - after.x) * zoomFactor;
+			scrollPos.height -= (before.y - after.y) * zoomFactor;
+
+			Presenter()->SetZoomFactor(zoomFactor);
+		}
+		else
+		{
+			// shift+wheel = horizontal scroll.
+			if(flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT)
+				scrollPos.width += static_cast<float>(delta) * 0.25f; // 120 delta per wheel detent.
+			else
+				scrollPos.height += static_cast<float>(delta) * 0.25f; // vertical scroll
+		}
+
+		calcViewTransform(); // and redraws
+		updateScrollBars();
+
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode ViewBase::populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink)
+	{
+		Presenter()->NotDragging();
+
+		gmpi::shared_ptr<gmpi::api::IContextItemSink> menu;
+		contextMenuItemsSink->queryInterface(&gmpi::api::IContextItemSink::guid, menu.put_void());
+
+		auto moduleHandle = mouseOverObject ? mouseOverObject->getModuleHandle() : -1; // -1 = no module under mouse.
+		Presenter()->populateContextMenu(menu, point, moduleHandle);
+
+		if(mouseOverObject)
+		{
+			//			menu.populateFromObject(x, y, mouseOverObject);
+
+			//menu.currentCallback =
+			//	[this](int32_t idx)
+			//	{
+			//		return mouseOverObject->vc_onContextMenu(idx);
+			//	};
+
+			mouseOverObject->populateContextMenu(point, menu);
+
+		}
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode ViewBase::onContextMenu(int32_t idx)
+	{
+		return ReturnCode::Unhandled;
+	}
+
+#if 0
+	gmpi::ReturnCode ViewBase::populateContextMenu2(gmpi::api::IContextItemSink* menu, gmpi::drawing::Point point)
+	{
+		Presenter()->NotDragging();
+
+		auto moduleHandle = mouseOverObject ? mouseOverObject->getModuleHandle() : -1; // -1 = no module under mouse.
+		Presenter()->populateContextMenu(menu, point, moduleHandle);
+
+		//gmpi::shared_ptr<gmpi::api::IContextItemSink> menu;
+		//contextMenuItemsSink->queryInterface(&gmpi::api::IContextItemSink::guid, menu.put_void());
+		//if(!menu)
+		//	return gmpi::ReturnCode::NoSupport;
+
+
+
+		GmpiSdk::ContextMenuHelper menu(contextMenuCallbacks, contextMenuItemsSink);
+
+		// Add items for Presenter
+		// Cut, Copy, Paste etc.
+		menu.currentCallback =
+			[this](int32_t idx)
+			{
+				return Presenter()->onContextMenu(idx);
+			};
+
+		auto moduleHandle = mouseOverObject ? mouseOverObject->getModuleHandle() : -1; // -1 = no module under mouse.
+		Presenter()->populateContextMenu(&menu, { x, y }, moduleHandle);
+
+		if(mouseOverObject)
+		{
+			//			menu.populateFromObject(x, y, mouseOverObject);
+
+			menu.currentCallback =
+				[this](int32_t idx)
+				{
+					return mouseOverObject->vc_onContextMenu(idx);
+				};
+
+			mouseOverObject->populateContextMenu(x, y, &menu);
+
+		}
+		return gmpi::ReturnCode::Ok;
+	}
+#endif
+
+	//gmpi::ReturnCode ViewBase::onContextMenu(int32_t idx)
+	//{
+	//	return gmpi::ReturnCode::Ok; //static_cast<gmpi::ReturnCode>(GmpiSdk::ContextMenuHelper::onContextMenu(contextMenuCallbacks, idx));
+	//}
+
+	gmpi::ReturnCode ViewBase::onKeyPress(wchar_t c)
+	{
+		return onKey(c, &lastMovePoint);
+	}
+
+	void ViewBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
+	{
+		if (!drawingHost)
+			return;
+
+		const auto rect = invalidRect ? *invalidRect : drawingBounds;
+		drawingHost->invalidateRect(&rect);
 	}
 
 	void ViewBase::DoClose()
@@ -390,68 +873,32 @@ namespace SE2
 		}
 	}
 
-	int32_t ViewBase::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
-	{
-		Graphics g(drawingContext);
-
-		// Restrict drawing only to overall clip-rect.
-		auto cliprect = g.GetAxisAlignedClip();
-		//_RPT4(_CRT_WARN, "OnRender    clip[ %d %d %d %d]\n", (int)cliprect.left, (int)cliprect.top, (int)cliprect.right, (int)cliprect.bottom);
-
-		const Matrix3x2 originalTransform = g.GetTransform();
-
-		for(auto& m : children)
-		{
-			auto b = m->GetClipRect();
-			if(isOverlapped(b, cliprect))
-			{
-				if(dynamic_cast<ConnectorViewBase*>(m.get()))
-				{
-					g.SetTransform(originalTransform);
-				}
-				else
-				{
-					auto layoutRect = m->getLayoutRect();
-					auto adjustedTransform = Matrix3x2::Translation(layoutRect.left, layoutRect.top) * originalTransform;
-					g.SetTransform(adjustedTransform);
-				}
-
-				m->OnRender(g);
-				//				_RPT0(_CRT_WARN, "X");
-			}
-		}
-
-		g.SetTransform(originalTransform);
-		//		_RPT0(_CRT_WARN, "\n");
-
-		return gmpi::MP_OK;
-	}
-
 	int32_t ViewBase::setCapture(IViewChild* module)
 	{
 		//		assert(dynamic_cast<SE2::PatchCableView*>(module) == 0);
 		mouseCaptureObject = module;
-		return getGuiHost()->setCapture();
+		return inputHost ? static_cast<int32_t>(inputHost->setCapture()) : gmpi::MP_FAIL;
 	}
 
 	int32_t ViewBase::releaseCapture()
 	{
 		mouseCaptureObject = nullptr;
-		auto r = getGuiHost()->releaseCapture();
+		auto r = inputHost ? static_cast<int32_t>(inputHost->releaseCapture()) : gmpi::MP_FAIL;
 
 		calcMouseOverObject(0);
 
 		return r;
 	}
 
-	int32_t ViewBase::getToolTip(MP1_POINT point, gmpi::IString* returnString)
+#if 0 // TODO support this
+	int32_t ViewBase::getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString)
 	{
 		std::string returnToolTip;
 
 		for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 		{
 			auto& m = *it;
-			if(m->hitTest(0, point))
+			if(m->hitTest(0, point) == gmpi::ReturnCode::Ok)
 			{
 				returnToolTip = m->getToolTip(point);
 				break;
@@ -464,131 +911,9 @@ namespace SE2
 		}
 
 		returnString->setData(returnToolTip.data(), (int32_t)returnToolTip.size());
-		return gmpi::MP_OK;
+		return gmpi::ReturnCode::Ok;
 	}
-
-	// #define DEBUG_HIT_TEST 1
-
-	int32_t ViewBase::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT ppoint)
-	{
-		const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
-
-#ifdef DEBUG_HIT_TEST
-		_RPT3(0, "ViewBase::onPointerDown(%x, (%f, %f))\n", flags, point.x, point.y);
 #endif
-		Presenter()->NotDragging();
-
-		// handle edge-case of mouse clicking without any prior 'OnMove' (e.g. after clicking to make a pop-up menu disappear).
-		// ensures that 'mouseOverObject' is correct.
-		if (lastMovePoint.x != point.x || lastMovePoint.y != point.y)
-		{
-			// clear out click-related flags.
-			const auto simulatedFlags = flags &
-				~(
-					gmpi_gui_api::GG_POINTER_FLAG_INCONTACT |
-					gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON |
-					gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON |
-					gmpi_gui_api::GG_POINTER_FLAG_THIRDBUTTON |
-					gmpi_gui_api::GG_POINTER_FLAG_FOURTHBUTTON
-					);
-
-			onPointerMove(simulatedFlags, point);
-		}
-
-		if(mouseCaptureObject)
-		{
-#ifdef DEBUG_HIT_TEST
-			_RPT1(0, "mouseCaptureObject=%x\n", mouseCaptureObject);
-#endif
-
-			return mouseCaptureObject->onPointerDown(flags, point);
-		}
-
-		// account for objects appearing without mouse moving (e.g. show-on-parent changing on previous click).
-		calcMouseOverObject(flags);
-
-		IViewChild* hitObject = nullptr;
-		if(mouseOverObject)
-		{
-			auto result = mouseOverObject->onPointerDown(flags, point);
-
-			// Module has captured mouse. Let it take over.
-			if( /*result == gmpi::MP_OK ||*/ mouseCaptureObject)
-			{
-#ifdef DEBUG_HIT_TEST
-				_RPT0(0, " and captured\n");
-#endif
-				return gmpi::MP_OK;
-			}
-
-			if(result == gmpi::MP_OK) // result == gmpi::MP_OK indicates mouse 'hit'
-			{
-				hitObject = mouseOverObject;
-			}
-
-			if(result == gmpi::MP_HANDLED) // indicates mouse 'hit' AND handled already.
-			{
-#ifdef DEBUG_HIT_TEST
-				_RPT0(0, " and not captured\n");
-#endif
-				return result; // no further handling needed.
-			}
-#ifdef DEBUG_HIT_TEST
-			_RPT0(0, "\n");
-#endif
-		}
-
-		if (modulePicker && hitObject != modulePicker)
-			DismissModulePicker();
-
-		// Mouse 'hit' module, but module did not capture it. Drag module if selected.
-		if(hitObject)
-		{
-			// Left-click (drag object)
-			if((flags & gmpi_gui_api::GG_POINTER_FLAG_NEW) != 0 &&
-				(flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0 &&
-				hitObject->getSelected() &&
-				hitObject->isDraggable(Presenter()->editEnabled())
-				)
-			{
-#ifdef DEBUG_HIT_TEST
-				_RPT0(0, "Dragging Object\n");
-#endif
-				pointPrev = point;
-
-				isDraggingModules = true;
-				DraggingModulesOffset = {};
-				DraggingModulesInitialTopLeft = { hitObject->getLayoutRect().left, hitObject->getLayoutRect().top };
-
-				getGuiHost()->setCapture();
-				autoScrollStart();
-			}
-		}
-		else
-		{
-#ifdef DEBUG_HIT_TEST
-			_RPT0(0, "Nothing hit \n");
-#endif
-
-			// Nothing hit, clear selection (left click only).
-			if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
-			{
-				Presenter()->ObjectClicked(-1, flags); //gmpi::modifier_keys::getHeldKeys());
-
-				if(Presenter()->editEnabled())
-				{
-					assert((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0); // Drag selection box.
-					assert(!isIteratingChildren);
-					children.push_back(std::unique_ptr<IViewChild>(new SelectionDragBox(this, point)));
-					autoScrollStart();
-					return gmpi::MP_OK;
-				}
-			}
-		}
-
-		// indicate successful hit.
-		return hitObject ? gmpi::MP_OK : gmpi::MP_UNHANDLED;
-	}
 
 	void ViewBase::RemoveChild(IViewChild* child)
 	{
@@ -608,7 +933,7 @@ namespace SE2
 		}
 	}
 
-	void ViewBase::OnDragSelectionBox(int32_t flags, GmpiDrawing::Rect selectionRect)
+	void ViewBase::OnDragSelectionBox(int32_t flags, gmpi::drawing::Rect selectionRect)
 	{
 		// can't select them while iterating because fresh adorners invalidate vector.
 		std::vector<int32_t> modulesToSelect;
@@ -628,92 +953,24 @@ namespace SE2
 			Presenter()->ObjectSelect(h);
 	}
 
-	int32_t ViewBase::setHover(bool isMouseOverMe)
+	gmpi::ReturnCode ViewBase::setHover(bool isMouseOverMe)
 	{
 		if (!isMouseOverMe && mouseOverObject)
 		{
-			mouseOverObject->vc_setHover(false);
+			mouseOverObject->setHover(false);
 			mouseOverObject = {};
 
-			return gmpi::MP_OK;
+			return gmpi::ReturnCode::Ok;
 		}
 
-		return gmpi::MP_UNHANDLED;
-	}
-
-	int32_t ViewBase::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT ppoint)
-	{
-#if DEBUG_MOUSEOVER
-		_RPTN(0, "ViewBase::onPointerMove: [%f,%f]\n", ppoint.x, ppoint.y);
-#endif
-        currentPointerPosAbsolute = legacy_converters::convert(ppoint);
-		lastMovePoint = legacy_converters::convert(currentPointerPosAbsolute * inv_viewTransform);
-
-		if(mouseCaptureObject)
-		{
-#if DEBUG_MOUSEOVER
-			_RPTN(0, "mouseCaptureObject->onPointerMove() : %s\n", typeid(*mouseCaptureObject).name());
-#endif
-			mouseCaptureObject->onPointerMove(flags, lastMovePoint);
-		}
-		else
-		{
-			if (isDraggingModules) // could this be handled with custom mouseCaptureObject? to remove need for check here?
-			{
-				// Snap-to-grid logic.
-				GmpiDrawing::Size delta(lastMovePoint.x - pointPrev.x, lastMovePoint.y - pointPrev.y);
-				if (delta.width != 0.0f || delta.height != 0.0f) // avoid false snap on selection
-				{
-					const auto snapGridSize = Presenter()->GetSnapSize();
-
-					GmpiDrawing::Point dragModuleTopLeft = DraggingModulesInitialTopLeft + DraggingModulesOffset;
-					GmpiDrawing::Point newPoint = dragModuleTopLeft + delta;
-
-					newPoint.x = floorf((snapGridSize / 2 + newPoint.x) / snapGridSize) * snapGridSize;
-					newPoint.y = floorf((snapGridSize / 2 + newPoint.y) / snapGridSize) * snapGridSize;
-					GmpiDrawing::Size snapDelta = newPoint - dragModuleTopLeft;
-
-					pointPrev += snapDelta;
-
-					if (snapDelta.width != 0.0 || snapDelta.height != 0.0)
-					{
-						Presenter()->DragSelection(snapDelta);
-						DraggingModulesOffset += snapDelta;
-					}
-				}
-				return gmpi::MP_OK;
-			}
-		}
-
-		calcMouseOverObject(flags);
-
-		if(mouseOverObject)
-		{
-			mouseOverObject->onPointerMove(flags, lastMovePoint);
-		}
-		else
-		{
-			/*
-			// not over anything, allow for extended-rage hitting of pins to create new line.
-				// 4x drawn size is maximum snap distance.
-			constexpr float maxSnapRangeSquared = 4 * sharedGraphicResources_struct::plugDiameter * sharedGraphicResources_struct::plugDiameter; // 4x drawn size is maximum snap distance.
-			float bestDistanceSquared = maxSnapRangeSquared;
-
-			ModuleView* bestModule{};
-			for (auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
-				(*it)->OnCableDrag(dragline, dragline->dragPoint(), bestDistanceSquared, bestModule, newModulePin);
-			*/
-
-		}
-
-		return gmpi::MP_OK;
+		return gmpi::ReturnCode::Unhandled;
 	}
 
 	void ViewBase::onSubPanelMadeVisible()
 	{
 		// if a sub-panel just blinked into existence, need to update mouse over object on myself AND on it. Else the next click will be ignored.
 		// calling ViewBase to avoid the offset imposed by the sub-panel (which has already been accounted for)
-		ViewBase::onPointerMove(0, lastMovePoint);
+		ViewBase::onPointerMove(lastMovePoint, 0);
 	}
 
 	void ViewBase::calcMouseOverObject(int32_t flags)
@@ -769,16 +1026,12 @@ namespace SE2
 		if(hitObject != mouseOverObject)
 		{
 			if(mouseOverObject)
-			{
-				mouseOverObject->vc_setHover(false);
-			}
+				mouseOverObject->setHover(false);
 
 			mouseOverObject = hitObject;
 
 			if(mouseOverObject)
-			{
-				mouseOverObject->vc_setHover(true);
-			}
+				mouseOverObject->setHover(true);
 		}
 	}
 
@@ -808,8 +1061,8 @@ namespace SE2
 
 //		_RPTN(0, "AutoScroll [%f, %f]\n", currentPointerPosAbsolute.x, currentPointerPosAbsolute.y);
 
-		float autoScrolDx = (std::max)(0.0f, -currentPointerPosAbsolute.x) - (std::max)(0.0f, currentPointerPosAbsolute.x - drawingBounds.getWidth());
-		float autoScrolDy = (std::max)(0.0f, -currentPointerPosAbsolute.y) - (std::max)(0.0f, currentPointerPosAbsolute.y - drawingBounds.getHeight());
+		float autoScrolDx = (std::max)(0.0f, -currentPointerPosAbsolute.x) - (std::max)(0.0f, currentPointerPosAbsolute.x - (drawingBounds.right - drawingBounds.left));
+		float autoScrolDy = (std::max)(0.0f, -currentPointerPosAbsolute.y) - (std::max)(0.0f, currentPointerPosAbsolute.y - (drawingBounds.bottom - drawingBounds.top));
 
 		constexpr float maxSpeed = 22.f; // pixels per timer tick (24ms)
 		autoScrolDx = std::clamp(autoScrolDx * 0.5f, -maxSpeed, maxSpeed);
@@ -827,7 +1080,7 @@ namespace SE2
 
 			int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
 			//            AddKeyStateFlags(args.KeyModifiers(), flags);
-            onPointerMove(flags, legacy_converters::convert(currentPointerPosAbsolute));
+			onPointerMove(currentPointerPosAbsolute, flags); // , legacy_converters::convert(currentPointerPosAbsolute));
 		}
 
 		return true;
@@ -869,8 +1122,8 @@ namespace SE2
 		avoidRecusion = true;
 
 		constexpr double canvasSize = 7968.0f;
-		const double visibleWidth = drawingBounds.getWidth() /*swapChainHost.ActualWidth()*/ / zoomFactor;
-		const double visibleHeight = drawingBounds.getHeight() /*swapChainHost.ActualHeight()*/ / zoomFactor;
+		const double visibleWidth = (drawingBounds.right - drawingBounds.left) /*swapChainHost.ActualWidth()*/ / zoomFactor;
+		const double visibleHeight = (drawingBounds.bottom - drawingBounds.top) /*swapChainHost.ActualHeight()*/ / zoomFactor;
 		const double visibleTop = (double)-scrollPos.height / zoomFactor;
 		const double visibleLeft = (double)-scrollPos.width / zoomFactor;
 		const double visibleBottom = visibleTop + visibleHeight;
@@ -909,64 +1162,6 @@ namespace SE2
 		vscrollBar(v);
 
 		avoidRecusion = false;
-	}
-
-	int32_t ViewBase::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT ppoint)
-	{
-		if (isDraggingModules)
-			return gmpi::MP_UNHANDLED;
-
-        currentPointerPosAbsolute = legacy_converters::convert(ppoint);
-		const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
-
-		const bool hasScrollbars = hscrollBar && vscrollBar;
-
-		// <ALT> causes scroll wheel events to pass to client
-		if ((flags & gmpi_gui_api::GG_POINTER_KEY_ALT) || !hasScrollbars)
-		{
-			calcMouseOverObject(flags);
-
-			if (!mouseOverObject)
-				return gmpi::MP_UNHANDLED;
-
-			return mouseOverObject->onMouseWheel(flags, delta, point);
-		}
-
-		// <CTRL> wheel = zoom
-		if (flags & gmpi_gui_api::GG_POINTER_KEY_CONTROL)
-		{
-			if (delta < 0)
-				zoomFactor /= 1.25f;
-			else
-				zoomFactor *= 1.25f;
-
-			zoomFactor = std::clamp(zoomFactor, 0.1f, 10.0f);
-
-			const auto before = point;
-
-			calcViewTransform();
-
-			const auto after = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
-
-			// scroll to retain mouse position.
-			scrollPos.width -= (before.x - after.x) * zoomFactor;
-			scrollPos.height -= (before.y - after.y) * zoomFactor;
-
-			Presenter()->SetZoomFactor(zoomFactor);
-		}
-		else
-		{
-			// shift+wheel = horizontal scroll.
-			if (flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT)
-				scrollPos.width += static_cast<float>(delta) * 0.25f; // 120 delta per wheel detent.
-			else
-				scrollPos.height += static_cast<float>(delta) * 0.25f; // vertical scroll
-		}
-
-		calcViewTransform(); // and redraws
-		updateScrollBars();
-
-		return gmpi::MP_OK;
 	}
 
 	int32_t ViewBase::StartCableDrag(IViewChild* fromModule, int fromPin, Point dragStartPoint, bool isHeldAlt, CableType type)
@@ -1018,7 +1213,7 @@ namespace SE2
 			autoScrollStart();
 		}
 
-		return gmpi::MP_OK;
+		return (int) gmpi::ReturnCode::Ok;
 	}
 
 	//std::pair< IViewChild*, int> closestPin(CableType type)
@@ -1050,13 +1245,13 @@ namespace SE2
 			dragline->to_ = pinLocation;
 	}
 
-	int32_t ViewBase::EndCableDrag(GmpiDrawing_API::MP1_POINT point, ConnectorViewBase* dragline)
+	bool ViewBase::EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline)
 	{
 		assert(mouseCaptureObject != dragline); // caller should have released capture.
 		if (mouseCaptureObject == dragline)
 			releaseCapture();
 
-		const auto dragLineRect = dragline->GetClipRect();
+		const auto dragLineRect = dragline->getClipArea();
 		invalidateRect(&dragLineRect);
 
 		if(dragline->type == CableType::StructureCable)
@@ -1064,16 +1259,16 @@ namespace SE2
 			for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 			{
 				if((*it)->EndCableDrag(point, dragline))
-					return gmpi::MP_OK; // connection made OK.
+					return true; // connection made OK.
 			}
 
 			// unsuccessful, remove drag-line.
 			RemoveChild(dragline); // WARNING children vector renewed, pointer no longer valid.
-			return gmpi::MP_OK;
+			return false;
 		}
 		else
 		{
-			GmpiDrawing::Point mousePos;
+			gmpi::drawing::Point mousePos;
 			int existingModuleHandle = -1;
 			int existingModulePin = -1;
 
@@ -1123,7 +1318,7 @@ namespace SE2
 				{
 					RemoveChild(dragline); // WARNING children vector renewed, pointer no longer valid.
 				}
-				return gmpi::MP_OK;
+				return false;
 			}
 
 			// we did hit, was it back in the original pin?
@@ -1136,7 +1331,7 @@ namespace SE2
 			if (droppedBackInPlace) // then nothing changes.
 			{
 				dragline->draggingFromEnd = -1;
-				return gmpi::MP_OK;
+				return true;
 			}
 
 			int colorIndex = 0;
@@ -1163,7 +1358,7 @@ namespace SE2
 			// brand new connection.
 			Presenter()->AddPatchCable(existingModuleHandle, existingModulePin, newModuleHandle, newModulePin, colorIndex, droppedBackInPlace);
 		}
-		return gmpi::MP_OK;
+		return true;
 	}
 
 	void ViewBase::UpdateCablesBounds()
@@ -1213,9 +1408,9 @@ namespace SE2
 
 		for(auto i = firstNewLine; i < children.size(); ++i)
 		{
-			GmpiDrawing::Size desiredMax(0, 0);
-			children[i]->measure(GmpiDrawing::Size(100000, 100000), &desiredMax);
-			children[i]->arrange(GmpiDrawing::Rect(0, 0, desiredMax.width, desiredMax.height));
+			gmpi::drawing::Size desiredMax(0, 0);
+			children[i]->measure(gmpi::drawing::Size(100000, 100000), &desiredMax);
+			children[i]->arrange(gmpi::drawing::Rect(0, 0, desiredMax.width, desiredMax.height));
 		}
 
 		// may need to differentiate cables added *after* view opened with normal measure/arrange so they don't get measured/arranged twice or too soon etc.
@@ -1341,25 +1536,25 @@ namespace SE2
 				m->setSelected(selected);
 				if(m->isVisable())
 				{
-					GmpiDrawing_API::MP1_RECT invalidRect;
+					gmpi::drawing::Rect invalidRect;
 					auto moduleview = dynamic_cast<ModuleView*>(m.get());
 					if(selected && moduleview)
 					{
 						// Add resize adorner.
 						std::unique_ptr<IViewChild> adorner = moduleview->createAdorner(this);
 
-						GmpiDrawing::Size unused(0, 0);
-						adorner->measure(GmpiDrawing::Size(0, 0), &unused); // provide for resizbility calc.
+						gmpi::drawing::Size unused(0, 0);
+						adorner->measure(gmpi::drawing::Size(0, 0), &unused); // provide for resizbility calc.
 						invalidRect = adorner->getLayoutRect();
 						assert(!isIteratingChildren);
 						children.push_back(std::move(adorner));
 					}
 					else
 					{
-						invalidRect = m->GetClipRect();
+						invalidRect = m->getClipArea();
 					}
 
-					getGuiHost()->invalidateRect(&invalidRect);
+					invalidateRect(&invalidRect);
 
 					// Avoid hitting Resize Adorner later in vector.
 					if(selected)
@@ -1371,7 +1566,7 @@ namespace SE2
 					auto adorner = dynamic_cast<ResizeAdorner*>(m.get());
 					if(adorner)
 					{
-						auto r = m->GetClipRect();
+						auto r = m->getClipArea();
 						invalidateRect(&r);
 
 						assert(!isIteratingChildren);
@@ -1387,7 +1582,7 @@ namespace SE2
 		}
 	}
 
-	void ViewBase::OnChangedChildPosition(int phandle, GmpiDrawing::Rect& newRect)
+	void ViewBase::OnChangedChildPosition(int phandle, gmpi::drawing::Rect& newRect)
 	{
 		// Update module (and adorner position)
 		bool needToUpdateCables = false;
@@ -1395,9 +1590,11 @@ namespace SE2
 		{
 			if(m->getModuleHandle() == phandle)
 			{
-				const auto originalSize = m->getLayoutRect().getSize();
+				const auto originalRect = m->getLayoutRect();
+				const gmpi::drawing::Size originalSize{ originalRect.right - originalRect.left, originalRect.bottom - originalRect.top };
 				m->OnMoved(newRect);
-				const auto newSize = m->getLayoutRect().getSize();
+				const auto movedRect = m->getLayoutRect();
+				const gmpi::drawing::Size newSize{ movedRect.right - movedRect.left, movedRect.bottom - movedRect.top };
 
 				// handle the case only of a container changing size becuase it's embedded sub-view changed siae (and we need to update any connected lines)
 				needToUpdateCables |= originalSize != newSize;
@@ -1408,7 +1605,7 @@ namespace SE2
 			UpdateCablesBounds();
 	}
 
-	void ViewBase::OnChangedChildNodes(int phandle, std::vector<GmpiDrawing::Point>& nodes)
+	void ViewBase::OnChangedChildNodes(int phandle, std::vector<gmpi::drawing::Point>& nodes)
 	{
 		for (auto& m : children)
 		{
@@ -1453,12 +1650,14 @@ namespace SE2
 		if (id)
 		{
 			draggingNewModuleId = id;
-			getGuiHost()->setCapture();
+			if (inputHost)
+				inputHost->setCapture();
 		}
 		else // nullptr cancels drag
 		{
 			draggingNewModuleId.clear();
-			getGuiHost()->releaseCapture();
+			if (inputHost)
+				inputHost->releaseCapture();
 		}
 	}
 
@@ -1482,7 +1681,7 @@ namespace SE2
 		}
 
 #ifdef _DEBUG
-		debugInitializeCheck_ = false; // satisfy checks in base-class.
+//		debugInitializeCheck_ = false; // satisfy checks in base-class.
 #endif
 
 		//////////////////////////////////////////////
@@ -1497,15 +1696,16 @@ namespace SE2
 		Presenter()->InitializeGuiObjects();
 		initialize();
 
-		GmpiDrawing::Size avail(drawingBounds.getWidth(), drawingBounds.getHeight()); // relying on frame to have set size already.
-		GmpiDrawing::Size desired;
-		measure(avail, &desired);
-		arrange(drawingBounds);
+		gmpi::drawing::Size avail(drawingBounds.right - drawingBounds.left, drawingBounds.bottom - drawingBounds.top); // relying on frame to have set size already.
+		gmpi::drawing::Size desired;
+		measure(&avail, &desired);
+		arrange(&drawingBounds);
 
 		invalidateRect();
 	}
 
-	int32_t ViewBase::populateContextMenu(float x, float y, gmpi::IMpUnknown* contextMenuItemsSink)
+#if 0 // TODO support this
+	int32_t ViewBase::populateContextMenu(float x, float y, gmpi::api::IUnknown* contextMenuItemsSink)
 	{
 		Presenter()->NotDragging();
 
@@ -1535,56 +1735,14 @@ namespace SE2
 			mouseOverObject->populateContextMenu(x, y, &menu);
 
 		}
-		return gmpi::MP_OK;
+		return gmpi::ReturnCode::Ok;
 	}
 
-	int32_t ViewBase::onContextMenu(int32_t idx)
+	gmpi::ReturnCode ViewBase::onContextMenu(int32_t idx)
 	{
-		return GmpiSdk::ContextMenuHelper::onContextMenu(contextMenuCallbacks, idx);
+		return static_cast<gmpi::ReturnCode>(GmpiSdk::ContextMenuHelper::onContextMenu(contextMenuCallbacks, idx));
 	}
-
-	int32_t ViewBase::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT ppoint)
-	{
-		const auto point = legacy_converters::convert(legacy_converters::convert(ppoint) * inv_viewTransform);
-
-		Presenter()->NotDragging();
-
-		if (!draggingNewModuleId.empty())
-		{
-			/* mouse can only be captured by the window that ecieved the mpointer-down, and then only until the next pointer-up.
-			int32_t isMouseCaptured{};
-			getGuiHost()->getCapture(isMouseCaptured);
-			if (isMouseCaptured)
-			*/
-			{
-				getGuiHost()->releaseCapture();
-				const auto moduleId = Utf8ToWstring(draggingNewModuleId); // TODO why does this get converted to UTF8 then back again?
-				Presenter()->AddModule(moduleId.c_str(), point);
-			}
-			draggingNewModuleId.clear();
-		}
-
-		if (mouseCaptureObject)
-		{
-			mouseCaptureObject->onPointerUp(flags, point);
-		}
-
-#ifdef _DEBUG
-		if (mouseCaptureObject)
-		{
-			_RPT0(_CRT_WARN, "WARNING: GUI MODULE DID NOT RELEASE MOUSECAPTURE!!!\n");
-		}
 #endif
-
-		if (isDraggingModules)
-		{
-			isDraggingModules = false;
-			releaseCapture();
-			autoScrollStop();
-		}
-
-		return gmpi::MP_OK;
-	}
 
 	/*
 	isArranging - Enables 3 pixel resize tolerance to cope with font size variation between GDI and DirectWrite. Not needed when user is dragging stuff.
@@ -1593,9 +1751,9 @@ namespace SE2
 	{
 		if (m->isVisable() && dynamic_cast<ConnectorViewBase*>(m) == nullptr)
 		{
-			GmpiDrawing::Size savedSize(m->getLayoutRect().getWidth(), m->getLayoutRect().getHeight());
-			GmpiDrawing::Size desired;
-			GmpiDrawing::Size actualSize;
+			gmpi::drawing::Size savedSize(getWidth(m->getLayoutRect()), getHeight(m->getLayoutRect()));
+			gmpi::drawing::Size desired;
+			gmpi::drawing::Size actualSize;
 			bool changedSize = false;
 			/*
 							if (debug)
@@ -1607,7 +1765,7 @@ namespace SE2
 			if (savedSize.width == 0 && savedSize.height == 0)
 			{
 				const float defaultDimensions = 100;
-				GmpiDrawing::Size defaultSize(defaultDimensions, defaultDimensions);
+				gmpi::drawing::Size defaultSize(defaultDimensions, defaultDimensions);
 				m->measure(defaultSize, &desired);
 				actualSize = desired;
 				// stick with integer sizes for compatibility.
@@ -1653,40 +1811,39 @@ namespace SE2
 
 			if (changedSize)
 			{
-				GmpiDrawing::Rect newRect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height);
+				gmpi::drawing::Rect newRect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height);
 				m->OnMoved(newRect);
 			}
 		}
 	}
-
-	int32_t ViewBase::measure(MP1_SIZE availableSize, MP1_SIZE* returnDesiredSize)
+	gmpi::ReturnCode ViewBase::measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize)
 	{
 		childrenDirty = true;
 		processUnidirectionalModules(); // ensure images have loaded, otherwise measure will be immediatly invalidated.
 
-		GmpiDrawing::Size veryLarge(10000, 10000);
-		GmpiDrawing::Size notused;
+		gmpi::drawing::Size veryLarge(10000, 10000);
+		gmpi::drawing::Size notused;
 
 		for (auto& c : children)
 		{
 			c->measure(veryLarge, &notused);
 		}
 
-		return gmpi::MP_OK;
+		return gmpi::ReturnCode::Ok;
 	}
 
-	int32_t ViewBase::arrange(MP1_RECT finalRect)
+	gmpi::ReturnCode ViewBase::arrange(const gmpi::drawing::Rect* finalRect)
 	{
-		drawingBounds = finalRect;
+		drawingBounds = *finalRect;
 
 		// Modules first, then lines (which rely on module position being finalized).
 		for (auto& m : children)
 		{
 			if (m->isVisable() && dynamic_cast<ConnectorViewBase*>(m.get()) == nullptr)
 			{
-				GmpiDrawing::Size savedSize(m->getLayoutRect().getWidth(), m->getLayoutRect().getHeight());
-				GmpiDrawing::Size desired;
-				GmpiDrawing::Size actualSize;
+				gmpi::drawing::Size savedSize(getWidth(m->getLayoutRect()), getHeight(m->getLayoutRect()));
+				gmpi::drawing::Size desired;
+				gmpi::drawing::Size actualSize;
 				bool changedSize = false;
 				/*
 								if (debug)
@@ -1698,7 +1855,7 @@ namespace SE2
 				if (savedSize.width == 0 && savedSize.height == 0)
 				{
 					const float defaultDimensions = 100;
-					GmpiDrawing::Size defaultSize(defaultDimensions, defaultDimensions);
+					gmpi::drawing::Size defaultSize(defaultDimensions, defaultDimensions);
 					m->measure(defaultSize, &desired);
 					actualSize = desired;
 					// stick with integer sizes for compatibility.
@@ -1745,8 +1902,8 @@ namespace SE2
 
 				// Note, due to font width differences, this may result in different size/layout than original GDI graphics. e..g knobs shifting.
 /* currently not used, also adorner could figure this out by itself
-				GmpiDrawing::Size desiredMax(0, 0);
-				m->measure(GmpiDrawing::Size(10000, 10000), &desiredMax);
+				gmpi::drawing::Size desiredMax(0, 0);
+				m->measure(gmpi::drawing::Size(10000, 10000), &desiredMax);
 
 				m->isResizableX = desired.width != desiredMax.width;
 				m->isResizableY = desired.height != desiredMax.height;
@@ -1757,7 +1914,7 @@ namespace SE2
 					_RPT4(_CRT_WARN, "arrange r[ %f %f %f %f]\n", m->getBounds().left, m->getBounds().top, m->getBounds().left + actualSize.width, m->getBounds().top + actualSize.height);
 				}
 */
-				m->arrange(GmpiDrawing::Rect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height));
+				m->arrange(gmpi::drawing::Rect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height));
 
 				// Typically only when new object inserted.
 				if (changedSize) // actualSize != savedSize)
@@ -1770,13 +1927,11 @@ namespace SE2
 		for (auto& m : children)
 		{
 			if (dynamic_cast<ConnectorViewBase*>(m.get()))
-			{
-				m->arrange(GmpiDrawing::Rect(0, 0, 10, 10));
-			}
+				m->arrange(gmpi::drawing::Rect(0, 0, 10, 10));
 		}
 
 		isArranged = true;
-		return gmpi::MP_OK;
+		return gmpi::ReturnCode::Ok;
 	}
 
 	void ViewBase::OnPatchCablesVisibilityUpdate()
@@ -1791,6 +1946,7 @@ namespace SE2
 		}
 	}
 
+#if 0 // TODO implement
 	void ViewBase::preGraphicsRedraw()
 	{
 		// Get any meter updates from DSP. ( See also CSynthEditAppBase::OnTimer() )
@@ -1798,6 +1954,7 @@ namespace SE2
 
 		processUnidirectionalModules();
 	}
+#endif
 
 	void ViewBase::markDirtyChild(IViewChild* child)
 	{
@@ -1855,8 +2012,9 @@ namespace SE2
 					// If downstream module has feedback, add trace information.
 					e->AddLine(from, mod, c.second.otherModulePinIndex_, pinId);
 
-					int32_t handle{};
-					mod->getHandle(handle);
+					//int32_t handle{};
+					//mod->getHandle(handle);
+					const auto handle = mod->getModuleHandle();
 
 					if (e->feedbackConnectors.front().second.moduleHandle == handle) // only reconstruct feedback loop as far as nesc.
 					{
@@ -1985,23 +2143,15 @@ namespace SE2
 
 	int32_t ViewBase::OnKeyPress(wchar_t c) // SDK3 version, forward to new version.
 	{
-		return (int32_t) onKey(c, (gmpi::drawing::Point*) &lastMovePoint);
+		return static_cast<int32_t>(onKeyPress(c));
 	}
 
 	gmpi::ReturnCode ViewBase::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
 	{
-#ifdef _WIN32
-		// to get the GMPI-UI factory from teh SDK3 host, first cast the GuiHost to the gmpi::api::IDrawingHost, then get *its* factory.
-		gmpi::shared_ptr<gmpi::api::IDrawingHost> host;
-		getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDrawingHost::guid, host.put_void());
+		if (!drawingHost)
+			return gmpi::ReturnCode::NoSupport;
 
-		return host->getDrawingFactory(returnFactory);
-
-//		return (gmpi::ReturnCode) getGuiHost()->GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory);
-		//*returnFactory = static_cast<gmpi::drawing::api::IFactory*>(&frameWindow->DrawingFactory->gmpiFactory);
-		//return gmpi::ReturnCode::Ok;
-#endif
-        return gmpi::ReturnCode::NoSupport;
+		return drawingHost->getDrawingFactory(returnFactory);
 	}
 
 	gmpi::ReturnCode ViewBase::onKey(int32_t key, gmpi::drawing::Point* pointerPosOrNull)
@@ -2080,26 +2230,26 @@ namespace SE2
 		assert(!isIteratingChildren);
 		children.push_back(std::unique_ptr<IViewChild>(modulePicker));
 
-		GmpiDrawing::Size desiredMax{};
-		modulePicker->measure(GmpiDrawing::Size(100, 80), &desiredMax);
-		modulePicker->arrange(GmpiDrawing::Rect(currentPointerPos.x, currentPointerPos.y, currentPointerPos.x + desiredMax.width, currentPointerPos.y + desiredMax.height));
+		gmpi::drawing::Size desiredMax{};
+		modulePicker->measure(gmpi::drawing::Size(100, 80), &desiredMax);
+		modulePicker->arrange(gmpi::drawing::Rect(currentPointerPos.x, currentPointerPos.y, currentPointerPos.x + desiredMax.width, currentPointerPos.y + desiredMax.height));
 
 //		modulePicker->init();
 
-		const auto invalidRect = modulePicker->GetClipRect();
-		getGuiHost()->invalidateRect(&invalidRect);
+		const auto invalidRect = modulePicker->getClipArea();
+		invalidateRect(&invalidRect);
 		return true;
 	}
 
 	void ViewBase::DismissModulePicker()
 	{
-		const auto invalidRect = modulePicker->GetClipRect();
+		const auto invalidRect = modulePicker->getClipArea();
 		RemoveChild(modulePicker);
 		modulePicker = nullptr;
-		getGuiHost()->invalidateRect(&invalidRect);
+		invalidateRect(&invalidRect);
 	}
 
-	IViewChild* ViewBase::Find(GmpiDrawing::Point& p)
+	IViewChild* ViewBase::Find(gmpi::drawing::Point& p)
 	{
 		for (auto it = children.rbegin(); it != children.rend(); ++it)
 		{

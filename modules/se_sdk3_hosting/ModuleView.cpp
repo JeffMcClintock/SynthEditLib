@@ -12,10 +12,9 @@
 #include "UgDatabase2.h"
 #include "ProtectedFile.h"
 #include "RawConversions.h"
-#include "DragLine.h"
 #include "SubViewPanel.h"
 #include "ResizeAdorner.h"
-#include "backends/../Drawing.h" // gmpi-ui version, not SDK3
+#include "backends/../GmpiUiDrawing.h" // gmpi-ui version, not SDK3
 #include "modules/shared/GraphHelpers.h"
 #include "IGuiHost2.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
@@ -26,60 +25,55 @@
 
 using namespace gmpi;
 using namespace std;
-using namespace GmpiDrawing_API;
-using namespace GmpiDrawing;
+using namespace gmpi::drawing;
+using namespace gmpi::drawing;
 
 namespace SE2
 {
-	// IInputHost
-	ReturnCode GmpiUiHelper::setCapture() { return (gmpi::ReturnCode) moduleview.setCapture();}
-	ReturnCode GmpiUiHelper::getCapture(bool& returnValue) { int32_t cap{}; moduleview.getCapture(cap); returnValue = cap != 0; return gmpi::ReturnCode::Ok; }
-	ReturnCode GmpiUiHelper::releaseCapture() { return (gmpi::ReturnCode) moduleview.releaseCapture(); }
-	//ReturnCode GmpiUiHelper::getFocus() { return gmpi::ReturnCode::NoSupport; }
-	//ReturnCode GmpiUiHelper::releaseFocus() { return gmpi::ReturnCode::NoSupport; }
+#if 0 // deprecated
+// IInputHost
+	ReturnCode GmpiHelper::setCapture() { return (gmpi::ReturnCode) moduleview.setCapture();}
+	ReturnCode GmpiHelper::getCapture(bool& returnValue) { int32_t cap{}; moduleview.getCapture(cap); returnValue = cap != 0; return gmpi::ReturnCode::Ok; }
+	ReturnCode GmpiHelper::releaseCapture() { return (gmpi::ReturnCode) moduleview.releaseCapture(); }
+	//ReturnCode GmpiHelper::getFocus() { return gmpi::ReturnCode::NoSupport; }
+	//ReturnCode GmpiHelper::releaseFocus() { return gmpi::ReturnCode::NoSupport; }
 	// IEditorHost
-	ReturnCode GmpiUiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data) { return (gmpi::ReturnCode) moduleview.pinTransmit(pinId, size, data, voice); }
-	int32_t GmpiUiHelper::getHandle() { return moduleview.handle; }
+	ReturnCode GmpiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data) { return (gmpi::ReturnCode) moduleview.pinTransmit(pinId, size, data, voice); }
+	int32_t GmpiHelper::getHandle() { return moduleview.handle; }
 	// IDrawingHost
-	ReturnCode GmpiUiHelper::getDrawingFactory(gmpi::api::IUnknown** returnFactory) { return moduleview.parent->getDrawingFactory(returnFactory); }
-	void GmpiUiHelper::invalidateRect(const gmpi::drawing::Rect* invalidRect) { moduleview.invalidateRect((const GmpiDrawing_API::MP1_RECT*) invalidRect); }
-	void GmpiUiHelper::invalidateMeasure() { moduleview.invalidateMeasure(); }
+	ReturnCode GmpiHelper::getDrawingFactory(gmpi::api::IUnknown** returnFactory) { return moduleview.parent->getDrawingFactory(returnFactory); }
+	void GmpiHelper::invalidateRect(const gmpi::drawing::Rect* invalidRect) { moduleview.invalidateRect(reinterpret_cast<const GmpiDrawing_API::MP1_RECT*>(invalidRect)); }
+	void GmpiHelper::invalidateMeasure() { moduleview.invalidateMeasure(); }
 
-	float GmpiUiHelper::getRasterizationScale()
+	float GmpiHelper::getRasterizationScale()
 	{
-		gmpi::shared_ptr<gmpi::api::IDrawingHost> host;
-		moduleview.parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDrawingHost::guid, host.put_void());
-		return host->getRasterizationScale();
+		return 1.0f;
 	}
 	// IDialogHost
-	ReturnCode GmpiUiHelper::createTextEdit(const gmpi::drawing::Rect* rect, gmpi::api::IUnknown** returnTextEdit)
+	ReturnCode GmpiHelper::createTextEdit(const gmpi::drawing::Rect* rect, gmpi::api::IUnknown** returnTextEdit)
 	{
-		gmpi::drawing::Rect r = offsetRect(*rect, { moduleview.bounds_.left + moduleview.pluginGraphicsPos.left, moduleview.bounds_.top + moduleview.pluginGraphicsPos.top });
-		return (gmpi::ReturnCode) moduleview.parent->ChildCreatePlatformTextEdit((GmpiDrawing_API::MP1_RECT*) &r, (gmpi_gui::IMpPlatformText**) returnTextEdit);
-	}
-
-	ReturnCode GmpiUiHelper::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) { return gmpi::ReturnCode::NoSupport; }
-	ReturnCode GmpiUiHelper::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
-	{
-		const auto rl = gmpi::drawing::offsetRect(*r, gmpi::drawing::Size{ moduleview.bounds_.left + moduleview.pluginGraphicsPos.left, moduleview.bounds_.top + moduleview.pluginGraphicsPos.top });
-
-		gmpi::shared_ptr<gmpi::api::IDialogHost> host;
-		moduleview.parent->getGuiHost()->queryInterface(*(const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid, host.put_void());
-
-		host->createKeyListener(&rl, returnKeyListener);
-
+		(void)rect;
+		(void)returnTextEdit;
 		return gmpi::ReturnCode::NoSupport;
 	}
-	ReturnCode GmpiUiHelper::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::NoSupport; }
-	ReturnCode GmpiUiHelper::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::NoSupport; }
 
-	gmpi::ReturnCode GmpiUiHelper::getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle)
+	ReturnCode GmpiHelper::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) { return gmpi::ReturnCode::NoSupport; }
+	ReturnCode GmpiHelper::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
+	{
+		(void)r;
+		(void)returnKeyListener;
+		return gmpi::ReturnCode::NoSupport;
+	}
+	ReturnCode GmpiHelper::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::NoSupport; }
+	ReturnCode GmpiHelper::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::NoSupport; }
+
+	gmpi::ReturnCode GmpiHelper::getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle)
 	{
 		// get my own parameter handle.
 		returnHandle = moduleview.parent->Presenter()->GetPatchManager()->getParameterHandle(moduleview.handle, moduleParameterId);
 		return gmpi::ReturnCode::Ok;
 	}
-	gmpi::ReturnCode GmpiUiHelper::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
+	gmpi::ReturnCode GmpiHelper::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
 	{
 		auto patchMgr = moduleview.parent->Presenter()->GetPatchManager();
 
@@ -100,12 +94,12 @@ namespace SE2
 
 		if (fieldId == gmpi::Field::Value || fieldId == gmpi::Field::Normalized)
 		{
-			_RPTN(0, "GmpiUiHelper::setParameter %d -> %f\n", parameterHandle, *(float*)data);
+			_RPTN(0, "GmpiHelper::setParameter %d -> %f\n", parameterHandle, *(float*)data);
 		}
 
 		return gmpi::ReturnCode::Ok;
 	}
-	gmpi::ReturnCode GmpiUiHelper::setDirty()
+	gmpi::ReturnCode GmpiHelper::setDirty()
 	{
 		moduleview.setDirty();
 		return gmpi::ReturnCode::Ok;
@@ -113,7 +107,7 @@ namespace SE2
 
 	//////////////////////////////////////////////////////// IEmbeddedFileSupport
 
-	gmpi::ReturnCode GmpiUiHelper::findResourceUri(const char* fileName, /*const char* resourceType,*/ gmpi::api::IString* returnFullUri)
+	gmpi::ReturnCode GmpiHelper::findResourceUri(const char* fileName, /*const char* resourceType,*/ gmpi::api::IString* returnFullUri)
 	{
 #if 0 // std::filesystem
 		std::filesystem::path uri(fileName);
@@ -131,26 +125,505 @@ namespace SE2
 
 		return (gmpi::ReturnCode) moduleview.FindResourceU(fileName, resourceType.c_str(), (gmpi::IString*)returnFullUri);
 	}
-	gmpi::ReturnCode GmpiUiHelper::registerResourceUri(const char* fullUri)
+	gmpi::ReturnCode GmpiHelper::registerResourceUri(const char* fullUri)
 	{
 		return (gmpi::ReturnCode) GmpiResourceManager::Instance()->RegisterResourceUri(moduleview.handle, fullUri);
 	}
-	gmpi::ReturnCode GmpiUiHelper::openUri(const char* fullUri, gmpi::api::IUnknown** returnStream)
+	gmpi::ReturnCode GmpiHelper::openUri(const char* fullUri, gmpi::api::IUnknown** returnStream)
 	{
 		// TODO
 		return gmpi::ReturnCode::NoSupport;
 	}
-	gmpi::ReturnCode GmpiUiHelper::clearResourceUris()
+	gmpi::ReturnCode GmpiHelper::clearResourceUris()
 	{
 		// TODO
+		return gmpi::ReturnCode::NoSupport;
+	}
+#endif
+
+	ReturnCode GmpiHelper::setCapture()
+	{
+		moduleview.mouseCaptured = true;
+		return moduleview.parent ? static_cast<gmpi::ReturnCode>(moduleview.parent->setCapture(&moduleview)) : gmpi::ReturnCode::Fail;
+	}
+
+	ReturnCode GmpiHelper::getCapture(bool& returnValue)
+	{
+		returnValue = moduleview.mouseCaptured;
+		return gmpi::ReturnCode::Ok;
+	}
+
+	ReturnCode GmpiHelper::releaseCapture()
+	{
+		moduleview.mouseCaptured = false;
+		return moduleview.parent ? static_cast<gmpi::ReturnCode>(moduleview.parent->releaseCapture()) : gmpi::ReturnCode::Fail;
+	}
+
+	ReturnCode GmpiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data)
+	{
+		auto it = moduleview.connections_.find(pinId);
+		while (it != moduleview.connections_.end() && it->first == pinId)
+		{
+			auto& connection = it->second;
+			connection.otherModule_->setPin(&moduleview, pinId, connection.otherModulePinIndex_, voice, size, data);
+			++it;
+		}
+
+		if (!moduleview.initialised_)
+		{
+			moduleview.alreadySentDataPins_.push_back(pinId);
+		}
+
+		if (moduleview.recursionStopper_ < 10)
+		{
+			bool isInputPin{};
+			for (auto inputPinId : moduleview.inputPinIds)
+			{
+				if (inputPinId == pinId)
+				{
+					isInputPin = true;
+					break;
+				}
+			}
+
+			if (isInputPin)
+			{
+				++moduleview.recursionStopper_;
+
+				if (moduleview.pluginParameters_GMPI)
+				{
+					moduleview.pluginParameters_GMPI->setPin(pinId, voice, size, data);
+					moduleview.pluginParameters_GMPI->notifyPin(pinId, voice);
+				}
+
+				--moduleview.recursionStopper_;
+			}
+		}
+
+		return gmpi::ReturnCode::Ok;
+	}
+
+	int32_t GmpiHelper::getHandle()
+	{
+		return moduleview.handle;
+	}
+
+	ReturnCode GmpiHelper::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
+	{
+		if (!moduleview.parent)
+		{
+			if (returnFactory)
+				*returnFactory = nullptr;
+			return gmpi::ReturnCode::Fail;
+		}
+
+		return moduleview.parent->getDrawingFactory(returnFactory);
+	}
+
+	void GmpiHelper::invalidateRect(const gmpi::drawing::Rect* invalidRect)
+	{
+		if (!moduleview.parent)
+			return;
+
+		if (invalidRect)
+		{
+			auto r = offsetRect(*invalidRect, { moduleview.bounds_.left + moduleview.pluginGraphicsPos.left, moduleview.bounds_.top + moduleview.pluginGraphicsPos.top });
+			moduleview.parent->ChildInvalidateRect(r);
+		}
+		else
+		{
+			moduleview.parent->ChildInvalidateRect(moduleview.bounds_);
+		}
+	}
+
+	void GmpiHelper::invalidateMeasure()
+	{
+		if (moduleview.parent)
+			moduleview.parent->OnChildResize(&moduleview);
+	}
+
+	float GmpiHelper::getRasterizationScale()
+	{
+		return 1.0f;
+	}
+
+	ReturnCode GmpiHelper::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit)
+	{
+		(void)r;
+		if (returnTextEdit)
+			*returnTextEdit = nullptr;
 		return gmpi::ReturnCode::NoSupport;
 	}
 
+	ReturnCode GmpiHelper::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu)
+	{
+		(void)r;
+		if (returnPopupMenu)
+			*returnPopupMenu = nullptr;
+		return gmpi::ReturnCode::NoSupport;
+	}
+
+	ReturnCode GmpiHelper::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
+	{
+		(void)r;
+		if (returnKeyListener)
+			*returnKeyListener = nullptr;
+		return gmpi::ReturnCode::NoSupport;
+	}
+
+	ReturnCode GmpiHelper::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog)
+	{
+		(void)dialogType;
+		if (returnDialog)
+			*returnDialog = nullptr;
+		return gmpi::ReturnCode::NoSupport;
+	}
+
+	ReturnCode GmpiHelper::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog)
+	{
+		(void)dialogType;
+		if (returnDialog)
+			*returnDialog = nullptr;
+		return gmpi::ReturnCode::NoSupport;
+	}
+
+	gmpi::ReturnCode GmpiHelper::getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle)
+	{
+		returnHandle = moduleview.parent->Presenter()->GetPatchManager()->getParameterHandle(moduleview.handle, moduleParameterId);
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode GmpiHelper::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
+	{
+		(void)voice;
+		moduleview.parent->Presenter()->GetPatchManager()->setParameterValue({ data, static_cast<size_t>(size) }, parameterHandle, (gmpi::FieldType)fieldId);
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode GmpiHelper::findResourceUri(const char* fileName, gmpi::api::IString* returnFullUri)
+	{
+		std::string resourceType;
+		if (fileName)
+		{
+			auto p = std::string(fileName).find_last_of('.');
+			if (p != std::string::npos)
+				resourceType = std::string(fileName).substr(p + 1);
+		}
+
+		return static_cast<gmpi::ReturnCode>(GmpiResourceManager::Instance()->FindResourceU(moduleview.handle, moduleview.parent->getSkinName(), fileName, resourceType.c_str(), reinterpret_cast<gmpi::IString*>(returnFullUri)));
+	}
+
+	gmpi::ReturnCode GmpiHelper::registerResourceUri(const char* fullUri)
+	{
+		return static_cast<gmpi::ReturnCode>(GmpiResourceManager::Instance()->RegisterResourceUri(moduleview.handle, fullUri));
+	}
+
+	gmpi::ReturnCode GmpiHelper::openUri(const char* fullUri, gmpi::api::IUnknown** returnStream)
+	{
+		(void)fullUri;
+		if (returnStream)
+			*returnStream = nullptr;
+		return gmpi::ReturnCode::NoSupport;
+	}
+
+	gmpi::ReturnCode GmpiHelper::clearResourceUris()
+	{
+		GmpiResourceManager::Instance()->ClearResourceUris(moduleview.handle);
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode GmpiHelper::setDirty()
+	{
+		moduleview.setDirty();
+		return gmpi::ReturnCode::Ok;
+	}
+
+	void Sdk3Helper::OnPatchCablesUpdate(RawView patchCablesRaw) // from PatchCableChangeNotifier
+	{
+		moduleview.parent->OnPatchCablesUpdate(patchCablesRaw);
+	}
+
+	int32_t Sdk3Helper::GetDrawingFactory(GmpiDrawing_API::IMpFactory** returnFactory)
+	{
+		if (!returnFactory)
+			return gmpi::MP_FAIL;
+
+		gmpi::api::IUnknown* gmpiFactory{};
+		moduleview.parent->drawingHost->getDrawingFactory(&gmpiFactory);
+
+		// cast drawing host to SDK3
+		gmpi_sdk::mp_shared_ptr<gmpi_gui::IMpGraphicsHost> sdk3DrawingHost;
+		return (int32_t) gmpiFactory->queryInterface((const gmpi::api::Guid*)&GmpiDrawing_API::SE_IID_FACTORY_MPGUI, (void**) returnFactory);
+	}
+
+	void Sdk3Helper::invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect)
+	{
+		if (!moduleview.parent)
+			return;
+
+		if (invalidRect)
+		{
+			gmpi::drawing::Rect r{ invalidRect->left, invalidRect->top, invalidRect->right, invalidRect->bottom };
+			r = offsetRect(r, { moduleview.bounds_.left + moduleview.pluginGraphicsPos.left, moduleview.bounds_.top + moduleview.pluginGraphicsPos.top });
+			moduleview.parent->ChildInvalidateRect(r);
+		}
+		else
+		{
+			moduleview.parent->ChildInvalidateRect(moduleview.bounds_);
+		}
+	}
+
+	int32_t Sdk3Helper::setCapture()
+	{
+		moduleview.mouseCaptured = true;
+		return moduleview.parent ? moduleview.parent->setCapture(&moduleview) : gmpi::MP_FAIL;
+	}
+
+	int32_t Sdk3Helper::getCapture(int32_t& returnValue)
+	{
+		returnValue = moduleview.mouseCaptured ? 1 : 0;
+		return gmpi::MP_OK;
+	}
+
+	int32_t Sdk3Helper::releaseCapture()
+	{
+		moduleview.mouseCaptured = false;
+		return moduleview.parent ? moduleview.parent->releaseCapture() : gmpi::MP_FAIL;
+	}
+
+	int32_t Sdk3Helper::createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog)
+	{
+		(void)dialogType;
+		if (returnFileDialog)
+			*returnFileDialog = nullptr;
+		return gmpi::MP_UNHANDLED;
+	}
+
+	int32_t Sdk3Helper::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog)
+	{
+		(void)dialogType;
+		if (returnDialog)
+			*returnDialog = nullptr;
+		return gmpi::MP_UNHANDLED;
+	}
+
+	int32_t Sdk3Helper::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
+	{
+		(void)rect;
+		if (returnMenu)
+			*returnMenu = nullptr;
+		return gmpi::MP_UNHANDLED;
+	}
+
+	int32_t Sdk3Helper::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
+	{
+		(void)rect;
+		if (returnTextEdit)
+			*returnTextEdit = nullptr;
+		return gmpi::MP_UNHANDLED;
+	}
+
+	int32_t Sdk3Helper::pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice)
+	{
+		auto it = moduleview.connections_.find(pinId);
+		while (it != moduleview.connections_.end() && it->first == pinId)
+		{
+			auto& connection = it->second;
+			connection.otherModule_->setPin(&moduleview, pinId, connection.otherModulePinIndex_, voice, size, data);
+			++it;
+		}
+
+		if (!moduleview.initialised_)
+		{
+			moduleview.alreadySentDataPins_.push_back(pinId);
+		}
+
+		if (moduleview.recursionStopper_ < 10)
+		{
+			bool isInputPin{};
+			for (auto inputPinId : moduleview.inputPinIds)
+			{
+				if (inputPinId == pinId)
+				{
+					isInputPin = true;
+					break;
+				}
+			}
+
+			if (isInputPin)
+			{
+				++moduleview.recursionStopper_;
+
+				if (moduleview.pluginParameters)
+				{
+					moduleview.pluginParameters->setPin(pinId, voice, size, data);
+
+					if (moduleview.pluginParameters2B)
+					{
+						moduleview.pluginParameters2B->notifyPin(pinId, voice);
+					}
+				}
+				else if (moduleview.pluginParametersLegacy)
+				{
+					moduleview.pluginParametersLegacy->setPin(pinId, voice, size, const_cast<void*>(data));
+					moduleview.pluginParametersLegacy->notifyPin(pinId, voice);
+				}
+
+				--moduleview.recursionStopper_;
+			}
+		}
+
+		return gmpi::MP_OK;
+	}
+
+	int32_t Sdk3Helper::sendMessageToAudio(int32_t id, int32_t size, const void* messageData)
+	{
+		return moduleview.Presenter()->GetPatchManager()->sendSdkMessageToAudio(moduleview.handle, id, size, messageData);
+	}
+
+	int32_t Sdk3Helper::getHandle(int32_t& returnValue)
+	{
+		returnValue = moduleview.handle;
+		return gmpi::MP_OK;
+	}
+
+	int32_t Sdk3Helper::createPinIterator(gmpi::IMpPinIterator** returnIterator)
+	{
+		if (returnIterator)
+			*returnIterator = nullptr;
+		return gmpi::MP_UNHANDLED;
+	}
+
+	int32_t Sdk3Helper::ClearResourceUris()
+	{
+		GmpiResourceManager::Instance()->ClearResourceUris(moduleview.handle);
+		return gmpi::MP_OK;
+	}
+
+	int32_t Sdk3Helper::RegisterResourceUri(const char* resourceName, const char* resourceType, gmpi::IString* returnString)
+	{
+		return GmpiResourceManager::Instance()->RegisterResourceUri(moduleview.handle, moduleview.parent->getSkinName(), resourceName, resourceType, returnString);
+	}
+
+	int32_t Sdk3Helper::FindResourceU(const char* resourceName, const char* resourceType, gmpi::IString* returnString)
+	{
+		return GmpiResourceManager::Instance()->FindResourceU(moduleview.handle, moduleview.parent->getSkinName(), resourceName, resourceType, returnString);
+	}
+
+	int32_t Sdk3Helper::LoadPresetFile_DEPRECATED(const char* presetFilePath)
+	{
+		(void)presetFilePath;
+		return gmpi::MP_UNHANDLED;
+	}
+
+	int32_t Sdk3Helper::OpenUri(const char* fullUri, gmpi::IProtectedFile2** returnStream)
+	{
+		return GmpiResourceManager::Instance()->OpenUri(fullUri, returnStream);
+	}
+
+	int32_t Sdk3Helper::pinTransmit(int32_t pinId, int32_t size, void* data, int32_t voice)
+	{
+		return pinTransmit(pinId, size, static_cast<const void*>(data), voice);
+	}
+
+	int32_t Sdk3Helper::sendMessageToAudio(int32_t id, int32_t size, void* messageData)
+	{
+		return sendMessageToAudio(id, size, static_cast<const void*>(messageData));
+	}
+
+	int32_t Sdk3Helper::setIdleTimer(int32_t active)
+	{
+		(void)active;
+		return gmpi::MP_UNHANDLED;
+	}
+
+	int32_t Sdk3Helper::getHostId(int32_t maxChars, wchar_t* returnString)
+	{
+		if (!returnString || maxChars <= 0)
+			return gmpi::MP_FAIL;
+
+		const wchar_t* hostName = L"SynthEdit";
+#if defined(_MSC_VER)
+		wcscpy_s(returnString, maxChars, hostName);
+#else
+		wcscpy(returnString, hostName);
+#endif
+		return gmpi::MP_OK;
+	}
+
+	int32_t Sdk3Helper::getHostVersion(int32_t& returnValue)
+	{
+		returnValue = 1000;
+		return gmpi::MP_OK;
+	}
+
+	int32_t Sdk3Helper::resolveFilename(const wchar_t* shortFilename, int32_t maxChars, wchar_t* returnFullFilename)
+	{
+		return moduleview.Presenter()->GetPatchManager()->resolveFilename(shortFilename, maxChars, returnFullFilename);
+	}
+
+	int32_t Sdk3Helper::addContextMenuItem(wchar_t* menuText, int32_t index, int32_t flags)
+	{
+		(void)menuText;
+		(void)index;
+		(void)flags;
+		return gmpi::MP_UNHANDLED;
+	}
+
+	int32_t Sdk3Helper::getPinCount(int32_t& returnCount)
+	{
+		if (moduleview.totalPins_ > -1)
+		{
+			returnCount = moduleview.totalPins_;
+			return gmpi::MP_OK;
+		}
+
+		return gmpi::MP_UNHANDLED;
+	}
+
+	int32_t Sdk3Helper::openProtectedFile(const wchar_t* shortFilename, gmpi::IProtectedFile** file)
+	{
+		(void)shortFilename;
+		if (file)
+			*file = nullptr;
+		return gmpi::MP_UNHANDLED;
+	}
+
+	int32_t Sdk3Helper::queryInterface(const gmpi::MpGuid& iid, void** object)
+	{
+		if (!object)
+			return gmpi::MP_FAIL;
+
+		*object = nullptr;
+
+		if (iid == gmpi::MP_IID_UI_HOST2)
+		{
+			*object = reinterpret_cast<IMpUnknown*>(static_cast<IMpUserInterfaceHost2*>(this));
+			addRef();
+			return gmpi::MP_OK;
+		}
+
+		if (iid == gmpi::MP_IID_UI_HOST)
+		{
+			*object = reinterpret_cast<IMpUnknown*>(static_cast<IMpUserInterfaceHost*>(this));
+			addRef();
+			return gmpi::MP_OK;
+		}
+
+		if (iid == gmpi_gui::SE_IID_GRAPHICS_HOST || iid == gmpi_gui::SE_IID_GRAPHICS_HOST_BASE || iid == gmpi::MP_IID_UNKNOWN)
+		{
+			*object = reinterpret_cast<IMpUnknown*>(static_cast<IMpGraphicsHost*>(this));
+			addRef();
+			return gmpi::MP_OK;
+		}
+
+		return gmpi::MP_NOSUPPORT;
+	}
 
 	////////////////////////////////////////////////////////
 
 	ModuleView::ModuleView(const wchar_t* typeId, ViewBase* pParent, int handle) : ViewChild(pParent, handle)
-		, uiHelper(*this)
+//		, uiHelper(*this)
 		, recursionStopper_(0)
 		, initialised_(false)
 		, ignoreMouse(false)
@@ -159,7 +632,7 @@ namespace SE2
 	}
 
 	ModuleView::ModuleView(Json::Value* context, ViewBase* pParent) : ViewChild(context, pParent)
-		, uiHelper(*this)
+//		, uiHelper(*this)
 		, recursionStopper_(0)
 		, initialised_(false)
 		, ignoreMouse(false)
@@ -227,8 +700,8 @@ namespace SE2
 		assert(moduleInfo->UniqueId() == L"Container");
 
 		auto subView = new SubView(parent->getViewType());
-		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> object;
-		object.Attach(static_cast<gmpi::IMpUserInterface2B*>(subView));
+		gmpi::shared_ptr<gmpi::api::IUnknown> object;
+		object.attach(static_cast<ISubView*>(subView));
 		assert(object != nullptr);
 #if 0
 		{
@@ -259,7 +732,7 @@ namespace SE2
 #if 0 // for now defined(_DEBUG)
 		assert(moduleInfo->UniqueId() == L"Container");
 
-		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> object;
+		gmpi_sdk::mp_shared_ptr<gmpi::api::IUnknown> object;
 		object.Attach(static_cast<gmpi::IMpUserInterface2B*>(new SubViewCadmium(parent->getViewType())));
 		assert(object != nullptr);
 		{
@@ -298,12 +771,12 @@ namespace SE2
 	{
 		auto& mi = moduleInfo;
 
-		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> object;
-		object.Attach(mi->Build(MP_SUB_TYPE_GUI2, true));
+		gmpi::shared_ptr<gmpi::api::IUnknown> object;
+		object.attach(reinterpret_cast<gmpi::api::IUnknown*>(mi->Build(MP_SUB_TYPE_GUI2, true)));
 
 		if (!object && mi->getWindowType() == MP_WINDOW_TYPE_NONE) // can't support legacy graphics, but can support invisible legacy sub-controls.
 		{
-			object.Attach(mi->Build(MP_SUB_TYPE_GUI, true));
+			object.attach(reinterpret_cast<gmpi::api::IUnknown*>(mi->Build(MP_SUB_TYPE_GUI, true)));
 		}
 
 		if (!object)
@@ -322,58 +795,65 @@ namespace SE2
 		queryPluginInterfaces(object);
 	}
 
-	void ModuleView::queryPluginInterfaces(gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown>& object)
+	void ModuleView::queryPluginInterfaces(gmpi::shared_ptr<gmpi::api::IUnknown>& object)
 	{
-		auto r = object->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pluginParameters.asIMpUnknownPtr());
-		r = object->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
-		r = object->queryInterface(gmpi::MP_IID_GUI_PLUGIN, pluginParametersLegacy.asIMpUnknownPtr());
-		r = object->queryInterface(gmpi_gui_api::SE_IID_GRAPHICS_MPGUI, pluginGraphics.asIMpUnknownPtr());
-		r = object->queryInterface(gmpi_gui_api::SE_IID_GRAPHICS_MPGUI2, pluginGraphics2.asIMpUnknownPtr());
-		r = object->queryInterface(gmpi_gui_api::SE_IID_GRAPHICS_MPGUI3, pluginGraphics3.asIMpUnknownPtr());
-		r = object->queryInterface(gmpi_gui_api::SE_IID_GRAPHICS_MPGUI4, pluginGraphics4.asIMpUnknownPtr());
-
-		// 'real' GMPI
-		auto gmpi_object = (gmpi::api::IUnknown*) object.get();
-		auto
-		r2 = gmpi_object->queryInterface(&gmpi::api::IEditor::guid       , pluginParameters_GMPI.put_void());
-		r2 = gmpi_object->queryInterface(&gmpi::api::IDrawingClient::guid, pluginGraphics_GMPI.put_void());
-		r2 = gmpi_object->queryInterface(&gmpi::api::IInputClient::guid  , pluginInput_GMPI.put_void());
-		// experimental
-		r2 = gmpi_object->queryInterface(&gmpi::api::IEditor2::guid      , pluginEditor2.put_void());
-
-		if (pluginGraphics)
+		// GMPI-UI client
 		{
-			object->queryInterface(SE_IID_SUBVIEW, subView.asIMpUnknownPtr());
+			subView = object.as<ISubView>();
+			pluginEditor2 = object.as<gmpi::api::IEditor2>();
+			pluginInput_GMPI = object.as<gmpi::api::IInputClient>();
+			pluginParameters_GMPI = object.as<gmpi::api::IEditor>();
+			pluginGraphics_GMPI = object.as<gmpi::api::IDrawingClient>();
+
+			if(pluginParameters_GMPI || pluginGraphics_GMPI || pluginEditor2)
+				gmpiHelper = std::make_unique<GmpiHelper>(*this);
+
+			if(pluginParameters_GMPI)
+				pluginParameters_GMPI->setHost(static_cast<gmpi::api::IEditorHost*>(gmpiHelper.get()));
+
+			if(pluginGraphics_GMPI)
+				pluginGraphics_GMPI->open(static_cast<gmpi::api::IDrawingHost*>(gmpiHelper.get()));
 		}
 
-		if(pluginParameters_GMPI)
+		// SDK3 client
+		if(!pluginParameters_GMPI && !pluginGraphics_GMPI)
 		{
-			pluginParameters_GMPI->setHost(static_cast<gmpi::api::IEditorHost*>(&uiHelper));
-		}
-		else if (!pluginParameters.isNull())
-		{
-			pluginParameters->setHost(static_cast<gmpi::IMpUserInterfaceHost2*>(this));
-		}
-		else
-		{
-			gmpi_sdk::mp_shared_ptr<gmpi::IMpLegacyInitialization> legacyInitMethod;
-			r = object->queryInterface(gmpi::MP_IID_LEGACY_INITIALIZATION, legacyInitMethod.asIMpUnknownPtr());
-			if (!legacyInitMethod.isNull())
+			auto r = object->queryInterface(reinterpret_cast<const gmpi::api::Guid*>(&gmpi::MP_IID_GUI_PLUGIN2), pluginParameters.asIMpUnknownPtr());
+			r = object->queryInterface(reinterpret_cast<const gmpi::api::Guid*>(&gmpi::MP_IID_GUI_PLUGIN2B), pluginParameters2B.asIMpUnknownPtr());
+			r = object->queryInterface(reinterpret_cast<const gmpi::api::Guid*>(&gmpi::MP_IID_GUI_PLUGIN), pluginParametersLegacy.asIMpUnknownPtr());
+			r = object->queryInterface(reinterpret_cast<const gmpi::api::Guid*>(&gmpi_gui_api::SE_IID_GRAPHICS_MPGUI), pluginGraphics.asIMpUnknownPtr());
+			r = object->queryInterface(reinterpret_cast<const gmpi::api::Guid*>(&gmpi_gui_api::SE_IID_GRAPHICS_MPGUI2), pluginGraphics2.asIMpUnknownPtr());
+			r = object->queryInterface(reinterpret_cast<const gmpi::api::Guid*>(&gmpi_gui_api::SE_IID_GRAPHICS_MPGUI3), pluginGraphics3.asIMpUnknownPtr());
+			r = object->queryInterface(reinterpret_cast<const gmpi::api::Guid*>(&gmpi_gui_api::SE_IID_GRAPHICS_MPGUI4), pluginGraphics4.asIMpUnknownPtr());
+
+			if(pluginGraphics || pluginParameters || pluginParametersLegacy)
+				sdk3Helper = std::make_unique<Sdk3Helper>(*this);
+
+if(pluginGraphics)
+	object->queryInterface(&ISubView::guid, subView.put_void());
+
+			if(!pluginParameters.isNull())
 			{
-				legacyInitMethod->setHost(static_cast<IMpUserInterfaceHost*>(this));
+				pluginParameters->setHost(static_cast<gmpi::IMpUserInterfaceHost2*>(sdk3Helper.get()));
 			}
 			else
 			{
-				// last gasp
-				// CAN'T/SHOULDN"T DYNAMIC CAST INTO DLL!!!! (but we have to support old 3rd-party modules)
-				auto oldSchool = dynamic_cast<IoldSchoolInitialisation*>(object.get());
-				if (oldSchool)
-					oldSchool->setHost(static_cast<IMpUserInterfaceHost*>(this));
+				gmpi_sdk::mp_shared_ptr<gmpi::IMpLegacyInitialization> legacyInitMethod;
+				r = object->queryInterface(reinterpret_cast<const gmpi::api::Guid*>(&gmpi::MP_IID_LEGACY_INITIALIZATION), legacyInitMethod.asIMpUnknownPtr());
+				if(!legacyInitMethod.isNull())
+				{
+					legacyInitMethod->setHost(static_cast<IMpUserInterfaceHost*>(sdk3Helper.get()));
+				}
+				else
+				{
+					// last gasp
+					// CAN'T/SHOULDN"T DYNAMIC CAST INTO DLL!!!! (but we have to support old 3rd-party modules)
+					auto oldSchool = dynamic_cast<IoldSchoolInitialisation*>(object.get());
+					if(oldSchool)
+						oldSchool->setHost(static_cast<IMpUserInterfaceHost*>(sdk3Helper.get()));
+				}
 			}
 		}
-
-		if (pluginGraphics_GMPI)
-			pluginGraphics_GMPI->open(static_cast<gmpi::api::IDrawingHost*>(&uiHelper));
 	}
 
 	void ModuleView::initialize()
@@ -399,95 +879,242 @@ namespace SE2
 	void ModuleView::CreateGraphicsResources()
 	{
 	}
+	
+	gmpi::drawing::PathGeometry ModuleView::getOutline(gmpi::drawing::Factory drawingFactory)
+	{
+		auto geometry = drawingFactory.createPathGeometry();
+		{
+			auto sink = geometry.open();
 
-	int32_t ModuleViewPanel::measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize)
+			const Point points[] = { { bounds_.left, bounds_.top }, { bounds_.right, bounds_.top }, { bounds_.right, bounds_.bottom }, { bounds_.left, bounds_.bottom } };
+
+			sink.addLines(points);
+			sink.endFigure();
+			sink.close();
+		}
+
+		return geometry;
+	}
+
+	gmpi::ReturnCode ModuleView::onPointerDown(gmpi::drawing::Point point, int32_t flags)
+	{
+		if(ignoreMouse) // background image.
+			return gmpi::ReturnCode::Unhandled;
+
+		// pluginGraphics2 supports hit-testing, else need to call onPointerDown() to determin hit on client.
+		if(pluginGraphics_GMPI || pluginGraphics2 || parent->getViewType() == CF_STRUCTURE_VIEW) // Since Structure view is "behind" client, it always gets selected.
+			Presenter()->ObjectClicked(handle, flags);
+
+		auto moduleLocal = point;
+		moduleLocal.x -= bounds_.left;
+		moduleLocal.y -= bounds_.top;
+
+		bool clientHit = false;
+
+		// Mouse over client area?
+		if((pluginGraphics_GMPI || pluginGraphics) && pointInRect(moduleLocal, pluginGraphicsPos))
+		{
+			auto local = PointToPlugin(point);
+
+			// Patch-Points. Initiate drag on left-click.
+			if((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
+			{
+				auto patchPoints = getPatchPoints();
+				if(patchPoints != nullptr)
+				{
+					for(auto& p : *patchPoints)
+					{
+						float distanceSquared = (local.x - p.x) * (local.x - p.x) + (local.y - p.y) * (local.y - p.y);
+						if(distanceSquared <= p.radius * p.radius)
+						{
+							Point dragStartPoint = Point(static_cast<float>(p.x), static_cast<float>(p.y)) + Size(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
+							parent->StartCableDrag(this, p.dspPin, dragStartPoint, 0 != (flags & gmpi_gui_api::GG_POINTER_KEY_ALT));
+							return gmpi::ReturnCode::Handled;
+						}
+					}
+				}
+			}
+
+			auto res = gmpi::ReturnCode::Unhandled;
+
+			if(pluginGraphics_GMPI || pluginGraphics2) // Client supports proper hit testing.
+			{
+				// In Panel-view, we can assume mouse already hit-tested against client. On Structure-view it could be a click on client OR on pins.
+				clientHit = parent->getViewType() == CF_PANEL_VIEW;
+
+				if(!clientHit)
+				{
+					if(subView)
+						clientHit = subView->hitTest(flags, &local);
+					else
+					{
+						if(pluginInput_GMPI)
+							clientHit = gmpi::ReturnCode::Ok == pluginInput_GMPI->hitTest(local, flags);
+						else if(pluginGraphics2)
+							clientHit = gmpi::ReturnCode::Ok == (gmpi::ReturnCode) pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local));
+					}
+				}
+
+				// In Panel-view, we can assume mouse already hit-tested against client. On Structure-view it could be a click on client OR on pins.
+				if(clientHit)
+				{
+					if(pluginInput_GMPI)
+						res = pluginInput_GMPI->onPointerDown(local, flags);
+					if(pluginGraphics)
+						res = (gmpi::ReturnCode) pluginGraphics->onPointerDown(flags, *reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local));// older modules indicate hit via return value.
+				}
+			}
+			else
+			{
+				// Old system: Hit-testing inferred from onPointerDown() return value;
+				res = (gmpi::ReturnCode) pluginGraphics->onPointerDown(flags, *reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local)); // older modules indicate hit via return value.
+
+				clientHit = (res == gmpi::ReturnCode::Ok || res == gmpi::ReturnCode::Handled);
+
+				if(clientHit && parent->getViewType() == CF_PANEL_VIEW)
+					Presenter()->ObjectClicked(handle, flags); //gmpi::modifier_keys::getHeldKeys());
+			}
+
+			if(gmpi::ReturnCode::Handled == res) // Client indicates no further processing needed.
+				return gmpi::ReturnCode::Handled;
+		}
+
+		// don't handle right-clicks, otherwise context menu is not shown.
+		return clientHit && ((flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) == 0) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode ModuleView::onPointerMove(gmpi::drawing::Point point, int32_t flags)
+	{
+		const auto local = PointToPlugin(point);
+
+		if(pluginInput_GMPI)
+		{
+			pluginInput_GMPI->onPointerMove(local, flags);
+			return gmpi::ReturnCode::Unhandled;
+		}
+
+		if(pluginGraphics)
+		{
+			pluginGraphics->onPointerMove(flags, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
+		}
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+	gmpi::ReturnCode ModuleView::onPointerUp(gmpi::drawing::Point point, int32_t flags)
+	{
+		const auto local = PointToPlugin(point);
+
+		if(pluginInput_GMPI)
+		{
+			pluginInput_GMPI->onPointerUp(local, flags);
+			return gmpi::ReturnCode::Unhandled;
+		}
+
+		if(pluginGraphics)
+		{
+			pluginGraphics->onPointerUp(flags, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
+		}
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+	gmpi::ReturnCode ModuleView::onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta)
+	{
+		const auto local = PointToPlugin(point);
+
+		if(pluginInput_GMPI)
+		{
+			pluginInput_GMPI->onMouseWheel(local, flags, delta);
+			return gmpi::ReturnCode::Unhandled;
+		}
+
+		if(pluginGraphics3)
+		{
+			pluginGraphics3->onMouseWheel(flags, delta, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
+		}
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	void ModuleViewPanel::measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize)
 	{
 		if (pluginGraphics_GMPI)
 		{
 			gmpi::drawing::Size remainingSizeU{ availableSize.width, availableSize.height };
 			gmpi::drawing::Size desiredSizeU{};
-			const auto ret = pluginGraphics_GMPI->measure(&remainingSizeU, &desiredSizeU);
+			pluginGraphics_GMPI->measure(&remainingSizeU, &desiredSizeU);
 
 			returnDesiredSize->width = static_cast<float>(desiredSizeU.width);
 			returnDesiredSize->height = static_cast<float>(desiredSizeU.height);
-
-			return (int)ret;
 		}
 		else if (pluginGraphics)
 		{
-			return pluginGraphics->measure(availableSize, returnDesiredSize);
+			pluginGraphics->measure(*reinterpret_cast<GmpiDrawing_API::MP1_SIZE*>(&availableSize), reinterpret_cast<GmpiDrawing_API::MP1_SIZE*>(returnDesiredSize));
 		}
 		else
 		{
 			*returnDesiredSize = availableSize;
 		}
-		return gmpi::MP_OK;
 	}
 
-	GmpiDrawing::Rect ModuleViewPanel::GetClipRect()
+	gmpi::drawing::Rect ModuleViewPanel::getClipArea()
 	{
-		auto clipArea = ModuleView::GetClipRect();
+		auto clipArea = ModuleView::getClipArea();
 
 		if (pluginGraphics_GMPI)
 		{
 			drawing::Rect clientClipArea_gmpi{};
 			pluginGraphics_GMPI->getClipArea(&clientClipArea_gmpi);
 
-			GmpiDrawing::Rect clientClipArea{ static_cast<float>(clientClipArea_gmpi.left), static_cast<float>(clientClipArea_gmpi.top), static_cast<float>(clientClipArea_gmpi.right), static_cast<float>(clientClipArea_gmpi.bottom) };
-			clientClipArea.Offset(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
-			clipArea.Union(clientClipArea);
+			gmpi::drawing::Rect clientClipArea{ static_cast<float>(clientClipArea_gmpi.left), static_cast<float>(clientClipArea_gmpi.top), static_cast<float>(clientClipArea_gmpi.right), static_cast<float>(clientClipArea_gmpi.bottom) };
+			clientClipArea = offsetRect(clientClipArea, { bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top });
+			clipArea = unionRect(clipArea, clientClipArea);
 		}
 		else if (pluginGraphics4)
 		{
-			GmpiDrawing::Rect clientClipArea{};
-			pluginGraphics4->getClipArea(&clientClipArea);
-			clientClipArea.Offset(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
-			clipArea.Union(clientClipArea);
+			GmpiDrawing_API::MP1_RECT clientClipAreaLegacy{};
+			pluginGraphics4->getClipArea(&clientClipAreaLegacy);
+			gmpi::drawing::Rect clientClipArea{ clientClipAreaLegacy.left, clientClipAreaLegacy.top, clientClipAreaLegacy.right, clientClipAreaLegacy.bottom };
+			clientClipArea = offsetRect(clientClipArea, { bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top });
+			clipArea = unionRect(clipArea, clientClipArea);
 		}
 
 		return clipArea;
 	}
 
-	int32_t ModuleViewPanel::arrange(GmpiDrawing::Rect finalRect)
+	void ModuleViewPanel::arrange(gmpi::drawing::Rect finalRect)
 	{
 		bounds_ = finalRect; // TODO put in base class.
 
 		if (pluginGraphics_GMPI)
 		{
-			pluginGraphicsPos = GmpiDrawing::Rect(0, 0, finalRect.right - finalRect.left, finalRect.bottom - finalRect.top);
+			pluginGraphicsPos = gmpi::drawing::Rect(0, 0, finalRect.right - finalRect.left, finalRect.bottom - finalRect.top);
 			drawing::Rect gmpiRect{ 0, 0, pluginGraphicsPos.right, pluginGraphicsPos.bottom };
 			pluginGraphics_GMPI->arrange(&gmpiRect);
 		}
 		else if (pluginGraphics)
 		{
-			pluginGraphicsPos = GmpiDrawing::Rect(0, 0, finalRect.right - finalRect.left, finalRect.bottom - finalRect.top);
-			pluginGraphics->arrange(pluginGraphicsPos);
+			pluginGraphicsPos = gmpi::drawing::Rect(0, 0, finalRect.right - finalRect.left, finalRect.bottom - finalRect.top);
+			pluginGraphics->arrange(*reinterpret_cast<GmpiDrawing_API::MP1_RECT*>(&pluginGraphicsPos));
 		}
-		return gmpi::MP_OK;
 	}
+#if 0 // deprecated
 
 	int32_t ModuleView::GetDrawingFactory(GmpiDrawing_API::IMpFactory** returnFactory)
 	{
 		*returnFactory = parent->GetDrawingFactory();
 		return gmpi::MP_OK;
 	}
+#endif
 
-	GmpiDrawing::Factory ModuleView::DrawingFactory()
-	{
-		return GmpiDrawing::Factory(parent->GetDrawingFactory());
-	}
-
-	void ModuleViewPanel::OnRender(Graphics& g)
+	void ModuleViewPanel::render(Graphics& g)
 	{
 		if (pluginGraphics_GMPI)
 		{
-			gmpi::drawing::api::IDeviceContext* gmpiContext{};
-			g.Get()->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::drawing::api::IDeviceContext::guid), reinterpret_cast<void**>(&gmpiContext));
+			auto gmpiContext = reinterpret_cast<gmpi::drawing::api::IDeviceContext*>(AccessPtr::get(g));
 
             if (gmpiContext)
             {
                 pluginGraphics_GMPI->render(gmpiContext);
-                gmpiContext->release();
             }
 
 			return;
@@ -499,31 +1126,31 @@ namespace SE2
 		}
 
 #if 0 // debug layout and clip rects
-		g.FillRectangle(GetClipRect(), g.CreateSolidColorBrush(Color::FromArgb(0x200000ff)));
-		g.FillRectangle(getLayoutRect(), g.CreateSolidColorBrush(Color::FromArgb(0x2000ff00)));
+		g.fillRectangle(getClipArea(), g.createSolidColorBrush(Color::FromArgb(0x200000ff)));
+		g.fillRectangle(getLayoutRect(), g.createSolidColorBrush(Color::FromArgb(0x2000ff00)));
 #endif
 /*
 		// Transform to module-relative.
-		const auto originalTransform = g.GetTransform();
+		const auto originalTransform = g.getTransform();
 		auto adjustedTransform = Matrix3x2::Translation(bounds_.left , bounds_.top) * originalTransform;
-		g.SetTransform(adjustedTransform);
+		g.setTransform(adjustedTransform);
 */
 		// Render.
-		pluginGraphics->OnRender(g.Get());
+		pluginGraphics->OnRender(reinterpret_cast<GmpiDrawing_API::IMpDeviceContext*>(AccessPtr::get(g)));
 
 #if 0 //def _DEBUG
 		// Alignment marks.
 		{
-			auto brsh = g.CreateSolidColorBrush(Color::Red);
-			g.FillRectangle(Rect(0, 0, 1, 1), brsh);
-			g.FillRectangle(Rect(64, 64, 65, 65), brsh);
+			auto brsh = g.createSolidColorBrush(Colors::Red);
+			g.fillRectangle(Rect(0, 0, 1, 1), brsh);
+			g.fillRectangle(Rect(64, 64, 65, 65), brsh);
 		}
 #endif
 		// Transform back.
-//		g.SetTransform(originalTransform);
+//		g.setTransform(originalTransform);
 	}
 
-	GmpiDrawing::Point ModuleView::getConnectionPoint(CableType cableType, int pinIndex)
+	gmpi::drawing::Point ModuleView::getConnectionPoint(CableType cableType, int pinIndex)
 	{
 		assert(cableType == CableType::PatchCable);
 
@@ -532,44 +1159,49 @@ namespace SE2
 			if (patchpoint.dspPin == pinIndex)
 			{
 				auto modulePosition = getLayoutRect();
-//				return GmpiDrawing::Point(patchpoint.x + modulePosition.left, patchpoint.y + modulePosition.top);
-				return GmpiDrawing::Point(patchpoint.x + modulePosition.left + pluginGraphicsPos.left, patchpoint.y + modulePosition.top + pluginGraphicsPos.top);
+//				return gmpi::drawing::Point(patchpoint.x + modulePosition.left, patchpoint.y + modulePosition.top);
+				return gmpi::drawing::Point(patchpoint.x + modulePosition.left + pluginGraphicsPos.left, patchpoint.y + modulePosition.top + pluginGraphicsPos.top);
 				break;
 			}
 		}
 
-		return GmpiDrawing::Point();
+		return gmpi::drawing::Point();
 	}
 
+#if 0 // deprecated
 	int32_t ModuleView::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
 	{
-		GmpiDrawing::Rect r(*rect);
-		r.Offset(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
-		return parent->ChildCreatePlatformTextEdit(&r, returnTextEdit);
+		(void)rect;
+		(void)returnTextEdit;
+		return gmpi::MP_NOSUPPORT;
 	}
 
 	int32_t ModuleView::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
 	{
-		GmpiDrawing::Rect r(*rect);
-		r.Offset(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
-		return parent->ChildCreatePlatformMenu(&r, returnMenu);
+		(void)rect;
+		(void)returnMenu;
+		return gmpi::MP_NOSUPPORT;
 	}
 
 	int32_t ModuleView::createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog)
 	{
-		return parent->getGuiHost()->createFileDialog(dialogType, returnFileDialog);
+		(void)dialogType;
+		(void)returnFileDialog;
+		return gmpi::MP_NOSUPPORT;
 	}
 	int32_t ModuleView::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnFileDialog)
 	{
-		return parent->getGuiHost()->createOkCancelDialog(dialogType, returnFileDialog);
+		(void)dialogType;
+		(void)returnFileDialog;
+		return gmpi::MP_NOSUPPORT;
 	}
 
 	void ModuleView::invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect)
 	{ 
 		if (invalidRect)
 		{
-			GmpiDrawing::Rect r(*invalidRect);
-			r.Offset(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
+			gmpi::drawing::Rect r{ invalidRect->left, invalidRect->top, invalidRect->right, invalidRect->bottom };
+			r = offsetRect(r, { bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top });
 			parent->ChildInvalidateRect(r);
 		}
 		else
@@ -594,33 +1226,35 @@ namespace SE2
 		mouseCaptured = false;
 		return parent->releaseCapture();
 	}
+#endif
 
-	void ModuleView::OnMoved(GmpiDrawing::Rect& newRect)
+	void ModuleView::OnMoved(gmpi::drawing::Rect& newRect)
 	{
-		GmpiDrawing::Rect invalidRect(GetClipRect());
+		gmpi::drawing::Rect invalidRect(getClipArea());
 
 		// measure/arrange if nesc.
-		GmpiDrawing::Size origSize(bounds_.getWidth(), bounds_.getHeight());
-		GmpiDrawing::Size newSize(newRect.getWidth(), newRect.getHeight());
+		gmpi::drawing::Size origSize(getWidth(bounds_), getHeight(bounds_));
+		gmpi::drawing::Size newSize(getWidth(newRect), getHeight(newRect));
 		if (newSize != origSize)
 		{
 			// Note, due to font width diferences, this may result in different size/layout than original GDI graphics. e..g knobs shifting.
-			GmpiDrawing::Size desired(newSize);
+			gmpi::drawing::Size desired(newSize);
 			measure(newSize, &desired);
-			arrange(GmpiDrawing::Rect(newRect.left, newRect.top, newRect.left + desired.width, newRect.top + desired.height));
+			arrange(gmpi::drawing::Rect(newRect.left, newRect.top, newRect.left + desired.width, newRect.top + desired.height));
 		}
 		else
 		{
 			arrange(newRect);
 		}
 
-		invalidRect.Union(GetClipRect());
+		invalidRect = unionRect(invalidRect, getClipArea());
 
 		parent->ChildInvalidateRect(invalidRect);
 
 		// update any parent subview
 		parent->OnChildMoved();
 	}
+#if 0 // TODO
 
 	int32_t ModuleView::getHandle(int32_t& returnValue)
 	{
@@ -649,6 +1283,7 @@ namespace SE2
 //		Presenter()->LoadPresetFile(presetFilePath);
 		return gmpi::MP_OK;
 	}
+#endif
 
 	int32_t ModuleView::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)
 	{
@@ -774,14 +1409,14 @@ namespace SE2
 		connections_.clear();
 	}
 
-	std::string ModuleView::getToolTip(GmpiDrawing_API::MP1_POINT point)
+	std::string ModuleView::getToolTip(gmpi::drawing::Point point)
 	{
 		if (pluginGraphics2)
 		{
 			auto local = PointToPlugin(point);
 
 			gmpi_sdk::MpString s;
-			if( MP_OK == pluginGraphics2->getToolTip(local, &s) )
+			if( MP_OK == pluginGraphics2->getToolTip(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local), &s) )
 			{
 				return s.str();
 			}
@@ -811,44 +1446,77 @@ namespace SE2
 		}
 	}
 
-	int32_t ModuleView::populateContextMenu(float x, float y, gmpi::IMpUnknown* contextMenuItemsSink)
+	// adapt SDK3 to GMPI-UI context menu callback
+	class ContextMenuAdaptor :  public gmpi::IMpContextItemSink
 	{
-		GmpiSdk::ContextMenuHelper menu(contextMenuCallbacks, contextMenuItemsSink);
+		gmpi::api::IContextItemSink* sink{};
+		gmpi::shared_ptr<gmpi::api::IUnknown> currentCallback;
 
-		// Add items for module
-		if (pluginParameters)
+	public:
+
+		void setCallback(std::function<void(int32_t selectedId)> pcallback)
 		{
-			menu.AddSeparator();
-
-			auto local = PointToPlugin({x, y});
-
-			menu.populateFromObject(local.x, local.y, pluginParameters.get());
+			currentCallback = {};
+			if(pcallback)
+				currentCallback = new gmpi::sdk::PopupMenuCallback(pcallback);
 		}
 
-		return gmpi::MP_OK;
+		ContextMenuAdaptor(gmpi::api::IUnknown* psink)
+		{
+			psink->queryInterface(&gmpi::api::IContextItemSink::guid, (void**)&sink);
+		}
+
+		// IMpContextItemSink
+		int32_t MP_STDCALL AddItem(const char* text, int32_t id, int32_t flags = 0) override
+		{
+			return (int32_t) sink->addItem(text, id, flags, currentCallback.get());
+		}
+
+		GMPI_QUERYINTERFACE1(gmpi::MP_IID_CONTEXT_ITEMS_SINK, gmpi::IMpContextItemSink);
+		GMPI_REFCOUNT_NO_DELETE;
+	};
+
+	gmpi::ReturnCode ModuleView::populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink)
+	{
+		if(false)
+		{
+			// TODO!!! GMPI-UI client support for context menu
+		}
+		else if (pluginParameters)
+		{
+			ContextMenuAdaptor menu(contextMenuItemsSink);
+
+			menu.setCallback([this](int32_t selectedId)
+			{
+				pluginParameters->onContextMenu(selectedId);
+			});
+
+			menu.AddItem("", 0, (int32_t)gmpi::api::PopupMenuFlags::Separator);
+
+			const auto local = PointToPlugin(point);
+
+			pluginParameters->populateContextMenu(local.x, local.y, &menu);
+		}
+
+		return gmpi::ReturnCode::Ok;
 	}
 
-	int32_t ModuleView::vc_onContextMenu(int32_t idx)
+	gmpi::ReturnCode ModuleViewPanel::hitTest(gmpi::drawing::Point point, int32_t flags)
 	{
-		return GmpiSdk::ContextMenuHelper::onContextMenu(contextMenuCallbacks, idx);
-	}
-
-	bool ModuleViewPanel::hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point)
-	{
-		if (!ModuleView::hitTest(flags, point))
-			return false;
+		if (ModuleView::hitTest(point, flags) != gmpi::ReturnCode::Ok)
+			return gmpi::ReturnCode::Unhandled;
 
 		if (!pluginInput_GMPI && !pluginGraphics2)
-			return false;
+			return gmpi::ReturnCode::Unhandled;
 
 		auto local = PointToPlugin(point);
 
 		if (pluginInput_GMPI)
-			return pluginInput_GMPI->hitTest(*(gmpi::drawing::Point*) &local, flags) == gmpi::ReturnCode::Ok;
+			return pluginInput_GMPI->hitTest(*(gmpi::drawing::Point*) &local, flags);
 
 		if (subView)
 		{
-			return subView->hitTest(flags, &local);
+			return subView->hitTest(flags, &local) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
 		}
 		else
 		{
@@ -857,19 +1525,19 @@ namespace SE2
 				// TODO!! use editEnabled to somehow ignore click on knob titles when no editing.
 				// e.g. List entry and knobs on PD303 have blank area at top that blocks anything above from being clicked.
 				// either add a flag, or a host-control ("is editor") to allow plugin to know if it's in edit mode.
-				return pluginGraphics3->hitTest2(flags, local) == gmpi::MP_OK;
+				return pluginGraphics3->hitTest2(flags, *reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local)) == gmpi::MP_OK ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
 			}
 
-			return pluginGraphics2->hitTest(local) == gmpi::MP_OK;
+			return pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local)) == gmpi::MP_OK ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
 		}
 	}
 
-	bool ModuleView::hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	gmpi::ReturnCode ModuleView::hitTest(gmpi::drawing::Point point, int32_t flags)
 	{
-		return isVisable() && getLayoutRect().ContainsPoint(point);
+		return isVisable() && pointInRect(point, getLayoutRect()) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
 	}
 
-	void ModuleView::vc_setHover(bool mouseIsOverMe)
+	gmpi::ReturnCode ModuleView::setHover(bool mouseIsOverMe)
 	{
 		if (pluginInput_GMPI)
 		{
@@ -879,6 +1547,8 @@ namespace SE2
 		{
 			pluginGraphics3->setHover(mouseIsOverMe);
 		}
+
+		return gmpi::ReturnCode::Ok;
 	}
 
 	std::vector<patchpoint_description>* ModuleView::getPatchPoints()
@@ -886,113 +1556,17 @@ namespace SE2
 		return &moduleInfo->patchPoints;
 	}
 
-	int32_t ModuleView::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point)
-	{
-		if (ignoreMouse) // background image.
-			return gmpi::MP_UNHANDLED;
+	// pointer event overrides are defined inline in ModuleView.h
 
-		// pluginGraphics2 supports hit-testing, else need to call onPointerDown() to determin hit on client.
-		if (pluginGraphics_GMPI || pluginGraphics2 || parent->getViewType() == CF_STRUCTURE_VIEW) // Since Structure view is "behind" client, it always gets selected.
-		{
-			Presenter()->ObjectClicked(handle, flags); // gmpi::modifier_keys::getHeldKeys());
-		}
-
-		GmpiDrawing::Point moduleLocal(point);
-		moduleLocal.x -= bounds_.left;
-		moduleLocal.y -= bounds_.top;
-
-		bool clientHit = false;
-
-		// Mouse over client area?
-		if ((pluginGraphics_GMPI || pluginGraphics) && pluginGraphicsPos.ContainsPoint(moduleLocal))
-		{
-			Point local = PointToPlugin(point);
-
-			// Patch-Points. Initiate drag on left-click.
-			if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
-			{
-				auto patchPoints = getPatchPoints();
-				if (patchPoints != nullptr)
-				{
-					for (auto& p : *patchPoints)
-					{
-						float distanceSquared = (local.x - p.x) * (local.x - p.x) + (local.y - p.y) * (local.y - p.y);
-						if (distanceSquared <= p.radius * p.radius)
-						{
-							Point dragStartPoint = Point(static_cast<float>(p.x), static_cast<float>(p.y)) + Size(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
-							parent->StartCableDrag(this, p.dspPin, dragStartPoint, 0 != (flags & gmpi_gui_api::GG_POINTER_KEY_ALT));
-							return gmpi::MP_HANDLED;
-						}
-					}
-				}
-			}
-
-			int32_t res = MP_UNHANDLED;
-
-			if (pluginGraphics_GMPI || pluginGraphics2) // Client supports proper hit testing.
-			{
-				// In Panel-view, we can assume mouse already hit-tested against client. On Structure-view it could be a click on client OR on pins.
-				clientHit = parent->getViewType() == CF_PANEL_VIEW;
-
-				if (!clientHit)
-				{
-					if (subView)
-					{
-						clientHit = subView->hitTest(flags, &local);
-					}
-					else
-					{
-						if(pluginInput_GMPI)
-						{
-							clientHit = (gmpi::ReturnCode::Ok == pluginInput_GMPI->hitTest(*(gmpi::drawing::Point*)&local, flags));
-						}
-						else if (pluginGraphics2)
-						{
-							clientHit = gmpi::MP_OK == pluginGraphics2->hitTest(local);
-						}
-					}
-				}
-
-				// In Panel-view, we can assume mouse already hit-tested against client. On Structure-view it could be a click on client OR on pins.
-				if (clientHit)
-				{
-					if (pluginInput_GMPI)
-						res = (int32_t) pluginInput_GMPI->onPointerDown(*(gmpi::drawing::Point*)&local, flags);
-					if (pluginGraphics)
-						res = pluginGraphics->onPointerDown(flags, local);// older modules indicate hit via return value.
-				}
-			}
-			else
-			{
-				// Old system: Hit-testing inferred from onPointerDown() return value;
-				res = pluginGraphics->onPointerDown(flags, local); // older modules indicate hit via return value.
-
-				clientHit = (res == gmpi::MP_OK || res == gmpi::MP_HANDLED);
-
-				if (clientHit && parent->getViewType() == CF_PANEL_VIEW)
-				{
-					Presenter()->ObjectClicked(handle, flags); //gmpi::modifier_keys::getHeldKeys());
-				}
-			}
-
-			if (MP_HANDLED == res) // Client indicates no further processing needed.
-				return MP_HANDLED;
-		}
-
-		// don't handle right-clicks, otherwise context menu is not shown.
-		return clientHit && ((flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) == 0) ? gmpi::MP_OK : gmpi::MP_UNHANDLED;
-	}
-
-	void ModuleView::OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistanceSquared, ModuleView*& bestModule, int& bestPinIndex)
+	void ModuleView::OnCableDrag(ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistanceSquared, ModuleView*& bestModule, int& bestPinIndex)
 	{
 		if (dragline->type != CableType::PatchCable)
 			return;
 
 		auto point = dragPoint;
-		if (hitTest(0, point))
+		if (hitTest(point, 0) == gmpi::ReturnCode::Ok)
 		{
-			GmpiDrawing::Point local(point);
-			local -= OffsetToClient();
+			gmpi::drawing::Point local = PointToPlugin(point);
 
 			if (subView)
 			{
@@ -1020,12 +1594,12 @@ namespace SE2
 		}
 	}
 
-	bool ModuleViewPanel::EndCableDrag(GmpiDrawing_API::MP1_POINT point, ConnectorViewBase* dragline)
+	bool ModuleViewPanel::EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline)
 	{
-		if (!hitTest(0, point))
+		if (hitTest(point, 0) != gmpi::ReturnCode::Ok)
 			return false;
 
-		GmpiDrawing::Point local(point);
+		gmpi::drawing::Point local(point);
 		auto modulePosition = getLayoutRect();
 		local.x -= modulePosition.left;
 		local.y -= modulePosition.top;
@@ -1057,7 +1631,7 @@ namespace SE2
 		return parent->isShown();
 	}
 
-	bool ModuleViewPanel::hitTestR(int32_t flags, GmpiDrawing_API::MP1_RECT selectionRect)
+	bool ModuleViewPanel::hitTestR(int32_t flags, gmpi::drawing::Rect selectionRect)
 	{
 		if (!isVisable())
 			return false;
@@ -1080,53 +1654,7 @@ namespace SE2
 		return editEnabled || isRackModule();
 	}
 
-	int32_t ModuleView::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
-	{
-		const auto local = PointToPlugin(point);
-
-		if (pluginInput_GMPI)
-		{
-			return (int32_t) pluginInput_GMPI->onPointerMove(*(gmpi::drawing::Point*)&local, flags);
-		}
-		else if (pluginGraphics)
-		{
-			return pluginGraphics->onPointerMove(flags, local);
-		}
-
-		return gmpi::MP_UNHANDLED;
-	}
-
-	int32_t ModuleView::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
-	{
-		const auto local = PointToPlugin(point);
-
-		if (pluginInput_GMPI)
-		{
-			return (int32_t) pluginInput_GMPI->onPointerUp(*(gmpi::drawing::Point*)&local, flags);
-		}
-		else if (pluginGraphics)
-		{
-			return pluginGraphics->onPointerUp(flags, local);
-		}
-
-		return gmpi::MP_UNHANDLED;
-	}
-
-	int32_t ModuleView::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point)
-	{
-		const auto local = PointToPlugin(point);
-
-		if (pluginInput_GMPI)
-		{
-			return (int32_t) pluginInput_GMPI->onMouseWheel(*(gmpi::drawing::Point*)&local, flags, delta);
-		}
-		else if (pluginGraphics3)
-		{
-			return pluginGraphics3->onMouseWheel(flags, delta, local);
-		}
-
-		return gmpi::MP_UNHANDLED;
-	}
+#if 0 // TODO
 
 	// legacy crap forwarded to new members..
 	int32_t ModuleView::pinTransmit(int32_t pinId, int32_t size, /*const*/ void* data, int32_t voice)
@@ -1206,6 +1734,7 @@ namespace SE2
 
 		return gmpi::MP_FAIL;
 	}
+#endif
 
 	std::unique_ptr<IViewChild> ModuleViewPanel::createAdorner(ViewBase* pParent)
 	{
@@ -1219,7 +1748,7 @@ namespace SE2
 	{
 		float childLeft = position_.left + ((position_.right - position_.left) - pluginGraphicsSize.width) * 0.5f;
 
-		GmpiDrawing::Point gmpiPoint(x - childLeft, y - (position_.bottom - pluginGraphicsSize.height));
+		gmpi::drawing::Point gmpiPoint(x - childLeft, y - (position_.bottom - pluginGraphicsSize.height));
 
 		Windows::UI::Xaml::Input::Pointer^ ptr = e->Pointer;
 
@@ -1269,7 +1798,7 @@ namespace SE2
 	void ModuleView::OnPointerMoved(float x, float y, Windows::UI::Xaml::Input::PointerRoutedEventArgs ^e)
 	{
 		float childLeft = position_.left + ((position_.right - position_.left) - pluginGraphicsSize.width) * 0.5f;
-		GmpiDrawing::Point gmpiPoint(x - childLeft, y - (position_.bottom - pluginGraphicsSize.height));
+		gmpi::drawing::Point gmpiPoint(x - childLeft, y - (position_.bottom - pluginGraphicsSize.height));
 		int32_t flags = 0;
 		pluginGraphics->onPointerMove(flags, gmpiPoint);
 	}
@@ -1277,7 +1806,7 @@ namespace SE2
 	void ModuleView::OnPointerReleased(float x, float y, Windows::UI::Xaml::Input::PointerRoutedEventArgs ^e)
 	{
 		float childLeft = position_.left + ((position_.right - position_.left) - pluginGraphicsSize.width) * 0.5f;
-		GmpiDrawing::Point gmpiPoint(x - childLeft, y - (position_.bottom - pluginGraphicsSize.height));
+		gmpi::drawing::Point gmpiPoint(x - childLeft, y - (position_.bottom - pluginGraphicsSize.height));
 		int32_t flags = 0;
 		pluginGraphics->onPointerUp(flags, gmpiPoint);
 	}

@@ -7,15 +7,17 @@
 #include "ModuleView.h"
 
 using namespace gmpi;
+using namespace gmpi::drawing;
 using namespace std;
-using namespace GmpiDrawing_API;
-using namespace GmpiDrawing;
+//using namespace GmpiDrawing_API;
+//using namespace GmpiDrawing;
 
-GMPI_REGISTER_GUI(MP_SUB_TYPE_GUI2, SubView, L"ContainerX");
+//GMPI_REGISTER_GUI(MP_SUB_TYPE_GUI2, SubView, L"ContainerX");
 
 namespace
 {
-	int32_t r = RegisterPluginXml(
+//	int32_t r = RegisterPluginXml(
+	auto r = gmpi::Register<SubView>::withXml(
 
 R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
@@ -42,18 +44,19 @@ R"XML(
 
 }
 
-int32_t SubView::StartCableDrag(SE2::IViewChild* fromModule, int fromPin, Point dragStartPoint, bool isHeldAlt, SE2::CableType type)
+int32_t SubView::StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, bool isHeldAlt, SE2::CableType type)
 {
-	auto moduleview = dynamic_cast<SE2::ModuleView*>(this->getGuiHost());
+	auto moduleview = dynamic_cast<SE2::ModuleView*>(drawingHost.get()); // this->getGuiHost());
 	dragStartPoint += offset_;
-	dragStartPoint += moduleview->OffsetToClient();
+	dragStartPoint = transformPoint( moduleview->OffsetToClient(), dragStartPoint);
 
 	return moduleview->parent->StartCableDrag(fromModule, fromPin, dragStartPoint, isHeldAlt);
 }
 
-void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex)
+void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex)
 {
 	dragPoint -= offset_;
+//	dragPoint = transformPoint(offset_, dragPoint);
 
 	for (auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 	{
@@ -64,6 +67,7 @@ void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point d
 SubView::SubView(int pparentViewType) : ViewBase({1000, 1000})
 	, parentViewType(pparentViewType)
 {
+#if 0
 	if (parentViewType == CF_PANEL_VIEW)
 	{
 		initializePin(0, showControlsLegacy, static_cast<MpGuiBaseMemberPtr2>(&SubView::onValueChanged));
@@ -76,7 +80,7 @@ SubView::SubView(int pparentViewType) : ViewBase({1000, 1000})
 		// Hack - Reroute Show-Controls-On-Module to Show-Controls-On-Panel
 		initializePin(1, showControls, static_cast<MpGuiBaseMemberPtr2>(&SubView::onValueChanged));
 	}
-
+#endif
 	offset_.height = offset_.width = -99999; // un-initialized
 }
 
@@ -134,7 +138,7 @@ void SubView::onValueChanged()
 	// if we just blinked into existence, need to update mouse over object
 	if (isShown())
 	{
-		auto moduleview = dynamic_cast<SE2::ModuleView*>(getGuiHost());
+		auto moduleview = dynamic_cast<SE2::ModuleView*>(drawingHost.get());
 		moduleview->parent->onSubPanelMadeVisible();
 	}
 
@@ -145,7 +149,7 @@ void SubView::onValueChanged()
 
 void SubView::OnPatchCablesVisibilityUpdate()
 {
-	auto parent = dynamic_cast<SE2::ViewChild*> (getGuiHost());
+	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 	parent->parent->OnPatchCablesVisibilityUpdate();
 }
 
@@ -157,7 +161,7 @@ SE2::ConnectorViewBase* SubView::createCable(SE2::CableType type, int32_t handle
 void SubView::markDirtyChild(SE2::IViewChild* child)
 {
 	SE2::ViewBase::markDirtyChild(child);
-	auto parent = dynamic_cast<SE2::ViewChild*> (getGuiHost());
+	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 	parent->parent->markDirtyChild(parent);
 }
 
@@ -173,7 +177,7 @@ int32_t SubView::setCapture(SE2::IViewChild* module)
 }
 
 
-int32_t SubView::initialize()
+gmpi::ReturnCode SubView::initialize()
 {
 	onValueChanged(); // nesc in case initial value is 0.
 
@@ -185,7 +189,7 @@ int32_t SubView::initialize()
 
 	if( x != -99999)
 	{
-		auto module = dynamic_cast<SE2::ViewChild*> (getGuiHost());
+		auto module = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 		offset_.width -= module->bounds_.left;
 		offset_.height -= module->bounds_.top;
 	}
@@ -193,23 +197,28 @@ int32_t SubView::initialize()
 	return SE2::ViewBase::initialize();
 }
 
-int32_t SubView::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_API::MP1_SIZE* returnDesiredSize)
+gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize)
 {
+	if (!availableSize || !returnDesiredSize)
+		return gmpi::ReturnCode::Fail;
+
+	(void)availableSize;
+
 	// calc my bounds.
 	// Start with inverted rect (no area).
-    viewBounds = GmpiDrawing::Rect(200000, 200000, -200000, -200000);
+    viewBounds = gmpi::drawing::Rect(200000, 200000, -200000, -200000);
 
-    const GmpiDrawing::Size veryLarge(100000, 100000);
-	GmpiDrawing::Size notused;
+    const gmpi::drawing::Size veryLarge(100000, 100000);
+	gmpi::drawing::Size notused;
 
 	for (auto& m : children)
 	{
 		// Copied form ViewBase::arrange().
 		if (m->isVisable() && dynamic_cast<SE2::ConnectorViewBase*>(m.get()) == nullptr)
 		{
-			GmpiDrawing::Size savedSize(m->getLayoutRect().getWidth(), m->getLayoutRect().getHeight());
-			GmpiDrawing::Size desired;
-			GmpiDrawing::Size actualSize;
+			gmpi::drawing::Size savedSize(getWidth(m->getLayoutRect()), getHeight(m->getLayoutRect()));
+			gmpi::drawing::Size desired;
+			gmpi::drawing::Size actualSize;
 			bool changedSize = false;
 			/*
 			if (debug)
@@ -221,7 +230,7 @@ int32_t SubView::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_AP
 			if (savedSize.width == 0 && savedSize.height == 0)
 			{
 				const int defaultDimensions = 100;
-				GmpiDrawing::Size defaultSize(defaultDimensions, defaultDimensions);
+				gmpi::drawing::Size defaultSize(defaultDimensions, defaultDimensions);
 				m->measure(defaultSize, &desired);
 				actualSize = desired;
 				// stick with integer sizes for compatibility.
@@ -272,7 +281,7 @@ int32_t SubView::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_AP
 			_RPT4(_CRT_WARN, "arrange r[ %f %f %f %f]\n", m->getBounds().left, m->getBounds().top, m->getBounds().left + actualSize.width, m->getBounds().top + actualSize.height);
 			}
 			*/
-			GmpiDrawing::Rect moduleRect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height);
+			gmpi::drawing::Rect moduleRect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height);
 
 			// Typically only when new object inserted.
 			viewBounds.left = (std::min)(viewBounds.left, moduleRect.left);
@@ -288,8 +297,8 @@ int32_t SubView::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_AP
 		viewBounds.right = viewBounds.bottom = 10;
 	}
 
-	returnDesiredSize->width = (std::max)(0.0f, viewBounds.getWidth());
-	returnDesiredSize->height = (std::max)(0.0f, viewBounds.getHeight());
+	returnDesiredSize->width = (std::max)(0.0f, getWidth(viewBounds));
+	returnDesiredSize->height = (std::max)(0.0f, getHeight(viewBounds));
 
 	// On first open, need to calc offset relative to view.
 	// ref control_group_auto_size::RecalcBounds()
@@ -301,7 +310,7 @@ int32_t SubView::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_AP
 		// avoid 'show on module' structure view messing up panel view's offset.
 		if (parentViewType == CF_PANEL_VIEW)
 		{
-			auto module = dynamic_cast<SE2::ViewChild*>(getGuiHost());
+			auto module = dynamic_cast<SE2::ViewChild*>(drawingHost.get());
 			Presenter()->SetViewScroll(
 				static_cast<int32_t>(offset_.width + module->bounds_.left),
 				static_cast<int32_t>(offset_.height + module->bounds_.top)
@@ -321,23 +330,26 @@ int32_t SubView::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_AP
 			offset_.height -= parentAdjustY;
 
 			// Adjust module top-left.
-			auto parent = dynamic_cast<SE2::ViewChild*> (getGuiHost());
+			auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 
 			if (parent->parent->getViewType() == CF_PANEL_VIEW)
-				parent->Presenter()->ResizeModule(parent->handle, 0, 0, GmpiDrawing::Size((float)parentAdjustX, (float)parentAdjustY));
+				parent->Presenter()->ResizeModule(parent->handle, 0, 0, gmpi::drawing::Size((float)parentAdjustX, (float)parentAdjustY));
 		}
 	}
-	return gmpi::MP_OK;
+	return gmpi::ReturnCode::Ok;
 }
 
-int32_t SubView::arrange(GmpiDrawing_API::MP1_RECT finalRect)
+gmpi::ReturnCode SubView::arrange(const gmpi::drawing::Rect* finalRect)
 {
+	if (!finalRect)
+		return gmpi::ReturnCode::Fail;
+
 	return ViewBase::arrange(finalRect);
 }
 
 bool SubView::isShown()
 {
-	auto parent = dynamic_cast<SE2::ViewChild*> (getGuiHost());
+	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 	if (!parent->isShown())
 		return false;
 
@@ -347,119 +359,117 @@ bool SubView::isShown()
 		return showControls;
 }
 
-int32_t SubView::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
+gmpi::ReturnCode SubView::render(gmpi::drawing::api::IDeviceContext* drawingContext)
 {
+	if (!drawingContext)
+		return gmpi::ReturnCode::Fail;
+
 	if (isShown())
 	{
-		GmpiDrawing::Graphics g(drawingContext);
+		gmpi::drawing::Graphics g(drawingContext);
 
 		// Transform to module-relative.
-		const auto originalTransform = g.GetTransform();
-		auto adjustedTransform = Matrix3x2::Translation(offset_.width, offset_.height) * originalTransform;
-		g.SetTransform(adjustedTransform);
+		const auto originalTransform = g.getTransform();
+		auto adjustedTransform = makeTranslation(offset_.width, offset_.height) * originalTransform;
+		g.setTransform(adjustedTransform);
 
 		// Render.
-		auto res = SE2::ViewBase::OnRender(drawingContext);
+		auto res = SE2::ViewBase::render(drawingContext);
 
 		// Transform back.
-		g.SetTransform(originalTransform);
+		g.setTransform(originalTransform);
 		return res;
 	}
 	else
-		return gmpi::MP_UNHANDLED;
+		return gmpi::ReturnCode::Unhandled;
 }
 
-int32_t SubView::getToolTip(MP1_POINT point, gmpi::IString* returnString)
+#if 0 // todo
+int32_t SubView::getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString)
 {
-	const auto localPoint = GmpiDrawing::Point(point.x - offset_.width, point.y - offset_.height);
+	const auto localPoint = gmpi::drawing::Point(point.x - offset_.width, point.y - offset_.height);
 	return ViewBase::getToolTip(localPoint, returnString);
 }
+#endif
 
 void SubView::process()
 {
 	processUnidirectionalModules();
 }
 
-bool SubView::hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT* point)
+bool SubView::hitTest(int32_t flags, gmpi::drawing::Point* point)
 {
 	if (isShown())
 	{
-		const auto localPoint = GmpiDrawing::Point(point->x - offset_.width, point->y - offset_.height );
+		const auto localPoint = gmpi::drawing::Point(point->x - offset_.width, point->y - offset_.height );
 		for (auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 		{
 			auto m = (*it).get();
-			if (m->hitTest(flags, localPoint))
-			{
+			if (m->hitTest(localPoint, flags) == gmpi::ReturnCode::Ok)
 				return true;
-			}
 		}
 	}
 	
 	return false;
 }
 
-int32_t SubView::hitTest(GmpiDrawing_API::MP1_POINT point)
-{
-	return hitTest(0, &point) ? gmpi::MP_OK : gmpi::MP_UNHANDLED;
-}
-
-int32_t SubView::onPointerDown(int32_t flags, MP1_POINT point)
+gmpi::ReturnCode SubView::onPointerDown(gmpi::drawing::Point point, int32_t flags)
 {
 	if (isShown())
 	{
 		point.x -= offset_.width;
 		point.y -= offset_.height;
-		return ViewBase::onPointerDown(flags, point);
+		return ViewBase::onPointerDown(point, flags);
 	}
 	else
-		return gmpi::MP_UNHANDLED;
+		return gmpi::ReturnCode::Unhandled;
 }
 
-int32_t SubView::onPointerMove(int32_t flags, MP1_POINT point)
+gmpi::ReturnCode SubView::onPointerMove(gmpi::drawing::Point point, int32_t flags)
 {
 	if (isShown())
 	{
 		point.x -= offset_.width;
 		point.y -= offset_.height;
-		return ViewBase::onPointerMove(flags, point);
+		return ViewBase::onPointerMove(point, flags);
 	}
 	else
-		return gmpi::MP_UNHANDLED;
+		return gmpi::ReturnCode::Unhandled;
 }
 
-int32_t SubView::onPointerUp(int32_t flags, MP1_POINT point)
+gmpi::ReturnCode SubView::onPointerUp(gmpi::drawing::Point point, int32_t flags)
 {
 	if (isShown() || mouseCaptureObject)  // attempt to fix it when object on panel captures mouse, then hides itself
 	{
 		point.x -= offset_.width;
 		point.y -= offset_.height;
-		return ViewBase::onPointerUp(flags, point);
+		return ViewBase::onPointerUp(point, flags);
 	}
 	else
 	{
-		return gmpi::MP_UNHANDLED;
+		return gmpi::ReturnCode::Unhandled;
 	}
 }
 
-int32_t SubView::onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point)
+gmpi::ReturnCode SubView::onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta)
 {
 	if (!isShown())
-		return gmpi::MP_UNHANDLED;
+		return gmpi::ReturnCode::Unhandled;
 
 	point.x -= offset_.width;
 	point.y -= offset_.height;
 
-	return ViewBase::onMouseWheel(flags, delta, point);
+	return ViewBase::onMouseWheel(point, flags, delta);
 }
 
 void SubView::OnChildMoved()
 {
 	// TODO : enhancement - also calc my cliprect on sum of child cliprects.
 
-	auto parent = dynamic_cast<SE2::ViewChild*> (getGuiHost());
+	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 
-	GmpiDrawing::Rect viewBoundsNew;
-	GmpiDrawing::Rect unused2;
+	gmpi::drawing::Rect viewBoundsNew;
+	gmpi::drawing::Rect unused2;
 	calcBounds(viewBoundsNew, unused2);
 
 	if (viewBounds == viewBoundsNew)
@@ -486,23 +496,23 @@ void SubView::OnChildMoved()
 	parent->parent->OnChangedChildPosition(parent->handle, parentLayoutRect);
 }
 
-void SubView::calcBounds(GmpiDrawing::Rect& returnLayoutRect, GmpiDrawing::Rect& returnClipRect)
+void SubView::calcBounds(gmpi::drawing::Rect& returnLayoutRect, gmpi::drawing::Rect& returnClipRect)
 {
 	// calc my bounds.
 	// Start with inverted rect (no area).
-	returnLayoutRect = GmpiDrawing::Rect(200000, 200000, -200000, -200000);
+	returnLayoutRect = gmpi::drawing::Rect(200000, 200000, -200000, -200000);
 
-	const GmpiDrawing::Size veryLarge(100000, 100000);
-	GmpiDrawing::Size notused;
+	const gmpi::drawing::Size veryLarge(100000, 100000);
+	gmpi::drawing::Size notused;
 
 	for (auto& m : children)
 	{
 		// Copied form ViewBase::arrange().
 		if (m->isVisable() && dynamic_cast<SE2::ConnectorViewBase*>(m.get()) == nullptr)
 		{
-			GmpiDrawing::Size savedSize(m->getLayoutRect().getWidth(), m->getLayoutRect().getHeight());
-			GmpiDrawing::Size desired;
-			GmpiDrawing::Size actualSize;
+			gmpi::drawing::Size savedSize(getWidth(m->getLayoutRect()), getHeight(m->getLayoutRect()));
+			gmpi::drawing::Size desired;
+			gmpi::drawing::Size actualSize;
 			bool changedSize = false;
 			/*
 			if (debug)
@@ -514,7 +524,7 @@ void SubView::calcBounds(GmpiDrawing::Rect& returnLayoutRect, GmpiDrawing::Rect&
 			if (savedSize.width == 0 && savedSize.height == 0)
 			{
 				const int defaultDimensions = 100;
-				GmpiDrawing::Size defaultSize(defaultDimensions, defaultDimensions);
+				gmpi::drawing::Size defaultSize(defaultDimensions, defaultDimensions);
 				m->measure(defaultSize, &desired);
 				actualSize = desired;
 				// stick with integer sizes for compatibility.
@@ -565,8 +575,8 @@ void SubView::calcBounds(GmpiDrawing::Rect& returnLayoutRect, GmpiDrawing::Rect&
 			_RPT4(_CRT_WARN, "arrange r[ %f %f %f %f]\n", m->getBounds().left, m->getBounds().top, m->getBounds().left + actualSize.width, m->getBounds().top + actualSize.height);
 			}
 			*/
-			GmpiDrawing::Rect moduleRect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height);
-			//m->arrange(GmpiDrawing::Rect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height));
+			gmpi::drawing::Rect moduleRect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height);
+			//m->arrange(gmpi::drawing::Rect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height));
 
 			// Typically only when new object inserted.
 			returnLayoutRect.left = (std::min)(returnLayoutRect.left, moduleRect.left);

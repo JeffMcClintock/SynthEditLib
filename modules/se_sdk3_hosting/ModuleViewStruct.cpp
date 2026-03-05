@@ -11,37 +11,47 @@
 #include "InterfaceObject.h"
 #include "cpu_accumulator.h"
 #include "ResizeAdorner.h"
-#include "modules/shared/GraphHelpers.h"
+//#include "modules/shared/GraphHelpers.h"
+#include "helpers/SimplifyGraph.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
 #include "mfc_emulation.h"
 
 using namespace gmpi;
 using namespace std;
-using namespace GmpiDrawing_API;
-using namespace GmpiDrawing;
+using namespace gmpi::drawing;
 
 inline PathGeometry DataToGraph(Graphics& g, const std::vector<Point>& inData)
 {
-	auto geometry = g.GetFactory().CreatePathGeometry();
-	auto sink = geometry.Open();
+	auto geometry = g.getFactory().createPathGeometry();
+	auto sink = geometry.open();
 	bool first{ true };
 	for (const auto& p : inData)
 	{
 		if (first)
 		{
-			sink.BeginFigure(p);
+			sink.beginFigure(p);
 			first = false;
 		}
 		else
 		{
-			sink.AddLine(p);
+			sink.addLine(p);
 		}
 	}
 
-	sink.EndFigure(FigureEnd::Open);
-	sink.Close();
+	sink.endFigure(FigureEnd::Open);
+	sink.close();
 
 	return geometry;
+}
+
+inline Color interpolateColor(Color a, Color b, float fraction)
+{
+	return Color(
+		a.r + (b.r - a.r) * fraction,
+		a.g + (b.g - a.g) * fraction,
+		a.b + (b.b - a.b) * fraction,
+		a.a + (b.a - a.a) * fraction
+	);
 }
 
 namespace SE2
@@ -273,7 +283,7 @@ namespace SE2
 			Build();
 	}
 
-	int32_t ModuleViewStruct::measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize)
+	void ModuleViewStruct::measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize)
 	{
 		// Determine total plug height.
 		auto visiblePlugsCount = std::count_if(plugs_.begin(), plugs_.end(),
@@ -286,8 +296,8 @@ namespace SE2
 
 		auto totalPlugHeight = visiblePlugsCount * plugDiameter;
 
-        auto drawingFactory = DrawingFactory();
-		assert(!drawingFactory.isNull());
+        auto drawingFactory = getFactory();
+//		assert(drawingFactory);
 		auto resources = getDrawingResources(drawingFactory);
 
 		// calc text min width.
@@ -296,7 +306,7 @@ namespace SE2
 		{
 			if (pin.isVisible)
 			{
-				auto s = resources->tf_plugs_left.GetTextExtentU(pin.name);
+				auto s = resources->tf_plugs_left.getTextExtentU(pin.name);
 				minTextWidth = (std::max)(minTextWidth, s.width);
 			}
 		}
@@ -335,13 +345,12 @@ namespace SE2
 
 		returnDesiredSize->width = (float) (((plugDiameter - 1 + width) / plugDiameter) * plugDiameter);
 
-		return gmpi::MP_OK;
 	}
 
-	int32_t ModuleViewStruct::arrange(GmpiDrawing::Rect finalRect)
+	void ModuleViewStruct::arrange(gmpi::drawing::Rect finalRect)
 	{
-		if (bounds_.getHeight() != finalRect.getHeight() || bounds_.getWidth() != finalRect.getWidth())
-			outlineGeometry = nullptr;
+		if (getHeight(bounds_) != getHeight(finalRect) || getWidth(bounds_) != getWidth(finalRect))
+			outlineGeometry = {};
 
 		bounds_ = finalRect;
 
@@ -364,7 +373,7 @@ namespace SE2
 			widthPadding += clientPadding * 2.0f;
 			heightPadding += clientPadding * 2.0f;
 
-			Size remainingSize(finalRect.getWidth() - widthPadding, finalRect.getHeight() - heightPadding);
+			Size remainingSize(getWidth(finalRect) - widthPadding, getHeight(finalRect) - heightPadding);
 
 			Size desired;
 //			pluginGraphics->measure(remainingSize, &desired);
@@ -379,13 +388,13 @@ namespace SE2
 			}
 			else
 			{
-				pluginGraphics->measure(remainingSize, &desired);
+				pluginGraphics->measure(*reinterpret_cast<GmpiDrawing_API::MP1_SIZE*>(&remainingSize), reinterpret_cast<GmpiDrawing_API::MP1_SIZE*>(&desired));
 			}
 
-			float x = floorf((finalRect.getWidth() - desired.width) * 0.5f);
-			float y = floorf(finalRect.getHeight() - desired.height - clientPadding);
-			pluginGraphicsPos = GmpiDrawing::Rect(x, y, x + desired.width, y + desired.height);
-			auto relativeRect = GmpiDrawing::Rect(0, 0, desired.width, desired.height);
+			float x = floorf((getWidth(finalRect) - desired.width) * 0.5f);
+			float y = floorf(getHeight(finalRect) - desired.height - clientPadding);
+			pluginGraphicsPos = gmpi::drawing::Rect(x, y, x + desired.width, y + desired.height);
+			auto relativeRect = gmpi::drawing::Rect(0, 0, desired.width, desired.height);
 			if (pluginGraphics_GMPI)
 			{
 				drawing::Rect gmpiRect{ 0, 0, relativeRect.right, relativeRect.bottom};
@@ -393,35 +402,34 @@ namespace SE2
 			}
 			else if (pluginGraphics)
 			{
-				pluginGraphics->arrange(relativeRect);
+				pluginGraphics->arrange(*reinterpret_cast<GmpiDrawing_API::MP1_RECT*>(&relativeRect));
 			}
 		}
 
 		// Calc clip rect.
 		clipArea = bounds_;
 		clipArea.bottom = (std::max)(clipArea.bottom, clipArea.top + plugDiameter); //Zero-height modules get expanded to 1 plug high.
-		clipArea.Inflate(2); // cope with thick "selected" outline.
+		clipArea = inflateRect(clipArea, 2.0f); // cope with thick "selected" outline.
 		clipArea.top -= 16; // expand upward to header text.
 
-        auto drawingFactory = DrawingFactory();
+        auto drawingFactory = getFactory();
         auto resources = getDrawingResources(drawingFactory);
 
 //		auto textFormatHeader = DrawingFactory().CreateTextFormat(static_cast<float>(plugTextSize) + 2.0f);
 //		textFormatHeader.SetTextAlignment(GmpiDrawing_API::MP1_TEXT_ALIGNMENT_CENTER);
 
 		// Expand left and right for long headers.
-		auto headersize = resources->tf_header.GetTextExtentU(name);
-		float overhang = ceilf((headersize.width - clipArea.getWidth()) * 0.5f);
+		auto headersize = resources->tf_header.getTextExtentU(name);
+		float overhang = ceilf((headersize.width - getWidth(clipArea)) * 0.5f);
 		if (overhang > 0.0f)
 		{
 			clipArea.left -= overhang;
 			clipArea.right += overhang;
 		}
 
-		return gmpi::MP_OK;
 	}
 
-	GmpiDrawing::Rect ModuleViewStruct::GetClipRect()
+	gmpi::drawing::Rect ModuleViewStruct::getClipArea()
 	{
 		auto r = clipArea;
 
@@ -430,28 +438,29 @@ namespace SE2
 			drawing::Rect clientClipArea_gmpi{};
 			pluginGraphics_GMPI->getClipArea(&clientClipArea_gmpi);
 
-			GmpiDrawing::Rect clientClipArea{ static_cast<float>(clientClipArea_gmpi.left), static_cast<float>(clientClipArea_gmpi.top), static_cast<float>(clientClipArea_gmpi.right), static_cast<float>(clientClipArea_gmpi.bottom) };
-			clientClipArea.Offset(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
-			r.Union(clientClipArea);
+			gmpi::drawing::Rect clientClipArea{ static_cast<float>(clientClipArea_gmpi.left), static_cast<float>(clientClipArea_gmpi.top), static_cast<float>(clientClipArea_gmpi.right), static_cast<float>(clientClipArea_gmpi.bottom) };
+			clientClipArea = offsetRect(clientClipArea, { bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top });
+			r = unionRect(r, clientClipArea);
 		}
 		else if (pluginGraphics4)
 		{
-			GmpiDrawing::Rect clientClipArea{};
-			pluginGraphics4->getClipArea(&clientClipArea);
-			clientClipArea.Offset(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
-			r.Union(clientClipArea);
+			GmpiDrawing::Rect clientClipAreaLegacy{};
+			pluginGraphics4->getClipArea(&clientClipAreaLegacy);
+			gmpi::drawing::Rect clientClipArea{ clientClipAreaLegacy.left, clientClipAreaLegacy.top, clientClipAreaLegacy.right, clientClipAreaLegacy.bottom };
+			clientClipArea = offsetRect(clientClipArea, { bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top });
+			r = unionRect(r, clientClipArea);
 		}
 
 		if (showCpu())
 		{
 			auto cpur = GetCpuRect();
-			cpur.Offset(bounds_.getTopLeft());
-			r.Union(cpur);
+			cpur = offsetRect(cpur, { bounds_.left, bounds_.top });
+			r = unionRect(r, cpur);
 		}
 		return r;
 	}
 
-	sharedGraphicResources_struct* ModuleViewStruct::getDrawingResources(GmpiDrawing::Factory& factory)
+	sharedGraphicResources_struct* ModuleViewStruct::getDrawingResources(gmpi::drawing::Factory& factory)
 	{
 		if(!drawingResources)
 		{
@@ -461,32 +470,33 @@ namespace SE2
 		return drawingResources.get();
 	}
 
-	GmpiDrawing::Rect ModuleViewStruct::GetCpuRect()
+	gmpi::drawing::Rect ModuleViewStruct::GetCpuRect()
 	{
-		GmpiDrawing::Rect r{0.f, 0.f, 101.f, 100.f};
-		const float dx = (bounds_.getWidth() - r.getWidth()) * 0.5f;
-		r.Offset(dx, -12.f - r.getHeight());
+		gmpi::drawing::Rect r{0.f, 0.f, 101.f, 100.f};
+		const float dx = (getWidth(bounds_) - getWidth(r)) * 0.5f;
+		r = offsetRect(r, { dx, -12.f - getHeight(r) });
 		return r;
 	}
 
 	void ModuleViewStruct::RenderCpu(Graphics& g)
 	{
 	const auto child_rect = GetCpuRect();
-		g.PushAxisAlignedClip(child_rect);
+		g.pushAxisAlignedClip(child_rect);
 
 		const auto rectBottom = child_rect.bottom;
-		g.FillRectangle(child_rect, g.CreateSolidColorBrush(Color::FromArgb(0x2000ff00)));
+		auto brush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x00ff00u, 0.125f));
+		g.fillRectangle(child_rect, brush);
 
 		//		cpuInfo
 		const float displayDecades = 4.0f; // 100% -> 0.01%
-		const auto child_width = child_rect.getWidth();
-		const auto child_height = child_rect.getHeight();
-		auto penUG = g.CreateSolidColorBrush(Color::FromBytes(0, 255, 0));
-		auto bg = g.CreateSolidColorBrush(Color::FromBytes(0, 100, 0));
+		const auto child_width = getWidth(child_rect);
+		const auto child_height = getHeight(child_rect);
+		auto penUG = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x00ff00u));
+		auto bg = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x006400u));
 
 		// BACKGROUND LINES
-		auto textFormat = g.GetFactory().CreateTextFormat2(9);
-		textFormat.SetTextAlignment(TextAlignment::Right);
+		auto textFormat = g.getFactory().createTextFormat(9.0f);
+		textFormat.setTextAlignment(gmpi::drawing::TextAlignment::Right);
 
 		const char* labels[] = {
 			"100%",
@@ -501,8 +511,8 @@ namespace SE2
 		for(int i = (int)displayDecades - 1; i > 0; --i)
 		{
 			auto y = 0.5f + floorf(0.5f + child_rect.top + i * child_height / displayDecades);
-			g.DrawLine({child_rect.left + 24, y }, {child_rect.right, y}, bg);
-			g.DrawTextU(labels[i], textFormat, Rect(child_rect.left + 2, y - 5, child_rect.left + 22, y + 7), bg);
+			g.drawLine({child_rect.left + 24, y }, {child_rect.right, y}, bg);
+			g.drawTextU(labels[i], textFormat, Rect(child_rect.left + 2, y - 5, child_rect.left + 22, y + 7), bg);
 		}
 
 		// small dot for each voice status (off, suspended, sleep, on)
@@ -517,15 +527,15 @@ namespace SE2
 				switch (cpuInfo->ModulesActive_[i])
 				{
 				case 1: //sleeping
-					colour = Color::Gray;
+					colour = Colors::Gray;
 					break;
 
 				case 2: // Suspended
-					colour = Color::Brown;
+					colour = Colors::Brown;
 					break;
 
 				case 3: //Run
-					colour = Color::Lime;
+					colour = Colors::Lime;
 					break;
 
 				default:
@@ -534,9 +544,9 @@ namespace SE2
 					break;
 				}
 
-				GmpiDrawing::Rect r(x, y, x + 4, y + 4);
-				penUG.SetColor(colour);
-				g.FillRectangle(r, penUG);
+				gmpi::drawing::Rect r(x, y, x + 4, y + 4);
+				penUG.setColor(colour);
+				g.fillRectangle(r, penUG);
 				x += 5;
 				if (x > child_rect.right - 5)
 				{
@@ -555,8 +565,8 @@ namespace SE2
 		const auto graphSize = cpu_accumulator::CPU_HISTORY_COUNT;
 		const float penWidth = 1;
 
-		std::vector<GmpiDrawing::Point> plot;
-		std::vector<GmpiDrawing::Point> plotSimplified;
+		std::vector<gmpi::drawing::Point> plot;
+		std::vector<gmpi::drawing::Point> plotSimplified;
 		plot.reserve(cpu_accumulator::CPU_HISTORY_COUNT);
 		plotSimplified.reserve(cpu_accumulator::CPU_HISTORY_COUNT);
 
@@ -585,8 +595,8 @@ namespace SE2
 
 			auto geometry = DataToGraph(g, plotSimplified);
 
-			penUG.SetColor(Color::Gray);
-			g.DrawGeometry(geometry, penUG, penWidth);
+			penUG.setColor(Colors::Gray);
+			g.drawGeometry(geometry, penUG, penWidth);
 		}
 
 		// AVERAGE.
@@ -617,17 +627,17 @@ namespace SE2
 
 			auto geometry = DataToGraph(g, plotSimplified);
 
-			penUG.SetColor(Color::White);
-			g.DrawGeometry(geometry, penUG, penWidth);
+			penUG.setColor(Colors::White);
+			g.drawGeometry(geometry, penUG, penWidth);
 		}
 
 		// percent printout
-		std::wostringstream oss;
-	oss << setiosflags(ios_base::fixed) << setprecision(4) << cpuInfo->cpuRunningMedianSlow * 100.0f << L" %";
-		bg.SetColor(Color::Black);
-		g.DrawTextW(oss.str().c_str(), textFormat, Rect(child_rect.right - 40, rectBottom, child_rect.right, rectBottom - 12), bg);
+		std::ostringstream oss;
+		oss << setiosflags(ios_base::fixed) << setprecision(4) << cpuInfo->cpuRunningMedianSlow * 100.0f << " %";
+		bg.setColor(Colors::Black);
+		g.drawTextU(oss.str().c_str(), textFormat, Rect(child_rect.right - 40, rectBottom, child_rect.right, rectBottom - 12), bg);
 
-		g.PopAxisAlignedClip();
+		g.popAxisAlignedClip();
 	}
 
 	// give the desired color, the opacity and the background color. Calc the brighter original color.
@@ -660,7 +670,7 @@ namespace SE2
 				{
 					float w = 48.f;
 					float h2 = scopeIsWave ? plugDiameter : plugDiameter * 0.6f;
-					float x = pin.direction == DR_IN ? -w - 2 : bounds_.getWidth() + 2;
+					float x = pin.direction == DR_IN ? -w - 2 : getWidth(bounds_) + 2;
 					return
 					{
 						x,
@@ -678,38 +688,42 @@ namespace SE2
 		return {};
 	}
 	
-	void ModuleViewStruct::OnRender(GmpiDrawing::Graphics& g)
+	PathGeometry ModuleViewStruct::getOutline(gmpi::drawing::Factory drawingFactory)
+	{
+		if(!outlineGeometry)
+			outlineGeometry = CreateModuleOutline(drawingFactory);
+
+		return outlineGeometry;
+	}
+
+	void ModuleViewStruct::render(gmpi::drawing::Graphics& g)
 	{
 		constexpr auto& plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
 #if 0 // debug layout and clip rects
-		g.FillRectangle(GetClipRect(),   g.CreateSolidColorBrush(Color::FromArgb(0x200000ff)));
-		g.FillRectangle(getLayoutRect(), g.CreateSolidColorBrush(Color::FromArgb(0x2000ff00)));
+		g.fillRectangle(getClipArea(),   g.createSolidColorBrush(Color::FromArgb(0x200000ff)));
+		g.fillRectangle(getLayoutRect(), g.createSolidColorBrush(Color::FromArgb(0x2000ff00)));
 #endif
-        auto drawingFactory = g.GetFactory();
+        auto drawingFactory = g.getFactory();
         auto resources = getDrawingResources(drawingFactory);
 
-		auto zoomFactor = g.GetTransform()._11; // horizontal scale.
+		auto zoomFactor = g.getTransform()._11; // horizontal scale.
 
 		// Cache outline.
-		if (outlineGeometry.Get() == nullptr)
-		{
-            auto factory = g.GetFactory();
-			assert(!factory.isNull());
-			outlineGeometry = CreateModuleOutline(factory);
-		}
+		if (!outlineGeometry)
+			outlineGeometry = CreateModuleOutline(drawingFactory);
 
 		Brush backgroundBrush;// = &brush; // temp
 
 		if (zoomFactor < 0.3f)
 		{
-			backgroundBrush = g.CreateSolidColorBrush(Color(0xFFE5E5E5)); // todo: CACHE !!!!
+			backgroundBrush = g.createSolidColorBrush(colorFromHex(0xE5E5E5u)); // todo: CACHE !!!!
 		}
 		else
 		{
 			if (muted)
 			{
-				backgroundBrush = g.CreateSolidColorBrush(Color::DarkGray);
+				backgroundBrush = g.createSolidColorBrush(Colors::DarkGray);
 			}
 			else
 			{
@@ -732,9 +746,9 @@ namespace SE2
 				const Color DspTopColor(0.942677438f, 0.942677438f, 0.942677430f, opacity);
 				const Color DspBotColor(0.637583494f, 0.637583494f, 0.637583494f, opacity);
 #endif
-				std::vector<GradientStop> gradientStops;
+				std::vector<gmpi::drawing::Gradientstop> gradientStops;
 
-				auto totalHeight = getLayoutRect().getHeight();
+				auto totalHeight = getHeight(getLayoutRect());
 
 				int plugCount = 0;
 				int type = -1;
@@ -749,20 +763,20 @@ namespace SE2
 							if (type == -1)
 							{
 								// Top color
-								gradientStops.push_back(GradientStop(0.0f, t == 0 ? GuiTopColor : DspTopColor));
+								gradientStops.push_back({0.0f, t == 0 ? GuiTopColor : DspTopColor});
 							}
 							else
 							{
 								float fraction = (plugCount * plugDiameter) / totalHeight;
 								if (t == 0)
 								{
-									gradientStops.push_back(GradientStop(fraction, interpolateColor(DspTopColor, DspBotColor, fraction)));
-									gradientStops.push_back(GradientStop(fraction, interpolateColor(GuiTopColor, GuiBotColor, fraction)));
+									gradientStops.push_back({fraction, interpolateColor(DspTopColor, DspBotColor, fraction)});
+									gradientStops.push_back({fraction, interpolateColor(GuiTopColor, GuiBotColor, fraction)});
 								}
 								else
 								{
-									gradientStops.push_back(GradientStop(fraction, interpolateColor(GuiTopColor, GuiBotColor, fraction)));
-									gradientStops.push_back(GradientStop(fraction, interpolateColor(DspTopColor, DspBotColor, fraction)));
+									gradientStops.push_back({fraction, interpolateColor(GuiTopColor, GuiBotColor, fraction)});
+									gradientStops.push_back({fraction, interpolateColor(DspTopColor, DspBotColor, fraction)});
 								}
 							}
 							type = t;
@@ -771,56 +785,58 @@ namespace SE2
 					}
 				}
 				// Bottom color
-				gradientStops.push_back(GradientStop(1.0f, type == 0 ? GuiBotColor : DspBotColor ));
+				gradientStops.push_back({1.0f, type == 0 ? GuiBotColor : DspBotColor});
 
-				auto gradientStopCollection = g.CreateGradientStopCollection(gradientStops);
-				LinearGradientBrushProperties lgbp1(Point(0.f, 0.0f), Point(0.f, bounds_.getHeight()));
-				backgroundBrush = g.CreateLinearGradientBrush(lgbp1, BrushProperties(), gradientStopCollection);
+				auto gradientStopCollection = g.createGradientstopCollection(gradientStops);
+				LinearGradientBrushProperties lgbp1{ Point(0.f, 0.0f), Point(0.f, getHeight(bounds_)) };
+				backgroundBrush = g.createLinearGradientBrush(lgbp1, BrushProperties(), gradientStopCollection);
 			}
 		}
 
 		// Fancy outline.
 		if ( zoomFactor > 0.25f)
 		{
-			g.FillGeometry(outlineGeometry, backgroundBrush);
+			g.fillGeometry(outlineGeometry, backgroundBrush);
 
 			SolidColorBrush moduleOutlineBrush;
 
+#if 0
 			float strokeWidth;
 			if (getSelected())
 			{
-				moduleOutlineBrush = g.CreateSolidColorBrush(Color::DodgerBlue);
+				moduleOutlineBrush = g.createSolidColorBrush(Colors::DodgerBlue);
 				strokeWidth = 3;
 			}
 			else
 			{
-				moduleOutlineBrush = g.CreateSolidColorBrush(0x7C7C7Cu);
+				moduleOutlineBrush = g.createSolidColorBrush(0x7C7C7Cu);
 				strokeWidth = 1;
 			}
-
-			g.DrawGeometry(outlineGeometry, moduleOutlineBrush, strokeWidth);
+#endif
+			moduleOutlineBrush = g.createSolidColorBrush(0x7C7C7Cu);
+			float strokeWidth = 1;
+			g.drawGeometry(outlineGeometry, moduleOutlineBrush, strokeWidth);
 		}
 		else
 		{
-			Rect r(0, 0, bounds_.getWidth(), bounds_.getHeight());
-			g.FillRectangle(r, backgroundBrush);
+			Rect r(0, 0, getWidth(bounds_), getHeight(bounds_));
+			g.fillRectangle(r, backgroundBrush);
 		}
 
 		// Draw pin text elements.
-		auto outlineBrush = g.CreateSolidColorBrush(Color::Gray);
+		auto outlineBrush = g.createSolidColorBrush(Colors::Gray);
 		if (zoomFactor > 0.1f)
 		{
 			const float pinRadius = 3.0f;
 			const auto adjustedPinRadius = pinRadius + 0.1f; // nicer pixelation, more even outline circle.
-			auto fillBrush = g.CreateSolidColorBrush(0x000000u);
-			auto whiteBrush = g.CreateSolidColorBrush(Color::White);
+			auto fillBrush = g.createSolidColorBrush(0x000000u);
+			auto whiteBrush = g.createSolidColorBrush(Colors::White);
 
 			// Pins (see also drawoutline for snapping)
 			const float left = plugDiameter * 0.5f - 0.5f;
-			const float right = getLayoutRect().getWidth() - plugDiameter * 0.5f + 0.5f;
+			const float right = getWidth(getLayoutRect()) - plugDiameter * 0.5f + 0.5f;
 
 			Point p(0, plugDiameter * 0.5f - 0.5f);
-			Color c;
 			int prevDatatype = -1;
 			int pinIndex = 0;
 
@@ -837,37 +853,37 @@ namespace SE2
 						p.x = right;
 					}
 
-					static const Color pinColors[][2] = {
+					static const uint32_t pinColors[][2] = {
 						//  inner      outline
-						{{0x00BB00u},{0x008C00u}}, // ENUM green
-						{{0xFF0000u},{0xBF0000u}}, // TEXT red
-						{{0xFFCC00u},{0xBF9900u}}, // MIDI2 yellow
-						{{0x00bcbcu},{0x00bcbcu}}, // DOUBLE
-						{{0x555555u},{0x404040u}}, // BOOL - grey.
-						{{0x0044FFu},{0x0033BFu}}, // float-audio blue
-						{{0x00CCEEu},{0x0099B3u}}, // FLOAT green-blue
-						{{0x008989u},{0x008989u}}, // unused
-						{{0xFF8800u},{0xBF6600u}}, // INT orange
-						{{0xFF8800u},{0xBF6600u}}, // INT64 orange
-						{{0xFF55FFu},{0xBF40BFu}}, // BLOB -purple
-						{{0xFF55FFu},{0xBF40BFu}}, // Class -purple
-						{{0xFF0000u},{0xBF0000u}}, // string (utf8) red
-						{{0xFF55FFu},{0xBF40BFu}}, // BLOB2 -purple
-						{{0xffffffu},{0x808080u}}, // Spare - white.
+						{0x00BB00u, 0x008C00u}, // ENUM green
+						{0xFF0000u, 0xBF0000u}, // TEXT red
+						{0xFFCC00u, 0xBF9900u}, // MIDI2 yellow
+						{0x00BCBCu, 0x00BCBCu}, // DOUBLE
+						{0x555555u, 0x404040u}, // BOOL - grey.
+						{0x0044FFu, 0x0033BFu}, // float-audio blue
+						{0x00CCEEu, 0x0099B3u}, // FLOAT green-blue
+						{0x008989u, 0x008989u}, // unused
+						{0xFF8800u, 0xBF6600u}, // INT orange
+						{0xFF8800u, 0xBF6600u}, // INT64 orange
+						{0xFF55FFu, 0xBF40BFu}, // BLOB -purple
+						{0xFF55FFu, 0xBF40BFu}, // Class -purple
+						{0xFF0000u, 0xBF0000u}, // string (utf8) red
+						{0xFF55FFu, 0xBF40BFu}, // BLOB2 -purple
+						{0xFFFFFFu, 0x808080u}, // Spare - white.
 					};
 
 					// Spare container pins white.
 					const int datatype = (pin.isAutoduplicatePlug && pin.isIoPlug) ? static_cast<int>(std::size(pinColors)) - 1 : pin.datatype;
 					if (prevDatatype != datatype)
 					{
-						fillBrush.SetColor(pinColors[datatype][0]);
-						outlineBrush.SetColor(pinColors[datatype][1]);
+						fillBrush.setColor(pinColors[datatype][0]);
+						outlineBrush.setColor(pinColors[datatype][1]);
 						prevDatatype = datatype;
 					}
 					const float fillRadius = hoverPin == pinIndex ? pinRadius + 1.0f : pinRadius;
 					const float outlineRadius = hoverPin == pinIndex ? adjustedPinRadius + 1.0f : adjustedPinRadius;
 
-					g.FillCircle(p, fillRadius, fillBrush);
+					g.fillCircle(p, fillRadius, fillBrush);
 
 					if (zoomFactor > 0.25f)
 					{
@@ -875,11 +891,11 @@ namespace SE2
 						// Unconected container pins highlighted white
 						if (pin.isTiedToUnconnected)
 						{
-							g.DrawCircle(p, outlineRadius, whiteBrush);
+							g.drawCircle(p, outlineRadius, whiteBrush);
 						}
 						else
 						{
-							g.DrawCircle(p, outlineRadius, outlineBrush);
+							g.drawCircle(p, outlineRadius, outlineBrush);
 						}
 					}
 
@@ -892,25 +908,26 @@ namespace SE2
 		if (zoomFactor > 0.5f)
 		{
 			// Text
-			Rect r(0,0, bounds_.getWidth(), bounds_.getHeight());
+			Rect r(0,0, getWidth(bounds_), getHeight(bounds_));
 			r.top -= 1.0f;
-			r.Deflate(static_cast<float>(plugTextHorizontalPadding + plugDiameter), 0.0f);
+			r.left += static_cast<float>(plugTextHorizontalPadding + plugDiameter);
+			r.right -= static_cast<float>(plugTextHorizontalPadding + plugDiameter);
 
-			outlineBrush.SetColor(Color::Black);
+			outlineBrush.setColor(Colors::Black);
 
 			// Left justified text.
-			g.DrawTextU(lPlugNames, resources->tf_plugs_left, r, outlineBrush);
+			g.drawTextU(lPlugNames, resources->tf_plugs_left, r, outlineBrush);
 
 			// Right justified text.
-			g.DrawTextU(rPlugNames, resources->tf_plugs_right, r, outlineBrush);
+			g.drawTextU(rPlugNames, resources->tf_plugs_right, r, outlineBrush);
 
 			// Header.
-			auto textExtraWidth = 1.0f + 0.5f * (std::max)(0.0f, resources->tf_header.GetTextExtentU(name).width - r.getWidth());
+			auto textExtraWidth = 1.0f + 0.5f * (std::max)(0.0f, resources->tf_header.getTextExtentU(name).width - getWidth(r));
 
 			r.top -= 16;
 			r.left -= textExtraWidth;
 			r.right += textExtraWidth;
-			g.DrawTextU(name, resources->tf_header, r, outlineBrush);
+			g.drawTextU(name, resources->tf_header, r, outlineBrush);
 		}
 
 		if(showCpu())
@@ -921,13 +938,13 @@ namespace SE2
 		if (pluginGraphics_GMPI)
 		{
 			// Transform to module-relative.
-			const auto transform = g.GetTransform();
-			auto adjustedTransform = Matrix3x2::Translation(pluginGraphicsPos.left, pluginGraphicsPos.top) * transform;
+			const auto transform = g.getTransform();
+			auto adjustedTransform = makeTranslation(pluginGraphicsPos.left, pluginGraphicsPos.top) * transform;
 
-			g.SetTransform(adjustedTransform);
+			g.setTransform(adjustedTransform);
 
 			gmpi::shared_ptr<gmpi::drawing::api::IDeviceContext> gmpiContext;
-			g.Get()->queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(&gmpi::drawing::api::IDeviceContext::guid), gmpiContext.put_void());
+			AccessPtr::get(g)->queryInterface(&gmpi::drawing::api::IDeviceContext::guid, gmpiContext.put_void());
 
 			pluginGraphics_GMPI->render(gmpiContext);
 
@@ -936,26 +953,26 @@ namespace SE2
 			GmpiDrawing_API::IMpDeviceContext* legacyContext{};
 			gmpiContext->queryInterface(reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI), reinterpret_cast<void**>(&legacyContext));
 
-			GmpiDrawing::Color r(GmpiDrawing::Color::Red);
+			gmpi::drawing::Color r(gmpi::drawing::Colors::Red);
 			legacyContext->Clear(&r);
 #endif
 
 			// Transform back. (!! only needed with CPU)
-			g.SetTransform(transform);
+			g.setTransform(transform);
 		}
 		else if (pluginGraphics)
 		{
 			// Transform to module-relative.
-			const auto transform = g.GetTransform();
-			auto adjustedTransform = Matrix3x2::Translation(pluginGraphicsPos.left, pluginGraphicsPos.top) * transform;
+			const auto transform = g.getTransform();
+			auto adjustedTransform = makeTranslation(pluginGraphicsPos.left, pluginGraphicsPos.top) * transform;
 
-			g.SetTransform(adjustedTransform);
+			g.setTransform(adjustedTransform);
 			
 			// Render.
-			pluginGraphics->OnRender(g.Get());
+			pluginGraphics->OnRender(reinterpret_cast<GmpiDrawing_API::IMpDeviceContext*>(AccessPtr::get(g)));
 
 			// Transform back. (!! only needed with CPU)
-			g.SetTransform(transform);
+			g.setTransform(transform);
 		}
 
 		// HOVER SCOPE
@@ -963,26 +980,26 @@ namespace SE2
 		{
 			const auto scopeRect = calcScopeRect(hoverPin);
 
-			auto brush = g.CreateSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
-			g.FillRoundedRectangle({ scopeRect, 3.0f }, brush);
+			auto brush = g.createSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
+			g.fillRoundedRectangle({ scopeRect, 3.0f }, brush);
 
 
 			if (scopeIsWave)
 			{
 				// axis line
-				const float midY = scopeRect.top + scopeRect.getHeight() * 0.5f;
-				brush.SetColor(Color(0, 0, 0.0f, 0.7f));
-				g.DrawLine({ scopeRect.left, midY }, { scopeRect.right, midY }, brush, 0.5f);
+				const float midY = scopeRect.top + getHeight(scopeRect) * 0.5f;
+				brush.setColor(Color(0, 0, 0.0f, 0.7f));
+				g.drawLine({ scopeRect.left, midY }, { scopeRect.right, midY }, brush, 0.5f);
 
-				brush.SetColor(Color::Lime);
+				brush.setColor(Colors::Lime);
 
-				auto geometry = g.GetFactory().CreatePathGeometry();
-				auto sink = geometry.Open();
+				auto geometry = g.getFactory().createPathGeometry();
+				auto sink = geometry.open();
 
 				constexpr int numPoints = 192;
-				const float yScale = scopeRect.getHeight() * 0.5f;
+				const float yScale = getHeight(scopeRect) * 0.5f;
 				const float yMiddle = scopeRect.top + yScale;
-				const float dx = scopeRect.getWidth() / numPoints; // static_cast<float>(hoverScopeWaveform->size());
+				const float dx = getWidth(scopeRect) / numPoints; // static_cast<float>(hoverScopeWaveform->size());
 				Point p{ scopeRect.left, 0.f };
 				const int indexMask = static_cast<int>(std::size(movingPeaks)) - 1;
 
@@ -997,12 +1014,12 @@ namespace SE2
 						p.y = yMiddle - yScale * movingPeaks[j];
 						if (!begun)
 						{
-							sink.BeginFigure(p);
+							sink.beginFigure(p);
 							begun = true;
 						}
 						else
 						{
-							sink.AddLine(p);
+							sink.addLine(p);
 						}
 					}
 
@@ -1021,22 +1038,23 @@ namespace SE2
 
 						p.x -= dx;
 						p.y = yMiddle - yScale * movingPeaks[j];
-						sink.AddLine(p);
+						sink.addLine(p);
 					}
-					sink.EndFigure(FigureEnd::Open);
-					sink.Close();
+					sink.endFigure(FigureEnd::Open);
+					sink.close();
 
-					g.DrawGeometry(geometry, brush, 1.0f);
+					g.drawGeometry(geometry, brush, 1.0f);
 				}
 			}
 			else
 			{
-				brush.SetColor(Color::Yellow);
-				g.DrawTextU(hoverScopeText.c_str(), resources->tf_plugs_left, scopeRect, brush);
+				brush.setColor(Colors::Yellow);
+				g.drawTextU(hoverScopeText.c_str(), resources->tf_plugs_left, scopeRect, brush);
 			}
 		}
 	}
 
+#if 0 // TODO
 	int32_t ModuleViewStruct::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)
 	{
 		if (editorPinValues)
@@ -1069,6 +1087,7 @@ namespace SE2
 		return ModuleView::pinTransmit(pinId, size, data, voice);
 	}
 
+#endif
 	void ModuleViewStruct::SetHoverScopeText(const char* text)
 	{
 		hoverScopeText = text;
@@ -1155,7 +1174,7 @@ namespace SE2
 		float clientHight = 0.0f;
 		if (pluginGraphics_GMPI || pluginGraphics)
 		{
-			clientHight = pluginGraphicsPos.getHeight();
+			clientHight = getHeight(pluginGraphicsPos);
 			if (clientHight > 0.0f)
 				clientHight += clientPadding * 2.0f;
 		}
@@ -1183,36 +1202,38 @@ namespace SE2
 
 		rPlugNames = rPlugNamesTemp;
 		lPlugNames = lPlugNamesTemp;
-	// cache copies of the same shape
-	std::string outlineSpecification;
-	{
-		for (const auto& vc : filteredChildren)
+
+		// outline cache currently stores legacy path objects, skip cache lookup here.
+		// cache copies of the same shape
+		std::string outlineSpecification;
 		{
-			if (vc.direction == -1) // indicates embedded gfx, not pin.
+			for(const auto& vc : filteredChildren)
 			{
-				outlineSpecification += std::to_string(clientHight); // include client height in spec
+				if(vc.direction == -1) // indicates embedded gfx, not pin.
+				{
+					outlineSpecification += std::to_string(clientHight); // include client height in spec
+				}
+				else
+				{
+					outlineSpecification += vc.direction == DR_IN ? 'B' : 'F';
+				}
 			}
-			else
+			outlineSpecification += ':' + std::to_string(getWidth(bounds_)); // add width to specification
+
+			auto& outlineCache = getDrawingResources(factory)->outlineCache;
+			if(auto it = outlineCache.find(outlineSpecification); it != outlineCache.end())
 			{
-				outlineSpecification += vc.direction == DR_IN ? 'B' : 'F';
+//				it->second->addRef();
+//				[[maybe_unused]] auto refcount = it->second->release();
+
+				//				_RPT1(_CRT_WARN, "Saved one! refCount %d\n", refcount);
+
+				return it->second;
 			}
 		}
-		outlineSpecification += ':' + std::to_string(bounds_.getWidth()); // add width to specification
 
-		auto& outlineCache = getDrawingResources(factory)->outlineCache;
-		if (auto it = outlineCache.find(outlineSpecification); it != outlineCache.end())
-		{
-			it->second->addRef();
-			[[maybe_unused]] auto refcount = it->second->release();
-
-			//				_RPT1(_CRT_WARN, "Saved one! refCount %d\n", refcount);
-
-			return PathGeometry(it->second);
-		}
-	}
-
-		auto geometry = factory.CreatePathGeometry();
-		auto sink = geometry.Open();
+		auto geometry = factory.createPathGeometry();
+		auto sink = geometry.open();
 
 		const float radius = plugDiameter * 0.5f;
 
@@ -1240,8 +1261,8 @@ namespace SE2
 		const float smallCurveXCenter = sqrtf((radiusBig + radiusSmall) * (radiusBig + radiusSmall) - radiusBig * radiusBig );
 		const float smallCurveXIntersect = smallCurveXCenter * radiusBig / (radiusBig + radiusSmall);
 		float smallCurveYIntersect = radiusBig * radiusSmall / (radiusBig + radiusSmall);
-		const GmpiDrawing::Size bigCurveSize(radiusBig, radiusBig);
-		const GmpiDrawing::Size smallCurveSize(radiusSmall, radiusSmall);
+		const gmpi::drawing::Size bigCurveSize(radiusBig, radiusBig);
+		const gmpi::drawing::Size smallCurveSize(radiusSmall, radiusSmall);
 
 		float childHeight = 0;
 
@@ -1259,8 +1280,8 @@ namespace SE2
 		float plugY = -0.5f; // top
 		float y = -0.5;
 
-		if (NEW_LOOK_CURVES)
-		{
+//		if (NEW_LOOK_CURVES)
+//		{
 			// Down left side
 			for (const auto& vc : filteredChildren)
 			{
@@ -1284,13 +1305,13 @@ namespace SE2
 					{
 					case EBump: // start point at top-left.
 					case EPlugingraphics:
-						sink.BeginFigure(edgeX, y, FigureBegin::Filled);
+						sink.beginFigure(edgeX, y, FigureBegin::Filled);
 						break;
 
 					case EFlat: // small curve at top-left.
-						sink.BeginFigure(GmpiDrawing::Point(edgeX + radius, y), FigureBegin::Filled);
-						BezierSegment bs1(GmpiDrawing::Point(edgeX + radius - QCPDistance, y), GmpiDrawing::Point(edgeX, y + radius - QCPDistance), GmpiDrawing::Point(edgeX, y + radius));
-						sink.AddBezier(bs1);
+						sink.beginFigure(gmpi::drawing::Point(edgeX + radius, y), FigureBegin::Filled);
+						BezierSegment bs1(gmpi::drawing::Point(edgeX + radius - QCPDistance, y), gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
+						sink.addBezier(bs1);
 						break;
 					}
 				}
@@ -1303,14 +1324,14 @@ namespace SE2
 						if (prevEdgeType == EBump)
 						{
 							// Draw inner curve, from previous bump.
-							sink.AddArc(
-								ArcSegment(GmpiDrawing::Point(edgeX - smallCurveXIntersect, y + smallCurveYIntersect), smallCurveSize));
+							sink.addArc(
+								ArcSegment(gmpi::drawing::Point(edgeX - smallCurveXIntersect, y + smallCurveYIntersect), smallCurveSize));
 						}
 						else
 						{
 							// Draw line down,then out to meet curve.
-							sink.AddLine(GmpiDrawing::Point(edgeX, y - radiusSmall));
-							sink.AddLine(GmpiDrawing::Point(edgeX - smallCurveXIntersect, y + smallCurveYIntersect));
+							sink.addLine(gmpi::drawing::Point(edgeX, y - radiusSmall));
+							sink.addLine(gmpi::drawing::Point(edgeX - smallCurveXIntersect, y + smallCurveYIntersect));
 						}
 					}
 
@@ -1326,14 +1347,14 @@ namespace SE2
 					}
 
 					ArcSegment as1(endPoint, bigCurveSize, 0.0, SweepDirection::CounterClockwise);
-					sink.AddArc(as1);
+					sink.addArc(as1);
 				}
 				else // Flat on left
 				{
 					if (prevEdgeType == EBump)
 					{
 						// Angled line from Curve to left flat edge.
-						sink.AddLine(GmpiDrawing::Point(edgeX, y + radiusSmall));
+						sink.addLine(gmpi::drawing::Point(edgeX, y + radiusSmall));
 					}
 
 					// Bottom-left corner.
@@ -1341,14 +1362,14 @@ namespace SE2
 					{
 						if (edgeType == EPlugingraphics) // sharp corner.
 						{
-							sink.AddLine(GmpiDrawing::Point(edgeX, y + childHeight));
+							sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight + 1.0f)); // +1 hack to lower bottom edge of scope etc
 						}
 						else
 						{
 							// small curve.
-							sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
-							BezierSegment bs2(GmpiDrawing::Point(edgeX, y + radius + QCPDistance), GmpiDrawing::Point(edgeX + radius - QCPDistance, y + childHeight), GmpiDrawing::Point(edgeX + radius, y + childHeight));
-							sink.AddBezier(bs2);
+							sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
+							BezierSegment bs2(gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX + radius - QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX + radius, y + childHeight));
+							sink.addBezier(bs2);
 						}
 					}
 				}
@@ -1359,19 +1380,18 @@ namespace SE2
 					{
 					case EPlugingraphics:
 						// Draw square bottom-right.
-						sink.AddLine(GmpiDrawing::Point(rightX, y + childHeight));
+						sink.addLine(gmpi::drawing::Point(rightX, y + childHeight + 1.0f));
 						break;
 
 					case EFlat:
 						// don't draw all way to edge.
-						sink.AddLine(GmpiDrawing::Point(rightX, y + childHeight));
+						sink.addLine(gmpi::drawing::Point(rightX, y + childHeight));
 						break;
 
 					case EBump:
 						// don't draw all way to edge to allow for curved bottom-right.
-						sink.AddLine(GmpiDrawing::Point(rightX - radius, y + childHeight));
+						sink.addLine(gmpi::drawing::Point(rightX - radius, y + childHeight));
 						break;
-
 					};
 				}
 				else
@@ -1417,14 +1437,14 @@ namespace SE2
 						if (prevEdgeType == EBump)
 						{
 							// Draw inner curve, from previous bump.
-							sink.AddArc(
-								ArcSegment(GmpiDrawing::Point(edgeX + smallCurveXIntersect, y + childHeight - smallCurveYIntersect), smallCurveSize));
+							sink.addArc(
+								ArcSegment(gmpi::drawing::Point(edgeX + smallCurveXIntersect, y + childHeight - smallCurveYIntersect), smallCurveSize));
 						}
 						else
 						{
 							// Draw line up,then out to meet curve.
-							sink.AddLine(GmpiDrawing::Point(edgeX, y + childHeight + radiusSmall));
-							sink.AddLine(GmpiDrawing::Point(edgeX + smallCurveXIntersect, y + childHeight - smallCurveYIntersect));
+							sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight + radiusSmall));
+							sink.addLine(gmpi::drawing::Point(edgeX + smallCurveXIntersect, y + childHeight - smallCurveYIntersect));
 						}
 					}
 
@@ -1439,17 +1459,17 @@ namespace SE2
 					}
 
 					ArcSegment as1(endPoint, bigCurveSize, 0.0, SweepDirection::CounterClockwise);
-					sink.AddArc(as1);
+					sink.addArc(as1);
 				}
 				else // flat on right.
 				{
 					if (isLast)
 					{
-						if (edgeType != EPlugingraphics) // sharp corner.
+						if (edgeType != EPlugingraphics) // non sharp corner.
 						{
 							// The BEST 4-spline magic number is 0.551784. (not used yet).
-							BezierSegment bs5(GmpiDrawing::Point(edgeX - radius + QCPDistance, y + childHeight), GmpiDrawing::Point(edgeX, y + radius + QCPDistance), GmpiDrawing::Point(edgeX, y + radius));
-							sink.AddBezier(bs5);
+							BezierSegment bs5(gmpi::drawing::Point(edgeX - radius + QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
+							sink.addBezier(bs5);
 						}
 					}
 					else
@@ -1457,7 +1477,7 @@ namespace SE2
 						if (prevEdgeType == EBump)
 						{
 							// Angled line from Curve to left flat edge.
-							sink.AddLine(GmpiDrawing::Point(edgeX, y + childHeight - radiusSmall));
+							sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight - radiusSmall));
 						}
 					}
 
@@ -1466,16 +1486,16 @@ namespace SE2
 					{
 						if (edgeType == EPlugingraphics) // sharp corner.
 						{
-							sink.AddLine(GmpiDrawing::Point(edgeX, y));
+							sink.addLine(gmpi::drawing::Point(edgeX, y));
 						}
 						else
 						{
 							// small curve.
-							sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
+							sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
 
-//							BezierSegment bs6(GmpiDrawing::Point(edgeX, y + radius - QCPDistance), GmpiDrawing::Point(edgeX - radius + QCPDistance, top), GmpiDrawing::Point(edgeX - radius, top));
-							BezierSegment bs6(GmpiDrawing::Point(edgeX, y + radius - QCPDistance), GmpiDrawing::Point(edgeX - radius + QCPDistance, y), GmpiDrawing::Point(edgeX - radius, y));
-							sink.AddBezier(bs6);
+//							BezierSegment bs6(gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX - radius + QCPDistance, top), gmpi::drawing::Point(edgeX - radius, top));
+							BezierSegment bs6(gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX - radius + QCPDistance, y), gmpi::drawing::Point(edgeX - radius, y));
+							sink.addBezier(bs6);
 						}
 					}
 				}
@@ -1483,6 +1503,7 @@ namespace SE2
 				idx--;
 				prevEdgeType = edgeType;
 			}
+#if 0
 		}
 		else // Old-look.
 		{
@@ -1545,17 +1566,17 @@ namespace SE2
 				{
 					if (!startedFigure)
 					{
-						sink.BeginFigure(edgeX, y, FigureBegin::Filled);
+						sink.beginFigure(edgeX, y, FigureBegin::Filled);
 						startedFigure = true;
 					}
 
 					if (prevIsBump) //prev_plug_direction == DR_IN)
 					{
 						// trick it into not extending the acute join inward too far.
-						sink.AddLine(GmpiDrawing::Point(edgeX, y));
+						sink.addLine(gmpi::drawing::Point(edgeX, y));
 					}
-					ArcSegment as1(GmpiDrawing::Point(edgeX, y + childHeight), GmpiDrawing::Size(plugDiameter * 0.5, plugDiameter * 0.5), 0.0, SweepDirection::CounterClockwise);
-					sink.AddArc(as1);
+					ArcSegment as1(gmpi::drawing::Point(edgeX, y + childHeight), gmpi::drawing::Size(plugDiameter * 0.5, plugDiameter * 0.5), 0.0, SweepDirection::CounterClockwise);
+					sink.addArc(as1);
 				}
 				else // no bump on left
 				{
@@ -1564,26 +1585,26 @@ namespace SE2
 						// top-left curve.
 						if (isFirst)
 						{
-							sink.BeginFigure(GmpiDrawing::Point(edgeX + radius, top), FigureBegin::Filled);
-							BezierSegment bs1(GmpiDrawing::Point(edgeX + radius - QCPDistance, top), GmpiDrawing::Point(edgeX, top + radius - QCPDistance), GmpiDrawing::Point(edgeX, top + radius));
-							sink.AddBezier(bs1);
+							sink.beginFigure(gmpi::drawing::Point(edgeX + radius, top), FigureBegin::Filled);
+							BezierSegment bs1(gmpi::drawing::Point(edgeX + radius - QCPDistance, top), gmpi::drawing::Point(edgeX, top + radius - QCPDistance), gmpi::drawing::Point(edgeX, top + radius));
+							sink.addBezier(bs1);
 							startedFigure = true;
 						}
 						else
 						{
-							sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
+							sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
 						}
 
 						// bottom-left curve.
 						if (isLast)
 						{
-							BezierSegment bs2(GmpiDrawing::Point(edgeX, y + radius + QCPDistance), GmpiDrawing::Point(edgeX + radius - QCPDistance, y + childHeight), GmpiDrawing::Point(edgeX + radius, y + childHeight));
-							sink.AddBezier(bs2);
+							BezierSegment bs2(gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX + radius - QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX + radius, y + childHeight));
+							sink.addBezier(bs2);
 						}
 					}
 					else
 					{
-						sink.AddLine(GmpiDrawing::Point(edgeX, y + childHeight));
+						sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight));
 					}
 				}
 				//prev_plug_direction = vc.direction;
@@ -1600,25 +1621,25 @@ namespace SE2
 
 				float left = leftX + radius;
 				// re-assign start point to allow for top-left curve.
-				sink.BeginFigure(GmpiDrawing::Point(left, top), FigureBegin::Filled);
+				sink.beginFigure(gmpi::drawing::Point(left, top), FigureBegin::Filled);
 
 				// Left bump.
-				BezierSegment bs3(GmpiDrawing::Point(left - controlPointDistance, top), GmpiDrawing::Point(left - controlPointDistance, top + childHeight), GmpiDrawing::Point(left, top + childHeight));
-				sink.AddBezier(bs3);
+				BezierSegment bs3(gmpi::drawing::Point(left - controlPointDistance, top), gmpi::drawing::Point(left - controlPointDistance, top + childHeight), gmpi::drawing::Point(left, top + childHeight));
+				sink.addBezier(bs3);
 
 				// Bottom line.
 				float right = rightX - radius;
 				//myPathFigure.Segments.Add(new LineSegment(new Point(right, y + childHeight), true));
-				sink.AddLine(GmpiDrawing::Point(right, y + childHeight));
+				sink.addLine(gmpi::drawing::Point(right, y + childHeight));
 
 				y = top;
 
 				// Right bump.
-				BezierSegment bs4(GmpiDrawing::Point(right + controlPointDistance, y + childHeight), GmpiDrawing::Point(right + controlPointDistance, y), GmpiDrawing::Point(right, y));
-				sink.AddBezier(bs4);
+				BezierSegment bs4(gmpi::drawing::Point(right + controlPointDistance, y + childHeight), gmpi::drawing::Point(right + controlPointDistance, y), gmpi::drawing::Point(right, y));
+				sink.addBezier(bs4);
 				// Top line.
 				//myPathFigure.Segments.Add(new LineSegment(new Point(leftX + radius, top), true));
-				sink.AddLine(GmpiDrawing::Point(leftX + radius, top));
+				sink.addLine(gmpi::drawing::Point(leftX + radius, top));
 			}
 			else
 			{
@@ -1626,12 +1647,12 @@ namespace SE2
 				int bottomElement = reverseChildren[0];
 				if (bottomElement != -1) // output.
 				{
-					sink.AddLine(GmpiDrawing::Point(rightX, y + childHeight));
+					sink.addLine(gmpi::drawing::Point(rightX, y + childHeight));
 				}
 				else
 				{
 					// don't draw all way to edge to allow for curve.
-					sink.AddLine(GmpiDrawing::Point(rightX - radius, y + childHeight));
+					sink.addLine(gmpi::drawing::Point(rightX - radius, y + childHeight));
 				}
 
 				y += childHeight;
@@ -1671,10 +1692,10 @@ namespace SE2
 						if (prevIsBump) //prev_plug_direction != DR_IN)
 						{
 							// trick it into not extending the acute join inward too far.
-							sink.AddLine(GmpiDrawing::Point(edgeX, y + childHeight));
+							sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight));
 						}
-						BezierSegment bs4(GmpiDrawing::Point(edgeX + controlPointDistance, y + childHeight), GmpiDrawing::Point(edgeX + controlPointDistance, y), GmpiDrawing::Point(edgeX, y));
-						sink.AddBezier(bs4);
+						BezierSegment bs4(gmpi::drawing::Point(edgeX + controlPointDistance, y + childHeight), gmpi::drawing::Point(edgeX + controlPointDistance, y), gmpi::drawing::Point(edgeX, y));
+							sink.addBezier(bs4);
 					}
 					else
 					{
@@ -1684,8 +1705,8 @@ namespace SE2
 							if (isLast)
 							{
 								// The BEST 4-spline magic number is 0.551784. (not used yet).
-								BezierSegment bs5(GmpiDrawing::Point(edgeX - radius + QCPDistance, y + childHeight), GmpiDrawing::Point(edgeX, y + radius + QCPDistance), GmpiDrawing::Point(edgeX, y + radius));
-								sink.AddBezier(bs5);
+								BezierSegment bs5(gmpi::drawing::Point(edgeX - radius + QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
+								sink.addBezier(bs5);
 
 							}
 							else
@@ -1693,26 +1714,26 @@ namespace SE2
 								// line on left, up to half-way point, ready for curve.
 								if (isFirst)
 								{
-									sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
+									sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
 								}
 							}
 
 							// top-right curve.
 							if (isFirst)
 							{
-								BezierSegment bs6(GmpiDrawing::Point(edgeX, top + radius - QCPDistance), GmpiDrawing::Point(edgeX - radius + QCPDistance, top), GmpiDrawing::Point(edgeX - radius, top));
-								sink.AddBezier(bs6);
+								BezierSegment bs6(gmpi::drawing::Point(edgeX, top + radius - QCPDistance), gmpi::drawing::Point(edgeX - radius + QCPDistance, top), gmpi::drawing::Point(edgeX - radius, top));
+								sink.addBezier(bs6);
 							}
 							else
 							{
 								//						myPathFigure.Segments.Add(new LineSegment(new Point(edgeX, y), true));
-								sink.AddLine(GmpiDrawing::Point(edgeX, y));
+								sink.addLine(gmpi::drawing::Point(edgeX, y));
 							}
 						}
 						else
 						{
 							// Straight edge.
-							sink.AddLine(GmpiDrawing::Point(edgeX, y));
+							sink.addLine(gmpi::drawing::Point(edgeX, y));
 						}
 					}
 
@@ -1720,7 +1741,7 @@ namespace SE2
 				else
 				{
 					//			myPathFigure.Segments.Add(new LineSegment(new Point(edgeX, y), true));
-					sink.AddLine(GmpiDrawing::Point(edgeX, y));
+					sink.addLine(gmpi::drawing::Point(edgeX, y));
 				}
 
 				prev_plug_direction = vc != 0;
@@ -1729,15 +1750,17 @@ namespace SE2
 				idx--;
 			}
 		}
-		sink.EndFigure();
+#endif
+		sink.endFigure();
 
-		sink.Close();
+		sink.close();
 
-	getDrawingResources(factory)->outlineCache[outlineSpecification] = geometry.Get();
+		getDrawingResources(factory)->outlineCache[outlineSpecification] = geometry;
 
 		return geometry;
 	}
 
+#if 0
 ////////////////////////////////////
 // not used
 	PathGeometry ModuleViewStruct::CreateModuleOutline2(Factory& factory)
@@ -1786,7 +1809,7 @@ namespace SE2
 		float clientHight = 0.0f;
 		if (pluginGraphics_GMPI || pluginGraphics)
 		{
-			clientHight = pluginGraphicsPos.getHeight();
+			clientHight = getHeight(pluginGraphicsPos);
 			if (clientHight > 0.0f)
 				clientHight += clientPadding * 2.0f;
 		}
@@ -1815,8 +1838,8 @@ namespace SE2
 		rPlugNames = rPlugNamesTemp;
 		lPlugNames = lPlugNamesTemp;
 
-		auto geometry = factory.CreatePathGeometry();
-		auto sink = geometry.Open();
+		auto geometry = factory.createPathGeometry();
+		auto sink = geometry.open();
 
 		const float outlineThickness = 1;
 		const float radius = plugDiameter * 0.5f;
@@ -1841,8 +1864,8 @@ namespace SE2
 		const float smallCurveXCenter = sqrtf((radiusBig + radiusSmall) * (radiusBig + radiusSmall) - radiusBig * radiusBig);
 		const float smallCurveXIntersect = smallCurveXCenter * radiusBig / (radiusBig + radiusSmall);
 		float smallCurveYIntersect = radiusBig * radiusSmall / (radiusBig + radiusSmall);
-		const GmpiDrawing::Size bigCurveSize(radiusBig, radiusBig);
-		const GmpiDrawing::Size smallCurveSize(radiusSmall, radiusSmall);
+		const gmpi::drawing::Size bigCurveSize(radiusBig, radiusBig);
+		const gmpi::drawing::Size smallCurveSize(radiusSmall, radiusSmall);
 
 		float childHeight = 0;
 
@@ -1888,14 +1911,14 @@ namespace SE2
 				{
 				case EBump: // start point at top-left.
 				case EPlugingraphics:
-					sink.BeginFigure(edgeX, y, FigureBegin::Filled);
+					sink.beginFigure(edgeX, y, FigureBegin::Filled);
 					break;
 
 				case EFlat: // small curve at top-left.
-					sink.BeginFigure(GmpiDrawing::Point(edgeX + radius, y), FigureBegin::Filled);
-					//BezierSegment bs1(GmpiDrawing::Point(edgeX + radius - QCPDistance, y), GmpiDrawing::Point(edgeX, y + radius - QCPDistance), GmpiDrawing::Point(edgeX, y + radius));
+					sink.beginFigure(gmpi::drawing::Point(edgeX + radius, y), FigureBegin::Filled);
+					//BezierSegment bs1(gmpi::drawing::Point(edgeX + radius - QCPDistance, y), gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
 					//sink.AddBezier(bs1);
-sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
+sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
 					break;
 				}
 			}
@@ -1908,14 +1931,14 @@ sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
 					if (prevEdgeType == EBump)
 					{
 						// Draw inner curve, from previous bump.
-						sink.AddArc(
-							ArcSegment(GmpiDrawing::Point(edgeX - smallCurveXIntersect, y + smallCurveYIntersect), smallCurveSize));
+						sink.addArc(
+							ArcSegment(gmpi::drawing::Point(edgeX - smallCurveXIntersect, y + smallCurveYIntersect), smallCurveSize));
 					}
 					else
 					{
 						// Draw line down,then out to meet curve.
-						sink.AddLine(GmpiDrawing::Point(edgeX, y - radiusSmall));
-						sink.AddLine(GmpiDrawing::Point(edgeX - smallCurveXIntersect, y + smallCurveYIntersect));
+						sink.addLine(gmpi::drawing::Point(edgeX, y - radiusSmall));
+						sink.addLine(gmpi::drawing::Point(edgeX - smallCurveXIntersect, y + smallCurveYIntersect));
 					}
 				}
 
@@ -1931,14 +1954,14 @@ sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
 				}
 
 				ArcSegment as1(endPoint, bigCurveSize, 0.0, SweepDirection::CounterClockwise);
-				sink.AddArc(as1);
+				sink.addArc(as1);
 			}
 			else // Flat on left
 			{
 				if (prevEdgeType == EBump)
 				{
 					// Angled line from Curve to left flat edge.
-					sink.AddLine(GmpiDrawing::Point(edgeX, y + radiusSmall));
+					sink.addLine(gmpi::drawing::Point(edgeX, y + radiusSmall));
 				}
 
 				// Bottom-left corner.
@@ -1946,16 +1969,16 @@ sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
 				{
 					if (edgeType == EPlugingraphics) // sharp corner.
 					{
-						sink.AddLine(GmpiDrawing::Point(edgeX, y + childHeight));
+						sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight));
 					}
 					else
 					{
 						// small curve.
-						sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
+						sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
 
-						//BezierSegment bs2(GmpiDrawing::Point(edgeX, y + radius + QCPDistance), GmpiDrawing::Point(edgeX + radius - QCPDistance, y + childHeight), GmpiDrawing::Point(edgeX + radius, y + childHeight));
+						//BezierSegment bs2(gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX + radius - QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX + radius, y + childHeight));
 						//sink.AddBezier(bs2);
-sink.AddLine(GmpiDrawing::Point(edgeX + radius, y + childHeight));
+sink.addLine(gmpi::drawing::Point(edgeX + radius, y + childHeight));
 					}
 				}
 			}
@@ -1966,12 +1989,12 @@ sink.AddLine(GmpiDrawing::Point(edgeX + radius, y + childHeight));
 				if (edgeType == EPlugingraphics)
 				{
 					// Draw square bottom-right.
-					sink.AddLine(GmpiDrawing::Point(rightX, y + childHeight));
+					sink.addLine(gmpi::drawing::Point(rightX, y + childHeight));
 				}
 				else
 				{
 					// don't draw all way to edge to allow for curved bottom-right.
-					sink.AddLine(GmpiDrawing::Point(rightX - radius, y + childHeight));
+					sink.addLine(gmpi::drawing::Point(rightX - radius, y + childHeight));
 				}
 			}
 			else
@@ -2018,14 +2041,14 @@ sink.AddLine(GmpiDrawing::Point(edgeX + radius, y + childHeight));
 					if (prevEdgeType == EBump)
 					{
 						// Draw inner curve, from previous bump.
-						sink.AddArc(
-							ArcSegment(GmpiDrawing::Point(edgeX + smallCurveXIntersect, y + childHeight - smallCurveYIntersect), smallCurveSize));
+						sink.addArc(
+							ArcSegment(gmpi::drawing::Point(edgeX + smallCurveXIntersect, y + childHeight - smallCurveYIntersect), smallCurveSize));
 					}
 					else
 					{
 						// Draw line up,then out to meet curve.
-						sink.AddLine(GmpiDrawing::Point(edgeX, y + childHeight + radiusSmall));
-						sink.AddLine(GmpiDrawing::Point(edgeX + smallCurveXIntersect, y + childHeight - smallCurveYIntersect));
+						sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight + radiusSmall));
+						sink.addLine(gmpi::drawing::Point(edgeX + smallCurveXIntersect, y + childHeight - smallCurveYIntersect));
 					}
 				}
 
@@ -2040,7 +2063,7 @@ sink.AddLine(GmpiDrawing::Point(edgeX + radius, y + childHeight));
 				}
 
 				ArcSegment as1(endPoint, bigCurveSize, 0.0, SweepDirection::CounterClockwise);
-				sink.AddArc(as1);
+				sink.addArc(as1);
 			}
 			else // flat on right.
 			{
@@ -2049,10 +2072,10 @@ sink.AddLine(GmpiDrawing::Point(edgeX + radius, y + childHeight));
 					if (edgeType != EPlugingraphics) // sharp corner.
 					{
 						// The BEST 4-spline magic number is 0.551784. (not used yet).
-						//BezierSegment bs5(GmpiDrawing::Point(edgeX - radius + QCPDistance, y + childHeight), GmpiDrawing::Point(edgeX, y + radius + QCPDistance), GmpiDrawing::Point(edgeX, y + radius));
+						//BezierSegment bs5(gmpi::drawing::Point(edgeX - radius + QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
 						//sink.AddBezier(bs5);
 
-sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
+sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
 					}
 				}
 				else
@@ -2060,7 +2083,7 @@ sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
 					if (prevEdgeType == EBump)
 					{
 						// Angled line from Curve to left flat edge.
-						sink.AddLine(GmpiDrawing::Point(edgeX, y + childHeight - radiusSmall));
+						sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight - radiusSmall));
 					}
 				}
 
@@ -2069,16 +2092,16 @@ sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
 				{
 					if (edgeType == EPlugingraphics) // sharp corner.
 					{
-						sink.AddLine(GmpiDrawing::Point(edgeX, y));
+						sink.addLine(gmpi::drawing::Point(edgeX, y));
 					}
 					else
 					{
 						// small curve.
-						sink.AddLine(GmpiDrawing::Point(edgeX, y + radius));
+						sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
 
-						//BezierSegment bs6(GmpiDrawing::Point(edgeX, y + radius - QCPDistance), GmpiDrawing::Point(edgeX - radius + QCPDistance, y), GmpiDrawing::Point(edgeX - radius, y));
+						//BezierSegment bs6(gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX - radius + QCPDistance, y), gmpi::drawing::Point(edgeX - radius, y));
 						//sink.AddBezier(bs6);
-sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
+sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 					}
 				}
 			}
@@ -2087,12 +2110,13 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 			prevEdgeType = edgeType;
 		}
 
-		sink.EndFigure();
+		sink.endFigure();
 
-		sink.Close();
+		sink.close();
 
 		return geometry;
 	}
+#endif
 
 	int ModuleViewStruct::getPinDatatype(int pinIndex)
 	{
@@ -2113,7 +2137,7 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 		return false;
 	}
 
-	GmpiDrawing::Point ModuleViewStruct::getConnectionPoint(CableType cableType, int pinIndex)
+	gmpi::drawing::Point ModuleViewStruct::getConnectionPoint(CableType cableType, int pinIndex)
 	{
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
@@ -2138,29 +2162,38 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 		}
 
 		// Complete failure.
-		return GmpiDrawing::Point(bounds_.right, y);
+		return gmpi::drawing::Point(bounds_.right, y);
 	}
 
-	float ModuleViewStruct::hitTestFuzzy(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	float ModuleViewStruct::hitTestFuzzy(int32_t flags, gmpi::drawing::Point point)
 	{
 		constexpr float fuzzyLimit = 12.f;
 		constexpr float solidHit = 0.f;
-		constexpr float totalMiss = 100000.f;
+		constexpr float totalMiss = 1000.f;
 
 		if (!isVisable())
 			return totalMiss;
 
+		// when selected, adorner takes over hit testing, except for client area.
+		if(getSelected())
+		{
+			if(pointInRect(point, pluginGraphicsPos))
+				return solidHit;
+
+			return totalMiss;
+		}
+
 		const auto r = getLayoutRect();
 
-		if (r.ContainsPoint(point))
+		if (pointInRect(point, r))
 			return solidHit;
 
 		auto r2 = r;
-		r2.Inflate(fuzzyLimit, fuzzyLimit);
+		r2 = inflateRect(r2, fuzzyLimit);
 
 		r2.top -= 16.0f; // allow for title bar.
 
-		if (!r2.ContainsPoint(point))
+		if (!pointInRect(point, r2))
 			return totalMiss;
 
 		// return distance to outline
@@ -2168,7 +2201,7 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 	}
 
 	// Return pin under mouse and second, if it hit connection point (1) or only plug text (0).
-	std::pair<int,int> ModuleViewStruct::getPinUnderMouse(GmpiDrawing_API::MP1_POINT point)
+	std::pair<int,int> ModuleViewStruct::getPinUnderMouse(gmpi::drawing::Point point)
 	{
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
@@ -2211,7 +2244,7 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 				}
 
 				// Click on plug in general (but not on connection point).
-				if (pinRect.ContainsPoint(point))
+				if (pointInRect(point, pinRect))
 				{
 					closestPlug = pin.indexCombined;
 				}
@@ -2231,16 +2264,16 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 		return closestPin;
 	}
 
-	int32_t ModuleViewStruct::OnDoubleClicked(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	int32_t ModuleViewStruct::OnDoubleClicked(gmpi::drawing::Point point, int32_t flags)
 	{
 		return Presenter()->OnCommand(PresenterCommand::Open, getModuleHandle());
 	}
 
-	int32_t ModuleViewStruct::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	gmpi::ReturnCode ModuleViewStruct::onPointerDown(gmpi::drawing::Point point, int32_t flags)
 	{
-		auto res = ModuleView::onPointerDown(flags, point);
-		
-		if (MP_OK == res || MP_HANDLED == res) // Client was hit (and cared).
+		auto res = ModuleView::onPointerDown(point, flags);
+
+		if(gmpi::ReturnCode::Ok == res || gmpi::ReturnCode::Handled == res) // Client was hit (and cared).
 			return res;
 
 		// Handle double-click on module. (only if didn't click on a child control)
@@ -2258,9 +2291,9 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 #endif
 			if (timeSincePreviousClick_ms < doubleClickThreshold_ms)
 			{
-				auto res2 = OnDoubleClicked(flags, point);
+				auto res2 = (gmpi::ReturnCode) OnDoubleClicked(point, flags);
 
-				if (MP_HANDLED == res2)
+				if (gmpi::ReturnCode::Handled == res2)
 					return res2;
 			}
 		}
@@ -2283,10 +2316,10 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 			}
 		}
 
-		return ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0) ? gmpi::MP_OK : gmpi::MP_UNHANDLED; // left-click: Indicate need for drag.
+		return ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled; // left-click: Indicate need for drag.
 	}
 
-	int32_t ModuleViewStruct::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	gmpi::ReturnCode ModuleViewStruct::onPointerMove(gmpi::drawing::Point point, int32_t flags)
 	{
 		if (!mouseCaptured)
 		{
@@ -2325,10 +2358,11 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 			}
 		}
 
-		return ModuleView::onPointerMove(flags, point);
+		ModuleView::onPointerMove(point, flags);
+		return gmpi::ReturnCode::Unhandled;
 	}
 
-	void ModuleViewStruct::vc_setHover(bool mouseIsOverMe)
+	gmpi::ReturnCode ModuleViewStruct::setHover(bool mouseIsOverMe)
 	{
 		if (!mouseIsOverMe && hoverPin != -1)
 		{
@@ -2336,10 +2370,10 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 			invalidateRect(nullptr);
 		}
 
-		ModuleView::vc_setHover(mouseIsOverMe);
+		return ModuleView::setHover(mouseIsOverMe);
 	}
 
-	void ModuleViewStruct::OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistanceSquared, ModuleView*& bestModule, int& bestPinIndex)
+	void ModuleViewStruct::OnCableDrag(ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistanceSquared, ModuleView*& bestModule, int& bestPinIndex)
 	{
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
@@ -2351,8 +2385,8 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 
 			// rough hit-test on enlarged layout rect.
 			auto r = getLayoutRect();
-			r.Inflate(pinHitRadius);
-			if (!r.ContainsPoint(point))
+			r = inflateRect(r, pinHitRadius);
+			if (!pointInRect(point, r))
 			{
 				return;
 			}
@@ -2393,10 +2427,10 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 		}
 	}
 
-	bool ModuleViewStruct::EndCableDrag(GmpiDrawing_API::MP1_POINT unused, ConnectorViewBase* dragline)
+	bool ModuleViewStruct::EndCableDrag(gmpi::drawing::Point unused, ConnectorViewBase* dragline)
 	{
 		auto p = dragline->dragPoint();
-		if (!hitTest(0, p))
+		if (hitTest(p, 0) != gmpi::ReturnCode::Ok)
 		{
 			return false;
 		}
@@ -2423,20 +2457,20 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
 
 	void ModuleViewStruct::OnCpuUpdate(cpu_accumulator* pCpuInfo)
 	{
-		auto r = GetCpuRect();
-		r.Offset(bounds_.left, bounds_.top);
+		auto r = offsetRect(GetCpuRect(), { bounds_.left, bounds_.top });
 		parent->ChildInvalidateRect(r);
 
 		cpuInfo = pCpuInfo;
 	}
 
+#if 0 // TODO
 	void ModuleViewStruct::invalidateMeasure()
 	{
 		if (!initialised_)
 			return;
 
-        GmpiDrawing::Size current{ bounds_.getWidth(), bounds_.getHeight() };
-        GmpiDrawing::Size desired{};
+		gmpi::drawing::Size current{ getWidth(bounds_), getHeight(bounds_) };
+        gmpi::drawing::Size desired{};
         measure(current, &desired);
 
         if (current != desired)
@@ -2450,12 +2484,12 @@ sink.AddLine(GmpiDrawing::Point(edgeX - radius, y));
             invalidateRect(nullptr);
         }
 	}
+#endif
 
 	// invalidate something on the structure view itself (not the plugin area)
-	void ModuleViewStruct::invalidateMyRect(GmpiDrawing::Rect localRect)
+	void ModuleViewStruct::invalidateMyRect(gmpi::drawing::Rect localRect)
 	{
-		localRect.Offset(bounds_.left, bounds_.top);
-		parent->ChildInvalidateRect(localRect);
+		parent->ChildInvalidateRect(offsetRect(localRect, { bounds_.left, bounds_.top }));
 	}
 
 } // namespace.

@@ -9,30 +9,19 @@ namespace SE2
 	class ConnectorViewBase;
 }
 
-//class DECLSPEC_NOVTABLE ISubView : public gmpi::IMpUnknown
-//{
-//public:
-//	virtual void OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex) = 0;
-//	virtual bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT* point) = 0;
-//	virtual bool MP_STDCALL isVisible() = 0;
-//};
-//
-//// GUID for ISubView
-//static const gmpi::MpGuid SE_IID_SUBVIEW =
-//// {4F6B4050-F169-401C-AAEB-D6057ECDF58E}
-//{ 0x4f6b4050, 0xf169, 0x401c, { 0xaa, 0xeb, 0xd6, 0x5, 0x7e, 0xcd, 0xf5, 0x8e } };
-
 // sub-view shown on Panel.
 class SubView : public SE2::ViewBase, public ISubView
 {
 	BoolGuiPin showControlsLegacy;
+	BoolGuiPin showControlsOnModule_unused;
 	BoolGuiPin showControls;
 
-	GmpiDrawing::Rect viewBounds;
+	gmpi::drawing::Rect viewBounds;
 	int parentViewType = 0;
+	ViewBase* parent = {};
 
 public:
-	GmpiDrawing_API::MP1_SIZE offset_; // offset of children relative to bounds (not parent).
+	gmpi::drawing::Size offset_; // offset of children relative to bounds (not parent).
 
 	SubView(int pparentViewType = CF_PANEL_VIEW);
 
@@ -50,9 +39,11 @@ public:
 
 	std::string getSkinName() override
 	{
-		// [Viewbase[<- parent -[ SubContainerView<- guihost -[ContainerPanel]
-		auto view = dynamic_cast<SE2::ViewChild*> (getGuiHost())->parent;
-		return view->getSkinName();
+		//// [Viewbase[<- parent -[ SubContainerView<- guihost -[ContainerPanel]
+		//auto view = dynamic_cast<SE2::ViewChild*> (getGuiHost())->parent;
+		//return view->getSkinName();
+
+		return parent->getSkinName();
 	}
 
 	void onValueChanged();
@@ -60,69 +51,64 @@ public:
 
 	int32_t setCapture(SE2::IViewChild* module) override;
 
-	// SeGuiVstGuiBase interface.
-	int32_t initialize() override;
-	int32_t measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_API::MP1_SIZE* returnDesiredSize) override;
-	int32_t arrange(GmpiDrawing_API::MP1_RECT finalRect) override;
-	int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override;
-	int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-	int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-	int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-	int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override;
-	int32_t hitTest(GmpiDrawing_API::MP1_POINT point) override;
-	int32_t getToolTip(GmpiDrawing_API::MP1_POINT point, gmpi::IString* returnString) override;
-//	int32_t getToolTip(float x, float y, gmpi::IMpUnknown* returnToolTipString) override;
-
-	void ChildInvalidateRect(const GmpiDrawing_API::MP1_RECT& invalidRect) override
+	gmpi::ReturnCode initialize() override;
+	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override;
+	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
+	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
+	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
+	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
+	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
+	gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override;
+// TODO	int32_t getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString);
+	void ChildInvalidateRect(const gmpi::drawing::Rect& invalidRect) override
 	{
-		GmpiDrawing::Rect adjusted(invalidRect);
-		adjusted.Offset(offset_);
-		getGuiHost()->invalidateRect(&adjusted);
+		const auto adjusted = offsetRect(invalidRect, offset_);
+		parent->invalidateRect(&adjusted);
 	}
 
 	void OnChildMoved() override;
 
-	void calcBounds(GmpiDrawing::Rect & returnLayoutRect, GmpiDrawing::Rect & returnClipRect);
+	void calcBounds(gmpi::drawing::Rect & returnLayoutRect, gmpi::drawing::Rect & returnClipRect);
 
-	int32_t ChildCreatePlatformTextEdit(const GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override
+	gmpi::ReturnCode ChildCreatePlatformTextEdit(const gmpi::drawing::Rect* rect, gmpi::api::IUnknown** returnTextEdit)
 	{
-		GmpiDrawing::Rect adjusted(*rect);
-		adjusted.Offset(offset_);
-		return getGuiHost()->createPlatformTextEdit(&adjusted, returnTextEdit);
+		const auto adjusted = offsetRect(*rect, offset_);
+	//	return parent->createPlatformTextEdit(&adjusted, returnTextEdit);
+
+		return dialogHost->createTextEdit(&adjusted, returnTextEdit);
 	}
 
-	int32_t ChildCreatePlatformMenu(const GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu) override
+	gmpi::ReturnCode ChildCreatePlatformMenu(const gmpi::drawing::Rect* rect, gmpi::api::IUnknown** returnMenu)
 	{
-		GmpiDrawing::Rect adjusted(*rect);
-		adjusted.Offset(offset_);
-		return getGuiHost()->createPlatformMenu(&adjusted, returnMenu);
+		const auto adjusted = offsetRect(*rect, offset_);
+		return dialogHost->createPopupMenu(&adjusted, returnMenu);
 	}
 
-	GmpiDrawing::Point MapPointToView(ViewBase* parentView, GmpiDrawing::Point p) override
+	gmpi::drawing::Point MapPointToView(ViewBase* parentView, gmpi::drawing::Point p) override
 	{
 		if(parentView == this)
 			return p;
 
 		// [Viewbase[<- parent -[ SubContainerView<- guihost -[ContainerPanel]
-		auto submview = dynamic_cast<SE2::ModuleView*> (getGuiHost());
+		auto subview = dynamic_cast<SE2::ModuleView*> (parent);
 
 		// My offset.
 		p += offset_;
 
 		// Parent ModuleView offset.
-		p += submview->OffsetToClient();
+		p = transformPoint(subview->OffsetToClient(), p);
 
-		auto view = submview->parent;
+		auto view = subview->parent;
 		p = view->MapPointToView(parentView, p);
 
 		return p;
 	}
 
-	int32_t StartCableDrag(SE2::IViewChild* fromModule, int fromPin, GmpiDrawing::Point dragStartPoint, bool isHeldAlt, SE2::CableType type) override;
+	int32_t StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, bool isHeldAlt, SE2::CableType type) override;
 
 	// ISubView
-	void OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex) override;
-	bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT* point) override;
+	void OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex) override;
+	bool hitTest(int32_t flags, gmpi::drawing::Point* point) override;
 	bool MP_STDCALL isVisible() override
 	{
 		return isShown();
@@ -133,13 +119,13 @@ public:
 	void markDirtyChild(SE2::IViewChild* child) override;
 	SE2::ConnectorViewBase* createCable(SE2::CableType type, int32_t handleFrom, int32_t fromPin) override;
 
-	int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
-		if (iid == SE_IID_SUBVIEW)
+		if (*iid == *(const gmpi::api::Guid*)&ISubView::guid)
 		{
 			*returnInterface = static_cast<ISubView*>(this);
 			addRef();
-			return gmpi::MP_OK;
+			return gmpi::ReturnCode::Ok;
 		}
 
 		return SE2::ViewBase::queryInterface(iid, returnInterface);

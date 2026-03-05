@@ -5,21 +5,21 @@ namespace SE2
 {
 	struct sharedGraphicResources_connectors
 	{
-		GmpiDrawing::SolidColorBrush brushes[13];
-		GmpiDrawing::SolidColorBrush errorBrush;
-		GmpiDrawing::SolidColorBrush emphasiseBrush;
-		GmpiDrawing::SolidColorBrush selectedBrush;
-		GmpiDrawing::SolidColorBrush draggingBrush;
+		gmpi::drawing::SolidColorBrush brushes[13];
+		gmpi::drawing::SolidColorBrush errorBrush;
+		gmpi::drawing::SolidColorBrush emphasiseBrush;
+		gmpi::drawing::SolidColorBrush selectedBrush;
+		gmpi::drawing::SolidColorBrush draggingBrush;
 
-		sharedGraphicResources_connectors(GmpiDrawing::Graphics& g)
+		sharedGraphicResources_connectors(gmpi::drawing::Graphics& g)
 		{
-			using namespace GmpiDrawing;
-			brushes[0] = g.CreateSolidColorBrush(Color::Black);
+			using namespace gmpi::drawing;
+			brushes[0] = g.createSolidColorBrush(Colors::Black);
 
-			errorBrush = g.CreateSolidColorBrush(Color::Red);
-			emphasiseBrush = g.CreateSolidColorBrush(Color::Lime);
-			selectedBrush = g.CreateSolidColorBrush(Color::DodgerBlue);
-			draggingBrush = g.CreateSolidColorBrush(Color::Orange);
+			errorBrush = g.createSolidColorBrush(Colors::Red);
+			emphasiseBrush = g.createSolidColorBrush(Colors::Lime);
+			selectedBrush = g.createSolidColorBrush(Colors::DodgerBlue);
+			draggingBrush = g.createSolidColorBrush(Colors::Orange);
 
 			uint32_t datatypeColors[] = {
 				0x00A800, // ENUM green
@@ -41,7 +41,7 @@ namespace SE2
 
 			for(size_t i = 0; i < std::size(brushes); ++i)
 			{
-				brushes[i] = g.CreateSolidColorBrush(datatypeColors[i]);
+				brushes[i] = g.createSolidColorBrush(datatypeColors[i]);
 			}
 		}
 	};
@@ -58,19 +58,19 @@ namespace SE2
 		enum ELineType { CURVEY, ANGLED };
 		ELineType lineType_ = ANGLED;
 
-		std::vector<GmpiDrawing::Point> nodes;
-		std::vector<GmpiDrawing::PathGeometry> segmentGeometrys;
+		std::vector<gmpi::drawing::Point> nodes;
+		std::vector<gmpi::drawing::PathGeometry> segmentGeometrys;
 
 		int draggingNode = -1;
 		int hoverNode = -1;
 		int hoverSegment = -1;
-		GmpiDrawing::Point arrowPoint;
+		gmpi::drawing::Point arrowPoint;
 		Gmpi::VectorMath::Vector2D arrowDirection;
 
 		std::shared_ptr<sharedGraphicResources_connectors> drawingResources;
-		sharedGraphicResources_connectors* getDrawingResources(GmpiDrawing::Graphics& g);
+		sharedGraphicResources_connectors* getDrawingResources(gmpi::drawing::Graphics& g);
 		bool mouseHover = {};
-		static GmpiDrawing::Point pointPrev; // for dragging nodes
+		static gmpi::drawing::Point pointPrev; // for dragging nodes
 		
 	public:
 		// Dynamic patch-cables.
@@ -89,7 +89,7 @@ namespace SE2
 			{
 				for (auto& node_json : nodes_json)
 				{
-					nodes.push_back(GmpiDrawing::Point(node_json["x"].asFloat(), node_json["y"].asFloat()));
+					nodes.push_back(gmpi::drawing::Point(node_json["x"].asFloat(), node_json["y"].asFloat()));
 				}
 			}
 		}
@@ -100,31 +100,33 @@ namespace SE2
 			type = CableType::StructureCable;
 		}
 
-		void CalcArrowGeometery(GmpiDrawing::GeometrySink & sink, GmpiDrawing::Point ArrowTip, Gmpi::VectorMath::Vector2D v1);
+		void CalcArrowGeometery(gmpi::drawing::GeometrySink & sink, gmpi::drawing::Point ArrowTip, Gmpi::VectorMath::Vector2D v1);
 
 		void CreateGeometry() override;
-		std::vector<GmpiDrawing::PathGeometry>& GetSegmentGeometrys();
+		std::vector<gmpi::drawing::PathGeometry>& GetSegmentGeometrys();
 		void CalcBounds() override;
-		void OnRender(GmpiDrawing::Graphics& g) override;
-		bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		bool hitTestR(int32_t flags, GmpiDrawing_API::MP1_RECT selectionRect) override;
-		int32_t measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize) override;
-		int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override
+		void render(gmpi::drawing::Graphics& g) override;
+		gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override;
+		bool hitTestR(int32_t flags, gmpi::drawing::Rect selectionRect) override;
+		void measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize) override;
+		gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override
+		{
+			return gmpi::ReturnCode::Unhandled;
+		}
+#if 0 // todo
+		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::api::IUnknown* /*contextMenuItemsSink*/) override
 		{
 			return gmpi::MP_UNHANDLED;
 		}
-		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override
-		{
-			return gmpi::MP_UNHANDLED;
-		}
-		void vc_setHover(bool mouseIsOverMe) override;
+#endif
+		gmpi::ReturnCode setHover(bool mouseIsOverMe) override;
 
-		void OnMoved(GmpiDrawing::Rect& newRect) override
+		void OnMoved(gmpi::drawing::Rect& newRect) override
 		{
 		}
-		void OnNodesMoved(std::vector<GmpiDrawing::Point>& newNodes) override;
+		void OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes) override;
 	};
 }

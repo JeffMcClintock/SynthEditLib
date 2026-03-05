@@ -1,15 +1,9 @@
 
 #include "IViewChild.h"
-#include "IModelBase.h"
 #include "ViewBase.h"
 
 namespace SE2
 {
-	ViewChild::ViewChild(IModelBase* model, ViewBase* pParent) : parent(pParent)
-		, handle(model->handle)
-	{
-	}
-
 	ViewChild::ViewChild(Json::Value* pDatacontext, ViewBase* pParent) : parent(pParent)
 		, datacontext(pDatacontext)
 	{
@@ -35,4 +29,14 @@ namespace SE2
 	{
 		assert(!parent || parent->mouseOverObject != this);
 	}
+
+	gmpi::drawing::Factory ViewChild::getFactory()
+	{
+		gmpi::drawing::Factory factory;
+		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+		parent->getDrawingFactory(unknown.put());
+		unknown->queryInterface(&gmpi::drawing::api::IFactory::guid, (void**)gmpi::drawing::AccessPtr::put(factory));
+		return factory;
+	}
+
 }

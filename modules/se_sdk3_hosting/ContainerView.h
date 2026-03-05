@@ -12,12 +12,10 @@ namespace SE2
 namespace SE2
 {
 	// The one top-level view.
-	class ContainerViewPanel : public ViewBase
+	class ContainerViewPanel : public TopView
 	{
-		std::string skinName_;
-
 	public:
-		ContainerViewPanel(GmpiDrawing::Size size) : ViewBase(size)
+		ContainerViewPanel(gmpi::drawing::Size size) : TopView(size)
 		{
 		}
 
@@ -25,14 +23,10 @@ namespace SE2
 		{
 			return CF_PANEL_VIEW;
 		}
-		std::string getSkinName() override
-		{
-			return skinName_;
-		}
 
 		void Refresh(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap_) override;
 		void BuildModules(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap) override;
 		ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) override;
-		int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override;
+		gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
 	};
 }

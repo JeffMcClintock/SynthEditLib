@@ -22,14 +22,14 @@ namespace SE2
 		float cancellation = 0.0f;
 #endif
 
-		GmpiDrawing::PathGeometry geometry;
-		GmpiDrawing::StrokeStyle strokeStyle;
+		gmpi::drawing::PathGeometry geometry;
+		gmpi::drawing::StrokeStyle strokeStyle;
 
 	public:
 
 		int draggingFromEnd = -1;
-		GmpiDrawing::Point from_;
-		GmpiDrawing::Point to_;
+		gmpi::drawing::Point from_;
+		gmpi::drawing::Point to_;
 
 		CableType type = CableType::PatchCable;
 
@@ -53,7 +53,7 @@ namespace SE2
 			return false;
 		}
 
-		void pickup(int draggingFromEnd, GmpiDrawing_API::MP1_POINT pMousePos);
+		void pickup(int draggingFromEnd, gmpi::drawing::Point pMousePos);
 
 		int32_t toModuleHandle()
 		{
@@ -73,25 +73,25 @@ namespace SE2
 			return toModulePin;
 		}
 
-		int32_t measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize) override;
-		int32_t arrange(GmpiDrawing::Rect finalRect) override;
+		void measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize) override;
+		void arrange(gmpi::drawing::Rect finalRect) override;
 
 		void OnModuleMoved();
 		virtual void CalcBounds() = 0;
 		virtual void CreateGeometry() = 0;
 
 		// IViewChild
-		int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override
+		gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override
 		{
-			return gmpi::MP_UNHANDLED;
+			return gmpi::ReturnCode::Unhandled;
 		}
 
-		void OnMoved(GmpiDrawing::Rect& newRect) override {}
-		void OnNodesMoved(std::vector<GmpiDrawing::Point>& newNodes) override {}
+		void OnMoved(gmpi::drawing::Rect& newRect) override {}
+		void OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes) override {}
 
-		int32_t vc_onContextMenu(int32_t idx) override;
+		gmpi::ReturnCode onContextMenu(int32_t idx) override;
 
 		int32_t fixedEndModule()
 		{
@@ -101,7 +101,7 @@ namespace SE2
 		{
 			return draggingFromEnd == 1 ? fromModulePin : toModulePin;
 		}
-		GmpiDrawing::Point dragPoint()
+		gmpi::drawing::Point dragPoint()
 		{
 			return draggingFromEnd == 1 ? to_ : from_;
 		}
@@ -110,15 +110,15 @@ namespace SE2
 	struct sharedGraphicResources_patchcables
 	{
 		static const int numColors = 5;
-		GmpiDrawing::SolidColorBrush brushes[numColors][2]; // 5 colors, 2 opacities.
-		GmpiDrawing::SolidColorBrush highlightBrush;
-		GmpiDrawing::SolidColorBrush outlineBrush;
+		gmpi::drawing::SolidColorBrush brushes[numColors][2]; // 5 colors, 2 opacities.
+		gmpi::drawing::SolidColorBrush highlightBrush;
+		gmpi::drawing::SolidColorBrush outlineBrush;
 
-		sharedGraphicResources_patchcables(GmpiDrawing::Graphics& g)
+		sharedGraphicResources_patchcables(gmpi::drawing::Graphics& g)
 		{
-			using namespace GmpiDrawing;
-			highlightBrush = g.CreateSolidColorBrush(Color::White);
-			outlineBrush = g.CreateSolidColorBrush(Color::Black);
+			using namespace gmpi::drawing;
+			highlightBrush = g.createSolidColorBrush(Colors::White);
+			outlineBrush = g.createSolidColorBrush(Colors::Black);
 
 			uint32_t datatypeColors[numColors] = {
 				0x00B56E, // 0x00A800, // green
@@ -131,8 +131,8 @@ namespace SE2
 
 			for(int i = 0; i < numColors; ++i)
 			{
-				brushes[i][0] = g.CreateSolidColorBrush(datatypeColors[i]);					// Visible
-				brushes[i][1] = g.CreateSolidColorBrush(Color(datatypeColors[i], 0.5f));	// Faded
+				brushes[i][0] = g.createSolidColorBrush(datatypeColors[i]);					// Visible
+				brushes[i][1] = g.createSolidColorBrush(colorFromHex(datatypeColors[i], 0.5f));	// Faded
 			}
 		}
 	};
@@ -190,12 +190,12 @@ namespace SE2
 
 		bool isShown() override; // Indicates if module should be drawn or not (because of 'Show on Parent' state).
 		void OnVisibilityUpdate();
-		void OnRender(GmpiDrawing::Graphics& g) override;
-		void vc_setHover(bool) override;
-		int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override;
+		void render(gmpi::drawing::Graphics& g) override;
+		gmpi::ReturnCode setHover(bool isMouseOverMe) override;
 
-		sharedGraphicResources_patchcables* getDrawingResources(GmpiDrawing::Graphics& g);
+		gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink) override;
+		sharedGraphicResources_patchcables* getDrawingResources(gmpi::drawing::Graphics& g);
 	};
 }

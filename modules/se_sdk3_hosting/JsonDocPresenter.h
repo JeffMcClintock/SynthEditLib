@@ -24,7 +24,7 @@ public:
 		view = pview;
 	}
 
-	void ResizeModule(int handle, int dragNodeX, int dragNodeY, GmpiDrawing_API::MP1_SIZE) override
+	void ResizeModule(int handle, int dragNodeX, int dragNodeY, gmpi::drawing::Size) override
 	{
 	}
 	int32_t OnCommand(PresenterCommand c, int32_t moduleHandle = -1) override
@@ -48,7 +48,7 @@ public:
 	{
 		return 1;
 	}
-	void AddModule(const wchar_t* uniqueid, GmpiDrawing_API::MP1_POINT point) override
+	void AddModule(const wchar_t* uniqueid, gmpi::drawing::Point point) override
 	{}
 	bool AddConnector(int32_t fromModule, int fromPin, int32_t toModule, int toPin, bool placeAtBack) override
 	{
@@ -65,10 +65,10 @@ public:
 		static int nextTemporaryHandle = -100;
 		return nextTemporaryHandle--;
 	}
-	void DragNode(int32_t fromModule, int32_t nodeIdx, GmpiDrawing_API::MP1_POINT point) override
+	void DragNode(int32_t fromModule, int32_t nodeIdx, gmpi::drawing::Point point) override
 	{}
 
-	void InsertNode(int32_t fromLine, int32_t nodeInsertIdx, GmpiDrawing_API::MP1_POINT point) override
+	void InsertNode(int32_t fromLine, int32_t nodeInsertIdx, gmpi::drawing::Point point) override
 	{}
 
 	void OnChildDspMessage(void* msg) override
@@ -116,14 +116,14 @@ public:
 	}
 	void RemovePatchCable(int32_t fromModule, int fromPin, int32_t toModule, int toPin) override
 	{}
-	void DragSelection(GmpiDrawing_API::MP1_SIZE offset) override {}
+	void DragSelection(gmpi::drawing::Size offset) override {}
 	void NotDragging() override {}
 
 	IPresenter* CreateSubPresenter(int32_t containerHandle) override
 	{
 		return parent->CreateSubPresenter(containerHandle);
 	}
-	void SetViewPosition(GmpiDrawing_API::MP1_RECT_L positionRect) override
+	void SetViewPosition(gmpi::drawing::RectL positionRect) override
 	{
 		// N/A
 	}
@@ -157,23 +157,28 @@ public:
     {
     }
 
-	void populateContextMenu(gmpi::IMpContextItemSink* menuItemList, GmpiDrawing_API::MP1_POINT p, int32_t moduleHandle, int32_t nodeIndex = -1) override
+	void populateContextMenu(gmpi::api::IContextItemSink* menu, gmpi::drawing::Point p, int32_t moduleHandle, int32_t nodeIndex = -1) override
 	{
-		parent->populateContextMenu(menuItemList, p, moduleHandle, nodeIndex);
+		parent->populateContextMenu(menu, p, moduleHandle, nodeIndex);
+
+		//gmpi::shared_ptr<gmpi::api::IContextItemSink> menu;
+		//menuItemList->queryInterface(&gmpi::api::IContextItemSink::guid, menu.put_void());
+		//if (!menu)
+		//	return;
 
 #ifdef _DEBUG // for now
 		//		if (container->isRackModule())
 		{
 //			contextMenu->currentCallback = [=](int32_t idx, GmpiDrawing_API::MP1_POINT point) { return onContextMenu(idx, point); };
-			menuItemList->AddItem("Remove Rack Module", 0);
+//			menu->addItem("Remove Rack Module", 0);
 		}
 #endif
 	}
-	int32_t onContextMenu(int32_t idx) override
-	{
-//		return onContextMenu(idx, GmpiDrawing::Point{ static_cast<float>(x), static_cast<float>(y) });
-		return 0;
-	}
+//	int32_t onContextMenu(int32_t idx) override
+//	{
+////		return onContextMenu(idx, GmpiDrawing::Point{ static_cast<float>(x), static_cast<float>(y) });
+//		return 0;
+//	}
 };
 
 class JsonDocPresenter : public JsonPresenterBase
@@ -325,7 +330,7 @@ public:
 		}
 	}
 
-	void DragSelection(GmpiDrawing_API::MP1_SIZE offset) override
+	void DragSelection(gmpi::drawing::Size offset) override
 	{
 		for (auto& it : guiObjectMap_)
 		{
@@ -333,10 +338,10 @@ public:
 			if (module->getSelected())
 			{
 				const auto originalRect = module->getLayoutRect();
-				const auto newRect = originalRect + GmpiDrawing::Size(offset);
+				const auto newRect = originalRect + offset;
 				module->arrange(newRect);
 
-				const auto dirtyRect = Union(originalRect, newRect);
+				const auto dirtyRect = unionRect(originalRect, newRect);
 				module->parent->ChildInvalidateRect(dirtyRect);
 			}
 		}
@@ -352,7 +357,7 @@ public:
 		return presenter;
 	}
 
-	void SetViewPosition(GmpiDrawing_API::MP1_RECT_L positionRect) override
+	void SetViewPosition(gmpi::drawing::RectL positionRect) override
 	{
 
 	}
@@ -390,11 +395,13 @@ public:
 
 #if defined( _DEBUG)
 		const auto failText = CModuleFactory::Instance()->GetFailedGuiModules();
-		auto gh = view->getGuiHost();
-		if (!failText.empty() && gh)
+		if (!failText.empty() && view && view->dialogHost)
 		{
 			nagDialog.setNull(); // free previous.
-			gh->createOkCancelDialog(0, nagDialog.GetAddressOf());
+
+			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+			view->dialogHost->createStockDialog(0, unknown.put());
+			unknown->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)nagDialog.GetAddressOf());
 
 			if (!nagDialog.isNull())
 			{
@@ -408,11 +415,13 @@ public:
 #if 1 //defined(SE_TARG ET_VST3) || defined(SE_TAR GET_AU)
 	void DisplayAboutMessage()
 	{
-		auto gh = view->getGuiHost();
-		if (gh)
+		if (view && view->dialogHost)
 		{
 			nagDialog.setNull(); // free previous.
-			gh->createOkCancelDialog(0, nagDialog.GetAddressOf());
+
+			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+			view->dialogHost->createStockDialog(0, unknown.put());
+			unknown->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)nagDialog.GetAddressOf());
 
 			if (!nagDialog.isNull())
 			{
@@ -424,23 +433,24 @@ public:
 	}
 #endif
 
-	int32_t onContextMenu(int32_t idx) override
-	{
-		if (idx == -999)
-		{
-			DisplayAboutMessage();
-		}
-		return gmpi::MP_OK;
-	}
+	//int32_t onContextMenu(int32_t idx) override
+	//{
+	//	if (idx == -999)
+	//	{
+	//		DisplayAboutMessage();
+	//	}
+	//	return gmpi::MP_OK;
+	//}
 
-	void populateContextMenu(gmpi::IMpContextItemSink* menuItemList, GmpiDrawing_API::MP1_POINT p, int32_t moduleHandle, int32_t nodeIndex = -1) override
+	void populateContextMenu(gmpi::api::IContextItemSink* sink, gmpi::drawing::Point p, int32_t moduleHandle, int32_t nodeIndex = -1) override
 	{
 		if (!aboutMessage_.empty())
 		{
-//			menuItemList->AddSeparator();
-			menuItemList->AddItem("", 0, gmpi_gui::MP_PLATFORM_MENU_SEPARATOR);
-			//			menuItemList->currentCallback = [this](int32_t idx, GmpiDrawing_API::MP1_POINT point) { return onContextMenu(idx); };
-			menuItemList->AddItem("About...", -999);
+			ContextMenuHelper menu(sink);
+
+			menu.addItem("", 0, static_cast<int32_t>(gmpi::api::PopupMenuFlags::Separator));
+			menu.currentCallback = [this](int32_t idx) { DisplayAboutMessage(); };
+			menu.addItem("About...", -999);
 		}
 	}
 

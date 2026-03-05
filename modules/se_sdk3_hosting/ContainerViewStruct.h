@@ -4,10 +4,10 @@
 namespace SE2
 {
 	// The one top-level view.
-	class ContainerViewStruct : public ViewBase
+	class ContainerViewStruct : public TopView
 	{
 	public:
-		ContainerViewStruct(GmpiDrawing::Size size) : ViewBase(size)
+		ContainerViewStruct(gmpi::drawing::Size size) : TopView(size)
 		{
 		}
 
@@ -22,6 +22,6 @@ namespace SE2
 		}
 		void BuildModules(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap) override;
 		ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) override;
-		int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override;
+		gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
 	};
 }
