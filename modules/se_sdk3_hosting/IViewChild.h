@@ -159,7 +159,7 @@ namespace SE2
 		}
 		float hitTestFuzzy(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
 		{
-			return getLayoutRect().ContainsPoint(point);
+			return hitTest(flags, point) ? 0.0f : 10000.0f;
 		}
 
 		std::string getToolTip(GmpiDrawing_API::MP1_POINT point) override

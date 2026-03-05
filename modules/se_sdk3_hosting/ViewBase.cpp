@@ -1182,6 +1182,7 @@ namespace SE2
 	void ViewBase::OnPatchCablesUpdate(RawView patchCablesRaw)
 	{
 		// Remove old lines.
+		assert(!isIteratingChildren);
 		for(auto it = children.begin(); it != children.end(); )
 		{
 			auto l = dynamic_cast<PatchCableView*>((*it).get());
@@ -1189,10 +1190,8 @@ namespace SE2
 			{
 				//				_RPT2(_CRT_WARN, "Ers Cable %x -> %x\n", l->fromModuleHandle(), l->toModuleHandle());
 				if (mouseOverObject == (*it).get())
-				{
 					mouseOverObject = {};
-				}
-				assert(!isIteratingChildren);
+
 				it = children.erase(it);
 				continue;
 			}
@@ -1205,6 +1204,12 @@ namespace SE2
 		SE2::PatchCables cableList(patchCablesRaw);
 		for(auto& c : cableList.cables)
 		{
+			auto module1 = Presenter()->HandleToObject(c.fromUgHandle);
+			auto module2 = Presenter()->HandleToObject(c.toUgHandle);
+
+			if (module1 == nullptr || module2 == nullptr)
+				continue;
+
 			//			_RPT2(_CRT_WARN, "New Cable %x -> %x\n", c.fromUgHandle, c.toUgHandle);
 			assert(!isIteratingChildren);
 			children.push_back(std::make_unique<PatchCableView>(this, c.fromUgHandle, c.fromUgPin, c.toUgHandle, c.toUgPin, c.colorIndex));
