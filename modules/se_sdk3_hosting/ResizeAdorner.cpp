@@ -153,7 +153,7 @@ namespace SE2
 			g.setTransform(makeTranslation(offsetToModule) * before);
 
 			auto moduleOutlineBrush = g.createSolidColorBrush(Colors::DodgerBlue);
-			float strokeWidth = 3;
+			float strokeWidth = 2.5;
 			g.drawGeometry(outlineGeometry, moduleOutlineBrush, strokeWidth);
 
 			g.setTransform(before);

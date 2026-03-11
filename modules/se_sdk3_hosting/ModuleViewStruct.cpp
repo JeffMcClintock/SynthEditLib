@@ -475,168 +475,6 @@ namespace SE2
 		return r;
 	}
 
-	void ModuleViewStruct::RenderCpu(Graphics& g)
-	{
-	const auto child_rect = GetCpuRect();
-		g.pushAxisAlignedClip(child_rect);
-
-		const auto rectBottom = child_rect.bottom;
-		auto brush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x00ff00u, 0.125f));
-		g.fillRectangle(child_rect, brush);
-
-		//		cpuInfo
-		const float displayDecades = 4.0f; // 100% -> 0.01%
-		const auto child_width = getWidth(child_rect);
-		const auto child_height = getHeight(child_rect);
-		auto penUG = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x00ff00u));
-		auto bg = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x006400u));
-
-		// BACKGROUND LINES
-		auto textFormat = g.getFactory().createTextFormat(9.0f);
-		textFormat.setTextAlignment(gmpi::drawing::TextAlignment::Right);
-
-		const char* labels[] = {
-			"100%",
-			"10%",
-			"1%",
-			"0.1%",
-			"",
-			"",
-		};
-
-		// Graph horisontal grid lines.
-		for(int i = (int)displayDecades - 1; i > 0; --i)
-		{
-			auto y = 0.5f + floorf(0.5f + child_rect.top + i * child_height / displayDecades);
-			g.drawLine({child_rect.left + 24, y }, {child_rect.right, y}, bg);
-			g.drawTextU(labels[i], textFormat, Rect(child_rect.left + 2, y - 5, child_rect.left + 22, y + 7), bg);
-		}
-
-		// small dot for each voice status (off, suspended, sleep, on)
-		{
-			auto x = child_rect.left + 1;
-			auto y = child_rect.top + 1;
-
-			for (int i = 0; i < sizeof(cpuInfo->ModulesActive_); ++i)
-			{
-				Color colour;
-
-				switch (cpuInfo->ModulesActive_[i])
-				{
-				case 1: //sleeping
-					colour = Colors::Gray;
-					break;
-
-				case 2: // Suspended
-					colour = Colors::Brown;
-					break;
-
-				case 3: //Run
-					colour = Colors::Lime;
-					break;
-
-				default:
-					i = 1000; // end, break the loop.
-					continue;
-					break;
-				}
-
-				gmpi::drawing::Rect r(x, y, x + 4, y + 4);
-				penUG.setColor(colour);
-				g.fillRectangle(r, penUG);
-				x += 5;
-				if (x > child_rect.right - 5)
-				{
-					x = child_rect.left + 1;
-					y += 5;
-				}
-			}
-		}
-
-		// moving graph
-		const float s = -child_height / displayDecades;
-		int i = (cpuInfo->next_val + 1) % cpu_accumulator::CPU_HISTORY_COUNT;
-
-		// Graphs.
-		const float xinc = child_width / cpu_accumulator::CPU_HISTORY_COUNT;
-		const auto graphSize = cpu_accumulator::CPU_HISTORY_COUNT;
-		const float penWidth = 1;
-
-		std::vector<gmpi::drawing::Point> plot;
-		std::vector<gmpi::drawing::Point> plotSimplified;
-		plot.reserve(cpu_accumulator::CPU_HISTORY_COUNT);
-		plotSimplified.reserve(cpu_accumulator::CPU_HISTORY_COUNT);
-
-		// PEAK.
-		{
-		float x = child_rect.left;
-			const float* graph = cpuInfo->peaks;
-			for (int k = 0; k < graphSize; ++k)
-			{
-				plot.push_back(
-					{
-						static_cast<float>(x),
-						child_rect.top + graph[i] * s
-					}
-				);
-
-				x += xinc;
-
-				if (++i == cpu_accumulator::CPU_HISTORY_COUNT) // wrap.
-				{
-					i = 0;
-				}
-			}
-
-			SimplifyGraph(plot, plotSimplified);
-
-			auto geometry = DataToGraph(g, plotSimplified);
-
-			penUG.setColor(Colors::Gray);
-			g.drawGeometry(geometry, penUG, penWidth);
-		}
-
-		// AVERAGE.
-		{
-			plot.clear();
-			plotSimplified.clear();
-
-		float x = child_rect.left;
-			const float* graph = cpuInfo->values;
-			for (int k = 0; k < graphSize; ++k)
-			{
-				plot.push_back(
-					{
-						static_cast<float>(x),
-						child_rect.top + graph[i] * s
-					}
-				);
-
-				x += xinc;
-
-				if (++i == cpu_accumulator::CPU_HISTORY_COUNT) // wrap.
-				{
-					i = 0;
-				}
-			}
-
-			SimplifyGraph(plot, plotSimplified);
-
-			auto geometry = DataToGraph(g, plotSimplified);
-
-			penUG.setColor(Colors::White);
-			g.drawGeometry(geometry, penUG, penWidth);
-		}
-
-		// percent printout
-		std::ostringstream oss;
-		oss << setiosflags(ios_base::fixed) << setprecision(4) << cpuInfo->cpuRunningMedianSlow * 100.0f << " %";
-		bg.setColor(Colors::Black);
-		g.drawTextU(oss.str().c_str(), textFormat, Rect(child_rect.right - 40, rectBottom, child_rect.right, rectBottom - 12), bg);
-
-		g.popAxisAlignedClip();
-	}
-
 	// give the desired color, the opacity and the background color. Calc the brighter original color.
 	Color calcColor(Color original, Color background, float opacity)
 	{
@@ -1075,6 +913,167 @@ namespace SE2
 		}
 	}
 
+	void ModuleViewStruct::RenderCpu(Graphics& g)
+	{
+		const auto child_rect = GetCpuRect();
+		g.pushAxisAlignedClip(child_rect);
+
+		const auto rectBottom = child_rect.bottom;
+		auto brush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x00ff00u, 0.125f));
+		g.fillRectangle(child_rect, brush);
+
+		//		cpuInfo
+		const float displayDecades = 4.0f; // 100% -> 0.01%
+		const auto child_width = getWidth(child_rect);
+		const auto child_height = getHeight(child_rect);
+		auto penUG = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x00ff00u));
+		auto bg = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x006400u));
+
+		// BACKGROUND LINES
+		auto textFormat = g.getFactory().createTextFormat(9.0f);
+		textFormat.setTextAlignment(gmpi::drawing::TextAlignment::Right);
+
+		const char* labels[] = {
+			"100%",
+			"10%",
+			"1%",
+			"0.1%",
+			"",
+			"",
+		};
+
+		// Graph horisontal grid lines.
+		for(int i = (int)displayDecades - 1; i > 0; --i)
+		{
+			auto y = 0.5f + floorf(0.5f + child_rect.top + i * child_height / displayDecades);
+			g.drawLine({ child_rect.left + 24, y }, { child_rect.right, y }, bg);
+			g.drawTextU(labels[i], textFormat, Rect(child_rect.left + 2, y - 5, child_rect.left + 22, y + 7), bg);
+		}
+
+		// small dot for each voice status (off, suspended, sleep, on)
+		{
+			auto x = child_rect.left + 1;
+			auto y = child_rect.top + 1;
+
+			for(int i = 0; i < sizeof(cpuInfo->ModulesActive_); ++i)
+			{
+				Color colour;
+
+				switch(cpuInfo->ModulesActive_[i])
+				{
+				case 1: //sleeping
+					colour = Colors::Gray;
+					break;
+
+				case 2: // Suspended
+					colour = Colors::Brown;
+					break;
+
+				case 3: //Run
+					colour = Colors::Lime;
+					break;
+
+				default:
+					i = 1000; // end, break the loop.
+					continue;
+					break;
+				}
+
+				gmpi::drawing::Rect r(x, y, x + 4, y + 4);
+				penUG.setColor(colour);
+				g.fillRectangle(r, penUG);
+				x += 5;
+				if(x > child_rect.right - 5)
+				{
+					x = child_rect.left + 1;
+					y += 5;
+				}
+			}
+		}
+
+		// moving graph
+		const float s = -child_height / displayDecades;
+		int i = (cpuInfo->next_val + 1) % cpu_accumulator::CPU_HISTORY_COUNT;
+
+		// Graphs.
+		const float xinc = child_width / cpu_accumulator::CPU_HISTORY_COUNT;
+		const auto graphSize = cpu_accumulator::CPU_HISTORY_COUNT;
+		const float penWidth = 1;
+
+		std::vector<gmpi::drawing::Point> plot;
+		std::vector<gmpi::drawing::Point> plotSimplified;
+		plot.reserve(cpu_accumulator::CPU_HISTORY_COUNT);
+		plotSimplified.reserve(cpu_accumulator::CPU_HISTORY_COUNT);
+
+		// PEAK.
+		{
+			float x = child_rect.left;
+			const float* graph = cpuInfo->peaks;
+			for(int k = 0; k < graphSize; ++k)
+			{
+				plot.push_back(
+					{
+						static_cast<float>(x),
+						child_rect.top + graph[i] * s
+					}
+				);
+
+				x += xinc;
+
+				if(++i == cpu_accumulator::CPU_HISTORY_COUNT) // wrap.
+				{
+					i = 0;
+				}
+			}
+
+			SimplifyGraph(plot, plotSimplified);
+
+			auto geometry = DataToGraph(g, plotSimplified);
+
+			penUG.setColor(Colors::Gray);
+			g.drawGeometry(geometry, penUG, penWidth);
+		}
+
+		// AVERAGE.
+		{
+			plot.clear();
+			plotSimplified.clear();
+
+			float x = child_rect.left;
+			const float* graph = cpuInfo->values;
+			for(int k = 0; k < graphSize; ++k)
+			{
+				plot.push_back(
+					{
+						static_cast<float>(x),
+						child_rect.top + graph[i] * s
+					}
+				);
+
+				x += xinc;
+
+				if(++i == cpu_accumulator::CPU_HISTORY_COUNT) // wrap.
+				{
+					i = 0;
+				}
+			}
+
+			SimplifyGraph(plot, plotSimplified);
+
+			auto geometry = DataToGraph(g, plotSimplified);
+
+			penUG.setColor(Colors::White);
+			g.drawGeometry(geometry, penUG, penWidth);
+		}
+
+		// percent printout
+		std::ostringstream oss;
+		oss << setiosflags(ios_base::fixed) << setprecision(4) << cpuInfo->cpuRunningMedianSlow * 100.0f << " %";
+		bg.setColor(Colors::Black);
+		g.drawTextU(oss.str().c_str(), textFormat, Rect(child_rect.right - 40, rectBottom, child_rect.right, rectBottom - 12), bg);
+
+		g.popAxisAlignedClip();
+	}
 #if 0 // TODO
 	int32_t ModuleViewStruct::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)
 	{
