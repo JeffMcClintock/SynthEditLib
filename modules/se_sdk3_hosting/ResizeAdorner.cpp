@@ -143,28 +143,36 @@ namespace SE2
 		auto r = offsetRect(getNodeRect(), { -bounds.left, -bounds.top });
 		auto brush = g.createSolidColorBrush(color);
 		auto highlightBrush = g.createSolidColorBrush(gmpi::drawing::Colors::DeepSkyBlue);
+		const float strokeWidth = 2.5;
 
 		// Blue Outline
 		{
 			auto outlineGeometry = module->getOutline(g.getFactory());
-			auto offsetToModule = Size(module->bounds_.left - bounds.left, module->bounds_.top - bounds.top);
-			auto before = g.getTransform();
+			if(outlineGeometry) // structure view
+			{
+				auto offsetToModule = Size(module->bounds_.left - bounds.left, module->bounds_.top - bounds.top);
+				auto before = g.getTransform();
 
-			g.setTransform(makeTranslation(offsetToModule) * before);
+				g.setTransform(makeTranslation(offsetToModule) * before);
 
-			auto moduleOutlineBrush = g.createSolidColorBrush(Colors::DodgerBlue);
-			float strokeWidth = 2.5;
-			g.drawGeometry(outlineGeometry, moduleOutlineBrush, strokeWidth);
+				auto moduleOutlineBrush = g.createSolidColorBrush(Colors::DodgerBlue);
+				g.drawGeometry(outlineGeometry, moduleOutlineBrush, strokeWidth);
 
-			g.setTransform(before);
+				g.setTransform(before);
+			}
+			else // panel view. no structure view outline, so draw a simple rect.
+			{
+				g.drawRectangle(r, brush, strokeWidth);
+			}
 		}
 
 		if (hasGripper)
 		{
-			gmpi::drawing::Rect dragArea(r);
+			auto dragArea = inflateRect(r, strokeWidth * 0.5f);
 			dragArea.bottom = dragArea.top + DragAreaheight;
 			g.fillRectangle(dragArea, brush);
 
+			// dash pattern
 			auto bg = g.createSolidColorBrush(gmpi::drawing::Color{ 0.0f, 0.0f, 0.0f, 0.125f });
 			for (int x = 1; x < getWidth(r) - 1; x += 3)
 			{

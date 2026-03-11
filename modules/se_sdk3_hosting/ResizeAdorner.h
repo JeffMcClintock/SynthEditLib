@@ -11,9 +11,9 @@ namespace SE2
 	class ResizeAdorner : public IViewChild
 	{
 	protected:
-		static const int SelectionFrameOffset = 1;
-		static const int ResizeHandleRadius = 4;
-		static const int DragAreaheight = 4;
+		static constexpr float SelectionFrameOffset = 1.5f;
+		static constexpr float ResizeHandleRadius = 4;
+		static constexpr float DragAreaheight = 4;
 
 		ViewBase* parent{};
 		ModuleView* module{};

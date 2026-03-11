@@ -861,17 +861,11 @@ if(pluginGraphics)
 	void ModuleView::initialize()
 	{
 		if (pluginParameters_GMPI)
-		{
 			pluginParameters_GMPI->initialize();
-		}
 		else if (pluginParameters)
-		{
 			pluginParameters->initialize();
-		}
 		else if (pluginParametersLegacy)
-		{
 			pluginParametersLegacy->initialize();
-		}
 
 		initialised_ = true;
 		// outputValues_ is only needed while connecting modules. could be centralised further to view.
@@ -884,25 +878,16 @@ if(pluginGraphics)
 	
 	gmpi::drawing::PathGeometry ModuleView::getOutline(gmpi::drawing::Factory drawingFactory)
 	{
-		auto geometry = drawingFactory.createPathGeometry();
-		{
-			auto sink = geometry.open();
+		return {};
+		//auto geometry = drawingFactory.createPathGeometry();
+		//{
+		//	auto sink = geometry.open();
+		//	sink.addRect(inflateRect(offsetRect(bounds_, {-bounds_.left, -bounds_.top}), 3.f));
+		//	sink.close();
+		//}
 
-			auto points = std::array<Point, 4>{
-				Point{ 0.0f, 0.0f },
-				Point{ getWidth(bounds_), 0.0f },
-				Point{ getWidth(bounds_), getHeight(bounds_) },
-				Point{ 0.0f, getHeight(bounds_)}
-			};
-			std::span<const Point> pointSpan{ points };
-
-			sink.addPolygon(pointSpan, gmpi::drawing::FigureBegin::Hollow);
-			sink.close();
-		}
-
-		return geometry;
+		//return geometry;
 	}
-
 
 	gmpi::ReturnCode ModuleView::onPointerDown(gmpi::drawing::Point point, int32_t flags)
 	{
