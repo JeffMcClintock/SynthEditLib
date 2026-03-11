@@ -433,15 +433,6 @@ public:
 	}
 #endif
 
-	//int32_t onContextMenu(int32_t idx) override
-	//{
-	//	if (idx == -999)
-	//	{
-	//		DisplayAboutMessage();
-	//	}
-	//	return gmpi::MP_OK;
-	//}
-
 	void populateContextMenu(gmpi::api::IContextItemSink* sink, gmpi::drawing::Point p, int32_t moduleHandle, int32_t nodeIndex = -1) override
 	{
 		if (!aboutMessage_.empty())

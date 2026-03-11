@@ -887,6 +887,7 @@ namespace SE2
 			}
 		}
 
+		// Pin text and header text.
 		if (zoomFactor > 0.5f)
 		{
 			// Text
@@ -903,30 +904,6 @@ namespace SE2
 			// Right justified text.
 			g.drawTextU(rPlugNames, resources->tf_plugs_right, r, outlineBrush);
 
-			//if (hoverPin >= 0 && !hoverPinHitCircle)
-			//{
-			//	auto hoverTextBrush = g.createSolidColorBrush(Colors::Lime);
-			//	float y = r.top;
-			//	for (const auto& pin : plugs_)
-			//	{
-			//		if (!pin.isVisible)
-			//			continue;
-
-			//		if (pin.indexCombined == hoverPin)
-			//		{
-			//			Rect lineRect{ r.left, y, r.right, y + static_cast<float>(plugDiameter) };
-			//			if (pin.direction == DR_IN)
-			//				g.drawTextU(pin.name, resources->tf_plugs_left, lineRect, hoverTextBrush);
-			//			else
-			//				g.drawTextU(pin.name, resources->tf_plugs_right, lineRect, hoverTextBrush);
-
-			//			break;
-			//		}
-
-			//		y += static_cast<float>(plugDiameter);
-			//	}
-			//}
-
 			// Header.
 			auto textExtraWidth = 1.0f + 0.5f * (std::max)(0.0f, resources->tf_header.getTextExtentU(name).width - getWidth(r));
 
@@ -941,6 +918,7 @@ namespace SE2
 			RenderCpu(g);
 		}
 
+		// plugins own grphics
 		if (pluginGraphics_GMPI)
 		{
 			// Transform to module-relative.
@@ -949,10 +927,10 @@ namespace SE2
 
 			g.setTransform(adjustedTransform);
 
-			gmpi::shared_ptr<gmpi::drawing::api::IDeviceContext> gmpiContext;
-			AccessPtr::get(g)->queryInterface(&gmpi::drawing::api::IDeviceContext::guid, gmpiContext.put_void());
+			//gmpi::shared_ptr<gmpi::drawing::api::IDeviceContext> gmpiContext;
+			//AccessPtr::get(g)->queryInterface(&gmpi::drawing::api::IDeviceContext::guid, gmpiContext.put_void());
 
-			pluginGraphics_GMPI->render(gmpiContext);
+			pluginGraphics_GMPI->render(AccessPtr::get(g));
 
 #if 0
 			// test conversion back
@@ -963,7 +941,6 @@ namespace SE2
 			legacyContext->Clear(&r);
 #endif
 
-			// Transform back. (!! only needed with CPU)
 			g.setTransform(transform);
 		}
 		else if (pluginGraphics)
@@ -977,7 +954,6 @@ namespace SE2
 			// Render.
 			pluginGraphics->OnRender(reinterpret_cast<GmpiDrawing_API::IMpDeviceContext*>(AccessPtr::get(g)));
 
-			// Transform back. (!! only needed with CPU)
 			g.setTransform(transform);
 		}
 
@@ -988,7 +964,6 @@ namespace SE2
 
 			auto brush = g.createSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
 			g.fillRoundedRectangle({ scopeRect, 3.0f }, brush);
-
 
 			if (scopeIsWave)
 			{
@@ -1054,8 +1029,48 @@ namespace SE2
 			}
 			else
 			{
+				const auto& pin = plugs_[hoveredPin_.pinIndex];
+
+				// numeric data is sized on cap-height, textual on body-height.
+				FontFlags flags = FontFlags::CapHeight;
+
+				switch(pin.datatype)
+				{
+				case DT_TEXT:
+				case DT_STRING_UTF8:
+				case DT_BOOL:
+				case DT_ENUM:
+					flags = FontFlags::BodyHeight;
+					break;
+				default:
+					break;
+				}
+
+				auto font = g.getFactory().createTextFormat(
+					9.0f
+					, {}
+					, FontWeight::Regular
+					, FontStyle::Normal
+					, FontStretch::Normal
+					, flags
+				);
+
+				const auto metrics = font.getFontMetrics();
+
+				font.setWordWrapping(WordWrapping::NoWrap);
+
+				// center text nicely
+				const auto baseLine = scopeRect.top + metrics.ascent;
+				const auto capTop = baseLine - metrics.capHeight;
+				const auto roomAtTop = capTop - scopeRect.top;
+				const auto roomBelowBaseline = scopeRect.bottom - baseLine;
+
+				const auto yAdjust = (roomBelowBaseline - roomAtTop) * 0.5f;
+
+				const auto centeredTextRect = offsetRect(scopeRect, { 0, yAdjust });
+
 				brush.setColor(Colors::Yellow);
-				g.drawTextU(hoverScopeText.c_str(), resources->tf_plugs_left, scopeRect, brush);
+				g.drawTextU(hoverScopeText.c_str(), font, centeredTextRect, brush);
 			}
 		}
 	}
