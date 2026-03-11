@@ -1,4 +1,3 @@
-
 #include <vector>
 #include <sstream>
 #include <iomanip>
@@ -799,22 +798,8 @@ namespace SE2
 			g.fillGeometry(outlineGeometry, backgroundBrush);
 
 			SolidColorBrush moduleOutlineBrush;
-
-#if 0
-			float strokeWidth;
-			if (getSelected())
-			{
-				moduleOutlineBrush = g.createSolidColorBrush(Colors::DodgerBlue);
-				strokeWidth = 3;
-			}
-			else
-			{
-				moduleOutlineBrush = g.createSolidColorBrush(0x7C7C7Cu);
-				strokeWidth = 1;
-			}
-#endif
-			moduleOutlineBrush = g.createSolidColorBrush(0x7C7C7Cu);
-			float strokeWidth = 1;
+			moduleOutlineBrush = g.createSolidColorBrush(isHovered_ ? Colors::DodgerBlue : colorFromHex(0x7C7C7Cu));
+			const float strokeWidth = isHovered_ ? 2.0f : 1.0f;
 			g.drawGeometry(outlineGeometry, moduleOutlineBrush, strokeWidth);
 		}
 		else
@@ -1855,8 +1840,6 @@ namespace SE2
 
 		typedef int plugType;
 
-//		const bool NEW_LOOK_CURVES = true;
-
 		const float diameterBig = plugDiameter;
 		const float radiusBig = diameterBig * 0.5f;
 		const float radiusSmall = radiusBig * 0.2f;
@@ -2009,7 +1992,6 @@ sink.addLine(gmpi::drawing::Point(edgeX + radius, y + childHeight));
 		// right side.
 		edgeX = rightX;
 		y += childHeight;
-		//	smallCurveYIntersect = -smallCurveYIntersect;
 
 		// up right side.
 		for (auto it = filteredChildren.rbegin(); it != filteredChildren.rend(); ++it)
@@ -2109,7 +2091,6 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 			idx--;
 			prevEdgeType = edgeType;
 		}
-
 		sink.endFigure();
 
 		sink.close();
@@ -2364,11 +2345,23 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 
 	gmpi::ReturnCode ModuleViewStruct::setHover(bool mouseIsOverMe)
 	{
+		const bool hoverStateChanged = isHovered_ != mouseIsOverMe;
+		isHovered_ = mouseIsOverMe;
+
+		bool visualStateChanged = hoverStateChanged;
+
 		if (!mouseIsOverMe && hoverPin != -1)
 		{
 			hoverPin = -1;
-			invalidateRect(nullptr);
+			hoverScopeWaveform = {};
+			scopeIsWave = false;
+			hoverScopeText.clear();
+			Presenter()->setHoverScopePin(handle, -1);
+			visualStateChanged = true;
 		}
+
+		if (visualStateChanged)
+			parent->ChildInvalidateRect(getClipArea());
 
 		return ModuleView::setHover(mouseIsOverMe);
 	}

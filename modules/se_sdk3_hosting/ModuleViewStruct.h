@@ -14,6 +14,7 @@ class ModuleViewStruct : public ModuleView
 	const int plugTextHorizontalPadding = -1; // gap between plug text and plug circle outer radius.
 	gmpi::drawing::Rect clipArea;
 	bool muted = false;
+	bool isHovered_ = false;
 	int hoverPin = -1;
 	bool scopeIsWave{};
 	std::string hoverScopeText;
