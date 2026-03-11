@@ -76,7 +76,13 @@ public:
 	virtual void arrange(gmpi::drawing::Rect finalRect) override;
 	virtual void render(gmpi::drawing::Graphics& g) override;
 	float hitTestFuzzy(int32_t flags, gmpi::drawing::Point point) override;
-	std::pair<int, int> getPinUnderMouse(gmpi::drawing::Point point);
+	struct pinHit
+	{
+		int pinIndex;
+		float distance; // distance to circle, or 0.f if hit lable rectangle.
+		bool hitCircle;
+	};
+	pinHit getPinUnderMouse(gmpi::drawing::Point point);
 	int32_t OnDoubleClicked(gmpi::drawing::Point point, int32_t flags);
 	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;

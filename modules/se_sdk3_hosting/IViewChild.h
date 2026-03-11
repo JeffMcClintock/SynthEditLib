@@ -16,6 +16,8 @@ namespace SE2
 	class IViewChild
 	{
 	public:
+		static constexpr float fuzzyHitTestLimit = 12.f;
+
 		virtual ~IViewChild() {}
 
 		// Similar to IDrawingClient for convenience. But don't confuse that with compatible or interchangeable.
@@ -104,9 +106,6 @@ namespace SE2
 		int handle = -1;
 		class ViewBase* parent = {};
 
-// TODO		std::unique_ptr<GmpiSdk::ContextMenuHelper::ContextMenuCallbacks> contextMenuCallbacks;
-
-//		ViewChild(class IModelBase* model, class ViewBase* pParent);
 		ViewChild(Json::Value* pContext, ViewBase* pParent);
 
 		ViewChild(ViewBase* pParent, int pHandle) :

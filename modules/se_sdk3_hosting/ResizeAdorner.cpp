@@ -150,7 +150,7 @@ namespace SE2
 			auto offsetToModule = Size(module->bounds_.left - bounds.left, module->bounds_.top - bounds.top);
 			auto before = g.getTransform();
 
-			g.setTransform(before * makeTranslation(offsetToModule));
+			g.setTransform(makeTranslation(offsetToModule) * before);
 
 			auto moduleOutlineBrush = g.createSolidColorBrush(Colors::DodgerBlue);
 			float strokeWidth = 3;
@@ -235,9 +235,7 @@ namespace SE2
 	//     distance nodeX, nodeY
 	std::tuple<float, int, int> ResizeAdorner::hitTestWhat(gmpi::drawing::Point point)
 	{
-		constexpr float fuzzyLimit = 12.f;
-
-		const auto definatalyOutside = !pointInRect(point, inflateRect(bounds, fuzzyLimit + ResizeHandleRadius));
+		const auto definatalyOutside = !pointInRect(point, inflateRect(bounds, fuzzyHitTestLimit + ResizeHandleRadius));
 
 		if(definatalyOutside)
 			return { 1000.0f, -1, -1 }; // not-hit.
@@ -266,7 +264,7 @@ namespace SE2
 		// distance outside rect.
 		const auto distanceOutside = std::max(std::max(r.left - point.x, point.x - r.right), std::max(r.top - point.y, point.y - r.bottom));
 
-		float best = distanceOutside > 0.0f ? distanceOutside : fuzzyLimit;
+		float best = distanceOutside > 0.0f ? distanceOutside : fuzzyHitTestLimit;
 
 		// destance inside rect
 		const auto distanceInside = std::min(std::min(point.x - r.left, r.right - point.x), std::min(point.y - r.top, r.bottom - point.y));

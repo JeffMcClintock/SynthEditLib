@@ -2161,38 +2161,47 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 		if (!isVisable())
 			return totalMiss;
 
-		// when selected, adorner takes over hit testing, except for client area.
-		if(getSelected())
-		{
-			auto pin = getPinUnderMouse(point);
-			if (pin.first >= 0 && pin.second == 0) // keep pin hover active while selected.
-				return solidHit;
-
-			if(pointInRect(point, pluginGraphicsPos))
-				return solidHit;
-
-			return totalMiss;
-		}
-
 		const auto r = getLayoutRect();
-
-		if (pointInRect(point, r))
-			return solidHit;
-
 		auto r2 = r;
 		r2 = inflateRect(r2, fuzzyLimit);
 
 		r2.top -= 16.0f; // allow for title bar.
 
-		if (!pointInRect(point, r2))
+		if(!pointInRect(point, r2)) // weed out clear misses fast.
 			return totalMiss;
 
+		// client area is always a hit, even when adorner active.
+		if(pointInRect(point, pluginGraphicsPos))
+			return solidHit;
+
+		auto pin = getPinUnderMouse(point);
+
+		// when selected, adorner takes over hit testing, except for client area and pins.
+		if(getSelected())
+		{
+			if (pin.hitCircle)
+				return pin.distance;
+
+			return totalMiss;
+		}
+
+		// hits solidly within outline are good.
+		if(pointInRect(point, r))
+			return solidHit;
+
 		// return distance to outline
-		return max(max(r.left - point.x, point.x - r.right), max(r.top - point.y, point.y - r.bottom));
+		const auto distanceToOutline = max(max(r.left - point.x, point.x - r.right), max(r.top - point.y, point.y - r.bottom));
+		auto best = distanceToOutline;
+
+		if (pin.hitCircle)
+			best = min(best, pin.distance);
+	
+		return best;
 	}
 
-	// Return pin under mouse and second, if it hit connection point (1) or only plug text (0).
-	std::pair<int,int> ModuleViewStruct::getPinUnderMouse(gmpi::drawing::Point point)
+	// Return pin under mouse and hit details.
+	// if we hit the circle we create a new line, the text - highlight the lines connected to that pin.
+	ModuleViewStruct::pinHit ModuleViewStruct::getPinUnderMouse(gmpi::drawing::Point point)
 	{
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
@@ -2203,54 +2212,52 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 
 		Point p(0, getLayoutRect().top + plugDiameter * 0.5f - 0.5f);
 
-		float closestDist = (numeric_limits<float>::max)();
-		std::pair<int, int> closestPin = std::pair<int, int>(-1, 0);
-		closestPin.second = 0; // hit on connection point.
-		int closestPlug = -1;
+		float outerLimitSquared = (fuzzyHitTestLimit + plugDiameter * 0.5f) * (fuzzyHitTestLimit + plugDiameter * 0.5f);
+		pinHit closestPin{ -1, outerLimitSquared, true };
 		Rect pinRect{ left, getLayoutRect().top, right, getLayoutRect().top + static_cast<float>(plugDiameter) };
 		float plugHitWidth = (std::min)(40.0f, right-left); // width of area responsive to clicking on plug in general (not connection point).
 
 		for (const auto& pin : plugs_)
 		{
-			if (pin.isVisible)
+			if(!pin.isVisible)
+				continue;
+
+			if (pin.direction == DR_IN)
 			{
-				if (pin.direction == DR_IN)
-				{
-					p.x = left;
-					pinRect.left = left;
-					pinRect.right = left + plugHitWidth;
-				}
-				else
-				{
-					p.x = right;
-					pinRect.right = right;
-					pinRect.left = right - plugHitWidth;
-				}
-
-				float distanceSquared = (point.x - p.x) * (point.x - p.x) + (point.y - p.y) * (point.y - p.y);
-				if (distanceSquared <= closestDist && distanceSquared < pinHitRadiusSquared)
-				{
-					closestDist = distanceSquared;
-					closestPin.first = pin.indexCombined;
-				}
-
-				// Click on plug in general (but not on connection point).
-				if (pointInRect(point, pinRect))
-				{
-					closestPlug = pin.indexCombined;
-				}
-
-				p.y += plugDiameter;
-				pinRect.top += plugDiameter;
-				pinRect.bottom += plugDiameter;
+				p.x = left;
+				pinRect.left = left + plugDiameter;
+				pinRect.right = left + plugHitWidth;
 			}
+			else
+			{
+				p.x = right;
+				pinRect.right = right - plugDiameter;
+				pinRect.left = right - plugHitWidth;
+			}
+
+			// Click on plug in general (but not on connection point).
+			if(pointInRect(point, pinRect))
+			{
+				closestPin.pinIndex = pin.indexCombined;
+				closestPin.distance = 0.0f;
+				closestPin.hitCircle = false;
+				return closestPin;
+			}
+
+			float distanceSquared = (point.x - p.x) * (point.x - p.x) + (point.y - p.y) * (point.y - p.y);
+
+			if(distanceSquared < closestPin.distance)
+			{
+				closestPin.pinIndex = pin.indexCombined;
+				closestPin.distance = distanceSquared;
+			}
+
+			p.y += plugDiameter;
+			pinRect.top += plugDiameter;
+			pinRect.bottom += plugDiameter;
 		}
 
-		if (closestPin.first == -1 && closestPlug != -1)
-		{
-			closestPin.first = closestPlug;
-			closestPin.second = 1; // hit plug, but not connection point.
-		}
+		closestPin.distance = std::max(0.0f, sqrtf(closestPin.distance) - plugDiameter * 0.5f);
 
 		return closestPin;
 	}
@@ -2293,16 +2300,16 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
 		{
 			auto toPin = getPinUnderMouse(point);
-			if (toPin.first >= 0)
+			if (toPin.pinIndex >= 0)
 			{
-				if (toPin.second == 0) // Hit connection circle.
+				if (toPin.hitCircle) // Hit connection circle.
 				{
-					auto dragStartPoint = getConnectionPoint(CableType::StructureCable, toPin.first);
-					parent->StartCableDrag(this, toPin.first, dragStartPoint, 0 != (flags & gmpi_gui_api::GG_POINTER_KEY_ALT), CableType::StructureCable);
+					auto dragStartPoint = getConnectionPoint(CableType::StructureCable, toPin.pinIndex);
+					parent->StartCableDrag(this, toPin.pinIndex, dragStartPoint, 0 != (flags & gmpi_gui_api::GG_POINTER_KEY_ALT), CableType::StructureCable);
 				}
 				else // hit text
 				{
-					Presenter()->HighlightConnector(this->handle, toPin.first);
+					Presenter()->HighlightConnector(this->handle, toPin.pinIndex);
 				}
 			}
 		}
@@ -2317,8 +2324,8 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 			int newHoverPin = -1;
 
 			auto pin = getPinUnderMouse(point);
-			if (pin.first >= 0 && pin.second == 0) // Hit connection circle.
-				newHoverPin = pin.first;
+			if (pin.pinIndex >= 0 && pin.hitCircle) // Hit connection circle.
+				newHoverPin = pin.pinIndex;
 
 			if (hoverPin != newHoverPin)
 			{
@@ -2440,13 +2447,13 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 		if (dragline->type == CableType::StructureCable)
 		{
 			auto toPin = getPinUnderMouse(p);
-			if (toPin.first >= 0 && toPin.second == 0)
+			if (toPin.pinIndex >= 0 && toPin.hitCircle)
 			{
 				// redraw the line as though it were a normal connection, to give immediate visual feedback to the user.
 				dragline->draggingFromEnd = -1;
 				dragline->parent->ChildInvalidateRect(dragline->bounds_);
 
-				return Presenter()->AddConnector(dragline->fromModuleHandle(), dragline->fromPin(), getModuleHandle(), toPin.first, false);
+				return Presenter()->AddConnector(dragline->fromModuleHandle(), dragline->fromPin(), getModuleHandle(), toPin.pinIndex, false);
 			}
 		}
 		return false;
