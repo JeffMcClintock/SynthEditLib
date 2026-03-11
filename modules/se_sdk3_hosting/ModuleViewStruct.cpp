@@ -122,7 +122,7 @@ namespace SE2
 					if (!directionE.empty() && !datatypeE.empty()) // I/O Plugs.
 					{
 						pinViewInfo info{};
-					info.name = pin_element["name"].asString();
+						info.name = pin_element["name"].asString();
 						info.direction = (char)directionE.asInt();
 						info.datatype = (char)datatypeE.asInt();
 						auto& isGuiPin = pin_element["GuiPin"];
@@ -161,9 +161,7 @@ namespace SE2
 						// nameable (but not autoduplicate)
 						const auto& name_e = pin_element["name"];
 						if (!name_e.isNull())
-						{
 							plugs_[pinId].name = name_e.asString();
-						}
 					}
 				}
 
@@ -665,7 +663,7 @@ namespace SE2
 		{
 			if (pin.isVisible)
 			{
-				if (pin.indexCombined == hoverPin)
+				if (pin.indexCombined == hoveredPin_.pinIndex)
 				{
 					float w = 48.f;
 					float h2 = scopeIsWave ? plugDiameter : plugDiameter * 0.6f;
@@ -858,11 +856,11 @@ namespace SE2
 
 					// Spare container pins white.
 					const int datatype = (pin.isAutoduplicatePlug && pin.isIoPlug) ? static_cast<int>(std::size(pinColors)) - 1 : pin.datatype;
-					const bool isPinHovered = hoverPin == pinIndex;
 					Color fillColor = colorFromHex(pinColors[datatype][0]);
 					Color pinOutlineColor = colorFromHex(pinColors[datatype][1]);
 
-					if (isPinHovered)
+					const bool isPinCircleHovered = (hoveredPin_.pinIndex == pinIndex && hoveredPin_.hitCircle);
+					if (isPinCircleHovered)
 					{
 						fillColor = interpolateColor(fillColor, Colors::White, 0.35f);
 						pinOutlineColor = interpolateColor(pinOutlineColor, Colors::White, 0.25f);
@@ -871,23 +869,16 @@ namespace SE2
 					fillBrush.setColor(fillColor);
 					outlineBrush.setColor(pinOutlineColor);
 
-					const float fillRadius = hoverPin == pinIndex ? pinRadius + 1.0f : pinRadius;
-					const float outlineRadius = hoverPin == pinIndex ? adjustedPinRadius + 1.0f : adjustedPinRadius;
-
-					g.fillCircle(p, fillRadius, fillBrush);
+					g.fillCircle(p, adjustedPinRadius, fillBrush);
 
 					if (zoomFactor > 0.25f)
 					{
 						// outline on plug circle
 						// Unconected container pins highlighted white
 						if (pin.isTiedToUnconnected)
-						{
-							g.drawCircle(p, outlineRadius, whiteBrush);
-						}
+							g.drawCircle(p, adjustedPinRadius, whiteBrush);
 						else
-						{
-							g.drawCircle(p, outlineRadius, outlineBrush);
-						}
+							g.drawCircle(p, adjustedPinRadius, outlineBrush);
 					}
 
 					p.y += plugDiameter;
@@ -911,6 +902,30 @@ namespace SE2
 
 			// Right justified text.
 			g.drawTextU(rPlugNames, resources->tf_plugs_right, r, outlineBrush);
+
+			//if (hoverPin >= 0 && !hoverPinHitCircle)
+			//{
+			//	auto hoverTextBrush = g.createSolidColorBrush(Colors::Lime);
+			//	float y = r.top;
+			//	for (const auto& pin : plugs_)
+			//	{
+			//		if (!pin.isVisible)
+			//			continue;
+
+			//		if (pin.indexCombined == hoverPin)
+			//		{
+			//			Rect lineRect{ r.left, y, r.right, y + static_cast<float>(plugDiameter) };
+			//			if (pin.direction == DR_IN)
+			//				g.drawTextU(pin.name, resources->tf_plugs_left, lineRect, hoverTextBrush);
+			//			else
+			//				g.drawTextU(pin.name, resources->tf_plugs_right, lineRect, hoverTextBrush);
+
+			//			break;
+			//		}
+
+			//		y += static_cast<float>(plugDiameter);
+			//	}
+			//}
 
 			// Header.
 			auto textExtraWidth = 1.0f + 0.5f * (std::max)(0.0f, resources->tf_header.getTextExtentU(name).width - getWidth(r));
@@ -967,9 +982,9 @@ namespace SE2
 		}
 
 		// HOVER SCOPE
-		if (hoverPin > -1 && !hoverScopeText.empty())
+		if (hoveredPin_.pinIndex > -1 && !hoverScopeText.empty())
 		{
-			const auto scopeRect = calcScopeRect(hoverPin);
+			const auto scopeRect = calcScopeRect(hoveredPin_.pinIndex);
 
 			auto brush = g.createSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
 			g.fillRoundedRectangle({ scopeRect, 3.0f }, brush);
@@ -1083,11 +1098,11 @@ namespace SE2
 	{
 		hoverScopeText = text;
 
-		if (hoverPin > -1 && !hoverScopeText.empty())
+		if (hoveredPin_.pinIndex > -1 && !hoverScopeText.empty())
 		{
-			const auto& pin = plugs_[hoverPin];
+			const auto& pin = plugs_[hoveredPin_.pinIndex];
 
-			invalidateMyRect(calcScopeRect(hoverPin));
+			invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
 		}
 		scopeIsWave = false;
 	}
@@ -1110,7 +1125,7 @@ namespace SE2
 
 		movingPeaksIdx &= (std::size(movingPeaks) - 1);
 
-		auto scopeRect = calcScopeRect(hoverPin);
+		auto scopeRect = calcScopeRect(hoveredPin_.pinIndex);
 		invalidateMyRect(scopeRect);
 
 		scopeIsWave = true;
@@ -2179,7 +2194,7 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 		// when selected, adorner takes over hit testing, except for client area and pins.
 		if(getSelected())
 		{
-			if (pin.hitCircle)
+			if (pin.pinIndex > -1)
 				return pin.distance;
 
 			return totalMiss;
@@ -2201,7 +2216,7 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 
 	// Return pin under mouse and hit details.
 	// if we hit the circle we create a new line, the text - highlight the lines connected to that pin.
-	ModuleViewStruct::pinHit ModuleViewStruct::getPinUnderMouse(gmpi::drawing::Point point)
+	pinHit ModuleViewStruct::getPinUnderMouse(gmpi::drawing::Point point)
 	{
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
@@ -2307,9 +2322,9 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 					auto dragStartPoint = getConnectionPoint(CableType::StructureCable, toPin.pinIndex);
 					parent->StartCableDrag(this, toPin.pinIndex, dragStartPoint, 0 != (flags & gmpi_gui_api::GG_POINTER_KEY_ALT), CableType::StructureCable);
 				}
-				else // hit text
+				else // hit text. wait and see if we dragged the module. before tracing wire.
 				{
-					Presenter()->HighlightConnector(this->handle, toPin.pinIndex);
+					boundsOnMouseDown = bounds_;
 				}
 			}
 		}
@@ -2317,42 +2332,58 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 		return ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled; // left-click: Indicate need for drag.
 	}
 
+	void ModuleViewStruct::OnClickedButDidntDrag()
+	{
+		if(hoveredPin_.pinIndex > -1 && !hoveredPin_.hitCircle)
+			Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, PinHighlightFlag_Emphasise);
+	}
+
 	gmpi::ReturnCode ModuleViewStruct::onPointerMove(gmpi::drawing::Point point, int32_t flags)
 	{
 		if (!mouseCaptured)
 		{
-			int newHoverPin = -1;
+			auto newHoveredPin = getPinUnderMouse(point);
 
-			auto pin = getPinUnderMouse(point);
-			if (pin.pinIndex >= 0 && pin.hitCircle) // Hit connection circle.
-				newHoverPin = pin.pinIndex;
-
-			if (hoverPin != newHoverPin)
+			if (hoveredPin_.pinIndex != newHoveredPin.pinIndex || hoveredPin_.hitCircle != newHoveredPin.hitCircle)
 			{
-				hoverPin = newHoverPin;
+				// temporarily trace, only while highlighted
+				if(hoveredPin_.pinIndex > -1)
+					Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
+				if(newHoveredPin.pinIndex > -1)
+					Presenter()->HighlightConnector(this->handle, newHoveredPin.pinIndex, PinHighlightFlag_EmphasiseMomentary);
+
+				hoveredPin_ = newHoveredPin;
 				hoverScopeWaveform = {};
 				scopeIsWave = false;
 				hoverScopeText.clear();
 				std::fill(std::begin(movingPeaks), std::end(movingPeaks), -99.0f);
 
-				int dspHoverPin = hoverPin;
+				int dspHoverPin = hoveredPin_.pinIndex;
 
-				if (hoverPin >= 0)
+				if (hoveredPin_.pinIndex >= 0)
 				{
-					if (plugs_[hoverPin].isGuiPlug)
+					if (plugs_[hoveredPin_.pinIndex].isGuiPlug)
 					{
 						if (editorPinValues)
 						{
-							auto& raw = editorPinValues->at(hoverPin);
+							auto& raw = editorPinValues->at(hoveredPin_.pinIndex);
 
 							dspHoverPin = -1; // CUG has nothing to do.
-							hoverScopeText = NiceFormatted(raw, (EPlugDataType) plugs_[hoverPin].datatype);
+							hoverScopeText = NiceFormatted(raw, (EPlugDataType) plugs_[hoveredPin_.pinIndex].datatype);
 						}
 					}
 				}
 				Presenter()->setHoverScopePin(handle, dspHoverPin);
 				parent->ChildInvalidateRect(getClipArea());
 			}
+		}
+		else
+		{
+			/* todo
+			// if the intention was not to drag the module, then a click on text should highlight the current pin.
+			if(bounds_ == boundsOnMouseDown && )
+				Presenter()->HighlightConnector(this->handle, toPin.pinIndex, PinHighlightFlag_Emphasise);
+			*/
 		}
 
 		ModuleView::onPointerMove(point, flags);
@@ -2366,9 +2397,11 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 
 		bool visualStateChanged = hoverStateChanged;
 
-		if (!mouseIsOverMe && hoverPin != -1)
+		if (!mouseIsOverMe && hoveredPin_.pinIndex != -1)
 		{
-			hoverPin = -1;
+			Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
+
+			hoveredPin_ = { -1, 0.0f, true };
 			hoverScopeWaveform = {};
 			scopeIsWave = false;
 			hoverScopeText.clear();

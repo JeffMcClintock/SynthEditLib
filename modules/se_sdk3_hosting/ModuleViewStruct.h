@@ -4,6 +4,13 @@
 
 namespace SE2
 {
+struct pinHit
+{
+	int pinIndex;
+	float distance; // distance to circle, or 0.f if hit lable rectangle.
+	bool hitCircle;
+};
+
 class ModuleViewStruct : public ModuleView
 {
 	std::string lPlugNames;
@@ -15,7 +22,8 @@ class ModuleViewStruct : public ModuleView
 	gmpi::drawing::Rect clipArea;
 	bool muted = false;
 	bool isHovered_ = false;
-	int hoverPin = -1;
+	pinHit hoveredPin_{ -1, 0.0f, true };
+	gmpi::drawing::Rect boundsOnMouseDown;
 	bool scopeIsWave{};
 	std::string hoverScopeText;
 	std::unique_ptr< std::vector<float> > hoverScopeWaveform;
@@ -76,20 +84,14 @@ public:
 	virtual void arrange(gmpi::drawing::Rect finalRect) override;
 	virtual void render(gmpi::drawing::Graphics& g) override;
 	float hitTestFuzzy(int32_t flags, gmpi::drawing::Point point) override;
-	struct pinHit
-	{
-		int pinIndex;
-		float distance; // distance to circle, or 0.f if hit lable rectangle.
-		bool hitCircle;
-	};
 	pinHit getPinUnderMouse(gmpi::drawing::Point point);
 	int32_t OnDoubleClicked(gmpi::drawing::Point point, int32_t flags);
 	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode setHover(bool mouseIsOverMe) override;
 
+	void OnClickedButDidntDrag() override;
 	void OnCableDrag(ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, ModuleView*& bestModule, int& bestPinIndex) override;
-
 	bool EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline) override;
 
 	bool isVisable() override

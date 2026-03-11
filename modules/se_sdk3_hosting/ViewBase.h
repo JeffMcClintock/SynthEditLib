@@ -62,6 +62,7 @@ bool isIteratingChildren = false;
 		IViewChild* modulePicker = {};
 
 		bool isDraggingModules = false;
+		IViewChild* DraggingObject = {};
 		gmpi::drawing::Size DraggingModulesOffset = {};
 		gmpi::drawing::Point DraggingModulesInitialTopLeft = {};
 
@@ -189,7 +190,7 @@ bool isIteratingChildren = false;
 		int32_t releaseCapture();
 
 		virtual int32_t StartCableDrag(IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, bool isHeldAlt, CableType type = CableType::PatchCable);
-		void OnCableMove(ConnectorViewBase * dragline);
+		bool OnCableMove(ConnectorViewBase * dragline);
 		bool EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline);
 		void OnPatchCablesUpdate(RawView patchCablesRaw);
 		void UpdateCablesBounds();

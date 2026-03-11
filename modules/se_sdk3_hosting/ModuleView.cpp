@@ -1,5 +1,6 @@
 
 #include <vector>
+#include <array>
 #include <sstream>
 #include <iomanip>
 
@@ -699,7 +700,8 @@ namespace SE2
 	{
 		assert(moduleInfo->UniqueId() == L"Container");
 
-		auto subView = new SubView(parent->getViewType());
+		auto subView = new SubView(this, parent->getViewType());
+
 		gmpi::shared_ptr<gmpi::api::IUnknown> object;
 		object.attach(static_cast<ISubView*>(subView));
 		assert(object != nullptr);
@@ -886,15 +888,21 @@ if(pluginGraphics)
 		{
 			auto sink = geometry.open();
 
-			const Point points[] = { { bounds_.left, bounds_.top }, { bounds_.right, bounds_.top }, { bounds_.right, bounds_.bottom }, { bounds_.left, bounds_.bottom } };
+			auto points = std::array<Point, 4>{
+				Point{ 0.0f, 0.0f },
+				Point{ getWidth(bounds_), 0.0f },
+				Point{ getWidth(bounds_), getHeight(bounds_) },
+				Point{ 0.0f, getHeight(bounds_)}
+			};
+			std::span<const Point> pointSpan{ points };
 
-			sink.addLines(points);
-			sink.endFigure();
+			sink.addPolygon(pointSpan, gmpi::drawing::FigureBegin::Hollow);
 			sink.close();
 		}
 
 		return geometry;
 	}
+
 
 	gmpi::ReturnCode ModuleView::onPointerDown(gmpi::drawing::Point point, int32_t flags)
 	{
@@ -994,9 +1002,7 @@ if(pluginGraphics)
 		}
 
 		if(pluginGraphics)
-		{
 			pluginGraphics->onPointerMove(flags, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
-		}
 
 		return gmpi::ReturnCode::Unhandled;
 	}

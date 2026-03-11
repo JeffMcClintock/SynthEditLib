@@ -62,6 +62,7 @@ namespace SE2
 		virtual void setSelected(bool selected) = 0;
 		virtual void OnMoved(gmpi::drawing::Rect& newRect) = 0;
 		virtual void OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes) = 0;
+		virtual void OnClickedButDidntDrag() {}
 		virtual bool isVisable() // indicates if module has a visible graphical component.
 		{
 			return true;

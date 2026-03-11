@@ -473,17 +473,12 @@ namespace SE2
 		{
 			if (draggingFromEnd < 0)
 			{
-				if ((highlightFlags & 7) != 0)
+				if (highlightFlags != 0)
 				{
 					if ((highlightFlags & 3) != 0) // error
-					{
 						brush3 = &resources->errorBrush;
-					}
 					else
-					{
-						// Emphasise
-						brush3 = &resources->emphasiseBrush;
-					}
+						brush3 = &resources->emphasiseBrush;// Emphasise
 				}
 				else
 				{
@@ -494,18 +489,17 @@ namespace SE2
 			{
 				// highlighted (dragging).
 				brush3 = &resources->draggingBrush;
+
+				if(endIsSnapped)
+					g.fillCircle(draggingFromEnd == 0 ? from_ : to_, 2.0f, *brush3);
 			}
 		}
 
 		if (getSelected())
-		{
 			brush3 = &resources->selectedBrush;
-		}
 
 		if (getSelected() || mouseHover)
-		{
 			width = 3.f;
-		}
 
 		assert(brush3);
 		g.drawGeometry(geometry, *brush3, width, strokeStyle);

@@ -18,12 +18,16 @@ class SubView : public SE2::ViewBase, public ISubView
 
 	gmpi::drawing::Rect viewBounds;
 	int parentViewType = 0;
-	ViewBase* parent = {};
+	SE2::ViewChild* parent = {};
 
 public:
 	gmpi::drawing::Size offset_; // offset of children relative to bounds (not parent).
 
-	SubView(int pparentViewType = CF_PANEL_VIEW);
+	SubView() : SE2::ViewBase({ 1000, 1000 })
+	{
+		int x = 9;
+	}
+	SubView(SE2::ViewChild* parent, int pparentViewType = CF_PANEL_VIEW);
 
 	virtual ~SubView()
 	{
@@ -43,7 +47,7 @@ public:
 		//auto view = dynamic_cast<SE2::ViewChild*> (getGuiHost())->parent;
 		//return view->getSkinName();
 
-		return parent->getSkinName();
+		return parent->parent->getSkinName();
 	}
 
 	void onValueChanged();
@@ -63,7 +67,7 @@ public:
 	void ChildInvalidateRect(const gmpi::drawing::Rect& invalidRect) override
 	{
 		const auto adjusted = offsetRect(invalidRect, offset_);
-		parent->invalidateRect(&adjusted);
+		parent->parent->invalidateRect(&adjusted);
 	}
 
 	void OnChildMoved() override;

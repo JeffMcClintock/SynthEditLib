@@ -28,6 +28,7 @@ namespace SE2
 	public:
 
 		int draggingFromEnd = -1;
+		bool endIsSnapped = false;
 		gmpi::drawing::Point from_;
 		gmpi::drawing::Point to_;
 

@@ -55,7 +55,7 @@ enum class CableType;
 		virtual void AddModule(const wchar_t* uniqueid, gmpi::drawing::Point point) = 0;
 		virtual bool CanConnect(CableType cabletype, int32_t fromModule, int fromPin, int32_t toModule, int toPin) = 0;
 		virtual bool AddConnector(int32_t fromModule, int fromPin, int32_t toModule, int toPin, bool placeAtBack) = 0;
-		virtual void HighlightConnector(int32_t moduleHandle, int pin) = 0;
+		virtual void HighlightConnector(int32_t moduleHandle, int pin, int highlightType) = 0;
 		virtual bool AddPatchCable(int32_t fromModule, int fromPin, int32_t toModule, int toPin, int colorIndex, bool placeAtBack = false) = 0;
 		virtual void RemovePatchCable(int32_t fromModule, int fromPin, int32_t toModule, int toPin) = 0;
 		virtual void DragSelection(gmpi::drawing::Size offset) = 0;

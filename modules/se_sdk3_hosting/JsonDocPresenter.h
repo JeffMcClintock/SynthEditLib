@@ -54,7 +54,7 @@ public:
 	{
 		return false;
 	}
-	void HighlightConnector(int32_t moduleHandle, int pin) override
+	void HighlightConnector(int32_t moduleHandle, int pin, int highlightType) override
 	{}
 
 	void OnFrameGotFocus() override

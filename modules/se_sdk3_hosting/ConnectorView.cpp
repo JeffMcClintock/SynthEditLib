@@ -59,13 +59,9 @@ namespace SE2
 		highlightFlags = flags;
 
 		if (flags == 0)
-		{
 			parent->MoveToBack(this);
-		}
 		else
-		{
 			parent->MoveToFront(this);
-		}
 
 		const auto r = getClipArea();
 		parent->invalidateRect(&r);
@@ -339,7 +335,7 @@ namespace SE2
 			else
 				to_ = point;
 
-			parent->OnCableMove(this);
+			endIsSnapped = parent->OnCableMove(this);
 
 			CalcBounds();
 			return gmpi::ReturnCode::Unhandled;
@@ -350,6 +346,7 @@ namespace SE2
 
 	gmpi::ReturnCode ConnectorViewBase::onPointerUp(gmpi::drawing::Point point, int32_t flags)
 	{
+		endIsSnapped = false;
 		if (imCaptured()) //if (parent->getCapture())
 		{
 			// detect single clicks on pin, continue dragging.

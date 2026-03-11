@@ -233,6 +233,7 @@ namespace SE2
 				isDraggingModules = true;
 				DraggingModulesOffset = {};
 				DraggingModulesInitialTopLeft = { hitObject->getLayoutRect().left, hitObject->getLayoutRect().top };
+				DraggingObject = hitObject;
 
 				if(inputHost)
 					inputHost->setCapture();
@@ -357,9 +358,7 @@ namespace SE2
 		}
 
 		if(mouseCaptureObject)
-		{
 			mouseCaptureObject->onPointerUp(point, flags);
-		}
 
 #ifdef _DEBUG
 		if(mouseCaptureObject)
@@ -373,6 +372,14 @@ namespace SE2
 			isDraggingModules = false;
 			releaseCapture();
 			autoScrollStop();
+
+			if(DraggingObject && DraggingModulesOffset.width == 0.f && DraggingModulesOffset.height == 0.f)
+			{
+				// we clicked a module but didn't drag it. Perhaps user indended to auto-trace a pin?
+				DraggingObject->OnClickedButDidntDrag();
+
+				DraggingObject = {};
+			}
 		}
 		
 		return gmpi::ReturnCode::Ok;
@@ -1216,12 +1223,7 @@ namespace SE2
 		return (int) gmpi::ReturnCode::Ok;
 	}
 
-	//std::pair< IViewChild*, int> closestPin(CableType type)
-	//{
-
-	//}
-
-	void ViewBase::OnCableMove(ConnectorViewBase* dragline)
+	bool ViewBase::OnCableMove(ConnectorViewBase* dragline)
 	{
 		// 4x drawn size is maximum snap distance.
 		constexpr float maxSnapRangeSquared = 4 * sharedGraphicResources_struct::plugDiameter * sharedGraphicResources_struct::plugDiameter; // 4x drawn size is maximum snap distance.
@@ -1233,7 +1235,7 @@ namespace SE2
 			(*it)->OnCableDrag(dragline, dragline->dragPoint(), bestDistanceSquared, bestModule, bestPinIndex);
 
 		if (!bestModule)
-			return;
+			return false;
 
 		auto pinLocation = bestModule->getConnectionPoint(dragline->type, bestPinIndex);
 		pinLocation = bestModule->parent->MapPointToView(this, pinLocation);
@@ -1243,6 +1245,8 @@ namespace SE2
 			dragline->from_ = pinLocation;
 		else
 			dragline->to_ = pinLocation;
+
+		return true;
 	}
 
 	bool ViewBase::EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline)
@@ -1458,9 +1462,7 @@ namespace SE2
 			{
 				auto line = dynamic_cast<ConnectorViewBase*>(m.get());
 				if(line)
-				{
 					line->setHighlightFlags(flags);
-				}
 				break;
 			}
 		}

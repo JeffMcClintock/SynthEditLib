@@ -9,14 +9,9 @@
 using namespace gmpi;
 using namespace gmpi::drawing;
 using namespace std;
-//using namespace GmpiDrawing_API;
-//using namespace GmpiDrawing;
-
-//GMPI_REGISTER_GUI(MP_SUB_TYPE_GUI2, SubView, L"ContainerX");
 
 namespace
 {
-//	int32_t r = RegisterPluginXml(
 	auto r = gmpi::Register<SubView>::withXml(
 
 R"XML(
@@ -64,7 +59,8 @@ void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point
 	}
 }
 
-SubView::SubView(int pparentViewType) : ViewBase({1000, 1000})
+SubView::SubView(SE2::ViewChild* pparent, int pparentViewType) : ViewBase({1000, 1000})
+	, parent(pparent)
 	, parentViewType(pparentViewType)
 {
 #if 0
@@ -349,7 +345,7 @@ gmpi::ReturnCode SubView::arrange(const gmpi::drawing::Rect* finalRect)
 
 bool SubView::isShown()
 {
-	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
+//	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 	if (!parent->isShown())
 		return false;
 
