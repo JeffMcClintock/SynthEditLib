@@ -198,8 +198,8 @@ namespace SE2
 			if(result == gmpi::ReturnCode::Ok) // Ok indicates mouse 'hit'
 				hitObject = mouseOverObject;
 
-#if 0 // TODO used to be supported. needed? (object handles click itself but without capturing mouse)
-			if(result == gmpi::MP_HANDLED) // indicates mouse 'hit' AND handled already.
+#if 1		// object handles click itself but without capturing mouse. e.g. clicking a line.
+			if(result == gmpi::ReturnCode::Handled) // indicates mouse 'hit' AND handled already.
 			{
 #ifdef DEBUG_HIT_TEST
 				_RPT0(0, " and not captured\n");

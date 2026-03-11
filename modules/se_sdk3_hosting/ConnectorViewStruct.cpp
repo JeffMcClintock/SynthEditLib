@@ -592,21 +592,21 @@ namespace SE2
 		hoverNode = -1;
 		hoverSegment = -1;
 
-		if (!pointInRect(point, getClipArea()))
-		{
+		if (!pointInRect(point, getClipArea()) || !geometry)
 			return gmpi::ReturnCode::Unhandled;
-		}
-		if (!geometry)
-		{
-			return gmpi::ReturnCode::Unhandled;
-		}
 
-		gmpi::drawing::Point local(point);
-		local.x -= bounds_.left;
-		local.y -= bounds_.top;
 
 		if (!geometry.strokeContainsPoint(point, 3.0f))
 			return gmpi::ReturnCode::Unhandled;
+
+		// when highlighted, line moves in front of pin, so ignore hits near to the end.
+		if(highlightFlags != 0)
+		{
+			const float endIgnoreDistanceSquared = 10.0f * 10.0f;
+			if (   vectorFromPoints(point, from_).LengthSquared() < endIgnoreDistanceSquared
+				|| vectorFromPoints(point, to_  ).LengthSquared() < endIgnoreDistanceSquared)
+				return gmpi::ReturnCode::Unhandled;
+		}
 
 		// hit test individual node points.
 		int i = 0;
@@ -716,7 +716,7 @@ namespace SE2
 				// if we were not selected, or still are not - don't interact with nodes
 				// if shift or ctlr held - indicates a possible 'is_selected' change, not node editing.
 				if (!wasSelected || !getSelected() || (flags & (gmpi_gui_api::GG_POINTER_KEY_CONTROL | gmpi_gui_api::GG_POINTER_KEY_SHIFT)) != 0)
-					return gmpi::ReturnCode::Unhandled;
+					return gmpi::ReturnCode::Handled; // handled means don't clear selection.
 
 				// Clicked a node?
 				if (hoverNode >= 0)
