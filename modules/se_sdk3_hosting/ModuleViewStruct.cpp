@@ -822,7 +822,6 @@ namespace SE2
 			const float right = getWidth(getLayoutRect()) - plugDiameter * 0.5f + 0.5f;
 
 			Point p(0, plugDiameter * 0.5f - 0.5f);
-			int prevDatatype = -1;
 			int pinIndex = 0;
 
 			for (const auto& pin : plugs_)
@@ -859,12 +858,19 @@ namespace SE2
 
 					// Spare container pins white.
 					const int datatype = (pin.isAutoduplicatePlug && pin.isIoPlug) ? static_cast<int>(std::size(pinColors)) - 1 : pin.datatype;
-					if (prevDatatype != datatype)
+					const bool isPinHovered = hoverPin == pinIndex;
+					Color fillColor = colorFromHex(pinColors[datatype][0]);
+					Color pinOutlineColor = colorFromHex(pinColors[datatype][1]);
+
+					if (isPinHovered)
 					{
-						fillBrush.setColor(pinColors[datatype][0]);
-						outlineBrush.setColor(pinColors[datatype][1]);
-						prevDatatype = datatype;
+						fillColor = interpolateColor(fillColor, Colors::White, 0.35f);
+						pinOutlineColor = interpolateColor(pinOutlineColor, Colors::White, 0.25f);
 					}
+
+					fillBrush.setColor(fillColor);
+					outlineBrush.setColor(pinOutlineColor);
+
 					const float fillRadius = hoverPin == pinIndex ? pinRadius + 1.0f : pinRadius;
 					const float outlineRadius = hoverPin == pinIndex ? adjustedPinRadius + 1.0f : adjustedPinRadius;
 
@@ -2158,6 +2164,10 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 		// when selected, adorner takes over hit testing, except for client area.
 		if(getSelected())
 		{
+			auto pin = getPinUnderMouse(point);
+			if (pin.first >= 0 && pin.second == 0) // keep pin hover active while selected.
+				return solidHit;
+
 			if(pointInRect(point, pluginGraphicsPos))
 				return solidHit;
 
@@ -2334,8 +2344,7 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 					}
 				}
 				Presenter()->setHoverScopePin(handle, dspHoverPin);
-
-				invalidateRect(nullptr);
+				parent->ChildInvalidateRect(getClipArea());
 			}
 		}
 
