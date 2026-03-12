@@ -12,9 +12,9 @@ namespace SE2
 // sub-view shown on Panel.
 class SubView : public SE2::ViewBase, public ISubView
 {
-	BoolGuiPin showControlsLegacy;
-	BoolGuiPin showControlsOnModule_unused;
-	BoolGuiPin showControls;
+	gmpi::editor::Pin<bool> showControlsLegacy;
+	gmpi::editor::Pin<bool> showControlsOnModule_unused;
+	gmpi::editor::Pin<bool> showControls;
 
 	gmpi::drawing::Rect viewBounds;
 	int parentViewType = 0;
@@ -25,7 +25,9 @@ public:
 
 	SubView() : SE2::ViewBase({ 1000, 1000 })
 	{
-		int x = 9;
+		init(showControlsLegacy);
+		init(showControlsOnModule_unused);
+		init(showControls);
 	}
 	SubView(SE2::ViewChild* parent, int pparentViewType = CF_PANEL_VIEW);
 

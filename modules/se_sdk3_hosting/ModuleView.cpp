@@ -721,6 +721,9 @@ namespace SE2
 
 		auto subPresenter = Presenter()->CreateSubPresenter(handle);
 		subView->Init(subPresenter);
+		
+//		subView->setHost(gmpiHelper.get());
+
 		subView->BuildModules(context, guiObjectMap);
 
 		if (Presenter()->GetPatchManager() != subPresenter->GetPatchManager())
@@ -812,6 +815,8 @@ namespace SE2
 
 			if(pluginParameters_GMPI)
 				pluginParameters_GMPI->setHost(static_cast<gmpi::api::IEditorHost*>(gmpiHelper.get()));
+			//else if(subView)
+			//	subView->setHost(static_cast<gmpi::api::IEditorHost*>(gmpiHelper.get()));
 
 			if(pluginGraphics_GMPI)
 				pluginGraphics_GMPI->open(static_cast<gmpi::api::IDrawingHost*>(gmpiHelper.get()));

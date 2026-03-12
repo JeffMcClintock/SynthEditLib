@@ -94,10 +94,6 @@ bool isIteratingChildren = false;
 		ViewBase(gmpi::drawing::Size size);
 		virtual ~ViewBase()
 		{
-			//if (inputHost_)
-			//	inputHost_->release();
-			//if (drawingHost_)
-			//	drawingHost_->release();
 			mouseOverObject = {};
 		}
 
@@ -261,26 +257,15 @@ bool isIteratingChildren = false;
 		void DragNewModule(const char* id);
 		virtual ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) = 0;
 
+		/* handled by PluginEditor base class
 		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
-			*returnInterface = nullptr;
-
-			if (*iid == gmpi::api::IDrawingClient::guid || *iid == gmpi::api::IUnknown::guid)
-			{
-				*returnInterface = static_cast<gmpi::api::IDrawingClient*>(this);
-				addRef();
-				return gmpi::ReturnCode::Ok;
-			}
-
-			if (*iid == gmpi::api::IInputClient::guid)
-			{
-				*returnInterface = static_cast<gmpi::api::IInputClient*>(this);
-				addRef();
-				return gmpi::ReturnCode::Ok;
-			}
-
+			*returnInterface = {};
+			GMPI_QUERYINTERFACE(gmpi::api::IDrawingClient)
+			GMPI_QUERYINTERFACE(gmpi::api::IInputClient)
 			return gmpi::ReturnCode::NoSupport;
 		}
+		*/
 		GMPI_REFCOUNT
 	};
 

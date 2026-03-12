@@ -41,7 +41,7 @@ R"XML(
 
 int32_t SubView::StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, bool isHeldAlt, SE2::CableType type)
 {
-	auto moduleview = dynamic_cast<SE2::ModuleView*>(drawingHost.get()); // this->getGuiHost());
+	auto moduleview = dynamic_cast<SE2::ModuleView*>(parent); // dynamic_cast<SE2::ModuleView*>(drawingHost.get()); // this->getGuiHost());
 	dragStartPoint += offset_;
 	dragStartPoint = transformPoint( moduleview->OffsetToClient(), dragStartPoint);
 
@@ -82,6 +82,8 @@ SubView::SubView(SE2::ViewChild* pparent, int pparentViewType) : ViewBase({1000,
 
 void SubView::BuildModules(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap)
 {
+	assert(drawingHost); // needs to be initialised
+
 	mouseOverObject = {};
 
 #if _DEBUG
@@ -134,8 +136,9 @@ void SubView::onValueChanged()
 	// if we just blinked into existence, need to update mouse over object
 	if (isShown())
 	{
-		auto moduleview = dynamic_cast<SE2::ModuleView*>(drawingHost.get());
-		moduleview->parent->onSubPanelMadeVisible();
+		//auto moduleview = dynamic_cast<SE2::ModuleView*>(drawingHost.get());
+		//moduleview->
+		dynamic_cast<SE2::ModuleView*>(parent)->parent->onSubPanelMadeVisible();
 	}
 
 	OnPatchCablesVisibilityUpdate();
@@ -145,7 +148,7 @@ void SubView::onValueChanged()
 
 void SubView::OnPatchCablesVisibilityUpdate()
 {
-	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
+//	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 	parent->parent->OnPatchCablesVisibilityUpdate();
 }
 
@@ -157,7 +160,7 @@ SE2::ConnectorViewBase* SubView::createCable(SE2::CableType type, int32_t handle
 void SubView::markDirtyChild(SE2::IViewChild* child)
 {
 	SE2::ViewBase::markDirtyChild(child);
-	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
+//	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 	parent->parent->markDirtyChild(parent);
 }
 
@@ -185,7 +188,7 @@ gmpi::ReturnCode SubView::initialize()
 
 	if( x != -99999)
 	{
-		auto module = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
+		auto module = parent; // dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 		offset_.width -= module->bounds_.left;
 		offset_.height -= module->bounds_.top;
 	}
@@ -306,7 +309,7 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 		// avoid 'show on module' structure view messing up panel view's offset.
 		if (parentViewType == CF_PANEL_VIEW)
 		{
-			auto module = dynamic_cast<SE2::ViewChild*>(drawingHost.get());
+			auto module = parent; // dynamic_cast<SE2::ViewChild*>(drawingHost.get());
 			Presenter()->SetViewScroll(
 				static_cast<int32_t>(offset_.width + module->bounds_.left),
 				static_cast<int32_t>(offset_.height + module->bounds_.top)
@@ -326,7 +329,7 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 			offset_.height -= parentAdjustY;
 
 			// Adjust module top-left.
-			auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
+//			auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 
 			if (parent->parent->getViewType() == CF_PANEL_VIEW)
 				parent->Presenter()->ResizeModule(parent->handle, 0, 0, gmpi::drawing::Size((float)parentAdjustX, (float)parentAdjustY));
@@ -350,9 +353,9 @@ bool SubView::isShown()
 		return false;
 
 	if (parentViewType == CF_PANEL_VIEW)
-		return showControls || showControlsLegacy;
+		return showControls.value || showControlsLegacy.value;
 	else
-		return showControls;
+		return showControls.value;
 }
 
 gmpi::ReturnCode SubView::render(gmpi::drawing::api::IDeviceContext* drawingContext)
@@ -462,7 +465,7 @@ void SubView::OnChildMoved()
 {
 	// TODO : enhancement - also calc my cliprect on sum of child cliprects.
 
-	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
+//	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 
 	gmpi::drawing::Rect viewBoundsNew;
 	gmpi::drawing::Rect unused2;
