@@ -1,4 +1,3 @@
-
 #include "ConnectorView.h"
 #include "ContainerView.h"
 #include "ModuleView.h"
@@ -18,11 +17,8 @@ namespace SE2
 	{
 		auto& object_json = *datacontext;
 
-		fromModuleH = object_json["fMod"].asInt();
-		toModuleH = object_json["tMod"].asInt();
-
-		fromModulePin = object_json["fPlg"].asInt();
-		toModulePin = object_json["tPlg"].asInt();
+		fmPin = { object_json["fMod"].asInt(), object_json["fPlg"].asInt() };
+		toPin = { object_json["tMod"].asInt(), object_json["tPlg"].asInt() };
 
 		setSelected(object_json["selected"].asBool());
 		highlightFlags = object_json["highlightFlags"].asInt();
@@ -32,7 +28,6 @@ namespace SE2
 		{
 //			_RPTN(0, "ConnectorViewBase::ConnectorViewBase highlightFlags =  %d\n", highlightFlags);
 		}
-
 		cancellation = object_json["Cancellation"].asFloat();
 #endif
 	}
@@ -69,30 +64,35 @@ namespace SE2
 
 	void ConnectorViewBase::pickup(int pdraggingFromEnd, gmpi::drawing::Point pMousePos)
 	{
+		parent->invalidateRect(&bounds_);
+
 		if (pdraggingFromEnd == 0)
 			from_ = pMousePos;
 		else
 			to_ = pMousePos;
 
 		draggingFromEnd = pdraggingFromEnd;
+		wasPickedUp = true;
+
 		parent->setCapture(this);
 
-		parent->invalidateRect(); // todo bounds only. !!!
-
 		CalcBounds();
+
+		parent->MoveToFront(this);
+
 		parent->invalidateRect(&bounds_);
 	}
 
 	void ConnectorViewBase::OnModuleMoved()
 	{
-		auto module1 = Presenter()->HandleToObject(fromModuleH);
-		auto module2 = Presenter()->HandleToObject(toModuleH);
+		auto module1 = Presenter()->HandleToObject(fmPin.module);
+		auto module2 = Presenter()->HandleToObject(toPin.module);
 
 		if (module1 == nullptr || module2 == nullptr)
 			return;
 
-		auto from = module1->getConnectionPoint(type, fromModulePin);
-		auto to = module2->getConnectionPoint(type, toModulePin);
+		auto from = module1->getConnectionPoint(type, fmPin.index);
+		auto to = module2->getConnectionPoint(type, toPin.index);
 
 		from = module1->parent->MapPointToView(parent, from);
 		to = module2->parent->MapPointToView(parent, to);
@@ -168,8 +168,8 @@ namespace SE2
 		if (draggingFromEnd >= 0)
 			return true;
 
-		auto module1 = Presenter()->HandleToObject(fromModuleH);
-		auto module2 = Presenter()->HandleToObject(toModuleH);
+		auto module1 = Presenter()->HandleToObject(fmPin.module);
+		auto module2 = Presenter()->HandleToObject(toPin.module);
 
 		return module1 && module2 && module1->isShown() && module2->isShown();
 	}
@@ -292,7 +292,7 @@ namespace SE2
 		if (imCaptured()) //parent->getCapture()) // dragging?
 		{
 			parent->releaseCapture();
-			parent->EndCableDrag(point, this);
+			parent->EndCableDrag(point, this, flags);
 			// I am now DELETED!!!
 			return gmpi::ReturnCode::Unhandled;
 		}
@@ -347,18 +347,22 @@ namespace SE2
 	gmpi::ReturnCode ConnectorViewBase::onPointerUp(gmpi::drawing::Point point, int32_t flags)
 	{
 		endIsSnapped = false;
-		if (imCaptured()) //if (parent->getCapture())
+		if (imCaptured())
 		{
 			// detect single clicks on pin, continue dragging.
 			const float dragThreshold = 6;
 			if (abs(from_.x - to_.x) < dragThreshold && abs(from_.y - to_.y) < dragThreshold)
+				return gmpi::ReturnCode::Unhandled;
+
+			if(wasPickedUp)
 			{
+				wasPickedUp = false;
 				return gmpi::ReturnCode::Unhandled;
 			}
 
 			parent->autoScrollStop();
 			parent->releaseCapture();
-			parent->EndCableDrag(point, this);
+			parent->EndCableDrag(point, this, 0); // passsing zero flags on mouse-up, since alt key only relevant when clicking on pins while dragging.
 			// I am now DELETED!!!
 		}
 

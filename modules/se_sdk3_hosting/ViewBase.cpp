@@ -1,4 +1,3 @@
-
 #include <random>
 #include <sstream>
 #include <iostream>
@@ -15,6 +14,7 @@
 #include "mfc_emulation.h"
 #include "IGuiHost2.h"
 #include "InterfaceObject.h"
+#include "modules/se_sdk3_hosting/PresenterCommands.h"
 
 #ifdef _WIN32
 #include "Shared/DrawingFrame2_win.h"
@@ -1175,54 +1175,27 @@ namespace SE2
 		avoidRecusion = false;
 	}
 
-	int32_t ViewBase::StartCableDrag(IViewChild* fromModule, int fromPin, Point dragStartPoint, bool isHeldAlt, CableType type)
+	// dragStartPoint is the center of the pin we are dragging from, mousePoint is where the mouse is (usually very near)
+	int32_t ViewBase::StartCableDrag(IViewChild* fromModule, int fromPin, Point dragStartPoint, gmpi::drawing::Point mousePoint)
 	{
 		auto fromPoint = dragStartPoint;
 
-		// Check for existing cables, long click grabs? or shift-click?
-		if(isHeldAlt)
-		{
-			/*
-			for(auto it = children.rbegin(); it != children.rend(); )
-			{
-				auto l = dynamic_cast<PatchCableView*>((*it).get());
-				if(l)
-				{
-					if(l->fromModuleHandle() == fromModule->getModuleHandle() && l->fromPin() == fromPin)
-					{
-						l->pickup(0, fromPoint);
-						break;
-					}
-					if(l->toModuleHandle() == fromModule->getModuleHandle() && l->toPin() == fromPin)
-					{
-						l->pickup(1, fromPoint);
-						break;
-					}
-				}
+		ConnectorViewBase* cable = createCable(CableType::StructureCable, fromModule->getModuleHandle(), fromPin);
 
-				++it;
-			}
-			*/
-		}
-		else
-		{
-			// Not <ALT> held.
+		cable->from_ = dragStartPoint;
+		cable->to_ = mousePoint;
+		cable->type = CableType::StructureCable;
 
-			ConnectorViewBase* cable = createCable(type, fromModule->getModuleHandle(), fromPin);
+		cable->pickup(1, mousePoint);
 
-			cable->from_ = fromPoint;
-			cable->pickup(1, fromPoint);
-			cable->type = type;
+		assert(!isIteratingChildren);
+		children.push_back(std::unique_ptr<IViewChild>(cable));
 
-			assert(!isIteratingChildren);
-			children.push_back(std::unique_ptr<IViewChild>(cable));
+		int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_NEW | gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
+		flags |= gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON;
 
-			int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_NEW | gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
-			flags |= gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON;
-
-			setCapture(cable);
-			autoScrollStart();
-		}
+		setCapture(cable);
+		autoScrollStart();
 
 		return (int) gmpi::ReturnCode::Ok;
 	}
@@ -1253,9 +1226,11 @@ namespace SE2
 		return true;
 	}
 
-	bool ViewBase::EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline)
+	bool ViewBase::EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline, int32_t keyFlags)
 	{
-		assert(mouseCaptureObject != dragline); // caller should have released capture.
+		Presenter()->OnCommand(PresenterCommand::CancelPickupLine);
+
+		// no <ESC> key don't. assert(mouseCaptureObject != dragline); // caller should have released capture.
 		if (mouseCaptureObject == dragline)
 			releaseCapture();
 
@@ -1266,34 +1241,36 @@ namespace SE2
 		{
 			for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 			{
-				if((*it)->EndCableDrag(point, dragline))
+				if((*it)->EndCableDrag(point, dragline, keyFlags))
 					return true; // connection made OK.
 			}
 
 			// unsuccessful, remove drag-line.
-			RemoveChild(dragline); // WARNING children vector renewed, pointer no longer valid.
+			RemoveChild(dragline); // WARNING children vector renewed, dragline no longer valid.
 			return false;
 		}
 		else
 		{
+			const auto fromConnector = dragline->fmPin;
+			const auto toConnector = dragline->toPin;
+
 			gmpi::drawing::Point mousePos;
 			int existingModuleHandle = -1;
 			int existingModulePin = -1;
 
-			if(dragline->draggingFromEnd == 0)
+			if (dragline->draggingFromEnd == 0)
 			{
 				mousePos = dragline->from_;
-				existingModuleHandle = dragline->toModuleHandle();
-				existingModulePin = dragline->toPin();
+				existingModuleHandle = toConnector.module;
+				existingModulePin = toConnector.index;
 			}
 			else
 			{
 				mousePos = dragline->to_;
-				existingModuleHandle = dragline->fromModuleHandle();
-				existingModulePin = dragline->fromPin();
+				existingModuleHandle = fromConnector.module;
+				existingModulePin = fromConnector.index;
 			}
 
-			// which pin (if any) did cable land on?
 			int newModuleHandle = -1;
 			int newModulePin = -1;
 			{
@@ -1308,7 +1285,7 @@ namespace SE2
 					newModuleHandle = bestModule->getModuleHandle();
 			}
 
-			const bool wasConnected = dragline->fromModuleHandle() != -1 && dragline->toModuleHandle() != -1;
+			const bool wasConnected = fromConnector.module != -1 && toConnector.module != -1;
 
 			if (newModuleHandle == -1) // didn't hit any pin.
 			{
@@ -1316,10 +1293,10 @@ namespace SE2
 				{
 					// remove the cable from the model. The view will refresh automatically, deleting the dragline.
 					Presenter()->RemovePatchCable(
-						dragline->fromModuleHandle(),
-						dragline->fromPin(),
-						dragline->toModuleHandle(),
-						dragline->toPin()
+						fromConnector.module,
+						fromConnector.index,
+						toConnector.module,
+						toConnector.index
 					);
 				}
 				else
@@ -1332,9 +1309,9 @@ namespace SE2
 			// we did hit, was it back in the original pin?
 			bool droppedBackInPlace{};
 			if (dragline->draggingFromEnd == 0)
-				droppedBackInPlace = newModuleHandle == dragline->fromModuleHandle() && newModulePin == dragline->fromPin();
+				droppedBackInPlace = newModuleHandle == fromConnector.module && newModulePin == fromConnector.index;
 			else
-				droppedBackInPlace = newModuleHandle == dragline->toModuleHandle() && newModulePin == dragline->toPin();
+				droppedBackInPlace = newModuleHandle == toConnector.module && newModulePin == toConnector.index;
 
 			if (droppedBackInPlace) // then nothing changes.
 			{
@@ -1350,10 +1327,10 @@ namespace SE2
 			{
 				// remove the cable from the model. The view will refresh automatically, deleting the dragline.
 				Presenter()->RemovePatchCable(
-					dragline->fromModuleHandle(),
-					dragline->fromPin(),
-					dragline->toModuleHandle(),
-					dragline->toPin()
+					fromConnector.module,
+					fromConnector.index,
+					toConnector.module,
+					toConnector.index
 				);
 			}
 			else
@@ -1388,7 +1365,7 @@ namespace SE2
 			auto l = dynamic_cast<PatchCableView*>((*it).get());
 			if(l)
 			{
-				//				_RPT2(_CRT_WARN, "Ers Cable %x -> %x\n", l->fromModuleHandle(), l->toModuleHandle());
+				//				_RPT2(_CRT_WARN, "Ers Cable %x -> %x\n", l->fmPin.module, l->toPin.module);
 				if (mouseOverObject == (*it).get())
 					mouseOverObject = {};
 
@@ -1427,14 +1404,29 @@ namespace SE2
 
 	void ViewBase::RemoveCables(ConnectorViewBase* cable)
 	{
-		for(auto it = children.begin(); it != children.end(); ++it)
+		for(auto& child : children)
 		{
-			if((*it).get() == cable)
+			if(child.get() == cable)
 			{
-				Presenter()->RemovePatchCable(cable->fromModuleHandle(), cable->fromPin(), cable->toModuleHandle(), cable->toPin());
+				Presenter()->RemovePatchCable(cable->fmPin.module, cable->fmPin.index, cable->toPin.module, cable->toPin.index);
 				break;
 			}
 		}
+	}
+
+	std::pair<ConnectorViewBase*, int> ViewBase::getTopCable(int32_t handle, int32_t pinIdx)
+	{
+		for(auto& child : children)
+		{
+			auto cable = dynamic_cast<ConnectorViewBase*>(child.get());
+			if(!cable)
+				continue;
+
+			auto whichEnd = cable->isConnectedToWhichEnd(handle, pinIdx);
+			if(whichEnd >= 0)
+				return {cable, whichEnd};
+		}
+		return {nullptr, -1};
 	}
 
 	// remove one module without invalidating entire view.
@@ -1484,20 +1476,8 @@ namespace SE2
 
 		const auto nfo = (DspMsgInfo2*)msg;
 
-		auto m = Presenter()->HandleToObject(nfo->handle);
-		if(m)
-		{
+		if(auto m = Presenter()->HandleToObject(nfo->handle); m)
 			m->receiveMessageFromAudio(msg);
-		}
-		/*
-				for (auto& m : children)
-				{
-					if (m->getModuleHandle() == nfo->handle)
-					{
-						m->receiveMessageFromAudio(msg);
-					}
-				}
-		*/
 	}
 
 	void ViewBase::MoveToFront(IViewChild* child)
@@ -1708,6 +1688,31 @@ namespace SE2
 		arrange(&drawingBounds);
 
 		invalidateRect();
+
+		if(!(*context)["draggingLineFromMod"].isNull() && !(*context)["draggingLineFromPin"].isNull())
+		{
+			const auto draggingLineFromMod = (*context)["draggingLineFromMod"].asInt();
+			const auto draggingLineFromPin = (*context)["draggingLineFromPin"].asInt();
+			const auto draggingLineToMod = (*context)["draggingLineToMod"].asInt();
+			const auto draggingLineToPin = (*context)["draggingLineToPin"].asInt();
+
+			if(draggingLineFromMod > -1)
+			{
+				auto fromView = Presenter()->HandleToObject(draggingLineFromMod);
+				auto dragStartPoint = fromView->getConnectionPoint(CableType::StructureCable, draggingLineFromPin);
+
+				// this is only an estimate of where the mouse is. Over the pin that it picked up the cable from.
+				auto toView = Presenter()->HandleToObject(draggingLineToMod);
+				auto mousePoint = toView->getConnectionPoint(CableType::StructureCable, draggingLineToPin);
+
+				StartCableDrag(
+					fromView,
+					draggingLineFromPin,
+					dragStartPoint,
+					mousePoint
+				);
+			}
+		}
 	}
 
 #if 0 // TODO support this
@@ -2197,7 +2202,7 @@ namespace SE2
 			if (auto cable = dynamic_cast<SE2::ConnectorViewBase*>(mouseCaptureObject); cable)
 			{
 				autoScrollStop();
-				EndCableDrag({ -10000, -10000 }, cable);
+				EndCableDrag({ -10000, -10000 }, cable, 0);
 				return gmpi::ReturnCode::Handled;
 			}
 			else if (!draggingNewModuleId.empty())

@@ -10,7 +10,6 @@
 #include "InterfaceObject.h"
 #include "cpu_accumulator.h"
 #include "ResizeAdorner.h"
-//#include "modules/shared/GraphHelpers.h"
 #include "helpers/SimplifyGraph.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
 #include "mfc_emulation.h"
@@ -1466,7 +1465,6 @@ namespace SE2
 							// small curve.
 							sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
 
-//							BezierSegment bs6(gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX - radius + QCPDistance, top), gmpi::drawing::Point(edgeX - radius, top));
 							BezierSegment bs6(gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX - radius + QCPDistance, y), gmpi::drawing::Point(edgeX - radius, y));
 							sink.addBezier(bs6);
 						}
@@ -1844,9 +1842,7 @@ namespace SE2
 		int childCount = (int)filteredChildren.size();
 
 		// Pin coloring.
-//		bool hasGuiPins = false;
-//		bool hasDspPins = false;
-//		bool startedFigure = false;
+		bool startedFigure = false;
 
 		enum { EBump, EFlat, EPlugingraphics };
 
@@ -2256,9 +2252,9 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 		if(gmpi::ReturnCode::Ok == res || gmpi::ReturnCode::Handled == res) // Client was hit (and cared).
 			return res;
 
-		// Handle double-click on module. (only if didn't click on a child control)
 		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
 		{
+			// Handle double-click on module. (only if didn't click on a child control)
 			auto now = std::chrono::steady_clock::now();
 			auto timeSincePreviousClick = now - lastClickedTime;
 			auto timeSincePreviousClick_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeSincePreviousClick).count();
@@ -2276,18 +2272,32 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 				if (gmpi::ReturnCode::Handled == res2)
 					return res2;
 			}
-		}
-		
-		// Mouse not over client graphics, check pins.
-		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
-		{
+
+			// handle click on pins
 			auto toPin = getPinUnderMouse(point);
 			if (toPin.pinIndex >= 0)
 			{
 				if (toPin.hitCircle) // Hit connection circle.
 				{
+					// pickup existing cable
+					const auto isAltHeld = 0 != (flags & gmpi_gui_api::GG_POINTER_KEY_ALT);
+					if(isAltHeld)
+					{
+						// find existing cable
+						if(auto [cable, whichend] = parent->getTopCable(handle, toPin.pinIndex); cable)
+						{
+							Presenter()->OnCommand(
+								whichend == 1 ? PresenterCommand::PickupLineFrom : PresenterCommand::PickupLineTo
+								, cable->handle
+							);
+
+							return gmpi::ReturnCode::Ok;
+						}
+					}
+
+					// start a new cable
 					auto dragStartPoint = getConnectionPoint(CableType::StructureCable, toPin.pinIndex);
-					parent->StartCableDrag(this, toPin.pinIndex, dragStartPoint, 0 != (flags & gmpi_gui_api::GG_POINTER_KEY_ALT), CableType::StructureCable);
+					parent->StartCableDrag(this, toPin.pinIndex, dragStartPoint, point);
 				}
 				else // hit text. wait and see if we dragged the module. before tracing wire.
 				{
@@ -2436,27 +2446,27 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 		}
 	}
 
-	bool ModuleViewStruct::EndCableDrag(gmpi::drawing::Point unused, ConnectorViewBase* dragline)
+	// ignores fuzzy hit testing of pins, but since the line will have snapped to the exact center of the correct pin, should work out OK.
+	bool ModuleViewStruct::EndCableDrag(gmpi::drawing::Point unused, ConnectorViewBase* dragline, int32_t keyFlags)
 	{
-		auto p = dragline->dragPoint();
-		if (hitTest(p, 0) != gmpi::ReturnCode::Ok)
-		{
+		auto hitPin = getPinUnderMouse(dragline->dragPoint());
+
+		if (dragline->type != CableType::StructureCable || hitPin.pinIndex < 0 || !hitPin.hitCircle)
 			return false;
-		}
 
-		if (dragline->type == CableType::StructureCable)
+		// did we drag a line back to it's original pin and <ALT>-click?
+		if((keyFlags & gmpi_gui_api::GG_POINTER_KEY_ALT) != 0 && hitPin.pinIndex == dragline->dragEnd().index && getModuleHandle() == dragline->dragEnd().module)
 		{
-			auto toPin = getPinUnderMouse(p);
-			if (toPin.pinIndex >= 0 && toPin.hitCircle)
-			{
-				// redraw the line as though it were a normal connection, to give immediate visual feedback to the user.
-				dragline->draggingFromEnd = -1;
-				dragline->parent->ChildInvalidateRect(dragline->bounds_);
-
-				return Presenter()->AddConnector(dragline->fromModuleHandle(), dragline->fromPin(), getModuleHandle(), toPin.pinIndex, false);
-			}
+			// PROB: dragline no longer holds old connection info, since it's a fresh one.
+			int x = 9;
 		}
-		return false;
+
+		// redraw the line as though it were a normal connection, to give immediate visual feedback to the user.
+		const auto fixedEnd = dragline->fixedEnd();
+		dragline->draggingFromEnd = -1;
+		dragline->parent->ChildInvalidateRect(dragline->bounds_);
+
+		return Presenter()->AddConnector(fixedEnd.module, fixedEnd.index, getModuleHandle(), hitPin.pinIndex, false);
 	}
 
 	std::unique_ptr<IViewChild> ModuleViewStruct::createAdorner(ViewBase* pParent)

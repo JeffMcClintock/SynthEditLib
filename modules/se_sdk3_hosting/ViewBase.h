@@ -185,13 +185,14 @@ bool isIteratingChildren = false;
 		}
 		int32_t releaseCapture();
 
-		virtual int32_t StartCableDrag(IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, bool isHeldAlt, CableType type = CableType::PatchCable);
+		virtual int32_t StartCableDrag(IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint);
 		bool OnCableMove(ConnectorViewBase * dragline);
-		bool EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline);
+		bool EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline, int32_t keyFlags);
 		void OnPatchCablesUpdate(RawView patchCablesRaw);
 		void UpdateCablesBounds();
 		void RemoveCables(ConnectorViewBase* cable);
 		void RemoveModule(int32_t handle);
+		std::pair<ConnectorViewBase*, int> getTopCable(int32_t handle, int32_t pinIdx);
 
 		void OnChangedChildHighlight(int phandle, int flags);
 

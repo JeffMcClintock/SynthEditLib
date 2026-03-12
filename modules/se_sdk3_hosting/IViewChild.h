@@ -79,7 +79,7 @@ namespace SE2
 		virtual void OnCableDrag(class ConnectorViewBase* dragline) // i.e. during cable being dragged around.
 		{
 		}
-		virtual bool EndCableDrag(gmpi::drawing::Point point, class ConnectorViewBase* dragline)
+		virtual bool EndCableDrag(gmpi::drawing::Point point, class ConnectorViewBase* dragline, int32_t keyFlags)
 		{
 			return false;
 		}

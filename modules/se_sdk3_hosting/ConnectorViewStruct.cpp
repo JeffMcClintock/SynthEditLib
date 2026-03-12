@@ -696,11 +696,11 @@ namespace SE2
 	{
 //		_RPT0(_CRT_WARN, "ConnectorView2::onPointerDown\n");
 
-		if (imCaptured()) //if (parent->getCapture()) // then we are *already* draging.
+		if (imCaptured()) // then we are *already* draging.
 		{
 			parent->autoScrollStop();
 			parent->releaseCapture();
-			parent->EndCableDrag(point, this);
+			parent->EndCableDrag(point, this, flags);
 			// I am now DELETED!!!
 			return gmpi::ReturnCode::Unhandled;
 		}
@@ -784,11 +784,11 @@ namespace SE2
 		returnDesiredSize->height = 10;
 		returnDesiredSize->width = 10;
 
-		auto module1 = dynamic_cast<ModuleViewStruct*>(Presenter()->HandleToObject(fromModuleH));
+		auto module1 = dynamic_cast<ModuleViewStruct*>(Presenter()->HandleToObject(fmPin.module));
 		if (module1)
 		{
-			datatype = static_cast<char>(module1->getPinDatatype(fromModulePin));
-			drawArrows = module1->getPinGuiType(fromModulePin) && !module1->isMonoDirectional();
+			datatype = static_cast<char>(module1->getPinDatatype(fmPin.index));
+			drawArrows = module1->getPinGuiType(fmPin.index) && !module1->isMonoDirectional();
 		}
 
 	}

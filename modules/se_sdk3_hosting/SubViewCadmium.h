@@ -102,7 +102,7 @@ public:
 		return p;
 	}
 
-	int32_t StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, bool isHeldAlt, SE2::CableType type) override;
+	int32_t StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint) override;
 	virtual void OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, SE2::IViewChild*& bestModule, int& bestPinIndex);
 	void OnPatchCablesVisibilityUpdate() override;
 

@@ -628,7 +628,7 @@ namespace SE2
 		virtual void arrange(gmpi::drawing::Rect finalRect) override;
 		gmpi::drawing::Rect getClipArea() override;
 
-		bool EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline) override;
+		bool EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline, int32_t keyFlags) override;
 
 		bool isVisable() override
 		{

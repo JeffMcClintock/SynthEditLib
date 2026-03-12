@@ -1,4 +1,3 @@
-
 #include "SubViewPanel.h"
 #include <cmath>
 #include "../shared/xplatform.h"
@@ -39,13 +38,16 @@ R"XML(
 
 }
 
-int32_t SubView::StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, bool isHeldAlt, SE2::CableType type)
+int32_t SubView::StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint)
 {
-	auto moduleview = dynamic_cast<SE2::ModuleView*>(parent); // dynamic_cast<SE2::ModuleView*>(drawingHost.get()); // this->getGuiHost());
+	auto moduleview = dynamic_cast<SE2::ModuleView*>(parent);
 	dragStartPoint += offset_;
-	dragStartPoint = transformPoint( moduleview->OffsetToClient(), dragStartPoint);
+	dragStartPoint = transformPoint(moduleview->OffsetToClient(), dragStartPoint);
 
-	return moduleview->parent->StartCableDrag(fromModule, fromPin, dragStartPoint, isHeldAlt);
+	mousePoint += offset_;
+	mousePoint = transformPoint(moduleview->OffsetToClient(), mousePoint);
+
+	return moduleview->parent->StartCableDrag(fromModule, fromPin, dragStartPoint, mousePoint);
 }
 
 void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex)
@@ -205,7 +207,7 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 
 	// calc my bounds.
 	// Start with inverted rect (no area).
-    viewBounds = gmpi::drawing::Rect(200000, 200000, -200000, -200000);
+	 viewBounds = gmpi::drawing::Rect(200000, 200000, -200000, -200000);
 
     const gmpi::drawing::Size veryLarge(100000, 100000);
 	gmpi::drawing::Size notused;
@@ -251,7 +253,7 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 													/*
 													if (debug)
 													{
-													_RPT2(_CRT_WARN, "desired s[ %f %f]\n", desired.width, desired.height);
+													_RPT2(_CRT_WARN, "desired s[ %f %f]\n", desired.width, desirable.height);
 													}
 													*/
 													// Font variations cause Slider to report different desired size.

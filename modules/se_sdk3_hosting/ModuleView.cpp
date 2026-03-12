@@ -1,4 +1,3 @@
-
 #include <vector>
 #include <array>
 #include <sstream>
@@ -926,7 +925,7 @@ if(pluginGraphics)
 						if(distanceSquared <= p.radius * p.radius)
 						{
 							Point dragStartPoint = Point(static_cast<float>(p.x), static_cast<float>(p.y)) + Size(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
-							parent->StartCableDrag(this, p.dspPin, dragStartPoint, 0 != (flags & gmpi_gui_api::GG_POINTER_KEY_ALT));
+							parent->StartCableDrag(this, p.dspPin, dragStartPoint, point);
 							return gmpi::ReturnCode::Handled;
 						}
 					}
@@ -1573,12 +1572,14 @@ if(pluginGraphics)
 				std::vector<patchpoint_description>* patchPoints;
 				patchPoints = &getModuleType()->patchPoints;
 
+				const auto fixedEnd = dragline->fixedEnd();
+
 				for (auto& patchpoint : *patchPoints)
 				{
 					float distanceSquared = (local.x - patchpoint.x) * (local.x - patchpoint.x) + (local.y - patchpoint.y) * (local.y - patchpoint.y);
-					if (distanceSquared < bestDistanceSquared && (dragline->fixedEndModule() != handle || dragline->fixedEndPin() != patchpoint.dspPin))
+					if (distanceSquared < bestDistanceSquared && (fixedEnd.module != handle || fixedEnd.index != patchpoint.dspPin))
 					{
-						if (Presenter()->CanConnect(dragline->type, dragline->fixedEndModule(), dragline->fixedEndPin(), handle, patchpoint.dspPin))
+						if (Presenter()->CanConnect(dragline->type, fixedEnd.module, fixedEnd.index, handle, patchpoint.dspPin))
 						{
 							bestDistanceSquared = distanceSquared;
 							bestModule = this;
@@ -1590,7 +1591,7 @@ if(pluginGraphics)
 		}
 	}
 
-	bool ModuleViewPanel::EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline)
+	bool ModuleViewPanel::EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline, int32_t keyFlags)
 	{
 		if (hitTest(point, 0) != gmpi::ReturnCode::Ok)
 			return false;
@@ -1613,9 +1614,9 @@ if(pluginGraphics)
 					colorIndex = patchcable->getColorIndex();
 				}
 
-				Presenter()->AddPatchCable(dragline->fromModuleHandle(), dragline->fromPin(), getModuleHandle(), toPin, colorIndex);
+				const auto fromConnector = dragline->fmPin;
+				Presenter()->AddPatchCable(fromConnector.module, fromConnector.index, getModuleHandle(), toPin, colorIndex);
 				return true;
-				break;
 			}
 		}
 

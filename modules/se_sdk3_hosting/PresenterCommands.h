@@ -4,7 +4,7 @@
 #include "PresenterCommands.h"
 */
 
-enum class PresenterCommand { Delete, SelectAll, Undo, Redo, Cut, Copy, Paste, ToFront, ToBack, Lock, Contain, UnContain, Open, RefreshView, UnloadView, ImportPrefab };
+enum class PresenterCommand { Delete, SelectAll, Undo, Redo, Cut, Copy, Paste, ToFront, ToBack, Lock, Contain, UnContain, Open, RefreshView, UnloadView, ImportPrefab, PickupLineFrom, PickupLineTo, CancelPickupLine };
 
 enum {
 	PinHighlightFlag_None               = 0,

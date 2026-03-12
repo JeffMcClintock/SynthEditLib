@@ -92,7 +92,7 @@ public:
 
 	void OnClickedButDidntDrag() override;
 	void OnCableDrag(ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, ModuleView*& bestModule, int& bestPinIndex) override;
-	bool EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline) override;
+	bool EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline, int32_t keyFlags) override;
 
 	bool isVisable() override
 	{

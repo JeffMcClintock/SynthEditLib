@@ -5,16 +5,18 @@
 
 namespace SE2
 {
+	struct connector_pin
+	{
+		int32_t module = -1;
+		int32_t index = -1;
+	};
+
 	class ConnectorViewBase : public ViewChild
 	{
 	protected:
 		const int cableDiameter = 6;
 		static const int lineWidth_ = 3;
 		
-		int32_t fromModuleH;
-		int32_t toModuleH;
-		int fromModulePin;
-		int toModulePin;
 		char datatype = DT_FSAMPLE;
 		bool drawArrows = false;
 		int highlightFlags = 0;
@@ -27,10 +29,14 @@ namespace SE2
 
 	public:
 
+		connector_pin fmPin;
+		connector_pin toPin;
+
 		int draggingFromEnd = -1;
 		bool endIsSnapped = false;
 		gmpi::drawing::Point from_;
 		gmpi::drawing::Point to_;
+		bool wasPickedUp = {};
 
 		CableType type = CableType::PatchCable;
 
@@ -40,10 +46,8 @@ namespace SE2
 		// Dynamic patch-cables.
 		ConnectorViewBase(ViewBase* pParent, int32_t pfromUgHandle, int fromPin, int32_t ptoUgHandle, int toPin) :
 			ViewChild(pParent, -1)
-			, fromModuleH(pfromUgHandle)
-			, toModuleH(ptoUgHandle)
-			, fromModulePin(fromPin)
-			, toModulePin(toPin)
+			, fmPin{ pfromUgHandle, fromPin }
+			, toPin{ ptoUgHandle, toPin }
 		{
 		}
 
@@ -56,22 +60,14 @@ namespace SE2
 
 		void pickup(int draggingFromEnd, gmpi::drawing::Point pMousePos);
 
-		int32_t toModuleHandle()
+		const connector_pin& fixedEnd() const
 		{
-			return toModuleH;
+			return draggingFromEnd == 1 ? fmPin : toPin;
 		}
 
-		int32_t fromModuleHandle()
+		const connector_pin& dragEnd() const
 		{
-			return fromModuleH;
-		}
-		int32_t fromPin()
-		{
-			return fromModulePin;
-		}
-		int32_t toPin()
-		{
-			return toModulePin;
+			return draggingFromEnd == 0 ? fmPin : toPin;
 		}
 
 		void measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize) override;
@@ -83,6 +79,7 @@ namespace SE2
 
 		// IViewChild
 		gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
+//		gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
 		gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
 		gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override
 		{
@@ -96,15 +93,25 @@ namespace SE2
 
 		int32_t fixedEndModule()
 		{
-			return draggingFromEnd == 1 ? fromModuleH : toModuleH;
+			return fixedEnd().module;
 		}
 		int32_t fixedEndPin()
 		{
-			return draggingFromEnd == 1 ? fromModulePin : toModulePin;
+			return fixedEnd().index;
 		}
 		gmpi::drawing::Point dragPoint()
 		{
 			return draggingFromEnd == 1 ? to_ : from_;
+		}
+
+		int isConnectedToWhichEnd(int32_t handle, int32_t pinIdx)
+		{
+			if (fmPin.module == handle && fmPin.index == pinIdx)
+				return 0;
+			if (toPin.module == handle && toPin.index == pinIdx)
+				return 1;
+
+			return -1;
 		}
 	};
 
