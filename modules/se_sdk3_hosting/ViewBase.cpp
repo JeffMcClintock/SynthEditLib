@@ -74,26 +74,30 @@ namespace SE2
 		//_RPT4(_CRT_WARN, "OnRender    clip[ %d %d %d %d]\n", (int)cliprect.left, (int)cliprect.top, (int)cliprect.right, (int)cliprect.bottom);
 
 		const Matrix3x2 originalTransform = g.getTransform();
-
+		bool isOriginal = true;
 		for(auto& m : children)
 		{
 			auto b = m->getClipArea();
-			if(overlaps(b, cliprect))
+			if(!overlaps(b, cliprect))
+				continue;
+
+			if(dynamic_cast<ConnectorViewBase*>(m.get()))
 			{
-				if(dynamic_cast<ConnectorViewBase*>(m.get()))
+				if(!isOriginal) // avoid repeated set of original transform if not needed.
 				{
 					g.setTransform(originalTransform);
+					isOriginal = true;
 				}
-				else
-				{
-					auto layoutRect = m->getLayoutRect();
-					auto adjustedTransform = makeTranslation(layoutRect.left, layoutRect.top) * originalTransform;
-					g.setTransform(adjustedTransform);
-				}
-
-				m->render(g);
-				//				_RPT0(_CRT_WARN, "X");
 			}
+			else
+			{
+				auto layoutRect = m->getLayoutRect();
+				auto adjustedTransform = makeTranslation(layoutRect.left, layoutRect.top) * originalTransform;
+				g.setTransform(adjustedTransform);
+				isOriginal = false;
+			}
+
+			m->render(g);
 		}
 
 		g.setTransform(originalTransform);
