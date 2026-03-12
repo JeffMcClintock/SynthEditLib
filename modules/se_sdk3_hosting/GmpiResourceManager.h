@@ -1,7 +1,7 @@
 #pragma once
-
-#include "mp_api.h"
-#include "mp_sdk_gui2.h"
+#include <map>
+#include <unordered_map>
+#include "mp_sdk_common.h"
 
 enum class GmpiResourceType
 {

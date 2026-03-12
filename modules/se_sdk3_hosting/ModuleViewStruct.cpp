@@ -43,16 +43,6 @@ inline PathGeometry DataToGraph(Graphics& g, const std::vector<Point>& inData)
 	return geometry;
 }
 
-inline Color interpolateColor(Color a, Color b, float fraction)
-{
-	return Color(
-		a.r + (b.r - a.r) * fraction,
-		a.g + (b.g - a.g) * fraction,
-		a.b + (b.b - a.b) * fraction,
-		a.a + (b.a - a.a) * fraction
-	);
-}
-
 namespace SE2
 {
 	std::chrono::time_point<std::chrono::steady_clock> ModuleViewStruct::lastClickedTime;
@@ -460,9 +450,7 @@ namespace SE2
 	sharedGraphicResources_struct* ModuleViewStruct::getDrawingResources(gmpi::drawing::Factory& factory)
 	{
 		if(!drawingResources)
-		{
 			drawingResources = drawingResourcesCache.get(factory);
-		}
 
 		return drawingResources.get();
 	}
@@ -543,6 +531,7 @@ namespace SE2
         auto resources = getDrawingResources(drawingFactory);
 
 		auto zoomFactor = g.getTransform()._11; // horizontal scale.
+		resources->initializePinFillBrushes(g);
 
 		// Cache outline.
 		if (!outlineGeometry)
@@ -633,8 +622,7 @@ namespace SE2
 		{
 			g.fillGeometry(outlineGeometry, backgroundBrush);
 
-			SolidColorBrush moduleOutlineBrush;
-			moduleOutlineBrush = g.createSolidColorBrush(isHovered_ ? Colors::DodgerBlue : colorFromHex(0x7C7C7Cu));
+			auto& moduleOutlineBrush = isHovered_ ? resources->moduleOutlineBrushHovered : resources->moduleOutlineBrush;
 			const float strokeWidth = isHovered_ ? 2.0f : 1.0f;
 			g.drawGeometry(outlineGeometry, moduleOutlineBrush, strokeWidth);
 		}
@@ -650,7 +638,6 @@ namespace SE2
 		{
 			const float pinRadius = 3.0f;
 			const auto adjustedPinRadius = pinRadius + 0.1f; // nicer pixelation, more even outline circle.
-			auto fillBrush = g.createSolidColorBrush(0x000000u);
 			auto whiteBrush = g.createSolidColorBrush(Colors::White);
 
 			// Pins (see also drawoutline for snapping)
@@ -664,48 +651,14 @@ namespace SE2
 			{
 				if (pin.isVisible)
 				{
-					if (pin.direction == DR_IN)
-					{
-						p.x = left;
-					}
-					else
-					{
-						p.x = right;
-					}
-
-					static const uint32_t pinColors[][2] = {
-						//  inner      outline
-						{0x00BB00u, 0x008C00u}, // ENUM green
-						{0xFF0000u, 0xBF0000u}, // TEXT red
-						{0xFFCC00u, 0xBF9900u}, // MIDI2 yellow
-						{0x00BCBCu, 0x00BCBCu}, // DOUBLE
-						{0x555555u, 0x404040u}, // BOOL - grey.
-						{0x0044FFu, 0x0033BFu}, // float-audio blue
-						{0x00CCEEu, 0x0099B3u}, // FLOAT green-blue
-						{0x008989u, 0x008989u}, // unused
-						{0xFF8800u, 0xBF6600u}, // INT orange
-						{0xFF8800u, 0xBF6600u}, // INT64 orange
-						{0xFF55FFu, 0xBF40BFu}, // BLOB -purple
-						{0xFF55FFu, 0xBF40BFu}, // Class -purple
-						{0xFF0000u, 0xBF0000u}, // string (utf8) red
-						{0xFF55FFu, 0xBF40BFu}, // BLOB2 -purple
-						{0xFFFFFFu, 0x808080u}, // Spare - white.
-					};
+					p.x = pin.direction == DR_IN ? left : right;
 
 					// Spare container pins white.
-					const int datatype = (pin.isAutoduplicatePlug && pin.isIoPlug) ? static_cast<int>(std::size(pinColors)) - 1 : pin.datatype;
-					Color fillColor = colorFromHex(pinColors[datatype][0]);
-					Color pinOutlineColor = colorFromHex(pinColors[datatype][1]);
+					const int datatype = (pin.isAutoduplicatePlug && pin.isIoPlug) ? static_cast<int>(sharedGraphicResources_struct::pinColors.size()) - 1 : pin.datatype;
 
 					const bool isPinCircleHovered = (hoveredPin_.pinIndex == pinIndex && hoveredPin_.hitCircle);
-					if (isPinCircleHovered)
-					{
-						fillColor = interpolateColor(fillColor, Colors::White, 0.35f);
-						pinOutlineColor = interpolateColor(pinOutlineColor, Colors::White, 0.25f);
-					}
-
-					fillBrush.setColor(fillColor);
-					outlineBrush.setColor(pinOutlineColor);
+					auto& fillBrush = isPinCircleHovered ? resources->pinFillBrushesHovered[datatype] : resources->pinFillBrushes[datatype];
+					auto& pinOutlineBrush = isPinCircleHovered ? resources->pinOutlineBrushesHovered[datatype] : resources->pinOutlineBrushes[datatype];
 
 					g.fillCircle(p, adjustedPinRadius, fillBrush);
 
@@ -716,7 +669,7 @@ namespace SE2
 						if (pin.isTiedToUnconnected)
 							g.drawCircle(p, adjustedPinRadius, whiteBrush);
 						else
-							g.drawCircle(p, adjustedPinRadius, outlineBrush);
+							g.drawCircle(p, adjustedPinRadius, pinOutlineBrush);
 					}
 
 					p.y += plugDiameter;

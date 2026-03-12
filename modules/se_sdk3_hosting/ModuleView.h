@@ -6,11 +6,11 @@
 #endif
 
 #include "./IViewChild.h"
-//#include <chrono>
+#include <array>
 #include <string>
 #include <memory>
 #include <unordered_map>
-//#include "modules/se_sdk3/mp_sdk_common.h"
+#include "mp_sdk_gui2.h"
 #include "Extensions/EmbeddedFile.h"
 
 #include "Core/GmpiSdkCommon.h"
@@ -521,6 +521,25 @@ namespace SE2
 	{
 		inline static const int plugTextSize = 10;
 		inline static const int plugDiameter = 12;
+		inline static constexpr std::array<std::array<uint32_t, 2>, 15> pinColors =
+		{{
+			//  inner      outline
+			{0x00BB00u, 0x008C00u}, // ENUM green
+			{0xFF0000u, 0xBF0000u}, // TEXT red
+			{0xFFCC00u, 0xBF9900u}, // MIDI2 yellow
+			{0x00BCBCu, 0x00BCBCu}, // DOUBLE
+			{0x555555u, 0x404040u}, // BOOL - grey.
+			{0x0044FFu, 0x0033BFu}, // float-audio blue
+			{0x00CCEEu, 0x0099B3u}, // FLOAT green-blue
+			{0x008989u, 0x008989u}, // unused
+			{0xFF8800u, 0xBF6600u}, // INT orange
+			{0xFF8800u, 0xBF6600u}, // INT64 orange
+			{0xFF55FFu, 0xBF40BFu}, // BLOB -purple
+			{0xFF55FFu, 0xBF40BFu}, // Class -purple
+			{0xFF0000u, 0xBF0000u}, // string (utf8) red
+			{0xFF55FFu, 0xBF40BFu}, // BLOB2 -purple
+			{0xFFFFFFu, 0x808080u}, // Spare - white.
+		}};
 
 		sharedGraphicResources_struct(gmpi::drawing::Factory& factory)
 		{
@@ -547,9 +566,52 @@ namespace SE2
 			// _RPT0(0, "~sharedGraphicResources_struct\n");
 		}
 
+		void initializePinFillBrushes(gmpi::drawing::Graphics& g)
+		{
+			if (pinBrushesInitialized)
+				return;
+
+			moduleOutlineBrush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x7C7C7Cu));
+			moduleOutlineBrushHovered = g.createSolidColorBrush(gmpi::drawing::Colors::DodgerBlue);
+
+			for (size_t i = 0; i < pinColors.size(); ++i)
+			{
+				const auto fillColor = gmpi::drawing::colorFromHex(pinColors[i][0]);
+				pinFillBrushes[i] = g.createSolidColorBrush(fillColor);
+
+				const auto hoveredFillColor = gmpi::drawing::Color(
+					fillColor.r + (1.0f - fillColor.r) * 0.35f,
+					fillColor.g + (1.0f - fillColor.g) * 0.35f,
+					fillColor.b + (1.0f - fillColor.b) * 0.35f,
+					fillColor.a + (1.0f - fillColor.a) * 0.35f
+				);
+				pinFillBrushesHovered[i] = g.createSolidColorBrush(hoveredFillColor);
+
+				const auto outlineColor = gmpi::drawing::colorFromHex(pinColors[i][1]);
+				pinOutlineBrushes[i] = g.createSolidColorBrush(outlineColor);
+
+				const auto hoveredOutlineColor = gmpi::drawing::Color(
+					outlineColor.r + (1.0f - outlineColor.r) * 0.25f,
+					outlineColor.g + (1.0f - outlineColor.g) * 0.25f,
+					outlineColor.b + (1.0f - outlineColor.b) * 0.25f,
+					outlineColor.a + (1.0f - outlineColor.a) * 0.25f
+				);
+				pinOutlineBrushesHovered[i] = g.createSolidColorBrush(hoveredOutlineColor);
+			}
+
+			pinBrushesInitialized = true;
+		}
+
 		gmpi::drawing::TextFormat tf_plugs_left;
 		gmpi::drawing::TextFormat tf_plugs_right;
 		gmpi::drawing::TextFormat tf_header;
+		std::array<gmpi::drawing::SolidColorBrush, pinColors.size()> pinFillBrushes;
+		std::array<gmpi::drawing::SolidColorBrush, pinColors.size()> pinFillBrushesHovered;
+		std::array<gmpi::drawing::SolidColorBrush, pinColors.size()> pinOutlineBrushes;
+		std::array<gmpi::drawing::SolidColorBrush, pinColors.size()> pinOutlineBrushesHovered;
+		gmpi::drawing::SolidColorBrush moduleOutlineBrush;
+		gmpi::drawing::SolidColorBrush moduleOutlineBrushHovered;
+		bool pinBrushesInitialized = false;
 
 		std::unordered_map< std::string, gmpi::drawing::PathGeometry > outlineCache;
 	};
