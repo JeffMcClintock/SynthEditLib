@@ -2,6 +2,8 @@
 #include <memory>
 #include <string>
 #include <span>
+#include <vector>
+#include <cstring>
 #include <assert.h>
 
 // Holds a BLOB (owning the data) convertible to RawView

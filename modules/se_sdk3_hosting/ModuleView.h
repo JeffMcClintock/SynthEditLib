@@ -19,6 +19,7 @@
 
 #include "modules/se_sdk3_hosting/GmpiResourceManager.h"
 #include "plug_description.h"
+#include "RawView.h"
 
 class Module_Info;
 class cpu_accumulator;

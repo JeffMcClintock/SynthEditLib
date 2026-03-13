@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../se_sdk3/Drawing_API.h"
+
 /*
  #include "VectorMath.h"
 using namespace Gmpi::VectorMath;
@@ -30,7 +32,7 @@ struct Vector2D
 		y = py;
 	}
 
-	static Vector2D FromPoints(GmpiDrawing::Point p1, GmpiDrawing::Point p2)
+    static Vector2D FromPoints(GmpiDrawing_API::MP1_POINT p1, GmpiDrawing_API::MP1_POINT p2)
 	{
 		return Vector2D(p2.x - p1.x, p2.y - p1.y);
 	}
@@ -106,11 +108,11 @@ inline Vector2D operator-(GmpiDrawing::Point a, GmpiDrawing::Point b) {
 }
 */
 
-inline GmpiDrawing::Point operator+(GmpiDrawing::Point a, Vector2D b) {
-	return GmpiDrawing::Point(a.x + b.x, a.y + b.y);
+inline GmpiDrawing_API::MP1_POINT operator+(GmpiDrawing_API::MP1_POINT a, Vector2D b) {
+	return { a.x + b.x, a.y + b.y };
 }
-inline GmpiDrawing::Point operator-(GmpiDrawing::Point a, Vector2D b) {
-	return GmpiDrawing::Point(a.x - b.x, a.y - b.y);
+inline GmpiDrawing_API::MP1_POINT operator-(GmpiDrawing_API::MP1_POINT a, Vector2D b) {
+	return { a.x - b.x, a.y - b.y };
 }
 
 // hmm not a normal calculation
@@ -165,12 +167,12 @@ float      vVectorMagnitude(Vector2D* v0);
 void        vNormalizeVector(Vector2D* ptN);
 float      vDotProduct(Vector2D* v, Vector2D* v1);
 Vector2D*   vNormalVector(Vector2D* v0, Vector2D* v);
-bool        vPointNormalForm(GmpiDrawing::Point pt0, GmpiDrawing::Point pt1, PointNormal* ppnPointNormal);
+bool        vPointNormalForm(GmpiDrawing_API::MP1_POINT pt0, GmpiDrawing_API::MP1_POINT pt1, PointNormal* ppnPointNormal);
 void        vProjectAndResolve(Vector2D* v0, Vector2D* v1, Projection* ppProj);
 bool        vIsPerpendicular(Vector2D* v0, Vector2D* v1);
 float      vVectorAngle(Vector2D* v0, Vector2D* v1);
-float      vDistFromPointToLine(GmpiDrawing::Point* pt0, GmpiDrawing::Point* pt1, GmpiDrawing::Point* ptTest);
-bool HitTestLine(GmpiDrawing::Point pt0, GmpiDrawing::Point pt1, GmpiDrawing::Point PtM, int nWidth);
+float      vDistFromPointToLine(GmpiDrawing_API::MP1_POINT* pt0, GmpiDrawing_API::MP1_POINT* pt1, GmpiDrawing_API::MP1_POINT* ptTest);
+bool HitTestLine(GmpiDrawing_API::MP1_POINT pt0, GmpiDrawing_API::MP1_POINT pt1, GmpiDrawing_API::MP1_POINT PtM, int nWidth);
 
 // ax + by + c = 0
 class Line
@@ -180,7 +182,7 @@ public:
 	float b;
 	float c;
 
-	static Line FromPoints(GmpiDrawing::Point pointA, GmpiDrawing::Point pointB)
+    static Line FromPoints(GmpiDrawing_API::MP1_POINT pointA, GmpiDrawing_API::MP1_POINT pointB)
 	{
 		Line l;
 		l.a = pointB.y - pointA.y;
@@ -211,16 +213,16 @@ public:
 	}
 
 	// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
-	GmpiDrawing::Point InterSect(Line other, float& determinant)
+    GmpiDrawing_API::MP1_POINT InterSect(Line other, float& determinant)
 	{
 		determinant = a * other.b - other.a * b;
 		
 		if (determinant == 0.0f) // the lines do not intersect.
 		{
-			return GmpiDrawing::Point(-1, -1); // maybe nan
+         return { -1, -1 }; // maybe nan
 		}
 
-		GmpiDrawing::Point p;
+       GmpiDrawing_API::MP1_POINT p;
 		p.x = (b * other.c - other.b * c) / determinant;
 		p.y = (c * other.a - other.c * a) / determinant;
 

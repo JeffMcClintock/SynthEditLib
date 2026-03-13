@@ -10,6 +10,7 @@
 
 #include "helpers/Timer.h"
 #include "helpers/NativeUi.h"
+#include "../se_sdk3/Drawing_API.h"
 
 namespace GmpiGuiHosting
 {
