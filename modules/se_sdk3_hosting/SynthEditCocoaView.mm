@@ -470,7 +470,7 @@ public:
     GMPI_REFCOUNT_NO_DELETE;
 };
 
-GmpiDrawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
+gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
 {
     NSPoint localPoint = [view convertPoint: [theEvent locationInWindow] fromView: nil];
     
@@ -478,7 +478,7 @@ GmpiDrawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
     localPoint.y = view.bounds.origin.y + view.bounds.size.height - localPoint.y;
 #endif
     
-    GmpiDrawing::Point p(localPoint.x, localPoint.y);
+    gmpi::drawing::Point p{(float)localPoint.x, (float)localPoint.y};
     return p;
 }
 
@@ -492,7 +492,7 @@ GmpiDrawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
     NSTimer* timer;
     int toolTipTimer;
     bool toolTipShown;
-    GmpiDrawing::Point mousePos;
+    gmpi::drawing::Point mousePos;
     
     GmpiGui::PopupMenu contextMenu;
 }
@@ -706,9 +706,11 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
 	flags |= gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON;
     
     ApplyKeyModifiers(flags, theEvent);
-    
+    const auto pointRaw = se_mouseToGmpi(self, theEvent);
+    const gmpi::drawing::Point point{ pointRaw.x, pointRaw.y };
+
     if (drawingFrame.inputClient)
-        drawingFrame.inputClient->onPointerDown(se_mouseToGmpi(self, theEvent), flags);
+        drawingFrame.inputClient->onPointerDown(point, flags);
     
  // no help to edit box   [super mouseDown:theEvent];
 }
@@ -723,8 +725,8 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     flags |= gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON;
     
     ApplyKeyModifiers(flags, theEvent);
-    
-    const auto point = se_mouseToGmpi(self, theEvent);
+    const auto pointRaw = se_mouseToGmpi(self, theEvent);
+    const gmpi::drawing::Point point{ pointRaw.x, pointRaw.y };
     const auto r = drawingFrame.inputClient ? drawingFrame.inputClient->onPointerDown(point, flags) : gmpi::ReturnCode::Unhandled;
     
     // Handle right-click context menu.
@@ -762,9 +764,11 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     flags |= gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON;
     
     ApplyKeyModifiers(flags, theEvent);
-    
+    const auto pointRaw = se_mouseToGmpi(self, theEvent);
+    const gmpi::drawing::Point point{ pointRaw.x, pointRaw.y };
+
     if (drawingFrame.inputClient)
-        drawingFrame.inputClient->onPointerUp(se_mouseToGmpi(self, theEvent), flags);
+        drawingFrame.inputClient->onPointerUp(point, flags);
 }
 
 - (void)mouseUp:(NSEvent *)theEvent {
@@ -772,9 +776,11 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     flags |= gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON;
     
     ApplyKeyModifiers(flags, theEvent);
-    
+    const auto pointRaw = se_mouseToGmpi(self, theEvent);
+    const gmpi::drawing::Point point{ pointRaw.x, pointRaw.y };
+
     if (drawingFrame.inputClient)
-        drawingFrame.inputClient->onPointerUp(se_mouseToGmpi(self, theEvent), flags);
+        drawingFrame.inputClient->onPointerUp(point, flags);
 }
 
 - (void)mouseDragged:(NSEvent *)theEvent {
@@ -782,8 +788,8 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     flags |= gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON;
     
     ApplyKeyModifiers(flags, theEvent);
-    
-    mousePos = se_mouseToGmpi(self, theEvent);
+    const auto pointRaw = se_mouseToGmpi(self, theEvent);
+    mousePos = gmpi::drawing::Point{ pointRaw.x, pointRaw.y };
     if (drawingFrame.inputClient)
         drawingFrame.inputClient->onPointerMove(mousePos, flags);
     
@@ -801,14 +807,18 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     constexpr float wheelConversion = 120.0f; // on windows the wheel scrolls 120 per knotch
     if(deltaY)
     {
+        const auto pointRaw = se_mouseToGmpi(self, theEvent);
+        const gmpi::drawing::Point point{ pointRaw.x, pointRaw.y };
         if (drawingFrame.inputClient)
-            drawingFrame.inputClient->onMouseWheel(se_mouseToGmpi(self, theEvent), flags, static_cast<int32_t>(wheelConversion * deltaY));
+            drawingFrame.inputClient->onMouseWheel(point, flags, static_cast<int32_t>(wheelConversion * deltaY));
     }
     if(deltaX)
     {
         flags |= gmpi_gui_api::GG_POINTER_SCROLL_HORIZ;
+        const auto pointRaw = se_mouseToGmpi(self, theEvent);
+        const gmpi::drawing::Point point{ pointRaw.x, pointRaw.y };
         if (drawingFrame.inputClient)
-            drawingFrame.inputClient->onMouseWheel(se_mouseToGmpi(self, theEvent), flags, static_cast<int32_t>(wheelConversion * deltaX));
+            drawingFrame.inputClient->onMouseWheel(point, flags, static_cast<int32_t>(wheelConversion * deltaX));
     }
 }
 
@@ -825,8 +835,8 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
     
     ApplyKeyModifiers(flags, theEvent);
-    
-    mousePos = se_mouseToGmpi(self, theEvent);
+    const auto pointRaw = se_mouseToGmpi(self, theEvent);
+    mousePos = gmpi::drawing::Point{ pointRaw.x, pointRaw.y };
     
     if (drawingFrame.inputClient)
         drawingFrame.inputClient->onPointerMove(mousePos, flags);
