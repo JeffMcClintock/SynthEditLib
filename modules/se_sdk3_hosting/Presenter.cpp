@@ -1,4 +1,3 @@
-#pragma once
 #include "./Presenter.h"
 #include "ModuleView.h"
 #include "InterfaceObject.h"
