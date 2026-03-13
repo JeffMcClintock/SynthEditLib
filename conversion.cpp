@@ -10,13 +10,12 @@
 #include <assert.h>
 #include <cctype>
 #include <sys/stat.h> // mkdir
-#ifdef SELIB_HAS_FILESYSTEM
 #include <filesystem>
-#endif
 #include "conversion.h"
 #include "modules/se_sdk3/it_enum_list.h"
 #include "midi_defs.h"
 #include "IPluginGui.h"
+#include "RawConversions.h"
 
 #include "mfc_emulation.h"
 
@@ -24,6 +23,16 @@
 #if _MSC_VER >= 1600 // Not Avail in VS2005.
 //#include <cvt/wstring>
 #include <codecvt>
+#endif
+
+#if defined(__APPLE__) && defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && (__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 130300)
+#define SE_USE_STD_FORMAT_FLOAT 0
+#else
+#define SE_USE_STD_FORMAT_FLOAT 1
+#endif
+
+#if SE_USE_STD_FORMAT_FLOAT
+#include <format>
 #endif
 
 using namespace std;
@@ -164,6 +173,82 @@ std::wstring FloatToString(float val, int p_decimal_places) // better becuase it
 	*/
 	return s;
 }
+
+// for displaying a floating point value with 'enough' accuracy.
+// should retain one trailing zero after point to indicate that's it's a float not an integer.
+std::string NiceDoubleToString(double value)
+{
+	if (!std::isfinite(value))
+	{
+		return {};
+	}
+
+	const auto absValue = std::fabs(value);
+	const int precision = absValue < 0.001 ? 1 : absValue < 1.0 ? 3 : absValue < 10.0 ? 2 : absValue < 100.0 ? 1 : 0;
+
+	#if SE_USE_STD_FORMAT_FLOAT
+	return std::format("{:.{}f}", value, precision);
+	#else
+	std::ostringstream oss;
+	oss << std::fixed << std::setprecision(precision) << value;
+	return oss.str();
+	#endif
+}
+
+// formatted sensible for display. input is value as a human readable string.
+std::string NiceFormatted(std::wstring value, EPlugDataType datatype)
+{
+	switch (datatype)
+	{
+	case DT_BOOL:
+		return atoi(WStringToUtf8(value).c_str()) == 0 ? "false" : "true";
+
+	case DT_INT:
+	case DT_INT64:
+		return std::to_string(atoi(WStringToUtf8(value).c_str()));
+
+	case DT_FLOAT:
+	case DT_DOUBLE:
+	case DT_FSAMPLE:
+		return NiceDoubleToString(atof(WStringToUtf8(value).c_str()));
+
+	case DT_TEXT:
+	case DT_STRING_UTF8:
+	default:
+		return WStringToUtf8(value);
+	}
+}
+
+// formatted sensible for display. input is value as raw bytes.
+std::string NiceFormatted(const RawView raw, EPlugDataType datatype)
+{
+	// check data is the right size, raw can be empty.
+	const auto expectedSize = getDataTypeSize(datatype);
+	if(expectedSize != 0 && expectedSize != raw.size())
+		return "???";
+
+	switch (datatype)
+	{
+	case DT_BOOL:
+		return (bool) raw ? "true" : "false";
+	case DT_INT:
+		return std::to_string((int32_t) raw);
+	case DT_INT64:
+		return std::to_string((int64_t)raw);
+	case DT_FLOAT:
+	case DT_FSAMPLE:
+		return NiceDoubleToString((float) raw);
+	case DT_DOUBLE:
+		return NiceDoubleToString((double)raw);
+	case DT_TEXT:
+		return WStringToUtf8((std::wstring)raw);
+	case DT_STRING_UTF8:
+		return (std::string)raw;
+	default:
+		return "???";
+	}
+}
+
 
 // bigdog  -> bigdog
 // big dog -> 'big dog'
@@ -1022,14 +1107,14 @@ void FileToString(const platform_string& path, std::string& buffer)
 // Works only if user has permissions.
 bool CreateFolderRecursive(std::wstring folderPath)
 {
-#ifdef SELIB_HAS_FILESYSTEM
 	std::filesystem::path path(folderPath);
 
 	assert(!folderPath.empty());
 	assert(path.is_absolute());
 
 	return std::filesystem::create_directories(path);
-#else
+
+#if 0 // old way
 	vector<wstring> paths;
 
 	while (folderPath.size() > 2)  // C:

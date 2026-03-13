@@ -145,7 +145,9 @@ int32_t ug_gmpi::getAutoduplicatePinCount_deprecated()
 
 void ug_gmpi::listPins(gmpi::api::IUnknown* callback)
 {
-	gmpi::shared_ptr<gmpi::api::IUnknown> unknown(callback);
+	gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+	unknown = callback; // asign assuming ownership is already managed from caller.
+
 	auto plugin_callback = unknown.as<synthedit::IProcessorPinsCallback>();
 
 	if(plugin_callback.isNull())

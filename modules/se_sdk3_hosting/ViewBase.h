@@ -2,13 +2,14 @@
 #include <vector>
 #include <memory>
 #include "IViewChild.h"
-#include "xplatform.h"
-#include "Drawing.h"
-#include "mp_gui.h"
+//#include "xplatform.h"
+#include "GmpiUiDrawing.h"
+#include "helpers/GmpiPluginEditor.h"
 #include "Presenter.h"
-#include "../se_sdk3_hosting/GraphicsRedrawClient.h"
-#include "GmpiApiDrawing.h"
+//#include "../se_sdk3_hosting/GraphicsRedrawClient.h"
+
 #include "helpers/Timer.h"
+#include "helpers/NativeUi.h"
 
 namespace GmpiGuiHosting
 {
@@ -20,7 +21,6 @@ struct DrawingFrameBase2;
 
 namespace SE2
 {
-	class DragLine;
 	class ConnectorViewBase;
 
 	struct scrollBarSpec
@@ -33,38 +33,38 @@ namespace SE2
 		double ViewportSize;
 	};
 
-	// Base of any view that displays modules. Itself behaving as a standard graphics module.
+	// Base of any view that displays modules. Itself behaving as a standard-ish graphics module.
 	class ViewBase :
-		public gmpi_gui::MpGuiGfxBase
-		, public legacy::IGraphicsRedrawClient
-		, public gmpi_gui_api::IMpKeyClient
+		public gmpi::editor::PluginEditor
+//		public gmpi_gui::MpGuiGfxBase
+//		, public legacy::IGraphicsRedrawClient
 		, public gmpi::TimerClient
 	{
 		friend class ResizeAdorner;
 		friend class ViewChild;
 		
-		GmpiDrawing::Point pointPrev;
-		GmpiDrawing_API::MP1_POINT lastMovePoint = { -1, -1 };
+		gmpi::drawing::Point pointPrev;
+		gmpi::drawing::Point lastMovePoint = { -1, -1 };
 		gmpi::drawing::Point currentPointerPosAbsolute = { -1, -1 };
 
 	protected:
 bool isIteratingChildren = false;
 		std::string draggingNewModuleId;
-		std::unique_ptr<GmpiSdk::ContextMenuHelper::ContextMenuCallbacks> contextMenuCallbacks;
 		bool isArranged = false;
 		bool childrenDirty = false;
 		std::vector< std::unique_ptr<IViewChild> > children;
 		std::vector<ModuleView*> children_monodirectional;
 		std::unique_ptr<IPresenter> presenter;
 
-		GmpiDrawing::Rect drawingBounds;
+		gmpi::drawing::Rect drawingBounds;
 		IViewChild* mouseCaptureObject = {};
 		IViewChild* mouseOverObject = {};
 		IViewChild* modulePicker = {};
 
 		bool isDraggingModules = false;
-		GmpiDrawing::Size DraggingModulesOffset = {};
-		GmpiDrawing::Point DraggingModulesInitialTopLeft = {};
+		IViewChild* DraggingObject = {};
+		gmpi::drawing::Size DraggingModulesOffset = {};
+		gmpi::drawing::Point DraggingModulesInitialTopLeft = {};
 
 		// pan and zoom
 		gmpi::drawing::Size scrollPos = {};
@@ -73,6 +73,9 @@ bool isIteratingChildren = false;
 		gmpi::drawing::Matrix3x2 inv_viewTransform;
 		bool avoidRecusion{}; // from scroll bars
 		bool isAutoScrolling = false;
+
+		//gmpi::api::IDrawingHost* drawingHost_ = {};
+		//gmpi::api::IInputHost* inputHost_ = {};
 
 		void calcViewTransform();
 		bool onTimer() override;
@@ -84,15 +87,17 @@ bool isIteratingChildren = false;
 
 		void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
 		class ModuleViewPanel* getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap);
-		void preGraphicsRedraw() override;
+// TODO		void preGraphicsRedraw() override;
 		void processUnidirectionalModules();
 
 	public:
-		ViewBase(GmpiDrawing::Size size);
-		virtual ~ViewBase() { mouseOverObject = {}; }
+		ViewBase(gmpi::drawing::Size size);
+		virtual ~ViewBase()
+		{
+			mouseOverObject = {};
+		}
 
 		void setDocument(SE2::IPresenter* presenter);
-		int32_t setHost(gmpi::IMpUnknown* host) override;
 
 		void Init(class IPresenter* ppresentor);
 		void BuildPatchCableNotifier(std::map<int, class ModuleView*>& guiObjectMap);
@@ -104,16 +109,40 @@ bool isIteratingChildren = false;
 		void OnChildResize(IViewChild* child);
 		void RemoveChild(IViewChild* child);
 		virtual void markDirtyChild(IViewChild* child);
+//		gmpi::ReturnCode populateContextMenu2(gmpi::api::IContextItemSink* menu, gmpi::drawing::Point point);
 
-		int32_t measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_API::MP1_SIZE * returnDesiredSize) override;
-		int32_t arrange(GmpiDrawing_API::MP1_RECT finalRect) override;
+		gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
+#if 0 // OLD: handled by base class, to be removed.
+		// gmpi::api::IDrawingClient
+		gmpi::ReturnCode open(gmpi::api::IUnknown* host) override;
+		gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override;
+#endif
+		gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override;
+		gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
 
-		int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-		int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override;
-		int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override;
-		int32_t setHover(bool isMouseOverMe) override;
+		// gmpi::api::IInputClient
+		gmpi::ReturnCode setHover(bool isMouseOverMe) override;
+		gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override;
+		gmpi::ReturnCode populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink) override;
+		gmpi::ReturnCode onContextMenu(int32_t idx) override;
+		gmpi::ReturnCode onKeyPress(wchar_t c) override;
+
+#if 0 // old stuff, to be removed
+		void measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize);
+		void arrange(gmpi::drawing::Rect finalRect);
+		virtual int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext);
+		int32_t onPointerDownLegacy(int32_t flags, gmpi::drawing::Point point);
+		int32_t onPointerMoveLegacy(int32_t flags, gmpi::drawing::Point point);
+		int32_t onPointerUpLegacy(int32_t flags, gmpi::drawing::Point point);
+		int32_t onMouseWheelLegacy(int32_t flags, int32_t delta, gmpi::drawing::Point point);
+		int32_t populateContextMenu(float x, float y, gmpi::api::IUnknown* contextMenuItemsSink);
+		int32_t getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString);
+		void preGraphicsRedraw();
+#endif
 
 		// notification to scrollbars
 		std::function<void(const scrollBarSpec&)> hscrollBar;
@@ -134,20 +163,18 @@ bool isIteratingChildren = false;
 		void OnChildDeleted(IViewChild* childObject);
 		void onSubPanelMadeVisible();
 
-		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override;
-		int32_t onContextMenu(int32_t idx) override;
+// TODO		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::api::IUnknown* /*contextMenuItemsSink*/) override;
 
 		GmpiDrawing_API::IMpFactory* GetDrawingFactory()
 		{
 			GmpiDrawing_API::IMpFactory* temp = nullptr;
-			getGuiHost()->GetDrawingFactory(&temp);
+			if (drawingHost)
+				drawingHost->getDrawingFactory(reinterpret_cast<gmpi::api::IUnknown**>(&temp));
 			return temp;
 		}
 		gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory);
 
-//		std::string getToolTip(GmpiDrawing_API::MP1_POINT point);
-//		int32_t getToolTip(float x, float y, gmpi::IMpUnknown* returnToolTipString) override;
-		int32_t getToolTip(GmpiDrawing_API::MP1_POINT point, gmpi::IString* returnString) override;
+// TODO		int32_t getToolTip(gmpi::drawing::Point point, gmpi::IString* returnString) override;
 
 		virtual std::string getSkinName() = 0;
 
@@ -157,18 +184,15 @@ bool isIteratingChildren = false;
 			return mouseCaptureObject == module;
 		}
 		int32_t releaseCapture();
-		//bool isMouseCaptured()
-		//{
-		//	return mouseCaptureObject != nullptr;
-		//}
 
-		virtual int32_t StartCableDrag(IViewChild* fromModule, int fromPin, GmpiDrawing::Point dragStartPoint, bool isHeldAlt, CableType type = CableType::PatchCable);
-		void OnCableMove(ConnectorViewBase * dragline);
-		int32_t EndCableDrag(GmpiDrawing_API::MP1_POINT point, ConnectorViewBase* dragline);
+		virtual int32_t StartCableDrag(IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint);
+		bool OnCableMove(ConnectorViewBase * dragline);
+		bool EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline, int32_t keyFlags);
 		void OnPatchCablesUpdate(RawView patchCablesRaw);
 		void UpdateCablesBounds();
 		void RemoveCables(ConnectorViewBase* cable);
 		void RemoveModule(int32_t handle);
+		std::pair<ConnectorViewBase*, int> getTopCable(int32_t handle, int32_t pinIdx);
 
 		void OnChangedChildHighlight(int phandle, int flags);
 
@@ -183,33 +207,36 @@ bool isIteratingChildren = false;
 		}
 
 		void OnChangedChildSelected(int handle, bool selected);
-		void OnChangedChildPosition(int phandle, GmpiDrawing::Rect& newRect);
-		void OnChangedChildNodes(int phandle, std::vector<GmpiDrawing::Point>& nodes);
+		void OnChangedChildPosition(int phandle, gmpi::drawing::Rect& newRect);
+		void OnChangedChildNodes(int phandle, std::vector<gmpi::drawing::Point>& nodes);
 
-		void OnDragSelectionBox(int32_t flags, GmpiDrawing::Rect selectionRect);
+		void OnDragSelectionBox(int32_t flags, gmpi::drawing::Rect selectionRect);
 
 		// not to be confused with MpGuiGfxBase::invalidateRect
-		virtual void ChildInvalidateRect(const GmpiDrawing_API::MP1_RECT& invalidRect)
+		virtual void ChildInvalidateRect(const gmpi::drawing::Rect& invalidRect)
 		{
-			getGuiHost()->invalidateRect(&invalidRect);
+			invalidateRect(&invalidRect);
 		}
+		void invalidateRect(const gmpi::drawing::Rect* invalidRect = {});
 		virtual void OnChildMoved() {}
-		virtual int32_t ChildCreatePlatformTextEdit(const GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
+		/* todo
+		virtual int32_t ChildCreatePlatformTextEdit(const gmpi::drawing::Rect* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
 		{
-			return getGuiHost()->createPlatformTextEdit(const_cast<GmpiDrawing_API::MP1_RECT*>(rect), returnTextEdit);
+			return getGuiHost()->createPlatformTextEdit(const_cast<gmpi::drawing::Rect*>(rect), returnTextEdit);
 		}
-		virtual int32_t ChildCreatePlatformMenu(const GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
+		virtual int32_t ChildCreatePlatformMenu(const gmpi::drawing::Rect* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
 		{
-			return getGuiHost()->createPlatformMenu(const_cast<GmpiDrawing_API::MP1_RECT*>(rect), returnMenu);
+			return getGuiHost()->createPlatformMenu(const_cast<gmpi::drawing::Rect*>(rect), returnMenu);
 		}
+		*/
 
 		void DoClose();
 
-		IViewChild* Find(GmpiDrawing::Point& p);
+		IViewChild* Find(gmpi::drawing::Point& p);
 		void Unload();
 		virtual void Refresh(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap_);
 
-		virtual GmpiDrawing::Point MapPointToView(ViewBase* parentView, GmpiDrawing::Point p)
+		virtual gmpi::drawing::Point MapPointToView(ViewBase* parentView, gmpi::drawing::Point p)
 		{
 			return p;
 		}
@@ -222,7 +249,7 @@ bool isIteratingChildren = false;
 		virtual void OnPatchCablesVisibilityUpdate();
 
 		// gmpi_gui_api::IMpKeyClient
-		int32_t OnKeyPress(wchar_t c) override;
+		int32_t OnKeyPress(wchar_t c);
 
 		gmpi::ReturnCode onKey(int32_t key, gmpi::drawing::Point* pointerPosOrNull);
 
@@ -231,39 +258,44 @@ bool isIteratingChildren = false;
 		void DragNewModule(const char* id);
 		virtual ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) = 0;
 
-		int32_t queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+		/* handled by PluginEditor base class
+		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
-			*returnInterface = nullptr;
-
-			if (iid == IGraphicsRedrawClient::guid)
-			{
-				*returnInterface = static_cast<IGraphicsRedrawClient*>(this);
-				addRef();
-				return gmpi::MP_OK;
-			}
-
-			if (iid == gmpi_gui_api::IMpKeyClient::guid)
-			{
-				*returnInterface = static_cast<gmpi_gui_api::IMpKeyClient*>(this);
-				addRef();
-				return gmpi::MP_OK;
-			}
-
-			return gmpi_gui::MpGuiGfxBase::queryInterface(iid, returnInterface);
+			*returnInterface = {};
+			GMPI_QUERYINTERFACE(gmpi::api::IDrawingClient)
+			GMPI_QUERYINTERFACE(gmpi::api::IInputClient)
+			return gmpi::ReturnCode::NoSupport;
 		}
+		*/
 		GMPI_REFCOUNT
+	};
+
+	class TopView : public ViewBase
+	{
+	protected:
+		std::string skinName_;
+
+	public:
+		TopView(gmpi::drawing::Size size) : ViewBase(size)
+		{
+		}
+
+		std::string getSkinName() override
+		{
+			return skinName_;
+		}
 	};
 
 	class SelectionDragBox : public ViewChild
 	{
-		GmpiDrawing::Point startPoint;
+		gmpi::drawing::Point startPoint;
 
 	public:
-		SelectionDragBox(ViewBase* pParent, GmpiDrawing_API::MP1_POINT point) :
+		SelectionDragBox(ViewBase* pParent, gmpi::drawing::Point point) :
 			ViewChild(pParent, -1)
 		{
 			startPoint = point;
-			arrange(GmpiDrawing::Rect(point.x, point.y, point.x, point.y));
+			arrange(gmpi::drawing::Rect(point.x, point.y, point.x, point.y));
 			parent->setCapture(this);
 			parent->invalidateRect(&bounds_);
 		}
@@ -271,7 +303,17 @@ bool isIteratingChildren = false;
 		static const int lineWidth_ = 3;
 
 		// IViewChild
-		int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
+		gmpi::ReturnCode setHover(bool isMouseOverMe) override
+		{
+			return gmpi::ReturnCode::Unhandled;
+		}
+
+		gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
+		{
+			return gmpi::ReturnCode::Unhandled;
+		}
+
+		gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
 		{
 			/*
 			bounds_.left = point.x - 1;
@@ -281,32 +323,30 @@ bool isIteratingChildren = false;
 
 			parent->invalidateRect(&bounds_);
 			*/
-			return gmpi::MP_OK;
+			return gmpi::ReturnCode::Unhandled;
 		}
-		int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
+		gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override
 		{
-			GmpiDrawing::Rect invalidRect(bounds_);
+			gmpi::drawing::Rect invalidRect(bounds_);
 
 			bounds_.right = (std::max)(startPoint.x, point.x);
 			bounds_.left = (std::min)(startPoint.x, point.x);
 			bounds_.bottom = (std::max)(startPoint.y, point.y);
 			bounds_.top = (std::min)(startPoint.y, point.y);
 
-			invalidRect.Union(bounds_);
-			invalidRect.Inflate(2);
+			invalidRect = unionRect(invalidRect, bounds_);
+			invalidRect = inflateRect(invalidRect, 2);
 
 			parent->invalidateRect(&invalidRect);
-
-			return gmpi::MP_OK;
+			return gmpi::ReturnCode::Unhandled;
 		}
 
-		int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
+		gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
 		{
 			parent->releaseCapture();
 			parent->autoScrollStop();
 
-			GmpiDrawing::Rect invalidRect(bounds_);
-			invalidRect.Inflate(2);
+			const auto invalidRect = inflateRect(bounds_, 2);
 			parent->invalidateRect(&invalidRect);
 
 			// creat local copy of these to use after 'this' is deleted.
@@ -318,43 +358,47 @@ bool isIteratingChildren = false;
 
 			// carefull not to access 'this'
 			const float smallDragSuppression = 2.f;
-			if (localBounds.getWidth() > smallDragSuppression && localBounds.getHeight() > smallDragSuppression)
+			if (getWidth(localBounds) > smallDragSuppression && getHeight(localBounds) > smallDragSuppression)
 			{
 				localParent->OnDragSelectionBox(flags, localBounds);
 			}
 
-			return gmpi::MP_OK;
+			return gmpi::ReturnCode::Unhandled;
 		}
 
-		int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override
+		gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override
 		{
-			return gmpi::MP_UNHANDLED;
+			return gmpi::ReturnCode::Unhandled;
 		}
 
-		void OnRender(GmpiDrawing::Graphics& g) override
+		void render(gmpi::drawing::Graphics& g) override
 		{
-			GmpiDrawing::Color col{ GmpiDrawing::Color::SkyBlue };
+			gmpi::drawing::Color col{ gmpi::drawing::Colors::SkyBlue };
 			col.a = 0.3f;
-			auto brush = g.CreateSolidColorBrush(col);
-			auto r = bounds_ - GmpiDrawing::Size(bounds_.left, bounds_.top);
-			g.FillRectangle(r, brush);
-			brush.SetColor(GmpiDrawing::Color::White);
-			g.DrawRectangle(r, brush);
+			auto brush = g.createSolidColorBrush(col);
+			gmpi::drawing::Rect r{ 0.f, 0.f, getWidth(bounds_), getHeight(bounds_) };
+			g.fillRectangle(r, brush);
+			brush.setColor(gmpi::drawing::Colors::White);
+			g.drawRectangle(r, brush);
 		}
 
-		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override
+		gmpi::ReturnCode populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink) override
 		{
-			return 0;
+			return gmpi::ReturnCode::Unhandled;
 		}
-		int32_t vc_onContextMenu(int32_t idx) override
+		gmpi::ReturnCode onContextMenu(int32_t idx) override
 		{
-			return 0;
+			return gmpi::ReturnCode::Unhandled;
 		}
-		void OnMoved(GmpiDrawing::Rect& newRect) override {}
-		void OnNodesMoved(std::vector<GmpiDrawing::Point>& newNodes) override {}
-		GmpiDrawing::Point getConnectionPoint(CableType cableType, int pinIndex) override
+		gmpi::ReturnCode onKeyPress(wchar_t c) override
 		{
-			return GmpiDrawing::Point();
+			return gmpi::ReturnCode::Unhandled;
+		}
+		void OnMoved(gmpi::drawing::Rect& newRect) override {}
+		void OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes) override {}
+		gmpi::drawing::Point getConnectionPoint(CableType cableType, int pinIndex) override
+		{
+			return gmpi::drawing::Point();
 		}
 	};
 } //namespace SE2

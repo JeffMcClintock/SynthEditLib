@@ -1,19 +1,29 @@
 #pragma once
+#include <chrono>
 #include "ModuleView.h"
 
 namespace SE2
 {
+struct pinHit
+{
+	int pinIndex;
+	float distance; // distance to circle, or 0.f if hit lable rectangle.
+	bool hitCircle;
+};
+
 class ModuleViewStruct : public ModuleView
 {
 	std::string lPlugNames;
 	std::string rPlugNames;
-	GmpiDrawing::PathGeometry outlineGeometry;
+	gmpi::drawing::PathGeometry outlineGeometry;
 	std::vector< pinViewInfo > plugs_;
 	const float clientPadding = 2.0f;
 	const int plugTextHorizontalPadding = -1; // gap between plug text and plug circle outer radius.
-	GmpiDrawing::Rect clipArea;
+	gmpi::drawing::Rect clipArea;
 	bool muted = false;
-	int hoverPin = -1;
+	bool isHovered_ = false;
+	pinHit hoveredPin_{ -1, 0.0f, true };
+	gmpi::drawing::Rect boundsOnMouseDown;
 	bool scopeIsWave{};
 	std::string hoverScopeText;
 	std::unique_ptr< std::vector<float> > hoverScopeWaveform;
@@ -23,7 +33,9 @@ class ModuleViewStruct : public ModuleView
 
 	std::shared_ptr<sharedGraphicResources_struct> drawingResources;
 	static GraphicsResourceCache<sharedGraphicResources_struct> drawingResourcesCache;
-	sharedGraphicResources_struct* getDrawingResources(GmpiDrawing::Factory& factory);
+	sharedGraphicResources_struct* getDrawingResources(gmpi::drawing::Factory& factory);
+
+#if 0 // TODO
 	// SynthEdit-specific.  Locate resources and make SynthEdit embed them during save-as-vst.
 	int32_t ClearResourceUris() override
 	{
@@ -33,45 +45,54 @@ class ModuleViewStruct : public ModuleView
 		GmpiResourceManager::Instance()->ClearResourceUris(h);
 		return gmpi::MP_OK;
 	}
+#endif
 
-	GmpiDrawing::Rect GetCpuRect();
-	void RenderCpu(GmpiDrawing::Graphics& g);
+	gmpi::drawing::Rect GetCpuRect();
+	void RenderCpu(gmpi::drawing::Graphics& g);
 	bool showCpu()
 	{
 		return cpuInfo != nullptr;
 	}
 	cpu_accumulator* cpuInfo = {};
+	// retains current pin value for displaying on hoverscopes.
+	std::unique_ptr < std::vector<std::vector<uint8_t> >> editorPinValues;
 
 public:
 
 	ModuleViewStruct(const wchar_t* typeId, ViewBase* pParent, int handle) : ModuleView(typeId, pParent, handle) {}
 	ModuleViewStruct(Json::Value* context, class ViewBase* pParent, std::map<int, class ModuleView*>& guiObjectMap);
 
-	virtual GmpiDrawing::Rect GetClipRect() override;
+	virtual gmpi::drawing::Rect getClipArea() override;
 
-	GmpiDrawing::PathGeometry CreateModuleOutline(GmpiDrawing::Factory& factory);
-	GmpiDrawing::PathGeometry CreateModuleOutline2(GmpiDrawing::Factory& factory);
-	GmpiDrawing::Point getConnectionPoint(CableType cableType, int pinIndex) override;
+	gmpi::drawing::PathGeometry CreateModuleOutline(gmpi::drawing::Factory& factory);
+	gmpi::drawing::PathGeometry getOutline(gmpi::drawing::Factory drawingFactory) override;
+	gmpi::drawing::Point getConnectionPoint(CableType cableType, int pinIndex) override;
 	int getPinDatatype(int pinIndex);
 	bool getPinGuiType(int pinIndex);
 	bool isMuted() override
 	{
 		return muted;
 	}
+#if 0 // TODO
 
-	virtual int32_t measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize) override;
-	virtual int32_t arrange(GmpiDrawing::Rect finalRect) override;
-	virtual void OnRender(GmpiDrawing::Graphics& g) override;
-	float hitTestFuzzy(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-	std::pair<int, int> getPinUnderMouse(GmpiDrawing_API::MP1_POINT point);
-	int32_t OnDoubleClicked(int32_t flags, GmpiDrawing_API::MP1_POINT point);
-	int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-	int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-	void vc_setHover(bool mouseIsOverMe) override;
+	int32_t setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data) override;
+	int32_t pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice) override;
 
-	void OnCableDrag(ConnectorViewBase* dragline, GmpiDrawing::Point dragPoint, float& bestDistance, ModuleView*& bestModule, int& bestPinIndex) override;
+#endif
 
-	bool EndCableDrag(GmpiDrawing_API::MP1_POINT point, ConnectorViewBase* dragline) override;
+	virtual void measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize) override;
+	virtual void arrange(gmpi::drawing::Rect finalRect) override;
+	virtual void render(gmpi::drawing::Graphics& g) override;
+	float hitTestFuzzy(int32_t flags, gmpi::drawing::Point point) override;
+	pinHit getPinUnderMouse(gmpi::drawing::Point point);
+	int32_t OnDoubleClicked(gmpi::drawing::Point point, int32_t flags);
+	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
+	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
+	gmpi::ReturnCode setHover(bool mouseIsOverMe) override;
+
+	void OnClickedButDidntDrag() override;
+	void OnCableDrag(ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, ModuleView*& bestModule, int& bestPinIndex) override;
+	bool EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline, int32_t keyFlags) override;
 
 	bool isVisable() override
 	{
@@ -79,7 +100,7 @@ public:
 	}
 	virtual std::unique_ptr<SE2::IViewChild> createAdorner(ViewBase* pParent) override;
 	void OnCpuUpdate(class cpu_accumulator* cpuInfo) override;
-	GmpiDrawing::Rect calcScopeRect(int pinIdx);
+	gmpi::drawing::Rect calcScopeRect(int pinIdx);
 	void SetHoverScopeText(const char* text) override;
 	void SetHoverScopeWaveform(std::unique_ptr< std::vector<float> > data) override;
 
@@ -87,6 +108,8 @@ public:
 	{
 		return false;
 	}
-	void invalidateMeasure() override;
+//	void invalidateMeasure() override;
+	void invalidateRect(gmpi::drawing::Rect* r = nullptr) {};// todo
+	void invalidateMyRect(gmpi::drawing::Rect localRect);
 };
 }

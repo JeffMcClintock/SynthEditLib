@@ -27,6 +27,7 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "mp_sdk_gui2.h"
+#include "it_enum_list.h"
 #include "../../modules/se_sdk3_hosting/Presenter.h"
 #include "../../modules/se_sdk3_hosting/ModuleView.h"
 

@@ -1050,7 +1050,9 @@ struct GraphicsProcessor : public PluginEditorNoGui
 
     ReturnCode setHost(gmpi::api::IUnknown* phost) override
     {
-        gmpi::shared_ptr<gmpi::api::IUnknown> unknown(phost);
+        gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+        unknown = phost; // asign assuming ownership is already managed from caller.
+
         drawingHost = unknown.as<gmpi::api::IDrawingHost>();
 
         gmpi::shared_ptr<gmpi::api::IUnknown> unknown2;

@@ -1,4 +1,3 @@
-
 #include "ConnectorViewStruct.h"
 #include "ModuleViewStruct.h"
 #include "ContainerView.h"
@@ -6,38 +5,62 @@
 #include "modules/shared/VectorMath.h"
 #include "modules/shared/cardinalSpline.h"
 
-using namespace GmpiDrawing;
+using namespace gmpi::drawing;
 using namespace Gmpi::VectorMath;
 using namespace gmpi::drawing::utils;
 
 namespace SE2
 {
+	inline GmpiDrawing::Point toLegacyPoint(const gmpi::drawing::Point& p)
+	{
+		return { p.x, p.y };
+	}
 
-	GmpiDrawing::Point ConnectorView2::pointPrev{}; // for dragging nodes
+	inline gmpi::drawing::Point toDrawingPoint(const GmpiDrawing::Point& p)
+	{
+		return { p.x, p.y };
+	}
+
+	inline Vector2D vectorFromPoints(const gmpi::drawing::Point& p1, const gmpi::drawing::Point& p2)
+	{
+		return Vector2D::FromPoints(toLegacyPoint(p1), toLegacyPoint(p2));
+	}
+
+	inline gmpi::drawing::Point addVector(const gmpi::drawing::Point& p, const Vector2D& v)
+	{
+		return { p.x + v.x, p.y + v.y };
+	}
+
+	inline gmpi::drawing::Point subVector(const gmpi::drawing::Point& p, const Vector2D& v)
+	{
+		return { p.x - v.x, p.y - v.y };
+	}
+
+	gmpi::drawing::Point ConnectorView2::pointPrev{}; // for dragging nodes
 
 	void ConnectorView2::CalcArrowGeometery(GeometrySink& sink, Point ArrowTip, Vector2D v1)
 	{
 		auto vn = Perpendicular(v1);
 		vn *= arrowWidth * 0.5f;
 
-		Point ArrowBase = ArrowTip + v1 * arrowLength;
-		auto arrowBaseLeft = ArrowBase + vn;
-		auto arrowBaseRight = ArrowBase - vn;
+		Point ArrowBase = addVector(ArrowTip, v1 * arrowLength);
+		auto arrowBaseLeft = addVector(ArrowBase, vn);
+		auto arrowBaseRight = subVector(ArrowBase, vn);
 #if 0
 		// draw base line
 		if (beginFigure)
 		{
-			sink.BeginFigure(ArrowBase, FigureBegin::Hollow);
+			sink.beginFigure(ArrowBase, FigureBegin::Hollow);
 		}
-		sink.AddLine(arrowBaseLeft);
-		sink.AddLine(ArrowTip);
-		sink.AddLine(arrowBaseRight);
-		sink.AddLine(ArrowBase);
+		sink.addLine(arrowBaseLeft);
+		sink.addLine(ArrowTip);
+		sink.addLine(arrowBaseRight);
+		sink.addLine(ArrowBase);
 #else
 		// don't draw base line. V-shape.
-		sink.BeginFigure(arrowBaseLeft, FigureBegin::Hollow);
-		sink.AddLine(ArrowTip);
-		sink.AddLine(arrowBaseRight);
+		sink.beginFigure(arrowBaseLeft, FigureBegin::Hollow);
+		sink.addLine(ArrowTip);
+		sink.addLine(arrowBaseRight);
 #endif
 	}
 
@@ -57,20 +80,20 @@ namespace SE2
 	bool isClose(const Point& p1, const Point& p2)
 	{
 		const float closeDistanceSquared = 0.01f;
-		return Vector2D::FromPoints(p1, p2).LengthSquared() < closeDistanceSquared;
+		return vectorFromPoints(p1, p2).LengthSquared() < closeDistanceSquared;
 	}
 
 	void ConnectorView2::CreateGeometry()
 	{
-		GmpiDrawing::Factory factory(parent->GetDrawingFactory());
+		auto factory = getFactory();
 
 		StrokeStyleProperties strokeStyleProperties;
-		strokeStyleProperties.setCapStyle(draggingFromEnd != -1 ? CapStyle::Round : CapStyle::Flat);
-		strokeStyleProperties.setLineJoin(LineJoin::Round);
-		strokeStyle = factory.CreateStrokeStyle(strokeStyleProperties);
+		strokeStyleProperties.lineCap = draggingFromEnd != -1 ? CapStyle::Round : CapStyle::Flat;
+		strokeStyleProperties.lineJoin = LineJoin::Round;
+		strokeStyle = factory.createStrokeStyle(strokeStyleProperties);
 
-		geometry = factory.CreatePathGeometry();
-		auto sink = geometry.Open();
+		geometry = factory.createPathGeometry();
+		auto sink = geometry.open();
 
 		//			_RPT4(_CRT_WARN, "Calc [%.3f,%.3f] -> [%.3f,%.3f]\n", from_.x, from_.y, to_.x, to_.y );
 		// No curve when dragging.
@@ -115,13 +138,26 @@ namespace SE2
 		if (lineType_ == CURVEY)
 		{
 			// Transform on-line nodes into Bezier Spline control points.
-			auto splinePoints = cardinalSpline(nodesInclusive);
+			std::vector<GmpiDrawing::Point> legacyNodesInclusive;
+			legacyNodesInclusive.reserve(nodesInclusive.size());
+			for (const auto& p : nodesInclusive)
+			{
+				legacyNodesInclusive.push_back(toLegacyPoint(p));
+			}
 
-			sink.BeginFigure(splinePoints[0], FigureBegin::Hollow);
+			auto legacySplinePoints = cardinalSpline(legacyNodesInclusive);
+			std::vector<Point> splinePoints;
+			splinePoints.reserve(legacySplinePoints.size());
+			for (const auto& p : legacySplinePoints)
+			{
+				splinePoints.push_back(toDrawingPoint(p));
+			}
+
+			sink.beginFigure(splinePoints[0], FigureBegin::Hollow);
 
 			for (int i = 1; i < splinePoints.size(); i += 3)
 			{
-				sink.AddBezier(BezierSegment(splinePoints[i], splinePoints[i + 1], splinePoints[i + 2]));
+				sink.addBezier({ splinePoints[i], splinePoints[i + 1], splinePoints[i + 2] });
 			}
 
 			if (!drawArrows)//&& drawArrows)
@@ -141,31 +177,31 @@ namespace SE2
 					}
 					{
 						// calulate tangent at mid-point.
-						arrowDirection = 3.f * oneMinusT * oneMinusT * Vector2D::FromPoints(p[0], p[1])
-							+ 6.f * t * oneMinusT * Vector2D::FromPoints(p[1], p[2])
-							+ 3.f * t * t * Vector2D::FromPoints(p[2], p[3]);
+						arrowDirection = 3.f * oneMinusT * oneMinusT * vectorFromPoints(p[0], p[1])
+							+ 6.f * t * oneMinusT * vectorFromPoints(p[1], p[2])
+							+ 3.f * t * t * vectorFromPoints(p[2], p[3]);
 					}
 				}
 				else
 				{
 					arrowPoint = splinePoints[middleSplineIdx * 3];
-					arrowDirection = Vector2D::FromPoints(splinePoints[middleSplineIdx * 3 - 1], splinePoints[middleSplineIdx * 3 + 1]);
+					arrowDirection = vectorFromPoints(splinePoints[middleSplineIdx * 3 - 1], splinePoints[middleSplineIdx * 3 + 1]);
 				}
 				arrowDirection.Normalize();
 
-				const auto arrowCenter = arrowPoint + 0.5f * arrowLength * arrowDirection;
-				sink.EndFigure(FigureEnd::Open);
+				const auto arrowCenter = addVector(arrowPoint, 0.5f * arrowLength * arrowDirection);
+				sink.endFigure(FigureEnd::Open);
 				CalcArrowGeometery(sink, arrowCenter, -arrowDirection);
-				sink.EndFigure(FigureEnd::Closed);
+				sink.endFigure(FigureEnd::Closed);
 			}
 			else
 			{
-				sink.EndFigure(FigureEnd::Open);
+				sink.endFigure(FigureEnd::Open);
 			}
 		}
 		else
 		{
-			Vector2D v1 = Vector2D::FromPoints(nodesInclusive.front(), nodesInclusive.back());
+			Vector2D v1 = vectorFromPoints(nodesInclusive.front(), nodesInclusive.back());
 			if (v1.LengthSquared() < 0.01f) // fix coincident points.
 			{
 				v1.x = 0.1f;
@@ -188,14 +224,14 @@ namespace SE2
 				Point ArrowTip = from_ + v1 * (3 + 0.5f * ModuleViewStruct::plugDiameter);
 
 				CalcArrowGeometery(sink, ArrowTip, v1);
-				sink.EndFigure(FigureEnd::Open);
+				sink.endFigure(FigureEnd::Open);
 				Point lineStart = ArrowTip + v1 * arrowLength * 0.5f;
-				sink.BeginFigure(lineStart, FigureBegin::Hollow);
+				sink.beginFigure(lineStart, FigureBegin::Hollow);
 			}
 			else
 #endif
 			{
-				//				sink.BeginFigure(from_, FigureBegin::Hollow);
+				//				sink.beginFigure(from_, FigureBegin::Hollow);
 			}
 
 			bool first = true;
@@ -203,12 +239,12 @@ namespace SE2
 			{
 				if (first)
 				{
-					sink.BeginFigure(n, FigureBegin::Hollow);
+					sink.beginFigure(n, FigureBegin::Hollow);
 					first = false;
 				}
 				else
 				{
-					sink.AddLine(n);
+					sink.addLine(n);
 				}
 			}
 
@@ -216,7 +252,7 @@ namespace SE2
 			{
 				Point from = nodes.back();
 
-				v1 = Vector2D::FromPoints(from, to_);
+				v1 = vectorFromPoints(from, to_);
 				if (v1.LengthSquared() < 0.01f) // fix coincident points.
 				{
 					v1.x = 0.1f;
@@ -237,19 +273,19 @@ namespace SE2
 				if (drawArrows)
 				{
 					Point ArrowBase = ArrowTip - v1 * arrowLength * 0.5f;
-					sink.AddLine(ArrowBase);
-					sink.EndFigure(FigureEnd::Open);
+					sink.addLine(ArrowBase);
+					sink.endFigure(FigureEnd::Open);
 					CalcArrowGeometery(sink, ArrowTip, -v1);
 				}
 				else
 				{
-					sink.AddLine(to_);
+					sink.addLine(to_);
 				}
 			}
-			sink.EndFigure(FigureEnd::Open);
+			sink.endFigure(FigureEnd::Open);
 #else
-			//			sink.AddLine(to_);
-			sink.EndFigure(FigureEnd::Open); // complete line
+			//			sink.addLine(to_);
+			sink.endFigure(FigureEnd::Open); // complete line
 
 			// center arrow
 			if (!drawArrows)
@@ -261,11 +297,11 @@ namespace SE2
 					//arrowPoint.x = 0.5f * (nodesInclusive[middleSplineIdx].x + nodesInclusive[middleSplineIdx + 1].x);
 					//arrowPoint.y = 0.5f * (nodesInclusive[middleSplineIdx].y + nodesInclusive[middleSplineIdx + 1].y);
 
-					const auto segmentVector = Vector2D::FromPoints(nodesInclusive[middleSplineIdx], nodesInclusive[middleSplineIdx + 1]);
+					const auto segmentVector = vectorFromPoints(nodesInclusive[middleSplineIdx], nodesInclusive[middleSplineIdx + 1]);
 					const auto segmentLength = segmentVector.Length();
 					const auto distanceToArrowPoint = (std::min)(segmentLength, 0.5f * (segmentLength + arrowLength));
-					arrowDirection = Vector2D::FromPoints(nodesInclusive[middleSplineIdx], nodesInclusive[middleSplineIdx + 1]);
-					arrowPoint = nodesInclusive[middleSplineIdx] + (distanceToArrowPoint / segmentLength) * arrowDirection;
+					arrowDirection = vectorFromPoints(nodesInclusive[middleSplineIdx], nodesInclusive[middleSplineIdx + 1]);
+					arrowPoint = addVector(nodesInclusive[middleSplineIdx], (distanceToArrowPoint / segmentLength) * arrowDirection);
 				}
 				/*
 				else
@@ -279,21 +315,21 @@ namespace SE2
 
 				// Add arrow figure.
 				CalcArrowGeometery(sink, arrowPoint, -arrowDirection);
-				sink.EndFigure(FigureEnd::Closed);
+				sink.endFigure(FigureEnd::Closed);
 			}
 #endif
 		}
 
-		sink.Close();
+		sink.close();
 		segmentGeometrys.clear();
 	}
 
 	// as individual segments
-	std::vector<GmpiDrawing::PathGeometry>& ConnectorView2::GetSegmentGeometrys()
+	std::vector<gmpi::drawing::PathGeometry>& ConnectorView2::GetSegmentGeometrys()
 	{
 		if (segmentGeometrys.empty())
 		{
-			GmpiDrawing::Factory factory(parent->GetDrawingFactory());
+			auto factory = getFactory();
 
 			std::vector<Point> nodesInclusive; // of start and end point plus 'elbows'.
 
@@ -323,19 +359,32 @@ namespace SE2
 			if (lineType_ == CURVEY)
 			{
 				// Transform on-line nodes into Bezier Spline control points.
-				auto splinePoints = cardinalSpline(nodesInclusive);
+				std::vector<GmpiDrawing::Point> legacyNodesInclusive;
+				legacyNodesInclusive.reserve(nodesInclusive.size());
+				for (const auto& p : nodesInclusive)
+				{
+					legacyNodesInclusive.push_back(toLegacyPoint(p));
+				}
+
+				auto legacySplinePoints = cardinalSpline(legacyNodesInclusive);
+				std::vector<Point> splinePoints;
+				splinePoints.reserve(legacySplinePoints.size());
+				for (const auto& p : legacySplinePoints)
+				{
+					splinePoints.push_back(toDrawingPoint(p));
+				}
 
 				const size_t fromIdx = hasElbows ? 3 : 0;
 				const size_t toIdx = hasElbows ? splinePoints.size() - 4 : splinePoints.size() - 1;
 
 				for (size_t i = fromIdx; i < toIdx; i += 3)
 				{
-					auto segment = factory.CreatePathGeometry();
-					auto sink = segment.Open();
-					sink.BeginFigure(splinePoints[i], FigureBegin::Hollow);
-					sink.AddBezier(BezierSegment(splinePoints[i + 1], splinePoints[i + 2], splinePoints[i + 3]));
-					sink.EndFigure(FigureEnd::Open);
-					sink.Close();
+					auto segment = factory.createPathGeometry();
+					auto sink = segment.open();
+					sink.beginFigure(splinePoints[i], FigureBegin::Hollow);
+					sink.addBezier({ splinePoints[i + 1], splinePoints[i + 2], splinePoints[i + 3] });
+					sink.endFigure(FigureEnd::Open);
+					sink.close();
 					segmentGeometrys.push_back(segment);
 				}
 			}
@@ -352,13 +401,13 @@ namespace SE2
 				{
 					if (!first)
 					{
-						sink.AddLine(nodesInclusive[i]);
+						sink.addLine(nodesInclusive[i]);
 
 //						if (hasElbows && (i == 1 || i == nodesInclusive.size() - 2))
 //							continue;
 						
-						sink.EndFigure(FigureEnd::Open);
-						sink.Close();
+						sink.endFigure(FigureEnd::Open);
+						sink.close();
 						segmentGeometrys.push_back(segment);
 					}
 					first = false;
@@ -366,9 +415,9 @@ namespace SE2
 					if (i == toIdx - 1) // last.
 						continue;
 
-					segment = factory.CreatePathGeometry();
-					sink = segment.Open();
-					sink.BeginFigure(nodesInclusive[i], FigureBegin::Hollow);
+					segment = factory.createPathGeometry();
+					sink = segment.open();
+					sink.beginFigure(nodesInclusive[i], FigureBegin::Hollow);
 				}
 			}
 		}
@@ -383,18 +432,18 @@ namespace SE2
 
 		float expand = getSelected() ? (float)NodeRadius * 2 + 1 : (float)cableDiameter;
 
-		bounds_ = geometry.GetWidenedBounds(expand, strokeStyle);
+		bounds_ = geometry.getWidenedBounds(expand, strokeStyle);
 
 		if (oldBounds != bounds_)
 		{
-			oldBounds.Union(bounds_);
+			oldBounds = unionRect(oldBounds, bounds_);
 			parent->ChildInvalidateRect(oldBounds);
 		}
 	}
 
 	GraphicsResourceCache<sharedGraphicResources_connectors> drawingResourcesCache;
 
-	sharedGraphicResources_connectors* ConnectorView2::getDrawingResources(GmpiDrawing::Graphics& g)
+	sharedGraphicResources_connectors* ConnectorView2::getDrawingResources(gmpi::drawing::Graphics& g)
 	{
 		if (!drawingResources)
 		{
@@ -404,16 +453,16 @@ namespace SE2
 		return drawingResources.get();
 	}
 
-	void ConnectorView2::OnRender(GmpiDrawing::Graphics& g)
+	void ConnectorView2::render(gmpi::drawing::Graphics& g)
 	{
-		if (geometry.isNull())
+		if (!geometry)
 			return;
 
 		auto resources = getDrawingResources(g);
 		float width = 2.0f;
 		SolidColorBrush* brush3 = {};
 #if defined( _DEBUG )
-		auto pinkBrush = g.CreateSolidColorBrush(Color::Pink);
+		auto pinkBrush = g.createSolidColorBrush(Colors::Pink);
 		if (cancellation != 0.0f)
 		{
 			brush3 = &pinkBrush;
@@ -424,17 +473,12 @@ namespace SE2
 		{
 			if (draggingFromEnd < 0)
 			{
-				if ((highlightFlags & 7) != 0)
+				if (highlightFlags != 0)
 				{
 					if ((highlightFlags & 3) != 0) // error
-					{
 						brush3 = &resources->errorBrush;
-					}
 					else
-					{
-						// Emphasise
-						brush3 = &resources->emphasiseBrush;
-					}
+						brush3 = &resources->emphasiseBrush;// Emphasise
 				}
 				else
 				{
@@ -445,47 +489,47 @@ namespace SE2
 			{
 				// highlighted (dragging).
 				brush3 = &resources->draggingBrush;
+
+				if(endIsSnapped)
+					g.fillCircle(draggingFromEnd == 0 ? from_ : to_, 2.0f, *brush3);
 			}
 		}
 
 		if (getSelected())
-		{
 			brush3 = &resources->selectedBrush;
-		}
 
 		if (getSelected() || mouseHover)
-		{
 			width = 3.f;
-		}
 
 		assert(brush3);
-		g.DrawGeometry(geometry, *brush3, width, strokeStyle);
+		g.drawGeometry(geometry, *brush3, width, strokeStyle);
 
 		if (getSelected() && hoverSegment != -1)
 		{
 			auto segments = GetSegmentGeometrys();
-			g.DrawGeometry(segments[hoverSegment], *brush3, width + 1);
+			g.drawGeometry(segments[hoverSegment], *brush3, width + 1);
 		}
 
 		// Nodes
 		if (getSelected())
 		{
-			auto outlineBrush = g.CreateSolidColorBrush(Color::DodgerBlue);
-			auto fillBrush = g.CreateSolidColorBrush(Color::White);
+			auto outlineBrush = g.createSolidColorBrush(Colors::DodgerBlue);
+			auto fillBrush = g.createSolidColorBrush(Colors::White);
 
 			for (auto& n : nodes)
 			{
-				g.FillCircle(n, static_cast<float>(NodeRadius), fillBrush);
-				g.DrawCircle(n, static_cast<float>(NodeRadius), outlineBrush);
+				gmpi::drawing::Ellipse circle(n, static_cast<float>(NodeRadius));
+				g.fillEllipse(circle, fillBrush);
+				g.drawEllipse(circle, outlineBrush);
 			}
 		}
 #ifdef _DEBUG
-		//		g.DrawCircle(arrowPoint, static_cast<float>(NodeRadius), g.CreateSolidColorBrush(Color::DodgerBlue));
-		//		g.DrawLine(arrowPoint - arrowDirection * 10.0f, arrowPoint + arrowDirection * 10.0f, g.CreateSolidColorBrush(Color::Black));
+		//		g.DrawCircle(arrowPoint, static_cast<float>(NodeRadius), g.createSolidColorBrush(Colors::DodgerBlue));
+		//		g.DrawLine(arrowPoint - arrowDirection * 10.0f, arrowPoint + arrowDirection * 10.0f, g.createSolidColorBrush(Colors::Black));
 #endif
 	}
 
-	int32_t ConnectorView2::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	gmpi::ReturnCode ConnectorView2::onPointerMove(gmpi::drawing::Point point, int32_t flags)
 	{
 		// dragging something.
 		if (imCaptured())
@@ -494,20 +538,21 @@ namespace SE2
 			if (draggingNode != -1)
 			{
 				const auto snapGridSize = Presenter()->GetSnapSize();
-				GmpiDrawing::Size delta(point.x - pointPrev.x, point.y - pointPrev.y);
+				gmpi::drawing::Size delta(point.x - pointPrev.x, point.y - pointPrev.y);
 				if (delta.width != 0.0f || delta.height != 0.0f) // avoid false snap on selection
 				{
 					const float halfGrid = snapGridSize * 0.5f;
 
-					GmpiDrawing::Point snapReference = nodes[draggingNode];
+					gmpi::drawing::Point snapReference = nodes[draggingNode];
 
 					// nodes snap to center of grid, not lines of grid like modules do
-					GmpiDrawing::Point newPoint = snapReference + delta;
+					gmpi::drawing::Point newPoint{ snapReference.x + delta.width, snapReference.y + delta.height };
 					newPoint.x = halfGrid + floorf((newPoint.x) / snapGridSize) * snapGridSize;
 					newPoint.y = halfGrid + floorf((newPoint.y) / snapGridSize) * snapGridSize;
-					GmpiDrawing::Size snapDelta = newPoint - snapReference;
+					gmpi::drawing::Size snapDelta{ newPoint.x - snapReference.x, newPoint.y - snapReference.y };
 
-					pointPrev += snapDelta;
+					pointPrev.x += snapDelta.width;
+					pointPrev.y += snapDelta.height;
 
 					if (snapDelta.width != 0.0 || snapDelta.height != 0.0)
 					{
@@ -519,47 +564,49 @@ namespace SE2
 					}
 				}
 
-				return gmpi::MP_OK;
+				return gmpi::ReturnCode::Unhandled;
 			}
 
 			// dragging new line
-			return ConnectorViewBase::onPointerMove(flags, point);
+			ConnectorViewBase::onPointerMove(point, flags);
+			return gmpi::ReturnCode::Unhandled;
 		}
 
-		return gmpi::MP_UNHANDLED;
+		return gmpi::ReturnCode::Unhandled;
 	}
 
-	int32_t ConnectorView2::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	gmpi::ReturnCode ConnectorView2::onPointerUp(gmpi::drawing::Point point, int32_t flags)
 	{
 		if (imCaptured() && draggingNode == -1)
 		{
-			return ConnectorViewBase::onPointerUp(flags, point);
+			ConnectorViewBase::onPointerUp(point, flags);
+			return gmpi::ReturnCode::Unhandled;
 		}
 
 		parent->releaseCapture();
-		return gmpi::MP_OK;
+		return gmpi::ReturnCode::Unhandled;
 	}
 
-	bool ConnectorView2::hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	gmpi::ReturnCode ConnectorView2::hitTest(gmpi::drawing::Point point, int32_t flags)
 	{
 		hoverNode = -1;
 		hoverSegment = -1;
 
-		if (!GetClipRect().ContainsPoint(point))
-		{
-			return false;
-		}
-		if (geometry.isNull())
-		{
-			return false;
-		}
+		if (!pointInRect(point, getClipArea()) || !geometry)
+			return gmpi::ReturnCode::Unhandled;
 
-		GmpiDrawing::Point local(point);
-		local.x -= bounds_.left;
-		local.y -= bounds_.top;
 
-		if (!geometry.StrokeContainsPoint(point, 3.0f))
-			return false;
+		if (!geometry.strokeContainsPoint(point, 3.0f))
+			return gmpi::ReturnCode::Unhandled;
+
+		// when highlighted, line moves in front of pin, so ignore hits near to the end.
+		if(highlightFlags != 0)
+		{
+			const float endIgnoreDistanceSquared = 10.0f * 10.0f;
+			if (   vectorFromPoints(point, from_).LengthSquared() < endIgnoreDistanceSquared
+				|| vectorFromPoints(point, to_  ).LengthSquared() < endIgnoreDistanceSquared)
+				return gmpi::ReturnCode::Unhandled;
+		}
 
 		// hit test individual node points.
 		int i = 0;
@@ -585,7 +632,7 @@ namespace SE2
 			int j = 0;
 			for (auto& s : segments)
 			{
-				if (s.StrokeContainsPoint(point, hitTestWidth))
+				if (s.strokeContainsPoint(point, hitTestWidth))
 				{
 					hoverSegment = j;
 					break;
@@ -596,8 +643,8 @@ namespace SE2
 			if (hoverSegment == -1)
 			{
 				// handle mouse over elbows and minor hit test glitches by defaulting to nearest end.
-				auto d1 = Vector2D::FromPoints(from_, point).LengthSquared();
-				auto d2 = Vector2D::FromPoints(to_, point).LengthSquared();
+				auto d1 = vectorFromPoints(from_, point).LengthSquared();
+				auto d2 = vectorFromPoints(to_, point).LengthSquared();
 				if (d1 < d2)
 				{
 					hoverSegment = 0;
@@ -609,57 +656,19 @@ namespace SE2
 			}
 		}
 
-		return true;
+		return gmpi::ReturnCode::Ok;
 	}
 
-	bool ConnectorView2::hitTestR(int32_t flags, GmpiDrawing_API::MP1_RECT selectionRect)
+	bool ConnectorView2::hitTestR(int32_t flags, gmpi::drawing::Rect selectionRect)
 	{
-		if (!isOverlapped(GetClipRect(), GmpiDrawing::Rect(selectionRect)) || geometry.isNull())
+		if (!overlaps(getClipArea(), selectionRect) || !geometry)
 		{
 			return false;
 		}
-
-#ifdef _WIN32
-		// TODO !! auto relation = geometry.CompareWithGeometry(otherGeometry, otherGeometryTransform);
-
-		auto d2dGeometry = dynamic_cast<se::directx::Geometry*>(geometry.Get())->native();
-
-		ID2D1Factory* factory = {};
-		d2dGeometry->GetFactory(&factory);
-
-		// TODO!!! this really only needs computing once, not on every single line
-		ID2D1RectangleGeometry* rectangleGeometry = {};
-		factory->CreateRectangleGeometry(
-			{
-				selectionRect.left,
-				selectionRect.top,
-				selectionRect.right,
-				selectionRect.bottom,
-			},
-			&rectangleGeometry
-			);
-
-		Matrix3x2 inputGeometryTransform;
-
-		D2D1_GEOMETRY_RELATION relation = {};
-
-		d2dGeometry->CompareWithGeometry(
-			rectangleGeometry,
-			(D2D1_MATRIX_3X2_F*)&inputGeometryTransform,
-			&relation
-		);
-
-		rectangleGeometry->Release();
-		factory->Release();
-
-		return D2D1_GEOMETRY_RELATION_DISJOINT != relation;
-#else
-		// !! TODO provide on mac (used only in editor anyhow)
 		return true;
-#endif
 	}
 
-	void ConnectorView2::vc_setHover(bool mouseIsOverMe)
+	gmpi::ReturnCode ConnectorView2::setHover(bool mouseIsOverMe)
 	{
 		mouseHover = mouseIsOverMe;
 
@@ -668,29 +677,32 @@ namespace SE2
 			hoverNode = hoverSegment = -1;
 		}
 
-		const auto redrawRect = GetClipRect();
-		parent->getGuiHost()->invalidateRect(&redrawRect);
+		const auto redrawRect = getClipArea();
+		parent->invalidateRect(&redrawRect);
+
+		return gmpi::ReturnCode::Ok;
 	}
 
-	void ConnectorView2::OnNodesMoved(std::vector<GmpiDrawing::Point>& newNodes)
+	void ConnectorView2::OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes)
 	{
 		nodes = newNodes;
-		parent->getGuiHost()->invalidateMeasure();
+		parent->markDirtyChild(this);
+		parent->invalidateRect();
 	}
 
 	// TODO: !!! hit-testing lines should be 'fuzzy' and return the closest line when more than 1 is hittable (same as plugs).
 	// This allows a bigger hit radius without losing accuracy. maybe hit tests return a 'confidence (0.0 - 1.0).
-	int32_t ConnectorView2::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	gmpi::ReturnCode ConnectorView2::onPointerDown(gmpi::drawing::Point point, int32_t flags)
 	{
 //		_RPT0(_CRT_WARN, "ConnectorView2::onPointerDown\n");
 
-		if (imCaptured()) //if (parent->getCapture()) // then we are *already* draging.
+		if (imCaptured()) // then we are *already* draging.
 		{
 			parent->autoScrollStop();
 			parent->releaseCapture();
-			parent->EndCableDrag(point, this);
+			parent->EndCableDrag(point, this, flags);
 			// I am now DELETED!!!
-			return gmpi::MP_HANDLED;
+			return gmpi::ReturnCode::Unhandled;
 		}
 		else
 		{
@@ -704,7 +716,7 @@ namespace SE2
 				// if we were not selected, or still are not - don't interact with nodes
 				// if shift or ctlr held - indicates a possible 'is_selected' change, not node editing.
 				if (!wasSelected || !getSelected() || (flags & (gmpi_gui_api::GG_POINTER_KEY_CONTROL | gmpi_gui_api::GG_POINTER_KEY_SHIFT)) != 0)
-					return gmpi::MP_OK;
+					return gmpi::ReturnCode::Handled; // handled means don't clear selection.
 
 				// Clicked a node?
 				if (hoverNode >= 0)
@@ -712,7 +724,7 @@ namespace SE2
 					draggingNode = hoverNode;
 					pointPrev = point;
 					parent->setCapture(this);
-					return gmpi::MP_OK;
+					return gmpi::ReturnCode::Unhandled;
 				}
 				else
 				{
@@ -728,13 +740,13 @@ namespace SE2
 					CalcBounds();
 					parent->ChildInvalidateRect(bounds_); // sometimes bounds don't change, but still need to draw new node.
 
-					hitTest(flags, point); // re-hit-test to get new hoverNode.
+					hitTest(point, flags); // re-hit-test to get new hoverNode.
 
 #if 0 // clicking end, not using yet
 
 					int hitEnd = -1;
 					// Is hit at line end?
-					GmpiDrawing::Size delta = from_ - Point(point);
+					gmpi::drawing::Size delta = from_ - Point(point);
 					float lengthSquared = delta.width * delta.width + delta.height * delta.height;
 					float hitRadiusSquared = 100;
 					if (lengthSquared < hitRadiusSquared)
@@ -759,26 +771,26 @@ namespace SE2
 					// TODO pickup from end, mayby when <ALT> held.
 #endif
 				}
-				return gmpi::MP_OK;
+				return gmpi::ReturnCode::Unhandled;
 			}
 		}
-		return gmpi::MP_HANDLED;
+
+		return gmpi::ReturnCode::Unhandled;
 	}
 
-	int32_t ConnectorView2::measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize)
+	void ConnectorView2::measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize)
 	{
 		// Measure/Arrange not really applicable to lines.
 		returnDesiredSize->height = 10;
 		returnDesiredSize->width = 10;
 
-		auto module1 = dynamic_cast<ModuleViewStruct*>(Presenter()->HandleToObject(fromModuleH));
+		auto module1 = dynamic_cast<ModuleViewStruct*>(Presenter()->HandleToObject(fmPin.module));
 		if (module1)
 		{
-			datatype = static_cast<char>(module1->getPinDatatype(fromModulePin));
-			drawArrows = module1->getPinGuiType(fromModulePin) && !module1->isMonoDirectional();
+			datatype = static_cast<char>(module1->getPinDatatype(fmPin.index));
+			drawArrows = module1->getPinGuiType(fmPin.index) && !module1->isMonoDirectional();
 		}
 
-		return gmpi::MP_OK;
 	}
 } // namespace
 

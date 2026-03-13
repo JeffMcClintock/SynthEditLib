@@ -192,6 +192,7 @@ std::wstring BundleInfo::getSemFolder()
     if (pluginIsBundle)
     {
         const auto path = gmpi_dynamic_linking::MP_GetDllFilename();
+		assert(path.rfind(L"Contents") != std::string::npos); // if this fails, we might not be running in a bundle, or the bundle structure is wrong.
         return path.substr(0, path.rfind(L"Contents")) + L"Contents/Plugins/";
     }
 
@@ -538,7 +539,7 @@ const BundleInfo::pluginInformation& BundleInfo::getPluginInfo()
 
 void BundleInfo::initPluginInfo()
 {
-#ifdef SELIB_HAS_FILESYSTEM
+#if 1 // def SELIB_HAS_FILESYSTEM
     const std::filesystem::path path(gmpi_dynamic_linking::MP_GetDllFilename());
 
     // are we in the editor?
@@ -546,12 +547,14 @@ void BundleInfo::initPluginInfo()
     {
         isEditor =
             filename.find(L"SynthEdit2.exe") != std::string::npos ||
+            filename.find(L"SynthEditCL") != std::string::npos ||
             filename.find(L"SynthEdit.") != std::string::npos ||
             filename.find(L"TIDE") == 0;
     }
 
 
     // are we in a bundle? path contains "*.vst3/Contents/"
+    pluginIsBundle = false;
 	std::string bundleExtension;
     for(auto it = path.begin(); it != path.end(); ++it)
     {

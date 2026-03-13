@@ -1,6 +1,7 @@
 #include "./Presenter.h"
 #include "ModuleView.h"
 #include "InterfaceObject.h"
+#include "Module_Info.h"
 
 bool PresenterBase::CanConnect(SE2::CableType cabletype, int32_t fromModule, int fromPin, int32_t toModule, int toPin)
 {

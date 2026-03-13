@@ -11,480 +11,89 @@ namespace SE2
 	class ResizeAdorner : public IViewChild
 	{
 	protected:
-		static const int SelectionFrameOffset = 1;
-		static const int ResizeHandleRadius = 4;
-		static const int DragAreaheight = 4;
-		ViewBase* parent;
-		ModuleView* module;
-		int32_t moduleHandle;
-		GmpiDrawing::Point pointPrev;
-		int dragNodeX;
-		int dragNodeY;
-		GmpiDrawing::Color::Enum color;
-		bool isResizableX;
-		bool isResizableY;
-		GmpiDrawing::Rect bounds;
+		static constexpr float SelectionFrameOffset = 1.5f;
+		static constexpr float ResizeHandleRadius = 4;
+		static constexpr float DragAreaheight = 4;
+
+		ViewBase* parent{};
+		ModuleView* module{};
+		int32_t moduleHandle{};
+		gmpi::drawing::Point pointPrev{};
+		int currentNodeX = -1;
+		int currentNodeY = -1;
+		gmpi::drawing::Color color{};
+		bool isResizableX{};
+		bool isResizableY{};
+		gmpi::drawing::Rect bounds{};
 		bool mouseHover{};
 
 		struct node
 		{
 			int xIndex;
 			int yIndex;
-			GmpiDrawing::Point location;
+			gmpi::drawing::Point location;
 		};
 
-		std::vector<node> getNodes() const
-		{
-			GmpiDrawing::Rect r = GetOutlineRect();
-			r -= GmpiDrawing::Size(bounds.left, bounds.top);
+		std::vector<node> getNodes() const;
+		void hitTestNodes(gmpi::drawing::Point point, int& hitNodeX, int& hitNodeY);
 
-			int startX, endX;
-			if (isResizableX)
-			{
-				startX = 0;
-				endX = 2;
-			}
-			else
-			{
-				startX = endX = 1;
-			}
-
-			int startY, endY;
-			if (isResizableY)
-			{
-				startY = parent->getViewType() == CF_PANEL_VIEW ? 0 : 1;
-				endY = 2;
-			}
-			else
-			{
-				startY = endY = 1;
-			}
-
-			std::vector<node> nodes;
-			for (int x = startX; x <= endX; ++x)
-			{
-				const auto pointx = r.left + r.getWidth() * (float)x * 0.5f;
-				for (int y = startY; y <= endY; ++y)
-				{
-					const auto pointy = r.top + r.getHeight() * (float)y * 0.5f;
-					if (x != 1 || y != 1)
-					{
-						nodes.push_back({ x, y, {pointx, pointy} });
-					}
-				}
-			}
-
-			return nodes;
-		}
+		std::tuple<float, int, int> hitTestWhat(gmpi::drawing::Point point);
 
 	public:
 		bool hasGripper = true; // and top handles. i.e. is Panel view.
+		bool drawOutline = true;
 
-		ResizeAdorner(ViewBase* pParent, ModuleView* pModule) :
-			parent(pParent)
-			, module(pModule)
-			, moduleHandle(pModule->getModuleHandle()) // must be cached in case of module being deleted first, then trying to access the handle in ViewBase::RemoveModule
-			, color(GmpiDrawing::Color::DodgerBlue)
-			, hasGripper(true)
-		{
-			if (pModule->ignoreMouse)
-			{
-				hasGripper = false;
-				color = GmpiDrawing::Color::Gray;
-			}
+		ResizeAdorner(ViewBase* pParent, ModuleView* pModule);
+		~ResizeAdorner() override;
 
-			bounds = clientBoundsToAdorner(module->getLayoutRect());
-		}
-		
-		~ResizeAdorner()
-		{
-			assert(!parent || parent->mouseOverObject != this);
-		}
+		void measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize) override;
+		void arrange(gmpi::drawing::Rect finalRect) override;
 
-		int32_t measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize) override
-		{
-			// determin resizeability.
-			{
-				GmpiDrawing::Size desiredMax(0, 0);
-				GmpiDrawing::Size desiredMin(0, 0);
-				module->measure(GmpiDrawing::Size(0, 0), &desiredMin);
-				module->measure(GmpiDrawing::Size(10000, 10000), &desiredMax);
-
-				isResizableX = desiredMin.width != desiredMax.width;
-				isResizableY = desiredMin.height != desiredMax.height;
-			}
-
-			*returnDesiredSize = availableSize;
-
-			return gmpi::MP_OK;
-		}
-		int32_t arrange(GmpiDrawing::Rect finalRect) override
-		{
-			bounds = clientBoundsToAdorner(finalRect);
-			return gmpi::MP_OK;
-		}
-
-		inline GmpiDrawing_API::MP1_RECT clientBoundsToAdorner(GmpiDrawing_API::MP1_RECT r)
-		{
-			const int penThickness = 1;
-			GmpiDrawing::Rect r2(r);
-			r2.Inflate(ResizeHandleRadius + SelectionFrameOffset + penThickness);
-
-			if(hasGripper)
-				r2.top -= DragAreaheight;
-
-			return r2;
-		}
-
+		gmpi::drawing::Rect clientBoundsToAdorner(gmpi::drawing::Rect r);
 		 // this is NOT outline of entire module, only lower half containing plugin gfx
-		virtual GmpiDrawing_API::MP1_RECT GetOutlineRect() const
-		{
-			GmpiDrawing::Rect r(module->bounds_);
-			r.Inflate((float)SelectionFrameOffset);
+		virtual gmpi::drawing::Rect getNodeRect() const;
 
-			if (hasGripper)
-				r.top -= DragAreaheight;
+		gmpi::drawing::Rect getLayoutRect() override;
+		gmpi::drawing::Rect getClipArea() override;
 
-			return r;
-		}
-
-		GmpiDrawing::Rect getLayoutRect() override
-		{
-			return bounds; // clientBoundsToAdorner(module->getBounds());
-		}
-
-		GmpiDrawing::Rect GetClipRect() override
-		{
-			GmpiDrawing::Rect r(GetOutlineRect());
-			r.Inflate(ResizeHandleRadius + 1.0f);
-			return r; // clientBoundsToAdorner(module->bounds_);
-		}
-
-		void OnMoved(GmpiDrawing::Rect& r) override
-		{
-			auto invalidRect = bounds;
-			bounds = clientBoundsToAdorner(r);
-			invalidRect.Union(bounds);
-			invalidRect.Inflate((float)ResizeHandleRadius);
-
-			parent->getGuiHost()->invalidateRect(&invalidRect);
-		}
-		void OnNodesMoved(std::vector<GmpiDrawing::Point>& newNodes) override {}
+		void OnMoved(gmpi::drawing::Rect& r) override;
+		void OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes) override;
 
 		// rendered only on panel
-		void OnRender(GmpiDrawing::Graphics& g) override
-		{
-			GmpiDrawing::Rect r = GetOutlineRect();
-			r -= GmpiDrawing::Size(bounds.left, bounds.top);
-			auto brush = g.CreateSolidColorBrush(color);
+		void render(gmpi::drawing::Graphics& g) override;
 
-			if (mouseHover)
-			{
-				brush.SetColor(GmpiDrawing::Color::DeepSkyBlue);
-			}
+		bool hitTestR(int32_t flags, gmpi::drawing::Rect selectionRect) override;
+		float hitTestFuzzy(int32_t flags, gmpi::drawing::Point point) override;
 
-			g.DrawRectangle(r, brush);
+		std::string getToolTip(gmpi::drawing::Point point) override;
+		void receiveMessageFromAudio(void*) override;
 
-			if (hasGripper)
-			{
-				GmpiDrawing::Rect dragArea(r);
-				dragArea.bottom = dragArea.top + DragAreaheight;
-				g.FillRectangle(dragArea, brush);
+		gmpi::ReturnCode setHover(bool isMouseOverMe) override;
+		gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override;
 
-				// grip indication
-				auto bg = g.CreateSolidColorBrush(GmpiDrawing::Color::FromArgb(0x20000000));
-				for( int x = 1 ; x < r.getWidth() - 1; x += 3)
-				{
-					for (int y = 1; y < DragAreaheight - 1; y += 2)
-					{
-						if( ((x/3) ^ (y/2)) & 0x1 )
-						{
-							GmpiDrawing::Rect rg(r.left + x, r.top + y, r.left + x + 2, r.top + y + 1);
-							g.FillRectangle(rg, bg);
-						}
-					}
-				}
-			}
+		gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override;
+		gmpi::ReturnCode populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink) override;
+		gmpi::ReturnCode onContextMenu(int32_t idx) override;
+		gmpi::ReturnCode onKeyPress(wchar_t c) override;
 
-			// draw Resize handles.
-			GmpiDrawing::Ellipse circle(GmpiDrawing::Point(0., 0.), (float)ResizeHandleRadius);
-			auto FillBrush = g.CreateSolidColorBrush(GmpiDrawing::Color::White);
-
-			for(auto& n : getNodes())
-			{
-				circle.point = n.location;
-
-				g.FillEllipse(circle, FillBrush);
-				g.DrawEllipse(circle, brush);
-			}
-		}
-
-		bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
-		{
-			GmpiDrawing::Rect r(GetOutlineRect()); // on structure this is NOT outline of entire module, only lower half containing plugin gfx
-
-			// Outer Rect.
-			GmpiDrawing::Rect outerRect(r);
-			const float outerThickness = ResizeHandleRadius; // hits count slightly outside line.
-			outerRect.Inflate(outerThickness);
-			if (!outerRect.ContainsPoint(point))
-			{
-				return false;
-			}
-
-			// Gripper
-			if (hasGripper && point.y >= 0 && point.y < r.top + DragAreaheight)
-			{
-				return true;
-			}
-
-			const auto pointLocal = GmpiDrawing::Point(point) - GmpiDrawing::Size(bounds.left, bounds.top);
-
-			// Resize handles.
-			int hitNodeX, hitNodeY;
-			hitTestNodes(pointLocal, hitNodeX, hitNodeY);
-			if (hitNodeX >= 0 || hitNodeY >= 0)
-			{
-				return true;
-			}
-
-			GmpiDrawing::Rect innerRect(r);
-			innerRect.Deflate(1.5f);
-			return !innerRect.ContainsPoint(point);
-		}
-
-		bool hitTestR(int32_t flags, GmpiDrawing_API::MP1_RECT selectionRect) override
-		{
-			return isOverlapped(GmpiDrawing::Rect(selectionRect), GmpiDrawing::Rect(GetOutlineRect()));
-		}
-		float hitTestFuzzy(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
-		{
-			return hitTest(flags, point) ? 0.0f : 10000.0f;
-		}
-
-		std::string getToolTip(GmpiDrawing_API::MP1_POINT point) override
-		{
-			return std::string();
-		}
-
-		void receiveMessageFromAudio(void*) override
-		{
-		}
-
-		void hitTestNodes(GmpiDrawing_API::MP1_POINT point, int& hitNodeX, int& hitNodeY)
-		{
-			for(auto& n : getNodes())
-			{
-				const float dx = n.location.x - point.x;
-				const float dy = n.location.y - point.y;
-
-				if((dx * dx + dy * dy) <= (float)((1 + ResizeHandleRadius) * (1 + ResizeHandleRadius)))
-				{
-					hitNodeX = n.xIndex;
-					hitNodeY = n.yIndex;
-					return;
-				}
-			}
-
-			hitNodeX = hitNodeY = -1;
-		}
-
-		void vc_setHover(bool mouseIsOverMe) override
-		{
-			mouseHover = mouseIsOverMe;
-//			auto redrawRect = GetClipRect();
-			parent->getGuiHost()->invalidateRect(&bounds);
-		}
-
-		int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
-		{
-			const auto pointLocal = GmpiDrawing::Point(point) - GmpiDrawing::Size(bounds.left, bounds.top);
-			hitTestNodes(pointLocal, dragNodeX, dragNodeY);
-
-			pointPrev = point;
-			parent->setCapture(this);
-			parent->autoScrollStart();
-
-			return gmpi::MP_OK;
-		}
-
-		int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
-		{
-			if (parent->isCaptured(this))
-			{
-				auto snapGridSize = parent->Presenter()->GetSnapSize();
-				GmpiDrawing::Size delta(point.x - pointPrev.x, point.y - pointPrev.y);
-
-				if (delta.width == 0.0f && delta.height == 0.0f) // avoid false snap on selection
-					return gmpi::MP_OK;
-
-				GmpiDrawing::Point snapReference(module->getLayoutRect().left, module->getLayoutRect().top);
-
-				switch (dragNodeX)
-				{
-				case -1: // border.
-					{
-						// Snap-to-grid logic.
-						GmpiDrawing::Point newPoint = snapReference + delta;
-						newPoint.x = floorf((snapGridSize / 2 + newPoint.x) / snapGridSize) * snapGridSize;
-						newPoint.y = floorf((snapGridSize / 2 + newPoint.y) / snapGridSize) * snapGridSize;
-						GmpiDrawing::Size snapDelta = newPoint - snapReference;
-
-						pointPrev += snapDelta;
-
-						if (snapDelta.width != 0.0 || snapDelta.height != 0.0)
-							parent->Presenter()->DragSelection(snapDelta);
-					}
-					return gmpi::MP_OK;
-					break;
-
-				/* already the default
-				case 0:
-					snapReference.x = module->getBounds().left;
-					break;
-				*/
-
-				case 1: // h center
-					delta.width = 0;
-					break;
-
-				case 2: // Right.
-					snapReference.x = module->getLayoutRect().right;
-					break;
-				}
-
-				switch (dragNodeY)
-				{
-				/* already the default
-				case 0: // top
-					snapReference.y = module->getBounds().top;
-					break;
-				*/
-
-				case 1: // vert center
-					delta.height = 0;
-					break;
-
-				case 2: // bottom
-					snapReference.y = module->getLayoutRect().bottom;
-					break;
-				}
-
-				// Snap-to-grid logic.
-				GmpiDrawing::Point newPoint = snapReference + delta;
-				newPoint.x = floorf((snapGridSize / 2 + newPoint.x) / snapGridSize) * snapGridSize;
-				newPoint.y = floorf((snapGridSize / 2 + newPoint.y) / snapGridSize) * snapGridSize;
-				GmpiDrawing::Size snapDelta = newPoint - snapReference;
-
-				pointPrev += snapDelta;
-
-				if (snapDelta.width != 0.0 || snapDelta.height != 0.0)
-					parent->Presenter()->ResizeModule(getModuleHandle(), dragNodeX, dragNodeY, snapDelta);
-			}
-
-			return gmpi::MP_OK;
-		}
-
-		int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
-		{
-			if (parent->isCaptured(this))
-			{
-				parent->releaseCapture();
-				parent->autoScrollStop();
-			}
-
-			return gmpi::MP_OK;
-		}
-		int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override
-		{
-			return gmpi::MP_UNHANDLED;
-		}
-		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::IMpUnknown* /*contextMenuItemsSink*/) override
-		{
-			return gmpi::MP_OK;
-		}
-		int32_t vc_onContextMenu(int32_t idx) override
-		{
-			return gmpi::MP_OK;
-		}
-
-		int32_t getModuleHandle() override
-		{
-			return moduleHandle;
-		}
-		bool getSelected() override
-		{
-			return false;
-		}
-
-		void setSelected(bool selected) override {}
-		void preDelete() override {}
-
-		GmpiDrawing::Point getConnectionPoint(CableType cableType, int pinIndex) override
-		{
-			return GmpiDrawing::Point();
-		}
+		int32_t getModuleHandle() override;
+		bool getSelected() override;
+		void setSelected(bool selected) override;
+		void preDelete() override;
+		gmpi::drawing::Point getConnectionPoint(CableType cableType, int pinIndex) override;
 	};
 
 	class ResizeAdornerStructure : public ResizeAdorner
 	{
 	public:
-		ResizeAdornerStructure(ViewBase* pParent, ModuleView* pModule) : ResizeAdorner(pParent, pModule)
-		{
-			hasGripper = false;
-		}
+		ResizeAdornerStructure(ViewBase* pParent, ModuleView* pModule);
 
-		GmpiDrawing_API::MP1_RECT GetOutlineRect() const override
-		{
-			GmpiDrawing::Rect r(module->bounds_);
-
-			r.Deflate(6.5f, 0.5f);
-			r.top = r.bottom - module->pluginGraphicsPos.getHeight() - 1.5f;
-
-			return r;
-		}
-
-		bool hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point) override
-		{
-			GmpiDrawing::Rect outerRect(GetOutlineRect()); // on structure, this is NOT outline of entire module, only lower half containing plugin gfx
-			const float outerThickness = ResizeHandleRadius; // hits count slightly outside line.
-			outerRect.Inflate(outerThickness);
-			if(!outerRect.ContainsPoint(point))
-				return false;
-
-			const auto pointLocal = GmpiDrawing::Point(point) - GmpiDrawing::Size(bounds.left, bounds.top);
-
-			// Resize handles.
-			int hitNodeX, hitNodeY;
-			hitTestNodes(pointLocal, hitNodeX, hitNodeY);
-			return hitNodeX >= 0 || hitNodeY >= 0;
-		}
-
-		bool hitTestR(int32_t flags, GmpiDrawing_API::MP1_RECT selectionRect) override
-		{
-			return isOverlapped(GmpiDrawing::Rect(selectionRect), GmpiDrawing::Rect(GetOutlineRect()));
-		}
-
-		void OnRender(GmpiDrawing::Graphics& g) override
-		{
-			const auto nodes = getNodes();
-			if(nodes.empty())
-			{
-				return;
-			}
-
-			// draw Resize handles only. Outline is handled by module.
-			GmpiDrawing::Ellipse circle(GmpiDrawing::Point(0., 0.), (float)ResizeHandleRadius);
-			auto FillBrush = g.CreateSolidColorBrush(GmpiDrawing::Color::White);
-			auto OutlineBrush = g.CreateSolidColorBrush(color);
-
-			for(auto& n : nodes)
-			{
-				circle.point = n.location;
-
-				g.FillEllipse(circle, FillBrush);
-				g.DrawEllipse(circle, OutlineBrush);
-			}
-		}
+		gmpi::drawing::Rect getNodeRect() const override;
+//		gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override;
+//		bool hitTestR(int32_t flags, gmpi::drawing::Rect selectionRect) override;
+//		void render(gmpi::drawing::Graphics& g) override;
 	};
 }

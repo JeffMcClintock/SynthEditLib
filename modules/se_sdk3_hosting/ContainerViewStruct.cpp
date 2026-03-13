@@ -18,7 +18,7 @@
 using namespace std;
 using namespace gmpi;
 using namespace gmpi_gui;
-using namespace GmpiDrawing;
+using namespace gmpi::drawing;
 using namespace legacy_converters;
 
 namespace SE2
@@ -89,7 +89,7 @@ namespace SE2
 			return new SE2::ConnectorView2(this, handleFrom, fromPin, -1, -1);
 	}
 
-	int32_t ContainerViewStruct::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
+	gmpi::ReturnCode ContainerViewStruct::render(gmpi::drawing::api::IDeviceContext* drawingContext)
 	{
 		Graphics g(drawingContext);
 
@@ -101,11 +101,11 @@ namespace SE2
 		g.Clear(color);
 #else
 
-		const Matrix3x2 originalTransform = g.GetTransform();
+		const Matrix3x2 originalTransform = g.getTransform();
 
 		// pan and zoom
-		const auto viewTransformL = originalTransform * toLegacy(viewTransform);
-		g.SetTransform(viewTransformL);
+		const auto transformed = originalTransform * viewTransform;
+		g.setTransform(transformed);
 
 //		if (viewType == CF_STRUCTURE_VIEW)
 		{
@@ -116,42 +116,42 @@ namespace SE2
 			// Background
 			{
 				// fill in the area arround the drawing area. avoiding overdraw.
-				GmpiDrawing::Rect editingBounds{ 0.0f, 0.0f, 7968.0f, 7968.0f };
-				GmpiDrawing::Rect huge{ -100000.0f, -100000.0f, 100000.0f, 100000.0f };
+				gmpi::drawing::Rect editingBounds{ 0.0f, 0.0f, 7968.0f, 7968.0f };
+				gmpi::drawing::Rect huge{ -100000.0f, -100000.0f, 100000.0f, 100000.0f };
 
-				auto backgroundBrush = g.CreateSolidColorBrush(GmpiDrawing::Color(0x555555u));
+				auto backgroundBrush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x555555u));
 				auto temp = huge;
 				temp.bottom = editingBounds.top;
-				g.FillRectangle(temp, backgroundBrush);
+				g.fillRectangle(temp, backgroundBrush);
 
 				temp = huge;
 				temp.top = editingBounds.bottom;
-				g.FillRectangle(temp, backgroundBrush);
+				g.fillRectangle(temp, backgroundBrush);
 
 				temp = huge;
 				temp.top = editingBounds.top - 1.0f;
 				temp.bottom = editingBounds.bottom + 1.0f;
 				temp.right = editingBounds.left;
-				g.FillRectangle(temp, backgroundBrush);
+				g.fillRectangle(temp, backgroundBrush);
 
 				temp.left = editingBounds.right;
 				temp.right = huge.right;
-				g.FillRectangle(temp, backgroundBrush);
+				g.fillRectangle(temp, backgroundBrush);
 
 				// fill the drawing area
-				backgroundBrush.SetColor(backGroundColor);
-				g.FillRectangle(editingBounds, backgroundBrush);
+				backgroundBrush.setColor(backGroundColor);
+				g.fillRectangle(editingBounds, backgroundBrush);
 			}
 
-			auto zoom = g.GetTransform()._11; // horizontal scale.
+			auto zoom = g.getTransform()._11; // horizontal scale.
 			// BACKGROUND GRID LINES.
-			auto brush = g.CreateSolidColorBrush(backGroundColor + 0x040404u); // grid color.
+			auto brush = g.createSolidColorBrush(backGroundColor + 0x040404u); // grid color.
 			if (zoom > 0.1f)
 			{
 				const auto drawFinegrid = zoom > 0.6f;
 
-				GmpiDrawing::Rect cliprectF = g.GetAxisAlignedClip();
-				GmpiDrawing::Rect cliprect{
+				gmpi::drawing::Rect cliprectF = g.getAxisAlignedClip();
+				gmpi::drawing::Rect cliprect{
 					  cliprectF.left
 					, cliprectF.top
 					, cliprectF.right
@@ -204,7 +204,7 @@ namespace SE2
 
 						penWidth = 1;
 					}
-					g.DrawLine(x + 0.5f, startY + 0.5f, x + 0.5f, endY - 0.5f, brush, penWidth);
+					g.drawLine({ x + 0.5f, startY + 0.5f }, { x + 0.5f, endY - 0.5f }, brush, penWidth);
 				}
 
 				thickLineCounter = ((startY + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
@@ -224,11 +224,11 @@ namespace SE2
 						penWidth = 1;
 					}
 
-					g.DrawLine(startX + 0.5f, y + 0.5f, endX - 0.5f, y + 0.5f, brush, penWidth);
+					g.drawLine({ startX + 0.5f, y + 0.5f }, { endX - 0.5f, y + 0.5f }, brush, penWidth);
 				}
 
 				// outline entire grid to clean up 4 corners.
-				g.DrawRectangle(
+				g.drawRectangle(
 					Rect{
 						gridSize * 2 - 0.5f, gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f
 					}
@@ -239,9 +239,9 @@ namespace SE2
 		}
 #endif
 
-		const auto r = ViewBase::OnRender(drawingContext);
+		const auto r = ViewBase::render(drawingContext);
 
-		g.SetTransform(originalTransform);
+		g.setTransform(originalTransform);
 
 		return r;
 	}

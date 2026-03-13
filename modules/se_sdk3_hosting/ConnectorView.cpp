@@ -1,4 +1,3 @@
-
 #include "ConnectorView.h"
 #include "ContainerView.h"
 #include "ModuleView.h"
@@ -6,7 +5,7 @@
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "modules/shared/VectorMath.h"
 
-using namespace GmpiDrawing;
+using namespace gmpi::drawing;
 using namespace Gmpi::VectorMath;
 
 // perceptually even colors. (rainbow). Might need the one with purple instead (for BLOBs).
@@ -18,11 +17,8 @@ namespace SE2
 	{
 		auto& object_json = *datacontext;
 
-		fromModuleH = object_json["fMod"].asInt();
-		toModuleH = object_json["tMod"].asInt();
-
-		fromModulePin = object_json["fPlg"].asInt();
-		toModulePin = object_json["tPlg"].asInt();
+		fmPin = { object_json["fMod"].asInt(), object_json["fPlg"].asInt() };
+		toPin = { object_json["tMod"].asInt(), object_json["tPlg"].asInt() };
 
 		setSelected(object_json["selected"].asBool());
 		highlightFlags = object_json["highlightFlags"].asInt();
@@ -32,28 +28,24 @@ namespace SE2
 		{
 //			_RPTN(0, "ConnectorViewBase::ConnectorViewBase highlightFlags =  %d\n", highlightFlags);
 		}
-
 		cancellation = object_json["Cancellation"].asFloat();
 #endif
 	}
 
-	int32_t ConnectorViewBase::measure(GmpiDrawing::Size availableSize, GmpiDrawing::Size* returnDesiredSize)
+	void ConnectorViewBase::measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize)
 	{
 		// Measure/Arrange not really applicable to lines.
 		returnDesiredSize->height = 10;
 		returnDesiredSize->width = 10;
-		return gmpi::MP_OK;
 	}
 
-	int32_t ConnectorViewBase::arrange(GmpiDrawing::Rect finalRect)
+	void ConnectorViewBase::arrange(gmpi::drawing::Rect finalRect)
 	{
 		// Measure/Arrange not applicable to lines. Determines it's own bounds during arrange phase.
 		// don't overwright.
 		// ViewChild::arrange(finalRect);
 
 		OnModuleMoved();
-
-		return gmpi::MP_OK;
 	}
 
 	void ConnectorViewBase::setHighlightFlags(int flags)
@@ -62,44 +54,45 @@ namespace SE2
 		highlightFlags = flags;
 
 		if (flags == 0)
-		{
 			parent->MoveToBack(this);
-		}
 		else
-		{
 			parent->MoveToFront(this);
-		}
 
-		const auto r = GetClipRect();
+		const auto r = getClipArea();
 		parent->invalidateRect(&r);
 	}
 
-	void ConnectorViewBase::pickup(int pdraggingFromEnd, GmpiDrawing_API::MP1_POINT pMousePos)
+	void ConnectorViewBase::pickup(int pdraggingFromEnd, gmpi::drawing::Point pMousePos)
 	{
+		parent->invalidateRect(&bounds_);
+
 		if (pdraggingFromEnd == 0)
 			from_ = pMousePos;
 		else
 			to_ = pMousePos;
 
 		draggingFromEnd = pdraggingFromEnd;
+		wasPickedUp = true;
+
 		parent->setCapture(this);
 
-		parent->invalidateRect(); // todo bounds only. !!!
-
 		CalcBounds();
+
+		parent->MoveToFront(this);
+
 		parent->invalidateRect(&bounds_);
 	}
 
 	void ConnectorViewBase::OnModuleMoved()
 	{
-		auto module1 = Presenter()->HandleToObject(fromModuleH);
-		auto module2 = Presenter()->HandleToObject(toModuleH);
+		auto module1 = Presenter()->HandleToObject(fmPin.module);
+		auto module2 = Presenter()->HandleToObject(toPin.module);
 
 		if (module1 == nullptr || module2 == nullptr)
 			return;
 
-		auto from = module1->getConnectionPoint(type, fromModulePin);
-		auto to = module2->getConnectionPoint(type, toModulePin);
+		auto from = module1->getConnectionPoint(type, fmPin.index);
+		auto to = module2->getConnectionPoint(type, toPin.index);
 
 		from = module1->parent->MapPointToView(parent, from);
 		to = module2->parent->MapPointToView(parent, to);
@@ -114,10 +107,23 @@ namespace SE2
 
 	void PatchCableView::CreateGeometry()
 	{
-		GmpiDrawing::Factory factory(parent->GetDrawingFactory());
-		strokeStyle = factory.CreateStrokeStyle(useDroop() ? CapStyle::Round : CapStyle::Flat);
-		geometry = factory.CreatePathGeometry();
-		auto sink = geometry.Open();
+		gmpi::drawing::Factory factory;
+
+		{
+			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+			parent->drawingHost->getDrawingFactory(unknown.put());
+			unknown->queryInterface(&gmpi::drawing::api::IFactory::guid, (void**) AccessPtr::put(factory));
+
+//			auto fac = unknown.as<gmpi::drawing::Factory>();
+
+	//		AccessPtr.put(factory) = AccessPtr::get(fac);
+		}
+
+//		gmpi::drawing::Factory factory(parent->GetDrawingFactory());
+
+		strokeStyle = factory.createStrokeStyle(useDroop() ? CapStyle::Round : CapStyle::Flat);
+		geometry = factory.createPathGeometry();
+		auto sink = geometry.open();
 
 		//			_RPT4(_CRT_WARN, "Calc [%.3f,%.3f] -> [%.3f,%.3f]\n", from_.x, from_.y, to_.x, to_.y );
 
@@ -125,21 +131,21 @@ namespace SE2
 		if (/*draggingFromEnd >= 0 ||*/ !useDroop())
 		{
 			// straight line.
-			sink.BeginFigure(from_, FigureBegin::Hollow);
-			sink.AddLine(to_);
+			sink.beginFigure(from_, FigureBegin::Hollow);
+			sink.addLine(to_);
 
 			//			_RPT4(_CRT_WARN, "FRom[%.3f,%.3f] -> [%.3f,%.3f]\n", from_.x, from_.y, to_.x, to_.y );
 		}
 		else
 		{
-			sink.BeginFigure(from_, FigureBegin::Hollow);
+			sink.beginFigure(from_, FigureBegin::Hollow);
 			// sagging curve.
-			GmpiDrawing::Size droopOffset(0, 20);
-			sink.AddBezier(BezierSegment(from_ + droopOffset, to_ + droopOffset, to_));
+			gmpi::drawing::Size droopOffset(0, 20);
+			sink.addBezier(BezierSegment(from_ + droopOffset, to_ + droopOffset, to_));
 		}
 
-		sink.EndFigure(FigureEnd::Open);
-		sink.Close();
+		sink.endFigure(FigureEnd::Open);
+		sink.close();
 	}
 
 	void PatchCableView::CalcBounds()
@@ -148,11 +154,11 @@ namespace SE2
 		CreateGeometry();
 
 		auto oldBounds = bounds_;
-		bounds_ = geometry.GetWidenedBounds((float)cableDiameter, strokeStyle);
+		bounds_ = geometry.getWidenedBounds((float)cableDiameter, strokeStyle);
 
 		if (oldBounds != bounds_)
 		{
-			oldBounds.Union(bounds_);
+			oldBounds = unionRect(oldBounds, bounds_);
 			parent->ChildInvalidateRect(oldBounds);
 		}
 	}
@@ -162,8 +168,8 @@ namespace SE2
 		if (draggingFromEnd >= 0)
 			return true;
 
-		auto module1 = Presenter()->HandleToObject(fromModuleH);
-		auto module2 = Presenter()->HandleToObject(toModuleH);
+		auto module1 = Presenter()->HandleToObject(fmPin.module);
+		auto module2 = Presenter()->HandleToObject(toPin.module);
 
 		return module1 && module2 && module1->isShown() && module2->isShown();
 	}
@@ -175,14 +181,14 @@ namespace SE2
 		isShownCached = newIsShown;
 		if (changed)
 		{
-			auto r = GetClipRect();
+			auto r = getClipArea();
 			parent->invalidateRect(&r);
 		}
 	}
 
 	GraphicsResourceCache<sharedGraphicResources_patchcables> drawingResourcesCachePatchCables;
 
-	sharedGraphicResources_patchcables* PatchCableView::getDrawingResources(GmpiDrawing::Graphics& g)
+	sharedGraphicResources_patchcables* PatchCableView::getDrawingResources(gmpi::drawing::Graphics& g)
 	{
 		if (!drawingResources)
 		{
@@ -193,85 +199,86 @@ namespace SE2
 	}
 
 
-	void PatchCableView::OnRender(GmpiDrawing::Graphics& g)
+	void PatchCableView::render(gmpi::drawing::Graphics& g)
 	{
-		if (geometry.isNull() || !isShownCached)
+		if (!geometry || !isShownCached)
 			return;
 
 		auto resources = getDrawingResources(g);
 
-//		g.FillRectangle(bounds_, g.CreateSolidColorBrush(Color::AliceBlue));
+//		g.fillRectangle(bounds_, g.createSolidColorBrush(Colors::AliceBlue));
 
 		const bool drawSolid = isHovered || draggingFromEnd >= 0;
 
 		if (drawSolid)
 		{
-			g.DrawGeometry(geometry, resources->outlineBrush, 6.0f, strokeStyle);
+			g.drawGeometry(geometry, resources->outlineBrush, 6.0f, strokeStyle);
 		}
 
 		// Colored fill.
-		g.DrawGeometry(geometry, resources->brushes[colorIndex][1 - static_cast<int>(drawSolid)], 4.0f, strokeStyle);
+		g.drawGeometry(geometry, resources->brushes[colorIndex][1 - static_cast<int>(drawSolid)], 4.0f, strokeStyle);
 
 		if (!drawSolid || draggingFromEnd >= 0)
 			return;
 
 		// draw white highlight on cable.
-		Matrix3x2 originalTransform = g.GetTransform();
+		Matrix3x2 originalTransform = g.getTransform();
 
-		auto adjustedTransform = Matrix3x2::Translation(-1, -1) * originalTransform;
+		auto adjustedTransform = makeTranslation(-1, -1) * originalTransform;
 
-		g.SetTransform(adjustedTransform);
+		g.setTransform(adjustedTransform);
 
-		g.DrawGeometry(geometry, resources->highlightBrush, 1.0f, strokeStyle);
+		g.drawGeometry(geometry, resources->highlightBrush, 1.0f, strokeStyle);
 
-		g.SetTransform(originalTransform);
+		g.setTransform(originalTransform);
 	}
 
-	void PatchCableView::vc_setHover(bool mouseIsOverMe)
+	gmpi::ReturnCode PatchCableView::setHover(bool mouseIsOverMe)
 	{
 		if(isHovered != mouseIsOverMe)
 		{
 			isHovered = mouseIsOverMe;
 
-			const auto r = GetClipRect();
+			const auto r = getClipArea();
 			parent->invalidateRect(&r);
 		}
-	}
 
+		return gmpi::ReturnCode::Ok;
+	}
+	
 	// Mis-used as a global mouse tracker.
-	bool PatchCableView::hitTest(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	gmpi::ReturnCode PatchCableView::hitTest(gmpi::drawing::Point point, int32_t flags)
 	{
 		if (!isShownCached)
-			return false;
+			return gmpi::ReturnCode::Unhandled;
 
 		// <ctrl> or <shift> click ignores patch cables (so patch point can spawn new cable)
 		if ((flags & (gmpi_gui_api::GG_POINTER_KEY_CONTROL| gmpi_gui_api::GG_POINTER_KEY_SHIFT)) != 0)
-			return false;
+			return gmpi::ReturnCode::Unhandled;
 
-		if (!bounds_.ContainsPoint(point) || geometry.isNull()) // FM-Lab has null geometries for hidden patch cables.
-			return false;
+		if (!pointInRect(point, bounds_) || !geometry) // FM-Lab has null geometries for hidden patch cables.
+			return gmpi::ReturnCode::Unhandled;
 
 		// Hits ignored, except at line ends. So cables don't interfere with knobs.
 		float distanceToendSquared = {};
 		constexpr float lineHitWidth = 7.0f;
 
 		{
-			GmpiDrawing::Size delta = from_ - Point(point);
+			gmpi::drawing::Size delta = from_ - Point(point);
 			distanceToendSquared = delta.width * delta.width + delta.height * delta.height;
 			constexpr float hitRadiusSquared = mouseNearEndDist * mouseNearEndDist;
 			if (distanceToendSquared > hitRadiusSquared)
 			{
 				delta = to_ - Point(point);
 				distanceToendSquared = delta.width * delta.width + delta.height * delta.height;
+
 				if (distanceToendSquared > hitRadiusSquared)
-				{
-					return false;
-				}
+					return gmpi::ReturnCode::Unhandled;
 			}
 		}
 
 		// Do proper hit testing.
-		return geometry.StrokeContainsPoint(point, lineHitWidth, strokeStyle.Get());
+		return geometry.strokeContainsPoint(point, lineHitWidth, strokeStyle) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
 	}
 
 	PatchCableView::~PatchCableView()
@@ -280,18 +287,18 @@ namespace SE2
 		parent->autoScrollStop();
 	}
 
-	int32_t PatchCableView::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	gmpi::ReturnCode PatchCableView::onPointerDown(gmpi::drawing::Point point, int32_t flags)
 	{
 		if (imCaptured()) //parent->getCapture()) // dragging?
 		{
 			parent->releaseCapture();
-			parent->EndCableDrag(point, this);
+			parent->EndCableDrag(point, this, flags);
 			// I am now DELETED!!!
-			return gmpi::MP_HANDLED;
+			return gmpi::ReturnCode::Unhandled;
 		}
 
 		if (!isHovered)
-			return gmpi::MP_UNHANDLED;
+			return gmpi::ReturnCode::Unhandled;
 
 		// Select Object.
 		Presenter()->ObjectClicked(handle, flags); //gmpi::modifier_keys::getHeldKeys());
@@ -308,7 +315,7 @@ namespace SE2
 */
 
 			// Left-click
-			GmpiDrawing::Size delta = from_ - Point(point);
+			gmpi::drawing::Size delta = from_ - Point(point);
 			const float lengthSquared = delta.width * delta.width + delta.height * delta.height;
 			constexpr float hitRadiusSquared = mouseNearEndDist * mouseNearEndDist;
 			const int hitEnd = (lengthSquared < hitRadiusSquared) ? 0 : 1;
@@ -316,10 +323,10 @@ namespace SE2
 			pickup(hitEnd, point);
 		}
 
-		return gmpi::MP_HANDLED; // Indicate menu already shown.
+		return gmpi::ReturnCode::Unhandled;
 	}
 
-	int32_t ConnectorViewBase::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	gmpi::ReturnCode ConnectorViewBase::onPointerMove(gmpi::drawing::Point point, int32_t flags)
 	{
 		if (imCaptured())
 		{
@@ -328,48 +335,53 @@ namespace SE2
 			else
 				to_ = point;
 
-			parent->OnCableMove(this);
+			endIsSnapped = parent->OnCableMove(this);
 
 			CalcBounds();
-
-			return gmpi::MP_OK;
+			return gmpi::ReturnCode::Unhandled;
 		}
 
-		return gmpi::MP_UNHANDLED;
+		return gmpi::ReturnCode::Unhandled;
 	}
 
-	int32_t ConnectorViewBase::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	gmpi::ReturnCode ConnectorViewBase::onPointerUp(gmpi::drawing::Point point, int32_t flags)
 	{
-		if (imCaptured()) //if (parent->getCapture())
+		endIsSnapped = false;
+		if (imCaptured())
 		{
 			// detect single clicks on pin, continue dragging.
 			const float dragThreshold = 6;
 			if (abs(from_.x - to_.x) < dragThreshold && abs(from_.y - to_.y) < dragThreshold)
+				return gmpi::ReturnCode::Unhandled;
+
+			if(wasPickedUp)
 			{
-				return gmpi::MP_HANDLED;
+				wasPickedUp = false;
+				return gmpi::ReturnCode::Unhandled;
 			}
 
 			parent->autoScrollStop();
 			parent->releaseCapture();
-			parent->EndCableDrag(point, this);
+			parent->EndCableDrag(point, this, 0); // passsing zero flags on mouse-up, since alt key only relevant when clicking on pins while dragging.
 			// I am now DELETED!!!
 		}
 
-		return gmpi::MP_OK;
+		return gmpi::ReturnCode::Unhandled;
 	}
 
-	int32_t PatchCableView::populateContextMenu(float x, float y, gmpi::IMpUnknown* contextMenuItemsSink)
+	gmpi::ReturnCode PatchCableView::populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink)
 	{
+#if 0 // TODO
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpContextItemSink> menu;
 		auto r = contextMenuItemsSink->queryInterface(gmpi::MP_IID_CONTEXT_ITEMS_SINK, menu.asIMpUnknownPtr());
 
-		//		contextMenuItemsSink->currentCallback = [this](int32_t idx, GmpiDrawing_API::MP1_POINT point) { return onContextMenu(idx); };
+		//		contextMenuItemsSink->currentCallback = [this](int32_t idx, gmpi::drawing::Point point) { return onContextMenu(idx); };
 		menu->AddItem("Remove Cable", 0);
-
-		return gmpi::MP_OK;
+#endif
+		return gmpi::ReturnCode::Unhandled;
 	}
 
-	int32_t ConnectorViewBase::vc_onContextMenu(int32_t idx)
+	gmpi::ReturnCode ConnectorViewBase::onContextMenu(int32_t idx)
 	{
 		if (idx == 0)
 		{
@@ -377,7 +389,8 @@ namespace SE2
 			// might need some special-case handling, since objects don't exist as docobs.
 			parent->RemoveCables(this);
 		}
-		return gmpi::MP_OK;
+
+		return gmpi::ReturnCode::Unhandled;
 	}
 
 } // namespace

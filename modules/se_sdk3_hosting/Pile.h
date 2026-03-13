@@ -160,6 +160,7 @@ struct GmpiUiLayer :
 		return gmpi::ReturnCode::Ok;
 	}
 
+	// only hit if mouse is over one of my children. Otherwise passthough.
 	gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
 	{
 		for (auto& it : children)
@@ -498,7 +499,8 @@ struct PileChildHost :
 #endif
 
 struct PileChildHost2 :
-	  public gmpi::api::IDialogHost
+	  public gmpi::api::IInputHost
+	, public gmpi::api::IDialogHost
 	, public gmpi::api::IDrawingHost
 {
 	struct Pile* parent = nullptr;
@@ -516,9 +518,14 @@ struct PileChildHost2 :
 	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
 
+	gmpi::ReturnCode setCapture() override;
+	gmpi::ReturnCode getCapture(bool& returnValue) override;
+	gmpi::ReturnCode releaseCapture() override;
+
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
 		*returnInterface = {};
+		GMPI_QUERYINTERFACE(IInputHost);
 		GMPI_QUERYINTERFACE(IDialogHost);
 		GMPI_QUERYINTERFACE(IDrawingHost);
 		return gmpi::ReturnCode::NoSupport;
@@ -618,6 +625,10 @@ struct Pile :
 		for(auto& graphic : graphics_gmpi)
 		{
 			graphic->open(drawingHost.get());
+
+			// nasty hack, perhaps ViewBase should inherit IEditor, or I should merge open and setHost into one method.
+			if(auto viewBase = dynamic_cast<SE2::ViewBase*>(graphic.get()); viewBase)
+				viewBase->setHost(static_cast<gmpi::api::IDrawingHost*>(&childhost_gmpi));
 		}
 
 		return gmpi::ReturnCode::Ok;
@@ -658,9 +669,8 @@ struct Pile :
 	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
 	{
 		for (auto& graphic : graphics_gmpi)
-		{
 			graphic->render(drawingContext);
-		}
+
 		return gmpi::ReturnCode::Ok;
 	}
 	gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override
@@ -1362,11 +1372,7 @@ inline gmpi::ReturnCode PileChildHost::createKeyListener(const gmpi::drawing::Re
 
 inline gmpi::ReturnCode PileChildHost2::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
 {
-	gmpi_sdk::mp_shared_ptr<gmpi_gui::IMpGraphicsHost> sdk3DrawingHost;
-	parent->drawingHost->queryInterface((const gmpi::api::Guid*) &gmpi_gui::SE_IID_GRAPHICS_HOST, sdk3DrawingHost.asIMpUnknownPtr());
-
-	sdk3DrawingHost->GetDrawingFactory((GmpiDrawing_API::IMpFactory**) returnFactory);
-	return gmpi::ReturnCode::Ok;
+	return parent->drawingHost->getDrawingFactory(returnFactory);
 }
 inline void PileChildHost2::invalidateRect(const gmpi::drawing::Rect* invalidRect) { parent->drawingHost->invalidateRect(invalidRect); }
 inline void PileChildHost2::invalidateMeasure() { parent->drawingHost->invalidateMeasure(); };
@@ -1380,6 +1386,29 @@ inline gmpi::ReturnCode PileChildHost2::createKeyListener(const gmpi::drawing::R
 }
 inline gmpi::ReturnCode PileChildHost2::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return parent->dialogHost->createFileDialog(dialogType, returnDialog); }
 inline gmpi::ReturnCode PileChildHost2::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return parent->dialogHost->createStockDialog(dialogType, returnDialog); }
+
+inline gmpi::ReturnCode PileChildHost2::setCapture()
+{
+	parent->capturedLayer = parent->currentMouseLayer;
+	return parent->inputHost->setCapture();
+}
+
+inline gmpi::ReturnCode PileChildHost2::getCapture(bool& returnValue)
+{
+	returnValue = parent->capturedLayer >= 0;
+	return gmpi::ReturnCode::Ok;
+}
+
+inline gmpi::ReturnCode PileChildHost2::releaseCapture()
+{
+	parent->capturedLayer = -2;
+	auto result = parent->inputHost->releaseCapture();
+
+	// Recalculate current layer after release.
+// ??	parent->onPointerMove(parent->lastPoint, 0);
+
+	return result;
+}
 
 } //namespace SE2
 

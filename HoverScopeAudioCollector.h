@@ -16,8 +16,8 @@ struct HoverScopeAudioCollector
 	float resultsA_[1024 + 1]; // 4x as big when oversampling. +1 for sample-rate.
 	float sampleRate{};
 	int samplesPerPoint{};
-	float pointMax{};
-	float pointMin{};
+	float pointMax{-99.f};
+	float pointMin{99.f};
 	int pointCounter{};
 
 	int index_{};

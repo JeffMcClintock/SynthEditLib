@@ -24,7 +24,8 @@ void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient)
 {
     detachClient();
 
-    gmpi::shared_ptr<gmpi::api::IUnknown> unknown(pclient);
+    gmpi::shared_ptr<gmpi::api::IUnknown> unknown; // no, does not increment refcount (pclient);
+    unknown = pclient;
 
     editor_gmpi       = unknown.as<gmpi::api::IInputClient>();
     graphics_gmpi     = unknown.as<gmpi::api::IDrawingClient>();
