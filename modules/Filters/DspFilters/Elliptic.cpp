@@ -100,7 +100,7 @@ void AnalogLowPass::design (int numPoles,
 
     int ni = ((n & 1) == 1) ? 0 : 1;
     int i;
-    double f[100]; // HACK!!!
+    double f[100]{}; // HACK!!!
     for (i = 1; i <= n/2; i++)
     {
       double u = (2*i-ni)*m_K/n;

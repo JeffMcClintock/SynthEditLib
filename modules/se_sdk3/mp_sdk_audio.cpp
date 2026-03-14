@@ -215,6 +215,7 @@ void MpBase2::process( int32_t count, const MpEvent* events )
 		}
 
 		// POST-PROCESS EVENT
+		_Analysis_assume_(next_event != nullptr); // analyzer hint only
 		do
 		{
 			postProcessEvent( next_event );
