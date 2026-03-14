@@ -157,24 +157,24 @@ public:
         
         // context must be disposed (via RIAA) before restoring state, because its destructor also restores state
         {
-	        se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory_GMPI, &drawingFactory_SDK3);
+            se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory_GMPI, &drawingFactory_SDK3);
 
             // draw the absolute minimum.
             for( auto& r : dirtyRects.rects )
-		    {
+            {
                 context.pushAxisAlignedClip((const gmpi::drawing::Rect*)&r);
 
                 if (drawingClient)
                     drawingClient->render(static_cast<gmpi::drawing::api::IDeviceContext*>(&context));
 
-       		    context.popAxisAlignedClip();
-		    }
+                   context.popAxisAlignedClip();
+            }
         }
 
 #else
         // context must be disposed before restoring state, because it's destructor also restores state
         {
-	        gmpi::cocoa::GraphicsContext2 context(frame, &drawingFactory);
+            gmpi::cocoa::GraphicsContext2 context(frame, &drawingFactory);
         
             // JUCE standalone tends to draw over window non-client area on macOS. clip drawing.
             const auto r = [frame bounds];
@@ -191,8 +191,8 @@ public:
 
             context.PushAxisAlignedClip(&dirtyClipped);
         
-        	containerView->OnRender(static_cast<GmpiDrawing_API::IMpDeviceContext*>(&context));
-       		context.PopAxisAlignedClip();
+            containerView->OnRender(static_cast<GmpiDrawing_API::IMpDeviceContext*>(&context));
+               context.PopAxisAlignedClip();
        }
 #endif
 
@@ -260,11 +260,11 @@ public:
         *returnFactory = &drawingFactory_GMPI;
         return gmpi::ReturnCode::Ok;
     }
-	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override
+    void invalidateRect(const gmpi::drawing::Rect* invalidRect) override
     {
         invalidateRect((const GmpiDrawing_API::MP1_RECT*) invalidRect);
     }
-	float getRasterizationScale() override // DPI scaling
+    float getRasterizationScale() override // DPI scaling
     {
         return [[view window] backingScaleFactor];
     }
@@ -703,7 +703,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
  
     int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
     flags |= gmpi_gui_api::GG_POINTER_FLAG_NEW;
-	flags |= gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON;
+    flags |= gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON;
     
     ApplyKeyModifiers(flags, theEvent);
     const auto pointRaw = se_mouseToGmpi(self, theEvent);
@@ -739,7 +739,8 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
 
         GmpiGui::ContextItemsSinkAdaptor sink(contextMenu);
 
-        drawingFrame.inputClient->populateContextMenu(point, &sink);
+        // inputClient expects gmpi::api::IUnknown* (GMPI), but sink implements the legacy IMpContextItemSink.
+        drawingFrame.inputClient->populateContextMenu(point, reinterpret_cast<gmpi::api::IUnknown*>(static_cast<gmpi::IMpContextItemSink*>(&sink)));
 
         auto inputClient = drawingFrame.inputClient;
         

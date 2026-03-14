@@ -606,6 +606,8 @@ ${se_sdk_hosting_folder}/gmpi_gui_hosting.h
 ${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp
 ${se_sdk_hosting_folder}/ContainerView.h
 ${se_sdk_hosting_folder}/ContainerView.cpp
+${se_sdk_hosting_folder}/ResizeAdorner.h
+${se_sdk_hosting_folder}/ResizeAdorner.cpp
 ${se_sdk_hosting_folder}/SubViewPanel.h
 ${se_sdk_hosting_folder}/SubViewPanel.cpp
 ${se_sdk_hosting_folder}/ConnectorView.h
