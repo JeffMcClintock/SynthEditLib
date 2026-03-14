@@ -165,7 +165,7 @@ public:
                 context.pushAxisAlignedClip((const gmpi::drawing::Rect*)&r);
 
                 if (drawingClient)
-                    drawingClient->render(static_cast<gmpi::drawing::api::IDeviceContext*>(&context.gmpiContext));
+                    drawingClient->render(static_cast<gmpi::drawing::api::IDeviceContext*>(&context));
 
        		    context.popAxisAlignedClip();
 		    }
