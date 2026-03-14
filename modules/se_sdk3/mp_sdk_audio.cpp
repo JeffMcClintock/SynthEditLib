@@ -5,6 +5,11 @@
 #include "MpString.h"
 #include "../shared/unicode_conversion.h"
 
+#if !defined(_WIN32) && !defined(_Analysis_assume_)
+// _Analysis_assume_ is a MSVC static-analysis hint; make it a no-op off Windows.
+#define _Analysis_assume_(x) ((void)0)
+#endif
+
 using namespace gmpi;
 
 int32_t MpPluginBase::queryInterface( const gmpi::MpGuid& iid, void** returnInterface )
