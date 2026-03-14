@@ -9,6 +9,8 @@
 #include "Shared/se_logger.h"
 #include "SE2JUCE_parameterToString.h"
 
+using namespace JmUnicodeConversions;
+
 SE2JUCE_Processor::SE2JUCE_Processor(
     std::unique_ptr<SeJuceController> pController,
     std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter
