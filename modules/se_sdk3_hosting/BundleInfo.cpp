@@ -547,6 +547,7 @@ void BundleInfo::initPluginInfo()
     {
         isEditor =
             filename.find(L"SynthEdit2.exe") != std::string::npos ||
+            filename.find(L"SynthEditMac") != std::string::npos ||
             filename.find(L"SynthEditCL") != std::string::npos ||
             filename.find(L"SynthEdit.") != std::string::npos ||
             filename.find(L"TIDE") == 0;
@@ -570,12 +571,13 @@ void BundleInfo::initPluginInfo()
     const auto path = gmpi_dynamic_linking::MP_GetDllFilename();
     isEditor =
         path.find(L"SynthEdit2.exe") != std::string::npos ||
+        path.find(L"SynthEditMac.app") != std::string::npos ||
         path.find(L"SynthEditCL") != std::string::npos ||
         path.find(L"SynthEdit.") != std::string::npos ||
         path.find(L"TIDE") == 0;
 
     pluginIsBundle = path.find(L".vst3/Contents") != std::string::npos || path.find(L".vst3\\Contents") != std::string::npos;
-#endif
+#endif 
 
     if (isEditor)
         return;
