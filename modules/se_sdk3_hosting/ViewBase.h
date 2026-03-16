@@ -216,7 +216,8 @@ bool isIteratingChildren = false;
 		// not to be confused with MpGuiGfxBase::invalidateRect
 		virtual void ChildInvalidateRect(const gmpi::drawing::Rect& invalidRect)
 		{
-			invalidateRect(&invalidRect);
+			const auto scrolledRect = transformRect(viewTransform, invalidRect);
+			invalidateRect(&scrolledRect);
 		}
 		void invalidateRect(const gmpi::drawing::Rect* invalidRect = {});
 		virtual void OnChildMoved() {}

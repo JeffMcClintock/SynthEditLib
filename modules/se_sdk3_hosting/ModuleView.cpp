@@ -1116,9 +1116,7 @@ if(pluginGraphics)
 		}
 
 		if (pluginGraphics == nullptr)
-		{
 			return;
-		}
 
 #if 0 // debug layout and clip rects
 		g.fillRectangle(getClipArea(), g.createSolidColorBrush(Color::FromArgb(0x200000ff)));
