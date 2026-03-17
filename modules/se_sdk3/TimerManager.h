@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <list>
+#include <assert.h>
 
 /*
 This class provides a programmable timer for creating animation effects.
@@ -27,7 +28,7 @@ public:
 };
 }
 
-typedef std::vector<class se_sdk::TimerClient*> clientContainer_t;
+typedef std::vector<se_sdk::TimerClient*> clientContainer_t;
 
 namespace se_sdk_timers
 {
@@ -39,14 +40,27 @@ namespace se_sdk_timers
     
 class Timer
 {
+#ifdef _DEBUG
+	inline static int debugNextId = 0;
+#endif
+
 public:
 	timer_id_t idleTimer_ = {};
 	int periodMilliSeconds;
 	clientContainer_t clients_;
+#ifdef _DEBUG
+	int debugId = -1;
+	inline static int troublesomClientId = -1; // set this to locate the troublesome client.
+#endif
 
 	Timer(int pPeriodMilliSeconds = 50) :
 		periodMilliSeconds(pPeriodMilliSeconds)
-	{}
+#ifdef _DEBUG
+		, debugId(debugNextId++)
+#endif
+	{
+		assert(debugId != troublesomClientId);
+	}
 	void Start();
 	void Stop();
 	void OnTimer();
