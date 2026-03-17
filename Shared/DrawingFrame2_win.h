@@ -88,7 +88,7 @@ struct DrawingFrameBase2 :
     void sizeClientDips(float width, float height) override;
 
     virtual void OnPaint() = 0; // Derived should call Paint with the dirty area
-    void Paint(const std::span<const gmpi::drawing::RectL> dirtyRects);
+    void Paint(std::vector<gmpi::drawing::RectL>& dirtyRects);// std::span<const gmpi::drawing::RectL> dirtyRects);
 
     virtual void Closed()
     {

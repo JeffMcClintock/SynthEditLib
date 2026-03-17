@@ -130,7 +130,7 @@ namespace SE2
 		invalidRect = unionRect(invalidRect, bounds);
 		invalidRect = inflateRect(invalidRect, (float)ResizeHandleRadius);
 
-		parent->invalidateRect(&invalidRect);
+		parent->ChildInvalidateRect(invalidRect);
 	}
 
 	void ResizeAdorner::OnNodesMoved(std::vector<gmpi::drawing::Point>&)

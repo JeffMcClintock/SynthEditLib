@@ -2325,7 +2325,15 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 			{
 				// temporarily trace, only while highlighted
 				if(hoveredPin_.pinIndex > -1)
+				{
 					Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
+
+					if(hoverScopeWaveform || !hoverScopeText.empty())
+					{
+						invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
+					}
+				}
+
 				if(newHoveredPin.pinIndex > -1)
 					Presenter()->HighlightConnector(this->handle, newHoveredPin.pinIndex, PinHighlightFlag_EmphasiseMomentary);
 

@@ -674,26 +674,29 @@ void DrawingFrameHwndBase::OnPaint()
     Paint(dirtyRects);
 }
 
-void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyRects)
+void DrawingFrameBase2::Paint(std::vector<gmpi::drawing::RectL>& dirtyRects) //std::span<const gmpi::drawing::RectL> dirtyRects)
 {
-    // prevent infinite assert dialog boxes when assert happens during painting.
-    if (!isInit.load(std::memory_order_relaxed) || reentrant || dirtyRects.empty())
-    {
-        return;
-    }
+	// prevent infinite assert dialog boxes when assert happens during painting.
+	if (!isInit.load(std::memory_order_relaxed) || reentrant || dirtyRects.empty())
+	{
+		return;
+	}
 
 	// Detect switching on/off HDR mode.
-    gmpi::directx::ComPtr<::IDXGIFactory2> dxgiFactory;
-    swapChain->GetParent(__uuidof(dxgiFactory), dxgiFactory.put_void());
-    if (!dxgiFactory->IsCurrent())
-    {
-        // _RPT0(0, "dxgiFactory is NOT Current!\n");
-        recreateSwapChainAndClientAsync();
-    }
+	if (swapChain)
+	{
+		gmpi::directx::ComPtr<::IDXGIFactory2> dxgiFactory;
+		swapChain->GetParent(__uuidof(dxgiFactory), dxgiFactory.put_void());
+		if (!dxgiFactory->IsCurrent())
+		{
+			// _RPT0(0, "dxgiFactory is NOT Current!\n");
+			recreateSwapChainAndClientAsync();
+		}
+	}
 
-    // if app dragged to new monitor or HDR changed we need to stop drawing until swapchain is recreated.
-    if (monitorChanged)
-        return;
+	// if app dragged to new monitor or HDR changed we need to stop drawing until swapchain is recreated.
+	if (monitorChanged)
+		return;
 
     reentrant = true;
 
@@ -733,7 +736,7 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
 		graphics.beginDraw();
 
 		// clip and draw each rect individually (causes some objects to redraw several times)
-		for (auto& r : dirtyRects)
+		for (const auto& r : dirtyRects)
 		{
             const gmpi::drawing::Rect dirtyRectPixels{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
             const auto dirtyRectDips = dirtyRectPixels * WindowToDips;
@@ -749,6 +752,22 @@ void DrawingFrameBase2::Paint(const std::span<const gmpi::drawing::RectL> dirtyR
                 gmpi::drawing::Color blankColor{0.f,0.f,0.f,1.f};
                 graphics.clear(blankColor);
             }
+
+            if constexpr(true) // diagnostics for dirty rects
+            {
+                static int32_t diagColor = 0;
+                diagColor += 10;
+                diagColor -= 0x1000;
+                gmpi::drawing::Graphics g(static_cast<gmpi::drawing::api::IDeviceContext*>(&context));
+                auto brush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(diagColor, 0.3f));
+                g.fillRectangle(dirtyRectDips, brush);
+
+                gmpi::drawing::Rect origin{ 1,1,10,10 };
+                brush.setColor(gmpi::drawing::Colors::Red);
+                g.fillRectangle(origin, brush);
+
+            }
+
 			graphics.popAxisAlignedClip();
 		}
 
