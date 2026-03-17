@@ -243,6 +243,13 @@ bool isIteratingChildren = false;
 			return p;
 		}
 
+		// Get the compound transform matrix from this view to the topmost view (including zoom and pan)
+		virtual gmpi::drawing::Matrix3x2 GetTransformToTopView()
+		{
+			// Top-level view returns its zoom/pan transform
+			return viewTransform;
+		}
+
 		virtual bool isShown()
 		{
 			return true;

@@ -110,6 +110,38 @@ public:
 		return p;
 	}
 
+	// Get the compound transform matrix from this SubView to the topmost view (including zoom and pan)
+	gmpi::drawing::Matrix3x2 GetTransformToTopView() override
+	{
+		// SubView's children are offset by offset_
+		auto transform = gmpi::drawing::makeTranslation(offset_.width, offset_.height);
+
+		// Get parent ModuleView
+		auto moduleview = dynamic_cast<SE2::ModuleView*>(parent);
+		if (moduleview)
+		{
+			// Apply parent ModuleView's offset (client coordinates)
+			transform = transform * gmpi::drawing::makeTranslation(
+				-moduleview->pluginGraphicsPos.left,
+				-moduleview->pluginGraphicsPos.top
+			);
+
+			// Apply parent ModuleView's bounds
+			transform = transform * gmpi::drawing::makeTranslation(
+				moduleview->bounds_.left,
+				moduleview->bounds_.top
+			);
+
+			// Combine with parent view's transform to top
+			if (moduleview->parent)
+			{
+				transform = transform * moduleview->parent->GetTransformToTopView();
+			}
+		}
+
+		return transform;
+	}
+
 	int32_t StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint) override;
 
 	// ISubView

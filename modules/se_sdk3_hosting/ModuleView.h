@@ -433,6 +433,9 @@ namespace SE2
 			return gmpi::drawing::transformPoint(OffsetToClient(), point);
 		}
 
+      // Get the compound transform matrix from this ModuleView to the topmost view (including zoom and pan)
+		gmpi::drawing::Matrix3x2 GetTransformToTopView();
+
 		gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
 		gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
 		gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;

@@ -7,6 +7,7 @@
 #include "ContainerView.h"
 #include "ConnectorView.h"
 #include "UgDatabase.h"
+#include "legacy_sdk_gui2.h"
 #include "modules/shared/xplatform.h"
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "UgDatabase2.h"
@@ -14,6 +15,7 @@
 #include "RawConversions.h"
 #include "SubViewPanel.h"
 #include "ResizeAdorner.h"
+#include "Pile.h"
 #include "backends/../GmpiUiDrawing.h" // gmpi-ui version, not SDK3
 #include "modules/shared/GraphHelpers.h"
 #include "IGuiHost2.h"
@@ -247,44 +249,35 @@ namespace SE2
 		return 1.0f;
 	}
 
-	ReturnCode GmpiHelper::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit)
+	ReturnCode GmpiHelper::createTextEdit(const gmpi::drawing::Rect* localRect, gmpi::api::IUnknown** returnTextEdit)
 	{
-		(void)r;
-		if (returnTextEdit)
-			*returnTextEdit = nullptr;
-		return gmpi::ReturnCode::NoSupport;
+		const auto transform = gmpi::drawing::makeTranslation(moduleview.pluginGraphicsPos.left, moduleview.pluginGraphicsPos.top) * moduleview.GetTransformToTopView();
+		const auto adjustedRect = gmpi::drawing::transformRect(transform, *localRect);
+
+		return moduleview.parent->dialogHost->createTextEdit(&adjustedRect, returnTextEdit);
 	}
 
-	ReturnCode GmpiHelper::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu)
+	ReturnCode GmpiHelper::createPopupMenu(const gmpi::drawing::Rect* localRect, gmpi::api::IUnknown** returnPopupMenu)
 	{
-		(void)r;
-		if (returnPopupMenu)
-			*returnPopupMenu = nullptr;
-		return gmpi::ReturnCode::NoSupport;
+		const auto transform = gmpi::drawing::makeTranslation(moduleview.pluginGraphicsPos.left, moduleview.pluginGraphicsPos.top) * moduleview.GetTransformToTopView();
+		const auto adjustedRect = gmpi::drawing::transformRect(transform, *localRect);
+
+		return moduleview.parent->dialogHost->createPopupMenu(&adjustedRect, returnPopupMenu);
 	}
 
 	ReturnCode GmpiHelper::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
 	{
-		(void)r;
-		if (returnKeyListener)
-			*returnKeyListener = nullptr;
-		return gmpi::ReturnCode::NoSupport;
+		return moduleview.parent->dialogHost->createKeyListener(r, returnKeyListener);
 	}
 
 	ReturnCode GmpiHelper::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog)
 	{
-		(void)dialogType;
-		if (returnDialog)
-			*returnDialog = nullptr;
-		return gmpi::ReturnCode::NoSupport;
+		return moduleview.parent->dialogHost->createFileDialog(dialogType, returnDialog);
 	}
 
 	ReturnCode GmpiHelper::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog)
 	{
-		(void)dialogType;
-		if (returnDialog)
-			*returnDialog = nullptr;
-		return gmpi::ReturnCode::NoSupport;
+		return moduleview.parent->dialogHost->createStockDialog(dialogType, returnDialog);
 	}
 
 	gmpi::ReturnCode GmpiHelper::getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle)
@@ -409,18 +402,54 @@ namespace SE2
 
 	int32_t Sdk3Helper::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
 	{
-		(void)rect;
-		if (returnMenu)
-			*returnMenu = nullptr;
-		return gmpi::MP_UNHANDLED;
+		if(!rect || !returnMenu)
+			return gmpi::MP_FAIL;
+
+		*returnMenu = nullptr;
+
+		auto localRect = *reinterpret_cast<gmpi::drawing::Rect*>(rect);
+		auto transform = gmpi::drawing::makeTranslation(moduleview.pluginGraphicsPos.left, moduleview.pluginGraphicsPos.top) * moduleview.GetTransformToTopView();
+		const auto adjustedRect = gmpi::drawing::transformRect(transform, localRect);
+
+		gmpi::shared_ptr<gmpi::api::IUnknown> popupMenu;
+		const auto result = moduleview.parent->dialogHost->createPopupMenu(&adjustedRect, popupMenu.put());
+		if(result != gmpi::ReturnCode::Ok || popupMenu.isNull())
+		{
+			return gmpi::MP_FAIL;
+		}
+
+		const auto queryResult = popupMenu->queryInterface(&gmpi_gui::legacy::IMpPlatformMenu::guid, reinterpret_cast<void**>(returnMenu));
+		if(queryResult != gmpi::ReturnCode::Ok || !*returnMenu)
+		{
+			return gmpi::MP_FAIL;
+		}
+
+		return gmpi::MP_OK;
 	}
 
 	int32_t Sdk3Helper::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
 	{
-		(void)rect;
-		if (returnTextEdit)
-			*returnTextEdit = nullptr;
-		return gmpi::MP_UNHANDLED;
+		// enforce pre-conditions.
+		assert(rect);
+		assert(returnTextEdit);
+
+		// clear return value first.
+		*returnTextEdit = nullptr;
+
+        // adjust coordinates to parent using the module's full transform.
+		auto localRect = *reinterpret_cast<gmpi::drawing::Rect*>(rect);
+		auto transform = gmpi::drawing::makeTranslation(moduleview.pluginGraphicsPos.left, moduleview.pluginGraphicsPos.top) * moduleview.GetTransformToTopView();
+		const auto adjustedRect = gmpi::drawing::transformRect(transform, localRect);
+
+		// create a GMPI-UI widget.
+		gmpi::shared_ptr< gmpi::api::IUnknown> retWidget;
+		auto retValue = moduleview.parent->dialogHost->createTextEdit(&adjustedRect, retWidget.put());
+
+		if(retValue != gmpi::ReturnCode::Ok || retWidget.isNull())
+			return gmpi::MP_FAIL;
+
+		// cast GMPI-UI widget to it's legacy equivalent.
+		return (int32_t) retWidget->queryInterface(&gmpi_gui::legacy::IMpPlatformText::guid, (void**)returnTextEdit);
 	}
 
 	int32_t Sdk3Helper::pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice)
@@ -878,6 +907,18 @@ if(pluginGraphics)
 
 	void ModuleView::CreateGraphicsResources()
 	{
+	}
+
+	gmpi::drawing::Matrix3x2 ModuleView::GetTransformToTopView()
+	{
+		auto transform = gmpi::drawing::makeTranslation(bounds_.left, bounds_.top);
+
+		if (parent)
+		{
+			transform = transform * parent->GetTransformToTopView();
+		}
+
+		return transform;
 	}
 	
 	gmpi::drawing::PathGeometry ModuleView::getOutline(gmpi::drawing::Factory drawingFactory)
