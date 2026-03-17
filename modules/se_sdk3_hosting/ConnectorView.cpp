@@ -58,13 +58,12 @@ namespace SE2
 		else
 			parent->MoveToFront(this);
 
-		const auto r = getClipArea();
-		parent->invalidateRect(&r);
+		parent->ChildInvalidateRect(getClipArea());
 	}
 
 	void ConnectorViewBase::pickup(int pdraggingFromEnd, gmpi::drawing::Point pMousePos)
 	{
-		parent->invalidateRect(&bounds_);
+		parent->ChildInvalidateRect(getClipArea());
 
 		if (pdraggingFromEnd == 0)
 			from_ = pMousePos;
@@ -80,7 +79,7 @@ namespace SE2
 
 		parent->MoveToFront(this);
 
-		parent->invalidateRect(&bounds_);
+		parent->ChildInvalidateRect(getClipArea());
 	}
 
 	void ConnectorViewBase::OnModuleMoved()
