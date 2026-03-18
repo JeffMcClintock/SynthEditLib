@@ -43,16 +43,14 @@ SE2JUCE_Processor::SE2JUCE_Processor(
                        )
 #endif
 {
-#ifdef _DEBUG
-    //_RPT0(0, "\nSE2JUCE_Processor::SE2JUCE_Processor()\n");
-#endif
-
+#if 0
     {
 		const auto documentFolder = BundleInfo::instance()->getUserDocumentFolder(); // ensure folder exists.
 		const auto logFilePath = WStringToUtf8(documentFolder) + "/" + JucePlugin_Name + ".log";
         se_logger::set_log_filename(logFilePath);
     }
-
+#endif
+    
     {
 		std::string msg = "SE2JUCE_Processor::SE2JUCE_Processor() START. Optimus V";
         msg += JucePlugin_VersionString;
