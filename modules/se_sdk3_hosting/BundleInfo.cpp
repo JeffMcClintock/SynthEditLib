@@ -303,6 +303,17 @@ std::filesystem::path BundleInfo::getUserDocumentFolder()
 	return std::filesystem::path{ myDocumentsPath } / L"";
 
 #else // Mac.
+    // getpwuid returns the real home directory even when sandboxed,
+    // whereas getenv("HOME") returns the container path in a sandbox.
+    const struct passwd* pwd = getpwuid(getuid());
+    if (pwd)
+        return std::filesystem::path{ pwd->pw_dir };
+
+    const char *homeDir = getenv("HOME");
+    if(homeDir)
+        return std::filesystem::path{ homeDir };
+#if 0
+    // sandboxed returns:    "/Users/jeffmcclintock/Library/Containers/com.synthedit.SynthEditMac/Data/SynthEdit Projects/skins/"
     const char *homeDir = getenv("HOME");
     
     if(homeDir)
@@ -311,6 +322,7 @@ std::filesystem::path BundleInfo::getUserDocumentFolder()
     const struct passwd* pwd = getpwuid(getuid());
     if (pwd)
         return std::filesystem::path{ pwd->pw_dir };
+#endif
     
 	return {};
 #endif
