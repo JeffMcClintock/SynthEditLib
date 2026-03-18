@@ -49,7 +49,7 @@ SE2JUCE_Processor::SE2JUCE_Processor(
 
     {
 		const auto documentFolder = BundleInfo::instance()->getUserDocumentFolder(); // ensure folder exists.
-		const auto logFilePath = WStringToUtf8(documentFolder) + "/" + JucePlugin_Name + ".log";
+		const auto logFilePath = ::WStringToUtf8(documentFolder) + "/" + JucePlugin_Name + ".log";
         se_logger::set_log_filename(logFilePath);
     }
 
@@ -134,7 +134,7 @@ SE2JUCE_Processor::SE2JUCE_Processor(
             juceParameter =
                 new juce::AudioParameterChoice(
                     {std::to_string(sequentialIndex), 1}, // parameterID/versionhint
-                    WStringToUtf8(p->name_).c_str(),      // parameter name
+                    ::WStringToUtf8(p->name_).c_str(),      // parameter name
                     choices,
                     defaultItemIndex
                 );
@@ -144,7 +144,7 @@ SE2JUCE_Processor::SE2JUCE_Processor(
             juceParameter =
                 new juce::AudioParameterBool(
                     { std::to_string(sequentialIndex), 1 }, // parameterID/versionhint
-                    WStringToUtf8(p->name_).c_str(),        // parameter name
+                    ::WStringToUtf8(p->name_).c_str(),        // parameter name
                     false
                 );
         }
@@ -161,7 +161,7 @@ SE2JUCE_Processor::SE2JUCE_Processor(
             juceParameter =
                 new juce::AudioParameterFloat(
                     {std::to_string(sequentialIndex), 1},  // parameterID/versionhint
-                    WStringToUtf8(p->name_).c_str(),       // parameter name
+                    ::WStringToUtf8(p->name_).c_str(),       // parameter name
                     { minimumReal, maximumReal },          // range
                     static_cast<float>(p->getValueReal()), // default value
                     attributes
