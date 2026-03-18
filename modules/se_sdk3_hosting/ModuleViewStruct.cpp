@@ -2149,8 +2149,11 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 			return totalMiss;
 
 		// client area is always a hit, even when adorner active.
-		if(pointInRect(point, pluginGraphicsPos))
-			return solidHit;
+		{
+			const gmpi::drawing::Point localPoint{ point.x - bounds_.left, point.y - bounds_.top };
+			if(pointInRect(localPoint, pluginGraphicsPos))
+				return solidHit;
+		}
 
 		auto pin = getPinUnderMouse(point);
 
