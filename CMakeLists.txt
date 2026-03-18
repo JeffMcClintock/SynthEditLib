@@ -701,12 +701,26 @@ ${se_shared_folder}
 ${se_sdk_hosting_folder}
 )
 
+set(srcs_gmpi_forms
+${GMPI_UI_SDK}/experimental/Primatives.h
+${GMPI_UI_SDK}/experimental/Primatives.cpp
+${GMPI_UI_SDK}/experimental/Utils.h
+${GMPI_UI_SDK}/experimental/builders.h
+${GMPI_UI_SDK}/experimental/builders.cpp
+${GMPI_UI_SDK}/experimental/forms.h
+${GMPI_UI_SDK}/experimental/forms.cpp
+${GMPI_UI_SDK}/experimental/grid.h
+${GMPI_UI_SDK}/experimental/grid.cpp
+${GMPI_UI_SDK}/experimental/observable.h
+)
+
 source_group(vst3_sdk FILES ${sdk_vst3_srcs})
 source_group(se_sdk FILES ${sdk_srcs})
 source_group(json FILES ${srcs_json})
 source_group(modules_internal FILES ${srcs_modules_internal})
 source_group(xml FILES ${srcs_xml})
 source_group(DspFilters FILES ${srcs_dspfilters})
+source_group(gmpi_forms FILES ${srcs_gmpi_forms})
 
 if(APPLE)
 FIND_LIBRARY(COREFOUNDATION_LIBRARY CoreFoundation )
@@ -714,7 +728,7 @@ MARK_AS_ADVANCED (COREFOUNDATION_LIBRARY)
 endif()
 
 include (GenerateExportHeader)
-add_library(${PROJECT_NAME} STATIC ${sdk_srcs} ${srcs} ${srcs_json} ${srcs_modules_internal} ${srcs_xml} $<TARGET_OBJECTS:dspfilters_objs>)
+add_library(${PROJECT_NAME} STATIC ${sdk_srcs} ${srcs} ${srcs_json} ${srcs_modules_internal} ${srcs_xml} ${srcs_gmpi_forms} $<TARGET_OBJECTS:dspfilters_objs>)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE 
   $<$<CONFIG:Debug>:_DEBUG>
