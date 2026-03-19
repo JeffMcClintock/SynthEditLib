@@ -415,6 +415,10 @@ BitmapRenderTarget::BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API:
 	GraphicsContext_SDK3(nullptr, pfactory, clipRectStack)
 	, originalContext(g->native())
 {
+	// unused by SDK3.
+	gmpi::directx::ComPtr<ID3D11Device> d3dDevice_;    // 64bpp path: WARP D3D11 device
+	gmpi::directx::ComPtr<ID3D11Texture2D> renderTex_; // 64bpp path: render target texture
+
 	createBitmapRenderTarget(
 		  static_cast<UINT>(desiredSize.width)
 		, static_cast<UINT>(desiredSize.height)
@@ -424,6 +428,8 @@ BitmapRenderTarget::BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API:
 		, factory.getWicFactory()
 		, wicBitmap
 		, context_
+		, d3dDevice_
+		, renderTex_
 	);
 
 	clipRectStack.push_back({ 0, 0, desiredSize.width, desiredSize.height });
