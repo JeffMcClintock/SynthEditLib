@@ -304,7 +304,7 @@ bool isIteratingChildren = false;
 			ViewChild(pParent, -1)
 		{
 			startPoint = point;
-			arrange(gmpi::drawing::Rect(point.x, point.y, point.x, point.y));
+			arrange({ point.x, point.y, point.x, point.y });
 			parent->setCapture(this);
 			parent->invalidateRect(&bounds_);
 		}
