@@ -64,42 +64,31 @@ std::string settingsPath() {
 //------------------------------------------------------------------------
 CFBundleRef CreatePluginBundleRef()
 {
-    CFBundleRef rBundleRef = 0;
-    
 	Dl_info info;
-	if (dladdr ((const void*)CreatePluginBundleRef, &info))
-	{
-		if (info.dli_fname)
-		{
-            std::string name;
-			name.assign (info.dli_fname);
-			for (int i = 0; i < 3; i++)
-			{
-				auto p = name.find_last_of ('/');
-                if (p == std::string::npos)
-				{
-					fprintf (stdout, "Could not determine bundle location.\n");
-					return 0; // unexpected
-				}
-                
-                const auto folderName = name.substr(p + 1);
-                
-                if(1 == i && folderName != "Contents" ) // then it aint a bundle
-                    return {};
-                
-                name = name.substr(0, p);
+	if (!dladdr((const void*)CreatePluginBundleRef, &info) || !info.dli_fname)
+		return {};
 
-            }
-			CFURLRef bundleUrl = CFURLCreateFromFileSystemRepresentation (0, (const UInt8*)name.c_str(), name.length (), true);
-			if (bundleUrl)
-			{
-				rBundleRef = CFBundleCreate (0, bundleUrl);
-				CFRelease (bundleUrl);
-			}
-		}
+	// Walk up the path looking for a "Contents" component, indicating a bundle.
+	std::filesystem::path path(info.dli_fname);
+	std::filesystem::path bundleRoot;
+	for (auto it = path.begin(); it != path.end(); ++it)
+	{
+		if (it->filename() == "Contents")
+			break;
+		bundleRoot /= *it;
 	}
-    
-    return rBundleRef;
+
+	if (bundleRoot.empty() || bundleRoot == path.parent_path())
+		return {}; // no "Contents" found, not a bundle
+
+	auto bundleStr = bundleRoot.string();
+	CFURLRef bundleUrl = CFURLCreateFromFileSystemRepresentation(0, (const UInt8*)bundleStr.c_str(), bundleStr.length(), true);
+	if (!bundleUrl)
+		return {};
+
+	CFBundleRef rBundleRef = CFBundleCreate(0, bundleUrl);
+	CFRelease(bundleUrl);
+	return rBundleRef;
 }
 
 void ReleasePluginBundleRef (CFBundleRef bundleRef)
@@ -185,6 +174,21 @@ std::filesystem::path BundleInfo::getPluginPath()
 	return pluginRootPath;
 }
 
+std::filesystem::path BundleInfo::getBundleContentsFolder()
+{
+    std::filesystem::path path(gmpi_dynamic_linking::MP_GetDllFilename());
+
+    std::filesystem::path contentsPath;
+    for (auto it = path.begin(); it != path.end(); ++it)
+    {
+        contentsPath /= *it;
+        if (it->filename() == "Contents")
+            break;
+    }
+
+    return contentsPath;
+}
+
 std::wstring BundleInfo::getSemFolder()
 {
 #if defined( _WIN32 )
@@ -221,25 +225,6 @@ std::wstring BundleInfo::getSemFolder()
 #endif
 #endif
     return semFolder; // ref SynthEditApp::InitInstance()
-}
-
-// returns e.g.
-// SynthEditAppMac.app/Contents
-// MyPlugin.component/Contents
-// SynthEdit2/AppX
-// these should be the root location for 'Resources' (plugins and apps) and Assets/Plugins/Prefabs (apps)
-// 'templates' should be in Assets
-std::filesystem::path BundleInfo::getBundleContentsFolder()
-{
-    std::filesystem::path home(gmpi_dynamic_linking::MP_GetDllFilename());
-
-    // Chop off filename.
-    home = home.parent_path(); // MacOS or x86_64-win
-    const auto parent = home.parent_path(); // Contents
-    if(parent.filename() == "Contents")
-        return parent;
-    
-    return home;
 }
 
 std::wstring BundleInfo::getResourceFolder()

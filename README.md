@@ -115,6 +115,37 @@ Mac: /Library/Application Support/*YourVendorName*/*YourPluginName*/USER Presets
 Your plugin can also include read-only factory presets. To include any factory preset into the plugin binary, add it to the folder Resources/presets
 
 
+# Building SynthEdit from source
+
+## Standard build (dependencies downloaded automatically)
+
+All dependencies (SynthEditLib, GMPI, GMPI-UI, VST3 SDK, CLAP, etc.) are fetched automatically by CMake. No extra setup is needed.
+
+```bash
+cmake -B build -G Xcode
+cmake --build build
+```
+
+Or open the generated Xcode project in the `build/` folder.
+
+## Local development build (Jeff's Mac)
+
+To use local checkouts of the dependency repos instead of fetching them from GitHub, pass the override variables. This avoids re-downloading on every configure and lets you edit the libraries in place.
+
+```bash
+cmake -B build -G Xcode \
+  -DSYNTHEDITLIB_FOLDER_OVERRIDE=/Users/jeffmcclintock/Documents/GitHub/SynthEditLib \
+  -DGMPI_SDK_FOLDER_OVERRIDE=/Users/jeffmcclintock/Documents/GitHub/gmpi \
+  -DGMPI_UI_FOLDER_OVERRIDE=/Users/jeffmcclintock/Documents/GitHub/gmpi_ui \
+  -DSE_LOCAL_BUILD=ON
+```
+
+If you previously ran cmake without the overrides, delete the stale fetched copies to avoid confusion:
+
+```bash
+rm -rf build/_deps/syntheditlib-src build/_deps/gmpi-src build/_deps/gmpi_ui-src
+```
+
 # Further help and information
 
 SynthEdit - https://groups.io/g/synthedit
