@@ -223,6 +223,25 @@ std::wstring BundleInfo::getSemFolder()
     return semFolder; // ref SynthEditApp::InitInstance()
 }
 
+// returns e.g.
+// SynthEditAppMac.app/Contents
+// MyPlugin.component/Contents
+// SynthEdit2/AppX
+// these should be the root location for 'Resources' (plugins and apps) and Assets/Plugins/Prefabs (apps)
+// 'templates' should be in Assets
+std::filesystem::path BundleInfo::getBundleContentsFolder()
+{
+    std::filesystem::path home(gmpi_dynamic_linking::MP_GetDllFilename());
+
+    // Chop off filename.
+    home = home.parent_path(); // MacOS or x86_64-win
+    const auto parent = home.parent_path(); // Contents
+    if(parent.filename() == "Contents")
+        return parent;
+    
+    return home;
+}
+
 std::wstring BundleInfo::getResourceFolder()
 {
 #if (GMPI_IS_PLATFORM_JUCE==1)

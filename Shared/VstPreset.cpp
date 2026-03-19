@@ -289,10 +289,10 @@ std::string generateUUid()
 			Vst3PresetProxy proxy(&component);
 
 			FUID classID;
-			classID.fromRegistryString(processorId);
+			classID.fromRegistryString(processorId); // uses a different algorithm on macOS (non COM-compatible)
 
-#ifdef _DEBUG
-			// check that my version matches Steinbergs.
+#if defined _DEBUG && defined _WIN32
+			// check that my version matches Steinbergs. spoiler only does on Windows ('COM compatible mode')
 			SE_UUID_Util::TUID processorGuid{};
 			SE_UUID_Util::fromRegistryString(processorId, processorGuid);
 
