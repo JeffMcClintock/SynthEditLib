@@ -570,7 +570,6 @@ void BundleInfo::initPluginInfo()
             filename.find(L"TIDE") == 0;
     }
 
-
     // are we in a bundle? path contains "/Contents/" and it's parent folder has an extension (.app, .vst3, .component)
     pluginIsBundle = false;
     {
@@ -596,7 +595,10 @@ void BundleInfo::initPluginInfo()
         path.find(L"TIDE") == 0;
 
     pluginIsBundle = path.find(L".vst3/Contents") != std::string::npos || path.find(L".vst3\\Contents") != std::string::npos;
-#endif 
+#endif
+    
+//    if(pluginIsBundle)
+    semFolder = (getBundleContentsFolder() / L"Plugins" / "").wstring(); // blank is a trailing slash
 
     if (isEditor)
         return;

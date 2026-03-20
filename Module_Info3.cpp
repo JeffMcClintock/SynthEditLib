@@ -52,8 +52,7 @@ void PluginHolder::load()
 		}
 	}
 #else
-
-	assert(exists(pluginPath / L"Contents")); // mac plugins must be a bundle.
+// fails on missing plugins in debug.	assert(exists(pluginPath / L"Contents")); // mac plugins must be a bundle.
 
 	// Create a path to the bundle
 	CFStringRef pluginPathStringRef = CFStringCreateWithCString(NULL, pluginPath.c_str(), kCFStringEncodingUTF8);

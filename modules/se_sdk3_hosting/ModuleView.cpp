@@ -750,7 +750,7 @@ namespace SE2
 		auto subPresenter = Presenter()->CreateSubPresenter(handle);
 		subView->Init(subPresenter);
 		
-//		subView->setHost(gmpiHelper.get());
+		subView->setHost(static_cast<gmpi::api::IEditorHost*>(gmpiHelper.get()));
 
 		subView->BuildModules(context, guiObjectMap);
 
