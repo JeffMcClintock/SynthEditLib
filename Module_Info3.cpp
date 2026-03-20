@@ -21,28 +21,35 @@ void PluginHolder::load()
 	if (dllHandle || pluginPath.empty())
 		return;
 
+	// in the editor the plugin path is full filename, in a plugin it's just the short version, need to fully qualify it.
+	if(pluginPath.is_relative())
+		pluginPath = BundleInfo::instance()->getSemFolder() / pluginPath;
+
 	// Get a handle to the DLL.
 #if defined( _WIN32)
-	assert(!exists(pluginPath / L"Contents")); // win plugins must be a dll (not it's bundle).
-
-	if (MP_DllLoad(&dllHandle, pluginPath.c_str()))
+	if (MP_DllLoad(&dllHandle, pluginPath.c_str())) // in editor.
 	{
-		DWORD err_code = GetLastError();
-		LPTSTR lpMsgBuf = nullptr;
-		FormatMessage(
-			FORMAT_MESSAGE_ALLOCATE_BUFFER |
-			FORMAT_MESSAGE_FROM_SYSTEM |
-			FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL,
-			err_code,
-			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
-			(LPTSTR)&lpMsgBuf,
-			0,
-			NULL
-		);
+		// load failed, try it as a bundle. typical in plugin mode.
+		const auto bundleFilepath = pluginPath / L"Contents/x86_64-win" / pluginPath.filename();
+		if(MP_DllLoad(&dllHandle, bundleFilepath.c_str()))
+		{
+			DWORD err_code = GetLastError();
+			LPTSTR lpMsgBuf = nullptr;
+			FormatMessage(
+				FORMAT_MESSAGE_ALLOCATE_BUFFER |
+				FORMAT_MESSAGE_FROM_SYSTEM |
+				FORMAT_MESSAGE_IGNORE_INSERTS,
+				NULL,
+				err_code,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+				(LPTSTR)&lpMsgBuf,
+				0,
+				NULL
+			);
 
-		std::wstring errorMessage = lpMsgBuf;
-		LocalFree(lpMsgBuf);
+			std::wstring errorMessage = lpMsgBuf;
+			LocalFree(lpMsgBuf);
+		}
 	}
 #else
 

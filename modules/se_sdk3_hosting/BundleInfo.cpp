@@ -183,10 +183,11 @@ std::filesystem::path BundleInfo::getBundleContentsFolder()
     {
         contentsPath /= *it;
         if (it->filename() == "Contents")
-            break;
+            return contentsPath;
     }
 
-    return contentsPath;
+	// we're not in a bundle, return the folder of the windows app. (mac app does have a Contents folder)
+    return path.parent_path();
 }
 
 std::wstring BundleInfo::getSemFolder()
@@ -570,19 +571,21 @@ void BundleInfo::initPluginInfo()
     }
 
 
-    // are we in a bundle? path contains "*.vst3/Contents/"
+    // are we in a bundle? path contains "/Contents/" and it's parent folder has an extension (.app, .vst3, .component)
     pluginIsBundle = false;
-	std::string bundleExtension;
-    for(auto it = path.begin(); it != path.end(); ++it)
     {
-        if( *it == "Contents" && bundleExtension == "vst3" )
+        bool parent_has_extension{};
+        for(auto it = path.begin(); it != path.end(); ++it)
         {
-            pluginIsBundle = true;
-            break;
-		}
-        
-        bundleExtension = (*it).extension().string();
-	}
+            if(parent_has_extension && *it == "Contents")
+            {
+                pluginIsBundle = true;
+                break;
+            }
+
+            parent_has_extension = (*it).has_extension();
+        }
+    }
 #else
     const auto path = gmpi_dynamic_linking::MP_GetDllFilename();
     isEditor =
@@ -607,7 +610,7 @@ void BundleInfo::initPluginInfo()
     if (doc.Error())
     {
         assert(false);
-        return;// initPluginInfoFromWrappedSem();
+        return; // initPluginInfoFromWrappedSem();
     }
 
     {
