@@ -626,9 +626,17 @@ struct Pile :
 		{
 			graphic->open(drawingHost.get());
 
+#if 0
 			// nasty hack, perhaps ViewBase should inherit IEditor, or I should merge open and setHost into one method.
 			if(auto viewBase = dynamic_cast<SE2::ViewBase*>(graphic.get()); viewBase)
 				viewBase->setHost(static_cast<gmpi::api::IDrawingHost*>(&childhost_gmpi));
+#endif
+			auto ieditor = graphic.as<gmpi::api::IEditor>();
+			if(ieditor)
+			{
+				ieditor->setHost(static_cast<gmpi::api::IDrawingHost*>(&childhost_gmpi));
+				ieditor->initialize();
+			}
 		}
 
 		return gmpi::ReturnCode::Ok;

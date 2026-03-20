@@ -35,18 +35,25 @@ void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient)
     gmpi_gui_client = gfx;
 
     gfx->queryInterface(IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
-
-    [[maybe_unused]] auto r = gfx->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
-
-    gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> pinHost;
-    gmpi_gui_client->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pinHost.asIMpUnknownPtr());
-
-    if (pinHost)
-    {
-        pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
-        pinHost->initialize();
-    }
 #endif
+
+    //[[maybe_unused]] auto r = gfx->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
+
+    //gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> pinHost;
+    //gmpi_gui_client->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pinHost.asIMpUnknownPtr());
+
+    //if (pinHost)
+    //{
+    //    pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
+    //    pinHost->initialize();
+    //}
+
+    auto ieditor = unknown.as<gmpi::api::IEditor>();
+    if(ieditor)
+    {
+        ieditor->setHost(static_cast<gmpi::api::IDrawingHost*>(this));
+        ieditor->initialize();
+    }
 
     if (swapChain)
     {
