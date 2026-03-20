@@ -438,6 +438,7 @@ namespace SE2
 		{
 			oldBounds = unionRect(oldBounds, bounds_);
 			parent->ChildInvalidateRect(oldBounds);
+//			parent->invalidateRect(&oldBounds);
 		}
 	}
 
@@ -678,7 +679,8 @@ namespace SE2
 		}
 
 		const auto redrawRect = getClipArea();
-		parent->invalidateRect(&redrawRect);
+//		parent->invalidateRect(&redrawRect);
+		parent->ChildInvalidateRect(redrawRect);
 
 		return gmpi::ReturnCode::Ok;
 	}
