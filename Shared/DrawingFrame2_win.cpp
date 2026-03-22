@@ -111,6 +111,12 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
 
 void DrawingFrameBase2::detachClient()
 {
+    // Notify the client that the host (drawing surface) is going away.
+    // Without this, ViewBase::drawingHost holds a dangling pointer after the
+    // window closes, and any in-flight DSP→GUI invalidation will crash.
+    if (auto ieditor = graphics_gmpi.as<gmpi::api::IEditor>())
+        ieditor->setHost(nullptr);
+
     graphics_gmpi = {};
     editor_gmpi = {};
     frameUpdateClient = {};
