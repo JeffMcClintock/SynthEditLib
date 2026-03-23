@@ -57,9 +57,6 @@ public:
         gfx->queryInterface(&gmpi::api::IDrawingClient::guid, drawingClient.put_void());
         gfx->queryInterface(&gmpi::api::IInputClient::guid, inputClient.put_void());
 
-        if (drawingClient)
-            drawingClient->open(static_cast<gmpi::api::IDrawingHost*>(this));
-
 #if 0 // old
         gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> pinHost;
         gmpi_gui_client->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pinHost.asIMpUnknownPtr());
@@ -67,12 +64,22 @@ public:
         if (pinHost)
             pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
 #endif
+
+        auto ieditor = unknown.as<gmpi::api::IEditor>();
+        if(ieditor)
+        {
+            ieditor->setHost(static_cast<gmpi::api::IDrawingHost*>(this));
+            ieditor->initialize();
+        }
+
+        if (drawingClient)
+            drawingClient->open(static_cast<gmpi::api::IDrawingHost*>(this));
     }
 
     void Init()
     {
-         initFactoryHelper(drawingFactory_GMPI.info);
-     }
+        initFactoryHelper(drawingFactory_GMPI.info);
+    }
      
      void DeInit()
      {
