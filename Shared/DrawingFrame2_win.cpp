@@ -109,6 +109,20 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
 #endif
 }
 
+void DrawingFrameBase2::Closed()
+{
+    /* TODO
+    if(auto* viewBase = dynamic_cast<SE2::ViewBase*>(graphics_gmpi.get()))
+    {
+        viewBase->Unload();
+    }
+    */
+
+    detachClient();
+    DrawingFactory = {};
+    ReleaseDevice();
+}
+
 void DrawingFrameBase2::detachClient()
 {
     // Notify the client that the host (drawing surface) is going away.
@@ -766,7 +780,7 @@ void DrawingFrameBase2::Paint(std::vector<gmpi::drawing::RectL>& dirtyRects) //s
                 graphics.clear(blankColor);
             }
 
-            if constexpr(false) // diagnostics for dirty rects
+            if constexpr(true) // diagnostics for dirty rects
             {
                 static int32_t diagColor = 0;
                 diagColor += 10;

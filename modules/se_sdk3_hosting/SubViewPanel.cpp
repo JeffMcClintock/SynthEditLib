@@ -61,7 +61,7 @@ void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point
 	}
 }
 
-SubView::SubView(SE2::ViewChild* pparent, int pparentViewType) : ViewBase({1000, 1000})
+SubView::SubView(SE2::ModuleView* pparent, int pparentViewType) : ViewBase({1000, 1000})
 	, parent(pparent)
 	, parentViewType(pparentViewType)
 {
@@ -461,6 +461,12 @@ gmpi::ReturnCode SubView::onMouseWheel(gmpi::drawing::Point point, int32_t flags
 	point.y -= offset_.height;
 
 	return ViewBase::onMouseWheel(point, flags, delta);
+}
+
+void SubView::ChildInvalidateRect(const gmpi::drawing::Rect& invalidRect)
+{
+	const auto adjusted = offsetRect(invalidRect, offset_);
+	parent->gmpiHelper->invalidateRect(&adjusted);
 }
 
 void SubView::OnChildMoved()

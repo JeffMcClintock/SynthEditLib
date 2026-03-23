@@ -1602,22 +1602,6 @@ namespace SE2
 		}
 	}
 
-//	void ViewBase::autoScrollStart()
-//	{
-//#if defined (_WIN32)
-//		if(frameWindow)
-//			/*frameWindow->*/autoScrollStart();
-//#endif
-//	}
-//
-//	void ViewBase::autoScrollStop()
-//	{
-//#if defined (_WIN32)
-//		if (frameWindow)
-//			/*frameWindow->*/autoScrollStop();
-//#endif
-//	}
-
 	// usefull for live reload of SEMs
 	void ViewBase::Unload()
 	{
@@ -1627,8 +1611,18 @@ namespace SE2
 		// Clear out previous view.
 		assert(!isIteratingChildren);
 		children.clear();
+		children_monodirectional.clear();
 		isDraggingModules = false;
 		patchAutomatorWrapper_ = nullptr;
+
+		// Detach from the drawing frame to prevent use-after-free
+		// when DSP parameter updates arrive after the editor window is closed.
+		drawingHost = {};
+		inputHost = {};
+
+#if defined(_WIN32)
+		frameWindow = nullptr;
+#endif
 	}
 
 	void ViewBase::DragNewModule(const char* id)

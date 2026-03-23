@@ -90,13 +90,7 @@ struct DrawingFrameBase2 :
     virtual void OnPaint() = 0; // Derived should call Paint with the dirty area
     void Paint(std::vector<gmpi::drawing::RectL>& dirtyRects);// std::span<const gmpi::drawing::RectL> dirtyRects);
 
-    virtual void Closed()
-    {
-        detachClient();
-
-        DrawingFactory = {};
-        ReleaseDevice();
-    }
+    virtual void Closed();
 
     // gmpi::api::IDrawingHost
     gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override

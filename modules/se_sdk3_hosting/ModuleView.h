@@ -202,13 +202,12 @@ namespace SE2
 
 	class ModuleView : public ViewChild
 	{
-	protected:
+	public:
 		Module_Info* moduleInfo = {};
 
 		std::unique_ptr<GmpiHelper> gmpiHelper;
 		std::unique_ptr<Sdk3Helper> sdk3Helper;
 		
-	public:
 		static const int SelectionFrameOffset = 1;
 		static const int ResizeHandleRadius = 3;
 

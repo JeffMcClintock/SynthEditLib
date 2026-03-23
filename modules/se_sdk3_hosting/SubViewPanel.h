@@ -18,7 +18,7 @@ class SubView : public SE2::ViewBase, public ISubView
 
 	gmpi::drawing::Rect viewBounds;
 	int parentViewType = 0;
-	SE2::ViewChild* parent = {};
+	SE2::ModuleView* parent = {};
 
 public:
 	gmpi::drawing::Size offset_; // offset of children relative to bounds (not parent).
@@ -29,7 +29,7 @@ public:
 		init(showControlsOnModule_unused);
 		init(showControls);
 	}
-	SubView(SE2::ViewChild* parent, int pparentViewType = CF_PANEL_VIEW);
+	SubView(SE2::ModuleView* parent, int pparentViewType = CF_PANEL_VIEW);
 
 	virtual ~SubView()
 	{
@@ -66,11 +66,7 @@ public:
 	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override;
 // TODO	int32_t getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString);
-	void ChildInvalidateRect(const gmpi::drawing::Rect& invalidRect) override
-	{
-		const auto adjusted = offsetRect(invalidRect, offset_);
-		parent->parent->invalidateRect(&adjusted);
-	}
+	void ChildInvalidateRect(const gmpi::drawing::Rect& invalidRect) override;
 
 	void OnChildMoved() override;
 
