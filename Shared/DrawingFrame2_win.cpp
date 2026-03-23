@@ -780,7 +780,7 @@ void DrawingFrameBase2::Paint(std::vector<gmpi::drawing::RectL>& dirtyRects) //s
                 graphics.clear(blankColor);
             }
 
-            if constexpr(true) // diagnostics for dirty rects
+            if constexpr(false) // diagnostics for dirty rects
             {
                 static int32_t diagColor = 0;
                 diagColor += 10;
@@ -788,11 +788,6 @@ void DrawingFrameBase2::Paint(std::vector<gmpi::drawing::RectL>& dirtyRects) //s
                 gmpi::drawing::Graphics g(static_cast<gmpi::drawing::api::IDeviceContext*>(&context));
                 auto brush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(diagColor, 0.3f));
                 g.fillRectangle(dirtyRectDips, brush);
-
-                gmpi::drawing::Rect origin{ 1,1,10,10 };
-                brush.setColor(gmpi::drawing::Colors::Red);
-                g.fillRectangle(origin, brush);
-
             }
 
 			graphics.popAxisAlignedClip();
