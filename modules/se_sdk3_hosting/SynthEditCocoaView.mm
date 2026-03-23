@@ -7,6 +7,7 @@
 #include "BundleInfo.h"
 #include "backends/CocoaGfx.h"
 #include "backends/DrawingFrameMac.h"
+#include "Shared/DrawingFrame2_mac.h"
 #include "legacy_sdk_gui2.h"
 #include "IGuiHost2.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
@@ -31,17 +32,16 @@ class DrawingFrameCocoa : public
     GmpiGuiHosting::UpdateRegionMac dirtyRects;
 
 public:
-    se::cocoa::DrawingFactory drawingFactory_SDK3;
-    gmpi::cocoa::Factory drawingFactory_GMPI;
+    UniversalFactory drawingFactory;
 
     gmpi_sdk::mp_shared_ptr<legacy::IGraphicsRedrawClient> frameUpdateClient;
     gmpi::shared_ptr<gmpi::api::IDrawingClient> drawingClient;
     gmpi::shared_ptr<gmpi::api::IInputClient> inputClient;
-    
+
     NSView* view;
     NSBitmapImageRep* backBuffer{}; // backing buffer with linear colorspace for correct blending.
 
-    DrawingFrameCocoa() : drawingFactory_SDK3(drawingFactory_GMPI.info){}
+    DrawingFrameCocoa() {}
     
     void detachClient()
     {
@@ -53,6 +53,9 @@ public:
     void attachClient(gmpi::api::IUnknown* gfx)
     {
         detachClient();
+        
+        gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+        unknown = gfx;
 
         gfx->queryInterface(&gmpi::api::IDrawingClient::guid, drawingClient.put_void());
         gfx->queryInterface(&gmpi::api::IInputClient::guid, inputClient.put_void());
@@ -78,7 +81,7 @@ public:
 
     void Init()
     {
-        initFactoryHelper(drawingFactory_GMPI.info);
+        initFactoryHelper(drawingFactory.gmpiFactory.info);
     }
      
      void DeInit()
@@ -134,7 +137,7 @@ public:
         {
             se::cocoa::GraphicsContext2::logicProFix = 0;
             
-            se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory_GMPI, &drawingFactory_SDK3);
+            se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory.gmpiFactory, &drawingFactory.sdk3Factory);
             
             GmpiDrawing::Graphics g(static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(&context.sdk3Context));
             auto tf = g.GetFactory().CreateTextFormat(16, "Arial", GmpiDrawing::FontWeight::Normal);
@@ -164,7 +167,7 @@ public:
         
         // context must be disposed (via RIAA) before restoring state, because its destructor also restores state
         {
-            se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory_GMPI, &drawingFactory_SDK3);
+            se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory.gmpiFactory, &drawingFactory.sdk3Factory);
 
             // draw the absolute minimum.
             for( auto& r : dirtyRects.rects )
@@ -264,7 +267,7 @@ public:
     // IDrawingHost
     gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override
     {
-        *returnFactory = &drawingFactory_GMPI;
+        *returnFactory = &drawingFactory;
         return gmpi::ReturnCode::Ok;
     }
     void invalidateRect(const gmpi::drawing::Rect* invalidRect) override
@@ -338,7 +341,7 @@ public:
     }
     int32_t MP_STDCALL GetDrawingFactory(GmpiDrawing_API::IMpFactory ** returnFactory) override
     {
-        *returnFactory = &drawingFactory_SDK3;
+        *returnFactory = &drawingFactory.sdk3Factory;
         return gmpi::MP_OK;
     }
     

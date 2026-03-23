@@ -1,22 +1,22 @@
 #pragma once
 #include "Cocoa_Gfx.h"
+#include "backends/CocoaGfx.h"
 
-class UniversalFactory : public DrawingFactory
+// Universal factory for macOS that dispatches queries to either the new GMPI
+// drawing factory or the legacy SDK3 factory, mirroring the Windows pattern
+// in DrawingFrame2_win.h.
+struct UniversalFactory : public gmpi::api::IUnknown
 {
-    se::directx::Factory_base sdk3Factory;
+    gmpi::cocoa::Factory gmpiFactory;
+    se::cocoa::DrawingFactory sdk3Factory;
 
-public:
-    UniversalFactory() : gmpi::directx::Factory(nullptr), sdk3Factory(info, (gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this))
+    UniversalFactory() : sdk3Factory(gmpiFactory.info) // SDK3 factory borrows the guts from the GMPI factory.
     {
     }
 
+    // dispatch queries to correct factory
     gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
     {
-        *returnInterface = {};
-        if (*iid == gmpi::drawing::api::IFactory::guid)
-        {
-            return gmpi::directx::Factory_base::queryInterface(iid, returnInterface);
-        }
         if (
             *iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_FACTORY2_MPGUI) ||
             *iid == *reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_FACTORY_MPGUI)
@@ -24,13 +24,9 @@ public:
         {
             return (gmpi::ReturnCode)sdk3Factory.queryInterface(*reinterpret_cast<const gmpi::MpGuid*>(iid), returnInterface);
         }
-        if (*iid == gmpi::api::IUnknown::guid)
-        {
-            *returnInterface = this;
-            addRef();
-            return gmpi::ReturnCode::Ok;
-        }
-        return gmpi::ReturnCode::NoSupport;
+
+        return gmpiFactory.queryInterface(iid, returnInterface);
     }
+
     GMPI_REFCOUNT_NO_DELETE;
 };
