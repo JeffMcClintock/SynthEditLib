@@ -312,28 +312,12 @@ namespace SE2
 				}
 				return gmpi::ReturnCode::Ok;
 			}
-		}
 
-		calcMouseOverObject(flags);
+            calcMouseOverObject(flags);
 
-		if(mouseOverObject)
-		{
-			mouseOverObject->onPointerMove(lastMovePoint, flags);
-		}
-		else
-		{
-			/*
-			// not over anything, allow for extended-rage hitting of pins to create new line.
-				// 4x drawn size is maximum snap distance.
-			constexpr float maxSnapRangeSquared = 4 * sharedGraphicResources_struct::plugDiameter * sharedGraphicResources_struct::plugDiameter; // 4x drawn size is maximum snap distance.
-			float bestDistanceSquared = maxSnapRangeSquared;
-
-			ModuleView* bestModule{};
-			for (auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
-				(*it)->OnCableDrag(dragline, dragline->dragPoint(), bestDistanceSquared, bestModule, newModulePin);
-			*/
-
-		}
+            if(mouseOverObject)
+                mouseOverObject->onPointerMove(lastMovePoint, flags);
+        }
 
 		return gmpi::ReturnCode::Ok;
 	}
