@@ -165,7 +165,7 @@ namespace SE2
 		// IMpGraphicsHost
 		int32_t GetDrawingFactory(GmpiDrawing_API::IMpFactory** returnFactory) override;
 		void invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override;
-		void invalidateMeasure() override {}
+		void invalidateMeasure() override;
 		int32_t setCapture() override;
 		int32_t getCapture(int32_t& returnValue) override;
 		int32_t releaseCapture() override;

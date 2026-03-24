@@ -12,7 +12,7 @@
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "UgDatabase2.h"
 #include "ProtectedFile.h"
-#include "RawConversions.h"
+#include "../SynthEdit2/MfcDocPresenter.h"
 #include "SubViewPanel.h"
 #include "ResizeAdorner.h"
 #include "Pile.h"
@@ -363,6 +363,31 @@ namespace SE2
 		else
 		{
 			moduleview.parent->ChildInvalidateRect(moduleview.bounds_);
+		}
+	}
+
+	void Sdk3Helper::invalidateMeasure()
+	{
+		if(!moduleview.initialised_)
+			return;
+
+		if(auto presentor = dynamic_cast<MfcDocPresenterBase*>(moduleview.parent->Presenter()); presentor)
+		{
+			gmpi::drawing::Size current{ getWidth(moduleview.bounds_), getHeight(moduleview.bounds_) };
+			gmpi::drawing::Size desired{};
+			moduleview.measure(current, &desired);
+
+			if(current != desired)
+			{
+				presentor->DirtyView(); // recreate entire view.
+			}
+			else
+			{
+				// if size remains the same, avoid expensive recreation of the entire view
+				// just redraw.
+				invalidateRect(nullptr);
+				moduleview.arrange(moduleview.bounds_);
+			}
 		}
 	}
 

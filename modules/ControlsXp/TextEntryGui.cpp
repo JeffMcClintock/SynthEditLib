@@ -109,6 +109,7 @@ void TextEntryGui::onSetpatchValue()
 
 void TextEntryGui::onSetExtension()
 {
+	captureWidget = {};
 	widgets.clear();
 
 	auto w = make_shared<TextEditWidget>(getHost(), "control_edit");

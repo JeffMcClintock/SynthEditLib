@@ -70,6 +70,7 @@ void ListEntryGui::onSetAppearance()
 		break;
 	}
 
+	captureWidget = {};
 	widgets.clear();
 
 	if (imageFile && imageFile[0] != 0) // not empty?
