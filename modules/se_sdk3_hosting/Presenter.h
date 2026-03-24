@@ -34,6 +34,7 @@ enum class CableType;
 	public:
 		virtual ~IPresenter() {}
 		virtual void setView(SE2::ViewBase* pview) = 0;
+		virtual void DirtyView() = 0; // async RefreshView(), editor only.
 		virtual void RefreshView() = 0;
 		virtual bool editEnabled() = 0;
 		virtual IPresenter* CreateSubPresenter(int32_t containerHandle) = 0;

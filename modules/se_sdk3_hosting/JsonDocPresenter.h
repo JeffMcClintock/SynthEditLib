@@ -23,6 +23,7 @@ public:
 	{
 		view = pview;
 	}
+	void DirtyView() override {} // async RefreshView(), editor only.
 
 	void ResizeModule(int handle, int dragNodeX, int dragNodeY, gmpi::drawing::Size) override
 	{
