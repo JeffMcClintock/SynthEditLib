@@ -944,14 +944,6 @@ if(pluginGraphics)
 	gmpi::drawing::PathGeometry ModuleView::getOutline(gmpi::drawing::Factory drawingFactory)
 	{
 		return {};
-		//auto geometry = drawingFactory.createPathGeometry();
-		//{
-		//	auto sink = geometry.open();
-		//	sink.addRect(inflateRect(offsetRect(bounds_, {-bounds_.left, -bounds_.top}), 3.f));
-		//	sink.close();
-		//}
-
-		//return geometry;
 	}
 
 	gmpi::ReturnCode ModuleView::onPointerDown(gmpi::drawing::Point point, int32_t flags)
@@ -1046,49 +1038,27 @@ if(pluginGraphics)
 		const auto local = PointToPlugin(point);
 
 		if(pluginInput_GMPI)
-		{
-			pluginInput_GMPI->onPointerMove(local, flags);
-			return gmpi::ReturnCode::Unhandled;
-		}
-
-		if(pluginGraphics)
-			pluginGraphics->onPointerMove(flags, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
-
-		return gmpi::ReturnCode::Unhandled;
+			return pluginInput_GMPI->onPointerMove(local, flags);
+		else if(pluginGraphics)
+			return (gmpi::ReturnCode) pluginGraphics->onPointerMove(flags, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
 	}
 	gmpi::ReturnCode ModuleView::onPointerUp(gmpi::drawing::Point point, int32_t flags)
 	{
 		const auto local = PointToPlugin(point);
 
 		if(pluginInput_GMPI)
-		{
-			pluginInput_GMPI->onPointerUp(local, flags);
-			return gmpi::ReturnCode::Unhandled;
-		}
-
-		if(pluginGraphics)
-		{
-			pluginGraphics->onPointerUp(flags, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
-		}
-
-		return gmpi::ReturnCode::Unhandled;
+            return pluginInput_GMPI->onPointerUp(local, flags);
+		else if(pluginGraphics)
+            return (gmpi::ReturnCode) pluginGraphics->onPointerUp(flags, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
 	}
 	gmpi::ReturnCode ModuleView::onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta)
 	{
 		const auto local = PointToPlugin(point);
 
 		if(pluginInput_GMPI)
-		{
-			pluginInput_GMPI->onMouseWheel(local, flags, delta);
-			return gmpi::ReturnCode::Unhandled;
-		}
-
-		if(pluginGraphics3)
-		{
-			pluginGraphics3->onMouseWheel(flags, delta, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
-		}
-
-		return gmpi::ReturnCode::Unhandled;
+            return pluginInput_GMPI->onMouseWheel(local, flags, delta);
+		else if(pluginGraphics3)
+            return (gmpi::ReturnCode) pluginGraphics3->onMouseWheel(flags, delta, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
 	}
 
 	void ModuleViewPanel::measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize)
@@ -1169,9 +1139,7 @@ if(pluginGraphics)
 			auto gmpiContext = reinterpret_cast<gmpi::drawing::api::IDeviceContext*>(AccessPtr::get(g));
 
             if (gmpiContext)
-            {
                 pluginGraphics_GMPI->render(gmpiContext);
-            }
 
 			return;
 		}

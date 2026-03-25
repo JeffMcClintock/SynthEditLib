@@ -29,7 +29,7 @@ void FloatFormulaGui::onSetValueIn()
 	currentValue = valueIn;
 	currentValueNull = false;
 
-	double B;
+    double B{};
 	double A = valueIn;
 	int flags = 0;
 	ee.SetValue("a", &A);
