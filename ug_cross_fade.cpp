@@ -30,7 +30,7 @@ void ug_cross_fade::ListInterface2(std::vector<class InterfaceObject*>& PList)
 	LIST_PIN2( L"Input A",input1_ptr, DR_IN, L"0", L"",IO_LINEAR_INPUT, L"");
 	LIST_PIN2( L"Input B",input2_ptr, DR_IN, L"0", L"",IO_LINEAR_INPUT, L"");
 	LIST_PIN2( L"Mix",pan_ptr, DR_IN, L"0", L"5,-5,5,-5",IO_POLYPHONIC_ACTIVE, L"Varies the mix from +5V - Input A, to -5V - Input B");
-	LIST_PIN2( L"Signal Out",left_output_ptr, DR_OUT, L"5", L"",0, L"");
+	LIST_PIN2( L"Signal Out",left_output_ptr, DR_OUT, L"", L"",0, L"");
 	//	LIST_VAR3( L"Fade Law", fade_type, DR _PARAMETER, DT_ENUM   , L"1", L"Equal Intensity (0dB), Equal Power(+3dB), Sqr Root", 0, L"Chooses different cross fade laws");
 	LIST_VAR3( L"Fade Law", fade_type, DR_IN, DT_ENUM   , L"1", L"Equal Intensity (0dB), Equal Power(+3dB), Sqr Root", IO_MINIMISED, L"Chooses different cross fade laws");
 }
