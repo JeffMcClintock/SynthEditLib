@@ -520,7 +520,7 @@ void Evaluator::Level6( double* r )
 {
    int  i;
    int  n;
-   double a[3];
+   double a[3]{};
 
    if( *token == '(' )
    {
@@ -563,7 +563,13 @@ void Evaluator::Level6( double* r )
 					 strcpy( token, Funcs[i].name );
 					 EVALUATOR_ERROR( E_NUMARGS );
 				  }
-				  *r = Funcs[i].func( a[0], a[1], a[2] );
+                   
+                    if(1 == Funcs[i].args)
+                        *r = Funcs[i].func(a[0]);
+                    else if(2 == Funcs[i].args)
+                        *r = Funcs[i].func(a[0], a[1]);
+                    else
+                        *r = Funcs[i].func( a[0], a[1], a[2] );
 				  return;
 			   }
 			   if( ! *Funcs[i].name )
