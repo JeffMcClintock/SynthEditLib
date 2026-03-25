@@ -977,7 +977,7 @@ if(pluginGraphics)
 						float distanceSquared = (local.x - p.x) * (local.x - p.x) + (local.y - p.y) * (local.y - p.y);
 						if(distanceSquared <= p.radius * p.radius)
 						{
-							Point dragStartPoint = Point(static_cast<float>(p.x), static_cast<float>(p.y)) + Size(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
+							gmpi::drawing::Point dragStartPoint = gmpi::drawing::Point(static_cast<float>(p.x), static_cast<float>(p.y)) + gmpi::drawing::Size(bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top);
 							parent->StartCableDrag(this, p.dspPin, dragStartPoint, point);
 							return gmpi::ReturnCode::Handled;
 						}
