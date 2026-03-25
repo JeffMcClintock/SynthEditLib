@@ -20,6 +20,7 @@ std::wstring DoubleToString(double val);
 std::string NiceDoubleToString(double value);
 std::string NiceFormatted(std::wstring value, EPlugDataType datatype);
 std::string NiceFormatted(const RawView raw, EPlugDataType datatype);
+std::string stripRedundantTrailingZeros(std::string val);
 std::string QuoteStringIfSpaces(const std::string& s);
 std::string UnQuoteStringIfSpaces(const std::string& s);
 std::wstring FloatToString(float val, int p_decimal_places = -1); // better

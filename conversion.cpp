@@ -195,6 +195,21 @@ std::string NiceDoubleToString(double value)
 	#endif
 }
 
+std::string stripRedundantTrailingZeros(std::string val)
+{
+	// Remove trailing zeros and possibly the decimal point if it's not needed.
+	size_t dotPos = val.find('.');
+	if (dotPos != std::string::npos)
+	{
+		size_t lastNonZero = val.find_last_not_of('0');
+		if (lastNonZero != std::string::npos && lastNonZero > dotPos)
+			val.erase(lastNonZero + 1);
+		else
+			val.erase(dotPos); // Remove the decimal point if there are no digits after it.
+	}
+	return val;
+}
+
 // formatted sensible for display. input is value as a human readable string.
 std::string NiceFormatted(std::wstring value, EPlugDataType datatype)
 {
