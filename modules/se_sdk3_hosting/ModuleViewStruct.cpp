@@ -2380,10 +2380,9 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 
 	gmpi::ReturnCode ModuleViewStruct::setHover(bool mouseIsOverMe)
 	{
-		const bool hoverStateChanged = isHovered_ != mouseIsOverMe;
-		isHovered_ = mouseIsOverMe;
+		bool visualStateChanged = isHovered_ != mouseIsOverMe;
 
-		bool visualStateChanged = hoverStateChanged;
+		auto r = ModuleView::setHover(mouseIsOverMe);
 
 		if (!mouseIsOverMe && hoveredPin_.pinIndex != -1)
 		{
@@ -2400,7 +2399,7 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 		if (visualStateChanged)
 			parent->ChildInvalidateRect(getClipArea());
 
-		return ModuleView::setHover(mouseIsOverMe);
+		return r;
 	}
 
 	void ModuleViewStruct::OnCableDrag(ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistanceSquared, ModuleView*& bestModule, int& bestPinIndex)

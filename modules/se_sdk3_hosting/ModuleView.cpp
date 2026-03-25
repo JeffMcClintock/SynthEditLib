@@ -10,7 +10,7 @@
 #include "legacy_sdk_gui2.h"
 #include "modules/shared/xplatform.h"
 #include "modules/shared/xplatform_modifier_keys.h"
-#include "UgDatabase2.h"
+#include "BundleInfo.h"
 #include "ProtectedFile.h"
 #include "SubViewPanel.h"
 #include "ResizeAdorner.h"
@@ -1041,6 +1041,8 @@ if(pluginGraphics)
 			return pluginInput_GMPI->onPointerMove(local, flags);
 		else if(pluginGraphics)
 			return (gmpi::ReturnCode) pluginGraphics->onPointerMove(flags, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
+
+		return gmpi::ReturnCode::Unhandled;
 	}
 	gmpi::ReturnCode ModuleView::onPointerUp(gmpi::drawing::Point point, int32_t flags)
 	{
@@ -1050,6 +1052,8 @@ if(pluginGraphics)
             return pluginInput_GMPI->onPointerUp(local, flags);
 		else if(pluginGraphics)
             return (gmpi::ReturnCode) pluginGraphics->onPointerUp(flags, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
+
+		return gmpi::ReturnCode::Unhandled;
 	}
 	gmpi::ReturnCode ModuleView::onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta)
 	{
@@ -1059,6 +1063,8 @@ if(pluginGraphics)
             return pluginInput_GMPI->onMouseWheel(local, flags, delta);
 		else if(pluginGraphics3)
             return (gmpi::ReturnCode) pluginGraphics3->onMouseWheel(flags, delta, *reinterpret_cast<const GmpiDrawing_API::MP1_POINT*>(&local));
+
+		return gmpi::ReturnCode::Unhandled;
 	}
 
 	void ModuleViewPanel::measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize)
@@ -1085,6 +1091,9 @@ if(pluginGraphics)
 	gmpi::drawing::Rect ModuleViewPanel::getClipArea()
 	{
 		auto clipArea = ModuleView::getClipArea();
+
+		if(isHovered_ && BundleInfo::instance()->isEditor)
+			clipArea = unionRect(clipArea, inflateRect(bounds_, 2.f));
 
 		if (pluginGraphics_GMPI)
 		{
@@ -1140,36 +1149,42 @@ if(pluginGraphics)
 
             if (gmpiContext)
                 pluginGraphics_GMPI->render(gmpiContext);
-
-			return;
 		}
 
-		if (pluginGraphics == nullptr)
-			return;
+		else if(pluginGraphics)
+		{
 
 #if 0 // debug layout and clip rects
-		g.fillRectangle(getClipArea(), g.createSolidColorBrush(Color::FromArgb(0x200000ff)));
-		g.fillRectangle(getLayoutRect(), g.createSolidColorBrush(Color::FromArgb(0x2000ff00)));
+			g.fillRectangle(getClipArea(), g.createSolidColorBrush(Color::FromArgb(0x200000ff)));
+			g.fillRectangle(getLayoutRect(), g.createSolidColorBrush(Color::FromArgb(0x2000ff00)));
 #endif
-/*
-		// Transform to module-relative.
-		const auto originalTransform = g.getTransform();
-		auto adjustedTransform = Matrix3x2::Translation(bounds_.left , bounds_.top) * originalTransform;
-		g.setTransform(adjustedTransform);
-*/
-		// Render.
-		pluginGraphics->OnRender(reinterpret_cast<GmpiDrawing_API::IMpDeviceContext*>(AccessPtr::get(g)));
+			/*
+					// Transform to module-relative.
+					const auto originalTransform = g.getTransform();
+					auto adjustedTransform = Matrix3x2::Translation(bounds_.left , bounds_.top) * originalTransform;
+					g.setTransform(adjustedTransform);
+			*/
+			// Render.
+			pluginGraphics->OnRender(reinterpret_cast<GmpiDrawing_API::IMpDeviceContext*>(AccessPtr::get(g)));
 
 #if 0 //def _DEBUG
-		// Alignment marks.
-		{
-			auto brsh = g.createSolidColorBrush(Colors::Red);
-			g.fillRectangle(Rect(0, 0, 1, 1), brsh);
-			g.fillRectangle(Rect(64, 64, 65, 65), brsh);
-		}
+			// Alignment marks.
+			{
+				auto brsh = g.createSolidColorBrush(Colors::Red);
+				g.fillRectangle(Rect(0, 0, 1, 1), brsh);
+				g.fillRectangle(Rect(64, 64, 65, 65), brsh);
+			}
 #endif
-		// Transform back.
-//		g.setTransform(originalTransform);
+			// Transform back.
+	//		g.setTransform(originalTransform);
+		}
+
+		if(isHovered_)
+		{
+			auto brush = g.createSolidColorBrush(gmpi::drawing::Colors::DodgerBlue);
+			gmpi::drawing::Rect r(0, 0, getWidth(bounds_), getHeight(bounds_));
+			g.drawRoundedRectangle({ r, 2.f, 2.f }, brush, 2.f);
+		}
 	}
 
 	gmpi::drawing::Point ModuleView::getConnectionPoint(CableType cableType, int pinIndex)
@@ -1561,16 +1576,29 @@ if(pluginGraphics)
 
 	gmpi::ReturnCode ModuleView::setHover(bool mouseIsOverMe)
 	{
+		isHovered_ = mouseIsOverMe;
+
 		if (pluginInput_GMPI)
-		{
-			pluginInput_GMPI->setHover(mouseIsOverMe);
-		}
+			return pluginInput_GMPI->setHover(mouseIsOverMe);
 		else if (pluginGraphics3) // TODO: implement a static dummy pluginGraphics2 to avoid all the null tests.
+			return (gmpi::ReturnCode) pluginGraphics3->setHover(mouseIsOverMe);
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode ModuleViewPanel::setHover(bool mouseIsOverMe)
+	{
+		const bool visualStateChanged = isHovered_ != mouseIsOverMe;
+
+		auto r = ModuleView::setHover(mouseIsOverMe);
+
+		if(visualStateChanged && BundleInfo::instance()->isEditor)
 		{
-			pluginGraphics3->setHover(mouseIsOverMe);
+			const auto r = inflateRect(bounds_, 2.f);
+			parent->ChildInvalidateRect(r);
 		}
 
-		return gmpi::ReturnCode::Ok;
+		return r;
 	}
 
 	std::vector<patchpoint_description>* ModuleView::getPatchPoints()

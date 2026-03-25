@@ -215,6 +215,7 @@ namespace SE2
 		std::vector<int> inputPinIds;
 		bool ignoreMouse;
 		int SortOrder = -1;
+		bool isHovered_ = false;
 
 		ModuleView(const wchar_t* typeId, ViewBase* pParent, int handle);
 		ModuleView(Json::Value* context, ViewBase* pParent);
@@ -643,6 +644,7 @@ namespace SE2
 		{
 			return hitTest(point, flags) == gmpi::ReturnCode::Ok ? 0.0f : 1000.0f;
 		}
+		gmpi::ReturnCode setHover(bool mouseIsOverMe) override;
 
 		bool isShown() override;
 		bool isDraggable(bool editEnabled) override;
