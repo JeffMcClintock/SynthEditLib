@@ -13,6 +13,7 @@ class ListEntryGui : public ClassicControlGuiBase
 	enum CComboMode { ACM_PLAIN, ACM_LED_STACK, ACM_LED_STACK_LABELED, ACM_BUTTON_SELECTOR, ACM_BUTTON_STACK, ACM_ROTARY_SWITCH_LABELED, ACM_ROTARY_SWITCH, ACM_UP_DOWN_SELECTOR };
 
 	int currentAppearance;
+	std::wstring currentItemList;
 
 public:
 	ListEntryGui();

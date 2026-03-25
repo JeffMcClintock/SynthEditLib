@@ -48,9 +48,16 @@ void ListEntryGui::OnWidgetUpdate(int32_t newvalue)
 
 void ListEntryGui::onSetAppearance()
 {
+	/* fails to reject false updates caused by properties browser, causing captureWidget to be lost.
 	if (currentAppearance == pinAppearance && (currentAppearance == ACM_PLAIN || currentAppearance == ACM_BUTTON_SELECTOR || currentAppearance == ACM_UP_DOWN_SELECTOR))
 		return;
+	*/
 
+	// trying this to be more robust.
+	if(currentAppearance == pinAppearance && currentItemList == pinItemList)
+		return;
+
+	currentItemList = pinItemList;
 	currentAppearance = pinAppearance;
 
 	// Reset defaults.
