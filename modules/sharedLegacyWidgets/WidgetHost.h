@@ -33,9 +33,7 @@ public:
 		for (auto& w : widgets)
 		{
 			if (w->widgetHitTest(point))
-			{
 				return gmpi::MP_OK;
-			}
 		}
 
 		return gmpi::MP_UNHANDLED;
