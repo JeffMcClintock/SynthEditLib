@@ -184,11 +184,13 @@ int32_t PlainImageGui::arrange(GmpiDrawing_API::MP1_RECT finalRect)
 {
 	auto r = gmpi_gui::MpGuiGfxBase::arrange(finalRect);
 
+/* when bitmap null creates infinite recursion: onSetFilename() -> invalidateMeasure() -> arrange() (not same size)
 	if (pinStretchMode == (int)StretchMode::Tiled && !bitmap_.isNull())
 	{
 		if (bitmap_.GetSizeF() != GmpiDrawing::Rect(finalRect).getSize())
 			onSetFilename();
 	}
-
+*/
+    
 	return r;
 }
