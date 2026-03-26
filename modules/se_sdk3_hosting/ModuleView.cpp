@@ -867,14 +867,12 @@ if(pluginGraphics)
 	{
 	}
 
-	gmpi::drawing::Matrix3x2 ModuleView::GetTransformToTopView()
+	gmpi::drawing::Matrix3x2 ModuleView::GetTransformToTopView() const
 	{
 		auto transform = gmpi::drawing::makeTranslation(bounds_.left, bounds_.top);
 
 		if (parent)
-		{
 			transform = transform * parent->GetTransformToTopView();
-		}
 
 		return transform;
 	}
