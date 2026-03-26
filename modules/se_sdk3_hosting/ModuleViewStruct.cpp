@@ -1029,7 +1029,7 @@ namespace SE2
 
 	int32_t ModuleViewStruct::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)
 	{
-		if (editorPinValues && pinId < editorPinValues->size())
+		if (editorPinValues                                     && pinId < editorPinValues->size())
 		{
 			editorPinValues->at(pinId).assign((uint8_t*)data, size + (uint8_t*)data);
 			if (pinId == hoveredPin_.pinIndex)

@@ -144,20 +144,18 @@ namespace SE2
 
 	ReturnCode GmpiHelper::setCapture()
 	{
-		moduleview.mouseCaptured = true;
-		return moduleview.parent ? static_cast<gmpi::ReturnCode>(moduleview.parent->setCapture(&moduleview)) : gmpi::ReturnCode::Fail;
+        return moduleview.setCaptureFromHost();
 	}
 
 	ReturnCode GmpiHelper::getCapture(bool& returnValue)
 	{
-		returnValue = moduleview.mouseCaptured;
+     returnValue = moduleview.getCaptureFromHost();
 		return gmpi::ReturnCode::Ok;
 	}
 
 	ReturnCode GmpiHelper::releaseCapture()
 	{
-		moduleview.mouseCaptured = false;
-		return moduleview.parent ? static_cast<gmpi::ReturnCode>(moduleview.parent->releaseCapture()) : gmpi::ReturnCode::Fail;
+       return moduleview.releaseCaptureFromHost();
 	}
 
 	ReturnCode GmpiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data)
@@ -184,18 +182,7 @@ namespace SE2
 
 	void GmpiHelper::invalidateRect(const gmpi::drawing::Rect* invalidRect)
 	{
-		if (!moduleview.parent)
-			return;
-
-		if (invalidRect)
-		{
-			auto r = offsetRect(*invalidRect, { moduleview.bounds_.left + moduleview.pluginGraphicsPos.left, moduleview.bounds_.top + moduleview.pluginGraphicsPos.top });
-			moduleview.parent->ChildInvalidateRect(r);
-		}
-		else
-		{
-			moduleview.parent->ChildInvalidateRect(moduleview.bounds_);
-		}
+     moduleview.InvalidatePluginRect(invalidRect);
 	}
 
 	void GmpiHelper::invalidateMeasure()
@@ -211,16 +198,14 @@ namespace SE2
 
 	ReturnCode GmpiHelper::createTextEdit(const gmpi::drawing::Rect* localRect, gmpi::api::IUnknown** returnTextEdit)
 	{
-		const auto transform = gmpi::drawing::makeTranslation(moduleview.pluginGraphicsPos.left, moduleview.pluginGraphicsPos.top) * moduleview.GetTransformToTopView();
-		const auto adjustedRect = gmpi::drawing::transformRect(transform, *localRect);
+        const auto adjustedRect = moduleview.MapPluginRectToView(*localRect);
 
 		return moduleview.parent->dialogHost->createTextEdit(&adjustedRect, returnTextEdit);
 	}
 
 	ReturnCode GmpiHelper::createPopupMenu(const gmpi::drawing::Rect* localRect, gmpi::api::IUnknown** returnPopupMenu)
 	{
-		const auto transform = gmpi::drawing::makeTranslation(moduleview.pluginGraphicsPos.left, moduleview.pluginGraphicsPos.top) * moduleview.GetTransformToTopView();
-		const auto adjustedRect = gmpi::drawing::transformRect(transform, *localRect);
+        const auto adjustedRect = moduleview.MapPluginRectToView(*localRect);
 
 		return moduleview.parent->dialogHost->createPopupMenu(&adjustedRect, returnPopupMenu);
 	}
@@ -311,18 +296,14 @@ namespace SE2
 
 	void Sdk3Helper::invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect)
 	{
-		if (!moduleview.parent)
-			return;
-
 		if (invalidRect)
 		{
 			gmpi::drawing::Rect r{ invalidRect->left, invalidRect->top, invalidRect->right, invalidRect->bottom };
-			r = offsetRect(r, { moduleview.bounds_.left + moduleview.pluginGraphicsPos.left, moduleview.bounds_.top + moduleview.pluginGraphicsPos.top });
-			moduleview.parent->ChildInvalidateRect(r);
+          moduleview.InvalidatePluginRect(&r);
 		}
 		else
 		{
-			moduleview.parent->ChildInvalidateRect(moduleview.bounds_);
+         moduleview.InvalidatePluginRect(nullptr);
 		}
 	}
 
@@ -349,20 +330,18 @@ namespace SE2
 
 	int32_t Sdk3Helper::setCapture()
 	{
-		moduleview.mouseCaptured = true;
-		return moduleview.parent ? moduleview.parent->setCapture(&moduleview) : gmpi::MP_FAIL;
+        return static_cast<int32_t>(moduleview.setCaptureFromHost());
 	}
 
 	int32_t Sdk3Helper::getCapture(int32_t& returnValue)
 	{
-		returnValue = moduleview.mouseCaptured ? 1 : 0;
+     returnValue = moduleview.getCaptureFromHost() ? 1 : 0;
 		return gmpi::MP_OK;
 	}
 
 	int32_t Sdk3Helper::releaseCapture()
 	{
-		moduleview.mouseCaptured = false;
-		return moduleview.parent ? moduleview.parent->releaseCapture() : gmpi::MP_FAIL;
+       return static_cast<int32_t>(moduleview.releaseCaptureFromHost());
 	}
 
 	int32_t Sdk3Helper::createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog)
@@ -388,9 +367,8 @@ namespace SE2
 
 		*returnMenu = nullptr;
 
-		auto localRect = *reinterpret_cast<gmpi::drawing::Rect*>(rect);
-		auto transform = gmpi::drawing::makeTranslation(moduleview.pluginGraphicsPos.left, moduleview.pluginGraphicsPos.top) * moduleview.GetTransformToTopView();
-		const auto adjustedRect = gmpi::drawing::transformRect(transform, localRect);
+     auto localRect = *reinterpret_cast<gmpi::drawing::Rect*>(rect);
+		const auto adjustedRect = moduleview.MapPluginRectToView(localRect);
 
 		gmpi::shared_ptr<gmpi::api::IUnknown> popupMenu;
 		const auto result = moduleview.parent->dialogHost->createPopupMenu(&adjustedRect, popupMenu.put());
@@ -418,9 +396,8 @@ namespace SE2
 		*returnTextEdit = nullptr;
 
         // adjust coordinates to parent using the module's full transform.
-		auto localRect = *reinterpret_cast<gmpi::drawing::Rect*>(rect);
-		auto transform = gmpi::drawing::makeTranslation(moduleview.pluginGraphicsPos.left, moduleview.pluginGraphicsPos.top) * moduleview.GetTransformToTopView();
-		const auto adjustedRect = gmpi::drawing::transformRect(transform, localRect);
+     auto localRect = *reinterpret_cast<gmpi::drawing::Rect*>(rect);
+		const auto adjustedRect = moduleview.MapPluginRectToView(localRect);
 
 		// create a GMPI-UI widget.
 		gmpi::shared_ptr< gmpi::api::IUnknown> retWidget;
@@ -900,6 +877,45 @@ if(pluginGraphics)
 		}
 
 		return transform;
+	}
+
+	gmpi::drawing::Rect ModuleView::MapPluginRectToView(const gmpi::drawing::Rect& localRect) const
+	{
+		auto transform = gmpi::drawing::makeTranslation(pluginGraphicsPos.left, pluginGraphicsPos.top) * GetTransformToTopView();
+		return gmpi::drawing::transformRect(transform, localRect);
+	}
+
+	void ModuleView::InvalidatePluginRect(const gmpi::drawing::Rect* invalidRect)
+	{
+		if (!parent)
+			return;
+
+		if (invalidRect)
+		{
+			auto r = offsetRect(*invalidRect, { bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top });
+			parent->ChildInvalidateRect(r);
+		}
+		else
+		{
+			parent->ChildInvalidateRect(bounds_);
+		}
+	}
+
+	gmpi::ReturnCode ModuleView::setCaptureFromHost()
+	{
+		mouseCaptured = true;
+		return parent ? static_cast<gmpi::ReturnCode>(parent->setCapture(this)) : gmpi::ReturnCode::Fail;
+	}
+
+	gmpi::ReturnCode ModuleView::releaseCaptureFromHost()
+	{
+		mouseCaptured = false;
+		return parent ? static_cast<gmpi::ReturnCode>(parent->releaseCapture()) : gmpi::ReturnCode::Fail;
+	}
+
+	bool ModuleView::getCaptureFromHost() const
+	{
+		return mouseCaptured;
 	}
 	
 	gmpi::drawing::PathGeometry ModuleView::getOutline(gmpi::drawing::Factory drawingFactory)

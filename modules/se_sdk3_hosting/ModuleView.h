@@ -434,6 +434,12 @@ namespace SE2
 			return gmpi::drawing::transformPoint(OffsetToClient(), point);
 		}
 
+		gmpi::drawing::Rect MapPluginRectToView(const gmpi::drawing::Rect& localRect) const;
+		void InvalidatePluginRect(const gmpi::drawing::Rect* invalidRect);
+		gmpi::ReturnCode setCaptureFromHost();
+		gmpi::ReturnCode releaseCaptureFromHost();
+		bool getCaptureFromHost() const;
+
       // Get the compound transform matrix from this ModuleView to the topmost view (including zoom and pan)
 		gmpi::drawing::Matrix3x2 GetTransformToTopView();
 
