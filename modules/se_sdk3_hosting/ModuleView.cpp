@@ -162,46 +162,7 @@ namespace SE2
 
 	ReturnCode GmpiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data)
 	{
-		auto it = moduleview.connections_.find(pinId);
-		while (it != moduleview.connections_.end() && it->first == pinId)
-		{
-			auto& connection = it->second;
-			connection.otherModule_->setPin(&moduleview, pinId, connection.otherModulePinIndex_, voice, size, data);
-			++it;
-		}
-
-		if (!moduleview.initialised_)
-		{
-			moduleview.alreadySentDataPins_.push_back(pinId);
-		}
-
-		if (moduleview.recursionStopper_ < 10)
-		{
-			bool isInputPin{};
-			for (auto inputPinId : moduleview.inputPinIds)
-			{
-				if (inputPinId == pinId)
-				{
-					isInputPin = true;
-					break;
-				}
-			}
-
-			if (isInputPin)
-			{
-				++moduleview.recursionStopper_;
-
-				if (moduleview.pluginParameters_GMPI)
-				{
-					moduleview.pluginParameters_GMPI->setPin(pinId, voice, size, data);
-					moduleview.pluginParameters_GMPI->notifyPin(pinId, voice);
-				}
-
-				--moduleview.recursionStopper_;
-			}
-		}
-
-		return gmpi::ReturnCode::Ok;
+      return static_cast<gmpi::ReturnCode>(moduleview.pinTransmit(pinId, size, data, voice));
 	}
 
 	int32_t GmpiHelper::getHandle()
@@ -474,55 +435,7 @@ namespace SE2
 
 	int32_t Sdk3Helper::pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice)
 	{
-		auto it = moduleview.connections_.find(pinId);
-		while (it != moduleview.connections_.end() && it->first == pinId)
-		{
-			auto& connection = it->second;
-			connection.otherModule_->setPin(&moduleview, pinId, connection.otherModulePinIndex_, voice, size, data);
-			++it;
-		}
-
-		if (!moduleview.initialised_)
-		{
-			moduleview.alreadySentDataPins_.push_back(pinId);
-		}
-
-		if (moduleview.recursionStopper_ < 10)
-		{
-			bool isInputPin{};
-			for (auto inputPinId : moduleview.inputPinIds)
-			{
-				if (inputPinId == pinId)
-				{
-					isInputPin = true;
-					break;
-				}
-			}
-
-			if (isInputPin)
-			{
-				++moduleview.recursionStopper_;
-
-				if (moduleview.pluginParameters)
-				{
-					moduleview.pluginParameters->setPin(pinId, voice, size, data);
-
-					if (moduleview.pluginParameters2B)
-					{
-						moduleview.pluginParameters2B->notifyPin(pinId, voice);
-					}
-				}
-				else if (moduleview.pluginParametersLegacy)
-				{
-					moduleview.pluginParametersLegacy->setPin(pinId, voice, size, const_cast<void*>(data));
-					moduleview.pluginParametersLegacy->notifyPin(pinId, voice);
-				}
-
-				--moduleview.recursionStopper_;
-			}
-		}
-
-		return gmpi::MP_OK;
+      return moduleview.pinTransmit(pinId, size, data, voice);
 	}
 
 	int32_t Sdk3Helper::sendMessageToAudio(int32_t id, int32_t size, const void* messageData)
@@ -533,6 +446,54 @@ namespace SE2
 	int32_t Sdk3Helper::getHandle(int32_t& returnValue)
 	{
 		returnValue = moduleview.handle;
+		return gmpi::MP_OK;
+	}
+
+	int32_t ModuleView::pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice)
+	{
+		auto it = connections_.find(pinId);
+		while (it != connections_.end() && it->first == pinId)
+		{
+			auto& connection = it->second;
+			connection.otherModule_->setPin(this, pinId, connection.otherModulePinIndex_, voice, size, data);
+			++it;
+		}
+
+		if (!initialised_)
+		{
+			alreadySentDataPins_.push_back(pinId);
+		}
+
+		if (recursionStopper_ < 10)
+		{
+			const bool isInputPin = std::find(inputPinIds.begin(), inputPinIds.end(), pinId) != inputPinIds.end();
+			if (isInputPin)
+			{
+				++recursionStopper_;
+
+				if (pluginParameters_GMPI)
+				{
+					pluginParameters_GMPI->setPin(pinId, voice, size, static_cast<const uint8_t*>(data));
+					pluginParameters_GMPI->notifyPin(pinId, voice);
+				}
+				else if (pluginParameters)
+				{
+					pluginParameters->setPin(pinId, voice, size, data);
+					if (pluginParameters2B)
+					{
+						pluginParameters2B->notifyPin(pinId, voice);
+					}
+				}
+				else if (pluginParametersLegacy)
+				{
+					pluginParametersLegacy->setPin(pinId, voice, size, const_cast<void*>(data));
+					pluginParametersLegacy->notifyPin(pinId, voice);
+				}
+
+				--recursionStopper_;
+			}
+		}
+
 		return gmpi::MP_OK;
 	}
 
@@ -1322,6 +1283,7 @@ if(pluginGraphics)
 	}
 #endif
 
+	// GUI pins.
 	int32_t ModuleView::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)
 	{
 		if (recursionStopper_ < 10)

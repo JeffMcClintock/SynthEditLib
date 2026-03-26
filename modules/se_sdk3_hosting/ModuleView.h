@@ -405,6 +405,7 @@ namespace SE2
 		void initialize();
 
 		virtual int32_t setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data);
+		virtual int32_t pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice);
 
 		bool isPinConnected(int pinIndex)
 		{

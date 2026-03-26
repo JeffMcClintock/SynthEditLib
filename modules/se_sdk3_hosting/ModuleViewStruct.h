@@ -72,12 +72,9 @@ public:
 	{
 		return muted;
 	}
-#if 0 // TODO
 
 	int32_t setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data) override;
-	int32_t pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice) override;
-
-#endif
+    int32_t pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice) override;
 
 	virtual void measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize) override;
 	virtual void arrange(gmpi::drawing::Rect finalRect) override;

@@ -1026,16 +1026,16 @@ namespace SE2
 
 		g.popAxisAlignedClip();
 	}
-#if 0 // TODO
+
 	int32_t ModuleViewStruct::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)
 	{
 		if (editorPinValues)
 		{
 			editorPinValues->at(pinId).assign((uint8_t*)data, size + (uint8_t*)data);
-			if (pinId == hoverPin)
+			if (pinId == hoveredPin_.pinIndex)
 			{
-				hoverScopeText = NiceFormatted(editorPinValues->at(pinId), (EPlugDataType)plugs_[hoverPin].datatype);
-				invalidateMyRect(calcScopeRect(hoverPin));
+				hoverScopeText = NiceFormatted(editorPinValues->at(pinId), (EPlugDataType)plugs_[pinId].datatype);
+				invalidateMyRect(calcScopeRect(pinId));
 			}
 		}
 
@@ -1048,18 +1048,16 @@ namespace SE2
 		{
 			editorPinValues->at(pinId).assign((uint8_t*)data, size + (uint8_t*)data);
 
-			if (pinId == hoverPin)
+			if (pinId == hoveredPin_.pinIndex)
 			{
-				hoverScopeText = NiceFormatted(editorPinValues->at(pinId), (EPlugDataType)plugs_[hoverPin].datatype);
-				invalidateMyRect(calcScopeRect(hoverPin));
-				_RPTN(0, "hoverScopeText: %s\n", hoverScopeText.c_str());
+				hoverScopeText = NiceFormatted(editorPinValues->at(pinId), (EPlugDataType)plugs_[pinId].datatype);
+				invalidateMyRect(calcScopeRect(pinId));
 			}
 		}
 
-		return ModuleView::pinTransmit(pinId, size, data, voice);
+       return ModuleView::pinTransmit(pinId, size, data, voice);
 	}
 
-#endif
 	void ModuleViewStruct::SetHoverScopeText(const char* text)
 	{
 		hoverScopeText = text;
