@@ -1440,7 +1440,7 @@ struct BlurBitmap final : public GraphicsProcessor
             }
 
             // create bitmap
-            blurredBitmap = factory.createImage(size, (int32_t)drawing::BitmapRenderTargetFlags::EightBitPixels| (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
+           blurredBitmap = factory.createImage(size, (int32_t)drawing::BitmapRenderTargetFlags::SRGBPixels | (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
             {
                 auto destdata = blurredBitmap.lockPixels(drawing::BitmapLockFlags::Write);
                 constexpr int pixelSize = 4; // 8 bytes per pixel for half-float, 4 for 8-bit
@@ -1674,7 +1674,7 @@ struct Mask2Bitmap final : public GraphicsProcessor
             }
 
             // create bitmap
-            blurredBitmap = factory.createImage(size, (int32_t)drawing::BitmapRenderTargetFlags::EightBitPixels | (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
+          blurredBitmap = factory.createImage(size, (int32_t)drawing::BitmapRenderTargetFlags::SRGBPixels | (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
             {
                 auto destdata = blurredBitmap.lockPixels(drawing::BitmapLockFlags::Write);
                 constexpr int pixelSize = 4; // 8 bytes per pixel for half-float, 4 for 8-bit

@@ -879,7 +879,7 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateImage(int32_t width, int32_t 
 	*returnDiBitmap = nullptr;
 
 	gmpi::shared_ptr<gmpi::drawing::api::IBitmap> b;
-	auto hr = native->createImage(width, height, (int32_t)gmpi::drawing::BitmapRenderTargetFlags::EightBitPixels, b.put());
+	auto hr = native->createImage(width, height, (int32_t)gmpi::drawing::BitmapRenderTargetFlags::SRGBPixels, b.put());
 
 	if (hr == gmpi::ReturnCode::Ok)
 	{
