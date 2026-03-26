@@ -702,9 +702,9 @@ ${se_sdk_hosting_folder}
 )
 
 set(srcs_gmpi_forms
-${GMPI_UI_SDK}/experimental/Primatives.h
-${GMPI_UI_SDK}/experimental/Primatives.cpp
-${GMPI_UI_SDK}/experimental/Utils.h
+${GMPI_UI_SDK}/experimental/primatives.h
+${GMPI_UI_SDK}/experimental/primatives.cpp
+${GMPI_UI_SDK}/experimental/utils.h
 ${GMPI_UI_SDK}/experimental/builders.h
 ${GMPI_UI_SDK}/experimental/builders.cpp
 ${GMPI_UI_SDK}/experimental/forms.h
