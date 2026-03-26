@@ -780,7 +780,7 @@ void DrawingFrameBase2::Paint(std::vector<gmpi::drawing::RectL>& dirtyRects) //s
                 graphics.clear(blankColor);
             }
 
-            if constexpr(false) // diagnostics for dirty rects
+            if constexpr(true) // diagnostics for dirty rects
             {
                 static int32_t diagColor = 0;
                 diagColor += 10;
