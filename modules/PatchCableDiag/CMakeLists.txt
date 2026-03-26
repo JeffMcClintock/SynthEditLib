@@ -11,6 +11,6 @@ build_gmpi_plugin(
         PatchcablediagGui.cpp
         ../shared/PatchCables.h
         ../shared/PatchCables.cpp
-        ../tinyxml2/tinyxml2.h
-        ../tinyxml2/tinyxml2.cpp
+        ../tinyXml2/tinyxml2.h
+        ../tinyXml2/tinyxml2.cpp
 )

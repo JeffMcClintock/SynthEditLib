@@ -11,7 +11,7 @@ build_gmpi_plugin(
         MidiPlayer2.h
         MidiPlayer1.cpp
         MidiPlayer2.cpp
-        MidiRecorder.cpp
+        MIDIRecorder.cpp
         MidiToGate.cpp
         MidiMessage.cpp
         smf.h

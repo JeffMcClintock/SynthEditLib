@@ -8,7 +8,7 @@ build_gmpi_plugin(
     HAS_DSP
     HAS_GUI
     SOURCE_FILES 
-        Waveshapers.h
+        waveshapers.h
         Waveshapers.cpp
         Waveshaper2.h
         Waveshaper2.cpp
@@ -22,6 +22,4 @@ build_gmpi_plugin(
         ../shared/ImageMetadata.cpp
       
 )
-# 32-bit only
-#        WaveshapersGui.h
-#        WaveshapersGui.cpp
+

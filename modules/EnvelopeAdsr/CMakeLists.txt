@@ -10,5 +10,5 @@ build_gmpi_plugin(
         Adsr.cpp
         Adsr.h
         envelope.cpp
-        envelope.h
+        Envelope.h
 )

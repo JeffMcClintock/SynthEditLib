@@ -11,6 +11,6 @@ build_gmpi_plugin(
         UserSettingText.cpp
         UserSettingTextGui.cpp
         UserSettingTextController.cpp
-        ../tinyXml2/TinyXml2.h
-        ../tinyXml2/TinyXml2.cpp
+        ../tinyXml2/tinyxml2.h
+        ../tinyXml2/tinyxml2.cpp
 )

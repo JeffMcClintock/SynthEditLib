@@ -18,7 +18,7 @@ build_gmpi_plugin(
         SampleManager.cpp
         SampleExclusiveFilter.h
         SampleExclusiveFilter.cpp
-        CSoundFont.h
+        csoundfont.h
         CSoundFont.cpp
         soundfont_user.h
         soundfont_user.cpp
