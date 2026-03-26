@@ -701,11 +701,9 @@ namespace SE2
 
 										auto dt = pinInfo->GetDatatype();
 										if (dt == DT_ENUM) // special hack for enum lists on properties of GUI modules.
-										{
 											dt = DT_INT;
-										}
 
-										auto raw = ParseToRaw(dt, default_element.asString());
+										const auto raw = ParseToRaw(dt, default_element.asString());
 
 										wrapper->setPin(0, 0, pinId, 0, (int32_t)raw.size(), (void*)raw.data());
 
