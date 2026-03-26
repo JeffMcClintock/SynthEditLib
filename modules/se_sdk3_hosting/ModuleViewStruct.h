@@ -33,7 +33,7 @@ class ModuleViewStruct : public ModuleView
 	std::shared_ptr<sharedGraphicResources_struct> drawingResources;
 	static GraphicsResourceCache<sharedGraphicResources_struct> drawingResourcesCache;
 	sharedGraphicResources_struct* getDrawingResources(gmpi::drawing::Factory& factory);
-	bool hasHoverScopeText() const;
+	bool hasHoverScope() const;
 
 #if 0 // TODO
 	// SynthEdit-specific.  Locate resources and make SynthEdit embed them during save-as-vst.

@@ -444,7 +444,7 @@ namespace SE2
 			r = unionRect(r, cpur);
 		}
 
-		if(hasHoverScopeText())
+		if(hasHoverScope())
 			r = unionRect(r, calcScopeRect(hoveredPin_.pinIndex));
 
 		return r;
@@ -752,7 +752,7 @@ namespace SE2
 		}
 
 		// HOVER SCOPE
-		if (hasHoverScopeText())
+		if (hasHoverScope())
 		{
 			const auto scopeRect = calcScopeRect(hoveredPin_.pinIndex);
 
@@ -1062,16 +1062,16 @@ namespace SE2
        return ModuleView::pinTransmit(pinId, size, data, voice);
 	}
 
-	bool ModuleViewStruct::hasHoverScopeText() const
+	bool ModuleViewStruct::hasHoverScope() const
 	{
-		return hoveredPin_.pinIndex > -1 && !hoverScopeText.empty();
+		return hoveredPin_.pinIndex > -1 && (scopeIsWave && !hoverScopeText.empty());
 	}
 
 	void ModuleViewStruct::SetHoverScopeText(const char* text)
 	{
 		hoverScopeText = text;
 
-       if (hasHoverScopeText())
+		if(hasHoverScope())
 		{
 			const auto& pin = plugs_[hoveredPin_.pinIndex];
 
