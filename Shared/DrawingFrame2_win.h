@@ -60,8 +60,6 @@ struct DrawingFrameBase2 :
     gmpi::shared_ptr<gmpi::api::IInputClient> editor_gmpi;
     gmpi::shared_ptr<gmpi::api::IGraphicsRedrawClient> frameUpdateClient;
 
-    // for re-entrancy protection.
-    std::atomic<bool> reentrant = false;
     std::atomic<bool> isInit;
 
     gmpi::drawing::Point currentPointerPos{ -1, -1 };
@@ -69,18 +67,42 @@ struct DrawingFrameBase2 :
     gmpi::shared_ptr<gmpi::api::IPopupMenu> popupMenu;
 
 protected:
-    std::vector<gmpi::drawing::RectL> dirtyRects;
+    gmpi::hosting::DirtyRectQueue dirtyRects;
 
     void queueDirtyRect(gmpi::drawing::RectL rect);
     void queueDirtyRect(const gmpi::drawing::Rect* invalidRect);
     void replaceDirtyRects(gmpi::drawing::RectL rect);
     void invalidateAll();
     virtual gmpi::drawing::RectL getFullDirtyRect() = 0;
-    static int32_t makePointerFlags();
-    static void addPointerButtonFlags(int32_t& flags, bool firstButton, bool secondButton, bool thirdButton = false);
-    static void addPointerKeyFlags(int32_t& flags, bool shift, bool control, bool alt);
-    static void addPointerNewFlag(int32_t& flags, bool isNew);
-    std::span<const gmpi::drawing::RectL> getDirtyRects() const { return dirtyRects; }
+    static int32_t makePointerFlags()
+    {
+        return gmpi::api::GG_POINTER_FLAG_INCONTACT | gmpi::api::GG_POINTER_FLAG_PRIMARY | gmpi::api::GG_POINTER_FLAG_CONFIDENCE;
+    }
+    static void addPointerButtonFlags(int32_t& flags, bool firstButton, bool secondButton, bool thirdButton = false)
+    {
+        if (firstButton)
+            flags |= gmpi::api::GG_POINTER_FLAG_FIRSTBUTTON;
+        if (secondButton)
+            flags |= gmpi::api::GG_POINTER_FLAG_SECONDBUTTON;
+        if (thirdButton)
+            flags |= gmpi::api::GG_POINTER_FLAG_THIRDBUTTON;
+    }
+    static void addPointerKeyFlags(int32_t& flags, bool shift, bool control, bool alt)
+    {
+        if (shift)
+            flags |= gmpi::api::GG_POINTER_KEY_SHIFT;
+        if (control)
+            flags |= gmpi::api::GG_POINTER_KEY_CONTROL;
+        if (alt)
+            flags |= gmpi::api::GG_POINTER_KEY_ALT;
+    }
+    static void addPointerNewFlag(int32_t& flags, bool isNew)
+    {
+        if (isNew)
+            flags |= gmpi::api::GG_POINTER_FLAG_NEW;
+    }
+    std::span<gmpi::drawing::RectL> getDirtyRects() { return dirtyRects.get(); }
+    std::span<const gmpi::drawing::RectL> getDirtyRects() const { return dirtyRects.get(); }
     bool hasDirtyRects() const { return !dirtyRects.empty(); }
     void clearDirtyRects() { dirtyRects.clear(); }
     bool preGraphicsRedraw();
@@ -99,6 +121,17 @@ public:
 
     // override these please.
     void OnSwapChainCreated() override;
+    ID2D1Factory1* getD2dFactory() override
+    {
+        return DrawingFactory ? DrawingFactory->gmpiFactory.getD2dFactory() : nullptr;
+    }
+    bool canPaint(std::span<gmpi::drawing::RectL> dirtyRects) override;
+    bool preparePaint(std::span<gmpi::drawing::RectL> dirtyRects) override;
+    bool recreateDeviceOnPaint() const override
+    {
+        return true;
+    }
+    void renderFrame(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects) override;
 
     virtual void autoScrollStart() {}
     virtual void autoScrollStop() {}
@@ -201,11 +234,7 @@ protected:
     HWND parentWnd = {};
     gmpi::drawing::Point cubaseBugPreviousMouseMove = { -1,-1 };
     bool isTrackingMouse = false;
-    bool toolTipShown = false;
-    HWND tooltipWindow = {};
-    static const int toolTiptimerInit = 40; // x/60 Hz
-    int toolTiptimer = 0;
-    std::wstring toolTipText;
+    gmpi::hosting::ToolTipManager tooltip;
     // Paint() uses Direct-2d which block on vsync. Therefore all invalid rects should be applied in one "hit", else windows message queue chokes calling WM_PAINT repeately and blocking on every rect.
 	gmpi::hosting::UpdateRegionWinGdi updateRegion_native;
     int pollHdrChangesCount = 100;
@@ -243,23 +272,6 @@ public:
         UINT message,
         WPARAM wParam,
         LPARAM lParam);
-
-    /*
-    // IMpGraphicsHost (SDK3)
-    void invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override;
-
-    int32_t setCapture() override;
-    int32_t getCapture(int32_t& returnValue) override;
-    int32_t releaseCapture() override;
-
-    int32_t createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu) override;
-    int32_t createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override;
-    int32_t createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override;
-    int32_t createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override;
-    */
-
-    // tempSharedD2DBase
-    float calcWhiteLevel() override;
 };
 
 // This is used in VST3. Native HWND window frame, owned by this.
