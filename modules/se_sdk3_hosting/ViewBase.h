@@ -149,6 +149,9 @@ bool isIteratingChildren = false;
 		std::function<void(const scrollBarSpec&)> hscrollBar;
 		std::function<void(const scrollBarSpec&)> vscrollBar;
 
+		// called when a drag-to-create operation from the module browser ends (drop or cancel)
+		std::function<void()> onDragNewModuleEnded;
+
 		// notificate *from* scrollbars or document
 		void setZoomFactor(float newZoomFactor)
 		{

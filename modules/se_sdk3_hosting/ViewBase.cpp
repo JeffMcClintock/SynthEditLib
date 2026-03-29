@@ -343,6 +343,8 @@ namespace SE2
 				Presenter()->AddModule(moduleId.c_str(), point);
 			}
 			draggingNewModuleId.clear();
+			if (onDragNewModuleEnded)
+				onDragNewModuleEnded();
 		}
 
 		if(mouseCaptureObject)
@@ -1620,6 +1622,8 @@ namespace SE2
 			draggingNewModuleId.clear();
 			if (inputHost)
 				inputHost->releaseCapture();
+			if (onDragNewModuleEnded)
+				onDragNewModuleEnded();
 		}
 	}
 
