@@ -350,8 +350,10 @@ gmpi::ReturnCode SubView::arrange(const gmpi::drawing::Rect* finalRect)
 
 bool SubView::isShown()
 {
+    assert(parent);
+    
     // parent can be null during initialise, so can't read the pins just yet.
-	if (!parent || !parent->isShown())
+	if (!parent->isShown())
 		return false;
 
 	if (parentViewType == CF_PANEL_VIEW)

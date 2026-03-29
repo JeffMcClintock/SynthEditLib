@@ -171,7 +171,7 @@ namespace SE2
 
 			onPointerMove(point, simulatedFlags);
 		}
-
+        
 		if(mouseCaptureObject)
 		{
 #ifdef DEBUG_HIT_TEST
@@ -181,6 +181,13 @@ namespace SE2
 			/*return*/ mouseCaptureObject->onPointerDown(point, flags);
 			return gmpi::ReturnCode::Ok;
 		}
+        
+        // if we're dragging a module from the browser, suppress normal stuff, otherwise weird conditions happen.
+        if(!draggingNewModuleId.empty())
+        {
+//            setCapture();
+            return gmpi::ReturnCode::Handled;
+        }
 
 		// account for objects appearing without mouse moving (e.g. show-on-parent changing on previous click).
 		calcMouseOverObject(flags);
@@ -328,8 +335,19 @@ namespace SE2
 		point *= inv_viewTransform;
 
 		Presenter()->NotDragging();
-
-		if(!draggingNewModuleId.empty())
+        
+        if(mouseCaptureObject)
+        {
+            mouseCaptureObject->onPointerUp(point, flags);
+            
+#ifdef _DEBUG
+            if(mouseCaptureObject)
+            {
+                _RPT0(_CRT_WARN, "WARNING: GUI MODULE DID NOT RELEASE MOUSECAPTURE!!!\n");
+            }
+#endif
+        }
+		else if(!draggingNewModuleId.empty())
 		{
 			/* mouse can only be captured by the window that ecieved the mpointer-down, and then only until the next pointer-up.
 			int32_t isMouseCaptured{};
@@ -346,18 +364,7 @@ namespace SE2
 			if (onDragNewModuleEnded)
 				onDragNewModuleEnded();
 		}
-
-		if(mouseCaptureObject)
-			mouseCaptureObject->onPointerUp(point, flags);
-
-#ifdef _DEBUG
-		if(mouseCaptureObject)
-		{
-			_RPT0(_CRT_WARN, "WARNING: GUI MODULE DID NOT RELEASE MOUSECAPTURE!!!\n");
-		}
-#endif
-
-		if(isDraggingModules)
+        else if(isDraggingModules)
 		{
 			isDraggingModules = false;
 			releaseCapture();
