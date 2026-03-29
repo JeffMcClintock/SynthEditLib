@@ -309,7 +309,7 @@ bool isIteratingChildren = false;
 			startPoint = point;
 			arrange({ point.x, point.y, point.x, point.y });
 			parent->setCapture(this);
-			parent->invalidateRect(&bounds_);
+			parent->ChildInvalidateRect(bounds_);
 		}
 
 		static const int lineWidth_ = 3;
@@ -327,14 +327,6 @@ bool isIteratingChildren = false;
 
 		gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
 		{
-			/*
-			bounds_.left = point.x - 1;
-			bounds_.top = point.y - 1;
-			bounds_.right = point.x;
-			bounds_.bottom = point.y;
-
-			parent->invalidateRect(&bounds_);
-			*/
 			return gmpi::ReturnCode::Unhandled;
 		}
 		gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override
@@ -349,7 +341,7 @@ bool isIteratingChildren = false;
 			invalidRect = unionRect(invalidRect, bounds_);
 			invalidRect = inflateRect(invalidRect, 2);
 
-			parent->invalidateRect(&invalidRect);
+			parent->ChildInvalidateRect(invalidRect);
 			return gmpi::ReturnCode::Unhandled;
 		}
 
@@ -359,7 +351,7 @@ bool isIteratingChildren = false;
 			parent->autoScrollStop();
 
 			const auto invalidRect = inflateRect(bounds_, 2);
-			parent->invalidateRect(&invalidRect);
+			parent->ChildInvalidateRect(invalidRect);
 
 			// creat local copy of these to use after 'this' is deleted.
 			auto localParent = parent;
@@ -371,9 +363,7 @@ bool isIteratingChildren = false;
 			// carefull not to access 'this'
 			const float smallDragSuppression = 2.f;
 			if (getWidth(localBounds) > smallDragSuppression && getHeight(localBounds) > smallDragSuppression)
-			{
 				localParent->OnDragSelectionBox(flags, localBounds);
-			}
 
 			return gmpi::ReturnCode::Unhandled;
 		}
