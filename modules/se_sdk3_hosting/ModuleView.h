@@ -142,7 +142,7 @@ namespace SE2
 			GMPI_QUERYINTERFACE(synthedit::IEmbeddedFileSupport);
 			return gmpi::ReturnCode::NoSupport;
 		}
-		GMPI_REFCOUNT
+        GMPI_REFCOUNT_NO_DELETE
 	};
 
 	// adapt a legacy (SDK3) module to moduleview
@@ -197,7 +197,7 @@ namespace SE2
 		int32_t openProtectedFile(const wchar_t* shortFilename, gmpi::IProtectedFile** file) override;
 
 		int32_t queryInterface(const gmpi::MpGuid& iid, void** object) override;
-		GMPI_REFCOUNT
+        GMPI_REFCOUNT_NO_DELETE
 	};
 
 	class ModuleView : public ViewChild
