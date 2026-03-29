@@ -2158,13 +2158,13 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 		auto pin = getPinUnderMouse(point);
 
 		// when selected, adorner takes over hit testing, except for client area and pins.
-		if(getSelected())
-		{
+// no		if(getSelected())
+//		{
 			if (pin.pinIndex > -1)
 				return pin.distance;
 
-			return totalMiss;
-		}
+//			return totalMiss;
+//		}
 
 		// hits solidly within outline are good.
 		if(pointInRect(point, r))
