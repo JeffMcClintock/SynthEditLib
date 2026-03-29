@@ -287,6 +287,9 @@ std::string ParseToRaw( int datatype, const std::string& s )
 		result = Base64::decode(s);
 		break;
 
+    case DT_CLASS: // currently can't convert string to class
+        break;
+
 	default:
 		assert( false ); // you are using an undefined datatype
 	}
