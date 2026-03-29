@@ -19,6 +19,119 @@ DrawingFrameBase2::DrawingFrameBase2()
     DrawingFactory = std::make_unique<UniversalFactory>();
 }
 
+int32_t DrawingFrameBase2::makePointerFlags()
+{
+    return gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
+}
+
+void DrawingFrameBase2::addPointerButtonFlags(int32_t& flags, bool firstButton, bool secondButton, bool thirdButton)
+{
+    if (firstButton)
+        flags |= gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON;
+    if (secondButton)
+        flags |= gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON;
+    if (thirdButton)
+        flags |= gmpi_gui_api::GG_POINTER_FLAG_THIRDBUTTON;
+}
+
+void DrawingFrameBase2::addPointerKeyFlags(int32_t& flags, bool shift, bool control, bool alt)
+{
+    if (shift)
+        flags |= gmpi_gui_api::GG_POINTER_KEY_SHIFT;
+    if (control)
+        flags |= gmpi_gui_api::GG_POINTER_KEY_CONTROL;
+    if (alt)
+        flags |= gmpi_gui_api::GG_POINTER_KEY_ALT;
+}
+
+void DrawingFrameBase2::addPointerNewFlag(int32_t& flags, bool isNew)
+{
+    if (isNew)
+        flags |= gmpi_gui_api::GG_POINTER_FLAG_NEW;
+}
+
+void DrawingFrameBase2::queueDirtyRect(gmpi::drawing::RectL rect)
+{
+    const auto width = rect.right - rect.left;
+    const auto height = rect.bottom - rect.top;
+    if (width <= 0 || height <= 0)
+        return;
+
+    const auto area1 = width * height;
+
+    for (auto& dirtyRect : dirtyRects)
+    {
+        const auto area2 = (dirtyRect.right - dirtyRect.left) * (dirtyRect.bottom - dirtyRect.top);
+
+        gmpi::drawing::RectL unionrect{ dirtyRect.left, dirtyRect.top, dirtyRect.right, dirtyRect.bottom };
+
+        unionrect.top = (std::min)(unionrect.top, rect.top);
+        unionrect.bottom = (std::max)(unionrect.bottom, rect.bottom);
+        unionrect.left = (std::min)(unionrect.left, rect.left);
+        unionrect.right = (std::max)(unionrect.right, rect.right);
+
+        const auto unionarea = (unionrect.right - unionrect.left) * (unionrect.bottom - unionrect.top);
+
+        if (unionarea <= area1 + area2)
+        {
+            dirtyRect = unionrect;
+            return;
+        }
+    }
+
+    dirtyRects.push_back(rect);
+}
+
+void DrawingFrameBase2::queueDirtyRect(const gmpi::drawing::Rect* invalidRect)
+{
+    const auto actualRect = *invalidRect * DipsToWindow;
+
+    queueDirtyRect({
+        static_cast<int32_t>(floorf(actualRect.left)),
+        static_cast<int32_t>(floorf(actualRect.top)),
+        static_cast<int32_t>(ceilf(actualRect.right)),
+        static_cast<int32_t>(ceilf(actualRect.bottom))
+    });
+}
+
+/*
+void DrawingFrameBase2::queueDirtyRect(const gmpi::drawing::Rect* invalidRect, const gmpi::drawing::RectL& clipRect)
+{
+    const auto clippedRect = gmpi::drawing::intersectRect(getSmallestIntegerContainer(*invalidRect * DipsToWindow), clipRect);
+    queueDirtyRect(clippedRect);
+}
+*/
+
+void DrawingFrameBase2::replaceDirtyRects(gmpi::drawing::RectL rect)
+{
+    dirtyRects.clear();
+    queueDirtyRect(rect);
+}
+
+void DrawingFrameBase2::invalidateAll()
+{
+    replaceDirtyRects(getFullDirtyRect());
+}
+
+bool DrawingFrameBase2::preGraphicsRedraw()
+{
+    if (frameUpdateClient)
+    {
+        frameUpdateClient->preGraphicsRedraw();
+    }
+
+    return hasDirtyRects();
+}
+
+void DrawingFrameBase2::PaintQueuedDirtyRects()
+{
+    if (!hasDirtyRects())
+        return;
+
+    Paint(dirtyRects);
+    clearDirtyRects();
+}
+
 // new
 void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient)
 {
@@ -118,9 +231,30 @@ void DrawingFrameBase2::Closed()
     }
     */
 
+    popupMenu = {};
     detachClient();
     DrawingFactory = {};
     ReleaseDevice();
+}
+
+gmpi::ReturnCode DrawingFrameBase2::launchContextMenu(const gmpi::drawing::Point& point)
+{
+    if (!editor_gmpi)
+        return gmpi::ReturnCode::Unhandled;
+
+    gmpi::drawing::Rect rect(point.x, point.y, point.x + 120, point.y + 20);
+
+    gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+    if (createPopupMenu(&rect, unknown.put()) != gmpi::ReturnCode::Ok)
+        return gmpi::ReturnCode::NoSupport;
+
+    popupMenu = unknown.as<gmpi::api::IPopupMenu>();
+    if (!popupMenu)
+        return gmpi::ReturnCode::NoSupport;
+
+    const auto returnCode = editor_gmpi->populateContextMenu(point, popupMenu);
+    popupMenu->showAsync(nullptr);
+    return returnCode;
 }
 
 void DrawingFrameBase2::detachClient()
@@ -362,45 +496,15 @@ LRESULT DrawingFrameHwndBase::WindowProc(
 
         TooltipOnMouseActivity();
 
-        int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
-
-        switch (message)
-        {
-        case WM_MBUTTONDOWN:
-        case WM_LBUTTONDOWN:
-        case WM_RBUTTONDOWN:
-            flags |= gmpi_gui_api::GG_POINTER_FLAG_NEW;
-            break;
-        }
-
-        switch (message)
-        {
-        case WM_LBUTTONUP:
-        case WM_LBUTTONDOWN:
-            flags |= gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON;
-            break;
-        case WM_RBUTTONDOWN:
-        case WM_RBUTTONUP:
-            flags |= gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON;
-            break;
-        case WM_MBUTTONDOWN:
-        case WM_MBUTTONUP:
-            flags |= gmpi_gui_api::GG_POINTER_FLAG_THIRDBUTTON;
-            break;
-        }
-
-        if (GetKeyState(VK_SHIFT) < 0)
-        {
-            flags |= gmpi_gui_api::GG_POINTER_KEY_SHIFT;
-        }
-        if (GetKeyState(VK_CONTROL) < 0)
-        {
-            flags |= gmpi_gui_api::GG_POINTER_KEY_CONTROL;
-        }
-        if (GetKeyState(VK_MENU) < 0)
-        {
-            flags |= gmpi_gui_api::GG_POINTER_KEY_ALT;
-        }
+        int32_t flags = makePointerFlags();
+        addPointerNewFlag(flags, message == WM_MBUTTONDOWN || message == WM_LBUTTONDOWN || message == WM_RBUTTONDOWN);
+        addPointerButtonFlags(
+            flags,
+            message == WM_LBUTTONUP || message == WM_LBUTTONDOWN,
+            message == WM_RBUTTONDOWN || message == WM_RBUTTONUP,
+            message == WM_MBUTTONDOWN || message == WM_MBUTTONUP
+        );
+        addPointerKeyFlags(flags, GetKeyState(VK_SHIFT) < 0, GetKeyState(VK_CONTROL) < 0, GetKeyState(VK_MENU) < 0);
 
         gmpi::ReturnCode r{ gmpi::ReturnCode::Unhandled};
         switch (message)
@@ -441,27 +545,7 @@ LRESULT DrawingFrameHwndBase::WindowProc(
                 if (r == gmpi::ReturnCode::Unhandled && (flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && editor_gmpi)
                 {
                     contextMenu.setNull();
-/* TODO
-
-                    GmpiDrawing::Rect rect(point.x, point.y, point.x + 120, point.y + 20);
-                    createPlatformMenu(&rect, contextMenu.GetAddressOf());
-
-                    GmpiGui::ContextItemsSinkAdaptor sink(contextMenu);
-                    r = editor_gmpi->populateContextMenu(point, &sink);
-
-                    contextMenu.ShowAsync(
-                        [this](int32_t res) -> int32_t
-                        {
-                            if (res == gmpi::MP_OK)
-                            {
-                                const auto commandId = contextMenu.GetSelectedId();
-                                res = editor_gmpi->onContextMenu(commandId);
-                            }
-                            contextMenu = {};
-                            return res;
-                        }
-                    );
-*/
+                    r = launchContextMenu(point);
                 }
             }
             break;
@@ -495,20 +579,13 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         //The wheel rotation will be a multiple of WHEEL_DELTA, which is set at 120. This is the threshold for action to be taken, and one such action (for example, scrolling one increment) should occur for each delta.
         const auto zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 
-        int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
+        int32_t flags = makePointerFlags();
 
         if (WM_MOUSEHWHEEL == message)
             flags |= gmpi_gui_api::GG_POINTER_SCROLL_HORIZ;
 
         const auto fwKeys = GET_KEYSTATE_WPARAM(wParam);
-        if (MK_SHIFT & fwKeys)
-        {
-            flags |= gmpi_gui_api::GG_POINTER_KEY_SHIFT;
-        }
-        if (MK_CONTROL & fwKeys)
-        {
-            flags |= gmpi_gui_api::GG_POINTER_KEY_CONTROL;
-        }
+        addPointerKeyFlags(flags, 0 != (MK_SHIFT & fwKeys), 0 != (MK_CONTROL & fwKeys), false);
         //if (GetKeyState(VK_MENU) < 0)
         //{
         //	flags |= gmpi_gui_api::GG_POINTER_KEY_ALT;
@@ -659,19 +736,17 @@ bool DrawingFrameHwndBase::onTimer()
         }
     }
 
-    if (frameUpdateClient)
-    {
-        frameUpdateClient->preGraphicsRedraw();
-    }
+    preGraphicsRedraw();
 
     // Queue pending drawing updates to backbuffer.
     const BOOL bErase = FALSE;
 
-    for (auto& invalidRect : backBufferDirtyRects)
+    for (const auto& invalidRect : getDirtyRects())
     {
-        ::InvalidateRect(hwnd, reinterpret_cast<RECT*>(&invalidRect), bErase);
+        RECT rect{ invalidRect.left, invalidRect.top, invalidRect.right, invalidRect.bottom };
+        ::InvalidateRect(hwnd, &rect, bErase);
     }
-    backBufferDirtyRects.clear();
+    clearDirtyRects();
 
     return true;
 }
@@ -701,7 +776,7 @@ void DrawingFrameHwndBase::OnPaint()
     Paint(dirtyRects);
 }
 
-void DrawingFrameBase2::Paint(std::vector<gmpi::drawing::RectL>& dirtyRects) //std::span<const gmpi::drawing::RectL> dirtyRects)
+void DrawingFrameBase2::Paint(std::span<gmpi::drawing::RectL> dirtyRects)
 {
 	// prevent infinite assert dialog boxes when assert happens during painting.
 	if (!isInit.load(std::memory_order_relaxed) || reentrant || dirtyRects.empty())
@@ -826,7 +901,7 @@ void DrawingFrameBase2::Paint(std::vector<gmpi::drawing::RectL>& dirtyRects) //s
 		HRESULT hr = S_OK;
 		{
 			assert(!dirtyRects.empty());
-			DXGI_PRESENT_PARAMETERS presetParameters{ (UINT)dirtyRects.size(), (RECT*)dirtyRects.data(), nullptr, nullptr, };
+           DXGI_PRESENT_PARAMETERS presetParameters{ (UINT)dirtyRects.size(), reinterpret_cast<RECT*>(dirtyRects.data()), nullptr, nullptr, };
 
 			hr = swapChain->Present1(1, 0, &presetParameters);
 		}
@@ -854,54 +929,23 @@ void DrawingFrameBase2::sizeClientDips(float width, float height)
         graphics_gmpi->arrange(&finalRect);
     }
 }
-//void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
-//{
-//    invalidateRect((const GmpiDrawing_API::MP1_RECT*)invalidRect);
-//}
 
 void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
 {
-    GmpiDrawing::RectL r;
     if (invalidRect)
     {
-        //_RPT4(_CRT_WARN, "invalidateRect r[ %d %d %d %d]\n", (int)invalidRect->left, (int)invalidRect->top, (int)invalidRect->right, (int)invalidRect->bottom);
-        //r = RectToIntegerLarger(DipsToWindow.TransformRect(*invalidRect));
-		const auto actualRect = *invalidRect * DipsToWindow;
-        r.left   = static_cast<int32_t>(floorf(actualRect.left));
-        r.top    = static_cast<int32_t>(floorf(actualRect.top));
-        r.right  = static_cast<int32_t>( ceilf(actualRect.right));
-        r.bottom = static_cast<int32_t>( ceilf(actualRect.bottom));
+        queueDirtyRect(invalidRect);
     }
     else
     {
-        GetClientRect(getWindowHandle(), reinterpret_cast<RECT*>(&r));
+        invalidateAll();
     }
+}
 
-    auto area1 = r.getWidth() * r.getHeight();
-
-    for (auto& dirtyRect : backBufferDirtyRects)
-    {
-        auto area2 = dirtyRect.getWidth() * dirtyRect.getHeight();
-
-        GmpiDrawing::RectL unionrect(dirtyRect);
-
-        unionrect.top = (std::min)(unionrect.top, r.top);
-        unionrect.bottom = (std::max)(unionrect.bottom, r.bottom);
-        unionrect.left = (std::min)(unionrect.left, r.left);
-        unionrect.right = (std::max)(unionrect.right, r.right);
-
-        auto unionarea = unionrect.getWidth() * unionrect.getHeight();
-
-        if (unionarea <= area1 + area2)
-        {
-            // replace existing rect with combined rect
-            dirtyRect = unionrect;
-            return;
-            break;
-        }
-    }
-
-    // no optimisation found, add new rect.
-    backBufferDirtyRects.push_back(r);
+gmpi::drawing::RectL DrawingFrameHwndBase::getFullDirtyRect()
+{
+    RECT clientRect{};
+    GetClientRect(getWindowHandle(), &clientRect);
+    return { clientRect.left, clientRect.top, clientRect.right, clientRect.bottom };
 }
 

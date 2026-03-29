@@ -66,6 +66,28 @@ struct DrawingFrameBase2 :
 
     gmpi::drawing::Point currentPointerPos{ -1, -1 };
     GmpiGui::PopupMenu contextMenu;
+    gmpi::shared_ptr<gmpi::api::IPopupMenu> popupMenu;
+
+protected:
+    std::vector<gmpi::drawing::RectL> dirtyRects;
+
+    void queueDirtyRect(gmpi::drawing::RectL rect);
+    void queueDirtyRect(const gmpi::drawing::Rect* invalidRect);
+    void replaceDirtyRects(gmpi::drawing::RectL rect);
+    void invalidateAll();
+    virtual gmpi::drawing::RectL getFullDirtyRect() = 0;
+    static int32_t makePointerFlags();
+    static void addPointerButtonFlags(int32_t& flags, bool firstButton, bool secondButton, bool thirdButton = false);
+    static void addPointerKeyFlags(int32_t& flags, bool shift, bool control, bool alt);
+    static void addPointerNewFlag(int32_t& flags, bool isNew);
+    std::span<const gmpi::drawing::RectL> getDirtyRects() const { return dirtyRects; }
+    bool hasDirtyRects() const { return !dirtyRects.empty(); }
+    void clearDirtyRects() { dirtyRects.clear(); }
+    bool preGraphicsRedraw();
+    void PaintQueuedDirtyRects();
+    gmpi::ReturnCode launchContextMenu(const gmpi::drawing::Point& point);
+
+public:
 
     DrawingFrameBase2();
     ~DrawingFrameBase2()
@@ -88,7 +110,7 @@ struct DrawingFrameBase2 :
     void sizeClientDips(float width, float height) override;
 
     virtual void OnPaint() = 0; // Derived should call Paint with the dirty area
-    void Paint(std::vector<gmpi::drawing::RectL>& dirtyRects);// std::span<const gmpi::drawing::RectL> dirtyRects);
+    void Paint(std::span<gmpi::drawing::RectL> dirtyRects);
 
     virtual void Closed();
 
@@ -186,13 +208,13 @@ protected:
     std::wstring toolTipText;
     // Paint() uses Direct-2d which block on vsync. Therefore all invalid rects should be applied in one "hit", else windows message queue chokes calling WM_PAINT repeately and blocking on every rect.
 	gmpi::hosting::UpdateRegionWinGdi updateRegion_native;
-    std::vector<GmpiDrawing::RectL> backBufferDirtyRects;
     int pollHdrChangesCount = 100;
 
     void initTooltip();
     void HideToolTip();
     void ShowToolTip();
     void TooltipOnMouseActivity();
+    gmpi::drawing::RectL getFullDirtyRect() override;
 
 public:
     void open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZE_L* overrideSize = {});
