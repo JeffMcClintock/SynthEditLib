@@ -65,6 +65,8 @@ SubView::SubView(SE2::ModuleView* pparent, int pparentViewType) : ViewBase({1000
 	, parent(pparent)
 	, parentViewType(pparentViewType)
 {
+    assert(parent);
+    
 #if 0
 	if (parentViewType == CF_PANEL_VIEW)
 	{
@@ -176,7 +178,6 @@ int32_t SubView::setCapture(SE2::IViewChild* module)
 
 	return gmpi::MP_FAIL;
 }
-
 
 gmpi::ReturnCode SubView::initialize()
 {
