@@ -1536,13 +1536,13 @@ namespace SE2
 					{
 						auto r = m->getClipArea();
 						invalidateRect(&r);
+                        
+                        if (mouseOverObject == m.get())
+                            mouseOverObject = {};
 
 						assert(!isIteratingChildren);
 						it = children.erase(it);
-						if (mouseOverObject == m.get())
-						{
-							mouseOverObject = {};
-						}
+
 						return; // adorner should be last. no more to do.
 					}
 				}
