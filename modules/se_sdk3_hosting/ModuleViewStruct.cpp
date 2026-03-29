@@ -421,10 +421,8 @@ namespace SE2
 
 		if (pluginGraphics_GMPI)
 		{
-			drawing::Rect clientClipArea_gmpi{};
-			pluginGraphics_GMPI->getClipArea(&clientClipArea_gmpi);
-
-			gmpi::drawing::Rect clientClipArea{ static_cast<float>(clientClipArea_gmpi.left), static_cast<float>(clientClipArea_gmpi.top), static_cast<float>(clientClipArea_gmpi.right), static_cast<float>(clientClipArea_gmpi.bottom) };
+			drawing::Rect clientClipArea{};
+			pluginGraphics_GMPI->getClipArea(&clientClipArea);
 			clientClipArea = offsetRect(clientClipArea, { bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top });
 			r = unionRect(r, clientClipArea);
 		}
@@ -721,19 +719,14 @@ namespace SE2
 
 			g.setTransform(adjustedTransform);
 
-			//gmpi::shared_ptr<gmpi::drawing::api::IDeviceContext> gmpiContext;
-			//AccessPtr::get(g)->queryInterface(&gmpi::drawing::api::IDeviceContext::guid, gmpiContext.put_void());
+			auto gmpiContext = AccessPtr::get(g);
+			assert(gmpiContext);
 
-			pluginGraphics_GMPI->render(AccessPtr::get(g));
+			pluginGraphics_GMPI->render(gmpiContext);
 
-#if 0
-			// test conversion back
-			GmpiDrawing_API::IMpDeviceContext* legacyContext{};
-			gmpiContext->queryInterface(reinterpret_cast<const gmpi::api::Guid*>(&GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI), reinterpret_cast<void**>(&legacyContext));
-
-			gmpi::drawing::Color r(gmpi::drawing::Colors::Red);
-			legacyContext->Clear(&r);
-#endif
+// todo, second pass for all these at once.
+if(pluginDrawingLayer_GMPI)
+	pluginDrawingLayer_GMPI->renderLayer(gmpiContext, 1);
 
 			g.setTransform(transform);
 		}

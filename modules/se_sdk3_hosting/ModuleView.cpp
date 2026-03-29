@@ -795,6 +795,7 @@ namespace SE2
 			pluginInput_GMPI = object.as<gmpi::api::IInputClient>();
 			pluginParameters_GMPI = object.as<gmpi::api::IEditor>();
 			pluginGraphics_GMPI = object.as<gmpi::api::IDrawingClient>();
+			pluginDrawingLayer_GMPI = object.as<gmpi::api::IDrawingLayer>();
 
 			if(pluginParameters_GMPI || pluginGraphics_GMPI || pluginEditor2)
 				gmpiHelper = std::make_unique<GmpiHelper>(*this);
@@ -1120,10 +1121,14 @@ if(pluginGraphics)
 	{
 		if (pluginGraphics_GMPI)
 		{
-			auto gmpiContext = reinterpret_cast<gmpi::drawing::api::IDeviceContext*>(AccessPtr::get(g));
+			auto gmpiContext = AccessPtr::get(g);
+			assert(gmpiContext);
 
-            if (gmpiContext)
-                pluginGraphics_GMPI->render(gmpiContext);
+			pluginGraphics_GMPI->render(gmpiContext);
+
+			// todo, second pass for all these at once.
+			if (pluginDrawingLayer_GMPI)
+				pluginDrawingLayer_GMPI->renderLayer(gmpiContext, 1);
 		}
 
 		else if(pluginGraphics)

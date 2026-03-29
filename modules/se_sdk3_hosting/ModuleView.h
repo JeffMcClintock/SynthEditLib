@@ -485,6 +485,7 @@ namespace SE2
 		gmpi::shared_ptr<gmpi::api::IEditor> pluginParameters_GMPI;
 		gmpi::shared_ptr<gmpi::api::IInputClient> pluginInput_GMPI;
 		gmpi::shared_ptr<gmpi::api::IDrawingClient> pluginGraphics_GMPI;
+		gmpi::shared_ptr<gmpi::api::IDrawingLayer> pluginDrawingLayer_GMPI;
 		gmpi::shared_ptr<gmpi::api::IEditor2> pluginEditor2;
 
 		// SubView
