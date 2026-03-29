@@ -23,7 +23,14 @@ class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 {
 	Color getLedColor(float brightness) const
 	{
-		return interpolateColor(Colors::DimGray, Colors::Lime, brightness);
+     const Color targetColor{
+			pinRed.value ? 1.0f : 0.0f,
+			pinGreen.value ? 1.0f : 0.0f,
+			pinBlue.value ? 1.0f : 0.0f,
+			1.0f
+		};
+
+		return interpolateColor(Colors::DimGray, targetColor, brightness);
 	}
 
 	Color getLedCoreColor(float brightness) const
@@ -55,19 +62,15 @@ class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 		redraw();
 	}
 
-	void onSetBackground()
-	{
-		redraw();
-	}
-
-	void onSetForground()
+  void onSetColor()
 	{
 		redraw();
 	}
 
 	Pin<float> pinAnimationPosition;
-	Pin<std::string> pinFill;
-	Pin<std::string> pinStroke;
+   Pin<bool> pinRed;
+	Pin<bool> pinGreen;
+	Pin<bool> pinBlue;
 
 	static const int glowSize = 100;
 
@@ -75,8 +78,9 @@ public:
 	LEDGui()
 	{
 		pinAnimationPosition.onUpdate = [this](PinBase*) { onSetAnimationPosition(); };
-		pinFill.onUpdate = [this](PinBase*) { onSetBackground(); };
-		pinStroke.onUpdate = [this](PinBase*) { onSetForground(); };
+     pinRed.onUpdate = [this](PinBase*) { onSetColor(); };
+		pinGreen.onUpdate = [this](PinBase*) { onSetColor(); };
+		pinBlue.onUpdate = [this](PinBase*) { onSetColor(); };
 	}
 
 	int32_t addRef() override
@@ -92,7 +96,7 @@ public:
 	ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
 	{
 		Graphics g(drawingContext);
-//		ClipDrawingToBounds _(g, bounds);
+		//		ClipDrawingToBounds _(g, bounds);
 
 		const auto center = getCenter(bounds);
 		const auto radius = 0.5f * (std::min)(getWidth(bounds), getHeight(bounds));
@@ -105,7 +109,7 @@ public:
 
 		if(brightness > 0.0f)
 		{
-			auto core = g.createSolidColorBrush(Color{1.f, 1.f, 1.f, 0.5f});
+			auto core = g.createSolidColorBrush(Color{ 1.f, 1.f, 1.f, 0.5f });
 			g.fillCircle(center, radius * (0.85f + 0.1f * brightness), core);
 		}
 
@@ -122,27 +126,27 @@ public:
 
 	ReturnCode renderLayer(gmpi::drawing::api::IDeviceContext* drawingContext, int32_t layer) override
 	{
-		if (layer == 0)
+		if(layer == 0)
 			return render(drawingContext);
 
-		if (layer != 1)
+		if(layer != 1)
 			return ReturnCode::NoSupport;
 
 		constexpr float falloff = 0.3f; // bigger = steeper (less glow)
 		const auto brightness = std::clamp(pinAnimationPosition.value, 0.0f, 1.0f);
-		if (brightness <= 0.0f)
+		if(brightness <= 0.0f)
 			return ReturnCode::Ok;
 
 		const auto ledColor = getLedColor(brightness);
 
-        Graphics g(drawingContext);
+		Graphics g(drawingContext);
 
 		const auto diameter = (std::min)(getWidth(bounds), getHeight(bounds));
 		const auto bitmapSize = 2 * glowSize + static_cast<int32_t>(std::ceil(diameter));
 		const auto glowRect = getGlowRect();
 
 		auto glowBitmap = g.getFactory().createImage(bitmapSize, bitmapSize);
-		
+
 		const auto centerRadius = (std::max)(1.0f, diameter * 0.5f);
 		const auto spriteRadius = 0.5f * static_cast<float>(bitmapSize);
 
@@ -157,6 +161,10 @@ public:
 			const auto bytesPerRow = pixels.getBytesPerRow();
 			constexpr float taperZoneStart = 0.5f;
 			constexpr float taperGradient = 1.0f / (1.0f - taperZoneStart);
+			constexpr float starPoints = 6.0f;
+			constexpr float starAxisCount = 0.5f * starPoints;
+			constexpr float starWidth = 6.0f;
+			constexpr float starStrength = 2.0f;
 			const auto red = ledColor.r * brightness;
 			const auto green = ledColor.g * brightness;
 			const auto blue = ledColor.b * brightness;
@@ -171,8 +179,13 @@ public:
 					const auto dx = (x + 0.5f) - spriteRadius;
 					const auto dy = (y + 0.5f) - spriteRadius;
 					const auto distance = std::sqrt(dx * dx + dy * dy);
+					const auto angle = std::atan2(dy, dx);
+					const auto radialBlend = (std::clamp)((distance - centerRadius) / (std::max)(1.0f, spriteRadius - centerRadius), 0.0f, 1.0f);
+					const auto spokeOffset = distance * std::sin(starAxisCount * angle);
+					const auto star = std::exp(-(spokeOffset * spokeOffset) / (2.0f * starWidth * starWidth));
 					auto glow = 0.5f / (std::max)(1.0f, falloff * (distance - centerRadius));
 					glow *= (std::clamp)(1.0f - (taperGradient * (distance - spriteRadius * taperZoneStart) / spriteRadius), 0.0f, 1.0f);
+					glow *= 1.0f + starStrength * radialBlend * star;
 
 					row[x * 4 + 0] = detail::floatToHalf(red * glow);
 					row[x * 4 + 1] = detail::floatToHalf(green * glow);
@@ -182,17 +195,17 @@ public:
 			}
 		}
 
-     const gmpi::drawing::Rect srcRect{ 0.0f, 0.0f, static_cast<float>(bitmapSize), static_cast<float>(bitmapSize) };
-     g.drawBitmap(glowBitmap, glowRect, srcRect);
+		const gmpi::drawing::Rect srcRect{ 0.0f, 0.0f, static_cast<float>(bitmapSize), static_cast<float>(bitmapSize) };
+		g.drawBitmap(glowBitmap, glowRect, srcRect);
 
 		return ReturnCode::Ok;
 	}
 
 	ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
-        *returnInterface = {};
+		*returnInterface = {};
 
-		if ((*iid) == gmpi::api::IDrawingLayer::guid)
+		if((*iid) == gmpi::api::IDrawingLayer::guid)
 		{
 			*returnInterface = static_cast<gmpi::api::IDrawingLayer*>(this);
 			PluginEditor::addRef();
@@ -210,8 +223,9 @@ auto r = gmpi::Register<LEDGui>::withXml(R"XML(
 <Plugin id="SE LED" name="LED" category="Sub-Controls">
     <GUI graphicsApi="GmpiGui">
         <Pin name="Animation Position" datatype="float"/>
-        <Pin name="Fill" datatype="string"/>
-        <Pin name="Stroke" datatype="string"/>
+        <Pin name="Red" datatype="bool"/>
+		<Pin name="Green" datatype="bool"/>
+		<Pin name="Blue" datatype="bool"/>
     </GUI>
 </Plugin>
 )XML");

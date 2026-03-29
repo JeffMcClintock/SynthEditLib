@@ -7,6 +7,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
 
 # Build individual SEM modules
 add_subdirectory(Arpeggiator)
+add_subdirectory(Bump)
 add_subdirectory(BoolInverter)
 add_subdirectory(BPMClock3)
 add_subdirectory(ControlsXp)
