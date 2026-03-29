@@ -28,7 +28,6 @@ namespace SE2
 		ViewBase::Refresh(context, guiObjectMap);
 	}
 
-//	int32_t ContainerViewPanel::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 	gmpi::ReturnCode ContainerViewPanel::render(gmpi::drawing::api::IDeviceContext* drawingContext)
 	{
 		Graphics g(drawingContext);
@@ -39,16 +38,7 @@ namespace SE2
 		const auto viewTransformL = originalTransform * /*toLegacy*/(viewTransform);
 		g.setTransform(viewTransformL);
 
-#if 0 //def _DEBUG
-		// Diagnose dirty rects.
-		static int red = 0; // not in release
-		red += 10;
-		auto color = Color::FromBytes(red & 0xff, 0x77, 0x77);
-		g.Clear(color);
-#else
-
 		g.clear(Colors::LightGray);
-#endif
 
 		const auto r = ViewBase::render(drawingContext);
 

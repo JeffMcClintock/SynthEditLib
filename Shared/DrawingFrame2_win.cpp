@@ -558,7 +558,7 @@ void DrawingFrameBase2::renderFrame(ID2D1DeviceContext* deviceContext, std::span
             graphics.clear(blankColor);
         }
 
-        if constexpr(false)
+        if constexpr(false) // keywords: diagnose dirty rects debug dirty rects
         {
             static int32_t diagColor = 0;
             diagColor += 10;

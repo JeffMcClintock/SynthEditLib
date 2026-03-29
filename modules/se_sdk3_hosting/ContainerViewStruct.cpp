@@ -93,14 +93,6 @@ namespace SE2
 	{
 		Graphics g(drawingContext);
 
-#if 0 //def _DEBUG
-		// Diagnose dirty rects.
-		static int red = 0; // not in release
-		red += 10;
-		auto color = Color::FromBytes(red & 0xff, 0x77, 0x77);
-		g.Clear(color);
-#else
-
 		const Matrix3x2 originalTransform = g.getTransform();
 
 		// pan and zoom
@@ -237,7 +229,6 @@ namespace SE2
 				);
 			}
 		}
-#endif
 
 		const auto r = ViewBase::render(drawingContext);
 
