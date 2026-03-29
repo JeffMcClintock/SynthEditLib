@@ -172,55 +172,12 @@ public:
 
     void MP_STDCALL invalidateMeasure() override {}
 
-#if 0
-    int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
-    {
-        if (gmpi::MpGuidEqual(&iid, (const gmpi::MpGuid*)&gmpi::api::IDrawingHost::guid))
-        {
-            // important to cast to correct vtable (this has 2 vtables) before reinterpret cast
-            *returnInterface = reinterpret_cast<void*>(static_cast<gmpi::api::IDrawingHost*>(this));
-            addRef();
-            return gmpi::MP_OK;
-        }
-
-        if (gmpi::MpGuidEqual(&iid, (const gmpi::MpGuid*)&gmpi::api::IDialogHost::guid))
-        {
-            // important to cast to correct vtable (this has 2 vtables) before reinterpret cast
-            *returnInterface = reinterpret_cast<void*>(static_cast<gmpi::api::IDialogHost*>(this));
-            addRef();
-            return gmpi::MP_OK;
-        }
-
-        if (gmpi::MpGuidEqual(&iid, &gmpi::MP_IID_UI_HOST2))
-        {
-            // important to cast to correct vtable (this has 2 vtables) before reinterpret cast
-            *returnInterface = reinterpret_cast<void*>(static_cast<gmpi::legacy::IMpUserInterfaceHost2*>(this));
-            addRef();
-            return gmpi::MP_OK;
-        }
-
-        if (gmpi::MpGuidEqual(&iid, &gmpi_gui::SE_IID_GRAPHICS_HOST) || gmpi::MpGuidEqual(&iid, &gmpi_gui::SE_IID_GRAPHICS_HOST_BASE) || gmpi::MpGuidEqual(&iid, &gmpi::MP_IID_UNKNOWN))
-        {
-            // important to cast to correct vtable (this has 2 vtables) before reinterpret cast
-            *returnInterface = reinterpret_cast<void*>(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
-            addRef();
-            return gmpi::MP_OK;
-        }
-
-        *returnInterface = 0;
-        return gmpi::MP_NOSUPPORT;
-    }
-#endif
-
     gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
     {
         *returnInterface = {};
         GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
         GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
         GMPI_QUERYINTERFACE(gmpi::api::IInputHost);
-        
-//        GMPI_QUERYINTERFACE(gmpi_gui::legacy::IMpGraphicsHost);
-//        GMPI_QUERYINTERFACE(gmpi::legacy::IMpUserInterfaceHost2);
         return gmpi::ReturnCode::NoSupport;
     }
 

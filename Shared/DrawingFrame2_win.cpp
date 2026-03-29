@@ -1,12 +1,6 @@
 #include "pch.h"
 
-#include <Windowsx.h>
 #include "DrawingFrame2_win.h"
-#include <dxgi1_6.h>
-#include "shlobj.h"
-#include "conversion.h"
-#include "Drawing.h"
-#include "gmpi_drawing_conversions.h"
 #include "SDK3Adaptor.h"
 
 // Windows 32
@@ -28,14 +22,6 @@ void DrawingFrameBase2::queueDirtyRect(const gmpi::drawing::Rect* invalidRect)
 {
     dirtyRects.add(invalidRect, DipsToWindow);
 }
-
-/*
-void DrawingFrameBase2::queueDirtyRect(const gmpi::drawing::Rect* invalidRect, const gmpi::drawing::RectL& clipRect)
-{
-    const auto clippedRect = gmpi::drawing::intersectRect(getSmallestIntegerContainer(*invalidRect * DipsToWindow), clipRect);
-    queueDirtyRect(clippedRect);
-}
-*/
 
 void DrawingFrameBase2::replaceDirtyRects(gmpi::drawing::RectL rect)
 {
@@ -84,17 +70,6 @@ void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient)
     gfx->queryInterface(IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
 #endif
 
-    //[[maybe_unused]] auto r = gfx->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
-
-    //gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> pinHost;
-    //gmpi_gui_client->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pinHost.asIMpUnknownPtr());
-
-    //if (pinHost)
-    //{
-    //    pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
-    //    pinHost->initialize();
-    //}
-
     auto ieditor = unknown.as<gmpi::api::IEditor>();
     if(ieditor)
     {
@@ -126,34 +101,6 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
     wrapper->attachClient(gfx.get());
 
     attachClient(adaptor.get());
-
-#if 0
-    detachClient();
-    gmpi_gui_client = gfx;
-
-    gfx->queryInterface(legacy::IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
-
-    [[maybe_unused]] auto r = gfx->queryInterface(gmpi::MP_IID_GUI_PLUGIN2B, pluginParameters2B.asIMpUnknownPtr());
-
-    gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> pinHost;
-    gmpi_gui_client->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, pinHost.asIMpUnknownPtr());
-
-    if (pinHost)
-    {
-        pinHost->setHost(static_cast<gmpi_gui::legacy::IMpGraphicsHost*>(this));
-		pinHost->initialize();
-    }
-
-    if(swapChain)
-    {
-        const auto scale = 1.0 / getRasterizationScale();
-
-        sizeClientDips(
-            static_cast<float>(swapChainSize.width) * scale,
-            static_cast<float>(swapChainSize.height) * scale
-        );
-    }
-#endif
 }
 
 void DrawingFrameBase2::Closed()
@@ -237,33 +184,10 @@ gmpi::ReturnCode DrawingFrameBase2::releaseCapture()
     return gmpi::ReturnCode::Ok;
 }
 
-//void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
-//{
-//    invalidateRect((const GmpiDrawing_API::MP1_RECT*)invalidRect);
-//}
-
 float DrawingFrameHwndBase::getRasterizationScale()
 {
-#if 0
-    int dpiX(96), dpiY(96);
-    {
-        HDC hdc = ::GetDC(getWindowHandle());
-        dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
-        dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
-        ::ReleaseDC(getWindowHandle(), hdc);
-    }
-
-    return dpiX / 96.f;
-#else
-    // This is not recommended. Instead, DisplayProperties::LogicalDpi should be used for packaged Microsoft Store apps and GetDpiForWindow should be used for Win32 apps.
-    /*
-    float dpiX{ 96.f }, dpiY{ 96.f };
-    DrawingFactory->getD2dFactory()->GetDesktopDpi(&dpiX, &dpiY);
-    */
-
     const auto dpiX = GetDpiForWindow(getWindowHandle());
     return dpiX / 96.f;
-#endif
 }
 
 HRESULT DrawingFrameHwndBase::createNativeSwapChain
@@ -667,13 +591,9 @@ void DrawingFrameBase2::sizeClientDips(float width, float height)
 void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
 {
     if (invalidRect)
-    {
         queueDirtyRect(invalidRect);
-    }
     else
-    {
         invalidateAll();
-    }
 }
 
 gmpi::drawing::RectL DrawingFrameHwndBase::getFullDirtyRect()
