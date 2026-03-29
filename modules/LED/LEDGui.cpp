@@ -24,9 +24,9 @@ class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 	Color getLedColor(float brightness) const
 	{
      const Color targetColor{
-			pinRed.value ? 1.0f : 0.0f,
-			pinGreen.value ? 1.0f : 0.0f,
-			pinBlue.value ? 1.0f : 0.0f,
+			static_cast<float>(pinRed.value),
+			static_cast<float>(pinGreen.value),
+			static_cast<float>(pinBlue.value),
 			1.0f
 		};
 
@@ -104,13 +104,13 @@ public:
 		const auto ledColor = getLedColor(brightness);
 
 		auto fill = g.createSolidColorBrush(ledColor);
-		auto stroke = g.createSolidColorBrush(Colors::Black);
+		auto stroke = g.createSolidColorBrush(Color{0.3f, 0.3f, 0.3f, 1.0f});
 		g.fillCircle(center, radius, fill);
 
 		if(brightness > 0.0f)
 		{
-			auto core = g.createSolidColorBrush(Color{ 1.f, 1.f, 1.f, 0.5f });
-			g.fillCircle(center, radius * (0.85f + 0.1f * brightness), core);
+			auto core = g.createSolidColorBrush(Color{ 1.f, 1.f, 1.f, 0.7f * brightness });
+			g.fillCircle(center, radius * (0.85f + 0.12f * brightness), core);
 		}
 
 		g.drawCircle(center, radius, stroke);
