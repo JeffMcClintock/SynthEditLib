@@ -1226,7 +1226,8 @@ namespace SE2
 			releaseCapture();
 
 		const auto dragLineRect = dragline->getClipArea();
-		invalidateRect(&dragLineRect);
+//		invalidateRect(&dragLineRect);
+// needed?		ChildInvalidateRect(dragLineRect);
 
 		if(dragline->type == CableType::StructureCable)
 		{
@@ -1522,7 +1523,7 @@ namespace SE2
 
 						gmpi::drawing::Size unused(0, 0);
 						adorner->measure(gmpi::drawing::Size(0, 0), &unused); // provide for resizbility calc.
-						invalidRect = adorner->getLayoutRect();
+						invalidRect = adorner->getClipArea();
 						assert(!isIteratingChildren);
 						children.push_back(std::move(adorner));
 					}
@@ -1531,7 +1532,7 @@ namespace SE2
 						invalidRect = m->getClipArea();
 					}
 
-					invalidateRect(&invalidRect);
+					ChildInvalidateRect(invalidRect);
 
 					// Avoid hitting Resize Adorner later in vector.
 					if(selected)
@@ -1543,8 +1544,8 @@ namespace SE2
 					auto adorner = dynamic_cast<ResizeAdorner*>(m.get());
 					if(adorner)
 					{
-						auto r = m->getClipArea();
-						invalidateRect(&r);
+//	needed?					auto r = m->getClipArea();
+//						ChildInvalidateRect(&r);
                         
                         if (mouseOverObject == m.get())
                             mouseOverObject = {};
@@ -2235,7 +2236,7 @@ namespace SE2
 //		modulePicker->init();
 
 		const auto invalidRect = modulePicker->getClipArea();
-		invalidateRect(&invalidRect);
+		ChildInvalidateRect(invalidRect);
 		return true;
 	}
 
@@ -2244,7 +2245,7 @@ namespace SE2
 		const auto invalidRect = modulePicker->getClipArea();
 		RemoveChild(modulePicker);
 		modulePicker = nullptr;
-		invalidateRect(&invalidRect);
+		ChildInvalidateRect(invalidRect);
 	}
 
 	IViewChild* ViewBase::Find(gmpi::drawing::Point& p)
