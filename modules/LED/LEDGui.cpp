@@ -21,6 +21,11 @@ using namespace gmpi::drawing;
 
 class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 {
+   Bitmap glowBitmap;
+	int32_t glowBitmapSize = 0;
+	float glowBitmapDiameter = 0.0f;
+	bool glowBitmapDirty = true;
+
 	Color getLedColor(float brightness) const
 	{
      const Color targetColor{
@@ -64,7 +69,71 @@ class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 
   void onSetColor()
 	{
+       glowBitmapDirty = true;
 		redraw();
+	}
+
+	ReturnCode updateGlowBitmap(Graphics& g, int32_t bitmapSize, float diameter)
+	{
+		if(!glowBitmapDirty && glowBitmap && glowBitmapSize == bitmapSize && glowBitmapDiameter == diameter)
+			return ReturnCode::Ok;
+
+		glowBitmap = g.getFactory().createImage(bitmapSize, bitmapSize);
+		glowBitmapSize = bitmapSize;
+		glowBitmapDiameter = diameter;
+		glowBitmapDirty = false;
+
+		const auto centerRadius = (std::max)(1.0f, diameter * 0.5f);
+		const auto spriteRadius = 0.5f * static_cast<float>(bitmapSize);
+		const auto ledColor = getLedColor(1.0f);
+
+		// create a scope so that pixels is automatically released to unlock the image we're done.
+		{
+			// create a 'glow' bitmap using purely additive pixel values.
+			auto pixels = glowBitmap.lockPixels(BitmapLockFlags::Write);
+			if(!pixels)
+				return ReturnCode::Fail;
+
+			uint8_t* data = pixels.getAddress();
+			const auto bytesPerRow = pixels.getBytesPerRow();
+			constexpr float falloff = 0.3f; // bigger = steeper (less glow)
+			constexpr float taperZoneStart = 0.5f;
+			constexpr float taperGradient = 1.0f / (1.0f - taperZoneStart);
+			constexpr float starPoints = 6.0f;
+			constexpr float starAxisCount = 0.5f * starPoints;
+			constexpr float starWidth = 6.0f;
+			constexpr float starStrength = 2.0f;
+			const auto red = ledColor.r;
+			const auto green = ledColor.g;
+			const auto blue = ledColor.b;
+
+			const auto zero = detail::floatToHalf(0.0f);
+
+			for(int32_t y = 0; y < bitmapSize; ++y)
+			{
+				auto row = reinterpret_cast<uint16_t*>(data + y * bytesPerRow);
+				for(int32_t x = 0; x < bitmapSize; ++x)
+				{
+					const auto dx = (x + 0.5f) - spriteRadius;
+					const auto dy = (y + 0.5f) - spriteRadius;
+					const auto distance = std::sqrt(dx * dx + dy * dy);
+					const auto angle = std::atan2(dy, dx);
+					const auto radialBlend = (std::clamp)((distance - centerRadius) / (std::max)(1.0f, spriteRadius - centerRadius), 0.0f, 1.0f);
+					const auto spokeOffset = distance * std::sin(starAxisCount * angle);
+					const auto star = std::exp(-(spokeOffset * spokeOffset) / (2.0f * starWidth * starWidth));
+					auto glow = 0.5f / (std::max)(1.0f, falloff * (distance - centerRadius));
+					glow *= (std::clamp)(1.0f - (taperGradient * (distance - spriteRadius * taperZoneStart) / spriteRadius), 0.0f, 1.0f);
+					glow *= 1.0f + starStrength * radialBlend * star;
+
+					row[x * 4 + 0] = detail::floatToHalf(red * glow);
+					row[x * 4 + 1] = detail::floatToHalf(green * glow);
+					row[x * 4 + 2] = detail::floatToHalf(blue * glow);
+					row[x * 4 + 3] = zero;
+				}
+			}
+		}
+
+		return ReturnCode::Ok;
 	}
 
 	Pin<float> pinAnimationPosition;
@@ -132,12 +201,9 @@ public:
 		if(layer != 1)
 			return ReturnCode::NoSupport;
 
-		constexpr float falloff = 0.3f; // bigger = steeper (less glow)
 		const auto brightness = std::clamp(pinAnimationPosition.value, 0.0f, 1.0f);
 		if(brightness <= 0.0f)
 			return ReturnCode::Ok;
-
-		const auto ledColor = getLedColor(brightness);
 
 		Graphics g(drawingContext);
 
@@ -145,58 +211,12 @@ public:
 		const auto bitmapSize = 2 * glowSize + static_cast<int32_t>(std::ceil(diameter));
 		const auto glowRect = getGlowRect();
 
-		auto glowBitmap = g.getFactory().createImage(bitmapSize, bitmapSize);
-
-		const auto centerRadius = (std::max)(1.0f, diameter * 0.5f);
-		const auto spriteRadius = 0.5f * static_cast<float>(bitmapSize);
-
-		// create a scope so that pixels is automatically released to unlock the image we're done.
-		{
-			// create a 'glow' bitmap using purely additive pixel values.
-			auto pixels = glowBitmap.lockPixels(BitmapLockFlags::Write);
-			if(!pixels)
-				return ReturnCode::Fail;
-
-			uint8_t* data = pixels.getAddress();
-			const auto bytesPerRow = pixels.getBytesPerRow();
-			constexpr float taperZoneStart = 0.5f;
-			constexpr float taperGradient = 1.0f / (1.0f - taperZoneStart);
-			constexpr float starPoints = 6.0f;
-			constexpr float starAxisCount = 0.5f * starPoints;
-			constexpr float starWidth = 6.0f;
-			constexpr float starStrength = 2.0f;
-			const auto red = ledColor.r * brightness;
-			const auto green = ledColor.g * brightness;
-			const auto blue = ledColor.b * brightness;
-
-			const auto zero = detail::floatToHalf(0.0f);
-
-			for(int32_t y = 0; y < bitmapSize; ++y)
-			{
-				auto row = reinterpret_cast<uint16_t*>(data + y * bytesPerRow);
-				for(int32_t x = 0; x < bitmapSize; ++x)
-				{
-					const auto dx = (x + 0.5f) - spriteRadius;
-					const auto dy = (y + 0.5f) - spriteRadius;
-					const auto distance = std::sqrt(dx * dx + dy * dy);
-					const auto angle = std::atan2(dy, dx);
-					const auto radialBlend = (std::clamp)((distance - centerRadius) / (std::max)(1.0f, spriteRadius - centerRadius), 0.0f, 1.0f);
-					const auto spokeOffset = distance * std::sin(starAxisCount * angle);
-					const auto star = std::exp(-(spokeOffset * spokeOffset) / (2.0f * starWidth * starWidth));
-					auto glow = 0.5f / (std::max)(1.0f, falloff * (distance - centerRadius));
-					glow *= (std::clamp)(1.0f - (taperGradient * (distance - spriteRadius * taperZoneStart) / spriteRadius), 0.0f, 1.0f);
-					glow *= 1.0f + starStrength * radialBlend * star;
-
-					row[x * 4 + 0] = detail::floatToHalf(red * glow);
-					row[x * 4 + 1] = detail::floatToHalf(green * glow);
-					row[x * 4 + 2] = detail::floatToHalf(blue * glow);
-					row[x * 4 + 3] = zero;
-				}
-			}
-		}
+       auto rc = updateGlowBitmap(g, bitmapSize, diameter);
+		if(rc != ReturnCode::Ok)
+			return rc;
 
 		const gmpi::drawing::Rect srcRect{ 0.0f, 0.0f, static_cast<float>(bitmapSize), static_cast<float>(bitmapSize) };
-		g.drawBitmap(glowBitmap, glowRect, srcRect);
+        g.drawBitmap(glowBitmap, glowRect, srcRect, brightness);
 
 		return ReturnCode::Ok;
 	}
