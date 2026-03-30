@@ -21,18 +21,18 @@ using namespace gmpi::drawing;
 
 class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 {
-   Bitmap glowBitmap;
+	Bitmap glowBitmap;
 	int32_t glowBitmapSize = 0;
 	float glowBitmapDiameter = 0.0f;
 	bool glowBitmapDirty = true;
 
 	Color getLedColor(float brightness) const
 	{
-     const Color targetColor{
-			static_cast<float>(pinRed.value),
-			static_cast<float>(pinGreen.value),
-			static_cast<float>(pinBlue.value),
-			1.0f
+		const Color targetColor{
+			   static_cast<float>(pinRed.value),
+			   static_cast<float>(pinGreen.value),
+			   static_cast<float>(pinBlue.value),
+			   1.0f
 		};
 
 		return interpolateColor(Colors::DimGray, targetColor, brightness);
@@ -67,9 +67,9 @@ class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 		redraw();
 	}
 
-  void onSetColor()
+	void onSetColor()
 	{
-       glowBitmapDirty = true;
+		glowBitmapDirty = true;
 		redraw();
 	}
 
@@ -105,7 +105,7 @@ class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 			const auto green = ledColor.g;
 			const auto blue = ledColor.b;
 
-         for(auto& it : pixelIterator<RgbaHalfPixel>(pixels))
+			for(auto& it : pixelIterator<RgbaHalfPixel>(pixels))
 			{
 				const auto dx = (it.x + 0.5f) - spriteRadius;
 				const auto dy = (it.y + 0.5f) - spriteRadius;
@@ -118,7 +118,7 @@ class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 				glow *= (std::clamp)(1.0f - (taperGradient * (distance - spriteRadius * taperZoneStart) / spriteRadius), 0.0f, 1.0f);
 				glow *= 1.0f + starStrength * radialBlend * star;
 
-                it->setR(red * glow);
+				it->setR(red * glow);
 				it->setG(green * glow);
 				it->setB(blue * glow);
 				it->setA(0.0f);
@@ -129,7 +129,7 @@ class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 	}
 
 	Pin<float> pinAnimationPosition;
-   Pin<bool> pinRed;
+	Pin<bool> pinRed;
 	Pin<bool> pinGreen;
 	Pin<bool> pinBlue;
 
@@ -139,7 +139,7 @@ public:
 	LEDGui()
 	{
 		pinAnimationPosition.onUpdate = [this](PinBase*) { onSetAnimationPosition(); };
-     pinRed.onUpdate = [this](PinBase*) { onSetColor(); };
+		pinRed.onUpdate = [this](PinBase*) { onSetColor(); };
 		pinGreen.onUpdate = [this](PinBase*) { onSetColor(); };
 		pinBlue.onUpdate = [this](PinBase*) { onSetColor(); };
 	}
@@ -165,7 +165,7 @@ public:
 		const auto ledColor = getLedColor(brightness);
 
 		auto fill = g.createSolidColorBrush(ledColor);
-		auto stroke = g.createSolidColorBrush(Color{0.3f, 0.3f, 0.3f, 1.0f});
+		auto stroke = g.createSolidColorBrush(Color{ 0.3f, 0.3f, 0.3f, 1.0f });
 		g.fillCircle(center, radius, fill);
 
 		if(brightness > 0.0f)
@@ -203,12 +203,12 @@ public:
 		const auto bitmapSize = 2 * glowSize + static_cast<int32_t>(std::ceil(diameter));
 		const auto glowRect = getGlowRect();
 
-       auto rc = updateGlowBitmap(g, bitmapSize, diameter);
+		auto rc = updateGlowBitmap(g, bitmapSize, diameter);
 		if(rc != ReturnCode::Ok)
 			return rc;
 
 		const gmpi::drawing::Rect srcRect{ 0.0f, 0.0f, static_cast<float>(bitmapSize), static_cast<float>(bitmapSize) };
-        g.drawBitmap(glowBitmap, glowRect, srcRect, brightness);
+		g.drawBitmap(glowBitmap, glowRect, srcRect, brightness);
 
 		return ReturnCode::Ok;
 	}
