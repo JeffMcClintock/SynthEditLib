@@ -94,8 +94,6 @@ class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 			if(!pixels)
 				return ReturnCode::Fail;
 
-			uint8_t* data = pixels.getAddress();
-			const auto bytesPerRow = pixels.getBytesPerRow();
 			constexpr float falloff = 0.3f; // bigger = steeper (less glow)
 			constexpr float taperZoneStart = 0.5f;
 			constexpr float taperGradient = 1.0f / (1.0f - taperZoneStart);
@@ -107,29 +105,23 @@ class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 			const auto green = ledColor.g;
 			const auto blue = ledColor.b;
 
-			const auto zero = detail::floatToHalf(0.0f);
-
-			for(int32_t y = 0; y < bitmapSize; ++y)
+         for(auto& it : pixelIterator<RgbaHalfPixel>(pixels))
 			{
-				auto row = reinterpret_cast<uint16_t*>(data + y * bytesPerRow);
-				for(int32_t x = 0; x < bitmapSize; ++x)
-				{
-					const auto dx = (x + 0.5f) - spriteRadius;
-					const auto dy = (y + 0.5f) - spriteRadius;
-					const auto distance = std::sqrt(dx * dx + dy * dy);
-					const auto angle = std::atan2(dy, dx);
-					const auto radialBlend = (std::clamp)((distance - centerRadius) / (std::max)(1.0f, spriteRadius - centerRadius), 0.0f, 1.0f);
-					const auto spokeOffset = distance * std::sin(starAxisCount * angle);
-					const auto star = std::exp(-(spokeOffset * spokeOffset) / (2.0f * starWidth * starWidth));
-					auto glow = 0.5f / (std::max)(1.0f, falloff * (distance - centerRadius));
-					glow *= (std::clamp)(1.0f - (taperGradient * (distance - spriteRadius * taperZoneStart) / spriteRadius), 0.0f, 1.0f);
-					glow *= 1.0f + starStrength * radialBlend * star;
+				const auto dx = (it.x + 0.5f) - spriteRadius;
+				const auto dy = (it.y + 0.5f) - spriteRadius;
+				const auto distance = std::sqrt(dx * dx + dy * dy);
+				const auto angle = std::atan2(dy, dx);
+				const auto radialBlend = (std::clamp)((distance - centerRadius) / (std::max)(1.0f, spriteRadius - centerRadius), 0.0f, 1.0f);
+				const auto spokeOffset = distance * std::sin(starAxisCount * angle);
+				const auto star = std::exp(-(spokeOffset * spokeOffset) / (2.0f * starWidth * starWidth));
+				auto glow = 0.5f / (std::max)(1.0f, falloff * (distance - centerRadius));
+				glow *= (std::clamp)(1.0f - (taperGradient * (distance - spriteRadius * taperZoneStart) / spriteRadius), 0.0f, 1.0f);
+				glow *= 1.0f + starStrength * radialBlend * star;
 
-					row[x * 4 + 0] = detail::floatToHalf(red * glow);
-					row[x * 4 + 1] = detail::floatToHalf(green * glow);
-					row[x * 4 + 2] = detail::floatToHalf(blue * glow);
-					row[x * 4 + 3] = zero;
-				}
+                it->setR(red * glow);
+				it->setG(green * glow);
+				it->setB(blue * glow);
+				it->setA(0.0f);
 			}
 		}
 
