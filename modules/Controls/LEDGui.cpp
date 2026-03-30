@@ -1,17 +1,6 @@
-/* Copyright (c) 2007-2026 SynthEdit Ltd
+// SPDX-License-Identifier: ISC
+// Copyright 2007-2026 Jeff McClintock.
 
-Permission to use, copy, modify, and /or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THIS SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS.IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-*/
 #include "helpers/GmpiPluginEditor.h"
 #include "helpers/BitmapMask.h"
 
@@ -154,7 +143,7 @@ public:
 		return PluginEditor::release();
 	}
 
-	ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
 	{
 		Graphics g(drawingContext);
 		//		ClipDrawingToBounds _(g, bounds);
@@ -179,13 +168,13 @@ public:
 		return ReturnCode::Ok;
 	}
 
-	ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override
+	ReturnCode getClipArea(Rect* returnRect) override
 	{
 		*returnRect = getGlowRect();
 		return ReturnCode::Ok;
 	}
 
-	ReturnCode renderLayer(gmpi::drawing::api::IDeviceContext* drawingContext, int32_t layer) override
+	ReturnCode renderLayer(drawing::api::IDeviceContext* drawingContext, int32_t layer) override
 	{
 		if(layer == 0)
 			return render(drawingContext);
@@ -207,7 +196,7 @@ public:
 		if(rc != ReturnCode::Ok)
 			return rc;
 
-		const gmpi::drawing::Rect srcRect{ 0.0f, 0.0f, static_cast<float>(bitmapSize), static_cast<float>(bitmapSize) };
+		const Rect srcRect{ 0.0f, 0.0f, static_cast<float>(bitmapSize), static_cast<float>(bitmapSize) };
 		g.drawBitmap(glowBitmap, glowRect, srcRect, brightness);
 
 		return ReturnCode::Ok;
