@@ -25,6 +25,10 @@ using namespace gmpi::drawing;
 
 class BumpGui final : public PluginEditor
 {
+   Bitmap shadowBitmap;
+	SizeU shadowBitmapSize{};
+	bool shadowBitmapDirty = true;
+
 	Pin<bool> pinDip;
 	Pin<bool> pinInnerShadow;
 	Pin<bool> pinOuterShadow;
@@ -52,6 +56,11 @@ class BumpGui final : public PluginEditor
 	{
 		if(drawingHost)
 			drawingHost->invalidateRect(&bounds);
+	}
+
+	void invalidateShadowBitmap()
+	{
+		shadowBitmapDirty = true;
 	}
 
 	Rect getLocalBounds(const SizeU& size) const
@@ -223,6 +232,17 @@ class BumpGui final : public PluginEditor
 		return shadowRT.getBitmap();
 	}
 
+	ReturnCode updateShadowBitmap(Graphics& g, const SizeU& size, const Rect& localBounds, const RoundedRect& shape)
+	{
+		if(!shadowBitmapDirty && shadowBitmap && shadowBitmapSize == size)
+			return ReturnCode::Ok;
+
+		shadowBitmap = renderBlurs(g, size, localBounds, shape);
+		shadowBitmapSize = size;
+		shadowBitmapDirty = false;
+		return ReturnCode::Ok;
+	}
+
 public:
 	BumpGui()
 	{
@@ -235,15 +255,15 @@ public:
 		pinWhiteBlurAlpha.value = 0.5f;
 		pinShadowDepth.value = 4.0f;
 		pinCornerRadius.value = 16.0f;
-		pinDip.onUpdate = [this](PinBase*) { redraw(); };
-		pinInnerShadow.onUpdate = [this](PinBase*) { redraw(); };
-		pinOuterShadow.onUpdate = [this](PinBase*) { redraw(); };
-		pinInnerHighlight.onUpdate = [this](PinBase*) { redraw(); };
-		pinOuterHighlight.onUpdate = [this](PinBase*) { redraw(); };
-		pinBlackBlurAlpha.onUpdate = [this](PinBase*) { redraw(); };
-		pinWhiteBlurAlpha.onUpdate = [this](PinBase*) { redraw(); };
-		pinShadowDepth.onUpdate = [this](PinBase*) { redraw(); };
-		pinCornerRadius.onUpdate = [this](PinBase*) { redraw(); };
+       pinDip.onUpdate = [this](PinBase*) { invalidateShadowBitmap(); redraw(); };
+		pinInnerShadow.onUpdate = [this](PinBase*) { invalidateShadowBitmap(); redraw(); };
+		pinOuterShadow.onUpdate = [this](PinBase*) { invalidateShadowBitmap(); redraw(); };
+		pinInnerHighlight.onUpdate = [this](PinBase*) { invalidateShadowBitmap(); redraw(); };
+		pinOuterHighlight.onUpdate = [this](PinBase*) { invalidateShadowBitmap(); redraw(); };
+		pinBlackBlurAlpha.onUpdate = [this](PinBase*) { invalidateShadowBitmap(); redraw(); };
+		pinWhiteBlurAlpha.onUpdate = [this](PinBase*) { invalidateShadowBitmap(); redraw(); };
+		pinShadowDepth.onUpdate = [this](PinBase*) { invalidateShadowBitmap(); redraw(); };
+		pinCornerRadius.onUpdate = [this](PinBase*) { invalidateShadowBitmap(); redraw(); };
 	}
 
 	ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
@@ -255,8 +275,11 @@ public:
 		const auto localBounds = getLocalBounds(size);
 		const auto shape = getShape(localBounds);
 
-		auto shadowBmp = renderBlurs(g, size, localBounds, shape);
-		g.drawBitmap(shadowBmp, bounds, localBounds);
+      auto rc = updateShadowBitmap(g, size, localBounds, shape);
+		if(rc != ReturnCode::Ok)
+			return rc;
+
+		g.drawBitmap(shadowBitmap, bounds, localBounds);
 		return ReturnCode::Ok;
 	}
 };
