@@ -13,4 +13,5 @@ gmpi_plugin(
 	  LEDGui.cpp
 	  BumpGui.cpp
 	  PanelGroupGui.cpp
+	  VUMeterGui.cpp
 )
