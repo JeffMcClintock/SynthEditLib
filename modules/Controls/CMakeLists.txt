@@ -12,4 +12,5 @@ gmpi_plugin(
 	  HSliderGui.cpp
 	  LEDGui.cpp
 	  BumpGui.cpp
+	  PanelGroupGui.cpp
 )

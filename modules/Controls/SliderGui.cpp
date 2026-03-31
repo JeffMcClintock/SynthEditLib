@@ -96,13 +96,13 @@ class SliderGui final : public ValueControlBase
 
 		// Track background
 		{
-			const float trackWidth = (std::max)(4.0f, width * 0.25f);
-			const float trackLeft = localBounds.left + (width - trackWidth) * 0.5f;
-			const float trackRadius = trackWidth * 0.5f;
+			const float trackStrokeWidth = (std::max)(4.0f, width * 0.15f);
+			const float trackLeft = localBounds.left + (width - trackStrokeWidth) * 0.5f;
+			const float trackRadius = trackStrokeWidth * 0.5f;
 
 			auto trackBrush = g.createSolidColorBrush(Color{ 0.0f, 0.0f, 0.0f, 0.15f });
 			g.fillRoundedRectangle(
-				{ { trackLeft, localBounds.top, trackLeft + trackWidth, localBounds.bottom }, trackRadius, trackRadius },
+				{ { trackLeft, localBounds.top, trackLeft + trackStrokeWidth, localBounds.bottom }, trackRadius, trackRadius },
 				trackBrush
 			);
 		}

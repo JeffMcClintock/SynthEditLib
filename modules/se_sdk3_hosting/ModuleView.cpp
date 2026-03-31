@@ -240,15 +240,20 @@ namespace SE2
 
 	gmpi::ReturnCode GmpiHelper::findResourceUri(const char* fileName, gmpi::api::IString* returnFullUri)
 	{
+		if(!fileName)
+			return gmpi::ReturnCode::Fail;
+
 		std::string resourceType;
-		if (fileName)
+		std::string name(fileName);
+
+		auto p = std::string(fileName).find_last_of('.');
+		if(p != std::string::npos)
 		{
-			auto p = std::string(fileName).find_last_of('.');
-			if (p != std::string::npos)
-				resourceType = std::string(fileName).substr(p + 1);
+			resourceType = std::string(fileName).substr(p + 1);
+			name = std::string(fileName).substr(0, p);
 		}
 
-		return static_cast<gmpi::ReturnCode>(GmpiResourceManager::Instance()->FindResourceU(moduleview.handle, moduleview.parent->getSkinName(), fileName, resourceType.c_str(), reinterpret_cast<gmpi::IString*>(returnFullUri)));
+		return static_cast<gmpi::ReturnCode>(GmpiResourceManager::Instance()->FindResourceU(moduleview.handle, moduleview.parent->getSkinName(), name.c_str(), resourceType.c_str(), reinterpret_cast<gmpi::IString*>(returnFullUri)));
 	}
 
 	gmpi::ReturnCode GmpiHelper::registerResourceUri(const char* fullUri)

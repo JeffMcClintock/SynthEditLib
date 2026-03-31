@@ -94,13 +94,13 @@ class HSliderGui final : public ValueControlBase
 
 		// Track background (horizontal)
 		{
-			const float trackHeight = (std::max)(4.0f, height * 0.25f);
-			const float trackTop = localBounds.top + (height - trackHeight) * 0.5f;
-			const float trackRadius = trackHeight * 0.5f;
+			const float trackStrokeWidth = (std::max)(4.0f, height * 0.15f);
+			const float trackTop = localBounds.top + (height - trackStrokeWidth) * 0.5f;
+			const float trackRadius = trackStrokeWidth * 0.5f;
 
 			auto trackBrush = g.createSolidColorBrush(Color{ 0.0f, 0.0f, 0.0f, 0.15f });
 			g.fillRoundedRectangle(
-				{ { localBounds.left, trackTop, localBounds.right, trackTop + trackHeight }, trackRadius, trackRadius },
+				{ { localBounds.left, trackTop, localBounds.right, trackTop + trackStrokeWidth }, trackRadius, trackRadius },
 				trackBrush
 			);
 		}
