@@ -1529,7 +1529,7 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 			return ModuleView::getConnectionPoint(cableType, pinIndex);
 
 		int i = 0;
-		float y = bounds_.top + plugDiameter * 0.5f - 0.5f;
+		float y = bounds_.top + plugDiameter * 0.5f;// -0.5f;
 		for (auto& p : plugs_)
 		{
 			if (p.isVisible)
