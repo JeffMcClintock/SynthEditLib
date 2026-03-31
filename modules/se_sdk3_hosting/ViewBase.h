@@ -67,16 +67,14 @@ bool isIteratingChildren = false;
 		gmpi::drawing::Size DraggingModulesOffset = {};
 		gmpi::drawing::Point DraggingModulesInitialTopLeft = {};
 
-		// pan and zoom
-		gmpi::drawing::Size scrollPos = {};
+		// pan and zoom - ground truth is centerPos (document coords) + zoomFactor.
+		// scrollPos is derived on demand in calcViewTransform() and must not be stored as state.
+		gmpi::drawing::Point centerPos = {};
 		float zoomFactor = 1.0f;
 		gmpi::drawing::Matrix3x2 viewTransform;
 		gmpi::drawing::Matrix3x2 inv_viewTransform;
 		bool avoidRecusion{}; // from scroll bars
 		bool isAutoScrolling = false;
-
-		//gmpi::api::IDrawingHost* drawingHost_ = {};
-		//gmpi::api::IInputHost* inputHost_ = {};
 
 		void calcViewTransform();
 		bool onTimer() override;
@@ -156,9 +154,20 @@ bool isIteratingChildren = false;
 		void setZoomFactor(float newZoomFactor)
 		{
 			zoomFactor = newZoomFactor;
+			calcViewTransform();
 		}
-		void onHScroll(double newValue);
-		void onVScroll(double newValue);
+		gmpi::drawing::Point getCenter() const
+		{
+			return centerPos;
+		}
+		void setCenter(gmpi::drawing::Point newCenter)
+		{
+			centerPos = newCenter;
+			calcViewTransform();
+		}
+		// visibleLeft/visibleTop are in document coordinates (same as scrollbar Value)
+		void onHScroll(double visibleLeft);
+		void onVScroll(double visibleTop);
 		void updateScrollBars();
 		void autoScrollStart();
 		void autoScrollStop();

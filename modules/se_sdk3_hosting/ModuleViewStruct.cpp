@@ -195,9 +195,7 @@ namespace SE2
 		// Index pins.
 		int pinIndexCombined = 0; // ALL Pins combined
 		for (auto& p : plugs_)
-		{
 			p.indexCombined = pinIndexCombined++;
-		}
 
 		// technically don't need DSP pins here.
 		editorPinValues = std::make_unique<std::vector<std::vector<uint8_t>>>(plugs_.size());

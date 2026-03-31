@@ -37,11 +37,8 @@ public:
 	{
 	}
 
-	void GetViewScroll(int32_t& returnX, int32_t& returnY) override
-	{
-		returnX = returnY = 0;
-	}
-	void SetViewScroll(int32_t x, int32_t y) override{}
+	gmpi::drawing::Point GetViewCenter() override { return {}; }
+	void SetViewCenter(gmpi::drawing::Point) override {}
 	void SetZoomFactor(float zoomFactor) override {}
 	float GetZoomFactor() override { return 1.0f; }
 

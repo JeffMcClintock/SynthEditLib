@@ -183,13 +183,11 @@ gmpi::ReturnCode SubView::initialize()
 {
 	onValueChanged(); // nesc in case initial value is 0.
 
-	int32_t x, y;
-	Presenter()->GetViewScroll(x, y);
+	const auto panelOffset = Presenter()->GetViewCenter();
+	offset_.width  = panelOffset.x;
+	offset_.height = panelOffset.y;
 
-	offset_.width = static_cast<float>(x);
-	offset_.height = static_cast<float>(y);
-
-	if( x != -99999)
+	if( offset_.width != -99999.f)
 	{
 		auto module = parent; // dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 		offset_.width -= module->bounds_.left;
@@ -312,11 +310,11 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 		// avoid 'show on module' structure view messing up panel view's offset.
 		if (parentViewType == CF_PANEL_VIEW)
 		{
-			auto module = parent; // dynamic_cast<SE2::ViewChild*>(drawingHost.get());
-			Presenter()->SetViewScroll(
-				static_cast<int32_t>(offset_.width + module->bounds_.left),
-				static_cast<int32_t>(offset_.height + module->bounds_.top)
-			);
+			auto module = parent;
+			Presenter()->SetViewCenter({
+				offset_.width  + module->bounds_.left,
+				offset_.height + module->bounds_.top
+			});
 		}
 	}
 	else

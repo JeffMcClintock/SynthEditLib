@@ -44,6 +44,7 @@ void PatchParameter_base::Export(tinyxml2::XMLElement* parameters_xml, ExportFor
 #include <map>
 #include "modules/tinyXml2/tinyxml2.h"
 #include "conversion.h"
+#include "GmpiUiDrawing.h"
 #include "Drawing.h"
 #include "experimental/observable.h"
 
@@ -170,6 +171,17 @@ struct XmlSaveHelper
 	}
 
 	template<>
+	void operator()(const char* name, const gmpi::drawing::RectL& value)
+	{
+		auto xml = XmlParent->GetDocument()->NewElement(name);
+		XmlParent->LinkEndChild(xml);
+		xml->SetAttribute("l", (int)value.left);
+		xml->SetAttribute("r", (int)value.right);
+		xml->SetAttribute("t", (int)value.top);
+		xml->SetAttribute("b", (int)value.bottom);
+	}
+
+	template<>
 	void operator()(const char* name, const GmpiDrawing::RectL& value)
 	{
 		auto xml = XmlParent->GetDocument()->NewElement(name);
@@ -189,6 +201,47 @@ struct XmlSaveHelper
 		xml->SetAttribute("y", (int)value.y);
 	}
 
+	void operator()(const char* name, const GmpiDrawing::Point& value)
+	{
+		auto xml = XmlParent->GetDocument()->NewElement(name);
+		XmlParent->LinkEndChild(xml);
+		xml->SetAttribute("x", value.x);
+		xml->SetAttribute("y", value.y);
+	}
+
+	void operator()(const char* name, const GmpiDrawing::Point& value, GmpiDrawing::Point defaultValue)
+	{
+		if (value.x != defaultValue.x || value.y != defaultValue.y)
+		{
+			operator()(name, value);
+		}
+	}
+
+	void operator()(const char* name, const gmpi::drawing::Point& value)
+	{
+		auto xml = XmlParent->GetDocument()->NewElement(name);
+		XmlParent->LinkEndChild(xml);
+		xml->SetAttribute("x", value.x);
+		xml->SetAttribute("y", value.y);
+	}
+
+	void operator()(const char* name, const gmpi::drawing::Point& value, gmpi::drawing::Point defaultValue)
+	{
+		if (value.x != defaultValue.x || value.y != defaultValue.y)
+		{
+			operator()(name, value);
+		}
+	}
+
+	template<>
+	void operator()(const char* name, const gmpi::drawing::PointL& value)
+	{
+		auto xml = XmlParent->GetDocument()->NewElement(name);
+		XmlParent->LinkEndChild(xml);
+		xml->SetAttribute("x", (int)value.x);
+		xml->SetAttribute("y", (int)value.y);
+	}
+
 	template<>
 	void operator()(const char* name, const GmpiDrawing::SizeL& value)
 	{
@@ -196,6 +249,65 @@ struct XmlSaveHelper
 		XmlParent->LinkEndChild(xml);
 		xml->SetAttribute("cx", (int)value.width);
 		xml->SetAttribute("cy", (int)value.height);
+	}
+
+	void operator()(const char* name, const GmpiDrawing::Size& value)
+	{
+		auto xml = XmlParent->GetDocument()->NewElement(name);
+		XmlParent->LinkEndChild(xml);
+		xml->SetAttribute("cx", value.width);
+		xml->SetAttribute("cy", value.height);
+	}
+
+	void operator()(const char* name, const GmpiDrawing::Size& value, GmpiDrawing::Size defaultValue)
+	{
+		if (value.width != defaultValue.width || value.height != defaultValue.height)
+		{
+			operator()(name, value);
+		}
+	}
+
+	void operator()(const char* name, const gmpi::drawing::Size& value)
+	{
+		auto xml = XmlParent->GetDocument()->NewElement(name);
+		XmlParent->LinkEndChild(xml);
+		xml->SetAttribute("cx", value.width);
+		xml->SetAttribute("cy", value.height);
+	}
+
+	void operator()(const char* name, const gmpi::drawing::Size& value, gmpi::drawing::Size defaultValue)
+	{
+		if (value.width != defaultValue.width || value.height != defaultValue.height)
+		{
+			operator()(name, value);
+		}
+	}
+
+	template<>
+	void operator()(const char* name, const gmpi::drawing::SizeL& value)
+	{
+		auto xml = XmlParent->GetDocument()->NewElement(name);
+		XmlParent->LinkEndChild(xml);
+		xml->SetAttribute("cx", (int)value.width);
+		xml->SetAttribute("cy", (int)value.height);
+	}
+
+	void operator()(const char* name, const gmpi::drawing::Rect& value)
+	{
+		auto xml = XmlParent->GetDocument()->NewElement(name);
+		XmlParent->LinkEndChild(xml);
+		xml->SetAttribute("l", value.left);
+		xml->SetAttribute("r", value.right);
+		xml->SetAttribute("t", value.top);
+		xml->SetAttribute("b", value.bottom);
+	}
+
+	void operator()(const char* name, const gmpi::drawing::Rect& value, gmpi::drawing::Rect defaultValue)
+	{
+		if (value.left != defaultValue.left || value.right != defaultValue.right || value.top != defaultValue.top || value.bottom != defaultValue.bottom)
+		{
+			operator()(name, value);
+		}
 	}
 
 	template<>
@@ -337,6 +449,188 @@ struct XmlLoadHelper
 	}
 
 	template<>
+    void operator()(const char* name, gmpi::drawing::RectL& value)
+	{
+		value = {};
+
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+			return;
+
+		int temp = 0;
+
+		errorCode = xml->QueryIntAttribute("l", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.left = temp;
+
+		errorCode = xml->QueryIntAttribute("r", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.right = temp;
+
+		errorCode = xml->QueryIntAttribute("t", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.top = temp;
+
+		errorCode = xml->QueryIntAttribute("b", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.bottom = temp;
+	}
+
+	void operator()(const char* name, GmpiDrawing::Rect& value)
+	{
+		value = {};
+
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+			return;
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("l", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.left = temp;
+
+		errorCode = xml->QueryFloatAttribute("r", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.right = temp;
+
+		errorCode = xml->QueryFloatAttribute("t", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.top = temp;
+
+		errorCode = xml->QueryFloatAttribute("b", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.bottom = temp;
+	}
+
+	void operator()(const char* name, GmpiDrawing::Rect& value, GmpiDrawing::Rect defaultValue)
+	{
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+		{
+			value = defaultValue;
+			return;
+		}
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("l", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.left = temp;
+
+		errorCode = xml->QueryFloatAttribute("r", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.right = temp;
+
+		errorCode = xml->QueryFloatAttribute("t", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.top = temp;
+
+		errorCode = xml->QueryFloatAttribute("b", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.bottom = temp;
+	}
+
+	void operator()(const char* name, gmpi::drawing::Rect& value)
+	{
+		value = {};
+
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+			return;
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("l", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.left = temp;
+
+		errorCode = xml->QueryFloatAttribute("r", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.right = temp;
+
+		errorCode = xml->QueryFloatAttribute("t", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.top = temp;
+
+		errorCode = xml->QueryFloatAttribute("b", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.bottom = temp;
+	}
+
+	void operator()(const char* name, gmpi::drawing::Rect& value, gmpi::drawing::Rect defaultValue)
+	{
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+		{
+			value = defaultValue;
+			return;
+		}
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("l", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.left = temp;
+
+		errorCode = xml->QueryFloatAttribute("r", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.right = temp;
+
+		errorCode = xml->QueryFloatAttribute("t", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.top = temp;
+
+		errorCode = xml->QueryFloatAttribute("b", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.bottom = temp;
+	}
+
+	template<>
 	void operator()(const char* name, GmpiDrawing::RectL& value)
 	{
 		value = {};
@@ -369,6 +663,126 @@ struct XmlLoadHelper
 	}
 
 	template<>
+   void operator()(const char* name, gmpi::drawing::PointL& value)
+	{
+		value = {};
+
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+			return;
+
+		int temp = 0;
+
+		errorCode = xml->QueryIntAttribute("x", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.x = temp;
+
+		errorCode = xml->QueryIntAttribute("y", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.y = temp;
+	}
+
+	void operator()(const char* name, GmpiDrawing::Point& value)
+	{
+		value = {};
+
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+			return;
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("x", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.x = temp;
+
+		errorCode = xml->QueryFloatAttribute("y", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.y = temp;
+	}
+
+	void operator()(const char* name, GmpiDrawing::Point& value, GmpiDrawing::Point defaultValue)
+	{
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+		{
+			value = defaultValue;
+			return;
+		}
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("x", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.x = temp;
+
+		errorCode = xml->QueryFloatAttribute("y", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.y = temp;
+	}
+
+	void operator()(const char* name, gmpi::drawing::Point& value)
+	{
+		value = {};
+
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+			return;
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("x", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.x = temp;
+
+		errorCode = xml->QueryFloatAttribute("y", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.y = temp;
+	}
+
+	void operator()(const char* name, gmpi::drawing::Point& value, gmpi::drawing::Point defaultValue)
+	{
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+		{
+			value = defaultValue;
+			return;
+		}
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("x", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.x = temp;
+
+		errorCode = xml->QueryFloatAttribute("y", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.y = temp;
+	}
+
+	template<>
 	void operator()(const char* name, GmpiDrawing::PointL& value)
 	{
 		value = {};
@@ -388,6 +802,126 @@ struct XmlLoadHelper
 		if (errorCode != tinyxml2::XML_SUCCESS)
 			return;
 		value.y = temp;
+	}
+
+	template<>
+    void operator()(const char* name, gmpi::drawing::SizeL& value)
+	{
+		value = {};
+
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+			return;
+
+		int temp = 0;
+
+		errorCode = xml->QueryIntAttribute("cx", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.width = temp;
+
+		errorCode = xml->QueryIntAttribute("cy", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.height = temp;
+	}
+
+	void operator()(const char* name, GmpiDrawing::Size& value)
+	{
+		value = {};
+
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+			return;
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("cx", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.width = temp;
+
+		errorCode = xml->QueryFloatAttribute("cy", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.height = temp;
+	}
+
+	void operator()(const char* name, GmpiDrawing::Size& value, GmpiDrawing::Size defaultValue)
+	{
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+		{
+			value = defaultValue;
+			return;
+		}
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("cx", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.width = temp;
+
+		errorCode = xml->QueryFloatAttribute("cy", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.height = temp;
+	}
+
+	void operator()(const char* name, gmpi::drawing::Size& value)
+	{
+		value = {};
+
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+			return;
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("cx", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.width = temp;
+
+		errorCode = xml->QueryFloatAttribute("cy", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+			return;
+		value.height = temp;
+	}
+
+	void operator()(const char* name, gmpi::drawing::Size& value, gmpi::drawing::Size defaultValue)
+	{
+		auto xml = XmlParent->FirstChildElement(name);
+		if (xml == nullptr)
+		{
+			value = defaultValue;
+			return;
+		}
+
+		float temp = 0.0f;
+
+		errorCode = xml->QueryFloatAttribute("cx", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.width = temp;
+
+		errorCode = xml->QueryFloatAttribute("cy", &temp);
+		if (errorCode != tinyxml2::XML_SUCCESS)
+		{
+			value = defaultValue;
+			return;
+		}
+		value.height = temp;
 	}
 
 	template<>

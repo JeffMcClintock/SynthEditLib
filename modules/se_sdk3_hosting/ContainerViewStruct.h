@@ -18,7 +18,7 @@ namespace SE2
 
 		std::string getSkinName() override
 		{
-			return "default2";
+			return "default3";
 		}
 		void BuildModules(Json::Value* context, std::map<int, class ModuleView*>& guiObjectMap) override;
 		ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) override;

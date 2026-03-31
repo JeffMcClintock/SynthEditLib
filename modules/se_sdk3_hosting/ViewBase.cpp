@@ -407,6 +407,9 @@ namespace SE2
 		// <CTRL> wheel = zoom
 		if(flags & gmpi_gui_api::GG_POINTER_KEY_CONTROL)
 		{
+			// Compute the document point under the mouse before zoom changes.
+			const auto mouseDocPos = currentPointerPosAbsolute * inv_viewTransform;
+
 			if(delta < 0)
 				zoomFactor /= 1.25f;
 			else
@@ -414,25 +417,24 @@ namespace SE2
 
 			zoomFactor = std::clamp(zoomFactor, 0.1f, 10.0f);
 
-			const auto before = point;
-
-			calcViewTransform();
-
-			const auto after = currentPointerPosAbsolute * inv_viewTransform;
-
-			// scroll to retain mouse position.
-			scrollPos.width -= (before.x - after.x) * zoomFactor;
-			scrollPos.height -= (before.y - after.y) * zoomFactor;
+			// Keep the doc point under the mouse fixed:
+			// new_center = mouseDocPos + (viewSize/2 - mouseScreen) / newZoom
+			const float viewWidth  = drawingBounds.right  - drawingBounds.left;
+			const float viewHeight = drawingBounds.bottom - drawingBounds.top;
+			centerPos.x = mouseDocPos.x + (viewWidth  * 0.5f - currentPointerPosAbsolute.x) / zoomFactor;
+			centerPos.y = mouseDocPos.y + (viewHeight * 0.5f - currentPointerPosAbsolute.y) / zoomFactor;
 
 			Presenter()->SetZoomFactor(zoomFactor);
 		}
 		else
 		{
-			// shift+wheel = horizontal scroll.
+			// shift+wheel = horizontal scroll, plain wheel = vertical scroll.
+			// delta is in pixels; convert to doc coords.
+			constexpr float pixelsPerDetent = 0.25f; // 120 delta per wheel detent
 			if(flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT)
-				scrollPos.width += static_cast<float>(delta) * 0.25f; // 120 delta per wheel detent.
+				centerPos.x -= static_cast<float>(delta) * pixelsPerDetent / zoomFactor;
 			else
-				scrollPos.height += static_cast<float>(delta) * 0.25f; // vertical scroll
+				centerPos.y -= static_cast<float>(delta) * pixelsPerDetent / zoomFactor;
 		}
 
 		calcViewTransform(); // and redraws
@@ -1072,9 +1074,9 @@ namespace SE2
 
 		if (autoScrolDx != 0.f || autoScrolDy != 0.f)
 		{
-			// move the view
-			scrollPos.width += autoScrolDx;
-			scrollPos.height += autoScrolDy;
+			// move the view (pixel deltas converted to doc coords)
+			centerPos.x -= autoScrolDx / zoomFactor;
+			centerPos.y -= autoScrolDy / zoomFactor;
 			calcViewTransform(); // and redraws
 
 			// pointer moves (relative to the view)
@@ -1090,29 +1092,35 @@ namespace SE2
 
 	void ViewBase::calcViewTransform()
 	{
+		// Derive pixel scroll offset from center (doc coords) and current view size.
+		const float scrollX = (drawingBounds.right  - drawingBounds.left) * 0.5f - centerPos.x * zoomFactor;
+		const float scrollY = (drawingBounds.bottom - drawingBounds.top)  * 0.5f - centerPos.y * zoomFactor;
+
 		viewTransform = gmpi::drawing::makeScale({ zoomFactor, zoomFactor });
-		viewTransform *= gmpi::drawing::makeTranslation({ scrollPos.width, scrollPos.height });
+		viewTransform *= gmpi::drawing::makeTranslation({ scrollX, scrollY });
 
 		inv_viewTransform = invert(viewTransform);
 
 		invalidateRect();
 	}
 
-	void ViewBase::onHScroll(double newValue)
+	void ViewBase::onHScroll(double visibleLeft)
 	{
 		if (avoidRecusion)
 			return;
 
-		scrollPos.width = newValue;
+		const double viewWidth = drawingBounds.right - drawingBounds.left;
+		centerPos.x = static_cast<float>(visibleLeft + viewWidth / (2.0 * zoomFactor));
 		calcViewTransform();
 	}
 
-	void ViewBase::onVScroll(double newValue)
+	void ViewBase::onVScroll(double visibleTop)
 	{
 		if (avoidRecusion)
 			return;
 
-		scrollPos.height = newValue;
+		const double viewHeight = drawingBounds.bottom - drawingBounds.top;
+		centerPos.y = static_cast<float>(visibleTop + viewHeight / (2.0 * zoomFactor));
 		calcViewTransform();
 	}
 
@@ -1123,44 +1131,39 @@ namespace SE2
 
 		avoidRecusion = true;
 
-		constexpr double canvasSize = 7968.0f;
-		const double visibleWidth = (drawingBounds.right - drawingBounds.left) /*swapChainHost.ActualWidth()*/ / zoomFactor;
-		const double visibleHeight = (drawingBounds.bottom - drawingBounds.top) /*swapChainHost.ActualHeight()*/ / zoomFactor;
-		const double visibleTop = (double)-scrollPos.height / zoomFactor;
-		const double visibleLeft = (double)-scrollPos.width / zoomFactor;
-		const double visibleBottom = visibleTop + visibleHeight;
-		const double visibleRight = visibleLeft + visibleWidth;
+		constexpr double canvasSize = 7968.0;
+		const double viewWidth  = drawingBounds.right  - drawingBounds.left;
+		const double viewHeight = drawingBounds.bottom - drawingBounds.top;
 
-		auto canScrolldH = (std::max)(0.0, canvasSize - visibleRight) + (std::max)(0.0, visibleLeft);
-		auto canScrolldV = (std::max)(0.0, canvasSize - visibleBottom) + (std::max)(0.0, visibleTop);
-		auto scrollMinY = (std::min)(visibleTop, 0.0);
-		auto scrollMinX = (std::min)(visibleLeft, 0.0);
+		// All values in document coordinates.
+		const double visibleWidth  = viewWidth  / zoomFactor;
+		const double visibleHeight = viewHeight / zoomFactor;
+		const double visibleLeft   = centerPos.x - visibleWidth  * 0.5;
+		const double visibleTop    = centerPos.y - visibleHeight * 0.5;
+		const double visibleRight  = visibleLeft + visibleWidth;
+		const double visibleBottom = visibleTop  + visibleHeight;
 
-		//	_RPTN(0, "top=%f left=%f bottom=%f right=%f\n", visibleTop, visibleLeft, visibleBottom, visibleRight);
-		//_RPTN(0, "updateScrollBars: scrollPos=(%f,%f) zoom=%f\n", scrollPos.width, scrollPos.height, zoomFactor);
-		//_RPTN(0, "updateScrollBars: visibleWidth=%f visibleHeight=%f\n", visibleWidth, visibleHeight);
+		const double scrollMinX = (std::min)(visibleLeft,  0.0);
+		const double scrollMinY = (std::min)(visibleTop,   0.0);
+		const double canScrollH = (std::max)(0.0, canvasSize - visibleRight)  + (std::max)(0.0, visibleLeft);
+		const double canScrollV = (std::max)(0.0, canvasSize - visibleBottom) + (std::max)(0.0, visibleTop);
 
 		scrollBarSpec h;
-
-		h.Minimum = (zoomFactor * scrollMinX);
-		h.Maximum = (zoomFactor * (scrollMinX + canScrolldH));
-		h.ViewportSize = (zoomFactor * (visibleRight - visibleLeft));
-		h.Value = (zoomFactor * (visibleLeft /*+ forceRecalc*/));
-		h.LargeChange = (canScrolldH * 0.2);
-		h.SmallChange = (canScrolldH * 0.05);
-
+		h.Value        = visibleLeft;
+		h.Minimum      = scrollMinX;
+		h.Maximum      = scrollMinX + canScrollH;
+		h.ViewportSize = visibleWidth;
+		h.LargeChange  = canScrollH * 0.2;
+		h.SmallChange  = canScrollH * 0.05;
 		hscrollBar(h);
 
 		scrollBarSpec v;
-		//_RPTN(0, "ViewportSize=%f\n", visibleBottom - visibleTop);
-		//_RPTN(0, "Can scroll=%f\n", canScrollV);
-		v.ViewportSize = (zoomFactor * (visibleBottom - visibleTop));
-		v.Minimum = (zoomFactor * scrollMinY);
-		v.Maximum = (zoomFactor * (scrollMinY + canScrolldV));
-		v.Value = (zoomFactor * (visibleTop /*+ forceRecalc*/));
-		v.LargeChange = (canScrolldV * 0.2);
-		v.SmallChange = (canScrolldV * 0.05);
-
+		v.Value        = visibleTop;
+		v.Minimum      = scrollMinY;
+		v.Maximum      = scrollMinY + canScrollV;
+		v.ViewportSize = visibleHeight;
+		v.LargeChange  = canScrollV * 0.2;
+		v.SmallChange  = canScrollV * 0.05;
 		vscrollBar(v);
 
 		avoidRecusion = false;
@@ -1225,7 +1228,7 @@ namespace SE2
 		if (mouseCaptureObject == dragline)
 			releaseCapture();
 
-		const auto dragLineRect = dragline->getClipArea();
+//		const auto dragLineRect = dragline->getClipArea();
 //		invalidateRect(&dragLineRect);
 // needed?		ChildInvalidateRect(dragLineRect);
 
@@ -1834,6 +1837,7 @@ namespace SE2
 	gmpi::ReturnCode ViewBase::arrange(const gmpi::drawing::Rect* finalRect)
 	{
 		drawingBounds = *finalRect;
+		calcViewTransform(); // recompute scroll offset from center/zoom whenever view size changes
 
 		// Modules first, then lines (which rely on module position being finalized).
 		for (auto& m : children)
