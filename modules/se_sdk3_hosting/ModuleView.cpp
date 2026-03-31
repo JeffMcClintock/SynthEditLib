@@ -1159,7 +1159,7 @@ if(pluginGraphics)
 	//		g.setTransform(originalTransform);
 		}
 
-		if(isHovered_)
+		if(isHovered_ && !getSelected())
 		{
 			auto brush = g.createSolidColorBrush(gmpi::drawing::Colors::DodgerBlue);
 			gmpi::drawing::Rect r(0, 0, getWidth(bounds_), getHeight(bounds_));
