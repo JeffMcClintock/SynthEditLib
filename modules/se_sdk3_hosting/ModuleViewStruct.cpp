@@ -1041,11 +1041,10 @@ if(pluginDrawingLayer_GMPI)
 	{
 		if (editorPinValues)
 		{
-			/*
+			/* FIX!!!! (efficiently)
 The root cause is an ID model mismatch, not just a missing bounds check. In SE Slider, runtime pin IDs are descriptor IDs (13..23, plus others), while editorPinValues and plugs_ are stored by dense combined index (0..12). pinTransmit() (and partially setPin()) incorrectly treats descriptor IDs as vector indices. This became worse after slider pin reordering, where index order and plugDescID diverge further.
 Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 
-			*/
 			editorPinValues->at(pinId).assign((uint8_t*)data, size + (uint8_t*)data);
 
 			if (pinId == hoveredPin_.pinIndex)
@@ -1053,6 +1052,7 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 				hoverScopeText = NiceFormatted(editorPinValues->at(pinId), (EPlugDataType)plugs_[pinId].datatype);
 				invalidateMyRect(calcScopeRect(pinId));
 			}
+			*/
 		}
 
        return ModuleView::pinTransmit(pinId, size, data, voice);
