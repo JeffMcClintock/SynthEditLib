@@ -1129,9 +1129,7 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 		for (auto& pin : plugs_)
 		{
 			if (!pin.isVisible)
-			{
 				continue;
-			}
 
 			filteredChildren.push_back(pin);
 		}
@@ -1275,608 +1273,6 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 		float plugY = -0.5f; // top
 		float y = -0.5;
 
-//		if (NEW_LOOK_CURVES)
-//		{
-			// Down left side
-			for (const auto& vc : filteredChildren)
-			{
-				bool isFirst = idx == 0; // 1;
-				bool isLast = idx == childCount - 1;
-
-				if (vc.direction == -1) // indicates embedded gfx, not pin.
-				{
-					childHeight = clientHight;
-					edgeType = EPlugingraphics;
-				}
-				else
-				{
-					childHeight = plugDiameter;
-					edgeType = vc.direction == DR_IN ? EBump : EFlat;
-				}
-
-				if (isFirst)
-				{
-					switch (edgeType)
-					{
-					case EBump: // start point at top-left.
-					case EPlugingraphics:
-						sink.beginFigure(edgeX, y, FigureBegin::Filled);
-						break;
-
-					case EFlat: // small curve at top-left.
-						sink.beginFigure(gmpi::drawing::Point(edgeX + radius, y), FigureBegin::Filled);
-						BezierSegment bs1(gmpi::drawing::Point(edgeX + radius - QCPDistance, y), gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
-						sink.addBezier(bs1);
-						break;
-					}
-				}
-
-				// bump on left.
-				if (edgeType == EBump)
-				{
-					if (!isFirst)
-					{
-						if (prevEdgeType == EBump)
-						{
-							// Draw inner curve, from previous bump.
-							sink.addArc(
-								ArcSegment(gmpi::drawing::Point(edgeX - smallCurveXIntersect, y + smallCurveYIntersect), smallCurveSize));
-						}
-						else
-						{
-							// Draw line down,then out to meet curve.
-							sink.addLine(gmpi::drawing::Point(edgeX, y - radiusSmall));
-							sink.addLine(gmpi::drawing::Point(edgeX - smallCurveXIntersect, y + smallCurveYIntersect));
-						}
-					}
-
-					Point endPoint;
-					if (isLast) // curve goes all the way to bottom of plug.
-					{
-						endPoint = Point(edgeX, y + childHeight);
-					}
-					else
-					{
-						// Curve goes as far as next inner-curve between bumps.
-						endPoint = Point(edgeX - smallCurveXIntersect, y + childHeight - smallCurveYIntersect);
-					}
-
-					ArcSegment as1(endPoint, bigCurveSize, 0.0, SweepDirection::CounterClockwise);
-					sink.addArc(as1);
-				}
-				else // Flat on left
-				{
-					if (prevEdgeType == EBump)
-					{
-						// Angled line from Curve to left flat edge.
-						sink.addLine(gmpi::drawing::Point(edgeX, y + radiusSmall));
-					}
-
-					// Bottom-left corner.
-					if (isLast)
-					{
-						if (edgeType == EPlugingraphics) // sharp corner.
-						{
-							sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight + 1.0f)); // +1 hack to lower bottom edge of scope etc
-						}
-						else
-						{
-							// small curve.
-							sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
-							BezierSegment bs2(gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX + radius - QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX + radius, y + childHeight));
-							sink.addBezier(bs2);
-						}
-					}
-				}
-
-				if (isLast) // bottom edge
-				{
-					switch (edgeType)
-					{
-					case EPlugingraphics:
-						// Draw square bottom-right.
-						sink.addLine(gmpi::drawing::Point(rightX, y + childHeight + 1.0f));
-						break;
-
-					case EFlat:
-						// don't draw all way to edge.
-						sink.addLine(gmpi::drawing::Point(rightX, y + childHeight));
-						break;
-
-					case EBump:
-						// don't draw all way to edge to allow for curved bottom-right.
-						sink.addLine(gmpi::drawing::Point(rightX - radius, y + childHeight));
-						break;
-					};
-				}
-				else
-				{
-					y += plugDiameter;
-					idx++;
-				}
-
-				prevEdgeType = edgeType;
-			}
-
-			// right side.
-			edgeX = rightX;
-			y += childHeight;
-
-			// up right side.
-			for( auto it = filteredChildren.rbegin() ; it != filteredChildren.rend() ; ++it)
-			{
-				auto& vc = (*it);
-
-				bool isFirst = idx == 0;
-				bool isLast = idx == childCount - 1;
-
-				if (vc.direction == -1) // indicates embedded gfx, not pin.
-				{
-					childHeight = clientHight;
-					edgeType = EPlugingraphics;
-				}
-				else
-				{
-					childHeight = plugDiameter;
-					edgeType = vc.direction == DR_OUT ? EBump : EFlat;
-//edgeType = EFlat;
-				}
-
-				y -= childHeight;
-
-				// bump on right.
-				if (edgeType == EBump)
-				{
-					if (!isLast)
-					{
-						if (prevEdgeType == EBump)
-						{
-							// Draw inner curve, from previous bump.
-							sink.addArc(
-								ArcSegment(gmpi::drawing::Point(edgeX + smallCurveXIntersect, y + childHeight - smallCurveYIntersect), smallCurveSize));
-						}
-						else
-						{
-							// Draw line up,then out to meet curve.
-							sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight + radiusSmall));
-							sink.addLine(gmpi::drawing::Point(edgeX + smallCurveXIntersect, y + childHeight - smallCurveYIntersect));
-						}
-					}
-
-					Point endPoint;
-					if (isFirst) // curve goes all the way to top of plug.
-					{
-						endPoint = Point(edgeX, y);
-					}
-					else
-					{
-						endPoint = Point(edgeX + smallCurveXIntersect, y + smallCurveYIntersect);
-					}
-
-					ArcSegment as1(endPoint, bigCurveSize, 0.0, SweepDirection::CounterClockwise);
-					sink.addArc(as1);
-				}
-				else // flat on right.
-				{
-					if (isLast)
-					{
-						if (edgeType != EPlugingraphics) // non sharp corner.
-						{
-							// The BEST 4-spline magic number is 0.551784. (not used yet).
-							BezierSegment bs5(gmpi::drawing::Point(edgeX - radius + QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
-							sink.addBezier(bs5);
-						}
-					}
-					else
-					{
-						if (prevEdgeType == EBump)
-						{
-							// Angled line from Curve to left flat edge.
-							sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight - radiusSmall));
-						}
-					}
-
-					// Top-right corner.
-					if (isFirst)
-					{
-						if (edgeType == EPlugingraphics) // sharp corner.
-						{
-							sink.addLine(gmpi::drawing::Point(edgeX, y));
-						}
-						else
-						{
-							// small curve.
-							sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
-
-							BezierSegment bs6(gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX - radius + QCPDistance, y), gmpi::drawing::Point(edgeX - radius, y));
-							sink.addBezier(bs6);
-						}
-					}
-				}
-
-				idx--;
-				prevEdgeType = edgeType;
-			}
-#if 0
-		}
-		else // Old-look.
-		{
-			const float top = -0.5;
-
-			vector<plugType> reverseChildren;
-
-			bool prevIsBump = true;
-
-			for (auto vc : filteredChildren)
-			{
-				bool isFirst = idx == 0; // 1;
-				bool isLast = idx == childCount - 1;
-
-				if (vc.direction == -1) // indicates embedded gfx, not pin.
-				{
-					childHeight = clientHight;
-				}
-				else
-				{
-					childHeight = plugDiameter;
-				}
-
-				y = plugY - 0.5f;
-
-				if (childHeight == 0) // zero height objects cause glitch.
-				{
-					++idx;
-					continue;
-				}
-
-				// Hack to prevent knobs drawing 1 pixel over bottom edge.
-				/*
-				if (!(vc is Plug) && isLast)
-				{
-					++childHeight;
-				}
-				*/
-
-				// Plug background colors
-				/*
-
-				if (vc is Plug)
-				{
-				 PlugView Model pm = (PlugView Model)vc.DataContext;
-					if (pm.isUiPlug())
-					{
-						hasGuiPins = true;
-					}
-					else
-					{
-						hasDspPins = true;
-					}
-				}
-				*/
-				bool isBump = vc.direction == DR_IN;
-
-				// bump on left.
-				if (isBump)
-				{
-					if (!startedFigure)
-					{
-						sink.beginFigure(edgeX, y, FigureBegin::Filled);
-						startedFigure = true;
-					}
-
-					if (prevIsBump) //prev_plug_direction == DR_IN)
-					{
-						// trick it into not extending the acute join inward too far.
-						sink.addLine(gmpi::drawing::Point(edgeX, y));
-					}
-					ArcSegment as1(gmpi::drawing::Point(edgeX, y + childHeight), gmpi::drawing::Size(plugDiameter * 0.5, plugDiameter * 0.5), 0.0, SweepDirection::CounterClockwise);
-					sink.addArc(as1);
-				}
-				else // no bump on left
-				{
-					if (vc.direction != -1 && (isLast || isFirst))
-					{
-						// top-left curve.
-						if (isFirst)
-						{
-							sink.beginFigure(gmpi::drawing::Point(edgeX + radius, top), FigureBegin::Filled);
-							BezierSegment bs1(gmpi::drawing::Point(edgeX + radius - QCPDistance, top), gmpi::drawing::Point(edgeX, top + radius - QCPDistance), gmpi::drawing::Point(edgeX, top + radius));
-							sink.addBezier(bs1);
-							startedFigure = true;
-						}
-						else
-						{
-							sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
-						}
-
-						// bottom-left curve.
-						if (isLast)
-						{
-							BezierSegment bs2(gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX + radius - QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX + radius, y + childHeight));
-							sink.addBezier(bs2);
-						}
-					}
-					else
-					{
-						sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight));
-					}
-				}
-				//prev_plug_direction = vc.direction;
-				prevIsBump = isBump;
-
-				idx++;
-				plugY += plugDiameter;
-			}
-
-			// no plugs at all. Draw a slim rounded rect.
-			if (reverseChildren.size() == 0)
-			{
-				childHeight = plugDiameter;
-
-				float left = leftX + radius;
-				// re-assign start point to allow for top-left curve.
-				sink.beginFigure(gmpi::drawing::Point(left, top), FigureBegin::Filled);
-
-				// Left bump.
-				BezierSegment bs3(gmpi::drawing::Point(left - controlPointDistance, top), gmpi::drawing::Point(left - controlPointDistance, top + childHeight), gmpi::drawing::Point(left, top + childHeight));
-				sink.addBezier(bs3);
-
-				// Bottom line.
-				float right = rightX - radius;
-				//myPathFigure.Segments.Add(new LineSegment(new Point(right, y + childHeight), true));
-				sink.addLine(gmpi::drawing::Point(right, y + childHeight));
-
-				y = top;
-
-				// Right bump.
-				BezierSegment bs4(gmpi::drawing::Point(right + controlPointDistance, y + childHeight), gmpi::drawing::Point(right + controlPointDistance, y), gmpi::drawing::Point(right, y));
-				sink.addBezier(bs4);
-				// Top line.
-				//myPathFigure.Segments.Add(new LineSegment(new Point(leftX + radius, top), true));
-				sink.addLine(gmpi::drawing::Point(leftX + radius, top));
-			}
-			else
-			{
-				// bottom
-				int bottomElement = reverseChildren[0];
-				if (bottomElement != -1) // output.
-				{
-					sink.addLine(gmpi::drawing::Point(rightX, y + childHeight));
-				}
-				else
-				{
-					// don't draw all way to edge to allow for curve.
-					sink.addLine(gmpi::drawing::Point(rightX - radius, y + childHeight));
-				}
-
-				y += childHeight;
-			}
-
-
-			// right side.
-			edgeX = rightX;
-
-			idx--; // compensate for extra increment above.
-		// wrong, forgot 0.5	y = plugHeight * reverseChildren.size();
-			bool prev_plug_direction = true; // output
-			for (auto vc : reverseChildren)
-			{
-				bool isFirst = idx == 0;// 1;
-				bool isLast = idx == childCount - 1;
-
-				if (vc == -1) // indicates embedded gfx, not pin.
-				{
-					childHeight = clientHight;
-				}
-				else
-				{
-					childHeight = plugDiameter;
-				}
-
-				y -= childHeight;
-
-				bool isBump = vc != DR_IN;
-
-				if (vc != -1)
-				{
-					// bump on right.
-					if (isBump) //vc != DR_IN)
-					{
-						// bump curve.
-						if (prevIsBump) //prev_plug_direction != DR_IN)
-						{
-							// trick it into not extending the acute join inward too far.
-							sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight));
-						}
-						BezierSegment bs4(gmpi::drawing::Point(edgeX + controlPointDistance, y + childHeight), gmpi::drawing::Point(edgeX + controlPointDistance, y), gmpi::drawing::Point(edgeX, y));
-							sink.addBezier(bs4);
-					}
-					else
-					{
-						if (isLast || isFirst) // curve corner?
-						{
-							// bottom-right curve.
-							if (isLast)
-							{
-								// The BEST 4-spline magic number is 0.551784. (not used yet).
-								BezierSegment bs5(gmpi::drawing::Point(edgeX - radius + QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
-								sink.addBezier(bs5);
-
-							}
-							else
-							{
-								// line on left, up to half-way point, ready for curve.
-								if (isFirst)
-								{
-									sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
-								}
-							}
-
-							// top-right curve.
-							if (isFirst)
-							{
-								BezierSegment bs6(gmpi::drawing::Point(edgeX, top + radius - QCPDistance), gmpi::drawing::Point(edgeX - radius + QCPDistance, top), gmpi::drawing::Point(edgeX - radius, top));
-								sink.addBezier(bs6);
-							}
-							else
-							{
-								//						myPathFigure.Segments.Add(new LineSegment(new Point(edgeX, y), true));
-								sink.addLine(gmpi::drawing::Point(edgeX, y));
-							}
-						}
-						else
-						{
-							// Straight edge.
-							sink.addLine(gmpi::drawing::Point(edgeX, y));
-						}
-					}
-
-				}
-				else
-				{
-					//			myPathFigure.Segments.Add(new LineSegment(new Point(edgeX, y), true));
-					sink.addLine(gmpi::drawing::Point(edgeX, y));
-				}
-
-				prev_plug_direction = vc != 0;
-				prevIsBump = isBump;
-
-				idx--;
-			}
-		}
-#endif
-		sink.endFigure();
-
-		sink.close();
-
-		getDrawingResources(factory)->outlineCache[outlineSpecification] = geometry;
-
-		return geometry;
-	}
-
-#if 0
-////////////////////////////////////
-// not used
-	PathGeometry ModuleViewStruct::CreateModuleOutline2(Factory& factory)
-	{
-		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
-
-		vector<pinViewInfo> filteredChildren;
-		for (const auto& pin : plugs_)
-		{
-			if (pin.isVisible)
-			{
-				filteredChildren.push_back(pin);
-			}
-		}
-
-		// Create plugnames
-		string lPlugNamesTemp;
-		string rPlugNamesTemp;
-		rPlugNames.clear();
-
-		bool first = true;
-
-		for (const auto& pin : filteredChildren)
-		{
-			if (!first)
-			{
-				lPlugNamesTemp.append("\n");
-				rPlugNamesTemp.append("\n");
-			}
-			else
-			{
-				first = false;
-			}
-
-			if (pin.direction == DR_IN)
-			{
-				lPlugNamesTemp.append(pin.name);
-			}
-			else
-			{
-				rPlugNamesTemp.append(pin.name);
-			}
-		}
-
-		// Add entry for embedded graphics.
-		float clientHight = 0.0f;
-		if (pluginGraphics_GMPI || pluginGraphics)
-		{
-			clientHight = getHeight(pluginGraphicsPos);
-			if (clientHight > 0.0f)
-				clientHight += clientPadding * 2.0f;
-		}
-
-		// or if no plugs, place dummy object in list to prevent problems creating outline
-		if (filteredChildren.empty() && clientHight == 0.0f)
-		{
-			clientHight = plugDiameter;
-		}
-
-		if (clientHight != 0.0f)
-		{
-			pinViewInfo info{};
-			info.name = "GFX";
-			info.direction = -1;
-			info.datatype = -1;
-			info.indexCombined = -1;
-			info.isGuiPlug = false;
-			info.isIoPlug = false;
-			info.isVisible = true;
-			info.plugDescID = -1;
-
-			filteredChildren.push_back(info);
-		}
-
-		rPlugNames = rPlugNamesTemp;
-		lPlugNames = lPlugNamesTemp;
-
-		auto geometry = factory.createPathGeometry();
-		auto sink = geometry.open();
-
-		const float outlineThickness = 1;
-		const float radius = plugDiameter * 0.5f;
-
-		const float leftX = radius + 0.5f;
-		// we can't draw past right outline.
-		float rightX = (bounds_.right - bounds_.left) - radius - outlineThickness + 0.5f;
-
-		// Half-circles. The BEST 2-spline magic number is 1.333333
-//		const float controlPointDistance = radius * 1.333f;
-		// Quarter-circles.
-		// const float QCPDistance = radius * 0.551784f;
-
-		typedef int plugType;
-
-		const float diameterBig = plugDiameter;
-		const float radiusBig = diameterBig * 0.5f;
-		const float radiusSmall = radiusBig * 0.2f;
-
-		const float smallCurveXCenter = sqrtf((radiusBig + radiusSmall) * (radiusBig + radiusSmall) - radiusBig * radiusBig);
-		const float smallCurveXIntersect = smallCurveXCenter * radiusBig / (radiusBig + radiusSmall);
-		float smallCurveYIntersect = radiusBig * radiusSmall / (radiusBig + radiusSmall);
-		const gmpi::drawing::Size bigCurveSize(radiusBig, radiusBig);
-		const gmpi::drawing::Size smallCurveSize(radiusSmall, radiusSmall);
-
-		float childHeight = 0;
-
-		int idx = 0;
-		int childCount = (int)filteredChildren.size();
-
-		// Pin coloring.
-		bool startedFigure = false;
-
-		enum { EBump, EFlat, EPlugingraphics };
-
-		int edgeType = EFlat;
-		int prevEdgeType = EFlat;
-		//		float top = -0.5;
-		float edgeX = leftX;
-//		float plugY = -0.5f; // top
-//		float x = 0;
-		float y = 0;
-
 		// Down left side
 		for (const auto& vc : filteredChildren)
 		{
@@ -1891,8 +1287,7 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 			else
 			{
 				childHeight = plugDiameter;
-//				edgeType = vc.direction == DR_IN ? EBump : EFlat;
-				edgeType = EFlat;
+				edgeType = vc.direction == DR_IN ? EBump : EFlat;
 			}
 
 			if (isFirst)
@@ -1906,9 +1301,8 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 
 				case EFlat: // small curve at top-left.
 					sink.beginFigure(gmpi::drawing::Point(edgeX + radius, y), FigureBegin::Filled);
-					//BezierSegment bs1(gmpi::drawing::Point(edgeX + radius - QCPDistance, y), gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
-					//sink.AddBezier(bs1);
-sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
+					BezierSegment bs1(gmpi::drawing::Point(edgeX + radius - QCPDistance, y), gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
+					sink.addBezier(bs1);
 					break;
 				}
 			}
@@ -1959,33 +1353,37 @@ sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
 				{
 					if (edgeType == EPlugingraphics) // sharp corner.
 					{
-						sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight));
+						sink.addLine(gmpi::drawing::Point(edgeX, y + childHeight)); // nope ruins pixel snap +1.0f)); // +1 hack to lower bottom edge of scope etc
 					}
 					else
 					{
 						// small curve.
 						sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
-
-						//BezierSegment bs2(gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX + radius - QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX + radius, y + childHeight));
-						//sink.AddBezier(bs2);
-sink.addLine(gmpi::drawing::Point(edgeX + radius, y + childHeight));
+						BezierSegment bs2(gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX + radius - QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX + radius, y + childHeight));
+						sink.addBezier(bs2);
 					}
 				}
 			}
 
-			if (isLast)
+			if (isLast) // bottom edge
 			{
-				// bottom
-				if (edgeType == EPlugingraphics)
+				switch (edgeType)
 				{
+				case EPlugingraphics:
 					// Draw square bottom-right.
+					sink.addLine(gmpi::drawing::Point(rightX, y + childHeight)); // try to quantizr bottom line to pixel grid    +1.0f));
+					break;
+
+				case EFlat:
+					// don't draw all way to edge.
 					sink.addLine(gmpi::drawing::Point(rightX, y + childHeight));
-				}
-				else
-				{
+					break;
+
+				case EBump:
 					// don't draw all way to edge to allow for curved bottom-right.
 					sink.addLine(gmpi::drawing::Point(rightX - radius, y + childHeight));
-				}
+					break;
+				};
 			}
 			else
 			{
@@ -2001,7 +1399,7 @@ sink.addLine(gmpi::drawing::Point(edgeX + radius, y + childHeight));
 		y += childHeight;
 
 		// up right side.
-		for (auto it = filteredChildren.rbegin(); it != filteredChildren.rend(); ++it)
+		for( auto it = filteredChildren.rbegin() ; it != filteredChildren.rend() ; ++it)
 		{
 			auto& vc = (*it);
 
@@ -2016,8 +1414,8 @@ sink.addLine(gmpi::drawing::Point(edgeX + radius, y + childHeight));
 			else
 			{
 				childHeight = plugDiameter;
-//				edgeType = vc.direction == DR_OUT ? EBump : EFlat;
-                edgeType = EFlat;
+				edgeType = vc.direction == DR_OUT ? EBump : EFlat;
+//edgeType = EFlat;
 			}
 
 			y -= childHeight;
@@ -2058,13 +1456,11 @@ sink.addLine(gmpi::drawing::Point(edgeX + radius, y + childHeight));
 			{
 				if (isLast)
 				{
-					if (edgeType != EPlugingraphics) // sharp corner.
+					if (edgeType != EPlugingraphics) // non sharp corner.
 					{
 						// The BEST 4-spline magic number is 0.551784. (not used yet).
-						//BezierSegment bs5(gmpi::drawing::Point(edgeX - radius + QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
-						//sink.AddBezier(bs5);
-
-sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
+						BezierSegment bs5(gmpi::drawing::Point(edgeX - radius + QCPDistance, y + childHeight), gmpi::drawing::Point(edgeX, y + radius + QCPDistance), gmpi::drawing::Point(edgeX, y + radius));
+						sink.addBezier(bs5);
 					}
 				}
 				else
@@ -2088,9 +1484,8 @@ sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
 						// small curve.
 						sink.addLine(gmpi::drawing::Point(edgeX, y + radius));
 
-						//BezierSegment bs6(gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX - radius + QCPDistance, y), gmpi::drawing::Point(edgeX - radius, y));
-						//sink.AddBezier(bs6);
-sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
+						BezierSegment bs6(gmpi::drawing::Point(edgeX, y + radius - QCPDistance), gmpi::drawing::Point(edgeX - radius + QCPDistance, y), gmpi::drawing::Point(edgeX - radius, y));
+						sink.addBezier(bs6);
 					}
 				}
 			}
@@ -2098,13 +1493,15 @@ sink.addLine(gmpi::drawing::Point(edgeX - radius, y));
 			idx--;
 			prevEdgeType = edgeType;
 		}
+
 		sink.endFigure();
 
 		sink.close();
 
+		getDrawingResources(factory)->outlineCache[outlineSpecification] = geometry;
+
 		return geometry;
 	}
-#endif
 
 	int ModuleViewStruct::getPinDatatype(int pinIndex)
 	{
