@@ -149,8 +149,12 @@ public:
 		if (auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>())
 		{
 			ReturnString globalUri;
-			if (synthEdit->findResourceUri("global.txt", &globalUri) == ReturnCode::Ok)
+			if(synthEdit->findResourceUri("global.txt", &globalUri) == ReturnCode::Ok)
+			{
+				// !!returning only "skins/default2/global.txt" not fullURi
+
 				skinFont = parseSkinFontCategory(globalUri.cppString, "panel_group");
+			}
 		}
 
 		return r;
@@ -159,7 +163,7 @@ public:
 	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
 	{
 		Graphics g(drawingContext);
-		ClipDrawingToBounds clip(g, bounds);
+// TODO extend bounds		ClipDrawingToBounds clip(g, bounds);
 
 		const auto& r  = bounds;
 		const float cr = (std::max)(0.001f, pinCornerRadius.value);
