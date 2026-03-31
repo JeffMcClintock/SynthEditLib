@@ -169,17 +169,17 @@ namespace SE2
 				// quantize start x/y to grid.
 				int startX = static_cast<int>(cliprect.left) / gridSize;
 				startX = (std::max)(startX, gridBoarder);
-				startX = startX * gridSize - 1;
+				startX = startX * gridSize;
 
 				int startY = static_cast<int>(cliprect.top) / gridSize;
 				startY = (std::max)(startY, gridBoarder);
-				startY = startY * gridSize - 1;
+				startY = startY * gridSize;
 
-				int endX = (static_cast<int>(cliprect.right) + gridSize - 1) / gridSize;
+				int endX = (static_cast<int>(cliprect.right) + gridSize) / gridSize;
 				endX = (std::min)(endX, totalGrids + gridBoarder);
 				endX = endX * gridSize + 1;
 
-				int endY = (static_cast<int>(cliprect.bottom) + gridSize - 1) / gridSize;
+				int endY = (static_cast<int>(cliprect.bottom) + gridSize) / gridSize;
 				endY = (std::min)(endY, totalGrids + gridBoarder);
 				endY = endY * gridSize + 1;
 
@@ -189,7 +189,7 @@ namespace SE2
 				const float y2 = endY   - 0.5f;
 				for (int x = startX; x < endX; x += gridSize)
 				{
-					const auto xo = snap.snapPixelOrigin({ static_cast<float>(x), 0.0f }).x;
+					const auto xo = snap.snapX(static_cast<float>(x));
 
 					if (++thickLineCounter == largeGridRatio)
 					{
@@ -220,7 +220,7 @@ namespace SE2
 
 					for(int y = startY; y < endY; y += gridSize)
 					{
-						auto yo = snap.snapPixelOrigin({ 0.0f, static_cast<float>(y) }).y;
+						auto yo = snap.snapY(static_cast<float>(y));
 
 						if(++thickLineCounter == largeGridRatio)
 						{
@@ -250,6 +250,12 @@ namespace SE2
 					, brush
 					, thickLine.width
 				);
+/* check alignment
+auto p = 5 * 12.0f;
+auto testBrush = g.createSolidColorBrush(Colors::Red);
+g.drawLine(p, 100.f, p, -100.f, testBrush);
+g.drawLine(100.f, p, -100.f, p, testBrush);
+*/
 			}
 		}
 

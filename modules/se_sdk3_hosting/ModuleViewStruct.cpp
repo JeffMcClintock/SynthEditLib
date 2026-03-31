@@ -13,6 +13,7 @@
 #include "helpers/SimplifyGraph.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
 #include "mfc_emulation.h"
+#include "helpers/PixelSnapper.h"
 
 using namespace gmpi;
 using namespace std;
@@ -521,6 +522,21 @@ namespace SE2
 	void ModuleViewStruct::render(gmpi::drawing::Graphics& g)
 	{
 		constexpr auto& plugDiameter = sharedGraphicResources_struct::plugDiameter;
+		pixelSnapper2 snap(g.getTransform(), parent->drawingHost->getRasterizationScale());
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+		// outline stroke.
+		const auto OutlineSpec = snap.thickness(isHovered_ ? 2.0f : 1.0f);
+const auto strokeWidth1 = snap.thickness(1.0f).width;
+const auto strokeWidth2 = snap.thickness(2.0f).width;
+		// current top is bounds.top -0.5
+		// snap the top border line to the pixel-grid.
+		const auto topYsnapped = snap.snapY(0.0f);
+		constexpr float geometryTopY = -0.5f;
+
+		const auto offset = topYsnapped - geometryTopY + OutlineSpec.center_offset; //          0.5f - snap.snapY(-0.5f) + OutlineSpec.center_offset;
+		const auto orig = g.getTransform();
+		g.setTransform(makeTranslation(0.0f, offset) * orig);
+
 
 #if 0 // debug layout and clip rects
 		g.fillRectangle(getClipArea(),   g.createSolidColorBrush(Color::FromArgb(0x200000ff)));
@@ -615,14 +631,14 @@ namespace SE2
 				backgroundBrush = g.createLinearGradientBrush(lgbp1, BrushProperties(), gradientStopCollection);
 			}
 		}
-
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 		// Fancy outline.
 		if ( zoomFactor > 0.25f)
 		{
 			g.fillGeometry(outlineGeometry, backgroundBrush);
 
 			auto& moduleOutlineBrush = isHovered_ ? resources->moduleOutlineBrushHovered : resources->moduleOutlineBrush;
-			const float strokeWidth = isHovered_ ? 2.0f : 1.0f;
+			const float strokeWidth = isHovered_ ? strokeWidth2 : strokeWidth1;
 			g.drawGeometry(outlineGeometry, moduleOutlineBrush, strokeWidth);
 		}
 		else
@@ -722,20 +738,20 @@ namespace SE2
 
 			pluginGraphics_GMPI->render(gmpiContext);
 
-// todo, second pass for all these at once.
-if(pluginDrawingLayer_GMPI)
-	pluginDrawingLayer_GMPI->renderLayer(gmpiContext, 1);
+			// todo, second pass for all these at once.
+			if(pluginDrawingLayer_GMPI)
+				pluginDrawingLayer_GMPI->renderLayer(gmpiContext, 1);
 
 			g.setTransform(transform);
 		}
-		else if (pluginGraphics)
+		else if(pluginGraphics)
 		{
 			// Transform to module-relative.
 			const auto transform = g.getTransform();
 			auto adjustedTransform = makeTranslation(pluginGraphicsPos.left, pluginGraphicsPos.top) * transform;
 
 			g.setTransform(adjustedTransform);
-			
+
 			// Render.
 			pluginGraphics->OnRender(reinterpret_cast<GmpiDrawing_API::IMpDeviceContext*>(AccessPtr::get(g)));
 
@@ -858,6 +874,10 @@ if(pluginDrawingLayer_GMPI)
 				g.drawTextU(hoverScopeText.c_str(), font, centeredTextRect, brush);
 			}
 		}
+		g.setTransform(orig);
+
+		// check alignment
+		g.fillRectangle({ -1, -1, 1, 1 }, g.createSolidColorBrush(Colors::Red));
 	}
 
 	void ModuleViewStruct::RenderCpu(Graphics& g)
