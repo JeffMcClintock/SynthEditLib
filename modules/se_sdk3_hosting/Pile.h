@@ -509,7 +509,7 @@ struct PileChildHost2 :
 	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override;
 	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
 	void invalidateMeasure() override;
-	float getRasterizationScale() override { return 1.0f; } // DPI scaling
+	float getRasterizationScale() override;
 
 	// IDialogHost
 	gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override;
@@ -1339,6 +1339,12 @@ public:
 #endif
 	GMPI_REFCOUNT
 };
+
+// Inline implementations for PileChildHost2 (after Pile is fully defined)
+inline float PileChildHost2::getRasterizationScale()
+{
+	return parent && parent->drawingHost ? parent->drawingHost->getRasterizationScale() : 1.0f;
+}
 
 #if 0
 inline int32_t MP_STDCALL PileChildHost::GetDrawingFactory(GmpiDrawing_API::IMpFactory** returnFactory)

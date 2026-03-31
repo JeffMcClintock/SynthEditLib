@@ -71,8 +71,9 @@ bool isIteratingChildren = false;
 		// scrollPos is derived on demand in calcViewTransform() and must not be stored as state.
 		gmpi::drawing::Point centerPos = {};
 		float zoomFactor = 1.0f;
-		gmpi::drawing::Matrix3x2 viewTransform;
-		gmpi::drawing::Matrix3x2 inv_viewTransform;
+		gmpi::drawing::Matrix3x2 viewTransform;          // quantized (pixel-snapped) — for rendering
+		gmpi::drawing::Matrix3x2 viewTransformPrecise;    // unquantized — for coordinate mapping
+		gmpi::drawing::Matrix3x2 inv_viewTransform;       // inverse of precise transform
 		bool avoidRecusion{}; // from scroll bars
 		bool isAutoScrolling = false;
 

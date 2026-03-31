@@ -13,6 +13,7 @@
 #include "IGuiHost2.h"
 #include "ModuleViewStruct.h"
 #include "ConnectorViewStruct.h"
+#include "helpers/PixelSnapper.h"
 #include "gmpi_drawing_conversions.h"
 
 using namespace std;
@@ -103,7 +104,6 @@ namespace SE2
 		{
 			// THEME
 			const unsigned int backGroundColor = 0xACACACu; // Background color
-			const float thickWidth = 3.0f;
 
 			// Background
 			{
@@ -140,6 +140,11 @@ namespace SE2
 			auto brush = g.createSolidColorBrush(backGroundColor + 0x040404u); // grid color.
 			if (zoom > 0.1f)
 			{
+				pixelSnapper2 snap( g.getTransform(), drawingHost->getRasterizationScale() );
+
+				const auto thinLine = snap.thickness(1.0f);
+				const auto thickLine = snap.thickness(3.0f);
+
 				const auto drawFinegrid = zoom > 0.6f;
 
 				gmpi::drawing::Rect cliprectF = g.getAxisAlignedClip();
@@ -178,45 +183,63 @@ namespace SE2
 				endY = (std::min)(endY, totalGrids + gridBoarder);
 				endY = endY * gridSize + 1;
 
-//				constexpr int largeGridSize = gridSize * largeGridRatio;
-
+				// vertical lines.
 				int thickLineCounter = ((startX + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
+				const float y1 = startY + 0.5f;
+				const float y2 = endY   - 0.5f;
 				for (int x = startX; x < endX; x += gridSize)
 				{
-					float penWidth;
+					const auto xo = snap.snapPixelOrigin({ static_cast<float>(x), 0.0f }).x;
+
 					if (++thickLineCounter == largeGridRatio)
 					{
-						penWidth = thickWidth;
 						thickLineCounter = 0;
+
+						const auto& line = thickLine;
+						const auto xsnapped = xo + line.center_offset;
+						g.drawLine({ xsnapped, y1 }, { xsnapped, y2 }, brush, line.width);
 					}
 					else
 					{
 						if (!drawFinegrid)
 							continue;
 
-						penWidth = 1;
+						const auto& line = thinLine;
+						const auto xsnapped = xo + line.center_offset;
+						g.drawLine({ xsnapped, y1 }, { xsnapped, y2 }, brush, line.width);
+
+//						_RPTN(0, "draw fine vertical x=%f w=%f\n", transformPoint(snap.inverted, { xsnapped, 0.0f }).x, thinLine.width / drawingHost->getRasterizationScale());
 					}
-					g.drawLine({ x + 0.5f, startY + 0.5f }, { x + 0.5f, endY - 0.5f }, brush, penWidth);
 				}
 
-				thickLineCounter = ((startY + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
-				for (int y = startY; y < endY; y += gridSize)
+				// horizonal lines.
 				{
-					float penWidth;
-					if (++thickLineCounter == largeGridRatio)
-					{
-						penWidth = thickWidth;
-						thickLineCounter = 0;
-					}
-					else
-					{
-						if (!drawFinegrid)
-							continue;
+					thickLineCounter = ((startY + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
+					const float x1 = startX + 0.5f;
+					const float x2 = endX   - 0.5f;
 
-						penWidth = 1;
-					}
+					for(int y = startY; y < endY; y += gridSize)
+					{
+						auto yo = snap.snapPixelOrigin({ 0.0f, static_cast<float>(y) }).y;
 
-					g.drawLine({ startX + 0.5f, y + 0.5f }, { endX - 0.5f, y + 0.5f }, brush, penWidth);
+						if(++thickLineCounter == largeGridRatio)
+						{
+							thickLineCounter = 0;
+
+							const auto& line = thickLine;
+							const auto ysnapped = yo + line.center_offset;
+							g.drawLine({ x1, ysnapped }, { x2, ysnapped }, brush, line.width);
+						}
+						else
+						{
+							if(!drawFinegrid)
+								continue;
+
+							const auto& line = thinLine;
+							const auto ysnapped = yo + line.center_offset;
+							g.drawLine({ x1, ysnapped }, { x2, ysnapped }, brush, line.width);
+						}
+					}
 				}
 
 				// outline entire grid to clean up 4 corners.
@@ -225,7 +248,7 @@ namespace SE2
 						gridSize * 2 - 0.5f, gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f
 					}
 					, brush
-					, thickWidth
+					, thickLine.width
 				);
 			}
 		}

@@ -1,3 +1,4 @@
+#include <cmath>
 #include <random>
 #include <sstream>
 #include <iostream>
@@ -102,7 +103,7 @@ namespace SE2
 
 		g.setTransform(originalTransform);
 
-		return gmpi::ReturnCode::Ok; // static_cast<gmpi::ReturnCode>(OnRender(reinterpret_cast<GmpiDrawing_API::IMpDeviceContext*>(drawingContext)));
+		return gmpi::ReturnCode::Ok;
 	}
 
 	// all clicks are hit on a view.
@@ -116,34 +117,6 @@ namespace SE2
 		return Find(p) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
 		*/
 	}
-
-#if 0 // handled by base class, to be removed.
-	gmpi::ReturnCode ViewBase::measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize)
-	{
-		if (!availableSize || !returnDesiredSize)
-			return gmpi::ReturnCode::Fail;
-
-		return static_cast<gmpi::ReturnCode>(measure(*availableSize, returnDesiredSize));
-	}
-
-	gmpi::ReturnCode ViewBase::arrange(const gmpi::drawing::Rect* finalRect)
-	{
-		if (!finalRect)
-			return gmpi::ReturnCode::Fail;
-
-		return static_cast<gmpi::ReturnCode>(arrange(*finalRect));
-	}
-
-	gmpi::ReturnCode ViewBase::getClipArea(gmpi::drawing::Rect* returnRect)
-	{
-		if (!returnRect)
-			return gmpi::ReturnCode::Fail;
-
-		*returnRect = drawingBounds;
-		return gmpi::ReturnCode::Ok;
-	}
-
-#endif
 
 	gmpi::ReturnCode ViewBase::onPointerDown(gmpi::drawing::Point point, int32_t flags)
 	{
@@ -1092,14 +1065,30 @@ namespace SE2
 
 	void ViewBase::calcViewTransform()
 	{
-		// Derive pixel scroll offset from center (doc coords) and current view size.
+		// Derive scroll offset from center (doc coords) and current view size.
 		const float scrollX = (drawingBounds.right  - drawingBounds.left) * 0.5f - centerPos.x * zoomFactor;
 		const float scrollY = (drawingBounds.bottom - drawingBounds.top)  * 0.5f - centerPos.y * zoomFactor;
 
-		viewTransform = gmpi::drawing::makeScale({ zoomFactor, zoomFactor });
-		viewTransform *= gmpi::drawing::makeTranslation({ scrollX, scrollY });
+		// Precise transform — used for all coordinate mapping (mouse, hit-test, etc.)
+		viewTransformPrecise = gmpi::drawing::makeScale({ zoomFactor, zoomFactor });
+		viewTransformPrecise *= gmpi::drawing::makeTranslation({ scrollX, scrollY });
+		inv_viewTransform = invert(viewTransformPrecise);
 
-		inv_viewTransform = invert(viewTransform);
+		// Quantized transform — used for rendering so that 12 DIPs maps to integer hardware pixels.
+		constexpr float gridDips = 12.0f;
+		const float dpiScale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
+
+		const float snappedGridPixels = std::round(gridDips * zoomFactor * dpiScale);
+		const float snappedZoom = snappedGridPixels / (gridDips * dpiScale);
+
+		float snappedScrollX = (drawingBounds.right - drawingBounds.left) * 0.5f - centerPos.x * snappedZoom;
+		float snappedScrollY = (drawingBounds.bottom - drawingBounds.top) * 0.5f - centerPos.y * snappedZoom;
+
+		snappedScrollX = std::round(snappedScrollX * dpiScale) / dpiScale;
+		snappedScrollY = std::round(snappedScrollY * dpiScale) / dpiScale;
+
+		viewTransform = gmpi::drawing::makeScale({ snappedZoom, snappedZoom });
+		viewTransform *= gmpi::drawing::makeTranslation({ snappedScrollX, snappedScrollY });
 
 		invalidateRect();
 	}
