@@ -531,7 +531,7 @@ const auto strokeWidth2 = snap.thickness(2.0f).width;
 		// current top is bounds.top -0.5
 		// snap the top border line to the pixel-grid.
 		const auto topYsnapped = snap.snapY(0.0f);
-		constexpr float geometryTopY = -0.5f;
+		constexpr float geometryTopY = 0.0f; // -0.5f;
 
 		const auto offset = topYsnapped - geometryTopY + OutlineSpec.center_offset; //          0.5f - snap.snapY(-0.5f) + OutlineSpec.center_offset;
 		const auto orig = g.getTransform();
@@ -659,7 +659,7 @@ const auto strokeWidth2 = snap.thickness(2.0f).width;
 			const float left = plugDiameter * 0.5f - 0.5f;
 			const float right = getWidth(getLayoutRect()) - plugDiameter * 0.5f + 0.5f;
 
-			Point p(0, plugDiameter * 0.5f - 0.5f);
+			Point p(0, plugDiameter * 0.5f); // -0.5f);
 			int pinIndex = 0;
 
 			for (const auto& pin : plugs_)
@@ -1270,8 +1270,7 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 		int edgeType = EFlat;
 		int prevEdgeType = EFlat;
 		float edgeX = leftX;
-		float plugY = -0.5f; // top
-		float y = -0.5;
+		float y = 0.0f; // why? -0.5;
 
 		// Down left side
 		for (const auto& vc : filteredChildren)
