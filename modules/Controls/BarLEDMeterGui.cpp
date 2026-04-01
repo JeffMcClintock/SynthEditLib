@@ -2,7 +2,7 @@
 // Copyright 2007-2026 Jeff McClintock.
 
 #include "helpers/GmpiPluginEditor.h"
-#include "helpers/CachedBlur.h"
+#include "helpers/BitmapMask.h"
 #include <algorithm>
 #include <cmath>
 
@@ -10,10 +10,12 @@ using namespace gmpi;
 using namespace gmpi::drawing;
 using namespace gmpi::editor;
 
-class BarLEDMeterGui final : public PluginEditor
+class BarLEDMeterGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 {
-	cachedBlur shadowBlur;
-	SizeU shadowSize{};
+	Bitmap glowBitmap;
+	int32_t glowBitmapWidth = 0;
+	int32_t glowBitmapHeight = 0;
+	bool glowBitmapDirty = true;
 
 	Pin<float> pinNormalized;
 	Pin<bool> pinRed;
@@ -23,6 +25,7 @@ class BarLEDMeterGui final : public PluginEditor
 
 	static constexpr int ledCount = 12;
 	static constexpr float ledGap = 2.0f;
+	static constexpr int glowPadding = 40;
 
 	Color getLedOnColor() const
 	{
@@ -39,48 +42,127 @@ class BarLEDMeterGui final : public PluginEditor
 		return getHeight(bounds) > getWidth(bounds);
 	}
 
-	Rect getLedRect(int index, const Rect& localBounds) const
+	// returns the rect of a single LED in local coordinates (relative to bounds origin)
+	Rect getLedRect(int index) const
 	{
-		const float w = getWidth(localBounds);
-		const float h = getHeight(localBounds);
+		const float w = getWidth(bounds);
+		const float h = getHeight(bounds);
 
 		if (isVertical())
 		{
 			const float totalGap = ledGap * static_cast<float>(ledCount - 1);
 			const float ledH = (h - totalGap) / static_cast<float>(ledCount);
 			// index 0 = bottom LED (lowest value)
-			const float top = localBounds.bottom - (static_cast<float>(index + 1) * ledH + static_cast<float>(index) * ledGap);
-			return { localBounds.left, top, localBounds.right, top + ledH };
+			const float top = h - (static_cast<float>(index + 1) * ledH + static_cast<float>(index) * ledGap);
+			return { 0.0f, top, w, top + ledH };
 		}
 		else
 		{
 			const float totalGap = ledGap * static_cast<float>(ledCount - 1);
 			const float ledW = (w - totalGap) / static_cast<float>(ledCount);
 			// index 0 = left LED (lowest value)
-			const float left = localBounds.left + static_cast<float>(index) * (ledW + ledGap);
-			return { left, localBounds.top, left + ledW, localBounds.bottom };
+			const float left = static_cast<float>(index) * (ledW + ledGap);
+			return { left, 0.0f, left + ledW, h };
 		}
 	}
 
-	void updateShadowCache(const SizeU& size)
+	// size of a single LED (all LEDs are the same size)
+	Size getLedSize() const
 	{
-		if (shadowSize.width != size.width || shadowSize.height != size.height)
-		{
-			shadowBlur.invalidate();
-			shadowSize = size;
-		}
+		const auto r = getLedRect(0);
+		return { getWidth(r), getHeight(r) };
+	}
+
+	Rect getGlowClipRect() const
+	{
+		return {
+			bounds.left - static_cast<float>(glowPadding),
+			bounds.top - static_cast<float>(glowPadding),
+			bounds.right + static_cast<float>(glowPadding),
+			bounds.bottom + static_cast<float>(glowPadding)
+		};
 	}
 
 	void redraw()
 	{
 		if (drawingHost)
-			drawingHost->invalidateRect(&bounds);
+		{
+			const auto r = getGlowClipRect();
+			drawingHost->invalidateRect(&r);
+		}
 	}
 
 	void onSetColor()
 	{
-		shadowBlur.invalidate();
+		glowBitmapDirty = true;
 		redraw();
+	}
+
+	// Create a glow bitmap for a single LED, sized to ledSize + glowPadding on each side.
+	// Uses additive half-float pixels (alpha=0) just like LEDGui.
+	ReturnCode updateGlowBitmap(Graphics& g, int32_t bmpW, int32_t bmpH)
+	{
+		if (!glowBitmapDirty && glowBitmap && glowBitmapWidth == bmpW && glowBitmapHeight == bmpH)
+			return ReturnCode::Ok;
+
+		glowBitmap = g.getFactory().createImage(bmpW, bmpH);
+		glowBitmapWidth = bmpW;
+		glowBitmapHeight = bmpH;
+		glowBitmapDirty = false;
+
+		const auto ledSize = getLedSize();
+		const float halfW = static_cast<float>(bmpW) * 0.5f;
+		const float halfH = static_cast<float>(bmpH) * 0.5f;
+		const float ledHalfW = ledSize.width * 0.5f;
+		const float ledHalfH = ledSize.height * 0.5f;
+		const float cornerRadius = pinRadius.value;
+		const auto ledColor = getLedOnColor();
+
+		{
+			auto pixels = glowBitmap.lockPixels(BitmapLockFlags::Write);
+			if (!pixels)
+				return ReturnCode::Fail;
+
+			constexpr float falloff = 0.4f;
+			constexpr float taperZoneStart = 0.5f;
+			constexpr float taperGradient = 1.0f / (1.0f - taperZoneStart);
+			const float maxDist = static_cast<float>(glowPadding);
+
+			for (auto& it : pixelIterator<RgbaHalfPixel>(pixels))
+			{
+				// pixel position relative to centre of the bitmap
+				const float px = (it.x + 0.5f) - halfW;
+				const float py = (it.y + 0.5f) - halfH;
+
+				// distance from the rounded rectangle surface
+				// first, distance from the inner rectangle (shrunk by corner radius)
+				const float innerHalfW = (std::max)(0.0f, ledHalfW - cornerRadius);
+				const float innerHalfH = (std::max)(0.0f, ledHalfH - cornerRadius);
+
+				const float dx = (std::max)(0.0f, std::abs(px) - innerHalfW);
+				const float dy = (std::max)(0.0f, std::abs(py) - innerHalfH);
+				const float distFromInner = std::sqrt(dx * dx + dy * dy);
+				const float distFromSurface = (std::max)(0.0f, distFromInner - cornerRadius);
+
+				// glow intensity: bright at surface, falling off with distance
+				float glow = 0.5f / (std::max)(1.0f, falloff * distFromSurface);
+
+				// taper to zero at the edge of the bitmap
+				const float normalizedDist = distFromSurface / (std::max)(1.0f, maxDist);
+				glow *= (std::clamp)(1.0f - taperGradient * (normalizedDist - taperZoneStart), 0.0f, 1.0f);
+
+				// inside the LED shape, full glow
+				if (distFromInner <= cornerRadius)
+					glow = (std::max)(glow, 0.5f);
+
+				it->setR(ledColor.r * glow);
+				it->setG(ledColor.g * glow);
+				it->setB(ledColor.b * glow);
+				it->setA(0.0f); // additive blending
+			}
+		}
+
+		return ReturnCode::Ok;
 	}
 
 public:
@@ -90,7 +172,17 @@ public:
 		pinRed.onUpdate = [this](PinBase*) { onSetColor(); };
 		pinGreen.onUpdate = [this](PinBase*) { onSetColor(); };
 		pinBlue.onUpdate = [this](PinBase*) { onSetColor(); };
-		pinRadius.onUpdate = [this](PinBase*) { shadowBlur.invalidate(); redraw(); };
+		pinRadius.onUpdate = [this](PinBase*) { glowBitmapDirty = true; redraw(); };
+	}
+
+	int32_t addRef() override
+	{
+		return PluginEditor::addRef();
+	}
+
+	int32_t release() override
+	{
+		return PluginEditor::release();
 	}
 
 	ReturnCode measure(const Size* availableSize, Size* returnDesiredSize) override
@@ -101,65 +193,44 @@ public:
 		return ReturnCode::Ok;
 	}
 
+	// Layer 0: draw the solid LEDs
 	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
 	{
 		Graphics g(drawingContext);
-		ClipDrawingToBounds clip(g, bounds);
-
-		const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
-		const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
-		const Rect localBounds{ 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height) };
 
 		const float normalized = (std::clamp)(pinNormalized.value, 0.0f, 1.0f);
 		const float litLeds = normalized * static_cast<float>(ledCount);
 		const float cornerRadius = pinRadius.value;
-		const auto onColor = getLedOnColor();
-		const auto offColor = interpolateColor(onColor, Colors::Black, 0.75f);
+		const auto onColor = Colors::White; // getLedOnColor();
+		const auto offColor = interpolateColor(Colors::Black, getLedOnColor(), 0.307f);
+		auto onBrush = g.createSolidColorBrush(onColor);
+		auto offBrush = g.createSolidColorBrush(offColor);
 
-		// Shadow behind the whole meter
-		{
-			updateShadowCache({ width, height });
-			shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.35f };
-			shadowBlur.blurRadius = 3;
-
-			const auto orig = g.getTransform();
-			g.setTransform(makeTranslation({ 1.5f, 1.5f }) * orig);
-			shadowBlur.draw(g, localBounds, [&](Graphics& mask)
-				{
-					auto brush = mask.createSolidColorBrush(Colors::White);
-					for (int i = 0; i < ledCount; ++i)
-					{
-						const auto r = getLedRect(i, localBounds);
-						mask.fillRoundedRectangle({ r, cornerRadius, cornerRadius }, brush);
-					}
-				});
-			g.setTransform(orig);
-		}
-
-		// Draw LEDs
 		auto strokeBrush = g.createSolidColorBrush(Color{ 0.15f, 0.15f, 0.15f, 0.5f });
-		const float strokeWidth = 0.5f;
 
 		for (int i = 0; i < ledCount; ++i)
 		{
-			const auto ledRect = getLedRect(i, localBounds);
+			const auto ledRect = getLedRect(i);
 			const float ledIndex = static_cast<float>(i);
 
-			// brightness: fully on, partial, or off
-			float brightness;
-			if (ledIndex + 1.0f <= litLeds)
-				brightness = 1.0f;
-			else if (ledIndex < litLeds)
-				brightness = litLeds - ledIndex;
-			else
-				brightness = 0.0f;
+			//float brightness;
+			//if(ledIndex + 1.0f <= litLeds)
+			//{
+			//	onColor
+			//}
+			//	brightness = 1.0f;
+			////else if (ledIndex < litLeds)
+			////	brightness = litLeds - ledIndex;
+			//else
+			//	brightness = 0.0f;
 
-			const auto color = interpolateColor(offColor, onColor, brightness);
+			//const auto color = interpolateColor(offColor, onColor, brightness);
 			const RoundedRect rr{ ledRect, cornerRadius, cornerRadius };
 
-			auto fillBrush = g.createSolidColorBrush(color);
-			g.fillRoundedRectangle(rr, fillBrush);
+//			auto fill = g.createSolidColorBrush(interpolateColor(unlit, Colors::White, brightness));
 
+			g.fillRoundedRectangle(rr, ledIndex + 1.0f <= litLeds ? onBrush : offBrush);
+/*
 			// bright core highlight when lit
 			if (brightness > 0.1f)
 			{
@@ -176,11 +247,85 @@ public:
 				auto coreBrush = g.createSolidColorBrush(coreColor);
 				g.fillRoundedRectangle({ coreRect, coreRadius, coreRadius }, coreBrush);
 			}
+*/
 
-			g.drawRoundedRectangle(rr, strokeBrush, strokeWidth);
+			g.drawRoundedRectangle(rr, strokeBrush, 0.5f);
 		}
 
 		return ReturnCode::Ok;
+	}
+
+	ReturnCode getClipArea(Rect* returnRect) override
+	{
+		*returnRect = getGlowClipRect();
+		return ReturnCode::Ok;
+	}
+
+	// Layer 1: additive glow pass — reuse one glow bitmap for every lit LED
+	ReturnCode renderLayer(drawing::api::IDeviceContext* drawingContext, int32_t layer) override
+	{
+		if (layer == 0)
+			return render(drawingContext);
+
+		if (layer != 1)
+			return ReturnCode::NoSupport;
+
+		const float normalized = (std::clamp)(pinNormalized.value, 0.0f, 1.0f);
+		if (normalized <= 0.0f)
+			return ReturnCode::Ok;
+
+		Graphics g(drawingContext);
+
+		const auto ledSize = getLedSize();
+		const int32_t bmpW = 2 * glowPadding + static_cast<int32_t>(std::ceil(ledSize.width));
+		const int32_t bmpH = 2 * glowPadding + static_cast<int32_t>(std::ceil(ledSize.height));
+
+		auto rc = updateGlowBitmap(g, bmpW, bmpH);
+		if (rc != ReturnCode::Ok)
+			return rc;
+
+		const Rect srcRect{ 0.0f, 0.0f, static_cast<float>(bmpW), static_cast<float>(bmpH) };
+		const float litLeds = normalized * static_cast<float>(ledCount);
+		const float pad = static_cast<float>(glowPadding);
+
+		for (int i = 0; i < ledCount; ++i)
+		{
+			const float ledIndex = static_cast<float>(i);
+
+			float brightness;
+			if (ledIndex + 1.0f <= litLeds)
+				brightness = 1.0f;
+			//else if (ledIndex < litLeds)
+			//	brightness = litLeds - ledIndex;
+			else
+				continue; // unlit — skip
+
+			const auto ledRect = getLedRect(i);
+			const Rect destRect{
+				ledRect.left - pad,
+				ledRect.top - pad,
+				ledRect.right + pad,
+				ledRect.bottom + pad
+			};
+
+			g.drawBitmap(glowBitmap, destRect, srcRect, brightness * 0.5f);
+		}
+
+		return ReturnCode::Ok;
+	}
+
+	ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+	{
+		*returnInterface = {};
+
+		if ((*iid) == gmpi::api::IDrawingLayer::guid)
+		{
+			*returnInterface = static_cast<gmpi::api::IDrawingLayer*>(this);
+			PluginEditor::addRef();
+			return ReturnCode::Ok;
+		}
+
+		return PluginEditor::queryInterface(iid, returnInterface);
 	}
 };
 
