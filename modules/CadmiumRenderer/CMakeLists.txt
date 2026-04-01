@@ -1,39 +1,54 @@
 cmake_minimum_required(VERSION 3.30)
-project(Square)
-set(sdk_folder
-../../se_sdk3
-)
+
+project(CadmiumRenderer)
+
+# New GMPI UI SDK sources
 set(sdk_srcs
-${sdk_folder}/mp_sdk_common.cpp
-${sdk_folder}/mp_sdk_audio.cpp
+    ${GMPI_SDK}/Core/Common.h
+    ${GMPI_SDK}/Core/Common.cpp
+    ${GMPI_SDK}/Core/RefCountMacros.h
+    ${GMPI_SDK}/Core/GmpiApiCommon.h
+    ${GMPI_SDK}/Core/GmpiSdkCommon.h
+    ${GMPI_SDK}/Core/GmpiApiEditor.h
+    ${GMPI_UI_SDK}/GmpiApiDrawing.h
+    ${GMPI_UI_SDK}/Drawing.h
+    ${GMPI_UI_SDK}/helpers/Timer.h
+    ${GMPI_UI_SDK}/helpers/Timer.cpp
 )
+
 set(srcs
-module.rc
-SquareGui.cpp
-Square.cpp
+    CadmiumRenderer.cpp
+    RenderGui.cpp
+    SolidColorBrushGui.cpp
+    SquareGui.cpp
+    Cadmium/GUI_3_0.cpp
+    Cadmium/GUI_3_0.h
+    jsoncpp/jsoncpp.cpp
+    jsoncpp/json/json.h
 )
 
-include_directories(
-${sdk_folder}
+source_group(sdk FILES ${sdk_srcs})
+
+add_library(${PROJECT_NAME} MODULE ${srcs} ${sdk_srcs})
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${GMPI_SDK}
+    ${GMPI_SDK}/Core
+    ${GMPI_UI_SDK}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../se_sdk3_hosting
 )
 
-include (GenerateExportHeader)
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:_DEBUG>
+    $<$<CONFIG:Release>:NDEBUG>
+)
 
-add_library(${PROJECT_NAME} MODULE ${sdk_srcs} ${srcs})
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
-if(APPLE)
-  set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
-  set_target_properties(${PROJECT_NAME} PROPERTIES BUNDLE TRUE)
-  set_target_properties(${PROJECT_NAME} PROPERTIES BUNDLE_EXTENSION "sem")
-
-  # Place ADSR.xml in bundle 'Resources' folder.
-  set(xml_path "ADSR.xml")
-  target_sources(${PROJECT_NAME} PUBLIC ${xml_path})
-  set_source_files_properties(${xml_path} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-endif()
-
-if(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
-  set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE d3d11 d2d1 dwrite windowscodecs)
+    target_link_options(${PROJECT_NAME} PRIVATE "/SUBSYSTEM:WINDOWS")
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".sem")
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "modules")

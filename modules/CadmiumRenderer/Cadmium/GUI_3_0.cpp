@@ -1,4 +1,4 @@
-#include "Drawing.h"
+#include "GmpiUiDrawing.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <vector>
@@ -7,7 +7,7 @@
 #include "GUI_3_0.h"
 #include "IGuiHost2.h"
 
-using namespace GmpiDrawing;
+using namespace gmpi::drawing;
 
 list_function::list_function(std::function<state_t(const List&)> pfunction)
  : function(pfunction)
@@ -31,12 +31,12 @@ bool compareState(const state_data_t& lhs, const state_data_t& rhs)
 //#ifdef _WIN32 // TODO, can't compare std::function for equality on macos. i.e. 'list_function'
 	if (lhs.index() == 0 || rhs.index() == 0)
         return false;
-        
+
     return lhs == rhs;
 //#endif
 //    test_t a, b;
 //    return a == b;
-    
+
 //	return false;
 	// comparing two lists of pointers to the same states will always result in false,
 	// becuase you're not comparing what the states *were* with what they are now,
@@ -133,7 +133,7 @@ void functionalUI::step()
 	}
 }
 
-void functionalUI::draw(Graphics& g)
+void functionalUI::draw(gmpi::drawing::Graphics& g)
 {
 	/* might be needed, probably not
 
@@ -155,28 +155,27 @@ void functionalUI::init()
 {
 	// reference, what we're trying to achieve
 #if 0
-	Color color(Color::Bisque);
-	auto brush = g.CreateSolidColorBrush(color);
-	const Point center(100.0f, 100.0f);
+	Color color = Colors::Bisque;
+	auto brush = g.createSolidColorBrush(color);
+	const Point center{100.0f, 100.0f};
 	const float radius = 50.0f;
-	//	g.FillCircle(center, radius, brush);
 
-		// create circle geometry the hard way.
-	auto geometry = g.GetFactory().CreatePathGeometry();
+	// create circle geometry the hard way.
+	auto geometry = g.getFactory().createPathGeometry();
 	{
 		const float pi = M_PI;
-		auto sink = geometry.Open();
+		auto sink = geometry.open();
 
 		// make a circle from two half-circle arcs
-		sink.BeginFigure({ center.x, center.y - radius }, FigureBegin::Filled);
-		sink.AddArc({ { center.x, center.y + radius}, { radius, radius }, pi });
-		sink.AddArc({ { center.x, center.y - radius }, { radius, radius }, pi });
+		sink.beginFigure({ center.x, center.y - radius }, FigureBegin::Filled);
+		sink.addArc({ { center.x, center.y + radius}, { radius, radius }, pi });
+		sink.addArc({ { center.x, center.y - radius }, { radius, radius }, pi });
 
-		sink.EndFigure(FigureEnd::Closed);
-		sink.Close();
+		sink.endFigure(FigureEnd::Closed);
+		sink.close();
 	}
 
-	g.FillGeometry(geometry, brush);
+	g.fillGeometry(geometry, brush);
 #endif
 
 	///////////////////////////////////////////////////////////////////////////////////
@@ -188,25 +187,24 @@ void functionalUI::init()
 std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functionalUI::builder&)> > functionalUI::factory =
 {
 	{ "SE Solid Color Brush",
-		[](int32_t handle, Json::Value& module_json, functionalUI::builder &builder) // , std::vector< std::unique_ptr<state_t> >& states, std::vector<node>& graph)
+		[](int32_t handle, Json::Value& module_json, functionalUI::builder &builder)
 		{
 			auto& states = builder.scheduler.states2;
 			auto& nodegraph = builder.scheduler.graph;
 
-			Color brushColor = Color::Black;
+			Color brushColor = Colors::Black;
 
 			ScanPinDefaults(module_json,
 				[&brushColor](int idx, const std::string& value)
 			{
 				if (idx == 0)
 				{
-					brushColor = Color::FromHexStringU(value);
+					brushColor = colorFromHexString(value);
 				}
 			}
 			);
 
 			// Add state for input value (color)
-//			const auto input1Idx = states.size();
 			states.push_back(
 				std::make_unique<observableState>(brushColor)
 			);
@@ -216,7 +214,6 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 				{
 					[](std::vector<state_t*> statesx) -> state_data_t
 					{
-//						_RPT0(0, "SE Solid Color Brush: Execute\n");
 						return vBrush(std::get<Color>(statesx[0]->value));
 					},
 					{states.back().get()},
@@ -228,12 +225,11 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 		},
 		////////////////////////////////////////////////////////////////////////////////
 { "CD Circle",
-	[](int32_t handle, Json::Value& module_json, functionalUI::builder &builder) // , std::vector< std::unique_ptr<state_t> >& states, std::vector<node>& graph)
+	[](int32_t handle, Json::Value& module_json, functionalUI::builder &builder)
 	{
 		auto& nodegraph = builder.scheduler.graph;
 
 			float radius{ 10.f };
-//			Point center{ 0.0f, 0.0f };
 
 			ScanPinDefaults(module_json,
 				[&radius](int idx, const std::string& value)
@@ -244,20 +240,7 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 					}
 				}
 			);
-/*
-			// TODO!!! this needs to come from pin default.
-			// center
-			const auto input1Idx = states.size();
-			states.push_back(
-				std::make_unique<state_t>(center)
-			);
 
-			// radius
-			const auto input2Idx = states.size();
-			states.push_back(
-				std::make_unique<state_t>(radius)
-			);
-*/
 			// 2. circle geometry
 			nodegraph.push_back(
 				{
@@ -283,16 +266,11 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 							}
 						}
 
-						//const auto& radius = std::get<float>(*states[0]);
-						//const auto& center = std::get<Point>(*states[1]);
 						radius = (std::max)(0.0f, radius);
 
 						return vCircleGeometry(center, radius);
 					},
-					{
-						//states[input1Idx].get(),
-						//states[input2Idx].get()
-					},
+					{},
 					{0.0f}, // result
 					handle
 				}
@@ -301,10 +279,9 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 			},
 			////////////////////////////////////////////////////////////////////////////////
 		{ "CD Square",
-[](int32_t handle, Json::Value& module_json, functionalUI::builder &builder) // , std::vector< std::unique_ptr<state_t> >& states, std::vector<node>& graph)
+[](int32_t handle, Json::Value& module_json, functionalUI::builder &builder)
 {
 	auto& states = builder.scheduler.states2;
-//	auto& graph = scheduler.graph;
 
 	float size{ 10.f };
 	Point center{ 0.0f, 0.0f };
@@ -335,9 +312,6 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 		{
 		[](std::vector<state_t*> states) -> state_data_t
 			{
-//				const auto& size = std::get<float>(*states[0]);
-//				const auto& center = std::get<Point>(*states[1]);
-
 				float defaultfloat{};
 
 				float* s = {};
@@ -378,9 +352,8 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 },
 ////////////////////////////////////////////////////////////////////////////////
 { "CD Point2Values",
-[](int32_t handle, Json::Value& module_json, functionalUI::builder &builder) // , std::vector< std::unique_ptr<state_t> >& states, std::vector<node>& graph)
+[](int32_t handle, Json::Value& module_json, functionalUI::builder &builder)
 {
-//	auto& states = scheduler.states2;
 	auto& nodegraph = builder.scheduler.graph;
 
 	nodegraph.push_back(
@@ -395,11 +368,6 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 					p = std::get_if<Point>(&states[0]->value);
 				}
 
-				//if (!p)
-				//{
-				//	p = &defaultPoint;
-				//}
-
 				// !!!! how to return Y???? struct 'node' has only one 'presult'
 				return p->x;
 			},
@@ -412,11 +380,8 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 },
 ////////////////////////////////////////////////////////////////////////////////
 { "CD Value", // aka PatchMem
-[](int32_t handle, Json::Value& module_json, functionalUI::builder &builder) // , std::vector< std::unique_ptr<state_t> >& states, std::vector<node>& graph)
+[](int32_t handle, Json::Value& module_json, functionalUI::builder &builder)
 {
-	//!!! TODO use techniques from "CD Pointer" to slash this to nothing.
-	//! // will need to proxy both input and output nodes.
-
 	// Add an input state to hold incoming parameter value.
 	const auto stateIndex = builder.scheduler.registerInputParameter(float{});
 	// Redirect 'from' connections to the proxy.
@@ -443,11 +408,7 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 					auto floatp = std::get_if<float>(&states[0]->value);
 					if (floatp)
 					{
-//						_RPTN(0, "setParameterValue(%f)\n", *floatp);
-// stack overflow, calls step()	
 					patchManager->setParameterValue(RawView{*floatp}, parameterHandle);
-						// better?
-						// scheduler.UpdateState(stateIndex, { *floatp }); // and have it figure out that that state is a parameter
 					}
 				}
 
@@ -476,9 +437,6 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 
 		[](std::vector<state_t*> states) -> state_t
 			{
-				// support custom calling from 'outside' with one float 'state' as a way to get parameters into the graph.
-		// !!! confusing, will be overwritten by any user-made connections !!!
-		// probly need to diferentiate patch-value and input-value (from graph)
 				if (states.size() > 0)
 				{
 					auto floatp = std::get_if<float>(states[0]);
@@ -516,7 +474,6 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 { "SE Render", // should be called fill-geometry or suchlike
 [](int32_t handle, Json::Value& module_json, functionalUI::builder &builder)
 {
-//	auto& states = scheduler.states2;
 	auto& nodegraph = builder.scheduler.graph;
 
 	nodegraph.push_back(
@@ -543,11 +500,11 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
                 // this technique pre-calculates the variant 'get's just once. could apply this to ALL nodes? for extra efficiency.
                 return RendererX(
                 {
-                    [brush, geometry](Graphics& g) -> void
+                    [brush, geometry](gmpi::drawing::Graphics& g) -> void
                     {
                         if (geometry && brush) // try to screen the need for this out
                         {
-                            g.FillGeometry(geometry->native(g), brush->native(g));
+                            g.fillGeometry(geometry->native(g), brush->native(g));
                         }
                     }
                 }
@@ -573,8 +530,6 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 			{
 			[](std::vector<state_t*> states) -> state_data_t
 				{
-					// https://www.lurklurk.org/cpp_clos.html 'The Lisp Interpreter'
-					// https://kirit.com/Build%20me%20a%20LISP 'Build me a LISP'
 					if (states.size() > 0)
 					{
 						if (auto list = std::get_if<List>(&states[0]->value))
@@ -593,18 +548,10 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 										remainderOfList.push_back(listr[i].value);
 									}
 
-									// return (*functionToApply)(remainderOfList).value;
-         
                                     return apply_list_function(*functionToApply, remainderOfList).value;
 								}
 							}
-
-							//for (auto& v : *list)
-							//{
-							//	_RPTN(0, "%d ", v.value.index());
-							//}
 						}
-						//_RPT0(0, "\n");
 					}
 
 					return {};
@@ -630,10 +577,6 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 
 						if (states.size() > 0)// cope with 'first one null' bug due to output pin being first.
 						{
-							// bug here is that it does return correct list, but shallow comparision results in no 'dirty' flag set on downstream modules
-							// becuase the contents are pointers to states, where the addresses of the state have not changed (but their *value* has).
-	//						return std::vector<state_t>(states.begin() + 1, states.end()); // cope with 'first one null' bug due to output pin being first.
-	//						for (auto& v : states)
 							for (auto it = states.begin() + 1; it != states.end(); ++it)
 							{
 								auto& v = *it;
@@ -673,18 +616,8 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 								if (list.size() < 2)
 									return {};
 
-								// probably nicer if framework provides a default object, rather than endless checking for null
 								auto brush = std::get_if<vBrush>(&list[0].value);
-
-								// only works with circles at present.
-//								vGeometry* geometry = {};
 								auto geometry = std::get_if<vCircleGeometry>(&list[1].value);
-/*
-								if (!geometry)
-								{
-									geometry = std::get_if<vSquareGeometry>(&list[1].value);
-								}
-*/
 
 								if (!brush || !geometry)
 								{
@@ -695,17 +628,12 @@ std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, functi
 								auto& brushc = *brush;
 								auto& geomc = *geometry;
 
-								// this technique pre-calculates the variant 'get's just once. could apply this to ALL nodes? for extra efficiency.
 								return RendererX(
 									{
-										[brushc, geomc](Graphics& g) -> void
+										[brushc, geomc](gmpi::drawing::Graphics& g) -> void
 										{
-
-									// !!! problem: CRASH!!! geometry was a (deleted) temporary object.
-									// they probably all are.
-//											if (geometry && brush) // try to screen the need for this out
 											{
-												g.FillGeometry(geomc.native(g), brushc.native(g));
+												g.fillGeometry(geomc.native(g), brushc.native(g));
 											}
 										}
 									}

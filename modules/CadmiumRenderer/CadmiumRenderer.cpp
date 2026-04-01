@@ -24,14 +24,14 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include "mp_sdk_gui2.h"
-#include "Drawing.h"
+#include "helpers/GmpiPluginEditor.h"
 #include "jsoncpp/json/json.h"
 #include "Cadmium/GUI_3_0.h"
-#include "../se_sdk3/TimerManager.h"
+#include "helpers/Timer.h"
 
 using namespace gmpi;
-using namespace GmpiDrawing;
+using namespace gmpi::drawing;
+using namespace gmpi::editor;
 
 struct moduleConnection
 {
@@ -43,7 +43,6 @@ struct moduleConnection
 struct moduleInfo
 {
 	int32_t sort = -1; // unsorted
-//	int32_t moduleHandle = {};
 	std::vector<moduleConnection> connections;
 };
 
@@ -62,58 +61,13 @@ void CalcSortOrder2(std::map<int32_t, moduleInfo>& allModules, moduleInfo& m, in
 				{
 					assert(false); // FEEDBACK!
 					return;
-					/*
-											m.sort = -1; // Allow this to be re-sorted after feedback (potentially) compensated.
-											auto e = new FeedbackTrace(SE_FEEDBACK_PATH);
-											e->AddLine(p, to);
-											return e;
-					*/
 				}
 
 				if (order == -1) // Found an unsorted path, go down it.
 				{
-					/*auto e = */ CalcSortOrder2(allModules, to, maxSortOrderGlobal);
-#if 0
-					if (e) // Downstream module encountered feedback.
+					CalcSortOrder2(allModules, to, maxSortOrderGlobal);
 					{
-						// Not all modules have valid moduleType, e.g. oversampler_in
-						if (moduleType && (moduleType->GetFlags() & CF_IS_FEEDBACK) != 0 && p->DataType == DT_MIDI) // dummy pin
-						{
-							// User has inserted a feedback module, activate it by removing dummy connection.
-							auto dummy = plugs.back();
-							dummy->connections.front()->connections.clear();
-							dummy->connections.clear();
-
-							// Feedback fixed, remove feedback trace.
-							delete e;
-							e = nullptr;
-
-							// Continue as if nothing happened.
-							goto done;
-						}
-						else
-						{
-							SetSortOrder(-1); // Allow this to be re-sorted after feedback (potentially) compensated.
-
-							// If downstream module has feedback, add trace information.
-							e->AddLine(p, to);
-							if (e->feedbackConnectors.front().second->UG == this) // only reconstruct feedback loop as far as nesc.
-							{
-#if defined( SE_SUPPORT_MFC )
-								throw e;
-#else
-#if defined( _DEBUG )
-								e->DebugDump();
-#endif
-#endif
-							}
-							return e;
-						}
-					}
-					else
-#endif
-					{
-						order = to.sort;// ->UG->GetSortOrder(); // now sorted. take into account.
+						order = to.sort;
 					}
 				}
 
@@ -122,34 +76,10 @@ void CalcSortOrder2(std::map<int32_t, moduleInfo>& allModules, moduleInfo& m, in
 		}
 	}
 
-	// We've searched all downstream modules. none are unsorted.
-	// Set my sort to my max downstream sort + 1.
-//	if (false) // Bredth-first sort.
-	/* buggy in some situations, put MIDI-CV AFTER Voice-Mute module.
-	if (maxSort == -1 || joinedExistingSortedPath) // Depth-first sort. About 1.5% faster.
-	{
-		assert(maxSortOrderGlobal >= maxSort);
-		maxSort = maxSortOrderGlobal;
-	}
-	*/
-
-//done:
 	++maxSort;
 
 	assert(maxSort > -1);
 
-	/* should be fixed via UGF_UPSTREAM _PARAMETER mechanism
-	// a drum voice can easily have modules 'upstream' of 'drum_trigger' module,
-	// however, on Resume(), those modules skip one audio block, causing glitch.
-	// to prevent this, set notesource's sort order much higher than it's predecessors.
-	// this is not an absolute guarantee fix, but should be ok 99% of the time
-	if((GetFlags() & UGF_UPSTREAM _PATCH_MGR) != 0)
-	{
-		maxSort += 200;
-	}
-	*/
-
-	// SetSortOrder(maxSort);
 	m.sort = maxSort;
 	maxSortOrderGlobal = (std::max)(maxSort, maxSortOrderGlobal);
 }
@@ -172,30 +102,20 @@ void SortModules(std::map<int32_t, moduleInfo>& allModules)
 	}
 }
 
-class CadmiumRenderer final : public gmpi_gui::MpGuiGfxBase, public TimerClient
+class CadmiumRenderer final : public PluginEditor, public TimerClient
 {
-	StringGuiPin pinJson;
+	Pin<std::string> pinJson;
 
 	functionalUI functionalUI;
-	std::vector<functionalUI::node*> renderNodes2;
+	std::vector<::node*> renderNodes2;
 
 	void update()
 	{
-		//TODO?		functionalUI.states2.clear();
-
-		//TODO just make 'states2' and 'nodes' a member of me? no real need for seperate 'functionalUI' object.
-
-		//// by convention, first state is the render context.
-		//const auto rendercontextIdx = functionalUI.states2.size();
-		//functionalUI.states2.push_back(
-		//	std::make_unique<functionalUI::state_t>(vGraphicsContext())
-		//);
-
 		// de-serialize JSON into object graph.
-		Json::Value document_json;// = new Json::Value();
+		Json::Value document_json;
 		{
 			Json::Reader reader;
-			const auto jsonString = (std::string)pinJson;
+			const auto jsonString = pinJson.value;
 			reader.parse(jsonString, document_json);
 		}
 
@@ -205,7 +125,7 @@ class CadmiumRenderer final : public gmpi_gui::MpGuiGfxBase, public TimerClient
 		{
 			const auto fromHandle = module_json["fMod"].asInt();
 			const auto toHandle = module_json["tMod"].asInt();
-			const auto fromPin = module_json["fPin"].asInt(); // not needed while nodes have only one output? (always output node).
+			const auto fromPin = module_json["fPin"].asInt();
 			const auto toPin = module_json["tPin"].asInt();
 
 			moduleSort[fromHandle].connections.push_back(
@@ -220,15 +140,6 @@ class CadmiumRenderer final : public gmpi_gui::MpGuiGfxBase, public TimerClient
 		}
 
 		SortModules(moduleSort);
-
-#if 0 //def _DEBUG
-		// print out sort result
-		for (auto& it : moduleSort)
-		{
-			auto& m = it.second;
-			_RPTN(0, "M %d : sort %d\n", it.first, m.sort);
-		}
-#endif
 
 		std::vector<int32_t> renderNodeHandles;
 
@@ -245,9 +156,8 @@ class CadmiumRenderer final : public gmpi_gui::MpGuiGfxBase, public TimerClient
 				createNode(handle, module_json, functionalUI.states2, functionalUI.graph);
 			}
 
-			if ("SE Render" == typeName) // should be called fill-geometry or suchlike
+			if ("SE Render" == typeName)
 			{
-				// note down the render nodes, because we need to provide them with the graphics context later.
 				renderNodeHandles.push_back(handle);
 			}
 		}
@@ -256,12 +166,12 @@ class CadmiumRenderer final : public gmpi_gui::MpGuiGfxBase, public TimerClient
 		std::sort(
 			functionalUI.graph.begin(),
 			functionalUI.graph.end(),
-			[&moduleSort](const functionalUI::node& n1, const functionalUI::node& n2)
+			[&moduleSort](const ::node& n1, const ::node& n2)
 				{
 					return moduleSort[n1.handle].sort > moduleSort[n2.handle].sort;
 				}
 			);
-		
+
 
 		std::unordered_map<int32_t, size_t> handleToIndex;
 		for (int index = 0; index < functionalUI.graph.size(); ++index)
@@ -275,29 +185,19 @@ class CadmiumRenderer final : public gmpi_gui::MpGuiGfxBase, public TimerClient
 			renderNodes2.push_back(&functionalUI.graph[index]);
 		}
 
-		/* might be needed, probably not
-				// connections (geom, renderer, brush)
-		if (functionalUI.renderNodes.empty())
-			return;
-*/
 		for (auto& module_json : document_json["connections"])
 		{
 			const auto fromHandle = module_json["fMod"].asInt();
 			const auto toHandle = module_json["tMod"].asInt();
-			const auto fromPin = module_json["fPin"].asInt(); // not needed while nodes have only one output? (always output node).
+			const auto fromPin = module_json["fPin"].asInt();
 			const auto toPin = module_json["tPin"].asInt();
 
-			std::vector<functionalUI::state_t*>* destArguments = {};
-			if (auto it = handleToIndex.find(toHandle); it != handleToIndex.end())	// must be render target.
+			std::vector<state_t*>* destArguments = {};
+			if (auto it = handleToIndex.find(toHandle); it != handleToIndex.end())
 			{
 				const auto toNodeIndex = (*it).second;
 				destArguments = &functionalUI.graph[toNodeIndex].arguments;
-				/* might be needed, probably not
-							else
-				{
-					destArguments = &functionalUI.renderNodes[0].arguments;
-				}
-				*/
+
 				// pad any inputs that have not been connected yet.
 				while (destArguments->size() <= toPin)
 				{
@@ -309,65 +209,62 @@ class CadmiumRenderer final : public gmpi_gui::MpGuiGfxBase, public TimerClient
 			}
 		}
 
-		// lastly hook rendernodes up to special graphics context state object.
-		//for (auto node : renderNodes2)
-		//{
-		//	node->arguments.push_back(functionalUI.states2[rendercontextIdx].get());
-		//}
-
 		functionalUI.step();
-//		StartTimer();
 	}
 
-	bool OnTimer() override
+	bool onTimer() override
 	{
 		functionalUI.step();
-		invalidateRect(); // TODO: only if anything changed
+
+		if (drawingHost)
+		{
+			Rect clipArea;
+			getClipArea(&clipArea);
+			drawingHost->invalidateRect(&clipArea);
+		}
 
 		return true;
 	}
 
-	std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, std::vector< std::unique_ptr<functionalUI::state_t> >&, std::vector<functionalUI::node>&)> > factory;
+	std::unordered_map<std::string, std::function<void(int32_t, Json::Value&, std::vector< std::unique_ptr<observableState> >&, std::vector<::node>&)> > factory;
 
 public:
 	CadmiumRenderer()
 	{
-		initializePin(pinJson, static_cast<MpGuiBaseMemberPtr2>(&CadmiumRenderer::update) );
-
+		pinJson.onUpdate = [this](PinBase*) { update(); };
 
 		// Init factory
 		factory.insert
 		(
 			{ "SE Solid Color Brush",
-			[](int32_t handle, Json::Value& module_json, std::vector< std::unique_ptr<functionalUI::state_t> >& states, std::vector<functionalUI::node>& graph)
+			[](int32_t handle, Json::Value& module_json, std::vector< std::unique_ptr<observableState> >& states, std::vector<::node>& graph)
 			{
-				Color brushColor = Color::Black;
+				Color brushColor = Colors::Black;
 
 				ScanPinDefaults(module_json,
 					[&brushColor](int idx, const std::string& value)
 				{
-					if (idx == 0) // square has only one dimension at present
+					if (idx == 0)
 					{
-						brushColor = Color::FromHexStringU(value);
+						brushColor = colorFromHexString(value);
 					}
 				}
 				);
 
 				// Add state for input value (color)
-				const auto input1Idx = states.size();
 				states.push_back(
-					std::make_unique<functionalUI::state_t>(brushColor)
+					std::make_unique<observableState>(brushColor)
 				);
 
 				// Add function
 				graph.push_back(
 					{
-						[](std::vector<functionalUI::state_t*> statesx) -> functionalUI::state_t
+						[](std::vector<state_t*> statesx) -> state_data_t
 						{
-							return vBrush(std::get<Color>(*statesx[0]));
+							return vBrush(std::get<Color>(statesx[0]->value));
 						},
 						{states.back().get()},
-						0.0f,
+						{ 0.0f },
 						handle
 					}
 				);
@@ -378,42 +275,40 @@ public:
 		factory.insert
 		(
 			{ "CD Circle",
-		[](int32_t handle, Json::Value& module_json, std::vector< std::unique_ptr<functionalUI::state_t> >& states, std::vector<functionalUI::node>& graph)
+		[](int32_t handle, Json::Value& module_json, std::vector< std::unique_ptr<observableState> >& states, std::vector<::node>& graph)
 		{
-			// !!! actually a circle at present
 			float radius{ 10.f };
 			Point center{ 100.0f, 100.0f };
 
 			ScanPinDefaults(module_json,
 				[&radius](int idx, const std::string& value)
 				{
-					if (idx == 0) // square has only one dimension at present
+					if (idx == 0)
 					{
 						radius = std::stof(value);
 					}
 				}
 			);
 
-			// TODO!!! this needs to come from pin default.
 			// center
 			const auto input1Idx = states.size();
 			states.push_back(
-				std::make_unique<functionalUI::state_t>(center)
+				std::make_unique<observableState>(center)
 			);
 
 			// radius
 			const auto input2Idx = states.size();
 			states.push_back(
-				std::make_unique<functionalUI::state_t>(radius)
+				std::make_unique<observableState>(radius)
 			);
 
 			// 2. circle geometry
 			graph.push_back(
 				{
-				[](std::vector<functionalUI::state_t*> states) -> functionalUI::state_t
+				[](std::vector<state_t*> states) -> state_data_t
 					{
-						const auto& center = std::get<Point>(*states[0]);
-						const auto& radius = std::get<float>(*states[1]);
+						const auto& center = std::get<Point>(states[0]->value);
+						const auto& radius = std::get<float>(states[1]->value);
 
 						return vCircleGeometry(center, radius);
 					},
@@ -421,7 +316,7 @@ public:
 						states[input1Idx].get(),
 						states[input2Idx].get()
 					},
-					0.0f,
+					{0.0f},
 					handle
 				}
 			);
@@ -432,7 +327,7 @@ public:
 		factory.insert
 		(
 			{ "CD Square",
-		[](int32_t handle, Json::Value& module_json, std::vector< std::unique_ptr<functionalUI::state_t> >& states, std::vector<functionalUI::node>& graph)
+		[](int32_t handle, Json::Value& module_json, std::vector< std::unique_ptr<observableState> >& states, std::vector<::node>& graph)
 		{
 			float size{ 10.f };
 			Point center{ 100.0f, 100.0f };
@@ -440,31 +335,30 @@ public:
 			ScanPinDefaults(module_json,
 				[&size](int idx, const std::string& value)
 				{
-					if (idx == 0) // square has only one dimension at present
+					if (idx == 0)
 					{
 						size = std::stof(value);
 					}
 				}
 			);
 
-			// TODO!!! this needs to come from pin default.
 			// center
 			const auto input1Idx = states.size();
 			states.push_back(
-				std::make_unique<functionalUI::state_t>(center)
+				std::make_unique<observableState>(center)
 			);
 
 			const auto input2Idx = states.size();
 			states.push_back(
-				std::make_unique<functionalUI::state_t>(size)
+				std::make_unique<observableState>(size)
 			);
 
 			graph.push_back(
 				{
-				[](std::vector<functionalUI::state_t*> states) -> functionalUI::state_t
+				[](std::vector<state_t*> states) -> state_data_t
 					{
-						const auto& center = std::get<Point>(*states[0]);
-						const auto& size = std::get<float>(*states[1]);
+						const auto& center = std::get<Point>(states[0]->value);
+						const auto& size = std::get<float>(states[1]->value);
 
 						return vSquareGeometry(center, size);
 					},
@@ -472,7 +366,7 @@ public:
 						states[input1Idx].get(),
 						states[input2Idx].get()
 					},
-					0.0f,
+					{0.0f},
 					handle
 				}
 			);
@@ -484,37 +378,36 @@ public:
 		factory.insert
 		(
 			{ "SE Render",
-		[](int32_t handle, Json::Value& module_json, std::vector< std::unique_ptr<functionalUI::state_t> >& states, std::vector<functionalUI::node>& graph)
+		[](int32_t handle, Json::Value& module_json, std::vector< std::unique_ptr<observableState> >& states, std::vector<::node>& graph)
 		{
 			// 0. render
 			graph.push_back(
 				{
-					[](std::vector<functionalUI::state_t*> states) -> functionalUI::state_t
+					[](std::vector<state_t*> states) -> state_data_t
 					{
-						auto& brush = std::get<vBrush>(*states[0]);
+						auto brush = std::get_if<vBrush>(&states[0]->value);
 
 						vGeometry* geometry = {};
 						if(states.size() > 1)
 						{
-							geometry = std::get_if<vCircleGeometry>(states[1]);
+							geometry = std::get_if<vCircleGeometry>(&states[1]->value);
 							if (!geometry)
 							{
-								geometry = std::get_if<vSquareGeometry>(states[1]);
+								geometry = std::get_if<vSquareGeometry>(&states[1]->value);
 							}
 						}
 
-						// this technique pre-calculates the varient 'get's just once. could apply this to ALL nodes? for extra efficiency.
 						return RendererX(
-						[&brush, geometry](Graphics& g) -> void
+						{[brush, geometry](Graphics& g) -> void
 						{
-							if (geometry) // try to screen the need for this out
+							if (geometry && brush)
 							{
-								g.FillGeometry(geometry->native(g), brush.native(g));
+								g.fillGeometry(geometry->native(g), brush->native(g));
 							}
-						});
+						}});
 					},
 					{},
-					0.0f,
+					{0.0f},
 					handle
 				}
 			);
@@ -524,51 +417,26 @@ public:
 		);
 	}
 
-	int32_t MP_STDCALL OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext ) override
+	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
 	{
 		Graphics g(drawingContext);
-#if 1
-		// store the graphics context in the first state.
-//		const int rendercontextIdx = 0;
-//		auto& graphicsContextState = std::get<vGraphicsContext>(*functionalUI.states2[rendercontextIdx]);
-//		graphicsContextState.native = &g;
 
-
-		// TODO, only process nodes with 'dirty' input states.
-		// SPECIAL CASE: render node should have graphics context marked 'dirty' every time.
-		// each state could have a pointer/index to the first node that depends on it. so for example if
-		// only graphics context is dirty, we could jump to the final node in the list, very efficient.
-		// 'constant' nodes that are init only at start, should be moved to highest sort-order. not gaurenteed at present.
-//		functionalUI.draw(g);
 		for (auto& rendernode : renderNodes2)
 		{
-			// the render node produces a higher-order function that is responsible for the actual rendering.
-			// TODO if(n->dirty){n->dirty=false;
-			std::get<RendererX>(rendernode->result).function(g);
+			std::get<RendererX>(rendernode->result.value).function(g);
 		}
-#else
-		const auto boundsRect = getRect();
 
-		// TODO pushTransformRAii()
-		const auto originalTransform = g.GetTransform();
-		const auto adjustedTransform = Matrix3x2::Translation(boundsRect.getWidth() * 0.5f, boundsRect.getHeight() * 0.5f) * originalTransform;
-		g.SetTransform(adjustedTransform);
+		return ReturnCode::Ok;
+	}
 
-		auto textFormat = GetGraphicsFactory().CreateTextFormat();
-		auto brush = g.CreateSolidColorBrush(Color::FromRgb(0xed872d)); // Color::Orange);
-
-//		g.DrawTextU("Hello World!", textFormat, 0.0f, 0.0f, brush);
-
-		Rect rect(-50, -50, 50, 50);
-		g.FillRectangle(rect, brush);
-
-		g.SetTransform(originalTransform);
-#endif
-		return gmpi::MP_OK;
+	ReturnCode onPointerMove(Point point, int32_t flags) override
+	{
+		functionalUI.onPointerMove(flags, point);
+		return ReturnCode::Ok;
 	}
 };
 
 namespace
 {
-	auto r = Register<CadmiumRenderer>::withId(L"SE CadmiumRenderer");
+	auto r = gmpi::Register<CadmiumRenderer>::withId("SE CadmiumRenderer");
 }

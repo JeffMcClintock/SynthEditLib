@@ -24,55 +24,9 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include "mp_sdk_gui2.h"
-#include "Drawing.h"
-
-using namespace gmpi;
-using namespace GmpiDrawing;
-
-#if 0
-class RenderGui final : public SeGuiInvisibleBase
-{
- 	void update()
-	{
-		// pinAnimationPosition changed
-	}
-
-	BlobGuiPin pinBrush;
-	BlobGuiPin pinGeometry;
-
-public:
-	RenderGui()
-	{
-		initializePin(pinBrush, static_cast<MpGuiBaseMemberPtr2>(&RenderGui::update) );
-		initializePin(pinGeometry, static_cast<MpGuiBaseMemberPtr2>(&RenderGui::update) );
-	}
-	int32_t MP_STDCALL OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext ) override
-	{
-		Graphics g(drawingContext);
-		const auto boundsRect = getRect();
-
-		// TODO pushTransformRAii()
-		const auto originalTransform = g.GetTransform();
-		const auto adjustedTransform = Matrix3x2::Translation(boundsRect.getWidth() * 0.5f, boundsRect.getHeight() * 0.5f) * originalTransform;
-		g.SetTransform(adjustedTransform);
-
-		auto textFormat = GetGraphicsFactory().CreateTextFormat();
-		auto brush = g.CreateSolidColorBrush(Color::Red);
-
-//		g.DrawTextU("Hello World!", textFormat, 0.0f, 0.0f, brush);
-
-		Rect rect(-50, -50, 50, 50);
-		g.FillRectangle(rect, brush);
-
-		g.SetTransform(originalTransform);
-		return gmpi::MP_OK;
-	}
-};
-#endif
+#include "helpers/GmpiPluginEditor.h"
 
 namespace
 {
-//	auto r = Register<RenderGui>::withId(L"SE Render");
-	auto r = Register<SeGuiInvisibleBase>::withId(L"SE Render");
+	auto r = gmpi::Register<gmpi::editor::PluginEditor>::withId("SE Render");
 }

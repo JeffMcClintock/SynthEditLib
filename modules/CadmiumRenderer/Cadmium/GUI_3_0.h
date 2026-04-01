@@ -1,10 +1,10 @@
-#include "Drawing.h"
+#include "GmpiUiDrawing.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <vector>
 #include <variant>
 #include <functional>
-#include "../se_sdk3/TimerManager.h"
+#include "helpers/Timer.h"
 
 #include "../jsoncpp/json/json.h"
 
@@ -23,12 +23,8 @@ inline void ScanPinDefaults(
 
 struct RendererX
 {
-	std::function < void(GmpiDrawing::Graphics&) > function;
-/*
-	RendererX(std::function < void(GmpiDrawing::Graphics&) > pfunction) :
-		function(function)
-	{}
-*/
+	std::function < void(gmpi::drawing::Graphics&) > function;
+
 	bool operator==(const RendererX& rhs) const
 	{
 		return false; // !!!! this->function == rhs.function;
@@ -37,32 +33,12 @@ struct RendererX
 
 class vBrush
 {
-	mutable GmpiDrawing::SolidColorBrush brush;
-	GmpiDrawing::Color color;
+	mutable gmpi::drawing::SolidColorBrush brush;
+	gmpi::drawing::Color color;
 
 public:
-	vBrush(GmpiDrawing::Color c) : color(c)
+	vBrush(gmpi::drawing::Color c) : color(c)
 	{}
-
-	// Copy constructor
-	vBrush(const vBrush& other)
-	{
-		// had to cast away constness to access D2D brush.
-		// this could be a problem were we not treating the bush as immutable anyhow.
-		// much better would be a GimpiDrawing: Mutable Bush class and Immutable Brush class !!!!!
-		// maybe the immutable one shares the underlying object, does not expose setcolor() etc
-		// mayby a simpler workarround would be delclare brush mutable
-		brush = const_cast<GmpiDrawing::SolidColorBrush&>(other.brush).Get();
-		color = other.color;
-	}
-
-	vBrush& operator=(const vBrush& rhs)
-	{
-		brush = const_cast<GmpiDrawing::SolidColorBrush&>(rhs.brush).Get();
-		color = rhs.color;
-
-		return *this;
-	}
 
 	bool operator==(const vBrush& rhs) const
 	{
@@ -70,10 +46,10 @@ public:
 	}
 
 	// hacky should return a read-only object
-	GmpiDrawing::SolidColorBrush& native(GmpiDrawing::Graphics& g) const
+	gmpi::drawing::SolidColorBrush& native(gmpi::drawing::Graphics& g) const
 	{
 		// TODO cache it based on factory.
-		brush = g.CreateSolidColorBrush(color);
+		brush = g.createSolidColorBrush(color);
 		return brush;
 	}
 };
@@ -81,121 +57,77 @@ public:
 class vGeometry
 {
 public:
-	virtual GmpiDrawing::PathGeometry& native(GmpiDrawing::Graphics& g) const = 0;
+	virtual gmpi::drawing::PathGeometry& native(gmpi::drawing::Graphics& g) const = 0;
 };
 
 class vCircleGeometry : public vGeometry
 {
-	mutable GmpiDrawing::PathGeometry geometry;
+	mutable gmpi::drawing::PathGeometry geometry;
 
-	GmpiDrawing::Point center;
+	gmpi::drawing::Point center;
 	float radius;
 
 public:
-	vCircleGeometry(GmpiDrawing::Point c, float r) : center(c), radius(r)
+	vCircleGeometry(gmpi::drawing::Point c, float r) : center(c), radius(r)
 	{}
-
-	// Copy constructor
-	vCircleGeometry(const vCircleGeometry& other)
-	{
-		// had to cast away constness to access D2D brush. (mac only)
-		// this could be a problem were we not treating the bush as immutable anyhow.
-		// much better would be a GimpiDrawing: Mutable Bush class and Imutable Brush class !!!!!
-		// maybe the immutable one shares the underlying object, does not expose setcolor() etc
-		// mayby a simpler workarround would be delclare brush mutable
-		geometry = const_cast<GmpiDrawing::PathGeometry&>(other.geometry).Get();
-		center = other.center;
-		radius = other.radius;
-	}
-
-	vCircleGeometry& operator=(const vCircleGeometry& rhs)
-	{
-		geometry = const_cast<GmpiDrawing::PathGeometry&>(rhs.geometry).Get();
-		center = rhs.center;
-		radius = rhs.radius;
-
-		return *this;
-	}
 
 	bool operator==(const vCircleGeometry& rhs) const
 	{
 		return this->center == rhs.center && this->radius == rhs.radius;
 	}
 
-	GmpiDrawing::PathGeometry& native(GmpiDrawing::Graphics& g) const override
+	gmpi::drawing::PathGeometry& native(gmpi::drawing::Graphics& g) const override
 	{
 		// TODO cache it based on factory.
-		geometry = g.GetFactory().CreatePathGeometry();
+		geometry = g.getFactory().createPathGeometry();
 		constexpr float pi = static_cast<float>(M_PI);
-		auto sink = geometry.Open();
+		auto sink = geometry.open();
 
 		// make a circle from two half-circle arcs
-		sink.BeginFigure({ center.x, center.y - radius }, GmpiDrawing::FigureBegin::Filled);
-		sink.AddArc({ { center.x, center.y + radius}, { radius, radius }, pi });
-		sink.AddArc({ { center.x, center.y - radius }, { radius, radius }, pi });
+		sink.beginFigure({ center.x, center.y - radius }, gmpi::drawing::FigureBegin::Filled);
+		sink.addArc({ { center.x, center.y + radius}, { radius, radius }, pi });
+		sink.addArc({ { center.x, center.y - radius }, { radius, radius }, pi });
 
-		sink.EndFigure(GmpiDrawing::FigureEnd::Closed);
-		sink.Close();
+		sink.endFigure(gmpi::drawing::FigureEnd::Closed);
+		sink.close();
 		return geometry;
 	}
 };
 
 class vSquareGeometry : public vGeometry
 {
-	mutable GmpiDrawing::PathGeometry geometry;
+	mutable gmpi::drawing::PathGeometry geometry;
 
-	GmpiDrawing::Point center;
+	gmpi::drawing::Point center;
 	float size;
 
 public:
-	vSquareGeometry(GmpiDrawing::Point c, float s) : center(c), size(s)
+	vSquareGeometry(gmpi::drawing::Point c, float s) : center(c), size(s)
 	{}
-
-	// Copy constructor
-	vSquareGeometry(const vSquareGeometry& other)
-	{
-		// had to cast away constness to access D2D brush. (mac only)
-		// this could be a problem were we not treating the bush as immutable anyhow.
-		// much better would be a GimpiDrawing: Mutable Bush class and Imutable Brush class !!!!!
-		// maybe the immutable one shares the underlying object, does not expose setcolor() etc
-		// mayby a simpler workarround would be declare brush mutable
-		geometry = const_cast<GmpiDrawing::PathGeometry&>(other.geometry).Get();
-		center = other.center;
-		size = other.size;
-	}
-
-	vSquareGeometry& operator=(const vSquareGeometry& rhs)
-	{
-		geometry = const_cast<GmpiDrawing::PathGeometry&>(rhs.geometry).Get();
-		center = rhs.center;
-		size = rhs.size;
-
-		return *this;
-	}
 
 	bool operator==(const vSquareGeometry& rhs) const
 	{
 		return this->center == rhs.center && this->size == rhs.size;
 	}
 
-	GmpiDrawing::PathGeometry& native(GmpiDrawing::Graphics& g) const override
+	gmpi::drawing::PathGeometry& native(gmpi::drawing::Graphics& g) const override
 	{
 		// TODO cache it based on factory.
-		geometry = g.GetFactory().CreatePathGeometry();
-		auto sink = geometry.Open();
+		geometry = g.getFactory().createPathGeometry();
+		auto sink = geometry.open();
 
 		const float halfSize = size * 0.5f;
 		const float left = center.x - halfSize;
 		const float right = center.x + halfSize;
 		const float top = center.y - halfSize;
 		const float bottom = center.y + halfSize;
-		sink.BeginFigure({ left, top }, GmpiDrawing::FigureBegin::Filled);
-		sink.AddLine({ right, top});
-		sink.AddLine({ right, bottom });
-		sink.AddLine({ left, bottom });
+		sink.beginFigure({ left, top }, gmpi::drawing::FigureBegin::Filled);
+		sink.addLine({ right, top});
+		sink.addLine({ right, bottom });
+		sink.addLine({ left, bottom });
 
-		sink.EndFigure(GmpiDrawing::FigureEnd::Closed);
-		sink.Close();
+		sink.endFigure(gmpi::drawing::FigureEnd::Closed);
+		sink.close();
 		return geometry;
 	}
 };
@@ -214,7 +146,7 @@ class list_function
 {
 public:
     std::function<state_t(const List&)> function;
-    
+
     list_function(std::function<state_t(const List&)>);
 
     bool operator==(const list_function& other) const;
@@ -223,8 +155,8 @@ public:
 using state_data_t = std::variant<
 	List,		// leave List first (ref compareState())
     float,
-    GmpiDrawing::Point,
-    GmpiDrawing::Color,
+    gmpi::drawing::Point,
+    gmpi::drawing::Color,
     vCircleGeometry,
     vSquareGeometry,
     vBrush,
@@ -235,21 +167,21 @@ using state_data_t = std::variant<
 using test_t = std::variant<
     List,        // leave List first (ref compareState())
     float,
-    GmpiDrawing::Point,
-GmpiDrawing::Color,
-vCircleGeometry,
-vSquareGeometry,
-vBrush,
-//list_function,
-RendererX
+    gmpi::drawing::Point,
+    gmpi::drawing::Color,
+    vCircleGeometry,
+    vSquareGeometry,
+    vBrush,
+    //list_function,
+    RendererX
 >;
 
 const static char* typeNames[] =
 {
 	"List",
 	"float",
-	"GmpiDrawing::Point",
-	"GmpiDrawing::Color",
+	"gmpi::drawing::Point",
+	"gmpi::drawing::Color",
 	"vCircleGeometry",
 	"vSquareGeometry",
 	"vBrush",
@@ -266,10 +198,6 @@ struct state_t
 	{
 		return value == other.value;
 	}
-	//bool operator!=(const state_t& other) const
-	//{
-	//	return !(value == other.value);
-	//}
 
     state_data_t value;
 };
@@ -364,16 +292,14 @@ public:
 
 #if 0
 	// !!! could the rendernode just be a normal node? !!!
-	// we would need to pass in GmpiDrawing::Graphics as a special 'vGraphics' argument.
+	// we would need to pass in gmpi::drawing::Graphics as a special 'vGraphics' argument.
 
 	struct renderNode
 	{
-//		std::function < state_t(std::vector<state_t*>, GmpiDrawing::Graphics& g) > function;
-		std::function < void(std::vector<state_t*>, GmpiDrawing::Graphics& g) > function;
+		std::function < void(std::vector<state_t*>, gmpi::drawing::Graphics& g) > function;
 		std::vector<state_t*> arguments;
-//		state_t result;
 
-		void operator()(GmpiDrawing::Graphics& g)
+		void operator()(gmpi::drawing::Graphics& g)
 		{
 			/*result = */ function(arguments, g);
 		}
@@ -389,7 +315,7 @@ public:
 
 	void init();
 	bool nextFrame();
-	void draw(GmpiDrawing::Graphics& g);
+	void draw(gmpi::drawing::Graphics& g);
 	void step();
 
 	void updateState(observableState& state, state_data_t newValue);
@@ -427,12 +353,12 @@ public:
 		return stateIndex;
 	}
 
-	void onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
+	void onPointerMove(int32_t flags, gmpi::drawing::Point point)
 	{
 		auto it = inputStates.find("pointerPosition");
 		if (it != inputStates.end())
 		{
-			updateState(*states2[it->second], GmpiDrawing::Point(point));
+			updateState(*states2[it->second], point);
 		}
 	}
 };

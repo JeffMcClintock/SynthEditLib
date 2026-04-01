@@ -24,29 +24,24 @@
 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include "mp_sdk_gui2.h"
+#include "helpers/GmpiPluginEditor.h"
 
 using namespace gmpi;
+using namespace gmpi::editor;
 
-class SolidColorBrushGui final : public SeGuiInvisibleBase
+class SolidColorBrushGui final : public PluginEditor
 {
- 	void update()
-	{
-	}
-
- 	StringGuiPin pinColor;
- 	BlobGuiPin pinBrush;
+	Pin<std::string> pinColor;
+	Pin<std::vector<uint8_t>> pinBrush;
 
 public:
 	SolidColorBrushGui()
 	{
-		initializePin(pinColor, static_cast<MpGuiBaseMemberPtr2>(&SolidColorBrushGui::update) );
-		initializePin(pinBrush);
+		pinColor.onUpdate = [this](PinBase*) { /* update */ };
 	}
-
 };
 
 namespace
 {
-	auto r = Register<SolidColorBrushGui>::withId(L"SE Solid Color Brush");
+	auto r = gmpi::Register<SolidColorBrushGui>::withId("SE Solid Color Brush");
 }
