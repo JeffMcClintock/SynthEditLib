@@ -1065,9 +1065,11 @@ namespace SE2
 
 	void ViewBase::calcViewTransform()
 	{
+		const Point canvasCenter{ (drawingBounds.right - drawingBounds.left) * 0.5f, (drawingBounds.bottom - drawingBounds.top) * 0.5f };
+
 		// Derive scroll offset from center (doc coords) and current view size.
-		const float scrollX = (drawingBounds.right  - drawingBounds.left) * 0.5f - centerPos.x * zoomFactor;
-		const float scrollY = (drawingBounds.bottom - drawingBounds.top)  * 0.5f - centerPos.y * zoomFactor;
+		const float scrollX = canvasCenter.x - centerPos.x * zoomFactor;
+		const float scrollY = canvasCenter.y - centerPos.y * zoomFactor;
 
 		// Precise transform — used for all coordinate mapping (mouse, hit-test, etc.)
 		viewTransformPrecise = gmpi::drawing::makeScale({ zoomFactor, zoomFactor });
@@ -1081,13 +1083,15 @@ namespace SE2
 		const float snappedGridPixels = std::round(gridDips * zoomFactor * dpiScale);
 		const float snappedZoom = snappedGridPixels / (gridDips * dpiScale);
 
-		float snappedScrollX = (drawingBounds.right - drawingBounds.left) * 0.5f - centerPos.x * snappedZoom;
-		float snappedScrollY = (drawingBounds.bottom - drawingBounds.top) * 0.5f - centerPos.y * snappedZoom;
+
+		float snappedScrollX = canvasCenter.x - centerPos.x * snappedZoom;
+		float snappedScrollY = canvasCenter.y - centerPos.y * snappedZoom;
 
 		snappedScrollX = std::round(snappedScrollX * dpiScale) / dpiScale;
 		snappedScrollY = std::round(snappedScrollY * dpiScale) / dpiScale;
 
 		viewTransform = gmpi::drawing::makeScale({ snappedZoom, snappedZoom });
+
 		viewTransform *= gmpi::drawing::makeTranslation({ snappedScrollX, snappedScrollY });
 
 		invalidateRect();

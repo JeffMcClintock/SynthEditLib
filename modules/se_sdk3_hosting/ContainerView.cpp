@@ -35,7 +35,7 @@ namespace SE2
 		const Matrix3x2 originalTransform = g.getTransform();
 
 		// pan and zoom
-		const auto viewTransformL = originalTransform * /*toLegacy*/(viewTransform);
+		const auto viewTransformL = originalTransform * viewTransform;
 		g.setTransform(viewTransformL);
 
 		g.clear(Colors::LightGray);
