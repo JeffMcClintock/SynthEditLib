@@ -2104,6 +2104,7 @@ return gmpi::MP_FAIL;
                 gmpi::cocoa::GraphicsContext(pview, gmpiFactory),
                 sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pview, info, sdk3Factory)
             {
+                setCGContext([[NSGraphicsContext currentContext] CGContext]);
             }
 
             gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
