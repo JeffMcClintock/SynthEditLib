@@ -388,12 +388,16 @@ namespace SE2
 
 			zoomFactor = std::clamp(zoomFactor, 0.1f, 10.0f);
 
-			// Keep the doc point under the mouse fixed:
-			// new_center = mouseDocPos + (viewSize/2 - mouseScreen) / newZoom
+			// Compute the snapped zoom that calcViewTransform will actually use,
+			// so centerPos keeps the doc point exactly under the mouse.
+			constexpr float gridDips = 12.0f;
+			const float dpiScale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
+			const float snappedZoom = std::round(zoomFactor * gridDips * dpiScale) / (gridDips * dpiScale);
+
 			const float viewWidth  = drawingBounds.right  - drawingBounds.left;
 			const float viewHeight = drawingBounds.bottom - drawingBounds.top;
-			centerPos.x = mouseDocPos.x + (viewWidth  * 0.5f - currentPointerPosAbsolute.x) / zoomFactor;
-			centerPos.y = mouseDocPos.y + (viewHeight * 0.5f - currentPointerPosAbsolute.y) / zoomFactor;
+			centerPos.x = mouseDocPos.x + (viewWidth  * 0.5f - currentPointerPosAbsolute.x) / snappedZoom;
+			centerPos.y = mouseDocPos.y + (viewHeight * 0.5f - currentPointerPosAbsolute.y) / snappedZoom;
 
 			Presenter()->SetZoomFactor(zoomFactor);
 		}
@@ -1060,52 +1064,28 @@ namespace SE2
 
 	void ViewBase::calcViewTransform()
 	{
-		const Point canvasCenter{ (drawingBounds.right - drawingBounds.left) * 0.5f, (drawingBounds.bottom - drawingBounds.top) * 0.5f };
-
-		// Derive scroll offset from center (doc coords) and current view size.
-		{
-			const float scrollX = canvasCenter.x - centerPos.x * zoomFactor;
-			const float scrollY = canvasCenter.y - centerPos.y * zoomFactor;
-
-			// Precise transform — used for all coordinate mapping (mouse, hit-test, etc.)
-			viewTransformPrecise = gmpi::drawing::makeScale({ zoomFactor, zoomFactor });
-			viewTransformPrecise *= gmpi::drawing::makeTranslation({ scrollX, scrollY });
-			inv_viewTransform = invert(viewTransformPrecise);
-		}
-
-		viewTransform = viewTransformPrecise;
-
-		// Quantized transform — used for rendering so that 12 DIPs maps to integer hardware pixels.
+		// Quantize zoom so that every 12 DIPs maps to an integer number of physical pixels.
 		constexpr float gridDips = 12.0f;
 		const float dpiScale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
-
 		const float snappedGridPixels = std::round(zoomFactor * gridDips * dpiScale);
 		const float snappedZoom = snappedGridPixels / (gridDips * dpiScale);
 
+		const Point canvasCenter{ (drawingBounds.right - drawingBounds.left) * 0.5f, (drawingBounds.bottom - drawingBounds.top) * 0.5f };
 
-		{
-			const float scrollX = canvasCenter.x - centerPos.x * snappedZoom;
-			const float scrollY = canvasCenter.y - centerPos.y * snappedZoom;
-			viewTransform = gmpi::drawing::makeScale({ snappedZoom, snappedZoom });
-			viewTransform *= gmpi::drawing::makeTranslation({ scrollX, scrollY });
-		}
+		// Derive scroll offset from center (doc coords) and snapped zoom.
+		float scrollX = canvasCenter.x - centerPos.x * snappedZoom;
+		float scrollY = canvasCenter.y - centerPos.y * snappedZoom;
 
-		/*
+		// Snap scroll to physical pixels so grid lines land exactly on pixel boundaries.
+		scrollX = std::round(scrollX * dpiScale) / dpiScale;
+		scrollY = std::round(scrollY * dpiScale) / dpiScale;
 
-		float snappedScrollX = canvasCenter.x - centerPos.x * snappedZoom;
-		float snappedScrollY = canvasCenter.y - centerPos.y * snappedZoom;
-
-		//snappedScrollX = std::round(snappedScrollX * dpiScale) / dpiScale;
-		//snappedScrollY = std::round(snappedScrollY * dpiScale) / dpiScale;
-
+		// Single transform used for both rendering and coordinate mapping.
 		viewTransform = gmpi::drawing::makeScale({ snappedZoom, snappedZoom });
-		viewTransform *= gmpi::drawing::makeTranslation({ snappedScrollX, snappedScrollY });
+		viewTransform *= gmpi::drawing::makeTranslation({ scrollX, scrollY });
 
-		{
-			auto mouseOnDocument = currentPointerPosAbsolute * inv_viewTransform;
-			_RPTN(0, "Mouse now at %.2f, %.2f\n", mouseOnDocument.x, mouseOnDocument.y);
-		}
-*/
+		viewTransformPrecise = viewTransform;
+		inv_viewTransform = invert(viewTransformPrecise);
 
 		invalidateRect();
 	}
