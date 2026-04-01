@@ -340,13 +340,13 @@ namespace se
 			virtual void FillPath(class GraphicsContext* context, NSBezierPath* nsPath) const = 0;
 
             // Default to black fill for fancy brushes that don't implement line drawing yet.
-            virtual void StrokePath(NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = nullptr) const
+            virtual void StrokePath(GraphicsContext* context, NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = nullptr) const
             {
                 [[NSColor blackColor] set]; /// !!!TODO!!!, color set to black always.
-                
+
                 [nsPath setLineWidth : strokeWidth];
                 SetNativePenStrokeStyle(nsPath, (GmpiDrawing_API::IMpStrokeStyle*) strokeStyle);
-                
+
                 [nsPath stroke];
             }
         };
@@ -380,12 +380,12 @@ namespace se
                 [nsPath fill];
             }
 
-            void StrokePath(NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = nullptr) const override
+            void StrokePath(GraphicsContext* context, NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = nullptr) const override
 			{
 				[nativec_ set];
 				[nsPath setLineWidth : strokeWidth];
                 SetNativePenStrokeStyle(nsPath, (GmpiDrawing_API::IMpStrokeStyle*) strokeStyle);
-                
+
                 [nsPath stroke];
 			}
 
@@ -503,56 +503,9 @@ namespace se
                 brushProperties.endPoint = pendPoint;
 			}
 
-			void FillPath(GraphicsContext* context, NSBezierPath* nsPath) const override
-			{
-//				[native2 drawInBezierPath:nsPath angle : getAngle()];
-                
-                // If you plan to do more drawing later, it's a good idea
-                // to save the graphics state before clipping.
-                [NSGraphicsContext saveGraphicsState];
-                
-                // clip following output to the path
-                [nsPath addClip];
-                
-                [native2 drawFromPoint:toNative(brushProperties.endPoint) toPoint:toNative(brushProperties.startPoint) options:NSGradientDrawsBeforeStartingLocation|NSGradientDrawsAfterEndingLocation];
+			void FillPath(GraphicsContext* context, NSBezierPath* nsPath) const override;
+            void StrokePath(GraphicsContext* context, NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = nullptr) const override;
 
-                // restore clip region
-                [NSGraphicsContext restoreGraphicsState];
-			}
-            
-            void StrokePath(NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = nullptr) const override
-			{
-                SetNativePenStrokeStyle(nsPath, (GmpiDrawing_API::IMpStrokeStyle*) strokeStyle);
-
-                // convert NSPath to CGPath
-                CGPathRef strokePath;
-			{
-                CGMutablePathRef cgPath = gmpi::cocoa::NsToCGPath(nsPath);
-
-                    strokePath = CGPathCreateCopyByStrokingPath(cgPath, NULL, strokeWidth, (CGLineCap)[nsPath lineCapStyle],
-                                                                          (CGLineJoin)[nsPath lineJoinStyle], [nsPath miterLimit]);
-                    CGPathRelease(cgPath);
-				}
-                
-               
-                // If you plan to do more drawing later, it's a good idea
-                // to save the graphics state before clipping.
-                [NSGraphicsContext saveGraphicsState];
-                
-                // clip following output to the path
-                CGContextRef ctx = (CGContextRef) [[NSGraphicsContext currentContext] graphicsPort];
-
-                CGContextAddPath(ctx, strokePath);
-                CGContextClip(ctx);
-                
-                [native2 drawFromPoint:toNative(brushProperties.endPoint) toPoint:toNative(brushProperties.startPoint) options:NSGradientDrawsBeforeStartingLocation|NSGradientDrawsAfterEndingLocation];
-
-                // restore clip region
-                [NSGraphicsContext restoreGraphicsState];
-                
-                CGPathRelease(strokePath);
-			}
-            
             void MP_STDCALL GetFactory(GmpiDrawing_API::IMpFactory **factory) override
             {
                 *factory = factory_;
@@ -574,86 +527,8 @@ namespace se
 			{
 			}
 
-			void FillPath(GraphicsContext* context, NSBezierPath* nsPath) const override
-			{
-                const auto bounds = [nsPath bounds];
-                
-                const auto centerX = bounds.origin.x + 0.5 * std::max(0.1, bounds.size.width);
-                const auto centerY = bounds.origin.y + 0.5 * std::max(0.1, bounds.size.height);
-                
- //               auto relativeX = (gradientProperties.center.x - centerX) / (0.5 * bounds.size.width);
- //               auto relativeY = (gradientProperties.center.y - centerY) / (0.5 * bounds.size.height);
-                
-//                relativeX = std::max(-1.0, std::min(1.0, relativeX));
-//                relativeY = std::max(-1.0, std::min(1.0, relativeY));
-                
-                const auto origin = NSMakePoint(
-                    gradientProperties.center.x + gradientProperties.gradientOriginOffset.x,
-                    gradientProperties.center.y + gradientProperties.gradientOriginOffset.y);
-                
-                // If you plan to do more drawing later, it's a good idea
-                // to save the graphics state before clipping.
-                [NSGraphicsContext saveGraphicsState];
-                
-                // clip following output to the path
-                [nsPath addClip];
- /*
-                [native2 drawFromCenter:origin
-                    radius:0.0
-                    toCenter:toNative(gradientProperties.center)
-                    radius:gradientProperties.radiusX
-                    options:NSGradientDrawsAfterEndingLocation];
-*/
-                
-                [native2 drawFromCenter:toNative(gradientProperties.center)
-                    radius:gradientProperties.radiusX
-                    toCenter:origin
-                    radius:0.0
-                    options:NSGradientDrawsBeforeStartingLocation|NSGradientDrawsAfterEndingLocation];
-                
-                // restore clip region
-                [NSGraphicsContext restoreGraphicsState];
-			}
-
-            void StrokePath(NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = nullptr) const override
-            {
-                SetNativePenStrokeStyle(nsPath, (GmpiDrawing_API::IMpStrokeStyle*) strokeStyle);
-
-                // convert NSPath to CGPath
-                CGPathRef strokePath;
-                {
-                    CGMutablePathRef cgPath = gmpi::cocoa::NsToCGPath(nsPath);
-
-                    strokePath = CGPathCreateCopyByStrokingPath(cgPath, NULL, strokeWidth, (CGLineCap)[nsPath lineCapStyle],
-                                                                          (CGLineJoin)[nsPath lineJoinStyle], [nsPath miterLimit]);
-                    CGPathRelease(cgPath);
-                }
-                
-                const auto origin = NSMakePoint(
-                    gradientProperties.center.x + gradientProperties.gradientOriginOffset.x,
-                    gradientProperties.center.y + gradientProperties.gradientOriginOffset.y);
-
-                // If you plan to do more drawing later, it's a good idea
-                // to save the graphics state before clipping.
-                [NSGraphicsContext saveGraphicsState];
-                
-                // clip following output to the path
-                CGContextRef ctx = (CGContextRef) [[NSGraphicsContext currentContext] graphicsPort];
-
-                CGContextAddPath(ctx, strokePath);
-                CGContextClip(ctx);
-                
-                [native2 drawFromCenter:toNative(gradientProperties.center)
-                    radius:gradientProperties.radiusX
-                    toCenter:origin
-                    radius:0.0
-                    options:NSGradientDrawsBeforeStartingLocation|NSGradientDrawsAfterEndingLocation];
-
-                // restore clip region
-                [NSGraphicsContext restoreGraphicsState];
-                
-                CGPathRelease(strokePath);
-            }
+			void FillPath(GraphicsContext* context, NSBezierPath* nsPath) const override;
+            void StrokePath(GraphicsContext* context, NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = nullptr) const override;
 
 			void MP_STDCALL SetCenter(GmpiDrawing_API::MP1_POINT pcenter) override
 			{
@@ -1142,13 +1017,13 @@ return gmpi::MP_FAIL;
             {
             }
             
-            void StrokePath(NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = nullptr) const override
+            void StrokePath(GraphicsContext* context, NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle = nullptr) const override
             {
                 [[NSColor colorWithPatternImage:bitmap_.nativeBitmap_] set];
-                
+
                 [nsPath setLineWidth : strokeWidth];
                 SetNativePenStrokeStyle(nsPath, (GmpiDrawing_API::IMpStrokeStyle*) strokeStyle);
-                
+
                 [nsPath stroke];
             }
             void FillPath(GraphicsContext* context, NSBezierPath* nsPath) const override;
@@ -1425,6 +1300,11 @@ return gmpi::MP_FAIL;
 			{
 			}
 
+            CGContextRef getCGContext() const
+            {
+                return info.cgContext;
+            }
+
 			void MP_STDCALL GetFactory(GmpiDrawing_API::IMpFactory** pfactory) override
 			{
 				*pfactory = factory;
@@ -1447,7 +1327,7 @@ return gmpi::MP_FAIL;
                 auto cocoabrush = dynamic_cast<const CocoaBrushBase*>(brush);
                 if (cocoabrush)
                 {
-                    cocoabrush->StrokePath(path, strokeWidth, strokeStyle);
+                    cocoabrush->StrokePath(this, path, strokeWidth, strokeStyle);
                 }
 			}
 
@@ -1481,7 +1361,7 @@ return gmpi::MP_FAIL;
                 if (cocoabrush)
                 {
                     applyDashStyleToPath(path, const_cast<GmpiDrawing_API::IMpStrokeStyle*>(strokeStyle), strokeWidth);
-                    cocoabrush->StrokePath(path, strokeWidth, strokeStyle);
+                    cocoabrush->StrokePath(this, path, strokeWidth, strokeStyle);
                 }
 			}
 
@@ -1493,7 +1373,7 @@ return gmpi::MP_FAIL;
 				auto cocoabrush = dynamic_cast<const CocoaBrushBase*>(brush);
 				if (cocoabrush)
 				{
-					cocoabrush->StrokePath(pg->native(), strokeWidth, strokeStyle);
+					cocoabrush->StrokePath(this, pg->native(), strokeWidth, strokeStyle);
 				}
 			}
 
@@ -1679,19 +1559,17 @@ return gmpi::MP_FAIL;
   //              [textformat->native2[NSParagraphStyleAttributeName] setLineHeightMultiple:testLineHeightMultiplier];
  //               textformat->native2[NSBaselineOffsetAttributeName] = [NSNumber numberWithFloat:shiftUp];
 #if USE_BACKING_BUFFER
-                // Create a flipped coordinate system
-                [[NSGraphicsContext currentContext] saveGraphicsState];
-                NSAffineTransform *transform = [NSAffineTransform transform];
-                [transform scaleXBy:1 yBy:-1];
-                [transform translateXBy:0 yBy:-2 * bounds.origin.y - bounds.size.height];
-
-                [transform concat];
+                // Create a flipped coordinate system using CGContext
+                CGContextRef ctx = getCGContext();
+                CGContextSaveGState(ctx);
+                CGContextScaleCTM(ctx, 1, -1);
+                CGContextTranslateCTM(ctx, 0, -2 * bounds.origin.y - bounds.size.height);
 
                 // Draw in the flipped coordinate system
                 [str drawInRect : bounds withAttributes : textformat->native2];
 
                 // Restore the original graphics state
-                [[NSGraphicsContext currentContext] restoreGraphicsState];
+                CGContextRestoreGState(ctx);
 #else
                 [str drawInRect : bounds withAttributes : textformat->native2];
 #endif
@@ -1796,24 +1674,22 @@ return gmpi::MP_FAIL;
                 
 #if USE_BACKING_BUFFER
                 auto sourceRect = se::cocoa::NSRectFromRect(*sourceRectangle);
-                
+
                 // mirror source rectangle
                 sourceRect.origin.y = imageSize.height - (sourceRect.origin.y + sourceRect.size.height);
-                
-                // Create a flipped coordinate system
-                [[NSGraphicsContext currentContext] saveGraphicsState];
-                NSAffineTransform *transform = [NSAffineTransform transform];
-                [transform scaleXBy:1 yBy:-1];
-                [transform translateXBy:0 yBy:-2 * destRect.origin.y - destRect.size.height];
 
-                [transform concat];
+                // Create a flipped coordinate system using CGContext
+                CGContextRef ctx = getCGContext();
+                CGContextSaveGState(ctx);
+                CGContextScaleCTM(ctx, 1, -1);
+                CGContextTranslateCTM(ctx, 0, -2 * destRect.origin.y - destRect.size.height);
 
                 // Draw in the flipped coordinate system
 #else
                 GmpiDrawing::Rect sourceRectangleFlipped(*sourceRectangle);
                 sourceRectangleFlipped.bottom = imageSize.height - sourceRectangle->top;
                 sourceRectangleFlipped.top = imageSize.height - sourceRectangle->bottom;
-                
+
                 auto sourceRect = se::cocoa::NSRectFromRect(sourceRectangleFlipped);
 
 #endif
@@ -1823,29 +1699,11 @@ return gmpi::MP_FAIL;
                 }
                 if(bm->additiveBitmap_)
                 {
-                #if 1
                     [bm->additiveBitmap_ drawInRect : destRect fromRect : sourceRect operation : NSCompositingOperationPlusLighter fraction : opacity respectFlipped : TRUE hints : nil];
-
-                #else // imagerep (don't work due to flip
-                    auto rect = se::cocoa::NSRectFromRect(*destinationRectangle);
-                    
-                    // Create a flipped coordinate system (imagerep don't understand flipped)
-                    [[NSGraphicsContext currentContext] saveGraphicsState];
-                    NSAffineTransform *transform = [NSAffineTransform transform];
-                    [transform translateXBy:0 yBy:rect.size.height];
-                    [transform scaleXBy:1 yBy:-1];
-                    [transform concat];
-
-                    // Draw the image in the flipped coordinate system
-                    [bm->additiveBitmap_ drawInRect : rect fromRect : sourceRect operation : NSCompositingOperationPlusLighter fraction : opacity respectFlipped : TRUE hints : nil];
-                    
-                    // Restore the original graphics state
-                    [[NSGraphicsContext currentContext] restoreGraphicsState];
-                    #endif
                 }
 #if USE_BACKING_BUFFER
                 // Restore the original graphics state
-                [[NSGraphicsContext currentContext] restoreGraphicsState];
+                CGContextRestoreGState(ctx);
 #endif
 			}
 
@@ -1941,7 +1799,7 @@ return gmpi::MP_FAIL;
                 auto cocoabrush = dynamic_cast<const CocoaBrushBase*>(brush);
                 if (cocoabrush)
                 {
-                    cocoabrush->StrokePath(path, strokeWidth, strokeStyle);
+                    cocoabrush->StrokePath(this, path, strokeWidth, strokeStyle);
                 }
             }
 
@@ -1967,7 +1825,7 @@ return gmpi::MP_FAIL;
 				auto cocoabrush = dynamic_cast<const CocoaBrushBase*>(brush);
 				if (cocoabrush)
 				{
-                    cocoabrush->StrokePath(path, strokeWidth, strokeStyle);
+                    cocoabrush->StrokePath(this, path, strokeWidth, strokeStyle);
 				}
 			}
 
@@ -1989,16 +1847,16 @@ return gmpi::MP_FAIL;
                 GmpiDrawing::Matrix3x2 currentTransform;
                 GetTransform(&currentTransform);
 				auto absClipRect = currentTransform.TransformRect(*clipRect);
-                
+
                 if(!info.clipRectStack.empty())
                     absClipRect = GmpiDrawing::Intersect(absClipRect, *(GmpiDrawing::Rect*) &info.clipRectStack.back());
-                    
+
 				info.clipRectStack.push_back(*(gmpi::drawing::Rect*) &absClipRect);
 
 				// Save the current clipping region
-				[NSGraphicsContext saveGraphicsState];
-
-				NSRectClip(NSRectFromRect(*clipRect));
+                CGContextRef ctx = getCGContext();
+                CGContextSaveGState(ctx);
+                CGContextClipToRect(ctx, CGRectMake(clipRect->left, clipRect->top, clipRect->right - clipRect->left, clipRect->bottom - clipRect->top));
 			}
 
 			void MP_STDCALL PopAxisAlignedClip() override
@@ -2006,7 +1864,7 @@ return gmpi::MP_FAIL;
 				info.clipRectStack.pop_back();
 
 				// Restore the clipping region for further drawing
-				[NSGraphicsContext restoreGraphicsState];
+                CGContextRestoreGState(getCGContext());
 			}
 
 			void MP_STDCALL GetAxisAlignedClip(GmpiDrawing_API::MP1_RECT* returnClipRect) override
@@ -2100,11 +1958,11 @@ return gmpi::MP_FAIL;
         {
             GraphicsContext2 sdk3Context;
 
-            UniversalGraphicsContext(NSView* pview, gmpi::cocoa::Factory* gmpiFactory, se::cocoa::DrawingFactory* sdk3Factory) :
+            UniversalGraphicsContext(NSView* pview, gmpi::cocoa::Factory* gmpiFactory, se::cocoa::DrawingFactory* sdk3Factory, CGContextRef cgContext) :
                 gmpi::cocoa::GraphicsContext(pview, gmpiFactory),
                 sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), pview, info, sdk3Factory)
             {
-                setCGContext([[NSGraphicsContext currentContext] CGContext]);
+                setCGContext(cgContext);
             }
 
             gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
@@ -2252,17 +2110,106 @@ return gmpi::MP_FAIL;
             return gmpi::MP_FAIL;
         }
 
+        // Deferred implementations — these call context->getCGContext(), so GraphicsContext must be complete.
+
+        inline void LinearGradientBrush::FillPath(GraphicsContext* context, NSBezierPath* nsPath) const
+        {
+            CGContextRef ctx = context->getCGContext();
+            CGMutablePathRef cgPath = gmpi::cocoa::NsToCGPath(nsPath);
+
+            CGContextSaveGState(ctx);
+            CGContextAddPath(ctx, cgPath);
+            CGContextClip(ctx);
+
+            [native2 drawFromPoint:toNative(brushProperties.endPoint) toPoint:toNative(brushProperties.startPoint) options:NSGradientDrawsBeforeStartingLocation|NSGradientDrawsAfterEndingLocation];
+
+            CGContextRestoreGState(ctx);
+            CGPathRelease(cgPath);
+        }
+
+        inline void LinearGradientBrush::StrokePath(GraphicsContext* context, NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) const
+        {
+            SetNativePenStrokeStyle(nsPath, (GmpiDrawing_API::IMpStrokeStyle*) strokeStyle);
+
+            CGMutablePathRef cgPath = gmpi::cocoa::NsToCGPath(nsPath);
+            CGPathRef strokePath = CGPathCreateCopyByStrokingPath(cgPath, NULL, strokeWidth, (CGLineCap)[nsPath lineCapStyle],
+                                                                  (CGLineJoin)[nsPath lineJoinStyle], [nsPath miterLimit]);
+            CGPathRelease(cgPath);
+
+            CGContextRef ctx = context->getCGContext();
+            CGContextSaveGState(ctx);
+            CGContextAddPath(ctx, strokePath);
+            CGContextClip(ctx);
+
+            [native2 drawFromPoint:toNative(brushProperties.endPoint) toPoint:toNative(brushProperties.startPoint) options:NSGradientDrawsBeforeStartingLocation|NSGradientDrawsAfterEndingLocation];
+
+            CGContextRestoreGState(ctx);
+            CGPathRelease(strokePath);
+        }
+
+        inline void RadialGradientBrush::FillPath(GraphicsContext* context, NSBezierPath* nsPath) const
+        {
+            const auto origin = NSMakePoint(
+                gradientProperties.center.x + gradientProperties.gradientOriginOffset.x,
+                gradientProperties.center.y + gradientProperties.gradientOriginOffset.y);
+
+            CGContextRef ctx = context->getCGContext();
+            CGMutablePathRef cgPath = gmpi::cocoa::NsToCGPath(nsPath);
+
+            CGContextSaveGState(ctx);
+            CGContextAddPath(ctx, cgPath);
+            CGContextClip(ctx);
+
+            [native2 drawFromCenter:toNative(gradientProperties.center)
+                radius:gradientProperties.radiusX
+                toCenter:origin
+                radius:0.0
+                options:NSGradientDrawsBeforeStartingLocation|NSGradientDrawsAfterEndingLocation];
+
+            CGContextRestoreGState(ctx);
+            CGPathRelease(cgPath);
+        }
+
+        inline void RadialGradientBrush::StrokePath(GraphicsContext* context, NSBezierPath* nsPath, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) const
+        {
+            SetNativePenStrokeStyle(nsPath, (GmpiDrawing_API::IMpStrokeStyle*) strokeStyle);
+
+            CGMutablePathRef cgPath = gmpi::cocoa::NsToCGPath(nsPath);
+            CGPathRef strokePath = CGPathCreateCopyByStrokingPath(cgPath, NULL, strokeWidth, (CGLineCap)[nsPath lineCapStyle],
+                                                                  (CGLineJoin)[nsPath lineJoinStyle], [nsPath miterLimit]);
+            CGPathRelease(cgPath);
+
+            const auto origin = NSMakePoint(
+                gradientProperties.center.x + gradientProperties.gradientOriginOffset.x,
+                gradientProperties.center.y + gradientProperties.gradientOriginOffset.y);
+
+            CGContextRef ctx = context->getCGContext();
+            CGContextSaveGState(ctx);
+            CGContextAddPath(ctx, strokePath);
+            CGContextClip(ctx);
+
+            [native2 drawFromCenter:toNative(gradientProperties.center)
+                radius:gradientProperties.radiusX
+                toCenter:origin
+                radius:0.0
+                options:NSGradientDrawsBeforeStartingLocation|NSGradientDrawsAfterEndingLocation];
+
+            CGContextRestoreGState(ctx);
+            CGPathRelease(strokePath);
+        }
+
         inline void BitmapBrush::FillPath(GraphicsContext* context, NSBezierPath* nsPath) const
         {
-            [NSGraphicsContext saveGraphicsState];
+            CGContextRef ctx = context->getCGContext();
+            CGContextSaveGState(ctx);
 
             auto view = context->getNativeView();
-            
+
 #if USE_BACKING_BUFFER
             // Adjust offset to be relative to the top (Windows) not bottom (mac)
             CGFloat yOffset = view.bounds.size.height - const_cast<Bitmap&>(bitmap_).GetSizeF().height;
 #else
-            // convert to Core Grapics co-ords
+            // convert to Core Graphics co-ords
             CGFloat yOffset = NSMaxY([view convertRect:view.bounds toView:nil]);
 #endif
             GmpiDrawing::Matrix3x2 moduleTransform;
@@ -2270,14 +2217,12 @@ return gmpi::MP_FAIL;
             auto offset = GmpiDrawing::TransformPoint(moduleTransform, {0.0f, 0.0f});
             // apply brushes transfer. we support only translation on mac
             offset = GmpiDrawing::TransformPoint(brushProperties_.transform, offset);
-            
-            // also need to apply current drawing transform for modules not at [0,0]
-            
-            [[NSGraphicsContext currentContext] setPatternPhase:NSMakePoint(offset.x, yOffset - offset.y)];
+
+            CGContextSetPatternPhase(ctx, CGSizeMake(offset.x, yOffset - offset.y));
             [[NSColor colorWithPatternImage:bitmap_.nativeBitmap_] set];
             [nsPath fill];
-            
-            [NSGraphicsContext restoreGraphicsState];
+
+            CGContextRestoreGState(ctx);
         }
 
         inline bitmapPixels::bitmapPixels(Bitmap* sebitmap /*NSImage** inBitmap*/, bool _alphaPremultiplied, int32_t pflags) :

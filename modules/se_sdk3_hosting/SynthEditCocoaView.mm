@@ -137,8 +137,9 @@ public:
         {
             se::cocoa::GraphicsContext2::logicProFix = 0;
             
-            se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory.gmpiFactory, &drawingFactory.sdk3Factory);
-            
+            CGContextRef cgCtx = [[NSGraphicsContext currentContext] CGContext];
+            se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory.gmpiFactory, &drawingFactory.sdk3Factory, cgCtx);
+
             GmpiDrawing::Graphics g(static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(&context.sdk3Context));
             auto tf = g.GetFactory().CreateTextFormat(16, "Arial", GmpiDrawing::FontWeight::Normal);
             auto brush = g.CreateSolidColorBrush(GmpiDrawing::Color::Black);
@@ -167,7 +168,8 @@ public:
         
         // context must be disposed (via RIAA) before restoring state, because its destructor also restores state
         {
-            se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory.gmpiFactory, &drawingFactory.sdk3Factory);
+            CGContextRef cgCtx2 = [[NSGraphicsContext currentContext] CGContext];
+            se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory.gmpiFactory, &drawingFactory.sdk3Factory, cgCtx2);
 
             // draw the absolute minimum.
             for( auto& r : dirtyRects.rects )
