@@ -213,42 +213,9 @@ public:
 			const auto ledRect = getLedRect(i);
 			const float ledIndex = static_cast<float>(i);
 
-			//float brightness;
-			//if(ledIndex + 1.0f <= litLeds)
-			//{
-			//	onColor
-			//}
-			//	brightness = 1.0f;
-			////else if (ledIndex < litLeds)
-			////	brightness = litLeds - ledIndex;
-			//else
-			//	brightness = 0.0f;
-
-			//const auto color = interpolateColor(offColor, onColor, brightness);
 			const RoundedRect rr{ ledRect, cornerRadius, cornerRadius };
 
-//			auto fill = g.createSolidColorBrush(interpolateColor(unlit, Colors::White, brightness));
-
 			g.fillRoundedRectangle(rr, ledIndex + 1.0f <= litLeds ? onBrush : offBrush);
-/*
-			// bright core highlight when lit
-			if (brightness > 0.1f)
-			{
-				const float inset = (std::min)(getWidth(ledRect), getHeight(ledRect)) * 0.2f;
-				const Rect coreRect{
-					ledRect.left + inset,
-					ledRect.top + inset,
-					ledRect.right - inset,
-					ledRect.bottom - inset
-				};
-				const float coreRadius = (std::max)(0.0f, cornerRadius - inset);
-				auto coreColor = interpolateColor(color, Colors::White, 0.5f * brightness);
-				coreColor.a = brightness * 0.6f;
-				auto coreBrush = g.createSolidColorBrush(coreColor);
-				g.fillRoundedRectangle({ coreRect, coreRadius, coreRadius }, coreBrush);
-			}
-*/
-
 			g.drawRoundedRectangle(rr, strokeBrush, 0.5f);
 		}
 
@@ -287,17 +254,12 @@ public:
 		const Rect srcRect{ 0.0f, 0.0f, static_cast<float>(bmpW), static_cast<float>(bmpH) };
 		const float litLeds = normalized * static_cast<float>(ledCount);
 		const float pad = static_cast<float>(glowPadding);
-
+		float brightness = 0.5f; // todo make it a ppin
 		for (int i = 0; i < ledCount; ++i)
 		{
 			const float ledIndex = static_cast<float>(i);
 
-			float brightness;
-			if (ledIndex + 1.0f <= litLeds)
-				brightness = 1.0f;
-			//else if (ledIndex < litLeds)
-			//	brightness = litLeds - ledIndex;
-			else
+			if (ledIndex + 1.0f > litLeds)
 				continue; // unlit — skip
 
 			const auto ledRect = getLedRect(i);
@@ -308,7 +270,7 @@ public:
 				ledRect.bottom + pad
 			};
 
-			g.drawBitmap(glowBitmap, destRect, srcRect, brightness * 0.5f);
+			g.drawBitmap(glowBitmap, destRect, srcRect, brightness);
 		}
 
 		return ReturnCode::Ok;
