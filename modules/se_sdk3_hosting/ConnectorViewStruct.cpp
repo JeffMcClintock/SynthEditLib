@@ -503,18 +503,25 @@ namespace SE2
 		if (getSelected() || mouseHover)
 			width = 3.f;
 
-		// calc line thickness and offset to align nicely on pixel. Don't need to snap other end, it's either the same Y, or a diagonal line - which don't need snapping anyhow.
-		pixelSnapper2 snap(g.getTransform(), parent->drawingHost->getRasterizationScale());
+		const bool snap_the_y = from_.y == to_.y;
 
-		const auto lineSpec = snap.thickness(width);
-		const auto snappedStrokeWidth = lineSpec.width;
+		Matrix3x2 orig;
+		auto snappedStrokeWidth = width;
+		if(snap_the_y)
+		{
+			// calc line thickness and offset to align nicely on pixel. Don't need to snap other end, it's either the same Y, or a diagonal line - which don't need snapping anyhow.
+			pixelSnapper2 snap(g.getTransform(), parent->drawingHost->getRasterizationScale());
 
-		// snap the line from point to the pixel-grid.
-		const auto Ysnapped = snap.snapY(from_.y);
-		const auto offset = from_.y - Ysnapped + lineSpec.center_offset;
+			const auto lineSpec = snap.thickness(width);
+			snappedStrokeWidth = lineSpec.width;
 
-		const auto orig = g.getTransform();
-		g.setTransform(makeTranslation(0.0f, offset) * orig);
+			// snap the line from point to the pixel-grid.
+			const auto Ysnapped = snap.snapY(from_.y);
+			const auto offset = from_.y - Ysnapped + lineSpec.center_offset;
+
+			orig = g.getTransform();
+			g.setTransform(makeTranslation(0.0f, offset) * orig);
+		}
 
 		assert(brush3);
 		g.drawGeometry(geometry, *brush3, snappedStrokeWidth, strokeStyle);
@@ -542,7 +549,8 @@ namespace SE2
 		//		g.DrawCircle(arrowPoint, static_cast<float>(NodeRadius), g.createSolidColorBrush(Colors::DodgerBlue));
 		//		g.DrawLine(arrowPoint - arrowDirection * 10.0f, arrowPoint + arrowDirection * 10.0f, g.createSolidColorBrush(Colors::Black));
 #endif
-		g.setTransform(orig);
+		if(snap_the_y)
+			g.setTransform(orig);
 	}
 
 	gmpi::ReturnCode ConnectorView2::onPointerMove(gmpi::drawing::Point point, int32_t flags)
