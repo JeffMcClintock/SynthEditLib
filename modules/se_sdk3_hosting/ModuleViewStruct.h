@@ -7,6 +7,7 @@ namespace SE2
 struct pinHit
 {
 	int pinIndex;
+	int pinID;
 	float distance; // distance to circle, or 0.f if hit lable rectangle.
 	bool hitCircle;
 };
@@ -21,7 +22,7 @@ class ModuleViewStruct : public ModuleView
 	const int plugTextHorizontalPadding = -1; // gap between plug text and plug circle outer radius.
 	gmpi::drawing::Rect clipArea;
 	bool muted = false;
-	pinHit hoveredPin_{ -1, 0.0f, true };
+	pinHit hoveredPin_{ -1, -1, 0.0f, true };
 	gmpi::drawing::Rect boundsOnMouseDown;
 	bool scopeIsWave{};
 	std::string hoverScopeText;

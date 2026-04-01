@@ -660,7 +660,7 @@ namespace SE2
 			const float left = 0.0f;
 			const float right = getWidth(getLayoutRect());
 
-			Point p(0, plugDiameter * 0.5f); // -0.5f);
+			Point p(0, plugDiameter * 0.5f);
 			int pinIndex = 0;
 
 			for (const auto& pin : plugs_)
@@ -699,7 +699,7 @@ namespace SE2
 		{
 			// Text
 			Rect r(0,0, getWidth(bounds_), getHeight(bounds_));
-			r.top -= 1.0f;
+			r.top -= 0.5f;
 			r.left  += static_cast<float>(plugTextHorizontalPadding + 0.5f * plugDiameter);
 			r.right -= static_cast<float>(plugTextHorizontalPadding + 0.5f * plugDiameter);
 
@@ -1050,18 +1050,17 @@ namespace SE2
 
 	int32_t ModuleViewStruct::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)
 	{
-		if (editorPinValues) //                                     && pinId < editorPinValues->size())
+		if (editorPinValues)
 		{
 			auto& vals = *editorPinValues.get();
 			vals[pinId].assign((uint8_t*)data, size + (uint8_t*)data);
 
-			/* todo. ID => index lookup
-			if (pinId == hoveredPin_.pinIndex)
+			if (pinId == hoveredPin_.pinID)
 			{
-				hoverScopeText = NiceFormatted(editorPinValues->at(pinId), (EPlugDataType)plugs_[pinId].datatype);
-				invalidateMyRect(calcScopeRect(pinId));
+				const auto& pin = plugs_[hoveredPin_.pinIndex];
+				hoverScopeText = NiceFormatted(vals[pinId], (EPlugDataType)pin.datatype);
+				invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
 			}
-			*/
 		}
 
 		return ModuleView::setPin(fromModule, fromPinId, pinId, voice, size, data);
@@ -1071,28 +1070,23 @@ namespace SE2
 	{
 		if (editorPinValues)
 		{
-			/* FIX!!!! (efficiently)
-The root cause is an ID model mismatch, not just a missing bounds check. In SE Slider, runtime pin IDs are descriptor IDs (13..23, plus others), while editorPinValues and plugs_ are stored by dense combined index (0..12). pinTransmit() (and partially setPin()) incorrectly treats descriptor IDs as vector indices. This became worse after slider pin reordering, where index order and plugDescID diverge further.
-Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
-			*/
 			auto& vals = *editorPinValues.get();
 			vals[pinId].assign((uint8_t*)data, size + (uint8_t*)data);
 
-			/* todo. ID => index lookup
-			if (pinId == hoveredPin_.pinIndex)
+			if (pinId == hoveredPin_.pinID)
 			{
-				hoverScopeText = NiceFormatted(editorPinValues->at(pinId), (EPlugDataType)plugs_[pinId].datatype);
-				invalidateMyRect(calcScopeRect(pinId));
+				const auto& pin = plugs_[hoveredPin_.pinIndex];
+				hoverScopeText = NiceFormatted(vals[pinId], (EPlugDataType)pin.datatype);
+				invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
 			}
-			*/
 		}
 
-       return ModuleView::pinTransmit(pinId, size, data, voice);
+	   return ModuleView::pinTransmit(pinId, size, data, voice);
 	}
 
 	bool ModuleViewStruct::hasHoverScope() const
 	{
-		return hoveredPin_.pinIndex > -1 && (scopeIsWave && !hoverScopeText.empty());
+		return hoveredPin_.pinIndex > -1 && (scopeIsWave || !hoverScopeText.empty());
 	}
 
 	void ModuleViewStruct::SetHoverScopeText(const char* text)
@@ -1616,7 +1610,7 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 		Point p(0, getLayoutRect().top + plugDiameter * 0.5f - 0.5f);
 
 		float outerLimitSquared = (fuzzyHitTestLimit + plugDiameter * 0.5f) * (fuzzyHitTestLimit + plugDiameter * 0.5f);
-		pinHit closestPin{ -1, outerLimitSquared, true };
+		pinHit closestPin{ -1, -1, outerLimitSquared, true };
 		Rect pinRect{ left, getLayoutRect().top, right, getLayoutRect().top + static_cast<float>(plugDiameter) };
 		float plugHitWidth = (std::min)(40.0f, right-left); // width of area responsive to clicking on plug in general (not connection point).
 
@@ -1642,6 +1636,7 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 			if(pointInRect(point, pinRect))
 			{
 				closestPin.pinIndex = pin.indexCombined;
+				closestPin.pinID = pin.plugDescID;
 				closestPin.distance = 0.0f;
 				closestPin.hitCircle = false;
 				return closestPin;
@@ -1652,6 +1647,7 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 			if(distanceSquared < closestPin.distance)
 			{
 				closestPin.pinIndex = pin.indexCombined;
+				closestPin.pinID = pin.plugDescID;
 				closestPin.distance = distanceSquared;
 			}
 
@@ -1776,12 +1772,11 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 					{
 						if (editorPinValues)
 						{
-							/* fix
-							auto& raw = editorPinValues->at(hoveredPin_.pinIndex);
+							auto& vals = *editorPinValues.get();
+							auto& raw = vals[hoveredPin_.pinID];
 
 							dspHoverPin = -1; // CUG has nothing to do.
 							hoverScopeText = NiceFormatted(raw, (EPlugDataType) plugs_[hoveredPin_.pinIndex].datatype);
-							*/
 						}
 					}
 				}
@@ -1812,7 +1807,7 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 		{
 			Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
 
-			hoveredPin_ = { -1, 0.0f, true };
+			hoveredPin_ = { -1, -1, 0.0f, true };
 			hoverScopeWaveform = {};
 			scopeIsWave = false;
 			hoverScopeText.clear();
