@@ -393,6 +393,8 @@ namespace SE2
 		// Calc clip rect.
 		clipArea = bounds_;
 		clipArea.bottom = (std::max)(clipArea.bottom, clipArea.top + plugDiameter); //Zero-height modules get expanded to 1 plug high.
+		clipArea.left  -= 0.5f * sharedGraphicResources_struct::plugDiameter;
+		clipArea.right += 0.5f * sharedGraphicResources_struct::plugDiameter;
 		clipArea = inflateRect(clipArea, 2.0f); // cope with thick "selected" outline.
 		clipArea.top -= 16; // expand upward to header text.
 
