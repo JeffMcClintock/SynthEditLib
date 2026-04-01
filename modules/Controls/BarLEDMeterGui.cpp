@@ -193,46 +193,41 @@ public:
 		return ReturnCode::Ok;
 	}
 
-	// Layer 0: draw the solid LEDs
-	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
-	{
-		Graphics g(drawingContext);
-
-		const float normalized = (std::clamp)(pinNormalized.value, 0.0f, 1.0f);
-		const float litLeds = normalized * static_cast<float>(ledCount);
-		const float cornerRadius = pinRadius.value;
-		const auto onColor = Colors::White; // getLedOnColor();
-		const auto offColor = interpolateColor(Colors::Black, getLedOnColor(), 0.307f);
-		auto onBrush = g.createSolidColorBrush(onColor);
-		auto offBrush = g.createSolidColorBrush(offColor);
-
-		auto strokeBrush = g.createSolidColorBrush(Color{ 0.15f, 0.15f, 0.15f, 0.5f });
-
-		for (int i = 0; i < ledCount; ++i)
-		{
-			const auto ledRect = getLedRect(i);
-			const float ledIndex = static_cast<float>(i);
-
-			const RoundedRect rr{ ledRect, cornerRadius, cornerRadius };
-
-			g.fillRoundedRectangle(rr, ledIndex + 1.0f <= litLeds ? onBrush : offBrush);
-			g.drawRoundedRectangle(rr, strokeBrush, 0.5f);
-		}
-
-		return ReturnCode::Ok;
-	}
-
 	ReturnCode getClipArea(Rect* returnRect) override
 	{
 		*returnRect = getGlowClipRect();
 		return ReturnCode::Ok;
 	}
 
-	// Layer 1: additive glow pass — reuse one glow bitmap for every lit LED
 	ReturnCode renderLayer(drawing::api::IDeviceContext* drawingContext, int32_t layer) override
 	{
 		if (layer == 0)
-			return render(drawingContext);
+		{
+			Graphics g(drawingContext);
+
+			const float normalized = (std::clamp)(pinNormalized.value, 0.0f, 1.0f);
+			const float litLeds = normalized * static_cast<float>(ledCount);
+			const float cornerRadius = pinRadius.value;
+			const auto onColor = Colors::White;
+			const auto offColor = interpolateColor(Colors::Black, getLedOnColor(), 0.307f);
+			auto onBrush = g.createSolidColorBrush(onColor);
+			auto offBrush = g.createSolidColorBrush(offColor);
+
+			auto strokeBrush = g.createSolidColorBrush(Color{ 0.15f, 0.15f, 0.15f, 0.5f });
+
+			for (int i = 0; i < ledCount; ++i)
+			{
+				const auto ledRect = getLedRect(i);
+				const float ledIndex = static_cast<float>(i);
+
+				const RoundedRect rr{ ledRect, cornerRadius, cornerRadius };
+
+				g.fillRoundedRectangle(rr, ledIndex + 1.0f <= litLeds ? onBrush : offBrush);
+				g.drawRoundedRectangle(rr, strokeBrush, 0.5f);
+			}
+
+			return ReturnCode::Ok;
+		}
 
 		if (layer != 1)
 			return ReturnCode::NoSupport;

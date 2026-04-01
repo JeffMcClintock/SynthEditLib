@@ -737,11 +737,16 @@ namespace SE2
 			auto gmpiContext = AccessPtr::get(g);
 			assert(gmpiContext);
 
-			pluginGraphics_GMPI->render(gmpiContext);
-
-			// todo, second pass for all these at once.
-			if(pluginDrawingLayer_GMPI)
-				pluginDrawingLayer_GMPI->renderLayer(gmpiContext, 1);
+			if (pluginDrawingLayer_GMPI)
+			{
+				// Layer-supporting plugins render layer 0 here.
+				// Layers -1 and 1 are rendered by ViewBase in separate passes.
+				pluginDrawingLayer_GMPI->renderLayer(gmpiContext, 0);
+			}
+			else
+			{
+				pluginGraphics_GMPI->render(gmpiContext);
+			}
 
 			g.setTransform(transform);
 		}
@@ -884,6 +889,26 @@ namespace SE2
 		Rect localbounds(0, 0, getWidth(bounds_), getHeight(bounds_));
 		g.drawRectangle(localbounds, br, 2.f);
 #endif
+	}
+
+	bool ModuleViewStruct::hasRenderLayers() const
+	{
+		return pluginDrawingLayer_GMPI != nullptr;
+	}
+
+	void ModuleViewStruct::renderPluginLayer(Graphics& g, int32_t layer)
+	{
+		if (!pluginDrawingLayer_GMPI)
+			return;
+
+		const auto transform = g.getTransform();
+		auto adjustedTransform = makeTranslation(pluginGraphicsPos.left, pluginGraphicsPos.top) * transform;
+		g.setTransform(adjustedTransform);
+
+		auto gmpiContext = AccessPtr::get(g);
+		pluginDrawingLayer_GMPI->renderLayer(gmpiContext, layer);
+
+		g.setTransform(transform);
 	}
 
 	void ModuleViewStruct::RenderCpu(Graphics& g)

@@ -636,6 +636,8 @@ namespace SE2
 		ModuleViewPanel(const wchar_t* typeId, ViewBase* pParent, int handle);
 		ModuleViewPanel(Json::Value* context, class ViewBase* pParent, std::map<int, class ModuleView*>& guiObjectMap);
 		virtual void render(gmpi::drawing::Graphics& g) override;
+		bool hasRenderLayers() const override;
+		void renderPluginLayer(gmpi::drawing::Graphics& g, int32_t layer) override;
 		virtual void measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize) override;
 		virtual void arrange(gmpi::drawing::Rect finalRect) override;
 		gmpi::drawing::Rect getClipArea() override;

@@ -3,7 +3,7 @@
 
 #include "ControlsBase.h"
 
-class SliderGui final : public ValueControlBase
+class SliderGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 {
 	Rect previousDirtyRect{};
 
@@ -87,12 +87,9 @@ class SliderGui final : public ValueControlBase
 		return (std::clamp)(1.0f - (point.y - trackTop) / trackRange, 0.0f, 1.0f);
 	}
 
-	ReturnCode drawSlider(Graphics& g, const Rect& localBounds)
+	ReturnCode drawShadow(Graphics& g, const Rect& localBounds)
 	{
 		const float width = getWidth(localBounds);
-		const float height = getHeight(localBounds);
-		const float handleHeight = (std::max)(12.0f, height * 0.12f);
-		const float cornerRadius = width * 0.5f;
 
 		// Track background
 		{
@@ -108,29 +105,36 @@ class SliderGui final : public ValueControlBase
 		}
 
 		const auto handleRect = getHandleRect(localBounds);
-		const float radius = (std::max)(1.0f, getHeight(handleRect) * 0.5f); // equivalent of knob radius
+		const float radius = (std::max)(1.0f, getHeight(handleRect) * 0.5f);
+
+		shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.6f };
+		shadowBlur.blurRadius = (std::max)(1, static_cast<int>(std::ceil(radius * 0.1f)));
+		const float blurOffset = 0.4f * radius;
+
+		const auto orig = g.getTransform();
+		g.setTransform(makeTranslation({ blurOffset, handleRect.top + blurOffset}) * orig);
+		gmpi::drawing::Rect rectAtOrigin{ 0.0f, 0.0f, getWidth(handleRect), getHeight(handleRect) };
+		shadowBlur.draw(g, rectAtOrigin, [&](Graphics& mask)
+			{
+				auto shadowRect = inflateRect(rectAtOrigin, -shadowBlur.blurRadius);
+				auto brush = mask.createSolidColorBrush(Colors::White);
+				mask.fillRoundedRectangle(
+					{ shadowRect, radius, radius },
+					brush
+				);
+			});
+		g.setTransform(orig);
+
+		return ReturnCode::Ok;
+	}
+
+	ReturnCode drawSlider(Graphics& g, const Rect& localBounds)
+	{
+		const float width = getWidth(localBounds);
+
+		const auto handleRect = getHandleRect(localBounds);
+		const float radius = (std::max)(1.0f, getHeight(handleRect) * 0.5f);
 		const float bevelWidth = (std::max)(1.0f, radius * 0.12f);
-
-		// Handle shadow
-		{
-			shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.6f };
-			shadowBlur.blurRadius = (std::max)(1, static_cast<int>(std::ceil(radius * 0.1f)));
-			const float blurOffset = 0.4f * radius;
-
-			const auto orig = g.getTransform();
-			g.setTransform(makeTranslation({ blurOffset, handleRect.top + blurOffset}) * orig);
-			gmpi::drawing::Rect rectAtOrigin{ 0.0f, 0.0f, getWidth(handleRect), getHeight(handleRect) };
-			shadowBlur.draw(g, rectAtOrigin, [&](Graphics& mask)
-				{
-					auto shadowRect = inflateRect(rectAtOrigin, -shadowBlur.blurRadius);
-					auto brush = mask.createSolidColorBrush(Colors::White);
-					mask.fillRoundedRectangle(
-						{ shadowRect, radius, radius },
-						brush
-					);
-				});
-			g.setTransform(orig);
-		}
 
 		// Handle fill
 		{
@@ -219,14 +223,52 @@ public:
 		return ReturnCode::Ok;
 	}
 
-	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
+	int32_t addRef() override
 	{
-		Graphics g(drawingContext);
-		const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
-		const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
-		const SizeU size{ width, height };
-		updateShadowCache(size);
-		return drawSlider(g, getLocalBounds(size));
+		return PluginEditor::addRef();
+	}
+
+	int32_t release() override
+	{
+		return PluginEditor::release();
+	}
+
+	ReturnCode renderLayer(drawing::api::IDeviceContext* drawingContext, int32_t layer) override
+	{
+		if (layer == -1)
+		{
+			Graphics g(drawingContext);
+			const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
+			const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
+			const SizeU size{ width, height };
+			updateShadowCache(size);
+			return drawShadow(g, getLocalBounds(size));
+		}
+
+		if (layer == 0)
+		{
+			Graphics g(drawingContext);
+			const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
+			const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
+			const SizeU size{ width, height };
+			return drawSlider(g, getLocalBounds(size));
+		}
+
+		return ReturnCode::NoSupport;
+	}
+
+	ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+	{
+		*returnInterface = {};
+
+		if ((*iid) == gmpi::api::IDrawingLayer::guid)
+		{
+			*returnInterface = static_cast<gmpi::api::IDrawingLayer*>(this);
+			PluginEditor::addRef();
+			return ReturnCode::Ok;
+		}
+
+		return PluginEditor::queryInterface(iid, returnInterface);
 	}
 
 	ReturnCode onPointerDown(Point point, int32_t flags) override

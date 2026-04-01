@@ -143,24 +143,6 @@ public:
 		return PluginEditor::release();
 	}
 
-	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
-	{
-		Graphics g(drawingContext);
-
-		const auto center = getCenter(bounds);
-		const auto radius = 0.5f * (std::min)(getWidth(bounds), getHeight(bounds));
-		const auto brightness = std::clamp(pinAnimationPosition.value, 0.0f, 1.0f);
-		const auto unlit = getLedColor(0.307f);
-
-		auto fill = g.createSolidColorBrush(interpolateColor(unlit, Colors::White, brightness));
-		g.fillCircle(center, radius, fill);
-
-		auto stroke = g.createSolidColorBrush(Color{ 0.3f, 0.3f, 0.3f, 1.0f });
-		g.drawCircle(center, radius, stroke);
-
-		return ReturnCode::Ok;
-	}
-
 	ReturnCode getClipArea(Rect* returnRect) override
 	{
 		*returnRect = getGlowRect();
@@ -170,7 +152,22 @@ public:
 	ReturnCode renderLayer(drawing::api::IDeviceContext* drawingContext, int32_t layer) override
 	{
 		if(layer == 0)
-			return render(drawingContext);
+		{
+			Graphics g(drawingContext);
+
+			const auto center = getCenter(bounds);
+			const auto radius = 0.5f * (std::min)(getWidth(bounds), getHeight(bounds));
+			const auto brightness = std::clamp(pinAnimationPosition.value, 0.0f, 1.0f);
+			const auto unlit = getLedColor(0.307f);
+
+			auto fill = g.createSolidColorBrush(interpolateColor(unlit, Colors::White, brightness));
+			g.fillCircle(center, radius, fill);
+
+			auto stroke = g.createSolidColorBrush(Color{ 0.3f, 0.3f, 0.3f, 1.0f });
+			g.drawCircle(center, radius, stroke);
+
+			return ReturnCode::Ok;
+		}
 
 		if(layer != 1)
 			return ReturnCode::NoSupport;

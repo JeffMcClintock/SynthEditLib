@@ -75,7 +75,40 @@ namespace SE2
 		//_RPT4(_CRT_WARN, "OnRender    clip[ %d %d %d %d]\n", (int)cliprect.left, (int)cliprect.top, (int)cliprect.right, (int)cliprect.bottom);
 
 		const Matrix3x2 originalTransform = g.getTransform();
-		bool isOriginal = true;
+
+		// Cache the list of children inside the clip rectangle that support layered rendering.
+		// This avoids redundant clip-rect and interface checks across the 3 layer passes.
+		struct LayeredChild
+		{
+			IViewChild* child;
+			Matrix3x2 transform;
+		};
+		std::vector<LayeredChild> layeredChildren;
+		for (auto& m : children)
+		{
+			if (!m->hasRenderLayers())
+				continue;
+
+			auto b = m->getClipArea();
+			if (!overlaps(b, cliprect))
+				continue;
+
+			auto layoutRect = m->getLayoutRect();
+			layeredChildren.push_back({ m.get(), makeTranslation(layoutRect.left, layoutRect.top) * originalTransform });
+		}
+
+		// Pass 1: layer -1 (shadows) - only layer-supporting plugins
+		for (auto& lc : layeredChildren)
+		{
+			g.setTransform(lc.transform);
+			lc.child->renderPluginLayer(g, -1);
+		}
+
+		// Pass 2: normal render (all children in clip rect)
+		// Layer-supporting plugins render layer 0 inside their render() method.
+		// Non-layer plugins render normally via render().
+		bool isOriginal = false;
+		g.setTransform(originalTransform);
 		for(auto& m : children)
 		{
 			auto b = m->getClipArea();
@@ -99,6 +132,13 @@ namespace SE2
 			}
 
 			m->render(g);
+		}
+
+		// Pass 3: layer 1 (glow) - only layer-supporting plugins
+		for (auto& lc : layeredChildren)
+		{
+			g.setTransform(lc.transform);
+			lc.child->renderPluginLayer(g, 1);
 		}
 
 		g.setTransform(originalTransform);

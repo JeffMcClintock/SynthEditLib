@@ -1129,11 +1129,16 @@ if(pluginGraphics)
 			auto gmpiContext = AccessPtr::get(g);
 			assert(gmpiContext);
 
-			pluginGraphics_GMPI->render(gmpiContext);
-
-			// todo, second pass for all these at once.
 			if (pluginDrawingLayer_GMPI)
-				pluginDrawingLayer_GMPI->renderLayer(gmpiContext, 1);
+			{
+				// Layer-supporting plugins render layer 0 here.
+				// Layers -1 and 1 are rendered by ViewBase in separate passes.
+				pluginDrawingLayer_GMPI->renderLayer(gmpiContext, 0);
+			}
+			else
+			{
+				pluginGraphics_GMPI->render(gmpiContext);
+			}
 		}
 
 		else if(pluginGraphics)
@@ -1170,6 +1175,20 @@ if(pluginGraphics)
 			gmpi::drawing::Rect r(0, 0, getWidth(bounds_), getHeight(bounds_));
 			g.drawRoundedRectangle({ r, 2.f, 2.f }, brush, 2.f);
 		}
+	}
+
+	bool ModuleViewPanel::hasRenderLayers() const
+	{
+		return pluginDrawingLayer_GMPI != nullptr;
+	}
+
+	void ModuleViewPanel::renderPluginLayer(Graphics& g, int32_t layer)
+	{
+		if (!pluginDrawingLayer_GMPI)
+			return;
+
+		auto gmpiContext = AccessPtr::get(g);
+		pluginDrawingLayer_GMPI->renderLayer(gmpiContext, layer);
 	}
 
 	gmpi::drawing::Point ModuleView::getConnectionPoint(CableType cableType, int pinIndex)

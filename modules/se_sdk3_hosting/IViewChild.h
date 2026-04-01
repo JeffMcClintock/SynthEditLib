@@ -30,6 +30,8 @@ namespace SE2
 
 		// drawing
 		virtual void render(gmpi::drawing::Graphics& g) = 0;
+		virtual bool hasRenderLayers() const { return false; }
+		virtual void renderPluginLayer(gmpi::drawing::Graphics& g, int32_t layer) {}
 
 		// advanced hit testing
 //		virtual gmpi::ReturnCode hitTest(int32_t flags, gmpi::drawing::Point point) = 0;

@@ -3,7 +3,7 @@
 
 #include "ControlsBase.h"
 
-class KnobGui final : public ValueControlBase
+class KnobGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 {
 	float getShadowExtent() const
 	{
@@ -13,27 +13,32 @@ class KnobGui final : public ValueControlBase
 		return blurOffset + blurRadius;
 	}
 
+	ReturnCode drawShadow(Graphics& g, const Rect& localBounds)
+	{
+		auto center = getCenter(localBounds);
+		const float radius = 0.5f * (std::min)(getWidth(localBounds), getHeight(localBounds));
+
+		shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.6f };
+		shadowBlur.blurRadius = (std::max)(1, static_cast<int>(std::ceil(radius * 0.1f)));
+		const float blurOffset = 0.4f * radius;
+
+		const auto orig = g.getTransform();
+		g.setTransform(makeTranslation({ blurOffset, blurOffset }) * orig);
+		shadowBlur.draw(g, localBounds, [&](Graphics& mask)
+			{
+				auto brush = mask.createSolidColorBrush(Colors::White);
+				mask.fillCircle(center, radius - shadowBlur.blurRadius, brush);
+			});
+		g.setTransform(orig);
+
+		return ReturnCode::Ok;
+	}
+
 	ReturnCode drawKnob(Graphics& g, const Rect& localBounds)
 	{
 		auto center = getCenter(localBounds);
 		const float radius = 0.5f * (std::min)(getWidth(localBounds), getHeight(localBounds));
 		const float bevelWidth = (std::max)(1.0f, radius * 0.12f);
-
-		// Shadow
-		{
-			shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.6f }; // how dark the shadow is.
-			shadowBlur.blurRadius = (std::max)(1, static_cast<int>(std::ceil(radius * 0.1f)));
-			const float blurOffset = 0.4f * radius;
-
-			const auto orig = g.getTransform();
-			g.setTransform(makeTranslation({ blurOffset, blurOffset }) * orig);
-			shadowBlur.draw(g, localBounds, [&](Graphics& mask)
-				{
-					auto brush = mask.createSolidColorBrush(Colors::White);
-					mask.fillCircle(center, radius - shadowBlur.blurRadius, brush);
-				});
-			g.setTransform(orig);
-		}
 
 		// Fill
 		{
@@ -108,6 +113,16 @@ class KnobGui final : public ValueControlBase
 public:
 	KnobGui() = default;
 
+	int32_t addRef() override
+	{
+		return PluginEditor::addRef();
+	}
+
+	int32_t release() override
+	{
+		return PluginEditor::release();
+	}
+
 	ReturnCode getClipArea(Rect* returnRect) override
 	{
 		*returnRect = bounds;
@@ -117,15 +132,42 @@ public:
 		return ReturnCode::Ok;
 	}
 
-	// todo: render in layers. shadow in layer -1, knob in layer 0.
-	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
+	ReturnCode renderLayer(drawing::api::IDeviceContext* drawingContext, int32_t layer) override
 	{
-		Graphics g(drawingContext);
-		const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
-		const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
-		const SizeU size{ width, height };
-		updateShadowCache(size);
-		return drawKnob(g, getLocalBounds(size));
+		if (layer == -1)
+		{
+			Graphics g(drawingContext);
+			const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
+			const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
+			const SizeU size{ width, height };
+			updateShadowCache(size);
+			return drawShadow(g, getLocalBounds(size));
+		}
+
+		if (layer == 0)
+		{
+			Graphics g(drawingContext);
+			const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
+			const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
+			const SizeU size{ width, height };
+			return drawKnob(g, getLocalBounds(size));
+		}
+
+		return ReturnCode::NoSupport;
+	}
+
+	ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+	{
+		*returnInterface = {};
+
+		if ((*iid) == gmpi::api::IDrawingLayer::guid)
+		{
+			*returnInterface = static_cast<gmpi::api::IDrawingLayer*>(this);
+			PluginEditor::addRef();
+			return ReturnCode::Ok;
+		}
+
+		return PluginEditor::queryInterface(iid, returnInterface);
 	}
 
 	ReturnCode onPointerDown(Point point, int32_t flags) override

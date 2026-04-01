@@ -19,7 +19,7 @@ Color withAlpha(Color color, float alpha)
 }
 }
 
-class ButtonGui final : public PluginEditor
+class ButtonGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 {
 	Pin<bool> pinValue;
 	Pin<std::string> pinHint;
@@ -87,6 +87,32 @@ class ButtonGui final : public PluginEditor
 		return blurOffset + blurRadius;
 	}
 
+	ReturnCode drawShadow(Graphics& g, const Rect& localBounds)
+	{
+		const auto width = getWidth(localBounds);
+		const auto height = getHeight(localBounds);
+		const float minDimension = (std::min)(width, height);
+		const float cornerRadius = (std::max)(2.0f, minDimension * 0.24f);
+		const float blurOffset = 0.16f * minDimension;
+		const bool pressed = isPressed();
+		const float shadowDirection = pressed ? 0.0f : 1.0f;
+		const RoundedRect buttonRect(localBounds, cornerRadius);
+
+		shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.6f };
+		shadowBlur.blurRadius = (std::max)(1, static_cast<int>(std::ceil(minDimension * 0.08f)));
+
+		const auto orig = g.getTransform();
+		g.setTransform(makeTranslation({ shadowDirection * blurOffset, shadowDirection * blurOffset }) * orig);
+		shadowBlur.draw(g, localBounds, [&](Graphics& mask)
+			{
+				auto brush = mask.createSolidColorBrush(Colors::White);
+				mask.fillRoundedRectangle(buttonRect, brush);
+			});
+		g.setTransform(orig);
+
+		return ReturnCode::Ok;
+	}
+
 	ReturnCode drawButton(Graphics& g, const Rect& localBounds)
 	{
 		const auto width = getWidth(localBounds);
@@ -94,26 +120,9 @@ class ButtonGui final : public PluginEditor
 		const float minDimension = (std::min)(width, height);
 		const float bevelWidth = (std::max)(1.0f, minDimension * 0.08f);
 		const float cornerRadius = (std::max)(2.0f, minDimension * 0.24f);
-		const float blurOffset = 0.16f * minDimension;
 		const bool pressed = isPressed();
-		const float shadowDirection = pressed ? 0.0f : 1.0f;
 		const Rect bodyRect = localBounds;
 		const RoundedRect buttonRect(bodyRect, cornerRadius);
-
-		// Shadow
-		{
-			shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.6f };
-			shadowBlur.blurRadius = (std::max)(1, static_cast<int>(std::ceil(minDimension * 0.08f)));
-
-			const auto orig = g.getTransform();
-			g.setTransform(makeTranslation({ shadowDirection * blurOffset, shadowDirection * blurOffset }) * orig);
-			shadowBlur.draw(g, bodyRect, [&](Graphics& mask)
-				{
-					auto brush = mask.createSolidColorBrush(Colors::White);
-					mask.fillRoundedRectangle(buttonRect, brush);
-				});
-			g.setTransform(orig);
-		}
 
 		// Fill
 		{
@@ -182,14 +191,52 @@ public:
 		return ReturnCode::Ok;
 	}
 
-	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
+	int32_t addRef() override
 	{
-		Graphics g(drawingContext);
-		const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
-		const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
-		const SizeU size{ width, height };
-		updateShadowCache(size);
-		return drawButton(g, getLocalBounds(size));
+		return PluginEditor::addRef();
+	}
+
+	int32_t release() override
+	{
+		return PluginEditor::release();
+	}
+
+	ReturnCode renderLayer(drawing::api::IDeviceContext* drawingContext, int32_t layer) override
+	{
+		if (layer == -1)
+		{
+			Graphics g(drawingContext);
+			const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
+			const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
+			const SizeU size{ width, height };
+			updateShadowCache(size);
+			return drawShadow(g, getLocalBounds(size));
+		}
+
+		if (layer == 0)
+		{
+			Graphics g(drawingContext);
+			const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
+			const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
+			const SizeU size{ width, height };
+			return drawButton(g, getLocalBounds(size));
+		}
+
+		return ReturnCode::NoSupport;
+	}
+
+	ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+	{
+		*returnInterface = {};
+
+		if ((*iid) == gmpi::api::IDrawingLayer::guid)
+		{
+			*returnInterface = static_cast<gmpi::api::IDrawingLayer*>(this);
+			PluginEditor::addRef();
+			return ReturnCode::Ok;
+		}
+
+		return PluginEditor::queryInterface(iid, returnInterface);
 	}
 
 	ReturnCode onPointerDown(Point, int32_t flags) override
