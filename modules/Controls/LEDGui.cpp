@@ -24,7 +24,7 @@ class LEDGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 			   1.0f
 		};
 
-		return interpolateColor(Colors::DimGray, targetColor, brightness);
+		return interpolateColor(Colors::Black, targetColor, brightness);
 	}
 
 	Color getLedCoreColor(float brightness) const
@@ -146,23 +146,16 @@ public:
 	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
 	{
 		Graphics g(drawingContext);
-		//		ClipDrawingToBounds _(g, bounds);
 
 		const auto center = getCenter(bounds);
 		const auto radius = 0.5f * (std::min)(getWidth(bounds), getHeight(bounds));
 		const auto brightness = std::clamp(pinAnimationPosition.value, 0.0f, 1.0f);
-		const auto ledColor = getLedColor(brightness);
+		const auto unlit = getLedColor(0.307f);
 
-		auto fill = g.createSolidColorBrush(ledColor);
-		auto stroke = g.createSolidColorBrush(Color{ 0.3f, 0.3f, 0.3f, 1.0f });
+		auto fill = g.createSolidColorBrush(interpolateColor(unlit, Colors::White, brightness));
 		g.fillCircle(center, radius, fill);
 
-		if(brightness > 0.0f)
-		{
-			auto core = g.createSolidColorBrush(Color{ 1.f, 1.f, 1.f, 0.7f * brightness });
-			g.fillCircle(center, radius * (0.85f + 0.12f * brightness), core);
-		}
-
+		auto stroke = g.createSolidColorBrush(Color{ 0.3f, 0.3f, 0.3f, 1.0f });
 		g.drawCircle(center, radius, stroke);
 
 		return ReturnCode::Ok;
