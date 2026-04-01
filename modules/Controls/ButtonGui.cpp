@@ -96,7 +96,7 @@ class ButtonGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 		const float blurOffset = 0.16f * minDimension;
 		const bool pressed = isPressed();
 		const float shadowDirection = pressed ? 0.0f : 1.0f;
-		const RoundedRect buttonRect(localBounds, cornerRadius, cornerRadius);
+		const RoundedRect buttonRect(inflateRect(localBounds, -0.5f * blurOffset), cornerRadius, cornerRadius);
 
 		shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.6f };
 		shadowBlur.blurRadius = (std::max)(1, static_cast<int>(std::ceil(minDimension * 0.08f)));
