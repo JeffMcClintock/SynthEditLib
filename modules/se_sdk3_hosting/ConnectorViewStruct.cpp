@@ -4,6 +4,7 @@
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "modules/shared/VectorMath.h"
 #include "modules/shared/cardinalSpline.h"
+#include "helpers/PixelSnapper.h"
 
 using namespace gmpi::drawing;
 using namespace Gmpi::VectorMath;
@@ -502,13 +503,26 @@ namespace SE2
 		if (getSelected() || mouseHover)
 			width = 3.f;
 
+		// calc line thickness and offset to align nicely on pixel. Don't need to snap other end, it's either the same Y, or a diagonal line - which don't need snapping anyhow.
+		pixelSnapper2 snap(g.getTransform(), parent->drawingHost->getRasterizationScale());
+
+		const auto lineSpec = snap.thickness(width);
+		const auto snappedStrokeWidth = lineSpec.width;
+
+		// snap the line from point to the pixel-grid.
+		const auto Ysnapped = snap.snapY(from_.y);
+		const auto offset = from_.y - Ysnapped + lineSpec.center_offset;
+
+		const auto orig = g.getTransform();
+		g.setTransform(makeTranslation(0.0f, offset) * orig);
+
 		assert(brush3);
-		g.drawGeometry(geometry, *brush3, width, strokeStyle);
+		g.drawGeometry(geometry, *brush3, snappedStrokeWidth, strokeStyle);
 
 		if (getSelected() && hoverSegment != -1)
 		{
 			auto segments = GetSegmentGeometrys();
-			g.drawGeometry(segments[hoverSegment], *brush3, width + 1);
+			g.drawGeometry(segments[hoverSegment], *brush3, snappedStrokeWidth + 1);
 		}
 
 		// Nodes
@@ -528,6 +542,7 @@ namespace SE2
 		//		g.DrawCircle(arrowPoint, static_cast<float>(NodeRadius), g.createSolidColorBrush(Colors::DodgerBlue));
 		//		g.DrawLine(arrowPoint - arrowDirection * 10.0f, arrowPoint + arrowDirection * 10.0f, g.createSolidColorBrush(Colors::Black));
 #endif
+		g.setTransform(orig);
 	}
 
 	gmpi::ReturnCode ConnectorView2::onPointerMove(gmpi::drawing::Point point, int32_t flags)

@@ -522,21 +522,18 @@ namespace SE2
 	void ModuleViewStruct::render(gmpi::drawing::Graphics& g)
 	{
 		constexpr auto& plugDiameter = sharedGraphicResources_struct::plugDiameter;
+
+		// calc line thickness and offset to align nicely on pixel
 		pixelSnapper2 snap(g.getTransform(), parent->drawingHost->getRasterizationScale());
-//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
 		// outline stroke.
 		const auto OutlineSpec = snap.thickness(isHovered_ ? 2.0f : 1.0f);
-const auto strokeWidth1 = snap.thickness(1.0f).width;
-const auto strokeWidth2 = snap.thickness(2.0f).width;
-		// current top is bounds.top -0.5
 		// snap the top border line to the pixel-grid.
 		const auto topYsnapped = snap.snapY(0.0f);
-		constexpr float geometryTopY = 0.0f; // -0.5f;
 
-		const auto offset = topYsnapped - geometryTopY + OutlineSpec.center_offset; //          0.5f - snap.snapY(-0.5f) + OutlineSpec.center_offset;
+		const auto offset = topYsnapped + OutlineSpec.center_offset;
 		const auto orig = g.getTransform();
 		g.setTransform(makeTranslation(0.0f, offset) * orig);
-
 
 #if 0 // debug layout and clip rects
 		g.fillRectangle(getClipArea(),   g.createSolidColorBrush(Color::FromArgb(0x200000ff)));
@@ -631,15 +628,15 @@ const auto strokeWidth2 = snap.thickness(2.0f).width;
 				backgroundBrush = g.createLinearGradientBrush(lgbp1, BrushProperties(), gradientStopCollection);
 			}
 		}
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
 		// Fancy outline.
 		if ( zoomFactor > 0.25f)
 		{
 			g.fillGeometry(outlineGeometry, backgroundBrush);
 
 			auto& moduleOutlineBrush = isHovered_ ? resources->moduleOutlineBrushHovered : resources->moduleOutlineBrush;
-			const float strokeWidth = isHovered_ ? strokeWidth2 : strokeWidth1;
-			g.drawGeometry(outlineGeometry, moduleOutlineBrush, strokeWidth);
+
+			g.drawGeometry(outlineGeometry, moduleOutlineBrush, OutlineSpec.width);
 		}
 		else
 		{
