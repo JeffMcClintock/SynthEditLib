@@ -55,7 +55,7 @@ add_subdirectory(VoiceWatcherBlocker)
 add_subdirectory(WaveRecorder2)
 add_subdirectory(Waveshapers)
 
-add_subdirectory(CadmiumRenderer)
+# add_subdirectory(CadmiumRenderer)
 
 # GMPI plugins
 # temp moved into SE add_subdirectory(SubControls4)
