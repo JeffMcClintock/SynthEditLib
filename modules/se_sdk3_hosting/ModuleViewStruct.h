@@ -54,8 +54,9 @@ class ModuleViewStruct : public ModuleView
 		return cpuInfo != nullptr;
 	}
 	cpu_accumulator* cpuInfo = {};
-	// retains current pin value for displaying on hoverscopes.
-	std::unique_ptr < std::vector<std::vector<uint8_t> >> editorPinValues;
+	// retains current pin value for displaying on hoverscopes. need to add some way of getting both pin index and pin ID
+	// indexed on pin ID
+	std::unique_ptr < std::map<int, std::vector<uint8_t> >> editorPinValues;
 
 public:
 

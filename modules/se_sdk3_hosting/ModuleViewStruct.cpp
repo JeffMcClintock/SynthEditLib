@@ -199,7 +199,7 @@ namespace SE2
 			p.indexCombined = pinIndexCombined++;
 
 		// technically don't need DSP pins here.
-		editorPinValues = std::make_unique<std::vector<std::vector<uint8_t>>>(plugs_.size());
+		editorPinValues = std::make_unique< std::map<int, std::vector<uint8_t> >>();
 
 		// Sort visually.
 		/* screws up hit detectiosn
@@ -1050,14 +1050,17 @@ namespace SE2
 
 	int32_t ModuleViewStruct::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)
 	{
-		if (editorPinValues                                     && pinId < editorPinValues->size())
+		if (editorPinValues) //                                     && pinId < editorPinValues->size())
 		{
 			editorPinValues->at(pinId).assign((uint8_t*)data, size + (uint8_t*)data);
+
+			/* todo. ID => index lookup
 			if (pinId == hoveredPin_.pinIndex)
 			{
 				hoverScopeText = NiceFormatted(editorPinValues->at(pinId), (EPlugDataType)plugs_[pinId].datatype);
 				invalidateMyRect(calcScopeRect(pinId));
 			}
+			*/
 		}
 
 		return ModuleView::setPin(fromModule, fromPinId, pinId, voice, size, data);
@@ -1070,9 +1073,11 @@ namespace SE2
 			/* FIX!!!! (efficiently)
 The root cause is an ID model mismatch, not just a missing bounds check. In SE Slider, runtime pin IDs are descriptor IDs (13..23, plus others), while editorPinValues and plugs_ are stored by dense combined index (0..12). pinTransmit() (and partially setPin()) incorrectly treats descriptor IDs as vector indices. This became worse after slider pin reordering, where index order and plugDescID diverge further.
 Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
+			*/
 
 			editorPinValues->at(pinId).assign((uint8_t*)data, size + (uint8_t*)data);
 
+			/* todo. ID => index lookup
 			if (pinId == hoveredPin_.pinIndex)
 			{
 				hoverScopeText = NiceFormatted(editorPinValues->at(pinId), (EPlugDataType)plugs_[pinId].datatype);
@@ -1770,10 +1775,12 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 					{
 						if (editorPinValues)
 						{
+							/* fix
 							auto& raw = editorPinValues->at(hoveredPin_.pinIndex);
 
 							dspHoverPin = -1; // CUG has nothing to do.
 							hoverScopeText = NiceFormatted(raw, (EPlugDataType) plugs_[hoveredPin_.pinIndex].datatype);
+							*/
 						}
 					}
 				}
