@@ -123,16 +123,17 @@ modules_internal/VoiceMute/VoiceMute.h
 modules_internal/VoiceMute/VoiceMute.cpp
 )
 
+# modules_internal/CadmiumModules.cpp
+# modules/SubControls4/GmpiUiTest.cpp
+
 if(SE_GRAPHICS_SUPPORT)
 set(srcs_modules_internal
 ${srcs_modules_internal}
-modules_internal/CadmiumModules.cpp
 modules_internal/PatchPoints.cpp
 modules_internal/PatchPointsGui.h
 modules_internal/PatchPointsGui.cpp
 modules_internal/PrefabBrowser/PrefabBrowserGui.cpp
 modules_internal/CpuMeter/CpuMeterGui.cpp
-modules/SubControls4/GmpiUiTest.cpp
 modules/SubControls4/half.hpp
 modules/SubControls4/NumberEditClient.h
 )

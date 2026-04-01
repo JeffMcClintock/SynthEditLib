@@ -77,7 +77,7 @@ void node::operator()()
 {
 	auto newvalue = function(arguments);
 
-	_RPTN(0, "NODE:%s => %s\n", debug_name.c_str(), typeNames[newvalue.index()]);
+//	_RPTN(0, "NODE:%s => %s\n", debug_name.c_str(), typeNames[newvalue.index()]);
 
 	if (!compareState(result.value, newvalue))
 	{
@@ -122,7 +122,7 @@ void functionalUI::step()
 {
 	// should advance 'frame number' state, then propagate changes through graph.
 	//frameNumber = std::get<float>(frameNumber) + 1.0f;
-	_RPT0(0, "-- FUNCTIONAL: STEP -------------\n");
+//	_RPT0(0, "-- FUNCTIONAL: STEP -------------\n");
 	for (auto& n : graph)
 	{
 		if (n.dirty)
