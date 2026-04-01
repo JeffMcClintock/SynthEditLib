@@ -122,7 +122,7 @@ class ButtonGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 		const float cornerRadius = (std::max)(2.0f, minDimension * 0.24f);
 		const bool pressed = isPressed();
 		const Rect bodyRect = localBounds;
-		const RoundedRect buttonRect(bodyRect, cornerRadius);
+		const RoundedRect buttonRect(bodyRect, cornerRadius, cornerRadius);
 
 		// Fill
 		{
@@ -136,37 +136,17 @@ class ButtonGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 			g.fillRoundedRectangle(buttonRect, fillBrush);
 		}
 
-		// Highlight
-		{
-			Rect highlightRect = bodyRect;
-			highlightRect.left += bevelWidth * 1.2f;
-			highlightRect.top += bevelWidth * 1.2f;
-			highlightRect.right -= bevelWidth * 1.2f;
-			highlightRect.bottom = highlightRect.top + height * 0.42f;
-			const float highlightHeight = getHeight(highlightRect);
-			if(getWidth(highlightRect) > bevelWidth && highlightHeight > bevelWidth)
-			{
-				const auto highlightColor = getHighlightColor();
-				const RoundedRect highlightRounded(highlightRect, (std::max)(1.0f, cornerRadius - bevelWidth));
-				auto highlightBrush = g.createLinearGradientBrush(
-					{ highlightRect.left, highlightRect.top },
-					{ highlightRect.left, highlightRect.bottom },
-					withAlpha(interpolateColor(highlightColor, Colors::White, 0.25f), pressed ? 0.18f : 0.32f),
-					withAlpha(highlightColor, 0.0f)
-				);
-				g.fillRoundedRectangle(highlightRounded, highlightBrush);
-			}
-		}
-
 		// Bevel ring around edge
 		{
+			const RoundedRect bevelRect(inflateRect(bodyRect, -0.5f * bevelWidth), cornerRadius, cornerRadius);
+
 			auto bevelBrush = g.createLinearGradientBrush(
-				{ bodyRect.left, bodyRect.top },
-				{ bodyRect.right, bodyRect.bottom },
+				{ bevelRect.rect.left, bevelRect.rect.top },
+				{ bevelRect.rect.right, bevelRect.rect.bottom },
 				Color{ 0.85f, 0.85f, 0.85f, 0.55f },
 				Color{ 0.20f, 0.20f, 0.20f, 0.55f }
 			);
-			g.drawRoundedRectangle(buttonRect, bevelBrush, bevelWidth);
+			g.drawRoundedRectangle(bevelRect, bevelBrush, bevelWidth);
 		}
 
 		return ReturnCode::Ok;
