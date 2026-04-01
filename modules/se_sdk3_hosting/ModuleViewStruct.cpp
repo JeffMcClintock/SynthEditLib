@@ -282,7 +282,6 @@ namespace SE2
 		auto totalPlugHeight = visiblePlugsCount * plugDiameter;
 
         auto drawingFactory = getFactory();
-//		assert(drawingFactory);
 		auto resources = getDrawingResources(drawingFactory);
 
 		// calc text min width.
@@ -298,7 +297,7 @@ namespace SE2
 
 		// Calc how much of width taken up by plugs etc.
 		// Plugs section has plug circles sticking out on both sides.
-		float minTextAndPlugsWidth = minTextWidth + 2.0f * (plugTextHorizontalPadding + plugDiameter);
+		float minTextAndPlugsWidth = minTextWidth + 2.0f * plugTextHorizontalPadding + plugDiameter;
 
 		// Calc width needed for embedded graphics, plus padding.
 		// embedded gfx has half a plug sticking out each side.
@@ -528,12 +527,13 @@ namespace SE2
 
 		// outline stroke.
 		const auto OutlineSpec = snap.thickness(isHovered_ ? 2.0f : 1.0f);
-		// snap the top border line to the pixel-grid.
-		const auto topYsnapped = snap.snapY(0.0f);
+		// snap the top corner to the pixel-grid.
+		const auto topLeftSnapped = snap.snapPixelOrigin({ 0.0f, 0.0f });
 
-		const auto offset = topYsnapped + OutlineSpec.center_offset;
+		const auto offsetY = topLeftSnapped.y + OutlineSpec.center_offset;
+		const auto offsetX = topLeftSnapped.x + OutlineSpec.center_offset;
 		const auto orig = g.getTransform();
-		g.setTransform(makeTranslation(0.0f, offset) * orig);
+		g.setTransform(makeTranslation(offsetX, offsetY) * orig);
 
 #if 0 // debug layout and clip rects
 		g.fillRectangle(getClipArea(),   g.createSolidColorBrush(Color::FromArgb(0x200000ff)));
@@ -653,8 +653,8 @@ namespace SE2
 			auto whiteBrush = g.createSolidColorBrush(Colors::White);
 
 			// Pins (see also drawoutline for snapping)
-			const float left = plugDiameter * 0.5f - 0.5f;
-			const float right = getWidth(getLayoutRect()) - plugDiameter * 0.5f + 0.5f;
+			const float left = 0.0f;
+			const float right = getWidth(getLayoutRect());
 
 			Point p(0, plugDiameter * 0.5f); // -0.5f);
 			int pinIndex = 0;
@@ -696,8 +696,8 @@ namespace SE2
 			// Text
 			Rect r(0,0, getWidth(bounds_), getHeight(bounds_));
 			r.top -= 1.0f;
-			r.left += static_cast<float>(plugTextHorizontalPadding + plugDiameter);
-			r.right -= static_cast<float>(plugTextHorizontalPadding + plugDiameter);
+			r.left  += static_cast<float>(plugTextHorizontalPadding + 0.5f * plugDiameter);
+			r.right -= static_cast<float>(plugTextHorizontalPadding + 0.5f * plugDiameter);
 
 			outlineBrush.setColor(Colors::Black);
 
@@ -873,8 +873,14 @@ namespace SE2
 		}
 		g.setTransform(orig);
 
+#if 0
 		// check alignment
-		g.fillRectangle({ -1, -1, 1, 1 }, g.createSolidColorBrush(Colors::Red));
+		//g.fillRectangle({ -1, -1, 1, 1 }, g.createSolidColorBrush(Colors::Red));
+
+		auto br = g.createSolidColorBrush(Color(0.5f, 0.5f, 0.0, 0.5f));
+		Rect localbounds(0, 0, getWidth(bounds_), getHeight(bounds_));
+		g.drawRectangle(localbounds, br, 2.f);
+#endif
 	}
 
 	void ModuleViewStruct::RenderCpu(Graphics& g)
@@ -1151,13 +1157,9 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 			}
 
 			if (pin.direction == DR_IN)
-			{
 				lPlugNamesTemp.append(pin.name);
-			}
 			else
-			{
 				rPlugNamesTemp.append(pin.name);
-			}
 		}
 
 		// Add entry for embedded graphics.
@@ -1171,9 +1173,7 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 
 		// or if no plugs, place dummy object in list to prevent problems creating outline
 		if( filteredChildren.empty() && clientHight == 0.0f)
-		{
 			clientHight = plugDiameter;
-		}
 
 		if (clientHight != 0.0f)
 		{
@@ -1225,11 +1225,13 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 		auto geometry = factory.createPathGeometry();
 		auto sink = geometry.open();
 
+		const auto localBounds = Rect{ 0, 0, getWidth(bounds_), getHeight(bounds_) };
 		const float radius = plugDiameter * 0.5f;
 
-		const float leftX = radius - 0.5f; //XX
+		// left and right borders, when flat.
+		const float leftX = localBounds.left; // radius - 0.5f;
 		// we can't draw past right outline.
-		const float rightX = (bounds_.right - bounds_.left) - radius /*- outlineThickness*/ +0.5f;
+		const float rightX = localBounds.right; //(bounds_.right - bounds_.left) - radius /*- outlineThickness*/ +0.5f;
 
 		// Half-circles. The BEST 2-spline magic number is 1.333333
 		const float controlPointDistance = radius * 1.333f;
@@ -1491,7 +1493,6 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 		}
 
 		sink.endFigure();
-
 		sink.close();
 
 		getDrawingResources(factory)->outlineCache[outlineSpecification] = geometry;
@@ -1502,18 +1503,14 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 	int ModuleViewStruct::getPinDatatype(int pinIndex)
 	{
 		if (pinIndex < plugs_.size())
-		{
 			return plugs_[pinIndex].datatype;
-		}
 
 		return 0;
 	}
 	bool ModuleViewStruct::getPinGuiType(int pinIndex)
 	{
 		if (pinIndex < plugs_.size())
-		{
 			return plugs_[pinIndex].isGuiPlug;
-		}
 
 		return false;
 	}
@@ -1533,7 +1530,7 @@ Fix: map incoming pinId (plugDescID) to plugs_ index before indexing vectors.
 			{
 				if (i == pinIndex)
 				{
-					float x = p.direction == DR_OUT ? bounds_.right - plugDiameter * 0.5f + 0.5f : bounds_.left + plugDiameter * 0.5f - 0.5f;
+					float x = p.direction == DR_OUT ? bounds_.right/* - plugDiameter * 0.5f + 0.5f*/ : bounds_.left/* + plugDiameter * 0.5f - 0.5f*/;
 					//				_RPT2(_CRT_WARN, "getConnectionPoint [%.3f,%.3f]\n", x, y);
 					return Point(x, y);
 				}
