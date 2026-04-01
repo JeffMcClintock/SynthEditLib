@@ -527,16 +527,6 @@ namespace SE2
 		// calc line thickness and offset to align nicely on pixel
 		pixelSnapper2 snap(g.getTransform(), parent->drawingHost->getRasterizationScale());
 
-		// outline stroke.
-		const auto OutlineSpec = snap.thickness(isHovered_ ? 2.0f : 1.0f);
-		// snap the top corner to the pixel-grid.
-		const auto topLeftSnapped = snap.snapPixelOrigin({ 0.0f, 0.0f });
-
-		const auto offsetY = topLeftSnapped.y + OutlineSpec.center_offset;
-		const auto offsetX = topLeftSnapped.x + OutlineSpec.center_offset;
-		const auto orig = g.getTransform();
-		g.setTransform(makeTranslation(offsetX, offsetY) * orig);
-
 #if 0 // debug layout and clip rects
 		g.fillRectangle(getClipArea(),   g.createSolidColorBrush(Color::FromArgb(0x200000ff)));
 		g.fillRectangle(getLayoutRect(), g.createSolidColorBrush(Color::FromArgb(0x2000ff00)));
@@ -636,9 +626,21 @@ namespace SE2
 		{
 			g.fillGeometry(outlineGeometry, backgroundBrush);
 
+			// snap the top corner to the pixel-grid. plus the stroke width, to get a crisp outline.
+			const auto OutlineSpec = snap.thickness(isHovered_ ? 2.0f : 1.0f);
+			const auto topLeftSnapped = snap.snapPixelOrigin({ 0.0f, 0.0f });
+
+			const auto offsetY = topLeftSnapped.y + OutlineSpec.center_offset;
+			const auto offsetX = topLeftSnapped.x + OutlineSpec.center_offset;
+			const auto orig = g.getTransform();
+			g.setTransform(makeTranslation(offsetX, offsetY) * orig);
+
 			auto& moduleOutlineBrush = isHovered_ ? resources->moduleOutlineBrushHovered : resources->moduleOutlineBrush;
 
 			g.drawGeometry(outlineGeometry, moduleOutlineBrush, OutlineSpec.width);
+
+			g.setTransform(orig);
+
 		}
 		else
 		{
@@ -873,7 +875,6 @@ namespace SE2
 				g.drawTextU(hoverScopeText.c_str(), font, centeredTextRect, brush);
 			}
 		}
-		g.setTransform(orig);
 
 #if 0
 		// check alignment
