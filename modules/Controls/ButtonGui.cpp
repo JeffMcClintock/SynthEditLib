@@ -138,7 +138,8 @@ class ButtonGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 
 		// Bevel ring around edge
 		{
-			const RoundedRect bevelRect(inflateRect(bodyRect, -0.5f * bevelWidth), cornerRadius, cornerRadius);
+			const float bevelCornerRadius = (std::max)(0.0f, cornerRadius - 0.5f * bevelWidth);
+			const RoundedRect bevelRect(inflateRect(bodyRect, -0.5f * bevelWidth), bevelCornerRadius, bevelCornerRadius);
 
 			auto bevelBrush = g.createLinearGradientBrush(
 				{ bevelRect.rect.left, bevelRect.rect.top },
