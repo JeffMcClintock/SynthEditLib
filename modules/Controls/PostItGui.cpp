@@ -55,17 +55,32 @@ class PostItGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 	// The note shape: rectangle with bottom-right corner replaced by a curve
 	PathGeometry createNoteShape(Graphics& g, const Rect& r, float curlSize)
 	{
-		auto geom = g.getFactory().createPathGeometry();
-		auto sink = geom.open();
-		sink.beginFigure({r.left, r.top}, FigureBegin::Filled);
-		sink.addLine({r.right, r.top});
-		sink.addLine({r.right, r.bottom - curlSize});
-		sink.addQuadraticBezier({{r.right - curlSize * 0.4f, r.bottom - curlSize * 0.5f},
-		                         {r.right - curlSize, r.bottom}});
-		sink.addLine({r.left, r.bottom});
+		auto curlGeom = g.getFactory().createPathGeometry();
+		auto sink = curlGeom.open();
+
+		sink.beginFigure({ r.left, r.top }, FigureBegin::Filled);		// top-left
+		sink.addLine({ r.right - curlSize, r.top });					// top-right
+
+		sink.addBezier(													// bot-right
+			{
+				{ r.right - curlSize  , r.top + getHeight(r) * 0.4f},
+				{ r.right - curlSize  , r.top + getHeight(r) * 0.6f},
+				{ r.right             , r.bottom }
+			});
+
+
+		sink.addLine({ r.left + curlSize, r.bottom });
+		sink.addBezier(													// bot-right
+			{
+				{ r.left , r.top + getHeight(r) * 0.6f},
+				{ r.left , r.top + getHeight(r) * 0.4f},
+				{ r.left , r.top }
+			});
+
 		sink.endFigure(FigureEnd::Closed);
 		sink.close();
-		return geom;
+
+		return curlGeom;
 	}
 
 	float getCurlSize() const
@@ -89,12 +104,12 @@ public:
 
 	ReturnCode getClipArea(Rect* returnRect) override
 	{
-		*returnRect = bounds;
-		const auto ext = getShadowExtent();
-		returnRect->left -= ext;
-		returnRect->top -= ext;
-		returnRect->right += ext;
-		returnRect->bottom += ext;
+		*returnRect = inflateRect(bounds, 500);
+		//const auto ext = getShadowExtent();
+		//returnRect->left -= ext;
+		//returnRect->top -= ext;
+		//returnRect->right += ext;
+		//returnRect->bottom += ext;
 		return ReturnCode::Ok;
 	}
 
@@ -115,51 +130,68 @@ public:
 
 	ReturnCode renderLayer(drawing::api::IDeviceContext* drawingContext, int32_t layer) override
 	{
+		if(layer < -1 || layer > 0)
+			return ReturnCode::NoSupport;
+
 		Graphics g(drawingContext);
 		const auto& r = bounds;
 		const float w = getWidth(r);
 		const float h = getHeight(r);
 		const float curlSize = getCurlSize();
-/*
-		if (layer == -1)
+
+		if(layer == -1)
 		{
-			// ── Soft drop shadow on background layer ──
-			const float minDim = (std::min)(w, h);
-			const float shadowOffset = minDim * 0.04f;
+			const auto blurRadius =static_cast<int>(0.06f * (std::min)(w, h));
+			Rect shadowBounds{ 0 - blurRadius, 0 - blurRadius, w + blurRadius, h + blurRadius };
 
-			const auto width = (std::max)(1u, static_cast<uint32_t>(w));
-			const auto height = (std::max)(1u, static_cast<uint32_t>(h));
-			const SizeU size{width, height};
-			updateShadowCache(size);
+			shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.4f };
+			shadowBlur.blurRadius = blurRadius;
 
-			shadowBlur.tint = Color{0.0f, 0.0f, 0.0f, 0.45f};
-			shadowBlur.blurRadius = (std::max)(2, static_cast<int>(std::ceil(minDim * 0.06f)));
+			const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
+			const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
+			const SizeU shadowBitmapSize{ width + 2 * shadowBlur.blurRadius, height + 2 * shadowBlur.blurRadius };
+			updateShadowCache(shadowBitmapSize);
 
+			auto noteGeom = createNoteShape(g, r, curlSize);
+
+			Graphics g(drawingContext);
 			const auto orig = g.getTransform();
-			g.setTransform(makeTranslation({shadowOffset, shadowOffset}) * orig);
-			shadowBlur.draw(g, Rect{0.0f, 0.0f, w, h}, [&](Graphics& mask)
+			g.setTransform(makeTranslation({ (float) -shadowBlur.blurRadius + getCurlSize(),(float)-shadowBlur.blurRadius + getCurlSize() }) * orig);
+			auto rect = r;
+			Rect maskRect
 			{
-				auto brush = mask.createSolidColorBrush(Colors::White);
-				auto noteShape = createNoteShape(mask, Rect{0.0f, 0.0f, w, h}, curlSize);
-				mask.fillGeometry(noteShape, brush);
-			});
-			g.setTransform(orig);
+				0,
+				0,
+				shadowBitmapSize.width,
+				shadowBitmapSize.height,
+			};
+			shadowBlur.draw(g, maskRect, [&](Graphics& mask)
+				{
+					auto brush = mask.createSolidColorBrush(Colors::White);
 
-			return ReturnCode::Ok;
+					auto& r = shadowBlur.blurRadius;
+					rect.right -= getCurlSize() * 2.0f;
+//					rect.bottom += getCurlSize();
+					const Rect shadowRect{
+						rect.left + r + r / 2,
+						rect.top + r,
+						rect.right - r - r - r,
+						rect.bottom  - r
+					};
+					mask.fillRectangle(offsetRect(rect, { (float)r, (float)r }), brush);
+
+//					mask.clear(Colors::White);
+				});
+			g.setTransform(orig); 
+
 		}
-*/
-
-		if (layer == 0)
+		else
 		{
+//			return ReturnCode::Ok;
 			// ── Yellow palette ──
 			const Color stickyTop = colorFromHex(0xFAE37D, 0.9f); // dirty yellow over glue
 			const Color yellowTop = colorFromHex(0xFFE479, 0.9f);
 			const Color yellowBottom = colorFromHex(0xFFED8B, 0.9f);
-
-//			const Color yellowTop   {1.0f, 0.97f, 0.70f, 0.95f};  // light warm yellow
-			//const Color yellowBottom{1.0f, 0.92f, 0.55f, 0.95f};  // slightly richer
-			//const Color yellowCurl  {0.88f, 0.80f, 0.35f, 0.95f};  // darker fold underside
-			//const Color yellowCurlLt{0.98f, 0.94f, 0.62f, 0.95f};  // lighter fold edge
 
 			// ── Note body ──
 			auto noteGeom = createNoteShape(g, r, curlSize);
@@ -178,32 +210,7 @@ public:
 			);
 
 			{
-				auto curlGeom = g.getFactory().createPathGeometry();
-				auto sink = curlGeom.open();
-
-				sink.beginFigure({ r.left, r.top }, FigureBegin::Filled);		// top-left
-				sink.addLine({ r.right - curlSize, r.top });					// top-right
-
-				sink.addBezier(													// bot-right
-					{
-						{ r.right - curlSize         , r.top + getHeight(r) * 0.4f},
-						{ r.right - curlSize  , r.top + getHeight(r) * 0.6f},
-						{ r.right        , r.bottom }
-					});
-
-
-				sink.addLine({ r.left + curlSize, r.bottom });
-				sink.addBezier(													// bot-right
-					{
-						{ r.left   , r.top + getHeight(r) * 0.6f},
-						{ r.left   , r.top + getHeight(r) * 0.4f},
-						{ r.left   , r.top }
-					});
-
-				sink.endFigure(FigureEnd::Closed);
-				sink.close();
-
-				g.fillGeometry(curlGeom, fillBrush);
+				g.fillGeometry(noteGeom, fillBrush);
 
 				// highlight
 				auto curlBrush = g.createLinearGradientBrush(
@@ -211,27 +218,9 @@ public:
 					{r.left, r.bottom},
 					Colors::TransparentWhite, Color{ 1.0f, 1.0f, 1.0f, 0.5f }
 				);
-				g.fillGeometry(curlGeom, curlBrush);
+				g.fillGeometry(noteGeom, curlBrush);
 			}
-#if 0
-			// ── Small shadow beneath the curl ──
-			{
-				const float sh = curlSize * 0.12f;
-				auto csGeom = g.getFactory().createPathGeometry();
-				auto sink = csGeom.open();
-				sink.beginFigure({r.right - curlSize, r.bottom}, FigureBegin::Filled);
-				sink.addQuadraticBezier({{r.right - curlSize * 0.5f, r.bottom + sh * 0.4f},
-				                         {r.right + sh * 0.2f, r.bottom - curlSize + sh}});
-				sink.addLine({r.right, r.bottom - curlSize});
-				sink.addQuadraticBezier({{r.right - curlSize * 0.4f, r.bottom - curlSize * 0.5f},
-				                         {r.right - curlSize, r.bottom}});
-				sink.endFigure(FigureEnd::Closed);
-				sink.close();
 
-				auto sBrush = g.createSolidColorBrush(Color{0.0f, 0.0f, 0.0f, 0.12f});
-				g.fillGeometry(csGeom, sBrush);
-			}
-#endif
 			// ── Draw text ──
 			{
 				const float margin = 6.0f;
