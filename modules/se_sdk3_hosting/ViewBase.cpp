@@ -97,14 +97,21 @@ namespace SE2
 			layeredChildren.push_back({ m.get(), makeTranslation(layoutRect.left, layoutRect.top) * originalTransform });
 		}
 
-		// Pass 1: layer -1 (shadows) - only layer-supporting plugins
-		for (auto& lc : layeredChildren)
+		// Pass 1: layer -2 (background) - only layer-supporting plugins
+		for(auto& lc : layeredChildren)
 		{
 			g.setTransform(lc.transform);
 			lc.child->renderPluginLayer(g, -1);
 		}
 
-		// Pass 2: normal render (all children in clip rect)
+		// Pass 2: layer -1 (shadows) - only layer-supporting plugins
+		for(auto& lc : layeredChildren)
+		{
+			g.setTransform(lc.transform);
+			lc.child->renderPluginLayer(g, -1);
+		}
+
+		// Pass 3: normal render (all children in clip rect)
 		// Layer-supporting plugins render layer 0 inside their render() method.
 		// Non-layer plugins render normally via render().
 		bool isOriginal = false;
@@ -134,7 +141,7 @@ namespace SE2
 			m->render(g);
 		}
 
-		// Pass 3: layer 1 (glow) - only layer-supporting plugins
+		// Pass 4: layer 1 (glow) - only layer-supporting plugins
 		for (auto& lc : layeredChildren)
 		{
 			g.setTransform(lc.transform);
