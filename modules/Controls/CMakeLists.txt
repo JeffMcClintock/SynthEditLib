@@ -18,4 +18,5 @@ gmpi_plugin(
 	  ${GMPI_UI_SDK}/helpers/ImageMetadata.cpp
 	  VUMeterGui.cpp
 	  BarLEDMeterGui.cpp
+	  PostItGui.cpp
 )
