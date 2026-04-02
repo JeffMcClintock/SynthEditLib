@@ -132,6 +132,22 @@ bool Module_Info::hasDspModule()
 	return m_dsp_registered;
 }
 
+bool Module_Info::hasVisiblePins()
+{
+	for (auto& plug : plugs)
+	{
+		if (0 == (plug.second->GetFlags() & (IO_PARAMETER_SCREEN_ONLY | IO_MINIMISED | IO_HIDE_PIN)))
+			return true;
+	}
+	for(auto& plug : gui_plugs)
+	{
+		if (0 == (plug.second->GetFlags() & (IO_PARAMETER_SCREEN_ONLY | IO_MINIMISED | IO_HIDE_PIN)))
+			return true;
+	}
+	return false;
+}
+
+
 bool Module_Info::OnDemandLoad()
 {
 	return true;

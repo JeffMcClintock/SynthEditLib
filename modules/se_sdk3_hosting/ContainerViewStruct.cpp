@@ -39,6 +39,8 @@ namespace SE2
 		// Modules.
 		Json::Value& modules_json = (*context)["modules"];
 
+		auto& moduleDb = *CModuleFactory::Instance();
+
 		for (auto& module_json : modules_json)
 		{
 			const auto typeName = module_json["type"].asString();
@@ -52,14 +54,12 @@ namespace SE2
 			}
 			else
 			{
-				if (typeName == "SE Structure Group2")
-				{
+				auto moduleInfo = moduleDb.GetById(JmUnicodeConversions::Utf8ToWstring(typeName));
+
+				if (!moduleInfo->hasVisiblePins() ) //typeName == "SE Structure Group2")
 					module = std::make_unique<ModuleViewPanel>(&module_json, this, guiObjectMap);
-				}
 				else
-				{
 					module = std::make_unique<ModuleViewStruct>(&module_json, this, guiObjectMap);
-				}
 			}
 
 			if (module)

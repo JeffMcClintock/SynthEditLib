@@ -94,6 +94,11 @@ public:
 		return (int)gui_plugs.size();
 	}
 
+	int PlugCount()
+	{
+		return (int)plugs.size();
+	}
+
 	int GetFlags()
 	{
 		return flags;
@@ -101,11 +106,6 @@ public:
 	void SetFlags(int f)
 	{
 		flags = f;
-	}
-
-	int PlugCount()
-	{
-		return (int)plugs.size();
 	}
 
 	void SetupPlugs();
@@ -152,11 +152,7 @@ public:
 	virtual bool OnDemandLoad();
 
 	bool hasDspModule();
-
-	//virtual bool FileInUse()
-	//{
-	//	return false;
-	//}
+	bool hasVisiblePins();
 
 	virtual bool fromExternalDll(){ return false;}
 
