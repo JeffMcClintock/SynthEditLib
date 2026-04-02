@@ -16,7 +16,7 @@
 #define _RPT2(p0,p1,p2,p3) fprintf(stderr, p1, p2, p3);
 #define _RPT3(p0,p1,p2,p3,p4) fprintf(stderr, p1, p2, p3, p4);
 #define _RPT4(p0,p1,p2,p3,p4,p5) fprintf(stderr, p1, p2, p3, p4, p5);
-
+#define _RPT5(p0,p1,p2,p3,p4,p5,p6)  fprintf(stderr, p1, p2, p3, p4, p5, p6);
 #else
 
 #define _RPT0(p0,p1)
@@ -24,6 +24,7 @@
 #define _RPT2(p0,p1,p2,p3)
 #define _RPT3(p0,p1,p2,p3,p4)
 #define _RPT4(p0,p1,p2,p3,p4,p5)
+#define _RPT5(p0,p1,p2,p3,p4,p5,p6)
 #define _RPTN(rptno, msg, ...)
 #define _RPTWN(rptno, msg, ...)
 
