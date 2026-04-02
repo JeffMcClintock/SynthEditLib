@@ -27,6 +27,7 @@ class ButtonGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 	Pin<bool> pinToggle;
 	Pin<std::string> pinColor1;
 	Pin<std::string> pinColor2;
+	Pin<float> pinRadius;
 	cachedBlur shadowBlur;
 	SizeU shadowSize{};
 
@@ -87,78 +88,13 @@ class ButtonGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 		return blurOffset + blurRadius;
 	}
 
-	ReturnCode drawShadow(Graphics& g, const Rect& localBounds)
-	{
-		const auto width = getWidth(localBounds);
-		const auto height = getHeight(localBounds);
-		const float minDimension = (std::min)(width, height);
-		const float cornerRadius = (std::max)(2.0f, minDimension * 0.24f);
-		const float blurOffset = 0.16f * minDimension;
-		const bool pressed = isPressed();
-		const float shadowDirection = pressed ? 0.0f : 1.0f;
-		const RoundedRect buttonRect(inflateRect(localBounds, -0.5f * blurOffset), cornerRadius, cornerRadius);
-
-		shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.6f };
-		shadowBlur.blurRadius = (std::max)(1, static_cast<int>(std::ceil(minDimension * 0.08f)));
-
-		const auto orig = g.getTransform();
-		g.setTransform(makeTranslation({ shadowDirection * blurOffset, shadowDirection * blurOffset }) * orig);
-		shadowBlur.draw(g, localBounds, [&](Graphics& mask)
-			{
-				auto brush = mask.createSolidColorBrush(Colors::White);
-				mask.fillRoundedRectangle(buttonRect, brush);
-			});
-		g.setTransform(orig);
-
-		return ReturnCode::Ok;
-	}
-
-	ReturnCode drawButton(Graphics& g, const Rect& localBounds)
-	{
-		const auto width = getWidth(localBounds);
-		const auto height = getHeight(localBounds);
-		const float minDimension = (std::min)(width, height);
-		const float bevelWidth = (std::max)(1.0f, minDimension * 0.08f);
-		const float cornerRadius = (std::max)(2.0f, minDimension * 0.24f);
-		const bool pressed = isPressed();
-		const Rect bodyRect = localBounds;
-		const RoundedRect buttonRect(bodyRect, cornerRadius, cornerRadius);
-
-		// Fill
-		{
-			const auto fillColor = getFillColor();
-			auto fillBrush = g.createRadialGradientBrush(
-				{ bodyRect.left, bodyRect.top },
-				(std::max)(width, height) * 1.8f,
-				interpolateColor(fillColor, Colors::White, pressed ? 0.28f : 0.45f),
-				interpolateColor(fillColor, Colors::Black, pressed ? 0.18f : 0.10f)
-			);
-			g.fillRoundedRectangle(buttonRect, fillBrush);
-		}
-
-		// Bevel ring around edge
-		{
-			const float bevelCornerRadius = (std::max)(0.0f, cornerRadius - 0.5f * bevelWidth);
-			const RoundedRect bevelRect(inflateRect(bodyRect, -0.5f * bevelWidth), bevelCornerRadius, bevelCornerRadius);
-
-			auto bevelBrush = g.createLinearGradientBrush(
-				{ bevelRect.rect.left, bevelRect.rect.top },
-				{ bevelRect.rect.right, bevelRect.rect.bottom },
-				Color{ 0.85f, 0.85f, 0.85f, 0.55f },
-				Color{ 0.20f, 0.20f, 0.20f, 0.55f }
-			);
-			g.drawRoundedRectangle(bevelRect, bevelBrush, bevelWidth);
-		}
-
-		return ReturnCode::Ok;
-	}
-
 public:
 	ButtonGui()
 	{
 		pinValue.onUpdate = [this](PinBase*) { redraw(); };
 		pinColor1.onUpdate = [this](PinBase*) { redraw(); };
 		pinColor2.onUpdate = [this](PinBase*) { redraw(); };
+		pinRadius.onUpdate = [this](PinBase*) { redraw(); };
 	}
 
 	ReturnCode getClipArea(Rect* returnRect) override
@@ -184,23 +120,76 @@ public:
 
 	ReturnCode renderLayer(drawing::api::IDeviceContext* drawingContext, int32_t layer) override
 	{
+		Graphics g(drawingContext);
+		const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
+		const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
+		const SizeU size{ width, height };
+		const Rect localBounds = getLocalBounds(size);
+		const auto widthF = getWidth(localBounds);
+		const auto heightF = getHeight(localBounds);
+		const float minDimension = (std::min)(widthF, heightF);
+		const float radiusFraction = (std::clamp)(pinRadius.value, 0.0f, 1.0f);
+		const float cornerRadius = (std::max)(2.0f, minDimension * radiusFraction);
+		const bool pressed = isPressed();
+
 		if (layer == -1)
 		{
-			Graphics g(drawingContext);
-			const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
-			const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
-			const SizeU size{ width, height };
 			updateShadowCache(size);
-			return drawShadow(g, getLocalBounds(size));
+
+			// Draw shadow
+			const float blurOffset = 0.16f * minDimension;
+			const float shadowDirection = pressed ? 0.0f : 1.0f;
+			const RoundedRect buttonRect(inflateRect(localBounds, -0.5f * blurOffset), cornerRadius, cornerRadius);
+
+			shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.6f };
+			shadowBlur.blurRadius = (std::max)(1, static_cast<int>(std::ceil(minDimension * 0.08f)));
+
+			const auto orig = g.getTransform();
+			g.setTransform(makeTranslation({ shadowDirection * blurOffset, shadowDirection * blurOffset }) * orig);
+			shadowBlur.draw(g, localBounds, [&](Graphics& mask)
+				{
+					auto brush = mask.createSolidColorBrush(Colors::White);
+					mask.fillRoundedRectangle(buttonRect, brush);
+				});
+			g.setTransform(orig);
+
+			return ReturnCode::Ok;
 		}
 
 		if (layer == 0)
 		{
-			Graphics g(drawingContext);
-			const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
-			const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
-			const SizeU size{ width, height };
-			return drawButton(g, getLocalBounds(size));
+			// Draw button
+			const float bevelWidth = (std::max)(1.0f, minDimension * 0.08f);
+			const Rect bodyRect = localBounds;
+			const RoundedRect buttonRect(bodyRect, cornerRadius, cornerRadius);
+
+			// Fill
+			{
+				const auto fillColor = getFillColor();
+				auto fillBrush = g.createRadialGradientBrush(
+					{ bodyRect.left, bodyRect.top },
+					(std::max)(widthF, heightF) * 1.8f,
+					interpolateColor(fillColor, Colors::White, pressed ? 0.28f : 0.45f),
+					interpolateColor(fillColor, Colors::Black, pressed ? 0.18f : 0.10f)
+				);
+				g.fillRoundedRectangle(buttonRect, fillBrush);
+			}
+
+			// Bevel ring around edge
+			{
+				const float bevelCornerRadius = (std::max)(0.0f, cornerRadius - 0.5f * bevelWidth);
+				const RoundedRect bevelRect(inflateRect(bodyRect, -0.5f * bevelWidth), bevelCornerRadius, bevelCornerRadius);
+
+				auto bevelBrush = g.createLinearGradientBrush(
+					{ bevelRect.rect.left, bevelRect.rect.top },
+					{ bevelRect.rect.right, bevelRect.rect.bottom },
+					Color{ 0.85f, 0.85f, 0.85f, 0.55f },
+					Color{ 0.20f, 0.20f, 0.20f, 0.55f }
+				);
+				g.drawRoundedRectangle(bevelRect, bevelBrush, bevelWidth);
+			}
+
+			return ReturnCode::Ok;
 		}
 
 		return ReturnCode::NoSupport;
@@ -264,14 +253,15 @@ namespace
 auto r = gmpi::Register<ButtonGui>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
 <Plugin id="SE Button" name="Button" category="Sub-Controls">
-    <GUI>
-        <Pin name="Value" datatype="bool"/>
+	<GUI>
+		<Pin name="Value" datatype="bool"/>
 		<Pin name="Hint" datatype="string"/>
 		<Pin name="Mouse Down" datatype="bool" direction="out"/>
 		<Pin name="Toggle" datatype="bool"/>
 		<Pin name="Color 1" datatype="string" default="2E79C7"/>
 		<Pin name="Color 2" datatype="string" default="FFFFFFFF"/>
-    </GUI>
+		<Pin name="Radius" datatype="float" default="0.24"/>
+	</GUI>
 </Plugin>
 )XML");
 }

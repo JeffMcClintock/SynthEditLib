@@ -13,6 +13,9 @@ gmpi_plugin(
 	  LEDGui.cpp
 	  BumpGui.cpp
 	  PanelGroupGui.cpp
+	  PlainImageGui.cpp
+	  ${GMPI_UI_SDK}/helpers/ImageCache.cpp
+	  ${GMPI_UI_SDK}/helpers/ImageMetadata.cpp
 	  VUMeterGui.cpp
 	  BarLEDMeterGui.cpp
 )
