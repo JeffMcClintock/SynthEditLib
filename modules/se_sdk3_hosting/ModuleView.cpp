@@ -800,7 +800,6 @@ namespace SE2
 			pluginInput_GMPI = object.as<gmpi::api::IInputClient>();
 			pluginParameters_GMPI = object.as<gmpi::api::IEditor>();
 			pluginGraphics_GMPI = object.as<gmpi::api::IDrawingClient>();
-			pluginDrawingLayer_GMPI = object.as<gmpi::api::IDrawingLayer>();
 
 			if(pluginParameters_GMPI || pluginGraphics_GMPI || pluginEditor2)
 				gmpiHelper = std::make_unique<GmpiHelper>(*this);
@@ -1128,17 +1127,7 @@ if(pluginGraphics)
 		{
 			auto gmpiContext = AccessPtr::get(g);
 			assert(gmpiContext);
-
-			if (pluginDrawingLayer_GMPI)
-			{
-				// Layer-supporting plugins render layer 0 here.
-				// Layers -1 and 1 are rendered by ViewBase in separate passes.
-				pluginDrawingLayer_GMPI->renderLayer(gmpiContext, 0);
-			}
-			else
-			{
-				pluginGraphics_GMPI->render(gmpiContext);
-			}
+			pluginGraphics_GMPI->render(gmpiContext);
 		}
 
 		else if(pluginGraphics)
@@ -1179,16 +1168,13 @@ if(pluginGraphics)
 
 	bool ModuleViewPanel::hasRenderLayers() const
 	{
-		return pluginDrawingLayer_GMPI != nullptr;
+      return false;
 	}
 
 	void ModuleViewPanel::renderPluginLayer(Graphics& g, int32_t layer)
 	{
-		if (!pluginDrawingLayer_GMPI)
-			return;
-
-		auto gmpiContext = AccessPtr::get(g);
-		pluginDrawingLayer_GMPI->renderLayer(gmpiContext, layer);
+       (void)g;
+		(void)layer;
 	}
 
 	gmpi::drawing::Point ModuleView::getConnectionPoint(CableType cableType, int pinIndex)
