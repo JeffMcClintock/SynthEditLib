@@ -141,8 +141,9 @@ public:
 
 		if(layer == -1)
 		{
-			const auto blurRadius =static_cast<int>(0.06f * (std::min)(w, h));
-			Rect shadowBounds{ 0 - blurRadius, 0 - blurRadius, w + blurRadius, h + blurRadius };
+			const auto blurRadius = static_cast<int>(0.06f * (std::min)(w, h));
+			const auto blurRadiusF = static_cast<float>(blurRadius);
+			Rect shadowBounds{ -blurRadiusF, -blurRadiusF, w + blurRadiusF, h + blurRadiusF };
 
 			shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.4f };
 			shadowBlur.blurRadius = blurRadius;
@@ -162,8 +163,8 @@ public:
 			{
 				0,
 				0,
-				shadowBitmapSize.width,
-				shadowBitmapSize.height,
+				static_cast<float>(shadowBitmapSize.width),
+				static_cast<float>(shadowBitmapSize.height),
 			};
 			shadowBlur.draw(g, maskRect, [&](Graphics& mask)
 				{
