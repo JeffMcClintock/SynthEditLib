@@ -249,7 +249,7 @@ auto r = gmpi::Register<PostItGui>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
 <Plugin id="SE Post-It" name="Post-It" category="Sub-Controls">
     <GUI graphicsApi="GmpiGui">
-        <Pin name="Text" datatype="string" default="Hello!" private="true"/>
+        <Pin name="Text" datatype="string" default="Hello!" isMinimised="true"/>
     </GUI>
 </Plugin>
 )XML");
