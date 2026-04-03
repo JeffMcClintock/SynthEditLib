@@ -120,7 +120,7 @@ namespace SE2
 
 	gmpi::drawing::Rect ResizeAdorner::getClipArea()
 	{
-		return inflateRect(getNodeRect(), ResizeHandleRadius + 1.0f);
+		return inflateRect(module->getClipArea(), 2.5f);
 	}
 
 	void ResizeAdorner::OnMoved(gmpi::drawing::Rect& r)
