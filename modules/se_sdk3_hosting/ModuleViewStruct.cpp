@@ -443,7 +443,10 @@ namespace SE2
 		}
 
 		if(hasHoverScope())
-			r = unionRect(r, calcScopeRect(hoveredPin_.pinIndex));
+		{
+			auto scoperect = offsetRect(calcScopeRect(hoveredPin_.pinIndex), { bounds_.left, bounds_.top });
+			r = unionRect(r, scoperect);
+		}
 
 		return r;
 	}
