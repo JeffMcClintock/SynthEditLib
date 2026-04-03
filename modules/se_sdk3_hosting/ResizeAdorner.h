@@ -92,8 +92,6 @@ namespace SE2
 		ResizeAdornerStructure(ViewBase* pParent, ModuleView* pModule);
 
 		gmpi::drawing::Rect getNodeRect() const override;
-//		gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override;
-//		bool hitTestR(int32_t flags, gmpi::drawing::Rect selectionRect) override;
-//		void render(gmpi::drawing::Graphics& g) override;
+		gmpi::drawing::Rect getClipArea() override;
 	};
 }
