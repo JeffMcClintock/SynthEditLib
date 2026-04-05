@@ -10,3 +10,4 @@ modules/.DS_Store
 *.json
 /modules/.claude
 CLAUDE.md
+/modules/Controls/.claude
