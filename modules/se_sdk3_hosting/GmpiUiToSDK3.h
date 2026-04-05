@@ -366,7 +366,7 @@ protected:
 		}
 		void MP_STDCALL GetTextExtentU(const char* utf8String, int32_t stringLength, GmpiDrawing_API::MP1_SIZE* returnSize) override
 		{
-			native()->getTextExtentU(utf8String, stringLength, (gmpi::drawing::Size*)returnSize);
+			native()->getTextExtentU(utf8String, stringLength, 100000.f, (gmpi::drawing::Size*)returnSize);
 		}
 		int32_t MP_STDCALL GetFontMetrics(GmpiDrawing_API::MP1_FONT_METRICS* returnFontMetrics) override
 		{
