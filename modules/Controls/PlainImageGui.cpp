@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: ISC
 // Copyright 2007-2026 Jeff McClintock.
 
+#include <algorithm>
+#include <filesystem>
 #include "helpers/GmpiPluginEditor.h"
 #include "helpers/ImageCache.h"
-#include <algorithm>
+#include "Extensions/EmbeddedFile.h"
 
 using namespace gmpi;
 using namespace gmpi::drawing;
@@ -29,23 +31,37 @@ class PlainImageGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 
 	void onSetFilename()
 	{
+		assert(drawingHost);
 		bitmap_ = {};
 
-		if (drawingHost)
-		{
-			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-			drawingHost->getDrawingFactory(unknown.put());
-			auto factory = unknown.as<gmpi::drawing::api::IFactory>();
+		ReturnString fullFilename;
 
-			if (factory)
+		// get the extensions for SynthEdit.
+		if(auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>())
+		{
+			// SynthEdit needs to know the file type to search for it. If the filename doesn't have an extension, add .png as a default.
+			// SynthEdit will still find .bpm and .jpg files if .png is added, but not if no extension is provided.
+			std::filesystem::path filename(pinFilename.value);
+			if(!filename.has_extension())
+				filename.replace_extension(".png");
+
+			// Locate the full path of the file (typically in the current skin folder)
+			if(synthEdit->findResourceUri(filename.string().c_str(), &fullFilename) == ReturnCode::Ok)
 			{
-				const auto& filename = pinFilename.value;
-				bitmap_ = GetImage(factory.get(), filename.c_str(), nullptr, &bitmapMetadata_);
+				// register the image for export to plugins.
+				synthEdit->registerResourceUri(fullFilename.c_str());
 			}
 		}
 
-		if (drawingHost)
-			drawingHost->invalidateMeasure();
+		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+		drawingHost->getDrawingFactory(unknown.put());
+		auto factory = unknown.as<gmpi::drawing::api::IFactory>();
+
+		assert(factory);
+
+		bitmap_ = GetImage(factory.get(), fullFilename.c_str(), nullptr, &bitmapMetadata_);
+
+		drawingHost->invalidateMeasure();
 
 		redraw();
 	}
