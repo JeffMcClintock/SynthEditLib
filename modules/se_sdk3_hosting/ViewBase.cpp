@@ -101,7 +101,7 @@ namespace SE2
 		for(auto& lc : layeredChildren)
 		{
 			g.setTransform(lc.transform);
-			lc.child->renderPluginLayer(g, -1);
+			lc.child->renderPluginLayer(g, -2);
 		}
 
 		// Pass 2: layer -1 (shadows) - only layer-supporting plugins
