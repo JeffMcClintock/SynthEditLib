@@ -77,8 +77,6 @@ void node::operator()()
 {
 	auto newvalue = function(arguments);
 
-//	_RPTN(0, "NODE:%s => %s\n", debug_name.c_str(), typeNames[newvalue.index()]);
-
 	if (!compareState(result.value, newvalue))
 	{
 		result.value = newvalue;

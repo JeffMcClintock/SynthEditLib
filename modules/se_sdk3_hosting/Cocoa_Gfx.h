@@ -33,12 +33,6 @@ namespace se
             return NSMakePoint(p.x, p.y);
         }
     
-//		inline GmpiDrawing::Rect RectFromNSRect(NSRect nsr)
-//		{
-//			GmpiDrawing::Rect r(nsr.origin.x, nsr.origin.y, nsr.origin.x + nsr.size.width, nsr.origin.y + nsr.size.height);
-//			return r;
-//		}
-
 		inline NSRect NSRectFromRect(GmpiDrawing_API::MP1_RECT rect)
 		{
 			return NSMakeRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);

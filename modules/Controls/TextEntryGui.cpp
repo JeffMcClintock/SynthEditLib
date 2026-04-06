@@ -30,12 +30,9 @@ class TextEntryGui final : public ControlsBase
 		if (!dialogHost)
 			return;
 
-		gmpi::api::IUnknown* returnTextEdit{};
-		if (dialogHost->createTextEdit(&bounds, &returnTextEdit) != ReturnCode::Ok || !returnTextEdit)
-			return;
-
 		gmpi::shared_ptr<gmpi::api::IUnknown> unk;
-		unk.Assign(returnTextEdit);
+		if (dialogHost->createTextEdit(&bounds, unk.put()) != ReturnCode::Ok || !unk)
+			return;
 
 		auto textEdit = unk.as<gmpi::api::ITextEdit>();
 		if (!textEdit)
@@ -98,12 +95,13 @@ public:
 		startTextEdit();
 		return ReturnCode::Ok;
 	}
-
+/* TODO
 	ReturnCode getToolTip(Point, gmpi::api::IString* returnString) override
 	{
 		returnString->setData(pinHint.value.data(), static_cast<int32_t>(pinHint.value.size()));
 		return ReturnCode::Ok;
 	}
+*/
 };
 
 namespace
