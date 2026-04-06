@@ -25,6 +25,7 @@ namespace SE2
 		bool isResizableX{};
 		bool isResizableY{};
 		gmpi::drawing::Rect bounds{};
+		gmpi::drawing::Rect prevClipArea;
 		bool mouseHover{};
 
 		struct node

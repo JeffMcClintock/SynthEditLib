@@ -128,19 +128,19 @@ namespace SE2
 		return inflateRect(module->getClipArea(), 2.5f);
 	}
 
-	void ResizeAdorner::OnMoved(gmpi::drawing::Rect& r)
+	void ResizeAdorner::OnMoved(gmpi::drawing::Rect&)
 	{
-		auto invalidRect = bounds;
-		bounds = clientBoundsToAdorner(r);
-		invalidRect = unionRect(invalidRect, bounds);
-		invalidRect = inflateRect(invalidRect, (float)ResizeHandleRadius);
+		// passed in rect is garbage for this module.
+
+		auto invalidRect = prevClipArea;
+		prevClipArea = getClipArea();
+		invalidRect = unionRect(invalidRect, prevClipArea);
 
 		parent->ChildInvalidateRect(invalidRect);
 	}
 
 	void ResizeAdorner::OnNodesMoved(std::vector<gmpi::drawing::Point>&)
 	{
-
 	}
 
 	void ResizeAdorner::render(gmpi::drawing::Graphics& g)

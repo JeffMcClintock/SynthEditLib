@@ -34,6 +34,7 @@ class PlainImageGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 		assert(drawingHost);
 		bitmap_ = {};
 
+		// Example: How to load a skin image.
 		ReturnString fullFilename;
 
 		// get the extensions for SynthEdit.
@@ -180,7 +181,7 @@ namespace
 {
 auto r = gmpi::Register<PlainImageGui>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
-<Plugin id="SE Plain Image" name="Plain Image" category="Sub-Controls">
+<Plugin id="SE Background Image" name="Background Image" category="Debug">
 	<GUI>
 		<Pin name="Filename" datatype="string" metadata="filename"/>
 		<Pin name="Stretch Mode" datatype="int" default="0" metadata="Fixed,Tiled,Stretch"/>
