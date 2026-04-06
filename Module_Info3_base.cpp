@@ -507,6 +507,10 @@ void Module_Info::RegisterParameters(tinyxml2::XMLElement* parameters) // XML da
 		if (XmlStringToDatatype(pin_datatype, temp) && temp != DT_CLASS)
 		{
 			pind->datatype = (EPlugDataType)temp;
+
+			// by default GMPI uses UTF-8 encoding for strings. (SE uses UCS16)
+			if(pind->datatype == DT_TEXT && MT_GMPI == ModuleTechnology())
+				pind->datatype = DT_STRING_UTF8;
 		}
 		else
 		{
@@ -931,22 +935,18 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 	int type_specific_flags = 0;
 
 	if (plugin_sub_type != gmpi::MP_SUB_TYPE_AUDIO)
-	{
 		type_specific_flags = IO_UI_COMMUNICATION;
-	}
 
 	pin_description2 pind;
 	pind.clear();
-	//		_RPT1(_CRT_WARN, "%s\n", pins[i]->GetXML() );
-	// id
-//	int pin_id; // = XStr2Int( pin->Attribute("id") ));
+
 	pin->QueryIntAttribute("id", &(pin_id));
+
 	// name
 	pind.name = Utf8ToWstring(pin->Attribute("name"));
 
 	// default
 	pind.default_value = Utf8ToWstring(pin->Attribute("default"));
-
 
 	// direction
 	std::string pin_direction = FixNullCharPtr(pin->Attribute("direction"));
@@ -998,13 +998,9 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 	std::wstring pin_automation = Utf8ToWstring(pin->Attribute("automation"));
 
 	if (pin->Attribute("isParameter") != 0)
-	{
 		SafeMessagebox(0, (L"'isParameter' not allowed in pin XML"));
-	}
 	if (!pin_automation.empty())
-	{
 		SafeMessagebox(0, (L"'automation' not allowed in pin XML"));
-	}
 
 	// parameter ID. Defaults to ssame as pin ID, but can be overridden.
 	// Pins can be driven from patch-store.
@@ -1088,9 +1084,7 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 	// Datatype.
 	{
 		if (expectedPinDatatype == DT_ENUM && MT_SDK3 <= ModuleTechnology())
-		{
 			expectedPinDatatype = DT_INT;
-		}
 
 		const auto dt = pin->Attribute("datatype");
 		if (dt)
@@ -1147,7 +1141,7 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 			if (expectedPinDatatype != -1 && parameterFieldId == FT_VALUE && expectedPinDatatype != pind.datatype)
 			{
 				std::wostringstream oss;
-				oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" hostConnect wrong datatype: " << pind.datatype << " Expected: " << expectedPinDatatype;
+				oss << L"ERROR. module XML file '" << UniqueId() << "' (" << Filename() << L") : pin id " << pin_id << L" different datatype to parameter : " << pind.datatype << " Expected : " << expectedPinDatatype;
 
 				if (DT_FLOAT == expectedPinDatatype && DT_FSAMPLE == pind.datatype)
 				{

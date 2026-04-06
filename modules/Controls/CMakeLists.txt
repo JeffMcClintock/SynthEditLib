@@ -6,6 +6,7 @@ gmpi_plugin(
 	PROJECT_NAME ${PROJECT_NAME}
 	HAS_DSP
 	HAS_GUI
+	IS_OFFICIAL_MODULE
 	SOURCE_FILES
 	  KnobGui.cpp
 	  ButtonGui.cpp
