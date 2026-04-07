@@ -478,6 +478,14 @@ ug_wave_player.cpp
 ug_wave_player.h
 ug_wave_recorder.cpp
 ug_wave_recorder.h
+
+ug_midi_out.h
+ug_midi_out.cpp
+ug_soundcard_in.h
+ug_soundcard_in.cpp
+ug_soundcard_out.h
+ug_soundcard_out.cpp
+
 ULookup.cpp
 ULookup.h
 UMidiBuffer2.h

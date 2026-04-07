@@ -1136,8 +1136,7 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(PatchMemoryBoolOut_Gui);
 #endif
 
-#else
-	INIT_STATIC_FILE(MidiToCv2);
+#else // not JUCE
 	INIT_STATIC_FILE(ug_denormal_detect);
 	INIT_STATIC_FILE(ug_denormal_stop);
 	INIT_STATIC_FILE(ug_filter_allpass);
@@ -1149,6 +1148,9 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(ug_math_floor);
 	INIT_STATIC_FILE(ug_test_tone);
 	INIT_STATIC_FILE(ug_logic_Bin_Count);
+	INIT_STATIC_FILE(ug_soundcard_in);
+	INIT_STATIC_FILE(ug_soundcard_out);
+	INIT_STATIC_FILE(ug_midi_out);
 
 #endif
 	INIT_STATIC_FILE(MidiToCv2);
