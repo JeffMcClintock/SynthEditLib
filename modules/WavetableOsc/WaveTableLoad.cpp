@@ -7,6 +7,7 @@
 #else
 #include <pwd.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 #define FIX_ZERO_CROSSINGS
@@ -36,7 +37,7 @@ WavetableLoader::WavetableLoader()
 	}
 
 	if (homeDir) {
-		std::wstring fn = Utf8ToWstring(homeDir);
+		std::wstring fn = JmUnicodeConversions::Utf8ToWstring(homeDir);
 		fn += L"/Documents/Codex/";
 		UserWavetableFolder_ = fn;
 		FactoryWavetableFolder_ = fn;
@@ -88,7 +89,7 @@ void WavetableLoader::setWaveFileName(float* waveData, int osc, int wavetable, s
 			else
 				filePath += filename;
 
-			if(true == (success = waveTableFile->LoadFile3(filePath.c_str(), true)))
+			if(true == (success = waveTableFile->LoadFile3(ToPlatformString(filePath).c_str(), true)))
 			{
 				break;
 			}
