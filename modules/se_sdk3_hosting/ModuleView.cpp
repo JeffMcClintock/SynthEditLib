@@ -1346,25 +1346,18 @@ if(pluginGraphics)
 			if (pluginParameters_GMPI)
 			{
 				pluginParameters_GMPI->setPin(pinId, voice, size, (const uint8_t*) data);
-				if (isMonoDirectional())
-				{
-					// monodirection method, mark as dirty, notify entire module later.
+				
+				if (isMonoDirectional()) // monodirection method, mark as dirty, notify entire module later.
 					parent->markDirtyChild(this);
-				}
-				else
-				{
-					// classic method, notify pin immediatly.
+				else // classic method, notify pin immediatly.
 					pluginParameters_GMPI->notifyPin(pinId, voice);
-				}
 			}
 
 			if (pluginParameters)
 			{
 				pluginParameters->setPin(pinId, voice, size, data);
 				if (pluginParameters2B)
-				{
 					pluginParameters2B->notifyPin(pinId, voice);
-				}
 			}
 			else
 			{
@@ -1381,9 +1374,8 @@ if(pluginGraphics)
 			{
 				auto& connection = (*it).second;
 				if (connection.otherModule_ != fromModule || connection.otherModulePinIndex_ != fromPinId)
-				{
 					connection.otherModule_->setPin(this, pinId, connection.otherModulePinIndex_, voice, size, data);
-				}
+
 				it++;
 			}
 			if (!initialised_)

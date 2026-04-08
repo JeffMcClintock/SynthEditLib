@@ -1082,13 +1082,14 @@ namespace SE2
 		{
 			auto& vals = *editorPinValues.get();
 			vals[pinId].assign((uint8_t*)data, size + (uint8_t*)data);
-
-			if (pinId == hoveredPin_.pinID)
+/* TODO
+			if (pinId == hoveredPin_.pinID) // crash sending to GUI pinID 4 (a hidden BLOB GUI pin) when plugs_[4] on teh structure view is a visible DSP audio pin
 			{
 				const auto& pin = plugs_[hoveredPin_.pinIndex];
 				hoverScopeText = NiceFormatted(vals[pinId], (EPlugDataType)pin.datatype);
 				invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
 			}
+*/
 		}
 
 		return ModuleView::setPin(fromModule, fromPinId, pinId, voice, size, data);
