@@ -31,7 +31,6 @@ WavetableOscGui::WavetableOscGui()
 	, animationFine(0)
 {
 	// Set up pin callbacks.
-	pinTableModulation.onUpdate = [this](editor::PinBase*) { onModulationChanged(nullptr); };
 	pinSlotModulation.onUpdate = [this](editor::PinBase*) { onModulationChanged(nullptr); };
 	pinWaveFiles.onUpdate = [this](editor::PinBase*) { updateCurrentWavetable(); UpGradeWavetable(); };
 	pinWaveDisplay.onUpdate = [this](editor::PinBase*) { updateWaveDisplay(); };
@@ -137,7 +136,7 @@ void WavetableOscGui::updateCurrentWavetable()
 
 void WavetableOscGui::onModulationChanged(editor::PinBase* /*pin*/)
 {
-	float tableVal = std::min( 1.0f, std::max(pinTableModulation.value, 0.0f ));
+	float tableVal = 0.0f;
 	float slotVal = std::min( 1.0f, std::max(pinSlotModulation.value, 0.0f ));
 
 	// Push current to front of modulation stack.

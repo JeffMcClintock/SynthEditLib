@@ -18,12 +18,33 @@ std::wstring WavetableLoader::FactoryWavetableFolder_;
 
 WavetableLoader::WavetableLoader()
 {
-    wchar_t myDocumentsPath[MAX_PATH];
+#ifdef _WIN32
+	wchar_t myDocumentsPath[MAX_PATH];
 	SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, myDocumentsPath);
 	std::wstring fn(myDocumentsPath);
 	fn += L"\\Codex\\";
 	UserWavetableFolder_ = fn;
 	FactoryWavetableFolder_ = fn;
+#else
+	// macOS/Linux: Use home directory
+	const char* homeDir = getenv("HOME");
+	if (!homeDir) {
+		struct passwd* pwd = getpwuid(getuid());
+		if (pwd) {
+			homeDir = pwd->pw_dir;
+		}
+	}
+
+	if (homeDir) {
+		std::wstring fn = Utf8ToWstring(homeDir);
+		fn += L"/Documents/Codex/";
+		UserWavetableFolder_ = fn;
+		FactoryWavetableFolder_ = fn;
+	} else {
+		UserWavetableFolder_ = L"/tmp/Codex/";
+		FactoryWavetableFolder_ = L"/tmp/Codex/";
+	}
+#endif
 
 	// Mip-maps require extra memory. Calculate.
 	int newSlotCount = WaveTable::MorphedSlotRatio * (WaveTable::WavetableFileSlotCount - 1) + 1; // add extra slots in-between.

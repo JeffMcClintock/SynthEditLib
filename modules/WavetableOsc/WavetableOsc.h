@@ -649,7 +649,6 @@ public:
 
 		GrainformCounter -= sampleFrames;
 		pinSlotModulationToGui.setValue( *getBuffer(pinSlot) , blockPos_ );
-		pinTableModulationToGui.setValue( *getBuffer(pinTable) , blockPos_ );
 
         guiUpdateCount_ -= sampleFrames;
 		if( guiUpdateCount_ < 0 )
@@ -667,14 +666,13 @@ private:
 	gmpi::AudioInPin pinEffect;                 // id=3
 	gmpi::EnumInPin pinMode;                    // id=4
 	gmpi::AudioOutPin pinSignalOut;             // id=5
-	gmpi::FloatOutPin pinTableModulationToGui;  // id=6
-	gmpi::FloatOutPin pinSlotModulationToGui;   // id=7
-	gmpi::FloatInPin pinVoiceActive;            // id=8
-	gmpi::BoolInPin pinSyncToNoteOn;            // id=9
-	gmpi::AudioInPin pinSync;                   // id=10
-	gmpi::AudioInPin pinPsolaRootPitch;         // id=11
-	gmpi::StringInPin pinWaveTableFiles;        // id=12
-	gmpi::BlobOutPin pinGuiWaveDisplay;         // id=13
+	gmpi::FloatOutPin pinSlotModulationToGui;   // id=6
+	gmpi::FloatInPin pinVoiceActive;            // id=7
+	gmpi::BoolInPin pinSyncToNoteOn;            // id=8
+	gmpi::AudioInPin pinSync;                   // id=9
+	gmpi::AudioInPin pinPsolaRootPitch;         // id=10
+	gmpi::StringInPin pinWaveTableFiles;        // id=11
+	gmpi::BlobOutPin pinGuiWaveDisplay;         // id=12
 
 	float *pitchTable{};
 	WavetableMipmapPolicy mipMapPolicy;

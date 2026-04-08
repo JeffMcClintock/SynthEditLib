@@ -17,17 +17,15 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 <PluginList>
   <Plugin id="SE Wavetable Osc" name="Wavetable Osc" category="Waveform" graphicsApi="composited" helpUrl="WavetableOsc.htm">
-    <Parameters>
-      <Parameter id="0" name="Table Modulation" datatype="float" private="true" ignorePatchChange="true" isPolyphonic="true" persistant="false"/>
-      <Parameter id="1" name="Slot Modulation" datatype="float" private="true" ignorePatchChange="true" isPolyphonic="true" persistant="false"/>
-      <Parameter id="2" name="WaveTableFiles" datatype="string" private="true" />
-      <Parameter id="3" name="WaveDisplay" datatype="blob" private="true" ignorePatchChange="true" persistant="false"/>
-    </Parameters>
+	<Parameters>
+	  <Parameter id="0" name="Slot Modulation" datatype="float" private="true" ignorePatchChange="true" isPolyphonic="true" persistant="false"/>
+	  <Parameter id="1" name="WaveTableFiles" datatype="string" private="true" />
+	  <Parameter id="2" name="WaveDisplay" datatype="blob" private="true" ignorePatchChange="true" persistant="false"/>
+	</Parameters>
 	<GUI>
-	  <Pin id="0" name="Table Modulation from DSP" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
-	  <Pin id="1" name="Slot Modulation from DSP" datatype="float" parameterId="1" private="true" isPolyphonic="true"/>
-	  <Pin id="2" name="WaveTableFiles" datatype="string" parameterId="2" private="true" />
-	  <Pin id="3" name="WaveDisplay" datatype="blob" parameterId="3" private="true" />
+	  <Pin id="0" name="Slot Modulation from DSP" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
+	  <Pin id="1" name="WaveTableFiles" datatype="string" parameterId="1" private="true" />
+	  <Pin id="2" name="WaveDisplay" datatype="blob" parameterId="2" private="true" />
 	</GUI>
 	<Audio>
 	  <Pin id="0" name="Pitch" datatype="float" rate="audio" default="0.5"/>
@@ -36,14 +34,13 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
 	  <Pin id="3" name="Effect" datatype="float" rate="audio" default="0.5" />
 	  <Pin id="4" name="Effect Mode" datatype="enum" metadata="Off=-1, PSOLA = 3, PSOLA.fast, PSOLA - Wide Window" default="4"/>
 	  <Pin id="5" name="Signal Out" direction="out" datatype="float" rate="audio"/>
-	  <Pin id="6" name="Table Modulation to GUI" direction="out" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
-	  <Pin id="7" name="Slot Modulation to GUI" direction="out" datatype="float" parameterId="1" private="true" isPolyphonic="true"/>
-	  <Pin id="8" name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" default="1" />
-	  <Pin id="9" name="Sync to NoteOn (DCO)" datatype="bool" default="1"/>
-	  <Pin id="10" name="Sync" datatype="float" rate="audio" default="0"/>
-	  <Pin id="11" name="PSOLA root pitch" datatype="float" rate="audio" default="3.24"/>
-	  <Pin id="12" name="WaveTableFiles" datatype="string" parameterId="2" private="true" />
-	  <Pin id="13" name="WaveDisplay" direction="out" datatype="blob" parameterId="3" private="true" />
+	  <Pin id="6" name="Slot Modulation to GUI" direction="out" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
+	  <Pin id="7" name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" default="1" />
+	  <Pin id="8" name="Sync to NoteOn (DCO)" datatype="bool" default="1"/>
+	  <Pin id="9" name="Sync" datatype="float" rate="audio"/>
+	  <Pin id="10" name="PSOLA root pitch" datatype="float" rate="audio" default="3.24"/>
+	  <Pin id="11" name="WaveTableFiles" datatype="string" parameterId="1" private="true" />
+	  <Pin id="12" name="WaveDisplay" direction="out" datatype="blob" parameterId="2" private="true" />
 	</Audio>
   </Plugin>
 </PluginList>
