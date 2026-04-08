@@ -158,3 +158,45 @@ void MetaData_filename::SetValueRaw( ParameterFieldType field, const void* data,
 	};
 }
 
+int32_t MetaData_filename8::GetDatatype( ParameterFieldType field, int* returnValue)
+{
+	*returnValue = (int) DT_STRING_UTF8;
+	return gmpi::MP_OK;
+}
+
+std::string MetaData_filename8::getMetaValue()
+{
+	return m_file_ext;
+}
+
+void MetaData_filename8::GetValueRaw2( ParameterFieldType field, const void** data, int* size )
+{
+	switch(field)
+	{
+	case FT_FILE_EXTENSION:
+	{
+		*size = (int) (sizeof(char) * m_file_ext.size());
+		*data = RawData3( m_file_ext );
+	}
+	break;
+
+	default:
+		*data = 0;
+		*size = 0;
+		assert(false);
+	};
+}
+
+void MetaData_filename8::SetValueRaw( ParameterFieldType field, const void* data, int size )
+{
+	switch(field)
+	{
+	case FT_FILE_EXTENSION:
+		setFileExt( RawToValue<std::string>(data, size) );
+		break;
+
+	default:
+		assert(false);
+	};
+}
+

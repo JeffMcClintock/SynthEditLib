@@ -237,6 +237,87 @@ private:
 	std::wstring m_file_ext;
 };
 
+struct MetaData_filename8 // text (UTF-8), provides file optional extension
+{
+	std::string getFileExt()
+	{
+		return m_file_ext;
+	}
+	virtual std::string getMetaValue();
+	void setFileExt(const std::string& p_file_ext)
+	{
+		m_file_ext = p_file_ext;
+		OnMetaDataChanged();
+	}
+	bool is_filename()
+	{
+		return !m_file_ext.empty();
+	}
+	virtual void OnMetaDataChanged() {}
+	void SerialiseMetaData(gmpi::hosting::my_output_stream& p_stream )
+	{
+		p_stream << m_file_ext;
+	}
+	void SerialiseMetaData(gmpi::hosting::my_input_stream& p_stream )
+	{
+		p_stream >> m_file_ext;
+	}
+	virtual int32_t GetDatatype( ParameterFieldType field, int* returnValue);
+	void SetValueRaw( ParameterFieldType field, const void* data, int size );
+	void GetValueRaw2( ParameterFieldType field, const void** data, int* size );
+	bool ValueFromNormalised(float /*p_normalised*/, std::string& /*returnValue*/, bool /*applyDawAjustment*/)
+	{
+		return false;
+	} // filler
+
+	float NormalisedFromValue(const std::string& /*p_value*/)
+	{
+		return 0.0f;
+	}
+
+	// New. every metadata same members.
+	void setRangeMinimum( int /*minimum*/ ) {}
+	void setRangeMaximum( int /*maximum*/ ) {}
+	void setTextMetadata( const std::string& text )
+	{
+		m_file_ext = text;
+	}
+
+	int getRangeMinimum( void )
+	{
+		return 0;
+	}
+	int getRangeMaximum( void )
+	{
+		return 0;
+	}
+
+	std::string getTextMetadata( void )
+	{
+		return m_file_ext;
+	}
+	void parse(const std::wstring& val)
+	{
+		m_file_ext = WStringToUtf8(val);
+	}
+	void Export(tinyxml2::XMLElement* parameter_xml, ExportFormatType /*targetType*/)
+	{
+		if(!m_file_ext.empty())
+		{
+			parameter_xml->SetAttribute("MetaData", m_file_ext.c_str());
+		}
+	}
+	void Import(tinyxml2::XMLElement* parameter_xml, ExportFormatType /*targetType*/)
+	{
+		const char* s = "";
+		parameter_xml->QueryStringAttribute("MetaData", &s);
+		m_file_ext = s;
+	}
+
+private:
+	std::string m_file_ext;
+};
+
 template <typename T>
 struct MetaData_ranged // provides hi/lo range
 {
