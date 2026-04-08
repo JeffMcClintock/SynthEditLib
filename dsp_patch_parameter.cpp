@@ -24,6 +24,7 @@
 using namespace gmpi::hosting;
 
 // see PatchParameter.cpp for other IDs.
+SE_DECLARE_SERIAL2(19, dsp_patch_parameter, std::string, MetaData_filename8 );
 SE_DECLARE_SERIAL2(20, dsp_patch_parameter, std::wstring, MetaData_filename );
 SE_DECLARE_SERIAL2(21, dsp_patch_parameter, int,   MetaData_enum );
 SE_DECLARE_SERIAL2(22, dsp_patch_parameter, float,   MetaData_float );
@@ -51,6 +52,14 @@ void dsp_patch_parameter<float, MetaData_float>::CopyPlugValue( int voice, UPlug
 {
 	assert(p_plug->DataType == DT_FLOAT);
 	dsp_patch_parameter_base::SetValueRaw2( &(p_plug->m_buffer.float_ob), sizeof(p_plug->m_buffer.float_ob), EffectivePatch(), voice );
+}
+
+template<>
+void dsp_patch_parameter<std::string, MetaData_filename8>::CopyPlugValue(int voice, UPlug* p_plug)
+{
+	assert(p_plug->DataType == DT_STRING_UTF8);
+	std::string* val = p_plug->m_buffer.text_utf8_ptr;
+	dsp_patch_parameter_base::SetValueRaw2((void*)val->data(), (int)val->size(), EffectivePatch(), voice);
 }
 
 template<>

@@ -157,6 +157,13 @@ std::wstring RawToString<std::wstring>(const void* data, int size)
 	return v;
 }
 
+template<>
+std::wstring RawToString<std::string>(const void* data, int size)
+{
+	std::string v( (const char*) data, size );
+	return Utf8ToWstring(v);
+}
+
 // specialised for blob
 template<>
 std::string RawToUtf8<MpBlob>(const void* /*data*/, int /*size*/)

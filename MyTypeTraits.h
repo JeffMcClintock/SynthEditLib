@@ -17,6 +17,12 @@ struct VariableLengthStorageTraits<std::wstring>
 };
 
 template<>
+struct VariableLengthStorageTraits<std::string>
+{
+	enum { result = true };
+};
+
+template<>
 struct VariableLengthStorageTraits<struct MpBlob>
 {
 	enum { result = true };
@@ -88,6 +94,8 @@ template<>
 void MyTypeTraits<bool>::parse(const wchar_t* stringValue, bool& returnValue);
 template<>
 void MyTypeTraits<double>::parse(const wchar_t* stringValue, double& returnValue);
+template<>
+void MyTypeTraits<std::string>::parse(const wchar_t* stringValue, std::string& returnValue);
 
 // UTF8 strings.
 template<>
@@ -104,6 +112,8 @@ template<>
 void MyTypeTraits<bool>::parse(const char* stringValue, bool& returnValue);
 template<>
 void MyTypeTraits<double>::parse(const char* stringValue, double& returnValue);
+template<>
+void MyTypeTraits<std::string>::parse(const char* stringValue, std::string& returnValue);
 
 template<>
 std::string MyTypeTraits<MpBlob>::toXML( const MpBlob& value );
@@ -119,5 +129,7 @@ template<>
 std::string MyTypeTraits<bool>::toXML( const bool& value );
 template<>
 std::string MyTypeTraits<double>::toXML( const double& value );
+template<>
+std::string MyTypeTraits<std::string>::toXML( const std::string& value );
 
 

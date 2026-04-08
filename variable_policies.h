@@ -278,9 +278,9 @@ struct MetaData_filename8 // text (UTF-8), provides file optional extension
 	// New. every metadata same members.
 	void setRangeMinimum( int /*minimum*/ ) {}
 	void setRangeMaximum( int /*maximum*/ ) {}
-	void setTextMetadata( const std::string& text )
+	void setTextMetadata( const std::wstring& text )
 	{
-		m_file_ext = text;
+		m_file_ext = WStringToUtf8(text);
 	}
 
 	int getRangeMinimum( void )

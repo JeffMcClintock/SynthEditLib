@@ -1133,7 +1133,7 @@ void MpController::ParamToDsp(MpParameter* param, int32_t voice)
 	assert(dynamic_cast<SeParameter_vst3_hostControl*>(param) == nullptr); // These have (not) "unique" handles that may map to totally random DSP parameters.
 
 	//---send a binary message
-	bool isVariableSize = param->datatype_ == DT_TEXT || param->datatype_ == DT_BLOB;
+	bool isVariableSize = param->datatype_ == DT_TEXT || param->datatype_ == DT_STRING_UTF8 || param->datatype_ == DT_BLOB;
 
 	auto raw = param->getValueRaw(gmpi::MP_FT_VALUE, voice);
 

@@ -131,6 +131,9 @@ std::wstring RawToString<MpBlob>(const void* data, int size);
 template<>
 std::wstring RawToString<std::wstring>(const void* data, int size);
 
+template<>
+std::wstring RawToString<std::string>(const void* data, int size);
+
 // Raw to UTF8-string.
 template <typename T>
 std::string RawToUtf8(const void* data, int size = sizeof(T))

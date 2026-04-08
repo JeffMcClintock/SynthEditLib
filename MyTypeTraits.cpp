@@ -12,6 +12,12 @@ void MyTypeTraits<std::wstring>::parse(const wchar_t *stringValue, std::wstring 
 }
 
 template<>
+void MyTypeTraits<std::string>::parse(const wchar_t *stringValue, std::string &returnValue)
+{
+	returnValue = WStringToUtf8(stringValue);
+}
+
+template<>
 void MyTypeTraits<MpBlob>::parse(const wchar_t */*stringValue*/, MpBlob &/*returnValue*/)
 {
 	// returnValue = (stringValue);
@@ -56,6 +62,12 @@ template<>
 void MyTypeTraits<std::wstring>::parse(const char *stringValue, std::wstring &returnValue)
 {
 	returnValue = Utf8ToWstring(stringValue);
+}
+
+template<>
+void MyTypeTraits<std::string>::parse(const char *stringValue, std::string &returnValue)
+{
+	returnValue.assign(stringValue);
 }
 
 template<>
@@ -117,6 +129,12 @@ template<>
 std::string MyTypeTraits<std::wstring>::toXML( const std::wstring& value )
 {
 	return WStringToUtf8(value);
+}
+
+template<>
+std::string MyTypeTraits<std::string>::toXML( const std::string& value )
+{
+	return value;
 }
 
 template<>

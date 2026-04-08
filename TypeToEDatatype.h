@@ -14,6 +14,12 @@ struct SeDatatypeTraits<float>
 };
 
 template<>
+struct SeDatatypeTraits<std::string>
+{
+	enum { result = DT_STRING_UTF8 };
+};
+
+template<>
 struct SeDatatypeTraits<std::wstring>
 {
 	enum { result = DT_TEXT };
