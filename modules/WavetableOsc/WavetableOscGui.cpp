@@ -158,6 +158,7 @@ void WavetableOscGui::onModulationChanged(editor::PinBase* /*pin*/)
 ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 {
 	Graphics g(dc);
+	ClipDrawingToBounds _(g, bounds);
 
 	drawing::Rect r;
 	getClipArea(&r);
