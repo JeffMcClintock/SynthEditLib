@@ -53,6 +53,7 @@ add_subdirectory(UserSetting)
 add_subdirectory(VaFilters)
 add_subdirectory(VoiceWatcherBlocker)
 add_subdirectory(WaveRecorder2)
+add_subdirectory(WavetableOsc)
 add_subdirectory(Waveshapers)
 
 # add_subdirectory(CadmiumRenderer)

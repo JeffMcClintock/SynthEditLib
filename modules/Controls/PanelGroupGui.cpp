@@ -222,7 +222,7 @@ namespace
 {
 auto r = gmpi::Register<PanelGroupGui>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
-<Plugin id="SE Panel Group" name="Panel Group" category="Sub-Controls">
+<Plugin id="SE Panel Group2" name="Panel Group" category="Controls">
     <GUI graphicsApi="GmpiGui">
         <Pin name="Text" datatype="string" default="Group"/>
         <Pin name="Stroke Width" datatype="float" default="2.0"/>
