@@ -661,22 +661,20 @@ private:
 
 	inline void calcMipLevel( WavetableMipmapPolicy& mipMapPolicy, float increment, int& returnMipLevelA, unsigned int& returnCountMaskA );
 
-	gmpi::StringInPin pinWaveBankId;            // id=0
-	gmpi::AudioInPin pinPitch;                  // id=1
-	gmpi::AudioInPin pinTable;                  // id=2
-	gmpi::AudioInPin pinSlot;                   // id=3
-	gmpi::AudioInPin pinEffect;                 // id=4
-	gmpi::EnumInPin pinMode;                    // id=5
-	gmpi::AudioOutPin pinSignalOut;             // id=6
-	gmpi::FloatOutPin pinTableModulationToGui;  // id=7
-	gmpi::FloatOutPin pinSlotModulationToGui;   // id=8
-	gmpi::FloatInPin pinVoiceActive;            // id=9
-	gmpi::BoolInPin pinSyncToNoteOn;            // id=10
-	gmpi::AudioInPin pinSync;                   // id=11
-	gmpi::AudioInPin pinPsolaRootPitch;         // id=12
-	gmpi::BoolInPin pinInvertSlotModulation;    // id=13
-	gmpi::StringInPin pinWaveTableFiles;        // id=14
-	gmpi::BlobOutPin pinGuiWaveDisplay;         // id=15
+	gmpi::AudioInPin pinPitch;                  // id=0
+	gmpi::AudioInPin pinTable;                  // id=1
+	gmpi::AudioInPin pinSlot;                   // id=2
+	gmpi::AudioInPin pinEffect;                 // id=3
+	gmpi::EnumInPin pinMode;                    // id=4
+	gmpi::AudioOutPin pinSignalOut;             // id=5
+	gmpi::FloatOutPin pinTableModulationToGui;  // id=6
+	gmpi::FloatOutPin pinSlotModulationToGui;   // id=7
+	gmpi::FloatInPin pinVoiceActive;            // id=8
+	gmpi::BoolInPin pinSyncToNoteOn;            // id=9
+	gmpi::AudioInPin pinSync;                   // id=10
+	gmpi::AudioInPin pinPsolaRootPitch;         // id=11
+	gmpi::StringInPin pinWaveTableFiles;        // id=12
+	gmpi::BlobOutPin pinGuiWaveDisplay;         // id=13
 
 	float *pitchTable{};
 	WavetableMipmapPolicy mipMapPolicy;

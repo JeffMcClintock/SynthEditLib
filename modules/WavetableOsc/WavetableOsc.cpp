@@ -29,24 +29,22 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
 	  <Pin id="2" name="WaveTableFiles" datatype="string" parameterId="2" private="true" />
 	  <Pin id="3" name="WaveDisplay" datatype="blob" parameterId="3" private="true" />
 	</GUI>
-    <Audio>
-      <Pin id="0" name="WaveBankId" datatype="string" />
-      <Pin id="1" name="Pitch" datatype="float" rate="audio" default="0.5"/>
-      <Pin id="2" name="Table" datatype="float" rate="audio" />
-      <Pin id="3" name="Slot" datatype="float" rate="audio" />
-      <Pin id="4" name="Effect" datatype="float" rate="audio" default="0.5" />
-      <Pin id="5" name="Effect Mode" datatype="enum" metadata="Off=-1, PSOLA = 3, PSOLA.fast, PSOLA - Wide Window" default="4"/>
-      <Pin id="6" name="Signal Out" direction="out" datatype="float" rate="audio"/>
-      <Pin id="7" name="Table Modulation to GUI" direction="out" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
-      <Pin id="8" name="Slot Modulation to GUI" direction="out" datatype="float" parameterId="1" private="true" isPolyphonic="true"/>
-      <Pin id="9" name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" default="1" />
-      <Pin id="10" name="Sync to NoteOn (DCO)" datatype="bool" default="1"/>
-      <Pin id="11" name="Sync" datatype="float" rate="audio" default="0"/>
-      <Pin id="12" name="PSOLA root pitch" datatype="float" rate="audio" default="3.24"/>
-      <Pin id="13" name="Invert Slot Mod" datatype="bool" />
-      <Pin id="14" name="WaveTableFiles" datatype="string" parameterId="2" private="true" />
-      <Pin id="15" name="WaveDisplay" direction="out" datatype="blob" parameterId="3" private="true" />
-    </Audio>
+	<Audio>
+	  <Pin id="0" name="Pitch" datatype="float" rate="audio" default="0.5"/>
+	  <Pin id="1" name="Table" datatype="float" rate="audio" />
+	  <Pin id="2" name="Slot" datatype="float" rate="audio" />
+	  <Pin id="3" name="Effect" datatype="float" rate="audio" default="0.5" />
+	  <Pin id="4" name="Effect Mode" datatype="enum" metadata="Off=-1, PSOLA = 3, PSOLA.fast, PSOLA - Wide Window" default="4"/>
+	  <Pin id="5" name="Signal Out" direction="out" datatype="float" rate="audio"/>
+	  <Pin id="6" name="Table Modulation to GUI" direction="out" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
+	  <Pin id="7" name="Slot Modulation to GUI" direction="out" datatype="float" parameterId="1" private="true" isPolyphonic="true"/>
+	  <Pin id="8" name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" default="1" />
+	  <Pin id="9" name="Sync to NoteOn (DCO)" datatype="bool" default="1"/>
+	  <Pin id="10" name="Sync" datatype="float" rate="audio" default="0"/>
+	  <Pin id="11" name="PSOLA root pitch" datatype="float" rate="audio" default="3.24"/>
+	  <Pin id="12" name="WaveTableFiles" datatype="string" parameterId="2" private="true" />
+	  <Pin id="13" name="WaveDisplay" direction="out" datatype="blob" parameterId="3" private="true" />
+	</Audio>
   </Plugin>
 </PluginList>
 )XML");
@@ -165,7 +163,7 @@ typedef void (WavetableOsc::* WavetableOscProcess_ptr)(int sampleFrames);
 
 #define TPA( pitch, table, slot, synct, root) (&WavetableOsc::sub_process_PSOLA_template_fast< pitch, table, slot, synct, root > )
 
-const WavetableOscProcess_ptr ProcessSelection[2][2][4][2][2] =
+const WavetableOscProcess_ptr ProcessSelection[2][2][2][2][2] =
 {
 	TPA( PitchFixed,    TableFixed,    SlotFixed,    PolicySyncOff, RootPitchFixed),
 	TPA( PitchFixed,    TableFixed,    SlotFixed,    PolicySyncOff, RootPitchChanging),
@@ -175,14 +173,6 @@ const WavetableOscProcess_ptr ProcessSelection[2][2][4][2][2] =
 	TPA( PitchFixed,    TableFixed,    SlotChanging, PolicySyncOff, RootPitchChanging),
 	TPA( PitchFixed,    TableFixed,    SlotChanging, PolicySyncOn , RootPitchFixed),
 	TPA( PitchFixed,    TableFixed,    SlotChanging, PolicySyncOn , RootPitchChanging),
-	TPA( PitchFixed,    TableFixed,    SlotFixedRev, PolicySyncOff, RootPitchFixed),
-	TPA( PitchFixed,    TableFixed,    SlotFixedRev, PolicySyncOff, RootPitchChanging),
-	TPA( PitchFixed,    TableFixed,    SlotFixedRev, PolicySyncOn , RootPitchFixed),
-	TPA( PitchFixed,    TableFixed,    SlotFixedRev, PolicySyncOn , RootPitchChanging),
-	TPA( PitchFixed,    TableFixed,    SlotChangingRev, PolicySyncOff, RootPitchFixed),
-	TPA( PitchFixed,    TableFixed,    SlotChangingRev, PolicySyncOff, RootPitchChanging),
-	TPA( PitchFixed,    TableFixed,    SlotChangingRev, PolicySyncOn , RootPitchFixed),
-	TPA( PitchFixed,    TableFixed,    SlotChangingRev, PolicySyncOn , RootPitchChanging),
 	TPA( PitchFixed,    TableChanging, SlotFixed,    PolicySyncOff, RootPitchFixed),
 	TPA( PitchFixed,    TableChanging, SlotFixed,    PolicySyncOff, RootPitchChanging),
 	TPA( PitchFixed,    TableChanging, SlotFixed,    PolicySyncOn , RootPitchFixed),
@@ -191,14 +181,6 @@ const WavetableOscProcess_ptr ProcessSelection[2][2][4][2][2] =
 	TPA( PitchFixed,    TableChanging, SlotChanging, PolicySyncOff, RootPitchChanging),
 	TPA( PitchFixed,    TableChanging, SlotChanging, PolicySyncOn , RootPitchFixed),
 	TPA( PitchFixed,    TableChanging, SlotChanging, PolicySyncOn , RootPitchChanging),
-	TPA( PitchFixed,    TableChanging, SlotFixedRev, PolicySyncOff, RootPitchFixed),
-	TPA( PitchFixed,    TableChanging, SlotFixedRev, PolicySyncOff, RootPitchChanging),
-	TPA( PitchFixed,    TableChanging, SlotFixedRev, PolicySyncOn , RootPitchFixed),
-	TPA( PitchFixed,    TableChanging, SlotFixedRev, PolicySyncOn , RootPitchChanging),
-	TPA( PitchFixed,    TableChanging, SlotChangingRev, PolicySyncOff, RootPitchFixed),
-	TPA( PitchFixed,    TableChanging, SlotChangingRev, PolicySyncOff, RootPitchChanging),
-	TPA( PitchFixed,    TableChanging, SlotChangingRev, PolicySyncOn , RootPitchFixed),
-	TPA( PitchFixed,    TableChanging, SlotChangingRev, PolicySyncOn , RootPitchChanging),
 	TPA( PitchChanging, TableFixed,    SlotFixed,    PolicySyncOff, RootPitchFixed),
 	TPA( PitchChanging, TableFixed,    SlotFixed,    PolicySyncOff, RootPitchChanging),
 	TPA( PitchChanging, TableFixed,    SlotFixed,    PolicySyncOn , RootPitchFixed),
@@ -207,14 +189,6 @@ const WavetableOscProcess_ptr ProcessSelection[2][2][4][2][2] =
 	TPA( PitchChanging, TableFixed,    SlotChanging, PolicySyncOff, RootPitchChanging),
 	TPA( PitchChanging, TableFixed,    SlotChanging, PolicySyncOn , RootPitchFixed),
 	TPA( PitchChanging, TableFixed,    SlotChanging, PolicySyncOn , RootPitchChanging),
-	TPA( PitchChanging, TableFixed,    SlotFixedRev, PolicySyncOff, RootPitchFixed),
-	TPA( PitchChanging, TableFixed,    SlotFixedRev, PolicySyncOff, RootPitchChanging),
-	TPA( PitchChanging, TableFixed,    SlotFixedRev, PolicySyncOn , RootPitchFixed),
-	TPA( PitchChanging, TableFixed,    SlotFixedRev, PolicySyncOn , RootPitchChanging),
-	TPA( PitchChanging, TableFixed,    SlotChangingRev, PolicySyncOff, RootPitchFixed),
-	TPA( PitchChanging, TableFixed,    SlotChangingRev, PolicySyncOff, RootPitchChanging),
-	TPA( PitchChanging, TableFixed,    SlotChangingRev, PolicySyncOn , RootPitchFixed),
-	TPA( PitchChanging, TableFixed,    SlotChangingRev, PolicySyncOn , RootPitchChanging),
 	TPA( PitchChanging, TableChanging, SlotFixed,    PolicySyncOff, RootPitchFixed),
 	TPA( PitchChanging, TableChanging, SlotFixed,    PolicySyncOff, RootPitchChanging),
 	TPA( PitchChanging, TableChanging, SlotFixed,    PolicySyncOn , RootPitchFixed),
@@ -223,14 +197,6 @@ const WavetableOscProcess_ptr ProcessSelection[2][2][4][2][2] =
 	TPA( PitchChanging, TableChanging, SlotChanging, PolicySyncOff, RootPitchChanging),
 	TPA( PitchChanging, TableChanging, SlotChanging, PolicySyncOn , RootPitchFixed),
 	TPA( PitchChanging, TableChanging, SlotChanging, PolicySyncOn , RootPitchChanging),
-	TPA( PitchChanging, TableChanging, SlotFixedRev, PolicySyncOff, RootPitchFixed),
-	TPA( PitchChanging, TableChanging, SlotFixedRev, PolicySyncOff, RootPitchChanging),
-	TPA( PitchChanging, TableChanging, SlotFixedRev, PolicySyncOn , RootPitchFixed),
-	TPA( PitchChanging, TableChanging, SlotFixedRev, PolicySyncOn , RootPitchChanging),
-	TPA( PitchChanging, TableChanging, SlotChangingRev, PolicySyncOff, RootPitchFixed),
-	TPA( PitchChanging, TableChanging, SlotChangingRev, PolicySyncOff, RootPitchChanging),
-	TPA( PitchChanging, TableChanging, SlotChangingRev, PolicySyncOn , RootPitchFixed),
-	TPA( PitchChanging, TableChanging, SlotChangingRev, PolicySyncOn , RootPitchChanging),
 };
 
 void WavetableOsc::onSetPins(void)
@@ -312,7 +278,7 @@ void WavetableOsc::onSetPins(void)
 	{
 		// If Pitch streaming, root-pitch also needs updating.
 		bool rootPitchStreaming = pinPitch.isStreaming() || pinEffect.isStreaming();
-		setSubProcess(static_cast <SubProcessPtr> ( ProcessSelection[ pinPitch.isStreaming() ][ pinTable.isStreaming() ][ pinSlot.isStreaming() + 2 * pinInvertSlotModulation ][ pinSync.isStreaming() ][rootPitchStreaming] ));
+		setSubProcess(static_cast <SubProcessPtr> ( ProcessSelection[ pinPitch.isStreaming() ][ pinTable.isStreaming() ][ pinSlot.isStreaming() ][ pinSync.isStreaming() ][rootPitchStreaming] ));
 
 		if( pinMode == 0 )  // Auto-Sync
 		{
@@ -346,16 +312,9 @@ void WavetableOsc::updateGuiWaveform(void)
 		int table_floor, slot1_floor;
 		float slot_frac,table_frac;
 		TableChanging::Calculate( currentGrain_table, TableCount, table_floor, table_frac );
-        if( pinInvertSlotModulation == false )
-        {
-            modulationSlot = currentGrain_slot;
-    		SlotChanging::Calculate( currentGrain_slot, slotCount, slot1_floor, slot_frac );
-        }
-        else
-        {
-            modulationSlot = 1.0f - currentGrain_slot;
-    		SlotChangingRev::Calculate( currentGrain_slot, slotCount, slot1_floor, slot_frac );
-        }
+
+		modulationSlot = currentGrain_slot;
+    	SlotChanging::Calculate( currentGrain_slot, slotCount, slot1_floor, slot_frac );
 
 		float* wave1a = waveData_ + mipMapPolicy.getSlotOffset(table_floor, slot1_floor, mipLevel);
 		float* wave1b = waveData_ + mipMapPolicy.getSlotOffset(table_floor, slot1_floor + 1, mipLevel);
