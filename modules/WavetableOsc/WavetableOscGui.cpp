@@ -33,8 +33,7 @@ WavetableOscGui::WavetableOscGui()
 	// Set up pin callbacks.
 	pinTableModulation.onUpdate = [this](editor::PinBase*) { onModulationChanged(nullptr); };
 	pinSlotModulation.onUpdate = [this](editor::PinBase*) { onModulationChanged(nullptr); };
-	pinWaveData.onUpdate = [this](editor::PinBase*) { UpGradeWavetable(); };
-	pinWaveFiles.onUpdate = [this](editor::PinBase*) { updateCurrentWavetable(); };
+	pinWaveFiles.onUpdate = [this](editor::PinBase*) { updateCurrentWavetable(); UpGradeWavetable(); };
 	pinWaveDisplay.onUpdate = [this](editor::PinBase*) { updateWaveDisplay(); };
 
 	currentWavetableMem_ = new char[WaveTable::CalcMemoryRequired(1,WaveTable::WavetableFileSlotCount,WaveTable::WavetableFileSampleCount)];

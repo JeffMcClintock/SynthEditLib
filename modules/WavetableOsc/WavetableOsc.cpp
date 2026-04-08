@@ -23,13 +23,12 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
       <Parameter id="2" name="WaveTableFiles" datatype="string" private="true" />
       <Parameter id="3" name="WaveDisplay" datatype="blob" private="true" ignorePatchChange="true" persistant="false"/>
     </Parameters>
-    <GUI>
-      <Pin id="0" name="Table Modulation from DSP" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
-      <Pin id="1" name="Slot Modulation from DSP" datatype="float" parameterId="1" private="true" isPolyphonic="true"/>
-      <Pin id="2" name="Wavedata to Osc" datatype="blob"/>
-      <Pin id="3" name="WaveTableFiles" datatype="string" parameterId="2" private="true" />
-      <Pin id="4" name="WaveDisplay" datatype="blob" parameterId="3" private="true" />
-    </GUI>
+	<GUI>
+	  <Pin id="0" name="Table Modulation from DSP" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
+	  <Pin id="1" name="Slot Modulation from DSP" datatype="float" parameterId="1" private="true" isPolyphonic="true"/>
+	  <Pin id="2" name="WaveTableFiles" datatype="string" parameterId="2" private="true" />
+	  <Pin id="3" name="WaveDisplay" datatype="blob" parameterId="3" private="true" />
+	</GUI>
     <Audio>
       <Pin id="0" name="WaveBankId" datatype="string" />
       <Pin id="1" name="Pitch" datatype="float" rate="audio" default="0.5"/>
