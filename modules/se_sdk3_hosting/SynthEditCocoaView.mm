@@ -278,7 +278,10 @@ public:
     }
     float getRasterizationScale() override // DPI scaling
     {
-        return [[view window] backingScaleFactor];
+        // [view window] returns nil if the view has not been added to a window yet.
+        // Sending backingScaleFactor to nil returns 0, which causes division-by-zero NaN in calcViewTransform.
+        NSWindow* window = [view window];
+        return window ? (float)[window backingScaleFactor] : 1.0f;
     }
     
     // IDialogHost
