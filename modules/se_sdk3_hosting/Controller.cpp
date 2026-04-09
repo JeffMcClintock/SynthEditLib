@@ -1138,16 +1138,12 @@ void MpController::ParamToDsp(MpParameter* param, int32_t voice)
 	auto raw = param->getValueRaw(gmpi::MP_FT_VALUE, voice);
 
 	bool due_to_program_change = false;
-	int32_t recievingMessageLength = (int)(/*sizeof(bool) +*/ raw.size());
+	int32_t recievingMessageLength = (int32_t)(/*sizeof(bool) +*/ raw.size());
 	if (isVariableSize)
-	{
-		recievingMessageLength += (int)sizeof(int32_t);
-	}
+		recievingMessageLength += (int32_t) sizeof(int32_t);
 
 	if (param->isPolyPhonic())
-	{
-		recievingMessageLength += (int)sizeof(int32_t);
-	}
+		recievingMessageLength += 2 * (int32_t)sizeof(int32_t); // voice and voice terminator.
 
 	constexpr int headerSize = sizeof(int32_t) * 2;
 	const int totalMessageLength = recievingMessageLength + headerSize;
@@ -1178,16 +1174,15 @@ void MpController::ParamToDsp(MpParameter* param, int32_t voice)
 //	stream << due_to_program_change;
 
 	if (param->isPolyPhonic())
-	{
 		stream << voice;
-	}
 
 	if (isVariableSize)
-	{
 		stream << (int32_t)raw.size();
-	}
 
 	stream.Write(raw.data(), (unsigned int)raw.size());
+
+	if(param->isPolyPhonic())
+		stream << (int32_t)-1; // voice data terminator.
 
 	stream.Send();
 }
