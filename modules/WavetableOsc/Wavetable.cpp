@@ -1,5 +1,7 @@
 #define _USE_MATH_DEFINES
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 
 #include <math.h>
 #include <vector>
@@ -550,15 +552,15 @@ float WaveTable::ExtractPeriod2( vector<float>& sample, int autocorrelateto, int
 
 		int freq = i / 2;
 		autoCorrelation[freq] = magnitude;
-		/*
+		/ *
 		float supression = 10.f;
 		for( int harmonic = 1; harmonic < 20; ++harmonic )
 		{
 			int addToBin = freq / harmonic;
 			lowestCommonDenominator[addToBin] += ( ( magnitude - supression) * addToBin ) / ( freq * harmonic );
 		}
-		*/
-		/*
+		* /
+		/ *
 		int harmonic = 1;
 		int bin = freq;
 		int nextBin = freq / ( harmonic + 1 );
@@ -576,9 +578,9 @@ float WaveTable::ExtractPeriod2( vector<float>& sample, int autocorrelateto, int
 			++harmonic;
 			nextBin = freq / ( harmonic + 1 );
 		}
-		*/
+		* /
 
-		/*
+		/ *
 // 2 each partial contributes to only it's harmonic bins once.
 		int gapSize = 1;
 		int bin = freq;
@@ -609,16 +611,16 @@ float WaveTable::ExtractPeriod2( vector<float>& sample, int autocorrelateto, int
 		// sub harmonic.
 		// debugtrace[2][freq * 2] += magnitude / 4;
 	}
-	*/
+	* /
 
-	/*
+	/ *
 	for( int bin = 1; bin < n; bin += 2 )
 	{
 		if( lowestCommonDenominatorCount[bin] > 1 )
 			lowestCommonDenominator[bin] /= (float) lowestCommonDenominatorCount[bin];
 	}
-	*/
-		/*
+	* /
+		/ *
 	// 3 suppression model.
 		if( magnitude > 0.0f )
 		{
@@ -658,7 +660,7 @@ float WaveTable::ExtractPeriod2( vector<float>& sample, int autocorrelateto, int
 
 
 	}
-	/*
+	/ *
 	// 4 suppression model backwARDS.
 	for( int freq = 2; freq < n / 2; ++freq )
 	{
