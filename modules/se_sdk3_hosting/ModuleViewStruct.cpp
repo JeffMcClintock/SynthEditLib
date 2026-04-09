@@ -1582,7 +1582,9 @@ namespace SE2
 		constexpr float totalMiss = 1000.f;
 
 		if (!isVisable())
+		{
 			return totalMiss;
+		}
 
 		const auto r = getLayoutRect();
 		auto r2 = r;
@@ -1591,37 +1593,35 @@ namespace SE2
 		r2.top -= 16.0f; // allow for title bar.
 
 		if(!pointInRect(point, r2)) // weed out clear misses fast.
+		{
 			return totalMiss;
+		}
 
 		// client area is always a hit, even when adorner active.
 		{
 			const gmpi::drawing::Point localPoint{ point.x - bounds_.left, point.y - bounds_.top };
 			if(pointInRect(localPoint, pluginGraphicsPos))
+			{
 				return solidHit;
+			}
 		}
-
-		auto pin = getPinUnderMouse(point);
-
-		// when selected, adorner takes over hit testing, except for client area and pins.
-// no		if(getSelected())
-//		{
-			if (pin.pinIndex > -1)
-				return pin.distance;
-
-//			return totalMiss;
-//		}
 
 		// hits solidly within outline are good.
 		if(pointInRect(point, r))
+		{
 			return solidHit;
+		}
+
+		float best = totalMiss;
+		auto pin = getPinUnderMouse(point);
+
+		if(pin.pinIndex > -1)
+			best = pin.distance;
 
 		// return distance to outline
 		const auto distanceToOutline = max(max(r.left - point.x, point.x - r.right), max(r.top - point.y, point.y - r.bottom));
-		auto best = distanceToOutline;
+		best = (std::min)(best, distanceToOutline);
 
-		if (pin.hitCircle)
-			best = min(best, pin.distance);
-	
 		return best;
 	}
 
@@ -1629,6 +1629,8 @@ namespace SE2
 	// if we hit the circle we create a new line, the text - highlight the lines connected to that pin.
 	pinHit ModuleViewStruct::getPinUnderMouse(gmpi::drawing::Point point)
 	{
+		_RPT2(_CRT_WARN, "getPinUnderMouse: point=[%.2f,%.2f]\n", point.x, point.y);
+
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
 		const float pinHitRadiusSquared = plugDiameter * plugDiameter; // twice drawn size.
@@ -1668,6 +1670,7 @@ namespace SE2
 				closestPin.pinID = pin.plugDescID;
 				closestPin.distance = 0.0f;
 				closestPin.hitCircle = false;
+				_RPT2(_CRT_WARN, "  -> Hit pin text area: pinIndex=%d, pinID=%d\n", closestPin.pinIndex, closestPin.pinID);
 				return closestPin;
 			}
 
@@ -1687,6 +1690,8 @@ namespace SE2
 
 		closestPin.distance = std::max(0.0f, sqrtf(closestPin.distance) - plugDiameter * 0.5f);
 
+		_RPT4(_CRT_WARN, "  -> pinIndex=%d, pinID=%d, distance=%.2f, hitCircle=%d\n", 
+			closestPin.pinIndex, closestPin.pinID, closestPin.distance, closestPin.hitCircle);
 		return closestPin;
 	}
 
