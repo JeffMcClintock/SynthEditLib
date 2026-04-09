@@ -20,5 +20,5 @@ struct TextEntry final : public Processor
 // Registration is handled by TextEntryGui.cpp's XML which includes both <Audio> and <GUI> sections.
 namespace
 {
-auto r = Register<TextEntry>::withId("SE Text Entry");
+auto r = Register<TextEntry>::withId("SE Text EntryG");
 }

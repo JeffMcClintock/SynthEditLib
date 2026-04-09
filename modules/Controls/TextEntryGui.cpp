@@ -108,7 +108,7 @@ namespace
 {
 auto r = gmpi::Register<TextEntryGui>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
-<Plugin id="SE Text Entry" name="Text Entry" category="Sub-Controls">
+<Plugin id="SE Text EntryG" name="Text Entry" category="Sub-Controls">
     <Parameters>
         <Parameter id="0" datatype="string" name="patchValue"/>
     </Parameters>
