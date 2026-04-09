@@ -1870,6 +1870,11 @@ namespace SE2
 	gmpi::ReturnCode ViewBase::arrange(const gmpi::drawing::Rect* finalRect)
 	{
 		drawingBounds = *finalRect;
+
+		// initially, center view on center of bounds.
+		const Point canvasCenter{ (drawingBounds.right - drawingBounds.left) * 0.5f, (drawingBounds.bottom - drawingBounds.top) * 0.5f };
+		centerPos = canvasCenter;
+
 		calcViewTransform(); // recompute scroll offset from center/zoom whenever view size changes
 
 		// Modules first, then lines (which rely on module position being finalized).

@@ -38,7 +38,36 @@ namespace SE2
 		const auto viewTransformL = originalTransform * viewTransform;
 		g.setTransform(viewTransformL);
 
-		g.clear(Colors::LightGray);
+		// Background
+		{
+			// fill in the area arround the drawing area. avoiding overdraw.
+			gmpi::drawing::Rect editingBounds{ 0.0f, 0.0f, 7968.0f, 7968.0f };
+			gmpi::drawing::Rect huge{ -100000.0f, -100000.0f, 100000.0f, 100000.0f };
+
+			auto backgroundBrush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x555555u));
+			auto temp = huge;
+			temp.bottom = editingBounds.top;
+			g.fillRectangle(temp, backgroundBrush);
+
+			temp = huge;
+			temp.top = editingBounds.bottom;
+			g.fillRectangle(temp, backgroundBrush);
+
+			temp = huge;
+			temp.top = editingBounds.top - 1.0f;
+			temp.bottom = editingBounds.bottom + 1.0f;
+			temp.right = editingBounds.left;
+			g.fillRectangle(temp, backgroundBrush);
+
+			temp.left = editingBounds.right;
+			temp.right = huge.right;
+			g.fillRectangle(temp, backgroundBrush);
+
+			// fill the drawing area
+			backgroundBrush.setColor(Colors::LightGray);
+			g.fillRectangle(editingBounds, backgroundBrush);
+		}
+
 
 		const auto r = ViewBase::render(drawingContext);
 
