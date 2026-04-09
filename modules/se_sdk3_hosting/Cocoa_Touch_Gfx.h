@@ -1790,7 +1790,8 @@ namespace gmpi
 			virtual void MP_STDCALL DrawRoundedRectangle(const GmpiDrawing_API::MP1_ROUNDED_RECT* roundedRect, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override
 			{
 				auto r = gmpi::cocoa_touch::NSRectFromRect(roundedRect->rect);
-                UIBezierPath* path = [UIBezierPath bezierPathWithRoundedRect:r cornerRadius:roundedRect->radiusX];// bezierPathWithRoundedRect : r xRadius : roundedRect->radiusX yRadius : roundedRect->radiusY];
+                const auto safeRadius = std::clamp((CGFloat) roundedRect->radiusX, 0.0, std::min(r.size.width, r.size.height) * 0.5);
+                UIBezierPath* path = [UIBezierPath bezierPathWithRoundedRect:r cornerRadius:safeRadius];
 
                 auto cocoabrush = dynamic_cast<const CocoaBrushBase*>(brush);
                 if (cocoabrush)
@@ -1802,7 +1803,8 @@ namespace gmpi
 			virtual void MP_STDCALL FillRoundedRectangle(const GmpiDrawing_API::MP1_ROUNDED_RECT* roundedRect, const GmpiDrawing_API::IMpBrush* brush) override
 			{
 				auto r = gmpi::cocoa_touch::NSRectFromRect(roundedRect->rect);
-				UIBezierPath* rectPath = [UIBezierPath bezierPathWithRoundedRect:r cornerRadius:roundedRect->radiusX];//bezierPathWithRoundedRect : r xRadius:roundedRect->radiusX yRadius: roundedRect->radiusY];
+                const auto safeRadius = std::clamp((CGFloat) roundedRect->radiusX, 0.0, std::min(r.size.width, r.size.height) * 0.5);
+				UIBezierPath* rectPath = [UIBezierPath bezierPathWithRoundedRect:r cornerRadius:safeRadius];
 
 				auto cocoabrush = dynamic_cast<const CocoaBrushBase*>(brush);
 				if (cocoabrush)

@@ -1787,7 +1787,9 @@ return gmpi::MP_FAIL;
 			void MP_STDCALL DrawRoundedRectangle(const GmpiDrawing_API::MP1_ROUNDED_RECT* roundedRect, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override
 			{
 				NSRect r = se::cocoa::NSRectFromRect(roundedRect->rect);
-				NSBezierPath* path = [NSBezierPath bezierPathWithRoundedRect : r xRadius : roundedRect->radiusX yRadius : roundedRect->radiusY];
+                const auto safeRadiusX = std::clamp((CGFloat) roundedRect->radiusX, 0.0, r.size.width  * 0.5);
+                const auto safeRadiusY = std::clamp((CGFloat) roundedRect->radiusY, 0.0, r.size.height * 0.5);
+				NSBezierPath* path = [NSBezierPath bezierPathWithRoundedRect:r xRadius:safeRadiusX yRadius:safeRadiusY];
                 applyDashStyleToPath(path, strokeStyle, strokeWidth);
                 
                 auto cocoabrush = dynamic_cast<const CocoaBrushBase*>(brush);
@@ -1800,7 +1802,9 @@ return gmpi::MP_FAIL;
 			void MP_STDCALL FillRoundedRectangle(const GmpiDrawing_API::MP1_ROUNDED_RECT* roundedRect, const GmpiDrawing_API::IMpBrush* brush) override
 			{
 				NSRect r = se::cocoa::NSRectFromRect(roundedRect->rect);
-				NSBezierPath* rectPath = [NSBezierPath bezierPathWithRoundedRect : r xRadius:roundedRect->radiusX yRadius: roundedRect->radiusY];
+                const auto safeRadiusX = std::clamp((CGFloat) roundedRect->radiusX, 0.0, r.size.width  * 0.5);
+                const auto safeRadiusY = std::clamp((CGFloat) roundedRect->radiusY, 0.0, r.size.height * 0.5);
+				NSBezierPath* rectPath = [NSBezierPath bezierPathWithRoundedRect:r xRadius:safeRadiusX yRadius:safeRadiusY];
 
 				auto cocoabrush = dynamic_cast<const CocoaBrushBase*>(brush);
 				if (cocoabrush)
