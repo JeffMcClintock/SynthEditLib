@@ -1046,29 +1046,29 @@ void AudioMasterBase::BuildModules(
 				{
 					// With no Oversampling we just add the container alongside it's modules.
 					container->AddUG( generator );
+					generator->Setup(container->AudioMaster(), pElem);
 				}
 
+#if 0 // crashes when default-setter attempt to send initial values without accounting for oversampling.
 				// attempt to fix default values ignored by oversampler (becuase it couldn't get to the defaut setter)
 				auto original_parent = generator->parent_container;
 				if(!original_parent)
 					generator->parent_container = container;
 
-				generator->Setup( /*this*/ container->AudioMaster(), pElem);
+				generator->Setup( container->AudioMaster(), pElem);
 					
 				generator->parent_container = original_parent;
+#endif
 
 				if (child_container->isContainerPolyphonic())
 				{
 					int32_t VoiceCount = 6;
 					int32_t VoiceReserveCount = 3;
 					if (auto param = child_patch_manager->GetHostControl(HC_POLYPHONY, child_handle); param)
-					{
 						VoiceCount = (int32_t)param->GetValueRaw2();
-					}
+
 					if (auto param = child_patch_manager->GetHostControl(HC_POLYPHONY_VOICE_RESERVE, child_handle); param)
-					{
 						VoiceReserveCount = (int32_t)param->GetValueRaw2();
-					}
 
 					child_container->setVoiceReserveCount(VoiceReserveCount);
 					child_container->setVoiceCount(VoiceCount);
@@ -1082,44 +1082,55 @@ void AudioMasterBase::BuildModules(
 				else // Build self-contained container.
 				{
 					// Oversampling.
-					ug_oversampler* oversampler = 0;
-					if( oversampleFactor != 0 )
+					ug_oversampler* oversampler{};
+					if( oversampleFactor > 0 )
 					{
 						int oversamplerFilterPoles_ = 7; // default.
-						{
-							auto oversamplingParam = child_patch_manager->GetHostControl(HC_OVERSAMPLING_FILTER, child_handle);
-							if (oversamplingParam)
-							{
-								oversamplerFilterPoles_ = (int32_t)oversamplingParam->GetValueRaw2();
-							}
-						}
-#if 0
-// In plugins this is redundant, the patch-parameter value will already be available and overwrite this.
-// Retained only for Waves and SE at present. Could probaby remove it from SE also if SE supported getPersisentHostControl()
-pElem->QueryIntAttribute("OversampleFilter", &oversamplerFilterPoles_);
-						{
-							int handle;
-							pElem->QueryIntAttribute("Id", &handle);
-							oversamplerFilterPoles_ = (int)getShell()->getPersisentHostControl(handle, HC_OVERSAMPLING_FILTER, RawView(oversamplerFilterPoles_));
-						}
-#endif
-
-//	?? if not already child_container->patch_control_container = container->patch_control_container;
+						if (auto oversamplingParam = child_patch_manager->GetHostControl(HC_OVERSAMPLING_FILTER, child_handle); oversamplingParam)
+							oversamplerFilterPoles_ = (int32_t)oversamplingParam->GetValueRaw2();
 
 						oversampler = new ug_oversampler();
 						AssignTemporaryHandle(oversampler);
 						container->AddUG( oversampler );
-//							oversampler->SetAudioMaster(this);
+
 						oversampler->SetAudioMaster(container->AudioMaster());
 						oversampler->main_container = child_container;
+
+						// will fail to set pin defaults, since it has not parent container.
+						generator->Setup(oversampler, pElem);
+
 						oversampler->Setup1( oversampleFactor, oversamplerFilterPoles_ ); // reassigns childs audiomaster to itself
+
+						// very messy. set the autoduplicating pin defaults on the oversampler, from the containers XML (they should propagate into the container)
+						// applies to pins connected only on inside of oversampled container, but with a non-zero default on the outside.
+						{
+							// copied from ug_base::Setup(), keep in sync.
+							if(auto plugsElement = pElem->FirstChildElement("Plugs"); plugsElement)
+							{
+								int pin_index = 0;
+								for(auto plugElement = plugsElement->FirstChildElement(); plugElement; plugElement = plugElement->NextSiblingElement())
+								{
+									assert(strcmp(plugElement->Value(), "Plug") == 0);
+
+									// IO Plug on Container or I/O Mod. Identified by "Direction" element.
+									int direction = -1;
+									if(plugElement->QueryIntAttribute("Direction", &direction) == TIXML_SUCCESS)
+									{
+										// Default on un-connected Container inputs.
+										if(auto d = plugElement->Attribute("Default"); d)
+											oversampler->GetPlug(pin_index)->SetDefault(d);
+
+										++pin_index; // don't count the fixed plugs, oversampler ignored them.
+									}
+								}
+							}
+						}
+
 						oversampler->cpuParent = container;
 
 						// Containers without own patch manager need PM proxy.
 						if( !pElem->FirstChildElement("PatchManager"))
-						{
 							oversampler->CreatePatchManagerProxy();
-						}
 					}
 
 					// For polyphonic containers, help the patch manager (which may be in a higher container)

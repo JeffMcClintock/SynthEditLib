@@ -598,7 +598,7 @@ void ug_base::Setup( ISeAudioMaster* am, TiXmlElement* xml )
 				const char* d = plugElement->Attribute("Default");
 
 				// failed any defaults on an oversampler (no parent container):	if (d && parent_container) // fix crash if plugin 'top' container has pin defaults set in XML.
-				if (d)
+				if (d && parent_container) // hold-off on oversampled containers, they get defaults set later.
 				{
 					up->SetDefault( d );
 				}
@@ -654,13 +654,10 @@ void ug_base::Setup( ISeAudioMaster* am, TiXmlElement* xml )
 
 				if (d)
 				{
-					if (parent_container) // fix crash if plugin 'top' container has pin defaults set in XML.
-					{
-						int idx = 0; // default is zero.
-						plugElement->QueryIntAttribute("Idx", &idx);
+					int idx = 0; // default is zero.
+					plugElement->QueryIntAttribute("Idx", &idx);
 
-						plugDefaults.push_back(std::pair<int, std::string>(idx, std::string(d)));
-					}
+					plugDefaults.push_back(std::pair<int, std::string>(idx, std::string(d)));
 				}
 				else
 				{
@@ -673,9 +670,11 @@ void ug_base::Setup( ISeAudioMaster* am, TiXmlElement* xml )
 
 	SetupDynamicPlugs();
 
-	for (auto& it : plugDefaults)
+	if(parent_container) // fix crash if plugin 'top' container has pin defaults set in XML.
 	{
-		GetPlug(it.first)->SetDefault(it.second.c_str());
+		// see also "new ug_oversampler() in AudioMasterBase::BuildModules", which also sets defaults.
+		for(auto& it : plugDefaults)
+			GetPlug(it.first)->SetDefault(it.second.c_str());
 	}
 
 	HookUpParameters();
