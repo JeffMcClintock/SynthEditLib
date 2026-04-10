@@ -121,6 +121,7 @@ modules_internal/MPEToMIDI2.cpp
 modules_internal/RegistrationCheck.cpp
 modules_internal/VoiceMute/VoiceMute.h
 modules_internal/VoiceMute/VoiceMute.cpp
+modules_internal/MidiInGui.cpp
 )
 
 # modules_internal/CadmiumModules.cpp
