@@ -32,6 +32,8 @@
 using namespace gmpi;
 using namespace GmpiDrawing;
 
+SE_DECLARE_INIT_STATIC_FILE(MidiInGui)
+
 class MidiInGui final : public gmpi_gui::MpGuiGfxBase, public se_sdk::TimerClient
 {
  	void onActivity()

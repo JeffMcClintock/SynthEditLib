@@ -1153,6 +1153,7 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(ug_midi_out);
 
 #endif
+	INIT_STATIC_FILE(MidiInGui);
 	INIT_STATIC_FILE(MidiToCv2);
 	INIT_STATIC_FILE(RegistrationCheck) // has DSP also,but too bad.
 
