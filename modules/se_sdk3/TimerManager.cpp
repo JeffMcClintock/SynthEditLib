@@ -13,6 +13,7 @@
 #endif
 
 #include <algorithm>
+#include <typeinfo>
 #include "TimerManager.h"
 #include "assert.h"
 
@@ -188,6 +189,12 @@ TimerManager::~TimerManager()
 {
 	for (auto& timer : timers)
 	{
+#ifndef NDEBUG
+		for (auto client : timer.clients_)
+		{
+			printf("TimerManager: client not unregistered: %p (%s)\n", (void*)client, typeid(*client).name());
+		}
+#endif
 		assert(timer.clients_.empty());
 		timer.Stop();
 	}
