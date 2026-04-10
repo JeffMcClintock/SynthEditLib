@@ -199,10 +199,11 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 
 			searchSkins.push_back(JmUnicodeConversions::Utf8ToWstring(skinName));
 			searchSkins.push_back(L"default");
+			searchSkins.push_back(L"_fallback");
 		}
 		else
 		{
-			searchSkins.push_back(L"");
+			searchSkins.push_back({});
 		}
 
 		filenameTemplate = combine_path_and_file(standardFolder, filenameTemplate);
