@@ -261,18 +261,18 @@ public:
 	int overridingVoiceAllocationMode_;
 	float portamento_;
 
-	int getVoiceCount()
+	int getVoiceCount() const
 	{
-		return Polyphony;
+		return m_polyphony;
 	}
 
 	int minimumPhysicalVoicesRequired() const
 	{
-		return Polyphony + voiceReserveCount();
+		return m_polyphony + voiceReserveCount();
 	}
 
 protected:
-	short Polyphony; // used as plug by container, don't change data type from 'short'
+	int m_polyphony{ 8 };
 	// only used with new-style Keyboard2 voice-allocation.  Must be NULL when using MIDI-CV etc else side-by-side MIDI-CVs won't work.
 	int monoNotePlaying_;
 	bool note_status[maxVoiceId];

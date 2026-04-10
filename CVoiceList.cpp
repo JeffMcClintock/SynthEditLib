@@ -238,8 +238,7 @@ void Voice::RemoveUG(ug_base* ug)
 
 /////////////////////  VOICELIST ////////////////////////
 VoiceList::VoiceList( ) :
-	Polyphony(8)
-	,monoNotePlaying_(-1)
+	monoNotePlaying_(-1)
 	,note_memory_idx(-1)
 	,nextCyclicVoice_(0)
 	,benchWarmerVoiceCount_(3)
@@ -780,7 +779,7 @@ void VoiceList::setVoiceCount(int c)
 
 	auto container = dynamic_cast<ug_container*>(this);
 
-	if(Polyphony > c && container->GetFlag(UGF_OPEN)) // don't send all-notes-off during construction of graph
+	if(getVoiceCount() > c && container->GetFlag(UGF_OPEN)) // don't send all-notes-off during construction of graph
 	{
 		// Kill sounding notes so we don't get a polyphony 'overhang' (temporary excess voices playing)
 		// Voice manager can only kill one voice per new note, so reducing polyphony appears to happen gradually otherwise.
@@ -788,7 +787,7 @@ void VoiceList::setVoiceCount(int c)
 		NoteOff(ts, -1); // All notes Off
 	}
 
-	Polyphony = static_cast<short>(c);
+	m_polyphony = c;
 }
 
 void VoiceList::setVoiceReserveCount(int c)
@@ -1579,7 +1578,7 @@ Voice* VoiceList::allocateVoice( timestamp_t timestamp, /*int channel,*/ int voi
 		if (!stealVoice)
 		{
 			// when polyphony limit is exceeded or we failed to allocate, steal a voice.
-			if (activeVoiceCount > Polyphony || !allocatedVoice)
+			if (activeVoiceCount > getVoiceCount() || !allocatedVoice)
 			{
 				Voice* best_off{};  // best unused voice to steal (or nullptr if none)
 				Voice* best_on{};	// best 'in-use' voice to steal
