@@ -1859,9 +1859,7 @@ namespace SE2
 		gmpi::drawing::Size notused;
 
 		for (auto& c : children)
-		{
 			c->measure(veryLarge, &notused);
-		}
 
 		return gmpi::ReturnCode::Ok;
 	}
