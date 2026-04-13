@@ -318,3 +318,83 @@ int32_t GmpiResourceManager::OpenUri(const char* fullUri, gmpi::IProtectedFile2*
 
 	return *returnStream != nullptr ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
 }
+
+std::filesystem::path GmpiResourceManager::ResolveResourceUri(const std::filesystem::path& filename, std::wstring_view skinName)
+{
+	namespace fs = std::filesystem;
+
+	// Already absolute - return as-is
+	if (filename.is_absolute())
+		return filename;
+
+	// Build search folders list: projectSkinFolder, then skins/skinName, skins/default, skins/_fallback
+	std::vector<fs::path> searchFolders;
+
+	if (!projectFile.empty())
+	{
+		searchFolders.push_back(projectFile.parent_path() / (projectFile.stem().wstring() + L".skin"));
+	}
+
+	const fs::path skinsFolder(resourceFolders[GmpiResourceType::Image]);
+	searchFolders.push_back(skinsFolder / skinName);
+	searchFolders.push_back(skinsFolder / L"default");
+	searchFolders.push_back(skinsFolder / L"_fallback");
+
+	for (const auto& folder : searchFolders)
+	{
+		auto candidate = folder / filename;
+		if (fs::exists(candidate))
+			return candidate;
+	}
+
+	// Fallback to skins/default if nothing found
+	return skinsFolder / L"default" / filename;
+}
+
+std::string GmpiResourceManager::ShortenResourceUri(const std::string& fullPath)
+{
+	namespace fs = std::filesystem;
+
+	const fs::path path(fullPath);
+	const auto filename = path.filename();
+
+	if (isEditor())
+	{
+		// Check project-specific skin folder first (e.g., mysynth.skin/)
+		if (!projectFile.empty())
+		{
+			const auto projectSkinFolder = projectFile.parent_path() / (projectFile.stem().wstring() + L".skin");
+			if (fullPath.starts_with(projectSkinFolder.string()))
+			{
+				// File is in project skin folder - return just the filename
+				return filename.string();
+			}
+		}
+
+		// Check standard skins folder
+		const auto& standardFolder = resourceFolders[GmpiResourceType::Image];
+		if (!standardFolder.empty())
+		{
+			const fs::path skinsFolder(standardFolder);
+			const auto relativePath = fs::relative(path, skinsFolder);
+
+			// If it's within the skins folder and relative path doesn't start with ".."
+			if (!relativePath.empty() && relativePath.begin()->string() != "..")
+			{
+				// Skip the skin name component (e.g., "Blue/knob.png" -> "knob.png")
+				auto it = relativePath.begin();
+				if (it != relativePath.end())
+					++it; // skip skin folder name
+
+				fs::path result;
+				for (; it != relativePath.end(); ++it)
+					result /= *it;
+
+				return result.string();
+			}
+		}
+	}
+
+	// Return original path if not in any known folder
+	return fullPath;
+}
