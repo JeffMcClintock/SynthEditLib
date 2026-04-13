@@ -1165,17 +1165,17 @@ if(pluginGraphics)
 				g.fillRectangle(Rect(64, 64, 65, 65), brsh);
 			}
 #endif
-				// Transform back.
-			//		g.setTransform(originalTransform);
-				}
+			// Transform back.
+		//		g.setTransform(originalTransform);
+		}
 
-				if(isHovered_ && !getSelected() && BundleInfo::instance()->isEditor)
-				{
-					auto brush = g.createSolidColorBrush(gmpi::drawing::Colors::DodgerBlue);
-					gmpi::drawing::Rect r(0, 0, getWidth(bounds_), getHeight(bounds_));
-					g.drawRoundedRectangle({ r, 2.f, 2.f }, brush, 2.f);
-				}
-			}
+		if(isHovered_ && editEnabled() && !getSelected())
+		{
+			auto brush = g.createSolidColorBrush(gmpi::drawing::Colors::DodgerBlue);
+			gmpi::drawing::Rect r(0, 0, getWidth(bounds_), getHeight(bounds_));
+			g.drawRoundedRectangle({ r, 2.f, 2.f }, brush, 2.f);
+		}
+	}
 
 	bool ModuleViewPanel::hasRenderLayers() const
 	{
