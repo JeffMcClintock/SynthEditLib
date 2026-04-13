@@ -564,7 +564,7 @@ void BundleInfo::initPluginInfo()
     {
         isEditor =
             filename.find(L"SynthEdit2.exe") != std::string::npos ||
-            filename.find(L"SynthEditMac") != std::string::npos ||
+            filename == L"SynthEdit" || // mac app
             filename.find(L"SynthEditCL") != std::string::npos ||
             filename.find(L"SynthEdit.") != std::string::npos ||
             filename.find(L"TIDE") == 0;
