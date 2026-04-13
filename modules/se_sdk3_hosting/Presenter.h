@@ -42,6 +42,7 @@ enum class CableType;
 		virtual gmpi::drawing::Point GetViewCenter() = 0;
 		virtual void SetViewCenter(gmpi::drawing::Point center) = 0;
 		virtual void SetZoomFactor(float zoomFactor) = 0;
+		virtual void SetPanZoom(gmpi::drawing::Point center, float zoomFactor) = 0;
 		virtual float GetZoomFactor() = 0;
 		virtual int GetSnapSize() = 0;
 		virtual SE2::ModuleView* HandleToObject(int handle) = 0; // Seems out-of-place, because can have two objects w same handle (module + adorner).

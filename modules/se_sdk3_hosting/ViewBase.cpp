@@ -446,7 +446,7 @@ namespace SE2
 			centerPos.x = mouseDocPos.x + (viewWidth  * 0.5f - currentPointerPosAbsolute.x) / snappedZoom;
 			centerPos.y = mouseDocPos.y + (viewHeight * 0.5f - currentPointerPosAbsolute.y) / snappedZoom;
 
-			Presenter()->SetZoomFactor(zoomFactor);
+			Presenter()->SetPanZoom(centerPos, zoomFactor);
 		}
 		else
 		{
@@ -457,10 +457,9 @@ namespace SE2
 				centerPos.x -= static_cast<float>(delta) * pixelsPerDetent / zoomFactor;
 			else
 				centerPos.y -= static_cast<float>(delta) * pixelsPerDetent / zoomFactor;
-		}
 
-		calcViewTransform(); // and redraws
-		updateScrollBars();
+			Presenter()->SetViewCenter(centerPos);
+		}
 
 		return gmpi::ReturnCode::Ok;
 	}

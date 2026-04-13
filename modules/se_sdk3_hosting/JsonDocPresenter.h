@@ -39,6 +39,7 @@ public:
 
 	gmpi::drawing::Point GetViewCenter() override { return {}; }
 	void SetViewCenter(gmpi::drawing::Point) override {}
+	void SetPanZoom(gmpi::drawing::Point, float) override {}
 	void SetZoomFactor(float zoomFactor) override {}
 	float GetZoomFactor() override { return 1.0f; }
 

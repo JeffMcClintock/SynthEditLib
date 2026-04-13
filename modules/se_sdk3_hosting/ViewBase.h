@@ -151,7 +151,7 @@ bool isIteratingChildren = false;
 		// called when a drag-to-create operation from the module browser ends (drop or cancel)
 		std::function<void()> onDragNewModuleEnded;
 
-		// notificate *from* scrollbars or document
+		// notification *from* scrollbars or document
 		void setZoomFactor(float newZoomFactor)
 		{
 			zoomFactor = newZoomFactor;
@@ -163,8 +163,22 @@ bool isIteratingChildren = false;
 		}
 		void setCenter(gmpi::drawing::Point newCenter)
 		{
+			if (avoidRecusion)
+				return;
+
 			centerPos = newCenter;
 			calcViewTransform();
+			updateScrollBars();
+		}
+		void setPanZoom(gmpi::drawing::Point newCenter, float newZoomFactor)
+		{
+			if (avoidRecusion)
+				return;
+
+			centerPos = newCenter;
+			zoomFactor = newZoomFactor;
+			calcViewTransform();
+			updateScrollBars();
 		}
 		// visibleLeft/visibleTop are in document coordinates (same as scrollbar Value)
 		void onHScroll(double visibleLeft);
