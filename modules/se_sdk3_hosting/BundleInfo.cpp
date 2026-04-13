@@ -598,7 +598,7 @@ void BundleInfo::initPluginInfo()
 #endif
     
 //    if(pluginIsBundle)
-    semFolder = (getBundleContentsFolder() / L"Plugins" / "").wstring(); // blank is a trailing slash
+    semFolder = (getBundleContentsFolder() / L"PlugIns" / "").wstring(); // blank is a trailing slash
 
     if (isEditor)
         return;
