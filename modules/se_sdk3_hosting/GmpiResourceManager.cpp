@@ -331,9 +331,7 @@ std::filesystem::path GmpiResourceManager::ResolveResourceUri(const std::filesys
 	std::vector<fs::path> searchFolders;
 
 	if (!projectFile.empty())
-	{
 		searchFolders.push_back(projectFile.parent_path() / (projectFile.stem().wstring() + L".skin"));
-	}
 
 	const fs::path skinsFolder(resourceFolders[GmpiResourceType::Image]);
 	searchFolders.push_back(skinsFolder / skinName);

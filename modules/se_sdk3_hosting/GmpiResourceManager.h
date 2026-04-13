@@ -17,7 +17,24 @@ class GmpiResourceManager
 public:
 	static GmpiResourceManager* Instance(); // ref: platform_plugin.cpp or GmpiResourceManager_editor.cpp
 
-	std::filesystem::path projectFile; // mysynth.synthedit has implied mysynth.skin skin folder.
+	std::filesystem::path projectFile; // path up to first period. e.g. "C:\mydocument.synthedit" => "C:\mydocument"
+
+	void setProjectFile(const std::filesystem::path& fullPath)
+	{
+		if (fullPath.empty())
+		{
+			projectFile.clear();
+			return;
+		}
+
+		const auto parent = fullPath.parent_path();
+		const auto filename = fullPath.filename().wstring();
+		const auto dotPos = filename.find(L'.');
+		if (dotPos != std::wstring::npos)
+			projectFile = parent / filename.substr(0, dotPos);
+		else
+			projectFile = fullPath;
+	}
 
 	std::multimap< int32_t, std::string > resourceUris_;
 	std::unordered_map< GmpiResourceType, std::wstring > resourceFolders;
