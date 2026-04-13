@@ -60,7 +60,6 @@ namespace SE2
 		void OnMoved(gmpi::drawing::Rect& r) override;
 		void OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes) override;
 
-		// rendered only on panel
 		void render(gmpi::drawing::Graphics& g) override;
 
 		bool hitTestR(int32_t flags, gmpi::drawing::Rect selectionRect) override;

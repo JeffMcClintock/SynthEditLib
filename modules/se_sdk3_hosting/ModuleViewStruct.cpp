@@ -345,22 +345,18 @@ namespace SE2
 		});
 
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
-//		constexpr auto plugTextSize = sharedGraphicResources_struct::plugTextSize;
 		auto totalPlugHeight = visiblePlugsCount * plugDiameter;
 
-		float widthPadding = plugDiameter;
-		float heightPadding = static_cast<float>(totalPlugHeight);
 
 		// measure plugin graphics against remaining height.
 		if (pluginGraphics_GMPI || pluginGraphics)
 		{
-			widthPadding += clientPadding * 2.0f;
-			heightPadding += clientPadding * 2.0f;
+			float widthPadding = clientPadding * 2.0f;
+			float heightPadding = static_cast<float>(totalPlugHeight) + clientPadding * 2.0f;
 
 			Size remainingSize(getWidth(finalRect) - widthPadding, getHeight(finalRect) - heightPadding);
 
 			Size desired;
-//			pluginGraphics->measure(remainingSize, &desired);
 			if (pluginGraphics_GMPI)
 			{
 				gmpi::drawing::Size remainingSizeU{ remainingSize.width, remainingSize.height };
@@ -401,9 +397,6 @@ namespace SE2
         auto drawingFactory = getFactory();
         auto resources = getDrawingResources(drawingFactory);
 
-//		auto textFormatHeader = DrawingFactory().CreateTextFormat(static_cast<float>(plugTextSize) + 2.0f);
-//		textFormatHeader.SetTextAlignment(GmpiDrawing_API::MP1_TEXT_ALIGNMENT_CENTER);
-
 		// Expand left and right for long headers.
 		auto headersize = resources->tf_header.getTextExtentU(name);
 		float overhang = ceilf((headersize.width - getWidth(clipArea)) * 0.5f);
@@ -412,7 +405,6 @@ namespace SE2
 			clipArea.left -= overhang;
 			clipArea.right += overhang;
 		}
-
 	}
 
 	gmpi::drawing::Rect ModuleViewStruct::getClipArea()
