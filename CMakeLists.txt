@@ -723,6 +723,8 @@ ${GMPI_UI_SDK}/experimental/forms.h
 ${GMPI_UI_SDK}/experimental/forms.cpp
 ${GMPI_UI_SDK}/experimental/grid.h
 ${GMPI_UI_SDK}/experimental/grid.cpp
+${GMPI_UI_SDK}/experimental/ui_facades.h
+${GMPI_UI_SDK}/experimental/ui_facades.cpp
 ${GMPI_UI_SDK}/experimental/observable.h
 )
 
