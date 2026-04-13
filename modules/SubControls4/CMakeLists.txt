@@ -7,8 +7,9 @@ gmpi_plugin(
     HAS_GUI
     IS_OFFICIAL_MODULE
     FORMATS_LIST GMPI
-    SOURCE_FILES 
+    SOURCE_FILES
         GmpiUiTest.cpp
+        DialogGui.cpp
         ${GMPI_UI_SDK}/helpers/Timer.h
         ${GMPI_UI_SDK}/helpers/Timer.cpp
         ${GMPI_UI_SDK}/helpers/GinBlur.h
