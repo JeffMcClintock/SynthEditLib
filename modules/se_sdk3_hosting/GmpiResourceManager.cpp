@@ -181,44 +181,51 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 	else
 	{
 		// partial filenames (no drive or root slash)
-		wstring filenameTemplate = bare;
-		std::vector<wstring> searchSkins;
+		// Build list of search folders and filename templates
+		std::vector<std::pair<std::wstring, std::wstring>> searchFolders; // {folder, filenameTemplate}
 
 		if (searchWithSkin)
 		{
+			const std::vector<std::wstring> skinNames = {
+				JmUnicodeConversions::Utf8ToWstring(skinName),
+				L"default",
+				L"_fallback" // fallback is last location searched. It is to avoid the problem of the structure-view not finding resources unless they are put in default skin (which is not meant for user content)
+			};
+
 			if (isEditor())
 			{
-				// ../skins/blue/filename
-				filenameTemplate = combine_path_and_file(L"$SKIN", filenameTemplate);
+				// Search project-specific skin folder first (e.g., mysynth.skin/)
+				if (!projectFile.empty())
+				{
+					const auto projectSkinFolder = (projectFile.parent_path() / (projectFile.stem().wstring() + L".skin")).wstring();
+					searchFolders.push_back({ projectSkinFolder, combine_path_and_file(projectSkinFolder, bare) });
+				}
+
+				// Then search standard skins folder (../skins/blue/filename)
+				for (const auto& skin : skinNames)
+				{
+					auto filenameTemplate = combine_path_and_file(standardFolder, combine_path_and_file(skin, bare));
+					searchFolders.push_back({ standardFolder, filenameTemplate });
+				}
 			}
 			else
 			{
 				// VST3/MyPlugin/blue__filename
-				filenameTemplate = L"$SKIN__" + bare;
+				for (const auto& skin : skinNames)
+				{
+					auto filenameTemplate = combine_path_and_file(standardFolder, skin + L"__" + bare);
+					searchFolders.push_back({ standardFolder, filenameTemplate });
+				}
 			}
-
-			searchSkins.push_back(JmUnicodeConversions::Utf8ToWstring(skinName));
-			searchSkins.push_back(L"default");
-			searchSkins.push_back(L"_fallback");
 		}
 		else
 		{
-			searchSkins.push_back({});
+			searchFolders.push_back({ standardFolder, combine_path_and_file(standardFolder, bare) });
 		}
 
-		filenameTemplate = combine_path_and_file(standardFolder, filenameTemplate);
-
-		for( auto searchSkin : searchSkins)
+		for (const auto& [folder, uri] : searchFolders)
 		{
-			// substitute string name if applicable.
-			uri = filenameTemplate;
-			auto start_pos = uri.find(L"$SKIN");
-			if (start_pos != string::npos)
-			{
-				uri.replace(start_pos, 5, searchSkin);
-			}
-
-			// First try given extension.
+			// First try given extension (if bare filename already has one).
 			if (FileExists(uri))
 			{
 				returnUri = uri;
@@ -230,11 +237,10 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 				break;
 			}
 
-			// Search different extensions. png, bpm, jpg.
-			auto barePath = uri; // Already stripped. Don't double-strip filenames containing dots (g.a.bmp). StripExtension(uri);
-			for (auto ext : searchExtensions)
+			// Search different extensions. png, bmp, jpg, etc.
+			for (const auto& ext : searchExtensions)
 			{
-				auto temp = barePath + ext;
+				auto temp = uri + ext;
 				if (FileExists(temp))
 				{
 					returnUri = temp;
@@ -247,10 +253,8 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 				}
 			}
 
-			if (! returnUri.empty() )
-			{
+			if (!returnUri.empty())
 				break;
-			}
 		}
 	}
 

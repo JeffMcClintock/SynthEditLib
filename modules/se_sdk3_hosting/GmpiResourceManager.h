@@ -1,4 +1,5 @@
 #pragma once
+#include <filesystem>
 #include <map>
 #include <unordered_map>
 #include "mp_sdk_common.h"
@@ -15,6 +16,8 @@ class GmpiResourceManager
 {
 public:
 	static GmpiResourceManager* Instance(); // ref: platform_plugin.cpp or GmpiResourceManager_editor.cpp
+
+	std::filesystem::path projectFile; // mysynth.synthedit has implied mysynth.skin skin folder.
 
 	std::multimap< int32_t, std::string > resourceUris_;
 	std::unordered_map< GmpiResourceType, std::wstring > resourceFolders;
