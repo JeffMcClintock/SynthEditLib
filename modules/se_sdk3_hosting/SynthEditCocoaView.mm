@@ -293,7 +293,7 @@ public:
         return gmpi::ReturnCode::Ok;
     }
     gmpi::ReturnCode createFileDialog (int32_t dialogType, gmpi::api::IUnknown** returnDialog) override {return gmpi::ReturnCode::NoSupport;}
-    gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override {return gmpi::ReturnCode::NoSupport;}
+    gmpi::ReturnCode createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) override {return gmpi::ReturnCode::NoSupport;}
 
     // IMpGraphicsHost
     void MP_STDCALL invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override
