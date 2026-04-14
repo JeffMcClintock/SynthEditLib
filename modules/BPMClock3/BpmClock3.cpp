@@ -138,7 +138,10 @@ float CalculateMuliplier( int PulseDivisionSetting, int numerator, int denominat
 
 void BpmClock3::CalcIncrement( int pulseDivide )
 {
-	assert(pinHostBpm.getValue() > 0);
+#ifdef _WIN32
+	assert(pinHostBpm.getValue() > 0); // in an oversampler, initial value will be 0 for 1 block.
+#endif
+
 	auto bpm = (std::max)(1.0f, pinHostBpm.getValue()); // in an oversampler, initial value will be 0
 	increment = bpm / (CalculateMuliplier(pulseDivide, pinNumerator, pinDenominator) * getSampleRate() * 60.0f);
 //	_RPTW1(_CRT_WARN, L"    increment %f\n", increment );

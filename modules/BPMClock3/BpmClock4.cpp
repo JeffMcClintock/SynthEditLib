@@ -120,9 +120,10 @@ void BpmClock4::subProcess2(int sampleFrames)
 
 void BpmClock4::CalcIncrement(float overmultiplier)
 {
-	assert(pinHostBpm.getValue() > 0);
+#ifdef _WIN32
+	assert(pinHostBpm.getValue() > 0); // in an oversampler, initial value will be 0 for 1 block.
+#endif
 
-//	increment = pinHostBpm / (multiplier * getSampleRate() * 60.0f);
 	auto bpm = (std::max)(1.0f, pinHostBpm.getValue());
 	increment = overmultiplier * bpm / (getSampleRate() * 60.0f);
 	//	_RPTW1(_CRT_WARN, L"    increment %f\n", increment );
