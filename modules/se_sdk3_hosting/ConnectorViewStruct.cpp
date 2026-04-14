@@ -89,7 +89,7 @@ namespace SE2
 		auto factory = getFactory();
 
 		StrokeStyleProperties strokeStyleProperties;
-		strokeStyleProperties.lineCap = draggingFromEnd != -1 ? CapStyle::Round : CapStyle::Flat;
+		strokeStyleProperties.lineCap = CapStyle::Round; // draggingFromEnd != -1 ? CapStyle::Round : CapStyle::Flat;
 		strokeStyleProperties.lineJoin = LineJoin::Round;
 		strokeStyle = factory.createStrokeStyle(strokeStyleProperties);
 
@@ -161,7 +161,7 @@ namespace SE2
 				sink.addBezier({ splinePoints[i], splinePoints[i + 1], splinePoints[i + 2] });
 			}
 
-			if (!drawArrows)//&& drawArrows)
+			if (!drawArrows)
 			{
 				int splineCount = (static_cast<int>(splinePoints.size()) - 1) / 3;
 				int middleSplineIdx = splineCount / 2;

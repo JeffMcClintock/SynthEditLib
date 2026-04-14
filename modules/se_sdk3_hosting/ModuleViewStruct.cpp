@@ -836,7 +836,7 @@ namespace SE2
 					g.fillGeometry(geometry, brush);
 					brush.setColor(Colors::Lime);
 
-					StrokeStyleProperties ssp{ CapStyle::Flat, LineJoin::Bevel };
+					StrokeStyleProperties ssp{ CapStyle::Flat, LineJoin::Bevel }; // CapStyle removes 'hairy' spikes on high freqs.
 					auto sstyle = g.getFactory().createStrokeStyle(ssp);
 
 					g.drawGeometry(geometry, brush, 1.0f, sstyle);
