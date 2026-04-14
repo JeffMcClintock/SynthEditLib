@@ -35,17 +35,18 @@ public:
 			std::clamp(pinDialogType.value, 0, 3)
 		);
 
-		stockDialogUnknown = {};
-		dialogHost->createStockDialog(static_cast<int32_t>(dialogType), stockDialogUnknown.put());
+		dialogHost->createStockDialog(
+			static_cast<int32_t>(dialogType),
+			pinTitle.value.c_str(),
+			pinMessage.value.c_str(),
+			stockDialogUnknown.put()
+		);
 		if (!stockDialogUnknown)
 			return;
 
 		auto dlg = stockDialogUnknown.as<IStockDialog>();
 		if (!dlg)
 			return;
-
-		dlg->setTitle(pinTitle.value.c_str());
-		dlg->setText(pinMessage.value.c_str());
 
 		dlg->showAsync(
 			new gmpi::sdk::StockDialogCallback(
@@ -64,13 +65,13 @@ namespace
 auto r = gmpi::Register<DialogGui>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 <PluginList>
-  <Plugin id="SE: Dialog" name="Dialog" category="Sub-Controls" vendor="Jeff McClintock">
+  <Plugin id="SE: Dialog" name="OK Cancel Dialog" category="Sub-Controls" vendor="Jeff McClintock">
     <GUI graphicsApi="GmpiGui">
       <Pin name="Type" datatype="enum" metadata="Ok,Ok-Cancel,Yes-No,Yes-No-Cancel"/>
       <Pin name="Title" datatype="string" default="Dialog"/>
       <Pin name="Message" datatype="string" default="Are you sure?"/>
       <Pin name="Trigger" datatype="bool" direction="out"/>
-      <Pin name="Result" datatype="int" direction="in"/>
+      <Pin name="Result" datatype="int"/>
     </GUI>
   </Plugin>
 </PluginList>

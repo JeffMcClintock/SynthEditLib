@@ -150,7 +150,7 @@ public:
     // gmpi::api::IDrawingHost
     gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override
     {
-        *returnFactory = DrawingFactory.get(); // ->gmpiFactory;
+        *returnFactory = DrawingFactory.get();
         return gmpi::ReturnCode::Ok;
     }
 
@@ -167,6 +167,7 @@ public:
     gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override;
     gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override
     {return gmpi::ReturnCode::NoSupport;}
+    // returns IStockDialog
     gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override
     {return gmpi::ReturnCode::NoSupport;}
 

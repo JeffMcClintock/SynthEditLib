@@ -13,6 +13,7 @@ gmpi_plugin(
     SOURCE_FILES
         GmpiUiTest.cpp
         DialogGui.cpp
+        DirectoryDialogGui.cpp
         ${GMPI_UI_SDK}/helpers/Timer.h
         ${GMPI_UI_SDK}/helpers/Timer.cpp
         ${GMPI_UI_SDK}/helpers/GinBlur.h
