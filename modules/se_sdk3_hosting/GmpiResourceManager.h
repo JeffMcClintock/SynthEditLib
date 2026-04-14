@@ -17,7 +17,7 @@ class GmpiResourceManager
 public:
 	static GmpiResourceManager* Instance(); // ref: platform_plugin.cpp or GmpiResourceManager_editor.cpp
 
-	std::filesystem::path projectFile; // path up to first period. e.g. "C:\mydocument.synthedit" => "C:\mydocument"
+	std::filesystem::path projectFile; // path up to first period. e.g. "C:\mydocument.version23.synthedit" => "C:\mydocument"
 
 	void setProjectFile(const std::filesystem::path& fullPath)
 	{

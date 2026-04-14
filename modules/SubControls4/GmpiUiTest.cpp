@@ -185,7 +185,7 @@ auto r = gmpi::Register<GmpiUiTest>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: GmpiUiTest" name="GMPI-UI Test" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+  <Plugin id="SE: GmpiUiTest" name="GMPI-UI Test" category="Debug" vendor="Jeff McClintock">
     <GUI graphicsApi="GmpiGui"/>
   </Plugin>
 </PluginList>

@@ -59,4 +59,4 @@ add_subdirectory(Waveshapers)
 # add_subdirectory(CadmiumRenderer)
 
 # GMPI plugins
-# temp moved into SE add_subdirectory(SubControls4)
+add_subdirectory(SubControls4)

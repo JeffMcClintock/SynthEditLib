@@ -7,7 +7,7 @@ using namespace gmpi::editor;
 using namespace gmpi::drawing;
 using namespace gmpi::api;
 
-class DialogGui final : public PluginEditor
+class DialogGui final : public PluginEditorNoGui
 {
 	Pin<int32_t> pinDialogType;   // 0=Ok, 1=OkCancel, 2=YesNo, 3=YesNoCancel
 	Pin<std::string> pinTitle;
@@ -48,7 +48,6 @@ public:
 		dlg->setText(pinMessage.value.c_str());
 
 		dlg->showAsync(
-			&bounds,
 			new gmpi::sdk::StockDialogCallback(
 				[this](StockDialogButton button)
 				{
@@ -57,34 +56,6 @@ public:
 				}
 			)
 		);
-	}
-
-	ReturnCode render(drawing::api::IDeviceContext* dc) override
-	{
-		Graphics g(dc);
-
-		const Rect r{0, 0, bounds.right - bounds.left, bounds.bottom - bounds.top};
-		auto brush = g.createSolidColorBrush(Colors::LightGray);
-		g.fillRectangle(r, brush);
-
-		brush.setColor(Colors::Gray);
-		g.drawRectangle(r, brush);
-
-		// draw label
-		auto tf = g.getFactory().createTextFormat(12.0f);
-		brush.setColor(Colors::Black);
-		g.drawTextU("Click to open dialog", tf, r, brush);
-
-		return ReturnCode::Ok;
-	}
-
-	ReturnCode onPointerDown(Point point, int32_t flags) override
-	{
-		if (flags & 1) // left button
-		{
-			onTrigger();
-		}
-		return ReturnCode::Ok;
 	}
 };
 
@@ -95,11 +66,11 @@ auto r = gmpi::Register<DialogGui>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: Dialog" name="Dialog" category="Sub-Controls" vendor="Jeff McClintock">
     <GUI graphicsApi="GmpiGui">
-      <Pin name="Type" datatype="enum" default="0" metadata="Ok,Ok-Cancel,Yes-No,Yes-No-Cancel"/>
+      <Pin name="Type" datatype="enum" metadata="Ok,Ok-Cancel,Yes-No,Yes-No-Cancel"/>
       <Pin name="Title" datatype="string" default="Dialog"/>
       <Pin name="Message" datatype="string" default="Are you sure?"/>
-      <Pin name="Trigger" datatype="bool" direction="in"/>
-      <Pin name="Result" datatype="enum" direction="out" metadata="Ok,Cancel,Yes,No"/>
+      <Pin name="Trigger" datatype="bool" direction="out"/>
+      <Pin name="Result" datatype="int" direction="in"/>
     </GUI>
   </Plugin>
 </PluginList>
