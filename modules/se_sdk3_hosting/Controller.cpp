@@ -474,16 +474,20 @@ void MpController::Initialize()
 #endif
 
 	// Set up processor watchdog callback
-	processorWatchdog.setCallback([this](bool isOffline) {
-		for (auto& p : parameters_)
+	for(auto& p : parameters_)
+	{
+		if(p->getHostControl() == HC_PROCESSOR_OFFLINE)
 		{
-			if (p->getHostControl() == HC_PROCESSOR_OFFLINE)
-			{
-				p->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, RawView(isOffline));
-				break;
-			}
+			auto localP = p.get();
+
+			processorWatchdog.setCallback([localP](bool isOffline)
+				{
+					localP->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, RawView(isOffline));
+				});
+
+			break;
 		}
-	});
+	};
 
 	undoManager.initial(this, getPreset());
 

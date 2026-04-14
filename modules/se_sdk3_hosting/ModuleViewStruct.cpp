@@ -489,7 +489,7 @@ namespace SE2
 				{
 					float w = 48.f;
 					float h2 = scopeIsWave ? plugDiameter : plugDiameter * 0.6f;
-					float x = pin.direction == DR_IN ? -w - 2 : getWidth(bounds_) + 2;
+					float x = pin.direction == DR_IN ? -w - 2 - plugDiameter : getWidth(bounds_) + 2 + plugDiameter;
 					return
 					{
 						x,
@@ -774,21 +774,22 @@ namespace SE2
 				brush.setColor(Color(0, 0, 0.0f, 0.7f));
 				g.drawLine({ scopeRect.left, midY }, { scopeRect.right, midY }, brush, 0.5f);
 
-				brush.setColor(Colors::Lime);
-
 				auto geometry = g.getFactory().createPathGeometry();
 				auto sink = geometry.open();
 
 				constexpr int numPoints = 192;
 				const float yScale = getHeight(scopeRect) * 0.5f;
 				const float yMiddle = scopeRect.top + yScale;
-				const float dx = getWidth(scopeRect) / numPoints; // static_cast<float>(hoverScopeWaveform->size());
-				Point p{ scopeRect.left, 0.f };
+				const float dx = getWidth(scopeRect) / numPoints;
+				constexpr float offEdgeDips = 1.f;
+				const auto offEdge = static_cast<int>(std::round(offEdgeDips / dx)); // to hide the vertical outline on the left and right.
+				Point p{ scopeRect.left - offEdgeDips, 0.f };
 				const int indexMask = static_cast<int>(std::size(movingPeaks)) - 1;
 
 				// top line
 				bool begun{};
-				for (int i = 0; i < numPoints * 2; i += 2)
+				int i = 0;
+				for (; i < (2 * offEdge + numPoints) * 2; i += 2) // we're drawing 0.5 pixels off each side to hide the vertical line.
 				{
 					int j = indexMask & (movingPeaksIdx + i);
 
@@ -797,7 +798,7 @@ namespace SE2
 						p.y = yMiddle - yScale * movingPeaks[j];
 						if (!begun)
 						{
-							sink.beginFigure(p);
+							sink.beginFigure(p, FigureBegin::Filled);
 							begun = true;
 						}
 						else
@@ -811,8 +812,10 @@ namespace SE2
 
 				if (begun)
 				{
-					// bottom line
-					for (int i = numPoints * 2 - 1; i > 0; i -= 2)
+					// bottom line (iterate forward through odd indices)
+					bool first = true;
+					i -= 3; // now we're accessing the odd indexes, which are the minimum values.
+					for (; i > 0; i -= 2)
 					{
 						int j = indexMask & (movingPeaksIdx + i);
 
@@ -823,10 +826,22 @@ namespace SE2
 						p.y = yMiddle - yScale * movingPeaks[j];
 						sink.addLine(p);
 					}
-					sink.endFigure(FigureEnd::Open);
+
+					sink.endFigure(FigureEnd::Closed);
 					sink.close();
 
-					g.drawGeometry(geometry, brush, 1.0f);
+					g.pushAxisAlignedClip(scopeRect);
+
+					brush.setColor(colorFromHex(0x00FF00u, 0.5f));
+					g.fillGeometry(geometry, brush);
+					brush.setColor(Colors::Lime);
+
+					StrokeStyleProperties ssp{ CapStyle::Flat, LineJoin::Bevel };
+					auto sstyle = g.getFactory().createStrokeStyle(ssp);
+
+					g.drawGeometry(geometry, brush, 1.0f, sstyle);
+
+					g.popAxisAlignedClip();
 				}
 			}
 			else
@@ -861,7 +876,7 @@ namespace SE2
 
 				font.setWordWrapping(WordWrapping::NoWrap);
 
-				// center text nicely
+				// center text nicely vertially
 				const auto baseLine = scopeRect.top + metrics.ascent;
 				const auto capTop = baseLine - metrics.capHeight;
 				const auto roomAtTop = capTop - scopeRect.top;
@@ -869,10 +884,12 @@ namespace SE2
 
 				const auto yAdjust = (roomBelowBaseline - roomAtTop) * 0.5f;
 
-				const auto centeredTextRect = offsetRect(scopeRect, { 0, yAdjust });
+				auto centeredTextRect = offsetRect(scopeRect, { 0, yAdjust });
+				centeredTextRect.left += 2;
+				centeredTextRect.right -= 2;
 
 				brush.setColor(Colors::Yellow);
-				g.drawTextU(hoverScopeText.c_str(), font, centeredTextRect, brush);
+				g.drawTextU(hoverScopeText.c_str(), font, centeredTextRect, brush, DrawTextOptions::Clip);
 			}
 		}
 
@@ -1621,7 +1638,7 @@ namespace SE2
 	// if we hit the circle we create a new line, the text - highlight the lines connected to that pin.
 	pinHit ModuleViewStruct::getPinUnderMouse(gmpi::drawing::Point point)
 	{
-		_RPT2(_CRT_WARN, "getPinUnderMouse: point=[%.2f,%.2f]\n", point.x, point.y);
+	//	_RPT2(_CRT_WARN, "getPinUnderMouse: point=[%.2f,%.2f]\n", point.x, point.y);
 
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
@@ -1662,7 +1679,7 @@ namespace SE2
 				closestPin.pinID = pin.plugDescID;
 				closestPin.distance = 0.0f;
 				closestPin.hitCircle = false;
-				_RPT2(_CRT_WARN, "  -> Hit pin text area: pinIndex=%d, pinID=%d\n", closestPin.pinIndex, closestPin.pinID);
+//				_RPT2(_CRT_WARN, "  -> Hit pin text area: pinIndex=%d, pinID=%d\n", closestPin.pinIndex, closestPin.pinID);
 				return closestPin;
 			}
 
@@ -1682,8 +1699,8 @@ namespace SE2
 
 		closestPin.distance = std::max(0.0f, sqrtf(closestPin.distance) - plugDiameter * 0.5f);
 
-		_RPT4(_CRT_WARN, "  -> pinIndex=%d, pinID=%d, distance=%.2f, hitCircle=%d\n", 
-			closestPin.pinIndex, closestPin.pinID, closestPin.distance, closestPin.hitCircle);
+//		_RPT4(_CRT_WARN, "  -> pinIndex=%d, pinID=%d, distance=%.2f, hitCircle=%d\n", 
+	//		closestPin.pinIndex, closestPin.pinID, closestPin.distance, closestPin.hitCircle);
 		return closestPin;
 	}
 
@@ -1775,7 +1792,7 @@ namespace SE2
 				{
 					Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
 
-					if(hoverScopeWaveform || !hoverScopeText.empty())
+//	hoverScopeWaveform can be null if you turn off audio while scope displayed, still needs erasing but				if(hoverScopeWaveform || !hoverScopeText.empty())
 					{
 						invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
 					}
