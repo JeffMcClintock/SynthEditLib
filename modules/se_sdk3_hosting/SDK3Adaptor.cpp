@@ -192,7 +192,7 @@ int32_t MP_STDCALL SDK3AdaptorClient::createPlatformTextEdit(GmpiDrawing_API::MP
 int32_t MP_STDCALL SDK3AdaptorClient::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog)
 {
 	gmpi::shared_ptr<gmpi::api::IUnknown> unk;
-	gmpiEditor.dialogHost->createStockDialog(0, unk.put());
+	gmpiEditor.dialogHost->createStockDialog(0, "", "", unk.put());
 
 	return (int32_t)unk->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)returnDialog);
 }

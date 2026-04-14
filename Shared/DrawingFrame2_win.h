@@ -168,7 +168,7 @@ public:
     gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override
     {return gmpi::ReturnCode::NoSupport;}
     // returns IStockDialog
-    gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override
+    gmpi::ReturnCode createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) override
     {return gmpi::ReturnCode::NoSupport;}
 
     void MP_STDCALL invalidateMeasure() override {}

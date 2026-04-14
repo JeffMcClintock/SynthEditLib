@@ -115,7 +115,7 @@ namespace SE2
 		gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override;
 		gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override; // why here not IInputHost? becuase it is effectivly an invisible text-edit
 		gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
-		gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
+		gmpi::ReturnCode createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) override;
 
 		// IParameterSetter_x
 		gmpi::ReturnCode getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle) override;

@@ -220,9 +220,9 @@ namespace SE2
 		return moduleview.parent->dialogHost->createFileDialog(dialogType, returnDialog);
 	}
 
-	ReturnCode GmpiHelper::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog)
+	ReturnCode GmpiHelper::createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog)
 	{
-		return moduleview.parent->dialogHost->createStockDialog(dialogType, returnDialog);
+		return moduleview.parent->dialogHost->createStockDialog(dialogType, title, text, returnDialog);
 	}
 
 	gmpi::ReturnCode GmpiHelper::getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle)

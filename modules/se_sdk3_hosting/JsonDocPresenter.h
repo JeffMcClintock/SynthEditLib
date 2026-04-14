@@ -399,7 +399,7 @@ public:
 			nagDialog.setNull(); // free previous.
 
 			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-			view->dialogHost->createStockDialog(0, unknown.put());
+			view->dialogHost->createStockDialog(0, "", "", unknown.put());
 			unknown->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)nagDialog.GetAddressOf());
 
 			if (!nagDialog.isNull())
@@ -419,7 +419,7 @@ public:
 			nagDialog.setNull(); // free previous.
 
 			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-			view->dialogHost->createStockDialog(0, unknown.put());
+			view->dialogHost->createStockDialog(0, "", "", unknown.put());
 			unknown->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)nagDialog.GetAddressOf());
 
 			if (!nagDialog.isNull())

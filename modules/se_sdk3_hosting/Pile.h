@@ -54,7 +54,7 @@ struct GmpiUiLayerHost :
 	gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override;
 	gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override;
 	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
-	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
+	gmpi::ReturnCode createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) override;
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
@@ -411,9 +411,9 @@ inline gmpi::ReturnCode GmpiUiLayerHost::createFileDialog(int32_t dialogType, gm
 {
 	return owner->dialogHost->createFileDialog(dialogType, returnDialog);
 }
-inline gmpi::ReturnCode GmpiUiLayerHost::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog)
+inline gmpi::ReturnCode GmpiUiLayerHost::createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog)
 {
-	return owner->dialogHost->createStockDialog(dialogType, returnDialog);
+	return owner->dialogHost->createStockDialog(dialogType, title, text, returnDialog);
 }
 
 #if 0
@@ -516,7 +516,7 @@ struct PileChildHost2 :
 	gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override;
 	gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override;
 	gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
-	gmpi::ReturnCode createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
+	gmpi::ReturnCode createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) override;
 
 	gmpi::ReturnCode setCapture() override;
 	gmpi::ReturnCode getCapture(bool& returnValue) override;
@@ -1399,7 +1399,7 @@ inline gmpi::ReturnCode PileChildHost2::createKeyListener(const gmpi::drawing::R
 	return parent->dialogHost->createKeyListener(r, returnKeyListener);
 }
 inline gmpi::ReturnCode PileChildHost2::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return parent->dialogHost->createFileDialog(dialogType, returnDialog); }
-inline gmpi::ReturnCode PileChildHost2::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return parent->dialogHost->createStockDialog(dialogType, returnDialog); }
+inline gmpi::ReturnCode PileChildHost2::createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) { return parent->dialogHost->createStockDialog(dialogType, title, text, returnDialog); }
 
 inline gmpi::ReturnCode PileChildHost2::setCapture()
 {
