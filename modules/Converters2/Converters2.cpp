@@ -33,7 +33,8 @@ struct FirstNonEmpty final : public Processor
 		{
 			if(pin.direction == PinDirection::In && pin.datatype == PinDatatype::String)
 			{
-				// do something
+				inputPins.push_back(std::make_unique<StringInPin>());
+				init(*inputPins.back().get());
 			}
 		}
 
