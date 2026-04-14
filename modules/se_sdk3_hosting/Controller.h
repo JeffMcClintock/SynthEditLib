@@ -15,6 +15,7 @@
 #include "MpParameter.h"
 #include "ControllerHost.h"
 #include "ProcessorStateManager.h"
+#include "ProcessorWatchdog.h"
 #include "Shared/se_logger.h"
 #include "Hosting/message_queues.h"
 
@@ -143,10 +144,9 @@ private:
 	// Ignore-Program-Change support
 	static const int ignoreProgramChangeStartupTimeMs = 2000;
 	static const int startupTimerInit = ignoreProgramChangeStartupTimeMs / timerPeriodMs;
-	static const int dspWatchdogTimerInit = 1000 / timerPeriodMs; // 1 second
-	
+
 	int startupTimerCounter = startupTimerInit;
-	int dspWatchdogCounter = dspWatchdogTimerInit;
+	ProcessorWatchdog processorWatchdog{timerPeriodMs};
 	bool presetsFolderChanged = false;
 
 protected:

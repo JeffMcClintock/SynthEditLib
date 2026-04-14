@@ -472,10 +472,22 @@ void MpController::Initialize()
 		}
 	}
 #endif
-    
+
+	// Set up processor watchdog callback
+	processorWatchdog.setCallback([this](bool isOffline) {
+		for (auto& p : parameters_)
+		{
+			if (p->getHostControl() == HC_PROCESSOR_OFFLINE)
+			{
+				p->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, RawView(isOffline));
+				break;
+			}
+		}
+	});
+
 	undoManager.initial(this, getPreset());
 
-    isInitialized = true;
+	isInitialized = true;
 }
 
 void MpController::initSemControllers()
@@ -1375,18 +1387,7 @@ void MpController::initializeGui(gmpi::IMpParameterObserver* gui, int32_t parame
 bool MpController::onQueMessageReady(int recievingHandle, int recievingMessageId, my_input_stream& p_stream)
 {
 	// Processor watchdog.
-	if (dspWatchdogCounter <= 0)
-	{
-		for (auto& p : parameters_)
-		{
-			if (p->getHostControl() == HC_PROCESSOR_OFFLINE)
-			{
-				p->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, RawView(false));
-				break;
-			}
-		}
-	}
-	dspWatchdogCounter = dspWatchdogTimerInit;
+	processorWatchdog.onDspMessage();
 
 	auto it = ParameterHandleIndex.find(recievingHandle);
 	if (it != ParameterHandleIndex.end())
@@ -1455,17 +1456,7 @@ bool MpController::OnTimer()
 		OnStartupTimerExpired();
 	}
 
-	if (dspWatchdogCounter-- == 0)
-	{
-		for (auto& p : parameters_)
-		{
-			if (p->getHostControl() == HC_PROCESSOR_OFFLINE)
-			{
-				p->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, RawView(true));
-				break;
-			}
-		}
-	}
+	processorWatchdog.onTimerTick();
 
 	if (presetsFolderChanged)
 	{
