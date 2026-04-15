@@ -715,10 +715,8 @@ namespace SE2
 			g.drawTextU(name, resources->tf_header, r, outlineBrush);
 		}
 
-		if(showCpu())
-		{
-			RenderCpu(g);
-		}
+		// CPU graph and hover-scope are drawn in the layer-1 pass so they
+		// overlay neighboring modules. See renderPluginLayer().
 
 		// plugins own grphics
 		if (pluginGraphics_GMPI)
@@ -759,139 +757,8 @@ namespace SE2
 			g.setTransform(transform);
 		}
 
-		// HOVER SCOPE
-		if (hasHoverScope())
-		{
-			const auto scopeRect = calcScopeRect(hoveredPin_.pinIndex);
-
-			auto brush = g.createSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
-			g.fillRoundedRectangle({ scopeRect, 3.0f }, brush);
-
-			if (scopeIsWave)
-			{
-				// axis line
-				const float midY = scopeRect.top + getHeight(scopeRect) * 0.5f;
-				brush.setColor(Color(0, 0, 0.0f, 0.7f));
-				g.drawLine({ scopeRect.left, midY }, { scopeRect.right, midY }, brush, 0.5f);
-
-				auto geometry = g.getFactory().createPathGeometry();
-				auto sink = geometry.open();
-
-				constexpr int numPoints = 192;
-				const float yScale = getHeight(scopeRect) * 0.5f;
-				const float yMiddle = scopeRect.top + yScale;
-				const float dx = getWidth(scopeRect) / numPoints;
-				constexpr float offEdgeDips = 1.f;
-				const auto offEdge = static_cast<int>(std::round(offEdgeDips / dx)); // to hide the vertical outline on the left and right.
-				Point p{ scopeRect.left - offEdgeDips, 0.f };
-				const int indexMask = static_cast<int>(std::size(movingPeaks)) - 1;
-
-				// top line
-				bool begun{};
-				int i = 0;
-				for (; i < (2 * offEdge + numPoints) * 2; i += 2) // we're drawing 0.5 pixels off each side to hide the vertical line.
-				{
-					int j = indexMask & (movingPeaksIdx + i);
-
-					if (movingPeaks[j] > -90.0f)
-					{
-						p.y = yMiddle - yScale * movingPeaks[j];
-						if (!begun)
-						{
-							sink.beginFigure(p, FigureBegin::Filled);
-							begun = true;
-						}
-						else
-						{
-							sink.addLine(p);
-						}
-					}
-
-					p.x += dx;
-				}
-
-				if (begun)
-				{
-					// bottom line (iterate forward through odd indices)
-					bool first = true;
-					i -= 3; // now we're accessing the odd indexes, which are the minimum values.
-					for (; i > 0; i -= 2)
-					{
-						int j = indexMask & (movingPeaksIdx + i);
-
-						if (movingPeaks[j] <= -90.0f)
-							break;
-
-						p.x -= dx;
-						p.y = yMiddle - yScale * movingPeaks[j];
-						sink.addLine(p);
-					}
-
-					sink.endFigure(FigureEnd::Closed);
-					sink.close();
-
-					g.pushAxisAlignedClip(scopeRect);
-
-					brush.setColor(colorFromHex(0x00FF00u, 0.5f));
-					g.fillGeometry(geometry, brush);
-					brush.setColor(Colors::Lime);
-
-					StrokeStyleProperties ssp{ CapStyle::Flat, LineJoin::Bevel }; // CapStyle removes 'hairy' spikes on high freqs.
-					auto sstyle = g.getFactory().createStrokeStyle(ssp);
-
-					g.drawGeometry(geometry, brush, 1.0f, sstyle);
-
-					g.popAxisAlignedClip();
-				}
-			}
-			else
-			{
-				const auto& pin = plugs_[hoveredPin_.pinIndex];
-
-				// numeric data is sized on cap-height, textual on body-height.
-				FontFlags flags = FontFlags::CapHeight;
-
-				switch(pin.datatype)
-				{
-				case DT_TEXT:
-				case DT_STRING_UTF8:
-				case DT_BOOL:
-				case DT_ENUM:
-					flags = FontFlags::BodyHeight;
-					break;
-				default:
-					break;
-				}
-
-				auto font = g.getFactory().createTextFormat(
-					9.0f
-					, {}
-					, FontWeight::Regular
-					, FontStyle::Normal
-					, FontStretch::Normal
-					, flags
-				);
-
-				const auto metrics = font.getFontMetrics();
-
-				font.setWordWrapping(WordWrapping::NoWrap);
-
-				// center text nicely vertially
-				const auto baseLine = scopeRect.top + metrics.ascent;
-				const auto capTop = baseLine - metrics.capHeight;
-				const auto roomAtTop = capTop - scopeRect.top;
-				const auto roomBelowBaseline = scopeRect.bottom - baseLine;
-
-				const auto yAdjust = (roomBelowBaseline - roomAtTop) * 0.5f;
-
-				auto centeredTextRect = offsetRect(scopeRect, { 0, yAdjust });
-				centeredTextRect.left += 2;
-				centeredTextRect.right -= 2;
-
-				brush.setColor(Colors::Yellow);
-				g.drawTextU(hoverScopeText.c_str(), font, centeredTextRect, brush, DrawTextOptions::Clip);
-			}
-		}
+		// Hover-scope drawn in layer-1 pass (see renderPluginLayer) so it
+		// overlays neighboring modules.
 
 #if 0
 		// check alignment
@@ -905,22 +772,32 @@ namespace SE2
 
 	bool ModuleViewStruct::hasRenderLayers() const
 	{
-		return pluginDrawingLayer_GMPI != nullptr;
+		return pluginDrawingLayer_GMPI != nullptr || cpuInfo != nullptr || hasHoverScope();
 	}
 
 	void ModuleViewStruct::renderPluginLayer(Graphics& g, int32_t layer)
 	{
-		if (!pluginDrawingLayer_GMPI)
-			return;
+		if (pluginDrawingLayer_GMPI)
+		{
+			const auto transform = g.getTransform();
+			auto adjustedTransform = makeTranslation(pluginGraphicsPos.left, pluginGraphicsPos.top) * transform;
+			g.setTransform(adjustedTransform);
 
-		const auto transform = g.getTransform();
-		auto adjustedTransform = makeTranslation(pluginGraphicsPos.left, pluginGraphicsPos.top) * transform;
-		g.setTransform(adjustedTransform);
+			auto gmpiContext = AccessPtr::get(g);
+			pluginDrawingLayer_GMPI->renderLayer(gmpiContext, layer);
 
-		auto gmpiContext = AccessPtr::get(g);
-		pluginDrawingLayer_GMPI->renderLayer(gmpiContext, layer);
+			g.setTransform(transform);
+		}
 
-		g.setTransform(transform);
+		// Diagnostic overlays draw on top of neighboring modules.
+		if (layer == 1)
+		{
+			if (showCpu())
+				RenderCpu(g);
+
+			if (hasHoverScope())
+				RenderHoverScope(g);
+		}
 	}
 
 	void ModuleViewStruct::RenderCpu(Graphics& g)
@@ -1083,6 +960,139 @@ namespace SE2
 		g.drawTextU(oss.str().c_str(), textFormat, Rect(child_rect.right - 40, rectBottom, child_rect.right, rectBottom - 12), bg);
 
 		g.popAxisAlignedClip();
+	}
+
+	void ModuleViewStruct::RenderHoverScope(Graphics& g)
+	{
+		const auto scopeRect = calcScopeRect(hoveredPin_.pinIndex);
+
+		auto brush = g.createSolidColorBrush(Color(0, 0, 0.0f, 0.4f));
+		g.fillRoundedRectangle({ scopeRect, 3.0f }, brush);
+
+		if (scopeIsWave)
+		{
+			// axis line
+			const float midY = scopeRect.top + getHeight(scopeRect) * 0.5f;
+			brush.setColor(Color(0, 0, 0.0f, 0.7f));
+			g.drawLine({ scopeRect.left, midY }, { scopeRect.right, midY }, brush, 0.5f);
+
+			auto geometry = g.getFactory().createPathGeometry();
+			auto sink = geometry.open();
+
+			constexpr int numPoints = 192;
+			const float yScale = getHeight(scopeRect) * 0.5f;
+			const float yMiddle = scopeRect.top + yScale;
+			const float dx = getWidth(scopeRect) / numPoints;
+			constexpr float offEdgeDips = 1.f;
+			const auto offEdge = static_cast<int>(std::round(offEdgeDips / dx)); // to hide the vertical outline on the left and right.
+			Point p{ scopeRect.left - offEdgeDips, 0.f };
+			const int indexMask = static_cast<int>(std::size(movingPeaks)) - 1;
+
+			// top line
+			bool begun{};
+			int i = 0;
+			for (; i < (2 * offEdge + numPoints) * 2; i += 2) // we're drawing 0.5 pixels off each side to hide the vertical line.
+			{
+				int j = indexMask & (movingPeaksIdx + i);
+
+				if (movingPeaks[j] > -90.0f)
+				{
+					p.y = yMiddle - yScale * movingPeaks[j];
+					if (!begun)
+					{
+						sink.beginFigure(p, FigureBegin::Filled);
+						begun = true;
+					}
+					else
+					{
+						sink.addLine(p);
+					}
+				}
+
+				p.x += dx;
+			}
+
+			if (begun)
+			{
+				// bottom line (iterate forward through odd indices)
+				bool first = true;
+				i -= 3; // now we're accessing the odd indexes, which are the minimum values.
+				for (; i > 0; i -= 2)
+				{
+					int j = indexMask & (movingPeaksIdx + i);
+
+					if (movingPeaks[j] <= -90.0f)
+						break;
+
+					p.x -= dx;
+					p.y = yMiddle - yScale * movingPeaks[j];
+					sink.addLine(p);
+				}
+
+				sink.endFigure(FigureEnd::Closed);
+				sink.close();
+
+				g.pushAxisAlignedClip(scopeRect);
+
+				brush.setColor(colorFromHex(0x00FF00u, 0.5f));
+				g.fillGeometry(geometry, brush);
+				brush.setColor(Colors::Lime);
+
+				StrokeStyleProperties ssp{ CapStyle::Flat, LineJoin::Bevel }; // CapStyle removes 'hairy' spikes on high freqs.
+				auto sstyle = g.getFactory().createStrokeStyle(ssp);
+
+				g.drawGeometry(geometry, brush, 1.0f, sstyle);
+
+				g.popAxisAlignedClip();
+			}
+		}
+		else
+		{
+			const auto& pin = plugs_[hoveredPin_.pinIndex];
+
+			// numeric data is sized on cap-height, textual on body-height.
+			FontFlags flags = FontFlags::CapHeight;
+
+			switch(pin.datatype)
+			{
+			case DT_TEXT:
+			case DT_STRING_UTF8:
+			case DT_BOOL:
+			case DT_ENUM:
+				flags = FontFlags::BodyHeight;
+				break;
+			default:
+				break;
+			}
+
+			auto font = g.getFactory().createTextFormat(
+				9.0f
+				, {}
+				, FontWeight::Regular
+				, FontStyle::Normal
+				, FontStretch::Normal
+				, flags
+			);
+
+			const auto metrics = font.getFontMetrics();
+
+			font.setWordWrapping(WordWrapping::NoWrap);
+
+			// center text nicely vertially
+			const auto baseLine = scopeRect.top + metrics.ascent;
+			const auto capTop = baseLine - metrics.capHeight;
+			const auto roomAtTop = capTop - scopeRect.top;
+			const auto roomBelowBaseline = scopeRect.bottom - baseLine;
+
+			const auto yAdjust = (roomBelowBaseline - roomAtTop) * 0.5f;
+
+			auto centeredTextRect = offsetRect(scopeRect, { 0, yAdjust });
+			centeredTextRect.left += 2;
+			centeredTextRect.right -= 2;
+
+			brush.setColor(Colors::Yellow);
+			g.drawTextU(hoverScopeText.c_str(), font, centeredTextRect, brush, DrawTextOptions::Clip);
+		}
 	}
 
 	int32_t ModuleViewStruct::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)

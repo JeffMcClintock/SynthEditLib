@@ -50,6 +50,7 @@ class ModuleViewStruct : public ModuleView
 
 	gmpi::drawing::Rect GetCpuRect();
 	void RenderCpu(gmpi::drawing::Graphics& g);
+	void RenderHoverScope(gmpi::drawing::Graphics& g);
 	bool showCpu()
 	{
 		return cpuInfo != nullptr;
