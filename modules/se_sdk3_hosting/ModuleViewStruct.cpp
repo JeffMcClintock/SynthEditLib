@@ -1102,7 +1102,7 @@ namespace SE2
 			auto& vals = *editorPinValues.get();
 			vals[pinIndex].assign((uint8_t*)data, size + (uint8_t*)data);
 
-			if (pinIndex == hoveredPin_.guiPin)
+			if (pinIndex == hoveredPin_.guiPin && !hoveredPin_.hitCircle)
 			{
 				const auto& pin = plugs_[hoveredPin_.pinIndex];
 				hoverScopeText = NiceFormatted(vals[pinIndex], (EPlugDataType)pin.datatype);
@@ -1120,7 +1120,7 @@ namespace SE2
 			auto& vals = *editorPinValues.get();
 			vals[pinIndex].assign((uint8_t*)data, size + (uint8_t*)data);
 
-			if (pinIndex == hoveredPin_.guiPin)
+			if (pinIndex == hoveredPin_.guiPin && !hoveredPin_.hitCircle)
 			{
 				const auto& pin = plugs_[hoveredPin_.pinIndex];
 				hoverScopeText = NiceFormatted(vals[pinIndex], (EPlugDataType)pin.datatype);
@@ -1151,17 +1151,6 @@ namespace SE2
 
 	void ModuleViewStruct::SetHoverScopeWaveform(std::unique_ptr< std::vector<float> > data)
 	{
-#if 0
-		hoverScopeWaveform = std::move(data);
-
-		if (hoverPin > -1)
-		{
-			auto scopeRect = calcScopeRect(hoverPin);
-			scopeRect.Offset(bounds_.left, bounds_.top);
-
-			parent->ChildInvalidateRect(scopeRect);
-		}
-#else
 		movingPeaks[movingPeaksIdx++] = (*data)[0];
 		movingPeaks[movingPeaksIdx++] = (*data)[1];
 
@@ -1171,7 +1160,6 @@ namespace SE2
 		invalidateMyRect(scopeRect);
 
 		scopeIsWave = true;
-#endif
 	}
 
 	PathGeometry ModuleViewStruct::CreateModuleOutline(Factory& factory)
@@ -1825,9 +1813,9 @@ namespace SE2
 				hoverScopeText.clear();
 				std::fill(std::begin(movingPeaks), std::end(movingPeaks), -99.0f);
 
-				int dspHoverPin = hoveredPin_.pinIndex;
+				int dspHoverPin = hoveredPin_.hitCircle ? -1 : hoveredPin_.pinIndex;
 
-				if (editorPinValues && hoveredPin_.guiPin >= 0)
+				if (editorPinValues && hoveredPin_.guiPin >= 0 && !hoveredPin_.hitCircle)
 				{
 					auto& vals = *editorPinValues.get();
 					auto& raw = vals[hoveredPin_.guiPin];
@@ -1862,12 +1850,13 @@ namespace SE2
 		{
 			Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
 
+			invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
+
 			hoveredPin_ = { -1, -1, -1, -1, 0.0f, true };
 			hoverScopeWaveform = {};
 			scopeIsWave = false;
 			hoverScopeText.clear();
 			Presenter()->setHoverScopePin(handle, -1);
-			visualStateChanged = true;
 		}
 
 		if (visualStateChanged)
