@@ -1106,7 +1106,7 @@ namespace SE2
 		return true;
 	}
 
-	void ViewBase::calcViewTransform()
+	void ViewBase::calcViewTransform() // keywords: calcViewMatrix, calcTransform, updateTransform, updateViewMatrix
 	{
 		// Quantize zoom so that every 12 DIPs maps to an integer number of physical pixels.
 		constexpr float gridDips = 12.0f;
