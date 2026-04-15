@@ -160,7 +160,7 @@ namespace SE2
 
 	ReturnCode GmpiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data)
 	{
-      return static_cast<gmpi::ReturnCode>(moduleview.pinTransmit(pinId, size, data, voice));
+		return static_cast<gmpi::ReturnCode>(moduleview.pinTransmit(pinId, size, data, voice));
 	}
 
 	int32_t GmpiHelper::getHandle()
@@ -301,14 +301,14 @@ namespace SE2
 
 	void Sdk3Helper::invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect)
 	{
-		if (invalidRect)
+		if(invalidRect)
 		{
 			gmpi::drawing::Rect r{ invalidRect->left, invalidRect->top, invalidRect->right, invalidRect->bottom };
-          moduleview.InvalidatePluginRect(&r);
+			moduleview.InvalidatePluginRect(&r);
 		}
 		else
 		{
-         moduleview.InvalidatePluginRect(nullptr);
+			moduleview.InvalidatePluginRect(nullptr);
 		}
 	}
 
@@ -415,9 +415,9 @@ namespace SE2
 		return (int32_t) retWidget->queryInterface(&gmpi_gui::legacy::IMpPlatformText::guid, (void**)returnTextEdit);
 	}
 
-	int32_t Sdk3Helper::pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice)
+	int32_t Sdk3Helper::pinTransmit(int32_t pinIndex, int32_t size, const void* data, int32_t voice)
 	{
-      return moduleview.pinTransmit(pinId, size, data, voice);
+      return moduleview.pinTransmit(pinIndex, size, data, voice);
 	}
 
 	int32_t Sdk3Helper::sendMessageToAudio(int32_t id, int32_t size, const void* messageData)
@@ -431,45 +431,45 @@ namespace SE2
 		return gmpi::MP_OK;
 	}
 
-	int32_t ModuleView::pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice)
+	int32_t ModuleView::pinTransmit(int32_t pinIndex, int32_t size, const void* data, int32_t voice)
 	{
-		auto it = connections_.find(pinId);
-		while (it != connections_.end() && it->first == pinId)
+		auto it = connections_.find(pinIndex);
+		while (it != connections_.end() && it->first == pinIndex)
 		{
 			auto& connection = it->second;
-			connection.otherModule_->setPin(this, pinId, connection.otherModulePinIndex_, voice, size, data);
+			connection.otherModule_->setPin(this, pinIndex, connection.otherModulePinIndex_, voice, size, data);
 			++it;
 		}
 
 		if (!initialised_)
 		{
-			alreadySentDataPins_.push_back(pinId);
+			alreadySentDataPins_.push_back(pinIndex);
 		}
 
 		if (recursionStopper_ < 10)
 		{
-			const bool isInputPin = std::find(inputPinIds.begin(), inputPinIds.end(), pinId) != inputPinIds.end();
+			const bool isInputPin = std::find(inputPinIds.begin(), inputPinIds.end(), pinIndex) != inputPinIds.end();
 			if (isInputPin)
 			{
 				++recursionStopper_;
 
 				if (pluginParameters_GMPI)
 				{
-					pluginParameters_GMPI->setPin(pinId, voice, size, static_cast<const uint8_t*>(data));
-					pluginParameters_GMPI->notifyPin(pinId, voice);
+					pluginParameters_GMPI->setPin(pinIndex, voice, size, static_cast<const uint8_t*>(data));
+					pluginParameters_GMPI->notifyPin(pinIndex, voice);
 				}
 				else if (pluginParameters)
 				{
-					pluginParameters->setPin(pinId, voice, size, data);
+					pluginParameters->setPin(pinIndex, voice, size, data);
 					if (pluginParameters2B)
 					{
-						pluginParameters2B->notifyPin(pinId, voice);
+						pluginParameters2B->notifyPin(pinIndex, voice);
 					}
 				}
 				else if (pluginParametersLegacy)
 				{
-					pluginParametersLegacy->setPin(pinId, voice, size, const_cast<void*>(data));
-					pluginParametersLegacy->notifyPin(pinId, voice);
+					pluginParametersLegacy->setPin(pinIndex, voice, size, const_cast<void*>(data));
+					pluginParametersLegacy->notifyPin(pinIndex, voice);
 				}
 
 				--recursionStopper_;
@@ -1327,7 +1327,7 @@ if(pluginGraphics)
 #endif
 
 	// GUI pins.
-	int32_t ModuleView::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)
+	int32_t ModuleView::setPin(ModuleView* fromModule, int32_t fromPinIndex, int32_t pinIndex, int32_t voice, int32_t size, const void* data)
 	{
 		if (recursionStopper_ < 10)
 		{
@@ -1345,43 +1345,43 @@ if(pluginGraphics)
 			// Notify my module.
 			if (pluginParameters_GMPI)
 			{
-				pluginParameters_GMPI->setPin(pinId, voice, size, (const uint8_t*) data);
+				pluginParameters_GMPI->setPin(pinIndex, voice, size, (const uint8_t*) data);
 				
 				if (isMonoDirectional()) // monodirection method, mark as dirty, notify entire module later.
 					parent->markDirtyChild(this);
 				else // classic method, notify pin immediatly.
-					pluginParameters_GMPI->notifyPin(pinId, voice);
+					pluginParameters_GMPI->notifyPin(pinIndex, voice);
 			}
 
 			if (pluginParameters)
 			{
-				pluginParameters->setPin(pinId, voice, size, data);
+				pluginParameters->setPin(pinIndex, voice, size, data);
 				if (pluginParameters2B)
-					pluginParameters2B->notifyPin(pinId, voice);
+					pluginParameters2B->notifyPin(pinIndex, voice);
 			}
 			else
 			{
 				if (pluginParametersLegacy)
 				{
-					pluginParametersLegacy->setPin(pinId, voice, size, (void*) data);
-					pluginParametersLegacy->notifyPin(pinId, voice);
+					pluginParametersLegacy->setPin(pinIndex, voice, size, (void*) data);
+					pluginParametersLegacy->notifyPin(pinIndex, voice);
 				}
 			}
 
 			// For outputs, send out notification to other connections (not the incoming one though).
-			auto it = connections_.find(pinId);
-			while (it != connections_.end() && (*it).first == pinId)
+			auto it = connections_.find(pinIndex);
+			while (it != connections_.end() && (*it).first == pinIndex)
 			{
 				auto& connection = (*it).second;
-				if (connection.otherModule_ != fromModule || connection.otherModulePinIndex_ != fromPinId)
-					connection.otherModule_->setPin(this, pinId, connection.otherModulePinIndex_, voice, size, data);
+				if (connection.otherModule_ != fromModule || connection.otherModulePinIndex_ != fromPinIndex)
+					connection.otherModule_->setPin(this, pinIndex, connection.otherModulePinIndex_, voice, size, data);
 
 				it++;
 			}
 			if (!initialised_)
 			{
-				//_RPT2(0, "m:%d alreadySentDataPins_ <- %d\n", handle, pinId);
-				alreadySentDataPins_.push_back(pinId);
+				//_RPT2(0, "m:%d alreadySentDataPins_ <- %d\n", handle, pinIndex);
+				alreadySentDataPins_.push_back(pinIndex);
 			}
 
 			--recursionStopper_;

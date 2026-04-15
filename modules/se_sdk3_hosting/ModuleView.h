@@ -246,20 +246,6 @@ namespace SE2
 			return dirty;
 		}
 		void process() override;
-#if 0
-		// IMpGraphicsHost support.
-		int32_t GetDrawingFactory(GmpiDrawing_API::IMpFactory** returnFactory) override;
-		virtual void invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override;
-		int32_t setCapture() override;
-		int32_t getCapture(int32_t& returnValue) override;
-		int32_t releaseCapture() override;
-
-		// IMpGraphicsHostBase support.
-		int32_t createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override;
-		int32_t createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override;
-		int32_t createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu) override;
-		int32_t createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override;
-#endif
 
 		void AddConnection(int myPinIndex, ModuleView* otherModule, int otherModulePinIndex)
 		{
@@ -270,132 +256,6 @@ namespace SE2
 		{
 			totalPins_ = totalPins;
 		}
-#if 0
-
-		// IMpUserInterfaceHost2 support
-		// Plugin UI updates a parameter.
-		int32_t pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice) override
-		{
-			auto it = connections_.find(pinId);
-			while (it != connections_.end() && (*it).first == pinId)
-			{
-				auto& connection = (*it).second;
-				connection.otherModule_->setPin(this, pinId, connection.otherModulePinIndex_, voice, size, data);
-				it++;
-			}
-
-			if (!initialised_)
-			{
-				//_RPT2(0, "m:%d alreadySentDataPins_ <- %d\n", handle, pinId);
-				alreadySentDataPins_.push_back(pinId);
-			}
-
-			// input GUI pins also echo value back into plugin.
-			if (std::find(inputPinIds.begin(), inputPinIds.end(), pinId) != inputPinIds.end() && recursionStopper_ < 10)
-			{
-				++recursionStopper_;
-
-				// Notify myself
-				if (pluginParameters)
-				{
-					// didn't actual notify (because value is already set)
-					pluginParameters->setPin(pinId, voice, size, data);
-
-					if (pluginParameters2B)
-					{
-						pluginParameters2B->notifyPin(pinId, voice);
-					}
-				}
-				else
-				{
-					if (pluginParametersLegacy)
-					{
-		// already set, only needs notify.				pluginParametersLegacy->setPin(pinId, voice, size, (void*)data);
-						pluginParametersLegacy->notifyPin(pinId, voice);
-					}
-				}
-
-				--recursionStopper_;
-			}
-
-			return gmpi::MP_OK;
-		}
-
-		// Back door to Audio class. Not recommended. Use Parameters instead to support proper automation.
-		int32_t sendMessageToAudio(int32_t id, int32_t size, const void* messageData) override;
-
-		// Each plugin instance has unique handle shared by UI and Audio class.
-		int32_t getHandle(int32_t& returnValue) override;
-
-		// Get information about UI's pins.
-		int32_t createPinIterator(gmpi::IMpPinIterator** returnIterator) override
-		{
-			return gmpi::MP_FAIL;
-		}
-
-		int32_t ClearResourceUris() override
-		{
-			return gmpi::MP_OK;
-		}
-
-		int32_t RegisterResourceUri(const char* resourceName, const char* resourceType, gmpi::IString* returnString) override;
-
-		int32_t FindResourceU(const char* resourceName, const char* resourceType, gmpi::IString* returnString) override;
-
-		int32_t LoadPresetFile_DEPRECATED(const char* presetFilePath) override;
-
-		int32_t OpenUri(const char* fullUri, gmpi::IProtectedFile2** returnStream) override // returns an IProtectedFile.
-		{
-			return GmpiResourceManager::Instance()->OpenUri(fullUri, returnStream);
-		}
-
-		// IMpUserInterfaceHost (legacy host) support.
-		int32_t pinTransmit(int32_t pinId, int32_t size, /*const*/ void* data, int32_t voice = 0) override;
-		int32_t sendMessageToAudio(int32_t id, int32_t size, /*const*/ void* messageData) override;
-		int32_t setIdleTimer(int32_t active) override;
-		int32_t getHostId(int32_t maxChars, wchar_t* returnString) override;
-		int32_t getHostVersion(int32_t& returnValue) override;
-		int32_t resolveFilename(const wchar_t* shortFilename, int32_t maxChars, wchar_t* returnFullFilename) override;
-		int32_t addContextMenuItem( /*const*/ wchar_t* menuText, int32_t index, int32_t flags) override;
-		int32_t getPinCount(int32_t& returnCount) override;
-		int32_t openProtectedFile(const wchar_t* shortFilename, gmpi::IProtectedFile **file) override;
-
-
-		// IUnknown methods
-		int32_t queryInterface(const gmpi::MpGuid& iid, void** object) override
-		{
-			if (iid == gmpi::MP_IID_UI_HOST2
-				|| iid == gmpi::MP_IID_UI_HOST
-				|| iid == gmpi_gui::SE_IID_GRAPHICS_HOST
-				|| iid == gmpi_gui::SE_IID_GRAPHICS_HOST_BASE)
-			{
-				if (sdk3Helper)
-					return sdk3Helper->queryInterface(iid, object);
-
-				if (iid == gmpi::MP_IID_UI_HOST2)
-				{
-					*object = reinterpret_cast<IMpUnknown*>(static_cast<IMpUserInterfaceHost2*>(this));
-					addRef();
-					return gmpi::MP_OK;
-				}
-				if (iid == gmpi::MP_IID_UI_HOST)
-				{
-					*object = reinterpret_cast<IMpUnknown*>(static_cast<IMpUserInterfaceHost*>(this));
-					addRef();
-					return gmpi::MP_OK;
-				}
-				if (iid == gmpi_gui::SE_IID_GRAPHICS_HOST || iid == gmpi_gui::SE_IID_GRAPHICS_HOST_BASE)
-				{
-					*object = reinterpret_cast<IMpUnknown*>(static_cast<IMpGraphicsHost*>(this));
-					addRef();
-					return gmpi::MP_OK;
-				}
-			}
-
-			*object = nullptr;
-			return gmpi::MP_NOSUPPORT;
-		}
-#endif
 
 		gmpi::IMpUserInterface2* getpluginParameters()
 		{
@@ -404,8 +264,8 @@ namespace SE2
 
 		void initialize();
 
-		virtual int32_t setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data);
-		virtual int32_t pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice);
+		virtual int32_t setPin(ModuleView* fromModule, int32_t fromPinIndex, int32_t pinIndex, int32_t voice, int32_t size, const void* data);
+		virtual int32_t pinTransmit(int32_t pinIndex, int32_t size, const void* data, int32_t voice);
 
 		bool isPinConnected(int pinIndex)
 		{
@@ -414,12 +274,6 @@ namespace SE2
 
 		bool isPinConnectionActive(int pinIndex) const;
 
-		// IMouseCaptureObect
-#if 0 // def SE_TAR GET_PURE_UWP
-		virtual void OnPointerPressed(float x, float y, Windows::UI::Xaml::Input::PointerRoutedEventArgs ^e) override;
-		virtual void OnPointerMoved(float x, float y, Windows::UI::Xaml::Input::PointerRoutedEventArgs ^e) override;
-		virtual void OnPointerReleased(float x, float y, Windows::UI::Xaml::Input::PointerRoutedEventArgs ^e) override;
-#endif
 		// IViewChild.
 		gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override;
 		gmpi::ReturnCode setHover(bool mouseIsOverMe) override;
@@ -440,7 +294,7 @@ namespace SE2
 		gmpi::ReturnCode releaseCaptureFromHost();
 		bool getCaptureFromHost() const;
 
-      // Get the compound transform matrix from this ModuleView to the topmost view (including zoom and pan)
+		// Get the compound transform matrix from this ModuleView to the topmost view (including zoom and pan)
 		gmpi::drawing::Matrix3x2 GetTransformToTopView() const;
 
 		gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
@@ -511,8 +365,6 @@ namespace SE2
 		bool dirty{ true };
 		virtual bool isRackModule() = 0;
 		void preDelete() override;
-
-//		GMPI_REFCOUNT_NO_DELETE;
 	};
 
 	struct pinViewInfo
@@ -664,6 +516,5 @@ namespace SE2
 		{
 			return isRackModule_;
 		}
-//		void invalidateMeasure() override {}
 	};
 }

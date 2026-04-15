@@ -1095,41 +1095,40 @@ namespace SE2
 		}
 	}
 
-	int32_t ModuleViewStruct::setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data)
+	int32_t ModuleViewStruct::setPin(ModuleView* fromModule, int32_t fromPinIndex, int32_t pinIndex, int32_t voice, int32_t size, const void* data)
 	{
 		if (editorPinValues)
 		{
 			auto& vals = *editorPinValues.get();
-			vals[pinId].assign((uint8_t*)data, size + (uint8_t*)data);
-/* TODO
-			if (pinId == hoveredPin_.pinID) // crash sending to GUI pinID 4 (a hidden BLOB GUI pin) when plugs_[4] on teh structure view is a visible DSP audio pin
+			vals[pinIndex].assign((uint8_t*)data, size + (uint8_t*)data);
+
+			if (pinIndex == hoveredPin_.guiPin)
 			{
 				const auto& pin = plugs_[hoveredPin_.pinIndex];
-				hoverScopeText = NiceFormatted(vals[pinId], (EPlugDataType)pin.datatype);
+				hoverScopeText = NiceFormatted(vals[pinIndex], (EPlugDataType)pin.datatype);
 				invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
 			}
-*/
 		}
 
-		return ModuleView::setPin(fromModule, fromPinId, pinId, voice, size, data);
+		return ModuleView::setPin(fromModule, fromPinIndex, pinIndex, voice, size, data);
 	}
 
-	int32_t ModuleViewStruct::pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice)
+	int32_t ModuleViewStruct::pinTransmit(int32_t pinIndex, int32_t size, const void* data, int32_t voice)
 	{
 		if (editorPinValues)
 		{
 			auto& vals = *editorPinValues.get();
-			vals[pinId].assign((uint8_t*)data, size + (uint8_t*)data);
+			vals[pinIndex].assign((uint8_t*)data, size + (uint8_t*)data);
 
-			if (pinId == hoveredPin_.pinID)
+			if (pinIndex == hoveredPin_.guiPin)
 			{
 				const auto& pin = plugs_[hoveredPin_.pinIndex];
-				hoverScopeText = NiceFormatted(vals[pinId], (EPlugDataType)pin.datatype);
+				hoverScopeText = NiceFormatted(vals[pinIndex], (EPlugDataType)pin.datatype);
 				invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
 			}
 		}
 
-	   return ModuleView::pinTransmit(pinId, size, data, voice);
+	   return ModuleView::pinTransmit(pinIndex, size, data, voice);
 	}
 
 	bool ModuleViewStruct::hasHoverScope() const
@@ -1660,12 +1659,17 @@ namespace SE2
 		Point p(0, getLayoutRect().top + plugDiameter * 0.5f - 0.5f);
 
 		float outerLimitSquared = (fuzzyHitTestLimit + plugDiameter * 0.5f) * (fuzzyHitTestLimit + plugDiameter * 0.5f);
-		pinHit closestPin{ -1, -1, outerLimitSquared, true };
+		pinHit closestPin{ -1, -1, -1, -1, outerLimitSquared, true };
 		Rect pinRect{ left, getLayoutRect().top, right, getLayoutRect().top + static_cast<float>(plugDiameter) };
 		float plugHitWidth = (std::min)(40.0f, right-left); // width of area responsive to clicking on plug in general (not connection point).
 
+		int guiIndex = -1;
+		int dspIndex = -1;
 		for (const auto& pin : plugs_)
 		{
+			guiIndex += pin.isGuiPlug ? 1 : 0;
+			dspIndex += !pin.isGuiPlug ? 1 : 0;
+
 			if(!pin.isVisible)
 				continue;
 
@@ -1687,6 +1691,8 @@ namespace SE2
 			{
 				closestPin.pinIndex = pin.indexCombined;
 				closestPin.pinID = pin.plugDescID;
+				closestPin.guiPin = pin.isGuiPlug ? guiIndex : -1;
+				closestPin.dspPin = pin.isGuiPlug ? -1 : dspIndex;
 				closestPin.distance = 0.0f;
 				closestPin.hitCircle = false;
 //				_RPT2(_CRT_WARN, "  -> Hit pin text area: pinIndex=%d, pinID=%d\n", closestPin.pinIndex, closestPin.pinID);
@@ -1699,6 +1705,8 @@ namespace SE2
 			{
 				closestPin.pinIndex = pin.indexCombined;
 				closestPin.pinID = pin.plugDescID;
+				closestPin.guiPin = pin.isGuiPlug ? guiIndex : -1;
+				closestPin.dspPin = pin.isGuiPlug ? -1 : dspIndex;
 				closestPin.distance = distanceSquared;
 			}
 
@@ -1819,19 +1827,13 @@ namespace SE2
 
 				int dspHoverPin = hoveredPin_.pinIndex;
 
-				if (hoveredPin_.pinIndex >= 0)
+				if (editorPinValues && hoveredPin_.guiPin >= 0)
 				{
-					if (plugs_[hoveredPin_.pinIndex].isGuiPlug)
-					{
-						if (editorPinValues)
-						{
-							auto& vals = *editorPinValues.get();
-							auto& raw = vals[hoveredPin_.pinID];
+					auto& vals = *editorPinValues.get();
+					auto& raw = vals[hoveredPin_.guiPin];
 
-							dspHoverPin = -1; // CUG has nothing to do.
-							hoverScopeText = NiceFormatted(raw, (EPlugDataType) plugs_[hoveredPin_.pinIndex].datatype);
-						}
-					}
+					dspHoverPin = -1; // CUG has nothing to do.
+					hoverScopeText = NiceFormatted(raw, (EPlugDataType) plugs_[hoveredPin_.pinIndex].datatype);
 				}
 				Presenter()->setHoverScopePin(handle, dspHoverPin);
 				parent->ChildInvalidateRect(getClipArea());
@@ -1860,7 +1862,7 @@ namespace SE2
 		{
 			Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
 
-			hoveredPin_ = { -1, -1, 0.0f, true };
+			hoveredPin_ = { -1, -1, -1, -1, 0.0f, true };
 			hoverScopeWaveform = {};
 			scopeIsWave = false;
 			hoverScopeText.clear();

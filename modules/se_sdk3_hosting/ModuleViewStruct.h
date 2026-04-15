@@ -8,6 +8,8 @@ struct pinHit
 {
 	int pinIndex;
 	int pinID;
+	int guiPin;		// index of actual GUI pin from modules point of view, including hidden pins etc.
+	int dspPin;		// index of actual DSP pin from modules point of view.
 	float distance; // distance to circle, or 0.f if hit lable rectangle.
 	bool hitCircle;
 };
@@ -22,7 +24,7 @@ class ModuleViewStruct : public ModuleView
 	const int plugTextHorizontalPadding = -1; // gap between plug text and plug circle outer radius.
 	gmpi::drawing::Rect clipArea;
 	bool muted = false;
-	pinHit hoveredPin_{ -1, -1, 0.0f, true };
+	pinHit hoveredPin_{ -1, -1, -1, -1, 0.0f, true };
 	gmpi::drawing::Rect boundsOnMouseDown;
 	bool scopeIsWave{};
 	std::string hoverScopeText;
@@ -77,7 +79,7 @@ public:
 		return muted;
 	}
 
-	int32_t setPin(ModuleView* fromModule, int32_t fromPinId, int32_t pinId, int32_t voice, int32_t size, const void* data) override;
+	int32_t setPin(ModuleView* fromModule, int32_t fromPinIndex, int32_t pinId, int32_t voice, int32_t size, const void* data) override;
     int32_t pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice) override;
 
 	virtual void measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize) override;
