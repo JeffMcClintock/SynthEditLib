@@ -3,13 +3,22 @@
 #include <sstream>
 #include <filesystem>
 #include <algorithm>
-#if defined( _DEBUG ) && defined( _WIN32 )
-#include <ShlObj.h>
-#endif
+#include <string>
+#include <cstdio>
 #include "SynthEditDocBase.h"
 #include "SynthEditAppBase.h"
 #include "CUG.h"
 #include "module_info.h"
+
+// Cross-platform debug-print shims. On Windows the CRT provides _RPT* via <crtdbg.h>
+// (pulled in transitively); elsewhere we route to stderr so the same code compiles.
+#ifndef _WIN32
+    #define _RPT0(n, msg)                  std::fprintf(stderr, "%s", msg)
+    #define _RPT1(n, fmt, a)               std::fprintf(stderr, fmt, a)
+    #define _RPT2(n, fmt, a, b)            std::fprintf(stderr, fmt, a, b)
+    #define _RPT3(n, fmt, a, b, c)         std::fprintf(stderr, fmt, a, b, c)
+    #define _RPTN(n, fmt, ...)             std::fprintf(stderr, fmt, __VA_ARGS__)
+#endif
 
 struct moduleIdentity
 {
@@ -49,9 +58,15 @@ struct inouterror
 };
 
 
-int serializeCancelationSnapshot(const char* filename, std::vector<mod_an>& results)
+int serializeCancelationSnapshot(const wchar_t* filename, std::vector<mod_an>& results)
 {
-	auto file = fopen(filename, "rb");
+	// std::filesystem::path handles the native encoding for fopen on each platform.
+	const std::filesystem::path path(filename);
+#ifdef _WIN32
+	auto file = _wfopen(path.c_str(), L"rb");
+#else
+	auto file = std::fopen(path.c_str(), "rb");
+#endif
 	if (!file)
 	{
 //		_RPT0(0, "Cancelation: CAN'T OPEN FILE\n");
@@ -173,7 +188,6 @@ struct pinIdentity
 
 void printAudioData(char AorB, const std::vector<float>& data)
 {
-#ifdef _WIN32
 #ifdef _DEBUG
 	bool allSame = true;
 	for (auto f : data)
@@ -194,7 +208,6 @@ void printAudioData(char AorB, const std::vector<float>& data)
 		}
 	}
 	_RPT0(0, "}\n");
-#endif
 #endif
 }
 
@@ -248,61 +261,12 @@ std::vector< std::pair< moduleIdentity, std::string > > getOrphans(const std::ve
 	return orphans;
 }
 
-void CancellationAnalyse(CSynthEditAppBase* app)
+void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, const std::wstring& filenameB)
 {
-#if defined( _DEBUG ) && defined( _WIN32 )
+#ifdef _DEBUG
 
-    auto getDocumentsPath = []() -> std::filesystem::path
-    {
-        PWSTR path = nullptr;
-        const auto hr = SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &path);
-        if (FAILED(hr) || !path)
-        {
-            return {};
-        }
-
-        std::filesystem::path result(path);
-        CoTaskMemFree(path);
-        return result;
-    };
-
-    const auto documents = getDocumentsPath();
-    if (documents.empty())
+    if (filenameA.empty() || filenameB.empty())
         return;
-
-    const auto baseFolder = documents / L"cancellation" / L"SpacePro";
-
-    std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> rawFiles;
-
-    try
-    {
-        for (const auto& entry : std::filesystem::directory_iterator(baseFolder))
-        {
-            if (!entry.is_regular_file())
-                continue;
-
-            const auto ext = entry.path().extension();
-            if (ext == L".raw" || ext == L".RAW")
-            {
-                rawFiles.emplace_back(entry.path(), entry.last_write_time());
-            }
-        }
-    }
-    catch (...)
-    {
-        return;
-    }
-
-    if (rawFiles.size() < 2)
-        return;
-
-    std::sort(rawFiles.begin(), rawFiles.end(), [](const auto& a, const auto& b)
-        {
-            return a.second > b.second; // newest first
-        });
-
-    const auto filenameA = rawFiles[0].first.string();
-    const auto filenameB = rawFiles[1].first.string();
 
 	std::vector<mod_an> resultsA;
     const auto blockSize = serializeCancelationSnapshot(filenameA.c_str(), resultsA);
@@ -485,15 +449,15 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 #endif
 
 	{
-		std::ostringstream myfile;
+		std::wostringstream myfile;
 		{
-			myfile << "File1: " << filenameA << std::endl;
-			myfile << "File2: " << filenameB << std::endl;
-			myfile << "Length: " << blockSize << std::endl;
-			myfile << "Channels: " << 1 << std::endl << std::endl;
+			myfile << L"File1: " << filenameA << std::endl;
+			myfile << L"File2: " << filenameB << std::endl;
+			myfile << L"Length: " << blockSize << std::endl;
+			myfile << L"Channels: " << 1 << std::endl << std::endl;
 		}
 
-//		_RPT1(0, "%s", myfile.str().c_str());
+//		_RPT1(0, "%S", myfile.str().c_str());
 	}
 
 	auto& sortedResults = app->Document()->cancellationResults;
@@ -637,7 +601,6 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 				moduleName = cur_module->getType()->UniqueId();
 			}
 		}
-#ifdef _WIN32
 		_RPTN(0, "V%2d %12d (0x%08x) ", c.moduleId.voice, c.moduleId.handle, c.moduleId.handle);
 		if (c.inError == -300.f)
 		{
@@ -664,8 +627,9 @@ void CancellationAnalyse(CSynthEditAppBase* app)
 		{
 			_RPT1(0, "out:%7.2f\t", c.outError);
 		}
-		_RPT1(0, "%S\n", moduleName.c_str());
-#endif
+		// avoid %S (non-portable between Windows and POSIX) by converting to UTF-8.
+		const auto moduleNameUtf8 = WStringToUtf8(moduleName);
+		_RPT1(0, "%s\n", moduleNameUtf8.c_str());
         
 		// Print pin samples
 		if (rank < 10 /* || 1481061631 == c.moduleId.handle */) /// !!! you can put a particular module handle here for a deeper printout !!!

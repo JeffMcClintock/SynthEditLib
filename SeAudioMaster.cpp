@@ -237,9 +237,7 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 			if (doc.LoadFile(cancellationSettingFile.string().c_str()) == tinyxml2::XML_SUCCESS)
 			{
 				if (auto root = doc.RootElement() ; root)
-				{
 					root->QueryInt64Attribute("SnapshotTimestamp", &cancellation_snapshot_timestamp);
-				}
 			}
 
 			// if the file exists, we're entering cancellation mode (repeatable random number seed).
@@ -1558,7 +1556,7 @@ void AudioMasterBase::CancellationFreeze3()
 
 	std::filesystem::path filename = outputFolder / stampedName.str();
 
-	FILE* file = fopen(filename.string().c_str(), "wb");
+	auto file = fopen(filename.string().c_str(), "wb");
 
 	if (!file)
 		return;
@@ -1569,6 +1567,8 @@ void AudioMasterBase::CancellationFreeze3()
 	WriteCancellationData(blockSize, file);
 
 	fclose(file);
+
+	_RPTN(0, "Wrote cancellation snapshot to %s\n", filename.string().c_str());
 }
 
 void AudioMasterBase::WriteCancellationData(int32_t blockSize, FILE* file)

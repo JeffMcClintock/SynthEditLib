@@ -1178,9 +1178,9 @@ void ug_container::BuildPatchManager(TiXmlElement* patchMgrXml, const std::strin
 		dspPatchManager->setPresetState(*presetXml, overrideIgnoreProgramChange);
 	}
 
-	// enable this to allow for parameter names to be included in preset files
+	// populate parameter debug_names. enable this to allow for parameter names to be included in preset files
 #ifdef _DEBUG
-#if 1
+	if(!BundleInfo::instance()->isEditor)
 	{
 		tinyxml2::XMLDocument doc;
 		const auto xml = BundleInfo::instance()->getResource("parameters.se.xml");
@@ -1214,7 +1214,6 @@ void ug_container::BuildPatchManager(TiXmlElement* patchMgrXml, const std::strin
 			}
 		}
 	}
-#endif
 #endif
 }
 

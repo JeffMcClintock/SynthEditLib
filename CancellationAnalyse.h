@@ -1,3 +1,5 @@
 #pragma once
 
-void CancellationAnalyse(class CSynthEditAppBase* app);
+#include <string>
+
+void CancellationAnalyse(class CSynthEditAppBase* app, const std::wstring& filenameA, const std::wstring& filenameB);
