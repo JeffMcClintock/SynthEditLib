@@ -619,7 +619,6 @@ namespace SE2
 		if (!pointInRect(point, getClipArea()) || !geometry)
 			return gmpi::ReturnCode::Unhandled;
 
-
 		if (!geometry.strokeContainsPoint(point, 3.0f))
 			return gmpi::ReturnCode::Unhandled;
 
@@ -686,10 +685,24 @@ namespace SE2
 	bool ConnectorView2::hitTestR(int32_t flags, gmpi::drawing::Rect selectionRect)
 	{
 		if (!overlaps(getClipArea(), selectionRect) || !geometry)
-		{
 			return false;
+
+		// Sample points in a grid within the rectangle to approximate path intersection.
+		// Use stroke width >= grid spacing to ensure no line slips between samples.
+		// Shrink rect by half spacing to avoid selecting lines just outside the rectangle.
+		constexpr float spacing = 10.0f;
+		constexpr float halfSpacing = spacing * 0.5f;
+
+		for (float y = selectionRect.top + halfSpacing; y <= selectionRect.bottom - halfSpacing; y += spacing)
+		{
+			for (float x = selectionRect.left + halfSpacing; x <= selectionRect.right - halfSpacing; x += spacing)
+			{
+				if (geometry.strokeContainsPoint({x, y}, spacing))
+					return true;
+			}
 		}
-		return true;
+
+		return false;
 	}
 
 	gmpi::ReturnCode ConnectorView2::setHover(bool mouseIsOverMe)

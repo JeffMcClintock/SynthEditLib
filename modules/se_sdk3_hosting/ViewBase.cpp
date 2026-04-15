@@ -969,9 +969,7 @@ namespace SE2
 			auto& m = *it;
 
 			if (m->hitTestR(flags, selectionRect))
-			{
 				modulesToSelect.push_back(m->getModuleHandle());
-			}
 		}
 
 		for(auto h : modulesToSelect)
