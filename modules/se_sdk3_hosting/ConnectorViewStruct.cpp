@@ -540,7 +540,7 @@ namespace SE2
 
 			for (auto& n : nodes)
 			{
-				gmpi::drawing::Ellipse circle(n, static_cast<float>(NodeRadius));
+				gmpi::drawing::Ellipse circle{n, static_cast<float>(NodeRadius), static_cast<float>(NodeRadius)};
 				g.fillEllipse(circle, fillBrush);
 				g.drawEllipse(circle, outlineBrush);
 			}

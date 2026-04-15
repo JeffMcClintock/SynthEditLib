@@ -54,7 +54,6 @@ public:
 	// Resets the watchdog counter and notifies if processor came back online.
 	void onDspMessage()
 	{
-		const int prevCounter = counter;
 		if (counter <= 0 && onOfflineChanged)
 		{
 			WATCHDOG_DEBUG_LOG("ProcessorWatchdog: onDspMessage -> ONLINE (was offline)\n");
