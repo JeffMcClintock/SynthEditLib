@@ -119,8 +119,8 @@ namespace SE2
 
 	gmpi::drawing::Rect ResizeAdorner::getClipArea()
 	{
-		auto r = offsetRect(getNodeRect(), { -topLeft.x, -topLeft.y });
-		return inflateRect(r, ResizeHandleRadius + 1.0f);
+		// getNodeRect() is already in parent-view coords; getClipArea must also return parent coords.
+		return inflateRect(getNodeRect(), ResizeHandleRadius + 1.0f);
 	}
 
 	gmpi::drawing::Rect ResizeAdornerStructure::getClipArea()
@@ -319,7 +319,7 @@ namespace SE2
 	gmpi::ReturnCode ResizeAdorner::setHover(bool isMouseOverMe)
 	{
 		mouseHover = isMouseOverMe;
-		const auto r = offsetRect(getNodeRect(), { topLeft.x, topLeft.y });
+		const auto r = getNodeRect(); // already in parent-view coords
 		parent->invalidateRect(&r);
 
 		if(!isMouseOverMe)
