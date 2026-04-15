@@ -9,10 +9,7 @@ namespace SE2
 {
 	std::vector<ResizeAdorner::node> ResizeAdorner::getNodes() const
 	{
-		auto r = offsetRect(getNodeRect(), { -bounds.left, -bounds.top });
-
-//		const Size offsetToModule(module->bounds_.left - bounds.left, module->bounds_.top - bounds.top);
-//		auto r = offsetRect(module->pluginGraphicsPos, offsetToModule); // outline of module graphics insert.
+		auto r = offsetRect(getNodeRect(), { -topLeft.x, -topLeft.y });
 
 		int startX, endX;
 		if (isResizableX)
@@ -64,7 +61,7 @@ namespace SE2
 			color = gmpi::drawing::Colors::Gray;
 		}
 
-		bounds = clientBoundsToAdorner(module->getLayoutRect());
+		arrange(module->getLayoutRect());
 	}
 
 	ResizeAdorner::~ResizeAdorner()
@@ -87,7 +84,9 @@ namespace SE2
 
 	void ResizeAdorner::arrange(gmpi::drawing::Rect finalRect)
 	{
-		bounds = clientBoundsToAdorner(finalRect);
+		auto r = clientBoundsToAdorner(finalRect);
+		topLeft.x = r.left;
+		topLeft.y = r.top;
 	}
 
 	gmpi::drawing::Rect ResizeAdorner::clientBoundsToAdorner(gmpi::drawing::Rect r)
@@ -103,24 +102,25 @@ namespace SE2
 
 	gmpi::drawing::Rect ResizeAdorner::getNodeRect() const
 	{
-		const Size offsetToModule(module->bounds_.left - bounds.left, module->bounds_.top - bounds.top);
-		auto r = offsetRect(module->pluginGraphicsPos, offsetToModule); // outline of module graphics insert.
+		const Size mTopLeft(module->bounds_.left, module->bounds_.top);
+		auto r = offsetRect(module->pluginGraphicsPos, mTopLeft); // outline of module graphics insert.
 		r = inflateRect(r, (float)SelectionFrameOffset);
 
 		if(hasGripper)
 			r.top -= DragAreaheight - 0.5f;
 
-		return offsetRect(r, { bounds.left, bounds.top });
+		return r;
 	}
 
 	gmpi::drawing::Rect ResizeAdorner::getLayoutRect()
 	{
-		return bounds;
+		return {topLeft.x, topLeft.y, topLeft.x + 10, topLeft.y + 10}; // width and height seem irrelevant.
 	}
 
 	gmpi::drawing::Rect ResizeAdorner::getClipArea()
 	{
-		return inflateRect(getNodeRect(), ResizeHandleRadius + 1.0f);
+		auto r = offsetRect(getNodeRect(), { -topLeft.x, -topLeft.y });
+		return inflateRect(r, ResizeHandleRadius + 1.0f);
 	}
 
 	gmpi::drawing::Rect ResizeAdornerStructure::getClipArea()
@@ -145,7 +145,7 @@ namespace SE2
 
 	void ResizeAdorner::render(gmpi::drawing::Graphics& g)
 	{
-		auto r = offsetRect(getNodeRect(), { -bounds.left, -bounds.top });
+		auto r = offsetRect(getNodeRect(), { -topLeft.x, -topLeft.y });
 		auto brush = g.createSolidColorBrush(color);
 		auto highlightBrush = g.createSolidColorBrush(gmpi::drawing::Colors::DeepSkyBlue);
 		const float strokeWidth = 2.5;
@@ -155,7 +155,7 @@ namespace SE2
 			auto outlineGeometry = module->getOutline(g.getFactory());
 			if(outlineGeometry) // structure view
 			{
-				auto offsetToModule = Size(module->bounds_.left - bounds.left, module->bounds_.top - bounds.top);
+				auto offsetToModule = Size(module->bounds_.left - topLeft.x, module->bounds_.top - topLeft.y);
 				auto before = g.getTransform();
 
 				g.setTransform(makeTranslation(offsetToModule) * before);
@@ -207,37 +207,6 @@ namespace SE2
 	{
 		auto [distance, nx, ny] = hitTestWhat(point);
 		return distance <= 0.0f ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
-
-#if 0
-		gmpi::drawing::Rect r(getNodeRect());
-
-		gmpi::drawing::Rect outerRect(r);
-		const float outerThickness = ResizeHandleRadius;
-		outerRect = inflateRect(outerRect, outerThickness);
-		if (!pointInRect(point, outerRect))
-		{
-			return gmpi::ReturnCode::Unhandled;
-		}
-
-		if (hasGripper && point.y >= 0 && point.y < r.top + DragAreaheight)
-		{
-			return gmpi::ReturnCode::Ok;
-		}
-
-		gmpi::drawing::Point pointLocal{ point.x - bounds.left, point.y - bounds.top };
-
-		int hitNodeX, hitNodeY;
-		hitTestNodes(pointLocal, hitNodeX, hitNodeY);
-		if (hitNodeX >= 0 || hitNodeY >= 0)
-		{
-			return gmpi::ReturnCode::Ok;
-		}
-
-		gmpi::drawing::Rect innerRect(r);
-		innerRect = inflateRect(innerRect, -1.5f);
-		return !pointInRect(point, innerRect) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
-#endif
-
 	}
 
 	bool ResizeAdorner::hitTestR(int32_t, gmpi::drawing::Rect selectionRect)
@@ -248,17 +217,19 @@ namespace SE2
 	//     distance nodeX, nodeY
 	std::tuple<float, int, int> ResizeAdorner::hitTestWhat(gmpi::drawing::Point point)
 	{
-		const auto definatalyOutside = !pointInRect(point, inflateRect(bounds, fuzzyHitTestLimit + ResizeHandleRadius));
+		auto nodeRect = getNodeRect();
+
+		const auto definatalyOutside = !pointInRect(point, inflateRect(nodeRect, fuzzyHitTestLimit + ResizeHandleRadius));
 
 		if(definatalyOutside)
 			return { 1000.0f, -1, -1 }; // not-hit.
 
-		const Point pointLocal(point.x - bounds.left, point.y - bounds.top);
+		const Point pointLocal(point.x - topLeft.x, point.y - topLeft.y);
 
 		// if point is inside module imbedded graphics, then return a miss.
 		{
-			const Size offsetToModule(module->bounds_.left - bounds.left, module->bounds_.top - bounds.top);
-			const auto pluginGraphicsPos = offsetRect(module->pluginGraphicsPos, offsetToModule); // outline of module graphics insert.
+			const Size offsetToModule(module->bounds_.left - topLeft.x, module->bounds_.top - topLeft.y);
+			auto pluginGraphicsPos = offsetRect(module->pluginGraphicsPos, offsetToModule); // outline of module graphics insert.
 			if(pointInRect(pointLocal, pluginGraphicsPos))
 				return { 1000.0f, -1, -1 }; // not-hit.
 		}
@@ -348,7 +319,8 @@ namespace SE2
 	gmpi::ReturnCode ResizeAdorner::setHover(bool isMouseOverMe)
 	{
 		mouseHover = isMouseOverMe;
-		parent->invalidateRect(&bounds);
+		const auto r = offsetRect(getNodeRect(), { topLeft.x, topLeft.y });
+		parent->invalidateRect(&r);
 
 		if(!isMouseOverMe)
 		{
@@ -490,64 +462,4 @@ namespace SE2
 		auto r = offsetRect(module->pluginGraphicsPos, offsetToModule); // outline of module graphics insert.
 		return inflateRect(r, 2.5f);
 	}
-
-#if 0 // debug
-	gmpi::ReturnCode ResizeAdornerStructure::hitTest(gmpi::drawing::Point point, int32_t)
-	{
-		gmpi::drawing::Rect outerRect(getNodeRect());
-		const float outerThickness = ResizeHandleRadius;
-		outerRect = inflateRect(outerRect, outerThickness);
-		if (!pointInRect(point, outerRect))
-			return gmpi::ReturnCode::Unhandled;
-
-		gmpi::drawing::Point pointLocal{ point.x - bounds.left, point.y - bounds.top };
-
-		int hitNodeX, hitNodeY;
-		hitTestNodes(pointLocal, hitNodeX, hitNodeY);
-		return (hitNodeX >= 0 || hitNodeY >= 0) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
-	}
-
-	bool ResizeAdornerStructure::hitTestR(int32_t, gmpi::drawing::Rect selectionRect)
-	{
-		return overlaps(selectionRect, getNodeRect());
-	}
-
-	void ResizeAdornerStructure::render(gmpi::drawing::Graphics& g)
-	{
-		const auto nodes = getNodes();
-		if (nodes.empty())
-			return;
-
-		gmpi::drawing::Ellipse circle(gmpi::drawing::Point(0., 0.), (float)ResizeHandleRadius, (float)ResizeHandleRadius);
-		auto fillBrush = g.createSolidColorBrush(gmpi::drawing::Colors::White);
-		auto outlineBrush = g.createSolidColorBrush(color);
-
-		for (auto& n : nodes)
-		{
-			circle.point = n.location;
-			g.fillEllipse(circle, fillBrush);
-			g.drawEllipse(circle, outlineBrush);
-		}
-
-		{
-#if 0 // debug
-			const Size offsetToModule(module->bounds_.left - bounds.left, module->bounds_.top - bounds.top);
-			auto moduleBoundsLocal = offsetRect(module->bounds_, Size(-bounds.left, -bounds.top));
-			auto moduleGfx = offsetRect(module->pluginGraphicsPos, offsetToModule);
-			auto boundsLocal = offsetRect(module->bounds_, Size(-bounds.left, -bounds.top));
-
-			g.drawRectangle(moduleBoundsLocal, fillBrush, 1.0f);
-			fillBrush.setColor(gmpi::drawing::Colors::Orange);
-			g.drawRectangle(moduleGfx, fillBrush, 0.5f);
-			fillBrush.setColor(gmpi::drawing::Colors::Red);
-			g.drawRectangle(boundsLocal, fillBrush, 0.5f);
-
-			auto r = offsetRect(getNodeRect(), { -bounds.left, -bounds.top });
-			fillBrush.setColor(gmpi::drawing::Colors::Red);
-			g.drawRectangle(r, fillBrush, 0.5f);
-#endif
-
-		}
-	}
-#endif
 }

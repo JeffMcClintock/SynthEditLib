@@ -24,7 +24,8 @@ namespace SE2
 		gmpi::drawing::Color color{};
 		bool isResizableX{};
 		bool isResizableY{};
-		gmpi::drawing::Rect bounds{};
+// highly unreliable, except for top-left.		gmpi::drawing::Rect bounds{};
+		gmpi::drawing::Point topLeft;
 		gmpi::drawing::Rect prevClipArea;
 		bool mouseHover{};
 
