@@ -2,11 +2,9 @@
 #include <vector>
 #include <memory>
 #include "IViewChild.h"
-//#include "xplatform.h"
 #include "GmpiUiDrawing.h"
 #include "helpers/GmpiPluginEditor.h"
 #include "Presenter.h"
-//#include "../se_sdk3_hosting/GraphicsRedrawClient.h"
 
 #include "helpers/Timer.h"
 #include "helpers/NativeUi.h"
@@ -37,8 +35,6 @@ namespace SE2
 	// Base of any view that displays modules. Itself behaving as a standard-ish graphics module.
 	class ViewBase :
 		public gmpi::editor::PluginEditor
-//		public gmpi_gui::MpGuiGfxBase
-//		, public legacy::IGraphicsRedrawClient
 		, public gmpi::TimerClient
 	{
 		friend class ResizeAdorner;
@@ -131,19 +127,6 @@ bool isIteratingChildren = false;
 		gmpi::ReturnCode onContextMenu(int32_t idx) override;
 		gmpi::ReturnCode onKeyPress(wchar_t c) override;
 
-#if 0 // old stuff, to be removed
-		void measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize);
-		void arrange(gmpi::drawing::Rect finalRect);
-		virtual int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext);
-		int32_t onPointerDownLegacy(int32_t flags, gmpi::drawing::Point point);
-		int32_t onPointerMoveLegacy(int32_t flags, gmpi::drawing::Point point);
-		int32_t onPointerUpLegacy(int32_t flags, gmpi::drawing::Point point);
-		int32_t onMouseWheelLegacy(int32_t flags, int32_t delta, gmpi::drawing::Point point);
-		int32_t populateContextMenu(float x, float y, gmpi::api::IUnknown* contextMenuItemsSink);
-		int32_t getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString);
-		void preGraphicsRedraw();
-#endif
-
 		// notification to scrollbars
 		std::function<void(const scrollBarSpec&)> hscrollBar;
 		std::function<void(const scrollBarSpec&)> vscrollBar;
@@ -190,8 +173,6 @@ bool isIteratingChildren = false;
 		void calcMouseOverObject(int32_t flags);
 		void OnChildDeleted(IViewChild* childObject);
 		void onSubPanelMadeVisible();
-
-// TODO		int32_t populateContextMenu(float /*x*/, float /*y*/, gmpi::api::IUnknown* /*contextMenuItemsSink*/) override;
 
 		GmpiDrawing_API::IMpFactory* GetDrawingFactory()
 		{
@@ -248,16 +229,6 @@ bool isIteratingChildren = false;
 		}
 		void invalidateRect(const gmpi::drawing::Rect* invalidRect = {});
 		virtual void OnChildMoved() {}
-		/* todo
-		virtual int32_t ChildCreatePlatformTextEdit(const gmpi::drawing::Rect* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
-		{
-			return getGuiHost()->createPlatformTextEdit(const_cast<gmpi::drawing::Rect*>(rect), returnTextEdit);
-		}
-		virtual int32_t ChildCreatePlatformMenu(const gmpi::drawing::Rect* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
-		{
-			return getGuiHost()->createPlatformMenu(const_cast<gmpi::drawing::Rect*>(rect), returnMenu);
-		}
-		*/
 
 		void DoClose();
 
@@ -294,15 +265,6 @@ bool isIteratingChildren = false;
 		void DragNewModule(const char* id);
 		virtual ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) = 0;
 
-		/* handled by PluginEditor base class
-		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
-		{
-			*returnInterface = {};
-			GMPI_QUERYINTERFACE(gmpi::api::IDrawingClient)
-			GMPI_QUERYINTERFACE(gmpi::api::IInputClient)
-			return gmpi::ReturnCode::NoSupport;
-		}
-		*/
 		GMPI_REFCOUNT
 	};
 

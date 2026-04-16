@@ -72,20 +72,6 @@ public:
 
 	void calcBounds(gmpi::drawing::Rect & returnLayoutRect, gmpi::drawing::Rect & returnClipRect);
 
-	gmpi::ReturnCode ChildCreatePlatformTextEdit(const gmpi::drawing::Rect* rect, gmpi::api::IUnknown** returnTextEdit)
-	{
-		const auto adjusted = offsetRect(*rect, offset_);
-	//	return parent->createPlatformTextEdit(&adjusted, returnTextEdit);
-
-		return dialogHost->createTextEdit(&adjusted, returnTextEdit);
-	}
-
-	gmpi::ReturnCode ChildCreatePlatformMenu(const gmpi::drawing::Rect* rect, gmpi::api::IUnknown** returnMenu)
-	{
-		const auto adjusted = offsetRect(*rect, offset_);
-		return dialogHost->createPopupMenu(&adjusted, returnMenu);
-	}
-
 	gmpi::drawing::Point MapPointToView(ViewBase* parentView, gmpi::drawing::Point p) override
 	{
 		if(parentView == this)
