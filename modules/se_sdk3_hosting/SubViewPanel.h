@@ -20,9 +20,24 @@ class SubView : public SE2::ViewBase, public ISubView
 	int parentViewType = 0;
 	SE2::ModuleView* parent = {};
 
-public:
-	gmpi::drawing::Size offset_; // offset of children relative to bounds (not parent).
+	// SubView's pan is a simple translation stored in the inherited viewTransform /
+	// inv_viewTransform. panInitialized_ tracks whether the pan has been computed
+	// yet (replaces the old "-99999" sentinel on the removed offset_ member).
+	bool panInitialized_ = false;
 
+	// Translate-only helpers that keep viewTransform, viewTransformPrecise and
+	// inv_viewTransform in sync. SubView has no zoom or rotation.
+	void setPan(float x, float y)
+	{
+		viewTransform = gmpi::drawing::makeTranslation(x, y);
+		viewTransformPrecise = viewTransform;
+		inv_viewTransform = gmpi::drawing::makeTranslation(-x, -y);
+		panInitialized_ = true;
+	}
+	float panX() const { return viewTransform._31; }
+	float panY() const { return viewTransform._32; }
+
+public:
 	SubView() : SE2::ViewBase({ 1000, 1000 })
 	{
 		init(showControlsLegacy);
@@ -66,7 +81,8 @@ public:
 	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override;
 // TODO	int32_t getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString);
-	void ChildInvalidateRect(const gmpi::drawing::Rect& invalidRect) override;
+	// ChildInvalidateRect not overridden — ViewBase::ChildInvalidateRect uses
+	// viewTransform which SubView keeps synced via setPan().
 
 	void OnChildMoved() override;
 
@@ -78,15 +94,13 @@ public:
 			return p;
 
 		// Forward chain from SubView child-local coords up toward the enclosing view:
-		//   child-local              + offset_                   -> Container plugin-local
+		//   child-local              * viewTransform             -> Container plugin-local
 		//   Container plugin-local   + pluginGraphicsPos         -> Container module-local
 		//   Container module-local   + bounds_.topleft           -> Container parent-view coord
-		// Then recurse up until we reach parentView. This is the exact inverse of
-		// ModuleView::OffsetToClient() (which subtracts both bounds_ and pluginGraphicsPos).
+		// Then recurse up until we reach parentView.
+		p = p * viewTransform;
+
 		auto moduleview = dynamic_cast<SE2::ModuleView*> (parent);
-
-		p += offset_;
-
 		if (moduleview)
 		{
 			p.x += moduleview->pluginGraphicsPos.left + moduleview->bounds_.left;
@@ -104,35 +118,25 @@ public:
 	{
 		// Forward chain from a point in SubView child-local coords to doc coords,
 		// then through the top-level view's pan/zoom:
-		//   child-local              + offset_               -> Container plugin-local
+		//   child-local              * viewTransform         -> Container plugin-local
 		//   Container plugin-local   + pluginGraphicsPos     -> Container module-local
 		//   Container module-local   + bounds_.topleft       -> doc
 		//   doc                      * TopView.viewTransform -> window
-		// This is the exact inverse of ModuleView::OffsetToClient(), which subtracts
-		// both bounds_ and pluginGraphicsPos.
-		auto transform = gmpi::drawing::makeTranslation(offset_.width, offset_.height);
+		auto transform = viewTransform;
 
 		// Get parent ModuleView (the Container module that owns this SubView)
 		auto moduleview = dynamic_cast<SE2::ModuleView*>(parent);
 		if (moduleview)
 		{
-			// Container plugin-local -> Container module-local
+			// Container plugin-local -> Container module-local -> doc
 			transform = transform * gmpi::drawing::makeTranslation(
-				moduleview->pluginGraphicsPos.left,
-				moduleview->pluginGraphicsPos.top
-			);
-
-			// Container module-local -> doc
-			transform = transform * gmpi::drawing::makeTranslation(
-				moduleview->bounds_.left,
-				moduleview->bounds_.top
+				moduleview->pluginGraphicsPos.left + moduleview->bounds_.left,
+				moduleview->pluginGraphicsPos.top  + moduleview->bounds_.top
 			);
 
 			// doc -> window (top-level pan/zoom)
 			if (moduleview->parent)
-			{
 				transform = transform * moduleview->parent->GetTransformToTopView();
-			}
 		}
 
 		return transform;

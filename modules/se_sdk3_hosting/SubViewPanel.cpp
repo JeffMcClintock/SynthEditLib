@@ -41,10 +41,12 @@ R"XML(
 int32_t SubView::StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint)
 {
 	auto moduleview = dynamic_cast<SE2::ModuleView*>(parent);
-	dragStartPoint += offset_;
+	// child-local -> Container plugin-local via SubView's pan,
+	// then Container plugin-local -> Container doc-local via OffsetToClient's inverse.
+	dragStartPoint = dragStartPoint * viewTransform;
 	dragStartPoint = transformPoint(moduleview->OffsetToClient(), dragStartPoint);
 
-	mousePoint += offset_;
+	mousePoint = mousePoint * viewTransform;
 	mousePoint = transformPoint(moduleview->OffsetToClient(), mousePoint);
 
 	return moduleview->parent->StartCableDrag(fromModule, fromPin, dragStartPoint, mousePoint);
@@ -52,8 +54,7 @@ int32_t SubView::StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::
 
 void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex)
 {
-	dragPoint -= offset_;
-//	dragPoint = transformPoint(offset_, dragPoint);
+	dragPoint = dragPoint * inv_viewTransform;
 
 	for (auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 	{
@@ -66,7 +67,7 @@ SubView::SubView(SE2::ModuleView* pparent, int pparentViewType) : ViewBase({1000
 	, parentViewType(pparentViewType)
 {
     assert(parent);
-    
+
 #if 0
 	if (parentViewType == CF_PANEL_VIEW)
 	{
@@ -81,7 +82,8 @@ SubView::SubView(SE2::ModuleView* pparent, int pparentViewType) : ViewBase({1000
 		initializePin(1, showControls, static_cast<MpGuiBaseMemberPtr2>(&SubView::onValueChanged));
 	}
 #endif
-	offset_.height = offset_.width = -99999; // un-initialized
+	// pan starts at identity (viewTransform defaults to identity Matrix3x2).
+	// panInitialized_ stays false until initialize() or measure() computes the real pan.
 }
 
 void SubView::BuildModules(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap)
@@ -183,15 +185,14 @@ gmpi::ReturnCode SubView::initialize()
 {
 	onValueChanged(); // nesc in case initial value is 0.
 
+	// Presenter returns (-99999, -99999) when no view-center has been persisted yet.
+	// In that case leave panInitialized_ false so measure() computes a default pan.
 	const auto panelOffset = Presenter()->GetViewCenter();
-	offset_.width  = panelOffset.x;
-	offset_.height = panelOffset.y;
-
-	if( offset_.width != -99999.f)
+	if (panelOffset.x != -99999.f)
 	{
-		auto module = parent; // dynamic_cast<SE2::ViewChild*> (drawingHost.get());
-		offset_.width -= module->bounds_.left;
-		offset_.height -= module->bounds_.top;
+		auto module = parent;
+		setPan(panelOffset.x - module->bounds_.left,
+		       panelOffset.y - module->bounds_.top);
 	}
 
 	return SE2::ViewBase::initialize();
@@ -302,18 +303,19 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 
 	// On first open, need to calc offset relative to view.
 	// ref control_group_auto_size::RecalcBounds()
-	if( offset_.width == -99999.f )
+	if (!panInitialized_)
 	{
-		offset_.width = static_cast<float>(-static_cast<int32_t>(viewBounds.left));
-		offset_.height = static_cast<float>(-static_cast<int32_t>(viewBounds.top));
+		const float newPanX = static_cast<float>(-static_cast<int32_t>(viewBounds.left));
+		const float newPanY = static_cast<float>(-static_cast<int32_t>(viewBounds.top));
+		setPan(newPanX, newPanY);
 
 		// avoid 'show on module' structure view messing up panel view's offset.
 		if (parentViewType == CF_PANEL_VIEW)
 		{
 			auto module = parent;
 			Presenter()->SetViewCenter({
-				offset_.width  + module->bounds_.left,
-				offset_.height + module->bounds_.top
+				newPanX + module->bounds_.left,
+				newPanY + module->bounds_.top
 			});
 		}
 	}
@@ -321,17 +323,14 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 	{
 		// if top-left coords have changed last opened.
 		// then shift sub-panel to compensate (panel view only).
-		int32_t parentAdjustX(static_cast<int32_t>(offset_.width + viewBounds.left));
-		int32_t parentAdjustY(static_cast<int32_t>(offset_.height + viewBounds.top));
+		int32_t parentAdjustX(static_cast<int32_t>(panX() + viewBounds.left));
+		int32_t parentAdjustY(static_cast<int32_t>(panY() + viewBounds.top));
 
 		if (parentAdjustX != 0 || parentAdjustY != 0)
 		{
-			offset_.width -= parentAdjustX;
-			offset_.height -= parentAdjustY;
+			setPan(panX() - parentAdjustX, panY() - parentAdjustY);
 
 			// Adjust module top-left.
-//			auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
-
 			if (parent->parent->getViewType() == CF_PANEL_VIEW)
 				parent->Presenter()->ResizeModule(parent->handle, 0, 0, gmpi::drawing::Size((float)parentAdjustX, (float)parentAdjustY));
 		}
@@ -344,18 +343,25 @@ gmpi::ReturnCode SubView::arrange(const gmpi::drawing::Rect* finalRect)
 	if (!finalRect)
 		return gmpi::ReturnCode::Fail;
 
+	// ViewBase::arrange calls calcViewTransform(), which would overwrite
+	// viewTransform with a top-level-view pan/zoom derived from centerPos +
+	// zoomFactor (not meaningful for SubView). Stash our pan, let the base run,
+	// then restore our translation-only view transform.
+	const float savedPanX = panX();
+	const float savedPanY = panY();
+	const bool wasInitialized = panInitialized_;
+
 	auto result = ViewBase::arrange(finalRect);
 
-	// A SubView can be panned but not zoomed — and its pan is expressed through
-	// offset_ (applied in render() and undone in onPointerMove/Down/Up), NOT
-	// through viewTransform. ViewBase::arrange calls calcViewTransform(), which
-	// installs a non-identity inv_viewTransform (translate by -drawingBounds/2
-	// to centre centerPos on the canvas — a top-level-view concern). If left in
-	// place, that translation gets applied a second time to every mouse point
-	// inside ViewBase's input handlers and hit-testing misses every child.
-	viewTransform = {};
-	viewTransformPrecise = {};
-	inv_viewTransform = {};
+	if (wasInitialized)
+		setPan(savedPanX, savedPanY);
+	else
+	{
+		// Discard whatever calcViewTransform installed — we have no meaningful pan yet.
+		viewTransform = {};
+		viewTransformPrecise = {};
+		inv_viewTransform = {};
+	}
 
 	return result;
 }
@@ -383,15 +389,13 @@ gmpi::ReturnCode SubView::render(gmpi::drawing::api::IDeviceContext* drawingCont
 	{
 		gmpi::drawing::Graphics g(drawingContext);
 
-		// Transform to module-relative.
+		// Apply SubView's pan (child-local -> Container plugin-local) on top of the
+		// caller's transform so children render in the right place.
 		const auto originalTransform = g.getTransform();
-		auto adjustedTransform = makeTranslation(offset_.width, offset_.height) * originalTransform;
-		g.setTransform(adjustedTransform);
+		g.setTransform(viewTransform * originalTransform);
 
-		// Render.
 		auto res = SE2::ViewBase::render(drawingContext);
 
-		// Transform back.
 		g.setTransform(originalTransform);
 		return res;
 	}
@@ -402,7 +406,7 @@ gmpi::ReturnCode SubView::render(gmpi::drawing::api::IDeviceContext* drawingCont
 #if 0 // todo
 int32_t SubView::getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString)
 {
-	const auto localPoint = gmpi::drawing::Point(point.x - offset_.width, point.y - offset_.height);
+	const auto localPoint = point * inv_viewTransform;
 	return ViewBase::getToolTip(localPoint, returnString);
 }
 #endif
@@ -416,7 +420,7 @@ bool SubView::hitTest(int32_t flags, gmpi::drawing::Point* point)
 {
 	if (isShown())
 	{
-		const auto localPoint = gmpi::drawing::Point(point->x - offset_.width, point->y - offset_.height );
+		const auto localPoint = *point * inv_viewTransform;
 		for (auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 		{
 			auto m = (*it).get();
@@ -424,63 +428,41 @@ bool SubView::hitTest(int32_t flags, gmpi::drawing::Point* point)
 				return true;
 		}
 	}
-	
+
 	return false;
 }
 
+// These four overrides exist only for the isShown()/mouseCaptureObject guards.
+// The coordinate transform (point * inv_viewTransform) happens inside ViewBase's
+// base versions — SubView's pan is in inv_viewTransform, so no manual work needed.
 gmpi::ReturnCode SubView::onPointerDown(gmpi::drawing::Point point, int32_t flags)
 {
-	if (isShown())
-	{
-		point.x -= offset_.width;
-		point.y -= offset_.height;
-		return ViewBase::onPointerDown(point, flags);
-	}
-	else
+	if (!isShown())
 		return gmpi::ReturnCode::Unhandled;
+	return ViewBase::onPointerDown(point, flags);
 }
 
 gmpi::ReturnCode SubView::onPointerMove(gmpi::drawing::Point point, int32_t flags)
 {
-	if (isShown())
-	{
-		point.x -= offset_.width;
-		point.y -= offset_.height;
-		return ViewBase::onPointerMove(point, flags);
-	}
-	else
+	if (!isShown())
 		return gmpi::ReturnCode::Unhandled;
+	return ViewBase::onPointerMove(point, flags);
 }
 
 gmpi::ReturnCode SubView::onPointerUp(gmpi::drawing::Point point, int32_t flags)
 {
-	if (isShown() || mouseCaptureObject)  // attempt to fix it when object on panel captures mouse, then hides itself
-	{
-		point.x -= offset_.width;
-		point.y -= offset_.height;
-		return ViewBase::onPointerUp(point, flags);
-	}
-	else
-	{
+	// Allow up-events through when a captured object hides itself mid-click,
+	// otherwise the capture would never release.
+	if (!isShown() && !mouseCaptureObject)
 		return gmpi::ReturnCode::Unhandled;
-	}
+	return ViewBase::onPointerUp(point, flags);
 }
 
 gmpi::ReturnCode SubView::onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta)
 {
 	if (!isShown())
 		return gmpi::ReturnCode::Unhandled;
-
-	point.x -= offset_.width;
-	point.y -= offset_.height;
-
 	return ViewBase::onMouseWheel(point, flags, delta);
-}
-
-void SubView::ChildInvalidateRect(const gmpi::drawing::Rect& invalidRect)
-{
-	const auto adjusted = offsetRect(invalidRect, offset_);
-	parent->gmpiHelper->invalidateRect(&adjusted);
 }
 
 void SubView::OnChildMoved()
@@ -511,8 +493,7 @@ void SubView::OnChildMoved()
 	parentLayoutRect.bottom = parentLayoutRect.top + viewBoundsNew.bottom - viewBoundsNew.top;
 
 	viewBounds = viewBoundsNew;
-	offset_.width = -viewBoundsNew.left;
-	offset_.height = -viewBoundsNew.top;
+	setPan(-viewBoundsNew.left, -viewBoundsNew.top);
 
 	parent->parent->OnChangedChildPosition(parent->handle, parentLayoutRect);
 }
