@@ -715,6 +715,17 @@ namespace SE2
 		
 		subView->setHost(static_cast<gmpi::api::IEditorHost*>(gmpiHelper.get()));
 
+		// A SubView's children call MapPluginRectToView() before forwarding to their
+		// parent->dialogHost — that transform already walks all the way to window
+		// coords (via SubView::GetTransformToTopView up through Container and TopView).
+		// If SubView.dialogHost is the Container's own GmpiHelper (as installed by
+		// setHost above), createPopupMenu/createTextEdit would run MapPluginRectToView
+		// a second time and the popup would be double-shifted. Bypass straight to the
+		// host that Container's GmpiHelper would forward to anyway — in the nested case
+		// this chains correctly because outer SubViews are set up before inner ones.
+		if (parent)
+			subView->dialogHost = parent->dialogHost;
+
 		subView->BuildModules(context, guiObjectMap);
 
 		if (Presenter()->GetPatchManager() != subPresenter->GetPatchManager())

@@ -87,17 +87,24 @@ public:
 		if(parentView == this)
 			return p;
 
-		// [Viewbase[<- parent -[ SubContainerView<- guihost -[ContainerPanel]
-		auto subview = dynamic_cast<SE2::ModuleView*> (parent);
+		// Forward chain from SubView child-local coords up toward the enclosing view:
+		//   child-local              + offset_                   -> Container plugin-local
+		//   Container plugin-local   + pluginGraphicsPos         -> Container module-local
+		//   Container module-local   + bounds_.topleft           -> Container parent-view coord
+		// Then recurse up until we reach parentView. This is the exact inverse of
+		// ModuleView::OffsetToClient() (which subtracts both bounds_ and pluginGraphicsPos).
+		auto moduleview = dynamic_cast<SE2::ModuleView*> (parent);
 
-		// My offset.
 		p += offset_;
 
-		// Parent ModuleView offset.
-		p = gmpi::drawing::transformPoint(subview->OffsetToClient(), p);
+		if (moduleview)
+		{
+			p.x += moduleview->pluginGraphicsPos.left + moduleview->bounds_.left;
+			p.y += moduleview->pluginGraphicsPos.top  + moduleview->bounds_.top;
 
-		auto view = subview->parent;
-		p = view->MapPointToView(parentView, p);
+			if (moduleview->parent)
+				p = moduleview->parent->MapPointToView(parentView, p);
+		}
 
 		return p;
 	}

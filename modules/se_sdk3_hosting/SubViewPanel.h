@@ -91,17 +91,24 @@ public:
 		if(parentView == this)
 			return p;
 
-		// [Viewbase[<- parent -[ SubContainerView<- guihost -[ContainerPanel]
-		auto subview = dynamic_cast<SE2::ModuleView*> (parent);
+		// Forward chain from SubView child-local coords up toward the enclosing view:
+		//   child-local              + offset_                   -> Container plugin-local
+		//   Container plugin-local   + pluginGraphicsPos         -> Container module-local
+		//   Container module-local   + bounds_.topleft           -> Container parent-view coord
+		// Then recurse up until we reach parentView. This is the exact inverse of
+		// ModuleView::OffsetToClient() (which subtracts both bounds_ and pluginGraphicsPos).
+		auto moduleview = dynamic_cast<SE2::ModuleView*> (parent);
 
-		// My offset.
 		p += offset_;
 
-		// Parent ModuleView offset.
-		p = transformPoint(subview->OffsetToClient(), p);
+		if (moduleview)
+		{
+			p.x += moduleview->pluginGraphicsPos.left + moduleview->bounds_.left;
+			p.y += moduleview->pluginGraphicsPos.top  + moduleview->bounds_.top;
 
-		auto view = subview->parent;
-		p = view->MapPointToView(parentView, p);
+			if (moduleview->parent)
+				p = moduleview->parent->MapPointToView(parentView, p);
+		}
 
 		return p;
 	}
@@ -109,26 +116,33 @@ public:
 	// Get the compound transform matrix from this SubView to the topmost view (including zoom and pan)
 	gmpi::drawing::Matrix3x2 GetTransformToTopView() override
 	{
-		// SubView's children are offset by offset_
+		// Forward chain from a point in SubView child-local coords to doc coords,
+		// then through the top-level view's pan/zoom:
+		//   child-local              + offset_               -> Container plugin-local
+		//   Container plugin-local   + pluginGraphicsPos     -> Container module-local
+		//   Container module-local   + bounds_.topleft       -> doc
+		//   doc                      * TopView.viewTransform -> window
+		// This is the exact inverse of ModuleView::OffsetToClient(), which subtracts
+		// both bounds_ and pluginGraphicsPos.
 		auto transform = gmpi::drawing::makeTranslation(offset_.width, offset_.height);
 
-		// Get parent ModuleView
+		// Get parent ModuleView (the Container module that owns this SubView)
 		auto moduleview = dynamic_cast<SE2::ModuleView*>(parent);
 		if (moduleview)
 		{
-			// Apply parent ModuleView's offset (client coordinates)
+			// Container plugin-local -> Container module-local
 			transform = transform * gmpi::drawing::makeTranslation(
-				-moduleview->pluginGraphicsPos.left,
-				-moduleview->pluginGraphicsPos.top
+				moduleview->pluginGraphicsPos.left,
+				moduleview->pluginGraphicsPos.top
 			);
 
-			// Apply parent ModuleView's bounds
+			// Container module-local -> doc
 			transform = transform * gmpi::drawing::makeTranslation(
 				moduleview->bounds_.left,
 				moduleview->bounds_.top
 			);
 
-			// Combine with parent view's transform to top
+			// doc -> window (top-level pan/zoom)
 			if (moduleview->parent)
 			{
 				transform = transform * moduleview->parent->GetTransformToTopView();

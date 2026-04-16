@@ -344,7 +344,20 @@ gmpi::ReturnCode SubView::arrange(const gmpi::drawing::Rect* finalRect)
 	if (!finalRect)
 		return gmpi::ReturnCode::Fail;
 
-	return ViewBase::arrange(finalRect);
+	auto result = ViewBase::arrange(finalRect);
+
+	// A SubView can be panned but not zoomed — and its pan is expressed through
+	// offset_ (applied in render() and undone in onPointerMove/Down/Up), NOT
+	// through viewTransform. ViewBase::arrange calls calcViewTransform(), which
+	// installs a non-identity inv_viewTransform (translate by -drawingBounds/2
+	// to centre centerPos on the canvas — a top-level-view concern). If left in
+	// place, that translation gets applied a second time to every mouse point
+	// inside ViewBase's input handlers and hit-testing misses every child.
+	viewTransform = {};
+	viewTransformPrecise = {};
+	inv_viewTransform = {};
+
+	return result;
 }
 
 bool SubView::isShown()
