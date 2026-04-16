@@ -1500,17 +1500,19 @@ void SeAudioMaster::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 		{
 			if (auto hoverModule = dynamic_cast<ug_base*>(HandleToObject(moduleHandle)); hoverModule)
 			{
-				assert(hoverModule->plugs.size() > pinIdx && pinIdx >= 0);
-				hoverScopePin = hoverModule->GetPlug(pinIdx);
-
-				if (hoverScopePin && hoverScopePin->DataType == DT_FSAMPLE)
+				if(hoverModule->plugs.size() > pinIdx && pinIdx >= 0) // IO Mod has zero pins of it's own. can't hover it ATM.
 				{
-					hoverScopeModule = std::make_unique<HoverScopeAudioCollector>(
-						hoverScopePin->UG->Handle()
-						, static_cast<int>(SampleRate())
-						, hoverScopePin->GetSamplePtr()
-						, getShell()->MessageQueToGui()
-					);
+					hoverScopePin = hoverModule->GetPlug(pinIdx);
+
+					if(hoverScopePin && hoverScopePin->DataType == DT_FSAMPLE)
+					{
+						hoverScopeModule = std::make_unique<HoverScopeAudioCollector>(
+							hoverScopePin->UG->Handle()
+							, static_cast<int>(SampleRate())
+							, hoverScopePin->GetSamplePtr()
+							, getShell()->MessageQueToGui()
+						);
+					}
 				}
 			}
 		}
