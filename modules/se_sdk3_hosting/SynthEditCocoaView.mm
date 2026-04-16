@@ -541,10 +541,12 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
         drawingFrame.view = self;
         auto presenter = new JsonDocPresenter(_editController);
         drawingFrame.Init();
-        
-        constexpr int viewDimensions = 7968; // DIPs (divisible by grids 60x60 + 2 24 pixel borders)
 
-        auto cv = new SE2::ContainerViewPanel({ viewDimensions, viewDimensions });
+        const auto scale = 1.0f / drawingFrame.getRasterizationScale();
+        const gmpi::drawing::Size overrideSizef{ static_cast<float>(width) * scale, static_cast<float>(height) * scale };
+
+        auto cv = new SE2::ContainerViewPanel({ overrideSizef.width, overrideSizef.height });
+        cv->setCenter({ 0.5f * overrideSizef.width, 0.5f * overrideSizef.height }); // center scrolling. needed for plugin but screws with editor.
 
         gmpi::shared_ptr<gmpi::api::IDrawingClient> gfx;
         gfx.attach(cv); // ensure it gets released.
@@ -552,7 +554,7 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
         drawingFrame.attachClient(gfx.get());
 
         cv->setDocument(presenter);
-        
+
         presenter->RefreshView();
         
         // TODO might need this to mitigate crash on close plugin. also need to unregister when editor is closed.
