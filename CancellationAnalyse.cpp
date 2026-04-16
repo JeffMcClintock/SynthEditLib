@@ -632,48 +632,35 @@ void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, 
 		{
 			// inputs
 			{
-				std::vector<const pin_an*> pins_a;
-				std::vector<const pin_an*> pins_b;
-
-				for (auto& r : cancellationErrors)
+				auto collectInputPins = [&](const std::map<moduleIdentity, cancelCompare>& errors,
+											 std::vector<pin_an>* cancelCompare::* pinsMember,
+											 const std::vector<mod_an>& results)
 				{
-					auto pinsA = r.second.pinsA;
-					if (pinsA)
+					std::vector<const pin_an*> pins;
+					for (auto& r : errors)
 					{
-						for (const auto& pin : *pinsA)
+						auto pinsPtr = r.second.*pinsMember;
+						if (pinsPtr)
 						{
-							for (const auto& toModuleAddress : pin.toModuleAddress)
+							for (const auto& pin : *pinsPtr)
 							{
-								const auto toModuleId = lookupHandleFromAddress2(toModuleAddress, resultsA);
-								if (toModuleId == c.moduleId)
+								for (const auto& toModuleAddress : pin.toModuleAddress)
 								{
-									//printAudioData('A', pin.audioData);
-									pins_a.push_back(&pin);
+									const auto [toHandle, toVoice] = lookupHandleFromAddress(toModuleAddress, results);
+									const moduleIdentity toModuleId{ toHandle, toVoice };
+									if (toModuleId == c.moduleId)
+										pins.push_back(&pin);
 								}
 							}
 						}
 					}
-				}
-				for (auto& r : cancellationErrors)
-				{
-					auto pinsB = r.second.pinsB;
-					if (pinsB)
-					{
-						for (const auto& pin : *pinsB)
-						{
-							for (const auto& toModuleAddress : pin.toModuleAddress)
-							{
-								const auto toModuleId = lookupHandleFromAddress2(toModuleAddress, resultsB);
-								if (toModuleId == c.moduleId)
-								{
-									//printAudioData('B', pin.audioData);
-									pins_b.push_back(&pin);
-								}
-							}
-						}
-					}
-				}
+					return pins;
+				};
 
+				const auto pins_a = collectInputPins(cancellationErrors, &cancelCompare::pinsA, resultsA);
+				const auto pins_b = collectInputPins(cancellationErrors, &cancelCompare::pinsB, resultsB);
+
+				// compare inputs, if same then avoid the clutter of printing them all out.
 				bool theSame = pins_a.size() == pins_b.size();
 				if(theSame)
 				{
