@@ -6,6 +6,8 @@
 #include "SeAudioMaster.h"
 #include "BundleInfo.h"
 #include "conversion.h"
+#include <errno.h>
+#include <string.h>
 
 // copied from header mmreg.h
 #define WAVE_FORMAT_PCM     1
@@ -17,6 +19,19 @@ namespace
 REGISTER_MODULE_1(L"Wave Recorder", IDS_MN_WAVE_RECORDER,IDS_MG_INPUT_OUTPUT,ug_wave_recorder,CF_STRUCTURE_VIEW,L"Sends it's input to a file.  You can record several 'tracks' of audio to your hard disk at once.");
 }
 SE_DECLARE_INIT_STATIC_FILE(ug_wave_recorder)
+
+namespace {
+static std::wstring errnoMessage() {
+    int e = errno;
+    if(e == 0) return L"";
+#if defined(_WIN32)
+    // Use strerror for portability here
+#endif
+    const char* msg = strerror(e);
+    if(!msg) return L"Unknown error";
+    return Utf8ToWstring(msg);
+}
+}
 
 void ug_wave_recorder::ListInterface2(std::vector<class InterfaceObject*>& PList)
 {
@@ -142,8 +157,13 @@ void ug_wave_recorder::flush_buffer()
 		}
 		catch (...)
 		{
-			message(L"Error writing file");
-			AudioMaster2()->end_run();
+            std::wstring err = errnoMessage();
+            std::wstring full = L"Error writing audio data";
+            if(!err.empty()) {
+                full += L" (" + err + L")";
+            }
+            message(full);
+            AudioMaster2()->end_run();
 		}
 	}
 
@@ -191,11 +211,17 @@ void ug_wave_recorder::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug, state
 int ug_wave_recorder::open_file()
 {
 	std::wstring l_filename = AudioMaster()->getShell()->ResolveFilename(FileName, L"wav");
-	fileHandle = fopen(WStringToUtf8(l_filename).c_str(), "wb");
+    std::string utf8Path = WStringToUtf8(l_filename);
+	fileHandle = fopen(utf8Path.c_str(), "wb");
 
 	if (!fileHandle)
 	{
-		message(L"File open error : " + l_filename);
+        std::wstring err = errnoMessage();
+        std::wstring full = L"File open error: '" + l_filename + L"'";
+        if(!err.empty()) {
+            full += L" (" + err + L")";
+        }
+        message(full);
 
 		if (AudioMaster2())
 		{
@@ -214,9 +240,14 @@ int ug_wave_recorder::open_file()
 	}
 	catch (...)
 	{
-		message(L"Error writing file");
-		AudioMaster2()->end_run();
-		return 1;
+        std::wstring err = errnoMessage();
+        std::wstring full = L"Error writing file header to '" + l_filename + L"'";
+        if(!err.empty()) {
+            full += L" (" + err + L")";
+        }
+        message(full);
+        AudioMaster2()->end_run();
+        return 1;
 	}
 
 #ifdef _WIN32
@@ -309,8 +340,13 @@ void ug_wave_recorder::CloseFile()
 	}
 	catch (...)
 	{
-		message(L"Error writing file header");
-		AudioMaster2()->end_run();
+        std::wstring err = errnoMessage();
+        std::wstring full = L"Error writing file header";
+        if(!err.empty()) {
+            full += L" (" + err + L")";
+        }
+        message(full);
+        AudioMaster2()->end_run();
 	}
 
 	//	std::wstring filename = f1.GetFilePath();
