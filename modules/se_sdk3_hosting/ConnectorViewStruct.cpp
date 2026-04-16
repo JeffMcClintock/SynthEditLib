@@ -691,11 +691,16 @@ namespace SE2
 		// Use stroke width >= grid spacing to ensure no line slips between samples.
 		// Shrink rect by half spacing to avoid selecting lines just outside the rectangle.
 		constexpr float spacing = 10.0f;
-		constexpr float halfSpacing = spacing * 0.5f;
+		constexpr float minSpacing = 0.1f; // prevent infinite loop on zero-size rect
 
-		for (float y = selectionRect.top + halfSpacing; y <= selectionRect.bottom - halfSpacing; y += spacing)
+		const float rectWidth = selectionRect.right - selectionRect.left;
+		const float rectHeight = selectionRect.bottom - selectionRect.top;
+		const float xSpacing = (std::max)(minSpacing, (std::min)(spacing, rectWidth));
+		const float ySpacing = (std::max)(minSpacing, (std::min)(spacing, rectHeight));
+
+		for (float y = selectionRect.top + ySpacing * 0.5f; y <= selectionRect.bottom - ySpacing * 0.5f; y += ySpacing)
 		{
-			for (float x = selectionRect.left + halfSpacing; x <= selectionRect.right - halfSpacing; x += spacing)
+			for (float x = selectionRect.left + xSpacing * 0.5f; x <= selectionRect.right - xSpacing * 0.5f; x += xSpacing)
 			{
 				if (geometry.strokeContainsPoint({x, y}, spacing))
 					return true;
