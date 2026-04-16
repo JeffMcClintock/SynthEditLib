@@ -131,8 +131,6 @@ public:
         [flipper translateXBy:0.0 yBy:-[frame bounds].size.height];
         [flipper concat];
 
-        dirtyRects.optimizeRects();
-
         if(-1 == se::cocoa::GraphicsContext2::logicProFix)
         {
             se::cocoa::GraphicsContext2::logicProFix = 0;
@@ -300,28 +298,29 @@ public:
     {
         if(invalidRect)
         {
-            dirtyRects.rects.push_back(
-                {
-                    floorf(invalidRect->left),
-                    floorf(invalidRect->top),
-                    ceilf(invalidRect->right),
-                    ceilf(invalidRect->bottom)
-                });
+            const GmpiDrawing::Rect snapped{
+                floorf(invalidRect->left),
+                floorf(invalidRect->top),
+                ceilf(invalidRect->right),
+                ceilf(invalidRect->bottom)
+            };
 
-//            [view setNeedsDisplayInRect:NSMakeRect (invalidRect->left, invalidRect->top, invalidRect->right - invalidRect->left, invalidRect->bottom - invalidRect->top)];
-            
-            [view setNeedsDisplayInRect: GmpiGuiHosting::gmpiRectToViewRect(view.bounds, dirtyRects.rects.back())];
+            // Merge into the queue (mirrors Windows DirtyRectQueue::add) so
+            // overlapping/subset invalidations coalesce at the source.
+            dirtyRects.add(snapped);
+
+            [view setNeedsDisplayInRect: GmpiGuiHosting::gmpiRectToViewRect(view.bounds, snapped)];
         }
         else
         {
-            dirtyRects.rects.push_back(
-                {
-                    0.0f,
-                    0.0f,
-                    (float) (std::numeric_limits<int32_t>::max) (),
-                    (float) (std::numeric_limits<int32_t>::max) ()
-                });
-                
+            const GmpiDrawing::Rect full{
+                0.0f,
+                0.0f,
+                (float) (std::numeric_limits<int32_t>::max) (),
+                (float) (std::numeric_limits<int32_t>::max) ()
+            };
+            dirtyRects.add(full);
+
             [view setNeedsDisplay:YES];
         }
     }
