@@ -1865,7 +1865,6 @@ namespace SE2
 	gmpi::ReturnCode ViewBase::arrange(const gmpi::drawing::Rect* finalRect)
 	{
 		drawingBounds = *finalRect;
-		centerPos = ::getCenter(drawingBounds); // center scrolling.
 
 		calcViewTransform(); // recompute scroll offset from center/zoom whenever view size changes
 
