@@ -557,15 +557,13 @@ void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, 
 		candidatesSorted.push_back({ c.first, c.second.inError, c.second.outError });
 	}
 
-//	_RPT0(0, "\n===============================\nTop cancellation error modules\n");
+	_RPT0(0, "\n===============================\nTop cancellation error modules\n");
 	std::sort(candidatesSorted.begin(), candidatesSorted.end(), [](const inouterror& n1, const inouterror& n2) {
 
 		const auto n1IsTempModule = n1.moduleId.handle < 0;
 		const auto n2IsTempModule = n2.moduleId.handle < 0;
 		if (n1IsTempModule != n2IsTempModule)
-		{
 			return n2IsTempModule;
-		}
 
 		float magnitude1 = n1.outError - n1.inError;
 		float magnitude2 = n2.outError - n2.inError;
@@ -597,9 +595,7 @@ void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, 
 		{
 			moduleName = cur_module->GetName();
 			if (moduleName.empty())
-			{
 				moduleName = cur_module->getType()->UniqueId();
-			}
 		}
 		_RPTN(0, "V%2d %12d (0x%08x) ", c.moduleId.voice, c.moduleId.handle, c.moduleId.handle);
 		if (c.inError == -300.f)
@@ -635,8 +631,10 @@ void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, 
 		if (rank < 10 /* || 1481061631 == c.moduleId.handle */) /// !!! you can put a particular module handle here for a deeper printout !!!
 		{
 			// inputs
-//			_RPT0(0, "INPUTS\n");
 			{
+				std::vector<const pin_an*> pins_a;
+				std::vector<const pin_an*> pins_b;
+
 				for (auto& r : cancellationErrors)
 				{
 					auto pinsA = r.second.pinsA;
@@ -649,7 +647,8 @@ void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, 
 								const auto toModuleId = lookupHandleFromAddress2(toModuleAddress, resultsA);
 								if (toModuleId == c.moduleId)
 								{
-									printAudioData('A', pin.audioData);
+									//printAudioData('A', pin.audioData);
+									pins_a.push_back(&pin);
 								}
 							}
 						}
@@ -667,16 +666,37 @@ void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, 
 								const auto toModuleId = lookupHandleFromAddress2(toModuleAddress, resultsB);
 								if (toModuleId == c.moduleId)
 								{
-									printAudioData('B', pin.audioData);
+									//printAudioData('B', pin.audioData);
+									pins_b.push_back(&pin);
 								}
 							}
 						}
 					}
 				}
+
+				bool theSame = pins_a.size() == pins_b.size();
+				if(theSame)
+				{
+					for(int i = 0; i < pins_a.size(); ++i)
+						theSame &= pins_a[i]->audioData == pins_b[i]->audioData;
+				}
+
+				if(theSame)
+				{
+					_RPT0(0, "INPUTS MATCH\n");
+				}
+				else
+				{
+					_RPT0(0, "INPUTS\n");
+					for(auto p : pins_a)
+						printAudioData('A', p->audioData);
+					for(auto p : pins_b)
+						printAudioData('B', p->audioData);
+				}
 			}
 
 			// outputs
-//			_RPT0(0, "OUTPUTS\n");
+			_RPT0(0, "OUTPUTS\n");
 			for (auto& r : cancellationErrors)
 			{
 				if (r.first != c.moduleId)
@@ -696,7 +716,7 @@ void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, 
 					printAudioData('B', pinB.audioData);
 				}
 			}
-//			_RPT0(0, "\n");
+			_RPT0(0, "\n");
 		}
 
 #if 0
@@ -759,7 +779,7 @@ void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, 
 		++rank;
 	}
 
-//	_RPT0(0, "\n===============================\n");
+	_RPT0(0, "\n===============================\n");
 
 #endif
 }

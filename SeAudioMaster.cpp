@@ -1492,7 +1492,7 @@ void SeAudioMaster::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 		int32_t pinIdx{};
 		p_stream >> moduleHandle;
 		p_stream >> pinIdx;
-		_RPTN(0, "hover-scope: %d %d\n", moduleHandle, pinIdx);
+//		_RPTN(0, "hover-scope: %d %d\n", moduleHandle, pinIdx);
 
 		hoverScopePin = {};
 		hoverScopeModule = {};
