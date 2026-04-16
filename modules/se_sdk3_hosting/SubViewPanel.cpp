@@ -343,27 +343,9 @@ gmpi::ReturnCode SubView::arrange(const gmpi::drawing::Rect* finalRect)
 	if (!finalRect)
 		return gmpi::ReturnCode::Fail;
 
-	// ViewBase::arrange calls calcViewTransform(), which would overwrite
-	// viewTransform with a top-level-view pan/zoom derived from centerPos +
-	// zoomFactor (not meaningful for SubView). Stash our pan, let the base run,
-	// then restore our translation-only view transform.
-	const float savedPanX = panX();
-	const float savedPanY = panY();
-	const bool wasInitialized = panInitialized_;
-
-	auto result = ViewBase::arrange(finalRect);
-
-	if (wasInitialized)
-		setPan(savedPanX, savedPanY);
-	else
-	{
-		// Discard whatever calcViewTransform installed — we have no meaningful pan yet.
-		viewTransform = {};
-		viewTransformPrecise = {};
-		inv_viewTransform = {};
-	}
-
-	return result;
+	// ViewBase::arrange no longer touches viewTransform — pan/zoom is a TopView
+	// concern. SubView's pan (installed via setPan) is preserved across arrange.
+	return ViewBase::arrange(finalRect);
 }
 
 bool SubView::isShown()

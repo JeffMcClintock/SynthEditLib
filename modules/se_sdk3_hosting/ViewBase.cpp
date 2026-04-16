@@ -408,59 +408,12 @@ namespace SE2
 		currentPointerPosAbsolute = point;
 		point *= inv_viewTransform;
 
-		const bool hasScrollbars = hscrollBar && vscrollBar;
+		calcMouseOverObject(flags);
 
-		// <ALT> causes scroll wheel events to pass to client
-		if((flags & gmpi_gui_api::GG_POINTER_KEY_ALT) || !hasScrollbars)
-		{
-			calcMouseOverObject(flags);
+		if(!mouseOverObject)
+			return gmpi::ReturnCode::Unhandled;
 
-			if(!mouseOverObject)
-				return gmpi::ReturnCode::Unhandled;
-
-			mouseOverObject->onMouseWheel(point, flags, delta);
-			return gmpi::ReturnCode::Ok;
-		}
-
-		// <CTRL> wheel = zoom
-		if(flags & gmpi_gui_api::GG_POINTER_KEY_CONTROL)
-		{
-			// Compute the document point under the mouse before zoom changes.
-			const auto mouseDocPos = currentPointerPosAbsolute * inv_viewTransform;
-
-			if(delta < 0)
-				zoomFactor /= 1.25f;
-			else
-				zoomFactor *= 1.25f;
-
-			zoomFactor = std::clamp(zoomFactor, 0.1f, 10.0f);
-
-			// Compute the snapped zoom that calcViewTransform will actually use,
-			// so centerPos keeps the doc point exactly under the mouse.
-			constexpr float gridDips = 12.0f;
-			const float dpiScale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
-			const float snappedZoom = std::round(zoomFactor * gridDips * dpiScale) / (gridDips * dpiScale);
-
-			const float viewWidth  = drawingBounds.right  - drawingBounds.left;
-			const float viewHeight = drawingBounds.bottom - drawingBounds.top;
-			centerPos.x = mouseDocPos.x + (viewWidth  * 0.5f - currentPointerPosAbsolute.x) / snappedZoom;
-			centerPos.y = mouseDocPos.y + (viewHeight * 0.5f - currentPointerPosAbsolute.y) / snappedZoom;
-
-			Presenter()->SetPanZoom(centerPos, zoomFactor);
-		}
-		else
-		{
-			// shift+wheel = horizontal scroll, plain wheel = vertical scroll.
-			// delta is in pixels; convert to doc coords.
-			constexpr float pixelsPerDetent = 0.25f; // 120 delta per wheel detent
-			if(flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT)
-				centerPos.x -= static_cast<float>(delta) * pixelsPerDetent / zoomFactor;
-			else
-				centerPos.y -= static_cast<float>(delta) * pixelsPerDetent / zoomFactor;
-
-			Presenter()->SetViewCenter(centerPos);
-		}
-
+		mouseOverObject->onMouseWheel(point, flags, delta);
 		return gmpi::ReturnCode::Ok;
 	}
 
@@ -1066,23 +1019,90 @@ namespace SE2
 		}
 	}
 
-	void ViewBase::autoScrollStart()
+	bool ViewBase::onTimer()
+	{
+		// Default: no timer work. TopView overrides for auto-scroll.
+		return false;
+	}
+
+	gmpi::ReturnCode TopView::arrange(const gmpi::drawing::Rect* finalRect)
+	{
+		const auto result = ViewBase::arrange(finalRect);
+		// drawingBounds has been updated; recompute pan/zoom mapping from centerPos+zoom.
+		calcViewTransform();
+		return result;
+	}
+
+	gmpi::ReturnCode TopView::onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta)
+	{
+		if (isDraggingModules)
+			return gmpi::ReturnCode::Unhandled;
+
+		currentPointerPosAbsolute = point;
+		point *= inv_viewTransform;
+
+		const bool hasScrollbars = hscrollBar && vscrollBar;
+
+		// <ALT> causes scroll wheel events to pass to client
+		if ((flags & gmpi_gui_api::GG_POINTER_KEY_ALT) || !hasScrollbars)
+			return ViewBase::onMouseWheel(currentPointerPosAbsolute, flags, delta);
+
+		// <CTRL> wheel = zoom about the cursor
+		if (flags & gmpi_gui_api::GG_POINTER_KEY_CONTROL)
+		{
+			const auto mouseDocPos = currentPointerPosAbsolute * inv_viewTransform;
+
+			if (delta < 0)
+				zoomFactor /= 1.25f;
+			else
+				zoomFactor *= 1.25f;
+
+			zoomFactor = std::clamp(zoomFactor, 0.1f, 10.0f);
+
+			// Compute the snapped zoom that calcViewTransform will actually use,
+			// so centerPos keeps the doc point exactly under the mouse.
+			constexpr float gridDips = 12.0f;
+			const float dpiScale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
+			const float snappedZoom = std::round(zoomFactor * gridDips * dpiScale) / (gridDips * dpiScale);
+
+			const float viewWidth  = drawingBounds.right  - drawingBounds.left;
+			const float viewHeight = drawingBounds.bottom - drawingBounds.top;
+			centerPos.x = mouseDocPos.x + (viewWidth  * 0.5f - currentPointerPosAbsolute.x) / snappedZoom;
+			centerPos.y = mouseDocPos.y + (viewHeight * 0.5f - currentPointerPosAbsolute.y) / snappedZoom;
+
+			Presenter()->SetPanZoom(centerPos, zoomFactor);
+		}
+		else
+		{
+			// shift+wheel = horizontal scroll, plain wheel = vertical scroll.
+			// delta is in pixels; convert to doc coords.
+			constexpr float pixelsPerDetent = 0.25f; // 120 delta per wheel detent
+			if (flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT)
+				centerPos.x -= static_cast<float>(delta) * pixelsPerDetent / zoomFactor;
+			else
+				centerPos.y -= static_cast<float>(delta) * pixelsPerDetent / zoomFactor;
+
+			Presenter()->SetViewCenter(centerPos);
+		}
+
+		return gmpi::ReturnCode::Ok;
+	}
+
+	void TopView::autoScrollStart()
 	{
 		isAutoScrolling = true;
 		startTimer(24); // ms
 	}
 
-	void ViewBase::autoScrollStop()
+	void TopView::autoScrollStop()
 	{
 		isAutoScrolling = false;
 	}
 
-	bool ViewBase::onTimer()
+	bool TopView::onTimer()
 	{
 		if (!isAutoScrolling)
 			return false;
-
-//		_RPTN(0, "AutoScroll [%f, %f]\n", currentPointerPosAbsolute.x, currentPointerPosAbsolute.y);
 
 		float autoScrolDx = (std::max)(0.0f, -currentPointerPosAbsolute.x) - (std::max)(0.0f, currentPointerPosAbsolute.x - (drawingBounds.right - drawingBounds.left));
 		float autoScrolDy = (std::max)(0.0f, -currentPointerPosAbsolute.y) - (std::max)(0.0f, currentPointerPosAbsolute.y - (drawingBounds.bottom - drawingBounds.top));
@@ -1106,7 +1126,7 @@ namespace SE2
 		return true;
 	}
 
-	void ViewBase::calcViewTransform() // keywords: calcViewMatrix, calcTransform, updateTransform, updateViewMatrix
+	void TopView::calcViewTransform() // keywords: calcViewMatrix, calcTransform, updateTransform, updateViewMatrix
 	{
 		// Quantize zoom so that every 12 DIPs maps to an integer number of physical pixels.
 		constexpr float gridDips = 12.0f;
@@ -1134,7 +1154,7 @@ namespace SE2
 		invalidateRect();
 	}
 
-	void ViewBase::onHScroll(double visibleLeft)
+	void TopView::onHScroll(double visibleLeft)
 	{
 		if (avoidRecusion)
 			return;
@@ -1144,7 +1164,7 @@ namespace SE2
 		calcViewTransform();
 	}
 
-	void ViewBase::onVScroll(double visibleTop)
+	void TopView::onVScroll(double visibleTop)
 	{
 		if (avoidRecusion)
 			return;
@@ -1154,7 +1174,7 @@ namespace SE2
 		calcViewTransform();
 	}
 
-	void ViewBase::updateScrollBars()
+	void TopView::updateScrollBars()
 	{
 		if (!hscrollBar || !vscrollBar)
 			return;
@@ -1865,8 +1885,6 @@ namespace SE2
 	gmpi::ReturnCode ViewBase::arrange(const gmpi::drawing::Rect* finalRect)
 	{
 		drawingBounds = *finalRect;
-
-		calcViewTransform(); // recompute scroll offset from center/zoom whenever view size changes
 
 		// Modules first, then lines (which rely on module position being finalized).
 		for (auto& m : children)

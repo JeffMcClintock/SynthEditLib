@@ -39,12 +39,12 @@ namespace SE2
 	{
 		friend class ResizeAdorner;
 		friend class ViewChild;
-		
+
+	protected:
 		gmpi::drawing::Point pointPrev;
 		gmpi::drawing::Point lastMovePoint = { -1, -1 };
 		gmpi::drawing::Point currentPointerPosAbsolute = { -1, -1 };
 
-	protected:
 bool isIteratingChildren = false;
 		std::string draggingNewModuleId;
 		bool isArranged = false;
@@ -63,17 +63,13 @@ bool isIteratingChildren = false;
 		gmpi::drawing::Size DraggingModulesOffset = {};
 		gmpi::drawing::Point DraggingModulesInitialTopLeft = {};
 
-		// pan and zoom - ground truth is centerPos (document coords) + zoomFactor.
-		// scrollPos is derived on demand in calcViewTransform() and must not be stored as state.
-		gmpi::drawing::Point centerPos = {};
-		float zoomFactor = 1.0f;
+		// Transform from this view's child-local coords to its parent's coords.
+		// TopView derives it from pan/zoom (via calcViewTransform). SubView sets it
+		// to a plain translation (its pan). Ordinary views leave it at identity.
 		gmpi::drawing::Matrix3x2 viewTransform;          // quantized (pixel-snapped) — for rendering
 		gmpi::drawing::Matrix3x2 viewTransformPrecise;    // unquantized — for coordinate mapping
 		gmpi::drawing::Matrix3x2 inv_viewTransform;       // inverse of precise transform
-		bool avoidRecusion{}; // from scroll bars
-		bool isAutoScrolling = false;
 
-		void calcViewTransform();
 		bool onTimer() override;
 
 #ifdef _WIN32
@@ -127,48 +123,15 @@ bool isIteratingChildren = false;
 		gmpi::ReturnCode onContextMenu(int32_t idx) override;
 		gmpi::ReturnCode onKeyPress(wchar_t c) override;
 
-		// notification to scrollbars
-		std::function<void(const scrollBarSpec&)> hscrollBar;
-		std::function<void(const scrollBarSpec&)> vscrollBar;
-
 		// called when a drag-to-create operation from the module browser ends (drop or cancel)
 		std::function<void()> onDragNewModuleEnded;
 
-		// notification *from* scrollbars or document
-		void setZoomFactor(float newZoomFactor)
-		{
-			zoomFactor = newZoomFactor;
-			calcViewTransform();
-		}
-		gmpi::drawing::Point getCenter() const
-		{
-			return centerPos;
-		}
-		void setCenter(gmpi::drawing::Point newCenter)
-		{
-			if (avoidRecusion)
-				return;
-
-			centerPos = newCenter;
-			calcViewTransform();
-			updateScrollBars();
-		}
-		void setPanZoom(gmpi::drawing::Point newCenter, float newZoomFactor)
-		{
-			if (avoidRecusion)
-				return;
-
-			centerPos = newCenter;
-			zoomFactor = newZoomFactor;
-			calcViewTransform();
-			updateScrollBars();
-		}
-		// visibleLeft/visibleTop are in document coordinates (same as scrollbar Value)
-		void onHScroll(double visibleLeft);
-		void onVScroll(double visibleTop);
-		void updateScrollBars();
-		void autoScrollStart();
-		void autoScrollStop();
+		// Auto-scroll (during module drag / selection rect / cable drag) is a TopView
+		// concern — it adjusts the TopView's centerPos on a timer. Keep these virtual
+		// no-ops on ViewBase so in-repo callers that hold a ViewBase* (adorners, cables,
+		// selection boxes etc.) can call parent->autoScrollStart/Stop() uniformly.
+		virtual void autoScrollStart() {}
+		virtual void autoScrollStop() {}
 
 		void calcMouseOverObject(int32_t flags);
 		void OnChildDeleted(IViewChild* childObject);
@@ -273,6 +236,15 @@ bool isIteratingChildren = false;
 	protected:
 		std::string skinName_;
 
+		// pan and zoom - ground truth is centerPos (document coords) + zoomFactor.
+		// scrollPos is derived on demand in calcViewTransform() and must not be stored as state.
+		gmpi::drawing::Point centerPos = {};
+		float zoomFactor = 1.0f;
+		bool avoidRecusion{}; // from scroll bars
+		bool isAutoScrolling = false;
+
+		void calcViewTransform();
+
 	public:
 		TopView(gmpi::drawing::Size size) : ViewBase(size)
 		{
@@ -282,6 +254,57 @@ bool isIteratingChildren = false;
 		{
 			return skinName_;
 		}
+
+		// ViewBase::arrange does the layout; TopView recomputes pan/zoom after because
+		// calcViewTransform depends on drawingBounds (set by ViewBase::arrange).
+		gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
+
+		// Wheel = zoom (with Ctrl) or pan (plain/Shift); other cases delegate to base.
+		gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override;
+
+		// Auto-scroll during drag: adjusts centerPos on a timer tick.
+		bool onTimer() override;
+		void autoScrollStart() override;
+		void autoScrollStop() override;
+
+		// Scroll-bar hooks. External UI wires these up; internal code invokes them via
+		// updateScrollBars() whenever pan/zoom changes.
+		std::function<void(const scrollBarSpec&)> hscrollBar;
+		std::function<void(const scrollBarSpec&)> vscrollBar;
+
+		// Pan/zoom API. All four funnel through calcViewTransform() + updateScrollBars().
+		void setZoomFactor(float newZoomFactor)
+		{
+			zoomFactor = newZoomFactor;
+			calcViewTransform();
+		}
+		gmpi::drawing::Point getCenter() const
+		{
+			return centerPos;
+		}
+		void setCenter(gmpi::drawing::Point newCenter)
+		{
+			if (avoidRecusion)
+				return;
+
+			centerPos = newCenter;
+			calcViewTransform();
+			updateScrollBars();
+		}
+		void setPanZoom(gmpi::drawing::Point newCenter, float newZoomFactor)
+		{
+			if (avoidRecusion)
+				return;
+
+			centerPos = newCenter;
+			zoomFactor = newZoomFactor;
+			calcViewTransform();
+			updateScrollBars();
+		}
+		// visibleLeft/visibleTop are in document coordinates (same as scrollbar Value)
+		void onHScroll(double visibleLeft);
+		void onVScroll(double visibleTop);
+		void updateScrollBars();
 	};
 
 	class SelectionDragBox : public ViewChild
