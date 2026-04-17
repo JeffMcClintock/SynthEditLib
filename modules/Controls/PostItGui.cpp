@@ -234,6 +234,8 @@ public:
 				g.setTransform(makeSkew(0.04f, 0.0f, { textRect.left, textRect.top }) * orig);
 
 				g.drawRichTextU(richFormat, textRect, textBrush);
+
+				g.setTransform(orig);
 			}
 
 			return ReturnCode::Ok;
