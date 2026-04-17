@@ -614,7 +614,9 @@ class UpdateRegionMac
 public:
 	std::vector<GmpiDrawing::Rect> rects;
 
-	void optimizeRects();
+	// Merge-on-add. Mirrors DirtyRectQueue::add() on Windows so the queue
+	// never accumulates overlapping or subset rects.
+	void add(GmpiDrawing::Rect rect);
 };
 
 class PGCC_PlatformTextEntry : public gmpi_gui::IMpPlatformText

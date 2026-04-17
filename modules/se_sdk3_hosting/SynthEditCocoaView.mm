@@ -131,8 +131,6 @@ public:
         [flipper translateXBy:0.0 yBy:-[frame bounds].size.height];
         [flipper concat];
 
-        dirtyRects.optimizeRects();
-
         if(-1 == se::cocoa::GraphicsContext2::logicProFix)
         {
             se::cocoa::GraphicsContext2::logicProFix = 0;
@@ -300,28 +298,29 @@ public:
     {
         if(invalidRect)
         {
-            dirtyRects.rects.push_back(
-                {
-                    floorf(invalidRect->left),
-                    floorf(invalidRect->top),
-                    ceilf(invalidRect->right),
-                    ceilf(invalidRect->bottom)
-                });
+            const GmpiDrawing::Rect snapped{
+                floorf(invalidRect->left),
+                floorf(invalidRect->top),
+                ceilf(invalidRect->right),
+                ceilf(invalidRect->bottom)
+            };
 
-//            [view setNeedsDisplayInRect:NSMakeRect (invalidRect->left, invalidRect->top, invalidRect->right - invalidRect->left, invalidRect->bottom - invalidRect->top)];
-            
-            [view setNeedsDisplayInRect: GmpiGuiHosting::gmpiRectToViewRect(view.bounds, dirtyRects.rects.back())];
+            // Merge into the queue (mirrors Windows DirtyRectQueue::add) so
+            // overlapping/subset invalidations coalesce at the source.
+            dirtyRects.add(snapped);
+
+            [view setNeedsDisplayInRect: GmpiGuiHosting::gmpiRectToViewRect(view.bounds, snapped)];
         }
         else
         {
-            dirtyRects.rects.push_back(
-                {
-                    0.0f,
-                    0.0f,
-                    (float) (std::numeric_limits<int32_t>::max) (),
-                    (float) (std::numeric_limits<int32_t>::max) ()
-                });
-                
+            const GmpiDrawing::Rect full{
+                0.0f,
+                0.0f,
+                (float) (std::numeric_limits<int32_t>::max) (),
+                (float) (std::numeric_limits<int32_t>::max) ()
+            };
+            dirtyRects.add(full);
+
             [view setNeedsDisplay:YES];
         }
     }
@@ -541,10 +540,12 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
         drawingFrame.view = self;
         auto presenter = new JsonDocPresenter(_editController);
         drawingFrame.Init();
-        
-        constexpr int viewDimensions = 7968; // DIPs (divisible by grids 60x60 + 2 24 pixel borders)
 
-        auto cv = new SE2::ContainerViewPanel({ viewDimensions, viewDimensions });
+        const auto scale = 1.0f / drawingFrame.getRasterizationScale();
+        const gmpi::drawing::Size overrideSizef{ static_cast<float>(width) * scale, static_cast<float>(height) * scale };
+
+        auto cv = new SE2::ContainerViewPanel({ overrideSizef.width, overrideSizef.height });
+        cv->setCenter({ 0.5f * overrideSizef.width, 0.5f * overrideSizef.height }); // center scrolling. needed for plugin but screws with editor.
 
         gmpi::shared_ptr<gmpi::api::IDrawingClient> gfx;
         gfx.attach(cv); // ensure it gets released.
@@ -552,7 +553,7 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
         drawingFrame.attachClient(gfx.get());
 
         cv->setDocument(presenter);
-        
+
         presenter->RefreshView();
         
         // TODO might need this to mitigate crash on close plugin. also need to unregister when editor is closed.

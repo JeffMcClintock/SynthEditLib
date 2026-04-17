@@ -685,37 +685,42 @@ int32_t Gmpi_Win_OkCancelDialog::ShowAsync(gmpi_gui::ICompletionCallback* return
 
 #else // mac
 
-void UpdateRegionMac::optimizeRects()
+void UpdateRegionMac::add(GmpiDrawing::Rect rect)
 {
-	for (int i1 = 0; i1 < rects.size(); ++i1)
+	if (rect.right - rect.left <= 0.0f || rect.bottom - rect.top <= 0.0f)
+		return;
+
+	// The incoming rect absorbs every existing rect that merges efficiently
+	// with it. Each absorption may grow `rect` enough to absorb further
+	// rects, so we rescan from the start until no more merges happen.
+	bool merged;
+	do
 	{
-		auto area1 = rects[i1].getWidth() * rects[i1].getHeight();
+		merged = false;
+		const auto area1 = rect.getWidth() * rect.getHeight();
 
-		for (int i2 = i1 + 1; i2 < rects.size(); )
+		for (size_t i = 0; i < rects.size(); ++i)
 		{
-			auto area2 = rects[i2].getWidth() * rects[i2].getHeight();
+			const auto area2 = rects[i].getWidth() * rects[i].getHeight();
 
-			GmpiDrawing::Rect unionrect(rects[i1]);
+			GmpiDrawing::Rect unionrect(rect);
+			unionrect.top = (std::min)(unionrect.top, rects[i].top);
+			unionrect.bottom = (std::max)(unionrect.bottom, rects[i].bottom);
+			unionrect.left = (std::min)(unionrect.left, rects[i].left);
+			unionrect.right = (std::max)(unionrect.right, rects[i].right);
 
-			unionrect.top = (std::min)(unionrect.top, rects[i2].top);
-			unionrect.bottom = (std::max)(unionrect.bottom, rects[i2].bottom);
-			unionrect.left = (std::min)(unionrect.left, rects[i2].left);
-			unionrect.right = (std::max)(unionrect.right, rects[i2].right);
-
-			auto unionarea = unionrect.getWidth() * unionrect.getHeight();
-
+			const auto unionarea = unionrect.getWidth() * unionrect.getHeight();
 			if (unionarea <= area1 + area2)
 			{
-				rects[i1] = unionrect;
-				area1 = unionarea;
-				rects.erase(rects.begin() + i2);
-			}
-			else
-			{
-				++i2;
+				rect = unionrect;
+				rects.erase(rects.begin() + i);
+				merged = true;
+				break;
 			}
 		}
-	}
+	} while (merged);
+
+	rects.push_back(rect);
 }
 
 #endif // desktop
