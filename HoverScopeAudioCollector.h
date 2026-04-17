@@ -26,7 +26,7 @@ struct HoverScopeAudioCollector
 	int captureSamples{ 400 };
 	int state = 1; // 0 = idle, 1 = waiting for trigger, 2 = waiting for trigger +ve, 3 = capturing, 4 = cruise.
 	gmpi::hosting::IWriteableQue* queue{};
-	int32_t moduleHandle{};
+	int32_t moduleHandle_observing{}; // might not be the module we are collecting data off.
 
 	void process(int blockPosition, int sampleFrames);
 };

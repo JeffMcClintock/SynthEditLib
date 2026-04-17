@@ -1486,9 +1486,11 @@ void SeAudioMaster::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 	}
 	if (p_msg_id == id_to_long2("hvsc")) // hover-scope
 	{
-		int32_t moduleHandle{};
+		int32_t moduleHandle_watched{}; // the module to collect data off
+		int32_t moduleHandle_original{}; // the module to send the results to (can be an IO Mod)
 		int32_t pinIdx{};
-		p_stream >> moduleHandle;
+		p_stream >> moduleHandle_watched;
+		p_stream >> moduleHandle_original;
 		p_stream >> pinIdx;
 //		_RPTN(0, "hover-scope: %d %d\n", moduleHandle, pinIdx);
 
@@ -1496,7 +1498,7 @@ void SeAudioMaster::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 		hoverScopeModule = {};
 		if (pinIdx > -1) // -1 = none
 		{
-			if (auto hoverModule = dynamic_cast<ug_base*>(HandleToObject(moduleHandle)); hoverModule)
+			if (auto hoverModule = dynamic_cast<ug_base*>(HandleToObject(moduleHandle_watched)); hoverModule)
 			{
 				if(hoverModule->plugs.size() > pinIdx && pinIdx >= 0) // IO Mod has zero pins of it's own. can't hover it ATM.
 				{
@@ -1505,7 +1507,7 @@ void SeAudioMaster::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 					if(hoverScopePin && hoverScopePin->DataType == DT_FSAMPLE)
 					{
 						hoverScopeModule = std::make_unique<HoverScopeAudioCollector>(
-							hoverScopePin->UG->Handle()
+							  moduleHandle_original
 							, static_cast<int>(SampleRate())
 							, hoverScopePin->GetSamplePtr()
 							, getShell()->MessageQueToGui()

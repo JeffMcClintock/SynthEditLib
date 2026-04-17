@@ -54,10 +54,17 @@ public:
 	// Resets the watchdog counter and notifies if processor came back online.
 	void onDspMessage()
 	{
-		if (counter <= 0 && onOfflineChanged)
+		if (counter <= 0)
 		{
-			WATCHDOG_DEBUG_LOG("ProcessorWatchdog: onDspMessage -> ONLINE (was offline)\n");
-			onOfflineChanged(false); // processor is online
+			if(onOfflineChanged)
+			{
+				WATCHDOG_DEBUG_LOG("ProcessorWatchdog: onDspMessage -> ONLINE (was offline)\n");
+				onOfflineChanged(false); // processor is online
+			}
+			else
+			{
+				WATCHDOG_DEBUG_LOG("ProcessorWatchdog: onDspMessage -> ONLINE (no one listening)\n");
+			}
 		}
 		counter = timerInit;
 	}
@@ -65,10 +72,17 @@ public:
 	// Call on each timer tick.
 	void onTimerTick()
 	{
-		if (--counter == 0 && onOfflineChanged)
+		if (--counter == 0)
 		{
-			WATCHDOG_DEBUG_LOG("ProcessorWatchdog: onTimerTick -> OFFLINE\n");
-			onOfflineChanged(true); // processor is offline
+			if(onOfflineChanged)
+			{
+				WATCHDOG_DEBUG_LOG("ProcessorWatchdog: onTimerTick -> OFFLINE\n");
+				onOfflineChanged(true); // processor is offline
+			}
+			else
+			{
+				WATCHDOG_DEBUG_LOG("ProcessorWatchdog: onTimerTick -> OFFLINE (no one listening)\n");
+			}
 		}
 	}
 

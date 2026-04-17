@@ -15,7 +15,7 @@ HoverScopeAudioCollector::HoverScopeAudioCollector(
 	: buffer(pbuffer)
 	, sampleRate(psampleRate)
 	, queue(pqueue)
-	, moduleHandle(pmoduleHandle)
+	, moduleHandle_observing(pmoduleHandle)
 {
 	constexpr int totalCapturePoints = 192; // 96 pixels in HD
 	constexpr float captureTime = 2.f; // 2s
@@ -44,7 +44,7 @@ void HoverScopeAudioCollector::process(int blockPosition, int sampleFrames)
 			const int32_t valueCount = index_;
 			const int32_t totalBytes = static_cast<int32_t>(sizeof(float)) * valueCount;
 
-			my_msg_que_output_stream strm(queue, moduleHandle, "hvsw"); // hoverscope waveform.
+			my_msg_que_output_stream strm(queue, moduleHandle_observing, "hvsw"); // hoverscope waveform.
 			strm << static_cast<int32_t>(totalBytes + sizeof(int32_t)); // message size (waveform + count)
 			strm << valueCount;
 			strm.Write(resultsA_, totalBytes);
