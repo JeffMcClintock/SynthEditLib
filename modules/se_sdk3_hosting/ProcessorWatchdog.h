@@ -47,7 +47,10 @@ public:
 		WATCHDOG_DEBUG_LOG(("ProcessorWatchdog: setCallback hasCallback=" +
 			std::to_string(callback != nullptr) + "\n").c_str());
 		onOfflineChanged = std::move(callback);
-		counter = timerInit;
+		
+		// need to initialize the caller to offline state. (if we are actually online, this will be corrected soon enough).
+		counter = 1;
+		onTimerTick();
 	}
 
 	// Call when a message is received from the DSP.
