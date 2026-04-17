@@ -3,6 +3,12 @@
 
 #import "./Cocoa_Gfx.h"
 #import "./EventHelper.h"
+#include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
+#include "helpers/NativeUi.h"
+#include "legacy_sdk_gui2.h"
 
 namespace GmpiGuiHosting
 {
@@ -24,25 +30,36 @@ namespace GmpiGuiHosting
         #endif
     }
 
-	class PlatformMenu : public gmpi_gui::IMpPlatformMenu, public EventHelperClient
+	// Dual-API popup menu: implements both legacy gmpi_gui::IMpPlatformMenu
+	// and the new gmpi::api::IPopupMenu, sharing the same NSPopUpButton/NSMenu.
+	class PlatformMenu : public gmpi_gui::IMpPlatformMenu, public gmpi::api::IPopupMenu, public EventHelperClient
 	{
-		int32_t selectedId;
+		int32_t selectedId{};
 		NSView* view;
 		std::vector<int32_t> menuIds;
+		std::vector<gmpi::shared_ptr<gmpi::api::IUnknown>> itemCallbacks; // new-API per-item callbacks, parallel to menuIds
 		SYNTHEDIT_EVENT_HELPER_CLASSNAME* eventhelper;
-		gmpi_gui::ICompletionCallback* completionHandler;
+		gmpi_gui::ICompletionCallback* completionHandler{};          // legacy completion
+		gmpi::shared_ptr<gmpi::api::IUnknown> returnCallback;        // new-API completion
         NSPopUpButton* button;
         GmpiDrawing::Rect rect;
-        
+
         std::vector<NSMenu*> menuStack;
-        
+
+		void showButton()
+		{
+			[[button cell] setAltersStateOfSelectedItem:NO];
+			[[button cell] attachPopUpWithFrame:NSMakeRect(0,0,1,1) inView:view];
+			[[button cell] performClickWithFrame:gmpiRectToViewRect(view.bounds, rect) inView:view];
+		}
+
 	public:
 
 		PlatformMenu(NSView* pview, GmpiDrawing_API::MP1_RECT* prect)
 		{
 			view = pview;
             rect = *prect;
-           
+
             eventhelper = [SYNTHEDIT_EVENT_HELPER_CLASSNAME alloc];
             [eventhelper initWithClient : this];
 //            theMenu = [[NSMenu alloc] initWithTitle:@"Contextual Menu"];
@@ -86,19 +103,35 @@ namespace GmpiGuiHosting
 
 		void CallbackFromCocoa(NSObject* sender) override
 		{
-            int i = static_cast<int>([((NSMenuItem*) sender) tag]) - 1;
-			if (i >= 0 && i < menuIds.size())
+            const int i = static_cast<int>([((NSMenuItem*) sender) tag]) - 1;
+			const bool validIndex = (i >= 0 && i < static_cast<int>(menuIds.size()));
+			if (validIndex)
 			{
 				selectedId = menuIds[i];
 			}
 
 			[button removeFromSuperview];
-			completionHandler->OnComplete(i >= 0 ? gmpi::MP_OK : gmpi::MP_CANCEL);
+
+			if (completionHandler)
+				completionHandler->OnComplete(validIndex ? gmpi::MP_OK : gmpi::MP_CANCEL);
+
+			if (returnCallback)
+			{
+				if (auto cb = returnCallback.as<gmpi::api::IPopupMenuCallback>(); cb)
+					cb->onComplete(validIndex ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Cancel, selectedId);
+			}
+
+			if (validIndex && i < static_cast<int>(itemCallbacks.size()) && itemCallbacks[i])
+			{
+				if (auto cb = itemCallbacks[i].as<gmpi::api::IPopupMenuCallback>(); cb)
+					cb->onComplete(gmpi::ReturnCode::Ok, selectedId);
+			}
 		}
 
 		int32_t MP_STDCALL AddItem(const char* text, int32_t id, int32_t flags) override
 		{
 			menuIds.push_back(id);
+			itemCallbacks.emplace_back();
 
             if ((flags & gmpi_gui::MP_PLATFORM_MENU_SEPARATOR) != 0)
             {
@@ -150,15 +183,36 @@ namespace GmpiGuiHosting
 		int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* pCompletionHandler) override
 		{
 			completionHandler = pCompletionHandler;
-            
-            [[button cell] setAltersStateOfSelectedItem:NO];
-            [[button cell] attachPopUpWithFrame:NSMakeRect(0,0,1,1) inView:view];
-            [[button cell] performClickWithFrame:gmpiRectToViewRect(view.bounds, rect) inView:view];
-
-//			[button setNeedsDisplay:YES];
-   //         [button performClick:nil]; // Display popup.
-
+			showButton();
 			return gmpi::MP_OK;
+		}
+
+		// new-API IPopupMenu methods:
+		gmpi::ReturnCode addItem(const char* text, int32_t id, int32_t flags, gmpi::api::IUnknown* callback) override
+		{
+			(void) AddItem(text ? text : "", id, flags); // shared logic populates menuIds & NSMenu
+			// Record per-item new-API callback in the slot AddItem just pushed.
+			if (callback && !itemCallbacks.empty())
+			{
+				gmpi::shared_ptr<gmpi::api::IUnknown> cb;
+				cb.attach(callback); // caller transfers ownership (matches `new Callback(...)` convention)
+				itemCallbacks.back() = cb;
+			}
+			return gmpi::ReturnCode::Ok;
+		}
+
+		gmpi::ReturnCode setAlignment(int32_t alignment) override
+		{
+			(void) SetAlignment(alignment);
+			return gmpi::ReturnCode::Ok;
+		}
+
+		gmpi::ReturnCode showAsync(gmpi::api::IUnknown* pcallback) override
+		{
+			// Caller transfers ownership: `new Callback(...)` with refcount=1. attach() steals it.
+			returnCallback.attach(pcallback);
+			showButton();
+			return gmpi::ReturnCode::Ok;
 		}
 
 		int32_t MP_STDCALL SetAlignment(int32_t alignment) override
@@ -186,7 +240,44 @@ namespace GmpiGuiHosting
 			return selectedId;
 		}
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_MENU, gmpi_gui::IMpPlatformMenu)
+		// legacy queryInterface (gmpi::MpGuid&): responds to legacy IID and bridges to new API
+		int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+		{
+			*returnInterface = nullptr;
+			if (iid == gmpi_gui::SE_IID_GRAPHICS_PLATFORM_MENU || iid == gmpi::MP_IID_UNKNOWN)
+			{
+				*returnInterface = static_cast<gmpi_gui::IMpPlatformMenu*>(this);
+				addRef();
+				return gmpi::MP_OK;
+			}
+			if (iid == *reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IPopupMenu::guid))
+			{
+				*returnInterface = static_cast<gmpi::api::IPopupMenu*>(this);
+				addRef();
+				return gmpi::MP_OK;
+			}
+			return gmpi::MP_NOSUPPORT;
+		}
+
+		// new-API queryInterface (gmpi::api::Guid*): responds to new IIDs and bridges to legacy
+		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+		{
+			*returnInterface = nullptr;
+			if (*iid == gmpi::api::IPopupMenu::guid || *iid == gmpi::api::IUnknown::guid)
+			{
+				*returnInterface = static_cast<gmpi::api::IPopupMenu*>(this);
+				addRef();
+				return gmpi::ReturnCode::Ok;
+			}
+			if (*iid == gmpi_gui::legacy::IMpPlatformMenu::guid)
+			{
+				*returnInterface = static_cast<gmpi_gui::IMpPlatformMenu*>(this);
+				addRef();
+				return gmpi::ReturnCode::Ok;
+			}
+			return gmpi::ReturnCode::NoSupport;
+		}
+
 		GMPI_REFCOUNT
 	};
 
@@ -194,25 +285,27 @@ namespace GmpiGuiHosting
     {
         virtual void onTextEditRemoved() = 0;
     };
-    
-	class PlatformTextEntry : public gmpi_gui::IMpPlatformText, public EventHelperClient
+
+	// Dual-API text edit: implements both legacy gmpi_gui::IMpPlatformText
+	// and the new gmpi::api::ITextEdit, sharing the same NSTextField.
+	class PlatformTextEntry : public gmpi_gui::IMpPlatformText, public gmpi::api::ITextEdit, public EventHelperClient
 	{
         NSView* view;
 		float textHeight;
         int align = 0;
         bool multiline = false;
 		GmpiDrawing::Rect rect;
-        gmpi_gui::ICompletionCallback* completionHandler;
+        gmpi_gui::ICompletionCallback* completionHandler{};         // legacy completion
+        gmpi::shared_ptr<gmpi::api::IUnknown> newCallback;          // new-API completion
         SYNTHEDIT_EVENT_HELPER_CLASSNAME* eventhelper;
         PlatformTextEntryObserver* drawingFrame;
-        
+
 	public:
 		std::string text_;
 
 		PlatformTextEntry(PlatformTextEntryObserver* pdrawingFrame, NSView* pview, GmpiDrawing_API::MP1_RECT* prect) :
 			view(pview)
             ,textHeight(12)
-            ,completionHandler(nullptr)
 			,rect(*prect)
             ,drawingFrame(pdrawingFrame)
 		{
@@ -227,13 +320,55 @@ namespace GmpiGuiHosting
 				[textField removeFromSuperview];
 				textField = nil;
 			}
-            
-            drawingFrame->onTextEditRemoved();
+
+            if (drawingFrame)
+                drawingFrame->onTextEditRemoved();
+		}
+
+		// Shared routine used by both legacy and new-API showAsync.
+		void showField()
+		{
+			if (textField != nil)
+			{
+				[textField removeFromSuperview];
+				textField = nil;
+			}
+
+			textField = [[NSTextField alloc] initWithFrame:gmpiRectToViewRect(view.bounds, rect)];
+
+			[textField setFont:[NSFont systemFontOfSize:textHeight]];
+
+			NSString* nsstr = [NSString stringWithCString : text_.c_str() encoding: NSUTF8StringEncoding];
+			[textField setStringValue:nsstr];
+
+			textField.bezeled = false;
+
+			switch(align)
+			{
+				case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_LEADING:
+					break;
+				case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_CENTER:
+					textField.alignment = NSTextAlignmentCenter;
+					break;
+				case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_TRAILING:
+					textField.alignment = NSTextAlignmentRight;
+					break;
+			}
+
+			textField.usesSingleLineMode = !multiline;
+			textField.drawsBackground = true;
+			[textField setBackgroundColor:[NSColor textBackgroundColor]];
+
+			[textField setTarget:eventhelper];
+			[textField setAction: @selector(endEditing:)];
+
+			[view addSubview : textField];
+			[textField becomeFirstResponder];
 		}
 
 		int32_t MP_STDCALL SetText(const char* text) override
 		{
-			text_ = text;
+			text_ = text ? text : "";
 			return gmpi::MP_OK;
 		}
 
@@ -252,52 +387,8 @@ namespace GmpiGuiHosting
 
 		int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* pCompletionHandler) override
 		{
-			if (textField != nil)
-			{
-				[textField removeFromSuperview];
-				textField = nil;
-			}
-
             completionHandler = pCompletionHandler;
-            
-			textField = [[NSTextField alloc] initWithFrame:gmpiRectToViewRect(view.bounds, rect)];
-            
-            [textField setFont:[NSFont systemFontOfSize:textHeight]];
-            
-            // Set Text.
-            NSString* nsstr = [NSString stringWithCString : text_.c_str() encoding: NSUTF8StringEncoding];
-            [textField setStringValue:nsstr];
-            
-            textField.bezeled = false;
-            
-            switch(align)
-            {
-                case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_LEADING:
-                    break;
-                case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_CENTER:
-                    textField.alignment = NSTextAlignmentCenter;
-                    break;
-                case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_TRAILING:
-                    textField.alignment = NSTextAlignmentRight;
-                    break;
-            }
-            
-            textField.usesSingleLineMode = !multiline;
-            
-            textField.drawsBackground = true;
-            [textField setBackgroundColor:[NSColor textBackgroundColor]];
-            
-            // Set Callback.
-            [textField setTarget:eventhelper];              // This is the object that recievs callbacks.
-            [textField setAction: @selector(endEditing:)];  // This is the method on the reciever to call,
-
-            
-            // Show Text Field
-			[view addSubview : textField];
-            
-            // Set focus
-            [textField becomeFirstResponder];
-            
+            showField();
 			return gmpi::MP_OK;
 		}
 
@@ -313,28 +404,245 @@ namespace GmpiGuiHosting
 			textHeight = height;
 			return gmpi::MP_OK;
 		}
-        
+
+		// new-API ITextEdit methods:
+		gmpi::ReturnCode setText(const char* text) override
+		{
+			(void) SetText(text);
+			return gmpi::ReturnCode::Ok;
+		}
+
+		gmpi::ReturnCode setAlignment(int32_t alignment) override
+		{
+			(void) SetAlignment(alignment);
+			return gmpi::ReturnCode::Ok;
+		}
+
+		gmpi::ReturnCode setTextSize(float height) override
+		{
+			(void) SetTextSize(height);
+			return gmpi::ReturnCode::Ok;
+		}
+
+		gmpi::ReturnCode showAsync(gmpi::api::IUnknown* pcallback) override
+		{
+			// Caller transfers ownership: `new Callback(...)` with refcount=1. attach() steals it.
+			newCallback.attach(pcallback);
+			showField();
+			return gmpi::ReturnCode::Ok;
+		}
+
         void CallbackFromCocoa(NSObject* sender) override
         {
-            text_ = [[textField stringValue] UTF8String];
+            if (textField)
+                text_ = [[textField stringValue] UTF8String];
 
             [textField removeFromSuperview];
-//            completionHandler->OnComplete(i >= 0 ? gmpi::MP_OK : gmpi::MP_CANCEL);
-            completionHandler->OnComplete(gmpi::MP_OK);
+
+            if (completionHandler)
+                completionHandler->OnComplete(gmpi::MP_OK);
+
+            if (newCallback)
+            {
+                if (auto cb = newCallback.as<gmpi::api::ITextEditCallback>(); cb)
+                {
+                    cb->onChanged(text_.c_str());
+                    cb->onComplete(gmpi::ReturnCode::Ok);
+                }
+            }
         }
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT, gmpi_gui::IMpPlatformText)
+		// legacy queryInterface (gmpi::MpGuid&): responds to legacy IID and bridges to new API
+		int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+		{
+			*returnInterface = nullptr;
+			if (iid == gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT || iid == gmpi::MP_IID_UNKNOWN)
+			{
+				*returnInterface = static_cast<gmpi_gui::IMpPlatformText*>(this);
+				addRef();
+				return gmpi::MP_OK;
+			}
+			if (iid == *reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::ITextEdit::guid))
+			{
+				*returnInterface = static_cast<gmpi::api::ITextEdit*>(this);
+				addRef();
+				return gmpi::MP_OK;
+			}
+			return gmpi::MP_NOSUPPORT;
+		}
+
+		// new-API queryInterface (gmpi::api::Guid*): responds to new IIDs and bridges to legacy
+		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+		{
+			*returnInterface = nullptr;
+			if (*iid == gmpi::api::ITextEdit::guid || *iid == gmpi::api::IUnknown::guid)
+			{
+				*returnInterface = static_cast<gmpi::api::ITextEdit*>(this);
+				addRef();
+				return gmpi::ReturnCode::Ok;
+			}
+			if (*iid == gmpi_gui::legacy::IMpPlatformText::guid)
+			{
+				*returnInterface = static_cast<gmpi_gui::IMpPlatformText*>(this);
+				addRef();
+				return gmpi::ReturnCode::Ok;
+			}
+			return gmpi::ReturnCode::NoSupport;
+		}
+
 		GMPI_REFCOUNT
 	};
 
-	class PlatformFileDialog : public gmpi_gui::IMpFileDialog
+	// Dual-API file dialog. Legacy IMpFileDialog and new IFileDialog both define
+	// `setInitialDirectory(const char*)` differing only in return type, which C++
+	// won't let us resolve via multiple inheritance. Instead, the outer class
+	// implements the new API, and a nested LegacyAdapter class exposes the legacy
+	// interface and forwards to the outer's state. queryInterface cross-bridges.
+	class PlatformFileDialog : public gmpi::api::IFileDialog
 	{
 		int32_t mode_;
 		std::string initial_filename;
 		std::string initial_folder;
 		std::string selectedFilename;
         NSView* view;
-        gmpi_gui::ICompletionCallback* completionHandler;
+
+		NSSavePanel* buildPanel()
+		{
+			NSSavePanel* dialog = nullptr;
+
+			if (mode_ == static_cast<int32_t>(gmpi::api::FileDialogType::Save))
+			{
+				dialog = [NSSavePanel savePanel];
+				dialog.title = @"Save file";
+			}
+			else
+			{
+				NSOpenPanel* openPanel = [NSOpenPanel openPanel];
+				const bool folderMode = (mode_ == static_cast<int32_t>(gmpi::api::FileDialogType::Folder));
+				openPanel.canChooseFiles = folderMode ? NO : YES;
+				openPanel.canChooseDirectories = folderMode ? YES : NO;
+				openPanel.allowsMultipleSelection = NO;
+				dialog = openPanel;
+				dialog.title = folderMode ? @"Choose folder" : @"Open file";
+			}
+
+			dialog.showsResizeIndicator = YES;
+			dialog.showsHiddenFiles = NO;
+			dialog.canCreateDirectories = YES;
+
+			if (!initial_folder.empty())
+				[dialog setDirectoryURL:[NSURL fileURLWithPath:[NSString stringWithUTF8String:initial_folder.c_str()]]];
+
+			if (!initial_filename.empty() && mode_ == static_cast<int32_t>(gmpi::api::FileDialogType::Save))
+				[dialog setNameFieldStringValue:[NSString stringWithUTF8String:initial_filename.c_str()]];
+
+			if (mode_ != static_cast<int32_t>(gmpi::api::FileDialogType::Folder))
+			{
+				NSMutableArray* extensionsstring = [[NSMutableArray alloc] init];
+				bool allowsOtherFileTypes = false;
+				for (auto& e : extensions)
+				{
+					if (e.first == "*")
+						allowsOtherFileTypes = true;
+					else
+						[extensionsstring addObject:[NSString stringWithUTF8String:e.first.c_str()]];
+				}
+				if (!extensions.empty() && [extensionsstring count] > 0)
+				{
+					dialog.allowedFileTypes = extensionsstring;
+					if (allowsOtherFileTypes)
+						dialog.allowsOtherFileTypes = YES;
+				}
+			}
+
+			return dialog;
+		}
+
+		void addExtensionInternal(const char* extension, const char* description)
+		{
+			std::string ext(extension ? extension : "");
+			std::string desc(description ? description : "");
+			if (desc.empty())
+			{
+				if (ext == "*")
+					desc = "All";
+				else
+					desc = ext;
+				desc += " Files";
+			}
+			extensions.push_back(std::pair<std::string, std::string>(ext, desc));
+		}
+
+		// Nested adapter that presents the legacy gmpi_gui::IMpFileDialog vtable.
+		// Reference-counted independently so queryInterface can hand it out while
+		// keeping the outer alive via a strong back-reference.
+		class LegacyAdapter : public gmpi_gui::IMpFileDialog
+		{
+			PlatformFileDialog* owner;
+			gmpi_gui::ICompletionCallback* completionHandler{};
+		public:
+			LegacyAdapter(PlatformFileDialog* p) : owner(p) {}
+
+			int32_t MP_STDCALL AddExtension(const char* extension, const char* description) override
+			{
+				owner->addExtensionInternal(extension, description);
+				return gmpi::MP_OK;
+			}
+			int32_t MP_STDCALL SetInitialFilename(const char* text) override
+			{
+				owner->initial_filename = text ? text : "";
+				return gmpi::MP_OK;
+			}
+			int32_t MP_STDCALL setInitialDirectory(const char* text) override
+			{
+				owner->initial_folder = text ? text : "";
+				return gmpi::MP_OK;
+			}
+			int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* pcompletionHandler) override
+			{
+				completionHandler = pcompletionHandler;
+
+				NSSavePanel* dialog = owner->buildPanel();
+
+				if ([dialog runModal] == NSModalResponseOK)
+				{
+					NSURL* selection = dialog.URL;
+					NSString* path = [[selection path] stringByResolvingSymlinksInPath];
+					owner->selectedFilename = [path UTF8String];
+					completionHandler->OnComplete(gmpi::MP_OK);
+				}
+				else
+				{
+					completionHandler->OnComplete(gmpi::MP_FAIL);
+				}
+				return gmpi::MP_OK;
+			}
+			int32_t MP_STDCALL GetSelectedFilename(IMpUnknown* returnString) override
+			{
+				gmpi::IString* returnValue = 0;
+				if (gmpi::MP_OK != returnString->queryInterface(gmpi::MP_IID_RETURNSTRING, reinterpret_cast<void**>(&returnValue)))
+					return gmpi::MP_NOSUPPORT;
+				returnValue->setData(owner->selectedFilename.data(), (int32_t)owner->selectedFilename.size());
+				return gmpi::MP_OK;
+			}
+
+			// Delegate lifetime and QI to owner so a single refcount controls both vtables.
+			int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+			{
+				*returnInterface = nullptr;
+				if (iid == gmpi_gui::SE_IID_GRAPHICS_PLATFORM_FILE_DIALOG || iid == gmpi::MP_IID_UNKNOWN)
+				{
+					*returnInterface = static_cast<gmpi_gui::IMpFileDialog*>(this);
+					owner->addRef();
+					return gmpi::MP_OK;
+				}
+				return gmpi::MP_NOSUPPORT;
+			}
+			int32_t MP_STDCALL addRef() override   { return owner->addRef(); }
+			int32_t MP_STDCALL release() override  { return owner->release(); }
+		};
+
+		LegacyAdapter legacyAdapter{this};
 
 	public:
 		std::vector< std::pair< std::string, std::string> > extensions;
@@ -345,180 +653,235 @@ namespace GmpiGuiHosting
 		{
 		}
 
-		int32_t MP_STDCALL AddExtension(const char* extension, const char* description) override
+		// Accessor for the legacy vtable; refcount is shared with the outer.
+		gmpi_gui::IMpFileDialog* asLegacy() { return &legacyAdapter; }
+
+		// new-API IFileDialog methods:
+		gmpi::ReturnCode addExtension(const char* extension, const char* description) override
 		{
-			std::string ext(extension);
-			std::string desc(description);
-			if (desc.empty())
-			{
-				if (ext == "*")
-					desc = "All";
+			addExtensionInternal(extension, description);
+			return gmpi::ReturnCode::Ok;
+		}
+
+		gmpi::ReturnCode setInitialFilename(const char* text) override
+		{
+			initial_filename = text ? text : "";
+			return gmpi::ReturnCode::Ok;
+		}
+
+		gmpi::ReturnCode setInitialDirectory(const char* text) override
+		{
+			initial_folder = text ? text : "";
+			return gmpi::ReturnCode::Ok;
+		}
+
+		gmpi::ReturnCode showAsync(const gmpi::drawing::Rect* /*rect*/, gmpi::api::IUnknown* pcallback) override
+		{
+			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+			unknown.attach(pcallback);
+			auto fileCallback = unknown.as<gmpi::api::IFileDialogCallback>();
+			if (!fileCallback)
+				return gmpi::ReturnCode::Fail;
+
+			NSSavePanel* dialog = buildPanel();
+
+			// Sheet-modal async: retain the typed callback via block capture.
+			auto prevent_release = fileCallback;
+			[dialog beginSheetModalForWindow:[view window] completionHandler:^(NSModalResponse result) {
+				if (result == NSModalResponseOK)
+				{
+					const char* path = [[dialog URL] fileSystemRepresentation];
+					selectedFilename = path ? path : "";
+					prevent_release->onComplete(gmpi::ReturnCode::Ok, selectedFilename.c_str());
+				}
 				else
-					desc = ext;
-				desc += " Files";
-			}
-			extensions.push_back(std::pair<std::string, std::string>(extension, desc));
-			return gmpi::MP_OK;
-		}
-        
-		int32_t MP_STDCALL SetInitialFilename(const char* text) override
-		{
-			initial_filename = (text);
-			return gmpi::MP_OK;
-		}
-        
-		int32_t MP_STDCALL setInitialDirectory(const char* text) override
-		{
-			initial_folder = (text);
-			return gmpi::MP_OK;
+				{
+					prevent_release->onComplete(gmpi::ReturnCode::Cancel, "");
+				}
+			}];
+
+			return gmpi::ReturnCode::Ok;
 		}
 
-		int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* pcompletionHandler) override
+		// new-API queryInterface: cross-bridges to legacy via the adapter.
+		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
-            completionHandler = pcompletionHandler;
-			//this gives you a copy of an open file dialogue
-			NSSavePanel* dialog = nullptr;
-
-			//set the title of the dialogue window
-            if( mode_ == 0 )
-            {
-                NSOpenPanel* openPanel = [NSOpenPanel openPanel];
-                //can the user select a directory?
-                openPanel.canChooseDirectories = NO;
-                
-                //should the user be able to select multiple files?
-                openPanel.allowsMultipleSelection = NO;
-                
-
-                dialog = openPanel;
-                dialog.title = @"Open file";
-            }
-            else
-            {
-               dialog = [NSSavePanel savePanel];
-               dialog.title = @"Save file";
-            }
-            
-            //shoud the user be able to resize the window?
-            dialog.showsResizeIndicator = YES;
-
-			//should the user see hidden files (for user apps - usually no)
-			dialog.showsHiddenFiles = NO;
-
-			//can the user create directories while using the dialogue?
-			dialog.canCreateDirectories = YES;
-
-			//an array of file extensions to filter the file list
-            NSMutableArray* extensionsstring = [[NSMutableArray alloc] init];
-
-            bool allowsOtherFileTypes = false;
-            for( auto& e : extensions )
-            {
-                if(e.first == "*")
-                {
-                    allowsOtherFileTypes = true;
-                }
-                else
-                {
-                    NSString* temp = [NSString stringWithCString : e.first.c_str() encoding : NSUTF8StringEncoding];
-                    [extensionsstring addObject:temp];
-                }
-            }
-            
-            [dialog setDirectoryURL: [NSURL fileURLWithPath:[NSString stringWithCString : initial_folder.c_str() encoding : NSUTF8StringEncoding]]];
-            
-            // leave allowedFileTypes nil if "All" files is an option.
-            if(!extensions.empty())
-            {
-                dialog.allowedFileTypes = extensionsstring;
-                if(allowsOtherFileTypes)
-                {
-                    dialog.allowsOtherFileTypes = YES;
-                }
-            }
-            
-            if( [dialog runModal] == NSModalResponseOK)
-            {
-                //get the selected file URLs
-                //NSURL* selection = dialog.URLs[0];
-                NSURL* selection = dialog.URL;
-
-                //finally store the selected file path as a string
-                NSString* path = [[selection path] stringByResolvingSymlinksInPath];
-                
-                selectedFilename = [path UTF8String];
-                completionHandler->OnComplete(gmpi::MP_OK);
-            }
-            else
-            {
-                completionHandler->OnComplete(gmpi::MP_FAIL);
-           }
-
-			return gmpi::MP_OK;
-		}
-
-		// TODO!!!, USE IString return value.
-		int32_t MP_STDCALL GetSelectedFilename(IMpUnknown* returnString) override
-		{
-            gmpi::IString* returnValue = 0;
-
-            if (gmpi::MP_OK != returnString->queryInterface(gmpi::MP_IID_RETURNSTRING, reinterpret_cast<void**>(&returnValue)))
+			*returnInterface = nullptr;
+			if (*iid == gmpi::api::IFileDialog::guid || *iid == gmpi::api::IUnknown::guid)
 			{
-				return gmpi::MP_NOSUPPORT;
+				*returnInterface = static_cast<gmpi::api::IFileDialog*>(this);
+				addRef();
+				return gmpi::ReturnCode::Ok;
 			}
-
-			returnValue->setData(selectedFilename.data(), (int32_t)selectedFilename.size());
-			return gmpi::MP_OK;
+			if (*iid == gmpi_gui::legacy::IMpFileDialog::guid)
+			{
+				*returnInterface = static_cast<gmpi_gui::IMpFileDialog*>(&legacyAdapter);
+				addRef();
+				return gmpi::ReturnCode::Ok;
+			}
+			return gmpi::ReturnCode::NoSupport;
 		}
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_FILE_DIALOG, gmpi_gui::IMpFileDialog)
 		GMPI_REFCOUNT
 	};
 
-	class PlatformOkCancelDialog : public gmpi_gui::IMpOkCancelDialog
+	// Dual-API stock dialog. Implements both legacy gmpi_gui::IMpOkCancelDialog
+	// and new gmpi::api::IStockDialog. dialogType selects buttons (Ok, OkCancel,
+	// YesNo, YesNoCancel). Legacy path uses OkCancel with (MP_OK | MP_CANCEL).
+	class PlatformOkCancelDialog : public gmpi_gui::IMpOkCancelDialog, public gmpi::api::IStockDialog
 	{
-		//	HWND parentWnd;
 		int32_t mode_;
 		std::string title;
 		std::string text;
+		NSView* view;
+
+		NSAlert* buildAlert()
+		{
+			NSAlert* alert = [[NSAlert alloc] init];
+			[alert setMessageText:[NSString stringWithUTF8String:title.c_str()]];
+			[alert setInformativeText:[NSString stringWithUTF8String:text.c_str()]];
+			[alert setAlertStyle:NSAlertStyleWarning];
+
+			switch (static_cast<gmpi::api::StockDialogType>(mode_))
+			{
+			case gmpi::api::StockDialogType::Ok:
+				[alert addButtonWithTitle:@"OK"];
+				break;
+			case gmpi::api::StockDialogType::YesNo:
+				[alert addButtonWithTitle:@"Yes"];
+				[alert addButtonWithTitle:@"No"];
+				break;
+			case gmpi::api::StockDialogType::YesNoCancel:
+				[alert addButtonWithTitle:@"Yes"];
+				[alert addButtonWithTitle:@"No"];
+				[alert addButtonWithTitle:@"Cancel"];
+				break;
+			case gmpi::api::StockDialogType::OkCancel:
+			default:
+				[alert addButtonWithTitle:@"OK"];
+				[alert addButtonWithTitle:@"Cancel"];
+				break;
+			}
+			return alert;
+		}
 
 	public:
-		PlatformOkCancelDialog(int32_t mode, NSView* pview)// :
-	//		parentWnd(pParentWnd)
-	//		 mode_(mode)
+		PlatformOkCancelDialog(int32_t mode, NSView* pview) :
+			mode_(mode)
+			,view(pview)
+		{
+		}
+
+		PlatformOkCancelDialog(int32_t mode, NSView* pview, const char* ptitle, const char* ptext) :
+			mode_(mode)
+			,title(ptitle ? ptitle : "")
+			,text(ptext ? ptext : "")
+			,view(pview)
 		{
 		}
 
 		int32_t MP_STDCALL SetTitle(const char* ptext) override
 		{
-			title = (ptext);
+			title = ptext ? ptext : "";
 			return gmpi::MP_OK;
 		}
 		int32_t MP_STDCALL SetText(const char* ptext) override
 		{
-			text = (ptext);
+			text = ptext ? ptext : "";
 			return gmpi::MP_OK;
 		}
 
 		int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) override
 		{
-			NSString* dialogtext = [NSString stringWithCString : text.c_str() encoding : NSUTF8StringEncoding];
-
-
-			NSAlert *alert = [[NSAlert alloc] init];
-			[alert addButtonWithTitle : @"OK"];
-			[alert addButtonWithTitle : @"Cancel"];
-			[alert setMessageText : dialogtext];
-//			[alert setInformativeText : @"Deleted records cannot be restored."];
-            [alert setAlertStyle : NSAlertStyleWarning];
-
+			NSAlert* alert = buildAlert();
 			auto result = [alert runModal] == NSAlertFirstButtonReturn ? gmpi::MP_OK : gmpi::MP_CANCEL;
 			returnCompletionHandler->OnComplete(result);
-
 			return gmpi::MP_OK;
 		}
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, gmpi_gui::IMpOkCancelDialog)
+		// new-API IStockDialog:
+		gmpi::ReturnCode showAsync(gmpi::api::IUnknown* pcallback) override
+		{
+			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+			unknown.attach(pcallback);
+			auto dialogCallback = unknown.as<gmpi::api::IStockDialogCallback>();
+			if (!dialogCallback)
+				return gmpi::ReturnCode::Fail;
+
+			NSAlert* alert = buildAlert();
+
+			auto prevent_release = dialogCallback;
+			auto type = static_cast<gmpi::api::StockDialogType>(mode_);
+			[alert beginSheetModalForWindow:[view window] completionHandler:^(NSModalResponse returnCode) {
+				gmpi::api::StockDialogButton button{};
+				switch (type)
+				{
+				case gmpi::api::StockDialogType::Ok:
+					button = gmpi::api::StockDialogButton::Ok;
+					break;
+				case gmpi::api::StockDialogType::OkCancel:
+					button = (returnCode == NSAlertFirstButtonReturn)
+						? gmpi::api::StockDialogButton::Ok
+						: gmpi::api::StockDialogButton::Cancel;
+					break;
+				case gmpi::api::StockDialogType::YesNo:
+					button = (returnCode == NSAlertFirstButtonReturn)
+						? gmpi::api::StockDialogButton::Yes
+						: gmpi::api::StockDialogButton::No;
+					break;
+				case gmpi::api::StockDialogType::YesNoCancel:
+					if (returnCode == NSAlertFirstButtonReturn)
+						button = gmpi::api::StockDialogButton::Yes;
+					else if (returnCode == NSAlertSecondButtonReturn)
+						button = gmpi::api::StockDialogButton::No;
+					else
+						button = gmpi::api::StockDialogButton::Cancel;
+					break;
+				}
+				prevent_release->onComplete(button);
+			}];
+
+			return gmpi::ReturnCode::Ok;
+		}
+
+		// legacy queryInterface (gmpi::MpGuid&)
+		int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+		{
+			*returnInterface = nullptr;
+			if (iid == gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG || iid == gmpi::MP_IID_UNKNOWN)
+			{
+				*returnInterface = static_cast<gmpi_gui::IMpOkCancelDialog*>(this);
+				addRef();
+				return gmpi::MP_OK;
+			}
+			if (iid == *reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IStockDialog::guid))
+			{
+				*returnInterface = static_cast<gmpi::api::IStockDialog*>(this);
+				addRef();
+				return gmpi::MP_OK;
+			}
+			return gmpi::MP_NOSUPPORT;
+		}
+
+		// new-API queryInterface (gmpi::api::Guid*)
+		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+		{
+			*returnInterface = nullptr;
+			if (*iid == gmpi::api::IStockDialog::guid || *iid == gmpi::api::IUnknown::guid)
+			{
+				*returnInterface = static_cast<gmpi::api::IStockDialog*>(this);
+				addRef();
+				return gmpi::ReturnCode::Ok;
+			}
+			if (*iid == gmpi_gui::legacy::IMpOkCancelDialog::guid)
+			{
+				*returnInterface = static_cast<gmpi_gui::IMpOkCancelDialog*>(this);
+				addRef();
+				return gmpi::ReturnCode::Ok;
+			}
+			return gmpi::ReturnCode::NoSupport;
+		}
+
 		GMPI_REFCOUNT
 	};
 
@@ -694,13 +1057,14 @@ namespace GmpiGuiHosting
 
 		int32_t MP_STDCALL createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override
 		{
-			*returnTextEdit = new PlatformTextEntry(view, rect);
+			*returnTextEdit = new PlatformTextEntry(/*observer*/ nullptr, view, rect);
 			return gmpi::MP_OK;
 		}
 
 		int32_t MP_STDCALL createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override
 		{
-			*returnFileDialog = new PlatformFileDialog(dialogType, view);
+			// PlatformFileDialog implements the new API; hand out its legacy adapter.
+			*returnFileDialog = (new PlatformFileDialog(dialogType, view))->asLegacy();
 			return gmpi::MP_OK;
 		}
 

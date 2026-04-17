@@ -1,4 +1,8 @@
 #import <Cocoa/Cocoa.h>
+#include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
 #include "CocoaNamespaceMacros.h"
 
 #include "./CocoaGuiHost.h"
@@ -282,16 +286,39 @@ public:
         return window ? (float)[window backingScaleFactor] : 1.0f;
     }
     
-    // IDialogHost
-    gmpi::ReturnCode createTextEdit   (const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override {return gmpi::ReturnCode::NoSupport;}
-    gmpi::ReturnCode createPopupMenu  (const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override {return gmpi::ReturnCode::NoSupport;}
+    // IDialogHost — all dialog types route through the dual-API GmpiGuiHosting
+    // classes (see CocoaGuiHost.h) so plugins can use either legacy or new APIs.
+    gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override
+    {
+        auto* rect = reinterpret_cast<GmpiDrawing_API::MP1_RECT*>(const_cast<gmpi::drawing::Rect*>(r));
+        auto te = new GmpiGuiHosting::PlatformTextEntry(/*observer*/ nullptr, view, rect);
+        *returnTextEdit = static_cast<gmpi::api::ITextEdit*>(te);
+        return gmpi::ReturnCode::Ok;
+    }
+    gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override
+    {
+        auto* rect = reinterpret_cast<GmpiDrawing_API::MP1_RECT*>(const_cast<gmpi::drawing::Rect*>(r));
+        auto menu = new GmpiGuiHosting::PlatformMenu(view, rect);
+        *returnPopupMenu = static_cast<gmpi::api::IPopupMenu*>(menu);
+        return gmpi::ReturnCode::Ok;
+    }
     gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override
     {
         *returnKeyListener = new GMPI_MAC_KeyListener(view, r);
         return gmpi::ReturnCode::Ok;
     }
-    gmpi::ReturnCode createFileDialog (int32_t dialogType, gmpi::api::IUnknown** returnDialog) override {return gmpi::ReturnCode::NoSupport;}
-    gmpi::ReturnCode createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) override {return gmpi::ReturnCode::NoSupport;}
+    gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override
+    {
+        auto dlg = new GmpiGuiHosting::PlatformFileDialog(dialogType, view);
+        *returnDialog = static_cast<gmpi::api::IFileDialog*>(dlg);
+        return gmpi::ReturnCode::Ok;
+    }
+    gmpi::ReturnCode createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) override
+    {
+        auto dlg = new GmpiGuiHosting::PlatformOkCancelDialog(dialogType, view, title, text);
+        *returnDialog = static_cast<gmpi::api::IStockDialog*>(dlg);
+        return gmpi::ReturnCode::Ok;
+    }
 
     // IMpGraphicsHost
     void MP_STDCALL invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override
@@ -362,7 +389,8 @@ public:
     }
     int32_t MP_STDCALL createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override
     {
-        *returnFileDialog = new GmpiGuiHosting::PlatformFileDialog(dialogType, view);
+        // PlatformFileDialog implements the new API; hand out its legacy adapter.
+        *returnFileDialog = (new GmpiGuiHosting::PlatformFileDialog(dialogType, view))->asLegacy();
         return gmpi::MP_OK;
     }
     int32_t MP_STDCALL createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override
