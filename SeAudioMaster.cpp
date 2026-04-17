@@ -1184,9 +1184,7 @@ void AudioMasterBase::BuildModules(
 			ug_base* to = dynamic_cast<ug_base*>( HandleToObject( toModule ) );
 
 			if( from && to ) // are not muted.
-			{
 				from->connect( from->GetPlug(fromPinIndex), to->GetPlug(toPinIndex) );
-			}
 		}
 	}
 	
