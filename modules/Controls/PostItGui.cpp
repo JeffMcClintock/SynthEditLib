@@ -105,11 +105,6 @@ public:
 	ReturnCode getClipArea(Rect* returnRect) override
 	{
 		*returnRect = inflateRect(bounds, 500);
-		//const auto ext = getShadowExtent();
-		//returnRect->left -= ext;
-		//returnRect->top -= ext;
-		//returnRect->right += ext;
-		//returnRect->bottom += ext;
 		return ReturnCode::Ok;
 	}
 
@@ -139,7 +134,7 @@ public:
 		const float h = getHeight(r);
 		const float curlSize = getCurlSize();
 
-		if(layer == -1)
+		if(layer == -1) // shadow
 		{
 			const auto blurRadius = static_cast<int>(0.06f * (std::min)(w, h));
 			const auto blurRadiusF = static_cast<float>(blurRadius);
@@ -186,7 +181,7 @@ public:
 			g.setTransform(orig); 
 
 		}
-		else
+		else if(layer == 0) // note
 		{
 //			return ReturnCode::Ok;
 			// ── Yellow palette ──
@@ -234,6 +229,10 @@ public:
 
 				auto textBrush = g.createSolidColorBrush(Color{0.1f, 0.1f, 0.1f, 1.0f});
 				auto& richFormat = getRichTextFormat(g);
+
+				auto orig = g.getTransform();
+				g.setTransform(makeSkew(0.04f, 0.0f, { textRect.left, textRect.top }) * orig);
+
 				g.drawRichTextU(richFormat, textRect, textBrush);
 			}
 
