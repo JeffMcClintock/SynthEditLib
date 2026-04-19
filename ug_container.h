@@ -12,7 +12,13 @@ public:
 	int Close() override;
 	class ug_patch_param_setter* GetParameterSetter();
 	class ug_patch_param_setter* GetParameterSetterSecondary();
+	class ug_voice_host_control_fanout* GetVoiceHostControlFanout();
 	void ConnectHostControl(HostControls hostConnect, UPlug* plug);
+
+	// MIDI-CV redirector calls here instead of patch_manager->OnMidi. Parses MIDI,
+	// fires performance events directly via VoiceList::sendDirectPathValue (no patch-manager involvement),
+	// and silently ignores non-performance events (route those through a Patch-Automator).
+	void OnMidi(struct VoiceControlState* voiceState, timestamp_t timestamp, const unsigned char* midiMessage, int size);
 	ug_base* GetDefaultSetter();
 	class ug_patch_param_watcher* GetParameterWatcher();
 
@@ -63,8 +69,18 @@ private:
 	IDspPatchManager* m_patch_manager;
 	class ug_patch_param_setter* parameterSetter_;
 	class ug_patch_param_setter* parameterSetterSecondary_;
+	class ug_voice_host_control_fanout* voiceHostControlFanout_;
 	class ug_patch_param_watcher* parameterWatcher_;
 
 	ug_base* defaultSetter_; // cached for fast access.
 	int nextRefreshVoice_;
+
+	// MIDI 1.0 RPN/NRPN state machine. Performance events (currently just RPN 0 = PitchBend
+	// Sensitivity) that arrive via the container's OnMidi need to track which RPN is currently
+	// selected so the subsequent data-entry CC (CC 6 MSB / CC 38 LSB) knows what to update.
+	// Duplicates what DspPatchManager keeps for the automation path — the two state machines are
+	// independent because the two MIDI dispatch routes don't share state.
+	unsigned short incomingRpn_ = 0xffff;  // NULL_RPN
+	unsigned short incomingNrpn_ = 0xffff; // NULL_RPN
+	short dataEntry14bit_ = 0;
 };

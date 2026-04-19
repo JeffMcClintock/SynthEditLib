@@ -96,3 +96,7 @@ bool AttachesToVoiceContainer( HostControls hostControlId );
 bool HostControlisPolyphonic(HostControls hostControlId);
 bool AffectsVoiceAllocation(HostControls hostControlId);
 
+// Performance host-controls: fanned out directly from the voice container (no patch-manager involvement).
+// MIDI-CV routes these directly into voice modules so musical timing stays sample-accurate.
+bool isDirectPathHostControl(HostControls hostControlId);
+

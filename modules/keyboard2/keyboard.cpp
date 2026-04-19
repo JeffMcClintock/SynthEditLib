@@ -46,6 +46,12 @@ Keyboard::Keyboard(IMpUnknown* host) : MpBase(host)
 
 	initializePin( i++, pinHoldPedal );
 
+	// MIDI In + Channel — plug indices 21 & 22 (the next free after HoldPedal at 20) so they
+	// don't shift any other pin's index. We don't process the MIDI data here; the redirector
+	// built by CreateMidiRedirector intercepts MIDI and dispatches performance events via
+	// container->OnMidi → direct-path fanout → our Voice/Gate, Voice/Pitch, etc. input pins.
+	initializePin(21, pinMIDIIn);
+	initializePin(22, pinChannel);
 }
 
 int32_t Keyboard::open()

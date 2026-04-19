@@ -340,3 +340,55 @@ bool AffectsVoiceAllocation(HostControls hostControlId)
 
 	return false;
 }
+
+bool isDirectPathHostControl(HostControls hostControlId)
+{
+	switch (hostControlId)
+	{
+	// Poly per-voice note events
+	case HC_VOICE_TRIGGER:
+	case HC_VOICE_GATE:
+	case HC_VOICE_PITCH:
+	case HC_VOICE_VELOCITY_KEY_ON:
+	case HC_VOICE_VELOCITY_KEY_OFF:
+	case HC_VOICE_AFTERTOUCH:
+	// Voice/Active MUST travel the same direct path as gate/velocity/pitch so downstream
+	// voice modules see all four pins updated in the same block. Routing via the legacy
+	// patch-parameter-setter introduces a one-block ordering skew — MidiToCv2 would see
+	// pinVoiceActive update one block BEFORE pinVoiceGate and run its hardReset branch
+	// (CleanVelocityAndAftertouch → pinVelocity.setValueInstant) while pinVoiceVelocityKeyOn
+	// is still at zero. The envelope would attack with near-zero Overall Level, producing
+	// ~1/36 amplitude audio in OS_Synth_no_PA.
+	case HC_VOICE_ACTIVE:
+
+	// Mono performance
+	case HC_PITCH_BENDER:
+	case HC_HOLD_PEDAL:
+	case HC_CHANNEL_PRESSURE:
+	// BenderRange is the RPN-0 performance value that pairs with the live pitch-bend — how many
+	// semitones a full ±bend spans. Like pitch-bend itself, it needs to reach voice modules
+	// synchronously via the fanout (not through patch_manager) so the user's MIDI stream of
+	// PitchBend + BenderRange changes is applied in order. Handled by ug_container::OnMidi's
+	// RPN case (both MIDI 1.0 RPN-data-entry and MIDI 2.0 RPN messages).
+	case HC_BENDER_RANGE:
+
+	// Poly performance (per-note expression)
+	case HC_VOICE_VOLUME:
+	case HC_VOICE_PAN:
+	case HC_VOICE_PITCH_BEND:
+	case HC_VOICE_VIBRATO:
+	case HC_VOICE_EXPRESSION:
+	case HC_VOICE_BRIGHTNESS:
+	case HC_VOICE_USER_CONTROL0:
+	case HC_VOICE_USER_CONTROL1:
+	case HC_VOICE_USER_CONTROL2:
+
+	// Poly portamento
+	case HC_VOICE_PORTAMENTO_ENABLE:
+	case HC_GLIDE_START_PITCH:
+		return true;
+
+	default:
+		return false;
+	}
+}

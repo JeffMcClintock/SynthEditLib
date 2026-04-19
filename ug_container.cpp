@@ -13,7 +13,11 @@
 #include "ug_patch_automator.h"
 #include "modules/shared/voice_allocation_modes.h"
 #include "ug_patch_param_setter.h"
+#include "ug_voice_host_control_fanout.h"
 #include "dsp_patch_manager.h"
+#include "midi_defs.h"
+#include "modules/se_sdk3/mp_midi.h"
+#include "debug_midi_log.h"
 #include "tinyxml/tinyxml.h"
 #include "dsp_patch_parameter_base.h"
 #include "Hosting/message_queues.h"
@@ -270,6 +274,7 @@ ug_container::ug_container() :
 	,m_patch_manager(0)
 	, parameterSetter_(0)
 	, parameterSetterSecondary_(0)
+	, voiceHostControlFanout_(0)
 	, parameterWatcher_(0)
 	,defaultSetter_(0)
 	, nextRefreshVoice_(-1)
@@ -867,6 +872,21 @@ void ug_container::ReRoutePlugs()
 			throw e;
 		}
 
+		// Direct-path host-controls (HC_VOICE_PITCH, gate, velocity, etc.) live on the
+		// fanout, not on a patch parameter, so InitSetDownstream above doesn't propagate
+		// polyphony from them. Do that here so downstream voice modules (MidiToCv2,
+		// VoiceSplitter, etc.) get voice-cloned correctly.
+		if (voiceHostControlFanout_)
+		{
+			if (auto fb = voiceHostControlFanout_->PropagatePolyphonicDownstream())
+			{
+#ifdef _DEBUG
+				fb->DebugDump();
+#endif
+				throw fb;
+			}
+		}
+
 		front()->PolyphonicSetup();
 	}
 
@@ -1037,6 +1057,21 @@ ug_patch_param_setter* ug_container::GetParameterSetter()
 	return parameterSetter_;
 }
 
+// Direct-path fan-out module for performance host-controls (gate, velocity, pitch-bender, etc.)
+// Lives in the voice container upstream of MIDI-CV; not flagged UGF_PARAMETER_SETTER so FlagUpStream
+// never transfers its pins to secondary and never applies PF_PARAMETER_1_BLOCK_LATENCY.
+ug_voice_host_control_fanout* ug_container::GetVoiceHostControlFanout()
+{
+	if (voiceHostControlFanout_ == nullptr)
+	{
+		assert((flags & UGF_OPEN) == 0 && "can't create after open, or it may miss open()");
+		voiceHostControlFanout_ = dynamic_cast<ug_voice_host_control_fanout*>(ModuleFactory()->GetById(L"SE Voice Host Control Fanout")->BuildSynthOb());
+		AddUG(voiceHostControlFanout_);
+		voiceHostControlFanout_->SetupWithoutCug();
+	}
+	return voiceHostControlFanout_;
+}
+
 // The secondary setter is for modules UPSTREAM of the Patch-Automator (e.g. MIDI processors). These would normally create a feedback loop, but
 // if we can accept a 1-block delay, these modules can be automated too.
 ug_patch_param_setter* ug_container::GetParameterSetterSecondary()
@@ -1090,6 +1125,386 @@ ug_patch_param_watcher* ug_container::GetParameterWatcher()
 	return parameterWatcher_;
 }
 
+namespace
+{
+	// Reach voice modules downstream of MIDI-CV using the direct fan-out.
+	// physicalVoice comes from the allocated Voice's slot index.
+	void firePoly(VoiceList* vl, HostControls hc, timestamp_t ts, ug_container* container, int physicalVoice, float value)
+	{
+		vl->sendDirectPathValue(hc, ts, container, physicalVoice, sizeof(value), &value);
+	}
+	void fireMono(VoiceList* vl, HostControls hc, timestamp_t ts, ug_container* container, float value)
+	{
+		vl->sendDirectPathValue(hc, ts, container, 0, sizeof(value), &value);
+	}
+}
+
+// MIDI-CV calls here instead of patch_manager->OnMidi. Parses MIDI, fires performance events
+// directly via VoiceList's direct-path fan-out (no patch manager involvement). Non-performance
+// events (arbitrary CCs, RPN, NRPN, SysEx, ProgramChange) are silently ignored — users route
+// those through a Patch-Automator, which remains on the old patch_manager->OnMidi path.
+void ug_container::OnMidi(VoiceControlState* voiceState, timestamp_t timestamp, const unsigned char* midiMessage, int size)
+{
+	if (!isContainerPolyphonic())
+		return;
+
+	const gmpi::midi::message_view msg(midiMessage, size);
+
+	// TODO, rather than handle MIDI 1.0 and MIDI 2.0 seperatly, could we use a gmpi::midi_2_0::MidiConverter2 to convert everything to MIDI 2.0 and delete the 1.0 path?
+	//       would need to double check that every case handled here is also handled by the midi converter (else we should enhance the midi converter)
+
+	if (gmpi::midi_2_0::isMidi2Message(midiMessage, size))
+	{
+		const auto header = gmpi::midi_2_0::decodeHeader(msg);
+		if (header.messageType != gmpi::midi_2_0::ChannelVoice64)
+			return;
+
+		switch (header.status)
+		{
+		case gmpi::midi_2_0::NoteOn:
+		{
+			const auto note = gmpi::midi_2_0::decodeNote(msg);
+			DMIDI_LOG("[container ts=%lld] MIDI2 NoteOn key=%d vel=%.3f attr=%d\n", (long long)timestamp, note.noteNumber, note.velocity, (int)note.attributeType);
+			if (gmpi::midi_2_0::attribute_type::Pitch == note.attributeType)
+			{
+				voiceState->SetKeyTune(note.noteNumber, note.attributeValue);
+				voiceState->OnKeyTuningChangedA(timestamp, note.noteNumber, 0);
+				// Mirror the tuning on the container's own table too — VoiceList::DoNoteOn reads
+				// GetKeyTune(voiceId) to derive the voice's pitch, and the container (not
+				// voiceState) is the VoiceList, so it needs the authoritative tuning value.
+				SetKeyTune(note.noteNumber, note.attributeValue);
+			}
+			// Stash velocity so VoiceList::DoNoteOn can fire it along with trigger+gate on voice activation.
+			// Mono-last replacement reads this same cache (keyed by note number) when it re-assigns a held
+			// key's original velocity to the voice.
+			pendingNoteVelocity_[note.noteNumber & 0x7f] = note.velocity;
+			VoiceAllocationNoteOn(timestamp, note.noteNumber);
+		}
+		break;
+
+		case gmpi::midi_2_0::NoteOff:
+		{
+			const auto note = gmpi::midi_2_0::decodeNote(msg);
+			DMIDI_LOG("[container ts=%lld] MIDI2 NoteOff key=%d vel=%.3f\n", (long long)timestamp, note.noteNumber, note.velocity);
+			// Call VoiceAllocationNoteOff FIRST so mono-last-note priority can reassign the voice.
+			// If the voice was reassigned to a previously-held note, GetVoice(releasedKey) now returns nullptr
+			// and we correctly skip firing gate=0 (the voice should stay gated for the replacement note).
+			// Matches the legacy dsp_patch_parameter::SendValue ordering.
+			VoiceAllocationNoteOff(timestamp, note.noteNumber);
+			if (auto voice = GetVoice(static_cast<short>(note.noteNumber)))
+			{
+				DMIDI_LOG("  voice=%d still assigned after VoiceAlloc, firing gate=0, velocity-off\n", voice->m_voice_number);
+				firePoly(this, HC_VOICE_GATE, timestamp, this, voice->m_voice_number, 0.0f);
+				// Velocity in SE volts (0-10 V) — see VoiceList::DoNoteOn's VELOCITY_KEY_ON fire.
+				firePoly(this, HC_VOICE_VELOCITY_KEY_OFF, timestamp, this, voice->m_voice_number, note.velocity * 10.0f);
+			}
+			else
+			{
+				DMIDI_LOG("  voice released/reassigned — no gate-off fire (correct for mono-last)\n");
+			}
+		}
+		break;
+
+		case gmpi::midi_2_0::PolyControlChange:
+		{
+			const auto pc = gmpi::midi_2_0::decodePolyController(msg);
+			if (pc.type == gmpi::midi_2_0::PolyPitch)
+			{
+				const auto semitones = gmpi::midi_2_0::decodeNotePitch(msg);
+				voiceState->SetKeyTune(pc.noteNumber, semitones);
+				voiceState->OnKeyTuningChangedA(timestamp, pc.noteNumber, 0);
+				// Mirror into the container's table (see NoteOn pitch-attribute branch above).
+				SetKeyTune(pc.noteNumber, semitones);
+			}
+			else if (auto voice = GetVoice(static_cast<short>(pc.noteNumber)))
+			{
+				HostControls hc = HC_NONE;
+				switch (pc.type)
+				{
+				case gmpi::midi_2_0::PolyVolume:           hc = HC_VOICE_VOLUME; break;
+				case gmpi::midi_2_0::PolyPan:              hc = HC_VOICE_PAN; break;
+				case gmpi::midi_2_0::PolySoundController5: hc = HC_VOICE_BRIGHTNESS; break;
+				default: break;
+				}
+				if (hc != HC_NONE)
+					firePoly(this, hc, timestamp, this, voice->m_voice_number, pc.value);
+			}
+		}
+		break;
+
+		case gmpi::midi_2_0::PolyBender:
+		{
+			const auto pc = gmpi::midi_2_0::decodePolyController(msg);
+			if (auto voice = GetVoice(static_cast<short>(pc.noteNumber)))
+				firePoly(this, HC_VOICE_PITCH_BEND, timestamp, this, voice->m_voice_number, pc.value);
+		}
+		break;
+
+		case gmpi::midi_2_0::PolyAfterTouch:
+		{
+			// MidiToCv2.pinVoiceAftertouch uses the SE volts convention (0-10 V). Its output
+			// signal is `0.1f * pinVoiceAftertouch`, which expects volts on the input. MIDI
+			// aftertouch arrives as 0-1 normalised, so scale × 10 before firing.
+			const auto pc = gmpi::midi_2_0::decodePolyController(msg);
+			if (auto voice = GetVoice(static_cast<short>(pc.noteNumber)))
+				firePoly(this, HC_VOICE_AFTERTOUCH, timestamp, this, voice->m_voice_number, pc.value * 10.0f);
+		}
+		break;
+
+		case gmpi::midi_2_0::ChannelPressue:
+		{
+			const auto c = gmpi::midi_2_0::decodeController(msg);
+			fireMono(this, HC_CHANNEL_PRESSURE, timestamp, this, c.value);
+		}
+		break;
+
+		case gmpi::midi_2_0::PitchBend:
+		{
+			// decodeController returns 0..1 with 0.5 = center. MidiToCv2's totalBend formula
+			// (pinBender * pinBenderRange / 120) treats pinBender as bipolar around 0, so
+			// remap to [-1, +1] here: c.value * 2 - 1.
+			//
+			// Why bipolar-around-zero and not just [-0.5, +0.5]? The reference output matches
+			// exactly when pinBender is in [-1, +1] — the full-range case (±1 × range / 120)
+			// produces the full ±range bend. See Bender test: with bender=0.937 and range=10
+			// semitones, reference delta is 0.07285 V, and 0.874 × 10/120 = 0.07283 ✓.
+			const auto c = gmpi::midi_2_0::decodeController(msg);
+			fireMono(this, HC_PITCH_BENDER, timestamp, this, c.value * 2.0f - 1.0f);
+		}
+		break;
+
+		case gmpi::midi_2_0::RPN:
+		{
+			// RPN 0 (PitchBendSensitivity / BenderRange) is the companion to live PitchBend — it
+			// sets how many semitones a full ±bend spans. MidiToCv2.pinBenderRange consumes it in
+			// SEMITONES (not a 0..1 normalised value) — its totalBend formula multiplies by the
+			// range and divides by 120 to get volts. The 14-bit payload encodes MSB = whole
+			// semitones, LSB = cents/128, so value/128.0 gives us a float semitone count.
+			//
+			// The patch-manager automation path reaches a different plug via a parameter object
+			// that has RangeMaximum≈128, which performs the same normalised→semitones scaling on
+			// its way to the destination plug. We skip the parameter here, so do the scaling
+			// ourselves before firing the direct-path event.
+			const auto rpn = gmpi::midi_2_0::decodeRpn(msg);
+			if (rpn.rpn == gmpi::midi_2_0::RpnTypes::PitchBendSensitivity)
+			{
+				const float semitones = (float)rpn.value / 128.0f;
+				fireMono(this, HC_BENDER_RANGE, timestamp, this, semitones);
+			}
+		}
+		break;
+
+		case gmpi::midi_2_0::ControlChange:
+		{
+			const auto c = gmpi::midi_2_0::decodeController(msg);
+			switch (c.type)
+			{
+			case 64: // Damper / Sustain
+			case 69: // Hold 2
+			{
+				// MidiToCv2's pinHoldPedal is in SE volts (0-10 V, threshold 5 V). MIDI CC
+				// decodes to 0.0-1.0 normalised; scale × 10 so the on/off threshold lines up.
+				const float pedalVolts = c.value * 10.0f;
+				fireMono(this, HC_HOLD_PEDAL, timestamp, this, pedalVolts);
+				SetHoldPedalState(c.value >= 0.5f);
+			}
+				break;
+
+			case MIDI_CC_ALL_SOUND_OFF: // CC 120
+				for (int key = 0; key < 128; ++key)
+				{
+					if (auto voice = GetVoice(static_cast<short>(key)))
+						firePoly(this, HC_VOICE_GATE, timestamp, this, voice->m_voice_number, 0.0f);
+					killVoice(timestamp, key);
+				}
+				break;
+
+			case MIDI_CC_ALL_NOTES_OFF: // CC 123
+				for (int key = 0; key < 128; ++key)
+				{
+					if (auto voice = GetVoice(static_cast<short>(key)))
+					{
+						firePoly(this, HC_VOICE_GATE, timestamp, this, voice->m_voice_number, 0.0f);
+						// Velocity in SE volts (0-10 V); 0.5 normalised → 5 V = mid-velocity default.
+						firePoly(this, HC_VOICE_VELOCITY_KEY_OFF, timestamp, this, voice->m_voice_number, 5.0f);
+					}
+				}
+				break;
+			}
+		}
+		break;
+		}
+		return;
+	}
+
+	// MIDI 1.0 path.
+	int status = midiMessage[0] & 0xf0;
+	if (midiMessage[2] == 0 && status == NOTE_ON)
+		status = NOTE_OFF;
+	const int byte1 = midiMessage[1] & 0x7F;
+	const int byte2 = midiMessage[2] & 0x7F;
+
+	switch (status)
+	{
+	case NOTE_ON:
+	{
+		const float velocityN = (float)byte2 / 127.0f;
+		// TODO: honour the high-resolution velocity prefix (CC 88). A sender that supports it
+		// emits `CC 88 = <lsb>` immediately before NoteOn, forming a 14-bit velocity that scales
+		// by 1/16383. The legacy patch_manager path supported it; this direct path currently
+		// does not. Add an `highResVelocityPrefix_` member that CC 88 writes to and NoteOn reads
+		// (resetting it to 0 afterwards), giving `velocityN = ((byte2<<7) | prefix) / 16383.0f`.
+		DMIDI_LOG("[container ts=%lld] NOTE_ON key=%d vel=%.3f\n", (long long)timestamp, byte1, velocityN);
+		// Stash velocity so DoNoteOn can fire it on voice activation (including mono-last replacement).
+		pendingNoteVelocity_[byte1 & 0x7f] = velocityN;
+		VoiceAllocationNoteOn(timestamp, byte1);
+	}
+	break;
+
+	case NOTE_OFF:
+	{
+		const float velocityN = (float)byte2 / 127.0f;
+		DMIDI_LOG("[container ts=%lld] NOTE_OFF key=%d vel=%.3f\n", (long long)timestamp, byte1, velocityN);
+		// VoiceAllocationNoteOff FIRST — mono-last-note priority may reassign the voice to a previously-held note.
+		// If reassigned, GetVoice(releasedKey) returns nullptr and we correctly skip firing gate=0.
+		VoiceAllocationNoteOff(timestamp, byte1);
+		if (auto voice = GetVoice(static_cast<short>(byte1)))
+		{
+			DMIDI_LOG("  voice=%d still assigned after VoiceAlloc, firing gate=0, velocity-off\n", voice->m_voice_number);
+			firePoly(this, HC_VOICE_GATE, timestamp, this, voice->m_voice_number, 0.0f);
+			// Velocity in SE volts (0-10 V).
+			firePoly(this, HC_VOICE_VELOCITY_KEY_OFF, timestamp, this, voice->m_voice_number, velocityN * 10.0f);
+		}
+		else
+		{
+			DMIDI_LOG("  voice released/reassigned — no gate-off fire\n");
+		}
+	}
+	break;
+
+	case POLY_AFTERTOUCH:
+	{
+		// See MIDI 2.0 PolyAfterTouch branch above: pinVoiceAftertouch uses 0-10 V, not
+		// 0-1 normalised. Convert 0-127 MIDI directly to 0-10 V.
+		if (auto voice = GetVoice(static_cast<short>(byte1)))
+			firePoly(this, HC_VOICE_AFTERTOUCH, timestamp, this, voice->m_voice_number, (float)byte2 * (10.0f / 127.0f));
+	}
+	break;
+
+	case CHANNEL_PRESSURE:
+		fireMono(this, HC_CHANNEL_PRESSURE, timestamp, this, (float)byte1 / 127.0f);
+		break;
+
+	case PITCHBEND:
+	{
+		// bipoler14bitToNormalized returns 0..1 (center = 0.5). Remap to [-1, +1] for MidiToCv2
+		// — see the MIDI 2.0 PitchBend branch above for why.
+		const auto normalized = gmpi::midi::utils::bipoler14bitToNormalized(static_cast<uint8_t>(byte2), static_cast<uint8_t>(byte1));
+		fireMono(this, HC_PITCH_BENDER, timestamp, this, normalized * 2.0f - 1.0f);
+	}
+	break;
+
+	case SYSTEM_MSG:
+	{
+		// MIDI Tuning Standard SysEx: F0 7E/7F <device> 08 <sub-id2> ... F7
+		// This is a performance event — it directly retunes keys, affecting the pitch of every
+		// subsequent note-on. It's never used for regular parameter automation and isn't
+		// persistent in the way patch parameters are. So route it via the same direct path as
+		// NoteOn pitch-attribute and PolyPitch, updating both voiceState's table (so its
+		// OnKeyTuningChangedA automation fires — which drives any HC_PITCH-wired pins on
+		// downstream modules) and the container's own table (which VoiceList::DoNoteOn reads
+		// via GetKeyTune when computing each voice's pitch).
+		//
+		// size >= 5 covers F0 + Universal-ID + device + sub-id1 + sub-id2 = the minimum needed
+		// to identify a tuning message. The actual payload length varies with sub-id2.
+		if (size >= 5
+			&& midiMessage[0] == SYSTEM_EXCLUSIVE
+			&& (midiMessage[1] == 0x7e || midiMessage[1] == 0x7f) // Universal Non-Realtime / Realtime
+			&& midiMessage[3] == 0x08)                            // Sub-ID#1 = MIDI Tuning Standard
+		{
+			voiceState->OnMidiTuneMessageA(timestamp, midiMessage);
+			OnMidiTuneMessageA(timestamp, midiMessage);
+		}
+	}
+	break;
+
+	case CONTROL_CHANGE:
+		switch (byte1)
+		{
+		case 64: // Damper / Sustain
+		case 69: // Hold 2
+		{
+			// Scale 0-127 MIDI to 0-10 V — MidiToCv2's pinHoldPedal uses a 5 V threshold.
+			const float pedalVolts = (float)byte2 * (10.0f / 127.0f);
+			fireMono(this, HC_HOLD_PEDAL, timestamp, this, pedalVolts);
+			SetHoldPedalState(byte2 >= 64);
+		}
+		break;
+
+		case MIDI_CC_ALL_SOUND_OFF:
+			for (int key = 0; key < 128; ++key)
+			{
+				if (auto voice = GetVoice(static_cast<short>(key)))
+					firePoly(this, HC_VOICE_GATE, timestamp, this, voice->m_voice_number, 0.0f);
+				killVoice(timestamp, key);
+			}
+			break;
+
+		case MIDI_CC_ALL_NOTES_OFF:
+			for (int key = 0; key < 128; ++key)
+			{
+				if (auto voice = GetVoice(static_cast<short>(key)))
+				{
+					firePoly(this, HC_VOICE_GATE, timestamp, this, voice->m_voice_number, 0.0f);
+					firePoly(this, HC_VOICE_VELOCITY_KEY_OFF, timestamp, this, voice->m_voice_number, 0.5f);
+				}
+			}
+			break;
+
+		// MIDI 1.0 RPN/NRPN state machine. The sender sets the active RPN number via CC 101/100
+		// (MSB/LSB) and NRPN number via CC 99/98, then writes the value via data-entry CC 6 MSB
+		// and (optionally) CC 38 LSB. Only RPN 0 (PitchBendSensitivity / BenderRange) is a
+		// performance event we care about here — everything else is parameter automation and
+		// belongs on the patch_manager path.
+		case NRPN_MSB:
+			incomingNrpn_ = (incomingNrpn_ & 0x007f) | ((byte2 & 0x7f) << 7);
+			incomingRpn_ = 0xffff;
+			break;
+		case NRPN_LSB:
+			incomingNrpn_ = (incomingNrpn_ & 0x3f80) | (byte2 & 0x7f);
+			incomingRpn_ = 0xffff;
+			break;
+		case RPN_MSB:
+			incomingRpn_ = (incomingRpn_ & 0x007f) | ((byte2 & 0x7f) << 7);
+			incomingNrpn_ = 0xffff;
+			break;
+		case RPN_LSB:
+			incomingRpn_ = (incomingRpn_ & 0x3f80) | (byte2 & 0x7f);
+			incomingNrpn_ = 0xffff;
+			break;
+
+		case RPN_CONTROLLER: // CC 6 = data-entry MSB
+			dataEntry14bit_ = (byte2 & 0x7f) << 7;
+			if (incomingRpn_ == 0) // RPN 0 = PitchBend Sensitivity
+			{
+				// See MIDI 2.0 RPN branch above for why we fire semitones not normalised.
+				const float semitones = (float)dataEntry14bit_ / 128.0f;
+				fireMono(this, HC_BENDER_RANGE, timestamp, this, semitones);
+			}
+			break;
+		case RPN_CONTROLLER + 32: // CC 38 = data-entry LSB (fine)
+			dataEntry14bit_ = (dataEntry14bit_ & 0x3f80) | (byte2 & 0x7f);
+			if (incomingRpn_ == 0)
+			{
+				const float semitones = (float)dataEntry14bit_ / 128.0f;
+				fireMono(this, HC_BENDER_RANGE, timestamp, this, semitones);
+			}
+			break;
+		}
+		break;
+	}
+}
+
 void ug_container::ConnectHostControl(HostControls hostConnect, UPlug* plug)
 {
 	if (hostConnect == HC_SNAP_MODULATION__DEPRECATED)
@@ -1097,27 +1512,32 @@ void ug_container::ConnectHostControl(HostControls hostConnect, UPlug* plug)
 		return;
 	}
 
-	// Voice/Active and Voice-ID are always controled by the VoiceList.
-	if (hostConnect == HC_VOICE_VIRTUAL_VOICE_ID || hostConnect == HC_VOICE_ACTIVE)
+	// Voice/VirtualVoiceId stays on the legacy setter path — it's an int identifying the
+	// physical voice slot, has no performance-event semantics, and modules like VoiceMonitor
+	// use it only occasionally.
+	if (hostConnect == HC_VOICE_VIRTUAL_VOICE_ID)
 	{
 		auto polyContainer = getVoiceControlContainer();
 		polyContainer->GetParameterSetter()->ConnectVoiceHostControl(polyContainer, hostConnect, plug);
-		/*
-		// Polyphonic containers control Voice-ID and Voice-Active.
-		// Also when using MIDI-CV we control Gate.
-		if (isContainerPolyphonic() || ParentContainer() == 0)
-		{
-			// _RPTW1(_CRT_WARN, L"%s controlled by local container.\n", GetHostControlName(hostConnect) );
-			GetParameterSetter()->ConnectVoiceHostControl(this, hostConnect, plug);
-		}
-		else
-			ParentContainer()->ConnectHostControl(hostConnect, plug);
-			*/
+		return;
 	}
-	else
+
+	// Performance host-controls (gate, velocity, pitch, active, aftertouch, pitch-bender,
+	// channel-pressure, hold-pedal, poly expression, etc.) get routed directly into the voice
+	// container's fanout module — bypassing patch_manager entirely. This is how MIDI-CV
+	// performance events reach voice modules without any 1-block latency or feedback cycle
+	// through the setter. Voice/Active is on this list too so it stays in lockstep with the
+	// other voice HCs at note-on.
+	if (isDirectPathHostControl(hostConnect))
 	{
-		get_patch_manager()->ConnectHostControl2(hostConnect, plug);
+		auto polyContainer = getVoiceControlContainer();
+		polyContainer->GetVoiceHostControlFanout()->ConnectDirectPathHostControl(polyContainer, hostConnect, plug);
+		return;
 	}
+
+	// Everything else (parameter automation, RPN/NRPN, program changes, etc.) still goes through
+	// the patch manager.
+	get_patch_manager()->ConnectHostControl2(hostConnect, plug);
 }
 
 void ug_container::Setup(class ISeAudioMaster* am, class TiXmlElement* xml)

@@ -10,6 +10,7 @@ class HostVoiceControl
 public:
 	void ConnectPin( class UPlug* pin );
 	void sendValue( timestamp_t clock, class ug_container* container, int physicalVoiceNumber, int32_t size, void* data );
+	void sendMonoValue( timestamp_t clock, class ug_container* container, int32_t size, void* data );
 
 private:
 	std::vector<class UPlug*> outputPins_; // output pins on the patch-automator/s

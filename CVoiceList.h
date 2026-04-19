@@ -257,6 +257,10 @@ public:
 	void ConnectVoiceHostControl( HostControls hostConnect, class UPlug* plug );
 	bool OnVoiceControlChanged(HostControls hostConnect, int32_t size, const void* data);
 
+	// Direct fan-out for performance host-controls. Called from ug_container::OnMidi when the
+	// MIDI-CV parses a performance event. Bypasses patch_manager entirely.
+	void sendDirectPathValue(HostControls hc, timestamp_t clock, class ug_container* container, int physicalVoiceNumber, int32_t size, void* data);
+
 	int voiceAllocationMode_;
 	int overridingVoiceAllocationMode_;
 	float portamento_;
@@ -284,6 +288,19 @@ protected:
 
 	HostVoiceControl voiceActiveHc_;
 	HostVoiceControl voiceIdHc_;
+
+	// Populated for host-controls where isDirectPathHostControl() returns true. Empty entries are harmless
+	// (sendValue iterates an empty pin list). Only the voice container (not patch_manager) fires these.
+	std::array<HostVoiceControl, HC_NUM_HOST_CONTROLS> directPathHostControls_;
+
+	// Cache of the velocity received at note-on time, indexed by MIDI key number. Read by DoNoteOn when
+	// allocating a voice (including mono-last-note replacement, where we need the original velocity of
+	// the held key that's being re-assigned to the voice).
+	float pendingNoteVelocity_[128];
+
+	// Trigger pulse counter — incremented on each voice activation that wants a retrigger, fired as
+	// the HC_VOICE_TRIGGER direct-path value. Voice modules (envelopes etc.) detect the change in value.
+	float nextVoiceReset_ = 0.0f;
 
 	bool is_polyphonic;
 	bool is_polyphonic_cloned;

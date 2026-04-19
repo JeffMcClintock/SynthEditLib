@@ -53,7 +53,6 @@ public:
 		MidiCvControlsVoices_ = true;
 	}
 	virtual void OnMidi(VoiceControlState* voiceState, timestamp_t timestamp, const unsigned char* midiMessage, int size, bool fromMidiCv) override;
-	void MidiSetMonoMode(timestamp_t timestamp, bool newMonoMode);
 	float InitializeVoiceParameters(ug_container* voiceControlContainer, timestamp_t timestamp, Voice* voice, /*int voiceId, bool hardReset,*/ bool sendTrigger) override;
 	void vst_Automation2(timestamp_t p_clock, int p_controller_id, const void* data, int size ) override;
 
@@ -69,9 +68,6 @@ public:
 
 protected:
 	void AddParam( dsp_patch_parameter_base* p_param );
-//	void UpdateProgram( int program );
-	void DoNoteOn(timestamp_t timestamp, class ug_container* voiceControlContainer, int voiceId, float velocity);
-	void DoNoteOff(timestamp_t timestamp, class ug_container* voiceControlContainer, int voiceId, float velocity);
 
 	dsp_patch_parameter_base* GetParameter(ug_container* voiceControlContainer, HostControls hostConnect);
 
@@ -91,7 +87,6 @@ private:
 	short two_byte_controler_value[32]; // store current LSB/MSB info from these controllers
 	unsigned short incoming_rpn;
 	unsigned short incoming_nrpn;
-	int highResolutionVelocityPrefix;
 
 	std::map<int, int> m_rpn_memory;
 	bool MidiCvControlsVoices_;

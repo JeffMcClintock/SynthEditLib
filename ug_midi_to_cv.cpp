@@ -8,6 +8,8 @@
 #include "resource.h"
 #include "module_register.h"
 #include "modules/shared/voice_allocation_modes.h"
+// #define DEBUG_CONTAINER_MIDI 1
+#include "debug_midi_log.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_midi_to_cv)
 
@@ -239,7 +241,17 @@ void ug_midi_to_cv_redirect::OnMidiData(int size, unsigned char* midi_bytes)
 		return;
 	}
 
-	get_patch_manager()->OnMidi(&voiceState_, SampleClock(), midi_bytes, size, true);
+#ifdef DEBUG_CONTAINER_MIDI
+	DMIDI_LOG("[redir ts=%lld size=%d]", (long long)SampleClock(), size);
+	for (int i = 0; i < size && i < 8; ++i) DMIDI_LOG(" %02x", (unsigned)midi_bytes[i]);
+	DMIDI_LOG("\n");
+#endif
+
+	// MIDI performance events (notes, gate, velocity, pitch-bend, channel-pressure, hold-pedal,
+	// poly expression) flow through the voice container's direct fan-out — no patch-manager
+	// involvement. Non-performance events (arbitrary CC for MIDI-Learn, RPN, NRPN, SysEx,
+	// ProgramChange) are intentionally dropped; route them through a Patch-Automator instead.
+	parent_container->OnMidi(&voiceState_, SampleClock(), midi_bytes, size);
 }
 
 // unlikely value indicating 'not set'.

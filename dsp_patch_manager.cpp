@@ -60,7 +60,6 @@ DspPatchManager::DspPatchManager(ug_container* p_container) :
 	, incoming_rpn(NULL_RPN)
 	, incoming_nrpn(NULL_RPN)
 	, MidiCvControlsVoices_(false)
-	, highResolutionVelocityPrefix(0)
 {
 	for (int i = 0; i < 32; i++)
 	{
@@ -195,25 +194,23 @@ namespace midi_2_0
 }
 
 
-// Problem, this method receives MIDI from both MIDI-CV and from Patch-Automator, yet we can save only one state for any given CC.
-// It's possible that one stream has been modified and the CC memory here will get confused/corrupted.
-// Fix would be to move all MIDI state and bytewise procesing to the two senders, one copy each, and have the sender just call the relevant methods here in a 'stateless' way,
-// maybe just the unified_controller_id and the normalised values. 
+// AUTOMATION-ONLY MIDI dispatch.
+//
+// Performance events (Note-On/Off, gate, velocity, pitch, aftertouch, channel-pressure, pitch-bend,
+// hold-pedal, all-sound-off, all-notes-off, poly expression, per-note tuning, mono/poly mode) are
+// NOT handled here any more. Those are dispatched directly by the voice container's fanout via
+// ug_container::OnMidi — usually called from a MIDI-CV module. Patch Automator only reaches this
+// function for parameter automation: CC → parameter, RPN/NRPN, SysEx, program change (future).
+//
+// User contract: wire your MIDI source to a Patch-Automator for parameter automation, wire it to a
+// MIDI-CV for performance. The same CC (e.g. CC#74) can legitimately be used for both purposes on
+// different wires to different modules — this code only deals with the automation side.
 void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestamp, const unsigned char* midiMessage, int size, bool fromMidiCv)
 {
-	// if MIDI-CV is in same container as Patch-Automator, MIDI-CV takes over note allocation.
-	// processNotes is passed as false from Patch-Automator, in which case we have to check flag.
-	bool sendToNoteSource = true;
-	bool sendToNonNoteSource = true;
-	if (fromMidiCv)
-	{
-		sendToNonNoteSource = false;
-	}
-	else
-	{
-		// Ignore notes if MIDI-CV handling them, or if there are no polyphonic voices in this container.
-		sendToNoteSource = !MidiCvControlsVoices_ && voiceState->voiceControlContainer_->isContainerPolyphonic();
-	}
+	// fromMidiCv is retained on the interface for ABI compatibility but is effectively unused:
+	// MIDI-CV now routes through ug_container::OnMidi (direct-path fanout), not through here.
+	// We still gate the CC→automation dispatch on !fromMidiCv defensively — if some future caller
+	// does invoke OnMidi from a MIDI-CV-like context, we won't double-fire automation.
 
 	const gmpi::midi::message_view msg(midiMessage, size);
 
@@ -223,7 +220,6 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 
 		if (header.messageType == gmpi::midi_2_0::ChannelVoice64)
 		{
-			// Monophonic Controllers.
 			switch (header.status)
 			{
 				case gmpi::midi_2_0::ControlChange:
@@ -233,73 +229,33 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 
 					if (!fromMidiCv)
 					{
+						// Drives parameters wired to this CC via MIDI-Learn. Covers ALL CCs including
+						// 64 (hold), 120 (all-sound-off), 123 (all-notes-off) — these values reach
+						// wired parameters as ordinary 0-1 automation. Their performance meaning
+						// (actually holding notes, killing voices) is handled in ug_container::OnMidi.
 						vst_Automation(voiceState->voiceControlContainer_, timestamp, unified_controller_id, controller.value);
 					}
 
-					switch (controller.type)
+					if (controller.type == CC_ResetAllControllers && !fromMidiCv)
 					{
-					case 64: // Damper/Hold Pedal on/off (Sustain).
-					case 69: // Hold 2.
-					{
-						vst_Automation(voiceState->voiceControlContainer_, timestamp, unified_controller_id, controller.value, sendToNoteSource, sendToNonNoteSource);
-					}
-					break;
+						// Reset the monophonic parameter-automation CCs. Performance resets
+						// (pitch-bend → centre, channel-pressure → 0) are the container's job now.
+						memset(two_byte_controler_value, 0, sizeof(two_byte_controler_value));
 
-					case CC_ResetAllControllers:
-					{
-						if (!fromMidiCv)
+						int doNotReset[] = {
+							0, 32,				// bank Select
+							7,					// Volume
+							10,					// Pan
+							70, 71, 72, 73, 74, 75, 76, 77, 78, 79,	// Sound Controllers
+							91, 92, 93, 94, 95,	// Reverb, Chorus, Phaser, Tremolo, Celeste. (Effects Controllers)
+						};
+
+						for (int controller_id = 0; controller_id < CC_AllSoundOff; ++controller_id)
 						{
-							highResolutionVelocityPrefix = 0;
-							// CCs
-							memset(two_byte_controler_value, 0, sizeof(two_byte_controler_value));
-
-							int doNotReset[] = {
-								0, 32,				// bank Selec
-								7,					// Volume
-								10,					// Pan
-								70, 71, 72, 73, 74, 75, 76, 77, 78, 79,	// Sound Controllers
-								91, 92, 93, 94, 95,	// Reverb, Chorus, Phaser, Tremolo, Celeste. (Effects Controllers)
-							};
-
-							for (int controller_id = 0; controller_id < CC_AllSoundOff; ++controller_id)
-							{
-								if(std::find(std::begin(doNotReset), std::end(doNotReset), controller_id) != std::end(doNotReset))
-								{
-									continue;
-								}
-								vst_Automation(voiceState->voiceControlContainer_, timestamp, (ControllerType::CC << 24) | controller_id, 0.0f);
-							}
-
-							// Channel Pressure
-							{
-								constexpr int automation_id = ControllerType::ChannelPressure << 24;
-
-								vst_Automation(
-									voiceState->voiceControlContainer_,
-									timestamp,
-									automation_id,
-									0.0f,
-									sendToNoteSource,
-									sendToNonNoteSource
-								);
-							}
-
-							// Pitch Bend
-							{
-								constexpr int automation_id = ControllerType::Bender << 24;
-
-								vst_Automation(
-									voiceState->voiceControlContainer_,
-									timestamp,
-									automation_id,
-									0.5f,						// Bender to middle
-									sendToNoteSource,
-									sendToNonNoteSource
-								);
-							}
+							if (std::find(std::begin(doNotReset), std::end(doNotReset), controller_id) != std::end(doNotReset))
+								continue;
+							vst_Automation(voiceState->voiceControlContainer_, timestamp, (ControllerType::CC << 24) | controller_id, 0.0f);
 						}
-					}
-					break;
 					}
 				}
 				break;
@@ -307,249 +263,23 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 				case gmpi::midi_2_0::RPN:
 				{
 					const auto rpn = gmpi::midi_2_0::decodeRpn(msg);
-
 					const auto unified_controller_id = (ControllerType::RPN << 24) | rpn.rpn;
 
+					// RPN 0 (PitchBendSensitivity) is a configuration value — still automation here.
+					// The container dispatches the live pitch-bend value as a performance event.
 					if (rpn.rpn == gmpi::midi_2_0::RpnTypes::PitchBendSensitivity)
 					{
-						if (sendToNoteSource) // Pitch Bend Range
-						{
-							constexpr float convert = 1.0f / (float)MAX_FULL_CNTRL_VAL;
-							const float normalised_value = (float)rpn.value * convert;
-							vst_Automation(voiceState->voiceControlContainer_, timestamp, unified_controller_id, normalised_value, sendToNoteSource, sendToNonNoteSource);
-						}
+						constexpr float convert = 1.0f / (float)MAX_FULL_CNTRL_VAL;
+						const float normalised_value = (float)rpn.value * convert;
+						vst_Automation(voiceState->voiceControlContainer_, timestamp, unified_controller_id, normalised_value);
 					}
 				}
 				break;
 
-				case gmpi::midi_2_0::PitchBend:
-				{
-					const auto pitchBend = gmpi::midi_2_0::decodeController(msg);
-					{
-						constexpr int automation_id = ControllerType::Bender << 24;
-						vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, pitchBend.value, sendToNoteSource, sendToNonNoteSource);
-					}
-				}
+				// PitchBend, ChannelPressue, NoteOn, NoteOff, PolyControlChange, PolyBender,
+				// PolyAfterTouch, ProgramChange, PolyNoteManagement are all performance events —
+				// handled in ug_container::OnMidi, not here.
 			}
-			
-			// Polyphonic messages
-			if (sendToNoteSource)
-			{
-				switch (header.status)
-				{
-				case gmpi::midi_2_0::NoteOn:
-				{
-					const auto note = gmpi::midi_2_0::decodeNote(msg);
-
-					// _RPTN(0, "PM Note-on %d\n", note.noteNumber);
-					if (gmpi::midi_2_0::attribute_type::Pitch == note.attributeType) // !! this is only for the current note!!! not a permanent tuning change !!! TODO
-					{
-						const auto timestamp_oversampled = voiceState->voiceControlContainer_->CalculateOversampledTimestamp(Container(), timestamp);
-
-						const auto semitones = note.attributeValue;
-						// _RPTN(0, "      ..pitch = %f\n", semitones);
-
-						voiceState->SetKeyTune(note.noteNumber, semitones);
-						voiceState->OnKeyTuningChangedA(timestamp_oversampled, note.noteNumber, 0);
-					}
-
-					DoNoteOn(timestamp, voiceState->voiceControlContainer_, note.noteNumber, note.velocity);
-				}
-				break;
-
-				case gmpi::midi_2_0::NoteOff:
-				{
-					const auto note = gmpi::midi_2_0::decodeNote(msg);
-					DoNoteOff(timestamp, voiceState->voiceControlContainer_, note.noteNumber, note.velocity);
-				}
-				break;
-
-				case gmpi::midi_2_0::PolyControlChange:
-				{
-					const auto polyController = gmpi::midi_2_0::decodePolyController(msg);
-
-					if (polyController.type == gmpi::midi_2_0::PolyPitch)
-					{
-						const auto timestamp_oversampled = voiceState->voiceControlContainer_->CalculateOversampledTimestamp(Container(), timestamp);
-
-						const auto semitones = gmpi::midi_2_0::decodeNotePitch(msg);
-						// _RPTN(0, "      .. bender pitch = %f\n", semitones);
-
-						// voiceState->OnMidiTuneMessageA(timestamp_oversampled, midiMessage);
-						voiceState->SetKeyTune(polyController.noteNumber, semitones);
-						voiceState->OnKeyTuningChangedA(timestamp_oversampled, polyController.noteNumber, 0);
-					}
-					else
-					{
-
-						int32_t seControllerType = ControllerType::kVolumeTypeID;
-						switch (polyController.type)
-						{
-						case gmpi::midi_2_0::PolyVolume:
-							seControllerType = ControllerType::kVolumeTypeID;
-							break;
-
-						case gmpi::midi_2_0::PolyPan:
-							seControllerType = ControllerType::kPanTypeID;
-							break;
-							/*
-													case gmpi::midi_2_0::PolySoundController8: // Vibrato Depth
-														seControllerType = ControllerType::kVibratoTypeID;
-														break;
-													case gmpi::midi_2_0::PolyExpression:
-														seControllerType = ControllerType::kExpressionTypeID;
-														break;
-							*/
-						case gmpi::midi_2_0::PolySoundController5: // Brightness
-							seControllerType = ControllerType::kBrightnessTypeID;
-							//							_RPTN(0, "decodeBrightness %d %f\n",polyControler.noteNumber, polyControler.value);
-
-							break;
-						}
-
-						const int32_t automation_id = (ControllerType::VoiceNoteExpression << 24) | ((seControllerType & 0xFF) << 16) | polyController.noteNumber;
-						vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, polyController.value);
-					}
-				}
-				break;
-
-				case gmpi::midi_2_0::PolyBender:
-				{
-					const auto bender = gmpi::midi_2_0::decodePolyController(msg);
-//					_RPTN(0, "decodePolyBender %f\n", bender.value);
-					const int32_t automation_id = (ControllerType::VoiceNoteExpression << 24) | ((ControllerType::kTuningTypeID & 0xFF) << 16) | bender.noteNumber;
-					vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, bender.value);
-				}
-				break;
-
-				case gmpi::midi_2_0::PolyAfterTouch:
-				{
-					const auto aftertouch = gmpi::midi_2_0::decodePolyController(msg);
-					//_RPTN(0, "decodePolyPressure %d %f\n",aftertouch.noteNumber, aftertouch.value);
-					const int32_t automation_id = (ControllerType::PolyAftertouch << 24) | aftertouch.noteNumber;
-					vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, aftertouch.value);
-				}
-				break;
-
-				case gmpi::midi_2_0::PolyNoteManagement:
-				{
-					// TODO
-				}
-				break;
-
-				// control changes, but only those that affect polyphony.
-				case gmpi::midi_2_0::ControlChange:
-				{
-					const auto controller = gmpi::midi_2_0::decodeController(msg);
-					const auto unified_controller_id = (ControllerType::CC << 24) | controller.type;
-
-					if (!fromMidiCv)
-					{
-						vst_Automation(voiceState->voiceControlContainer_, timestamp, unified_controller_id, controller.value);
-					}
-
-					// Must be after automation in case MIDI-Learn is active.
-					switch (controller.type)
-					{
-						/* All Sound Off.
-						The difference between this message and All Notes Off is that this message immediately mutes all
-						sound on the device regardless of whether the Hold Pedal is on, and mutes the sound quickly
-						regardless of any lengthy VCA release times. It's often used by sequencers to quickly mute all
-						sound when the musician presses "Stop" in the middle of a song.
-						*/
-					case MIDI_CC_ALL_SOUND_OFF: // CC 120
-					{
-						for (int keyNumber = 0; keyNumber < 128; ++keyNumber)
-						{
-							// Send gate-off automation
-							const int automation_id = (ControllerType::Gate << 24) | keyNumber;
-							const float normalised = 0.0f;
-							vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalised);
-
-							voiceState->voiceControlContainer_->killVoice(timestamp, keyNumber);
-						}
-					}
-					break;
-
-					case MIDI_CC_ALL_NOTES_OFF: // CC 123
-					{
-						for (int keyNumber = 0; keyNumber < 128; ++keyNumber)
-						{
-							// Send velocity-off automation
-							int automation_id = (ControllerType::VelocityOff << 24) | keyNumber;
-							const float velocity = 0.5f;
-							vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, velocity);
-
-							// Send gate automation
-							automation_id = (ControllerType::Gate << 24) | keyNumber;
-							const float gateOff = 0.0f;
-							vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, gateOff);
-						}
-					}
-					break;
-
-					case 64: // Damper/Hold Pedal on/off (Sustain).
-					case 69: // Hold 2.
-					{
-						voiceState->voiceControlContainer_->SetHoldPedalState(controller.value >= 0.5f);
-					}
-					break;
-
-					case CC_MonoOn:
-					case CC_PolyOn:
-					{
-						if (sendToNoteSource && header.channel == 0) // Mode messages are recognized only when sent on the Basic Channel
-						{
-							MidiSetMonoMode(timestamp, CC_MonoOn == controller.type);
-						}
-					}
-					break;
-
-					}
-				}
-				break;
-
-				case gmpi::midi_2_0::ProgramChange:
-				{
-					// TODO
-				}
-				break;
-
-				case gmpi::midi_2_0::ChannelPressue:
-				{
-					constexpr int automation_id = ControllerType::ChannelPressure << 24;
-					const auto normalized = gmpi::midi_2_0::decodeController(msg).value;
-
-					vst_Automation(
-						voiceState->voiceControlContainer_,
-						timestamp,
-						automation_id,
-						normalized,
-						sendToNoteSource,
-						sendToNonNoteSource
-					);
-				}
-				break;
-
-				case gmpi::midi_2_0::PitchBend:
-				{
-					constexpr int automation_id = ControllerType::Bender << 24;
-					const auto normalized = gmpi::midi_2_0::decodeController(msg).value;
-
-					vst_Automation(
-						voiceState->voiceControlContainer_,
-						timestamp,
-						automation_id,
-						normalized,
-						sendToNoteSource,
-						sendToNonNoteSource
-					);
-				}
-				break;
-
-				} // status
-			} // sendToNoteSource
-
 		} // ChannelVoice64
 	}
 	else
@@ -571,35 +301,7 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 
 		switch (status)
 		{
-		case NOTE_ON:
-		{
-			if (sendToNoteSource)
-			{
-				const int keyNumber = byte1;
-				int velocity = (byte2 << 7) + highResolutionVelocityPrefix;
-				highResolutionVelocityPrefix = 0;
-
-				// note that with this scheme a velocity of 127 does not map to 1.0f, the lower 7 'prefix' bits need to be 127 also.
-				constexpr float recip = 1.0f / (float)0x3fff;
-				float velocityN = recip * (float)velocity;
-
-				DoNoteOn(timestamp, voiceState->voiceControlContainer_, keyNumber, velocityN);
-			}
-		}
-		break;
-
-		case NOTE_OFF:
-		{
-			if (sendToNoteSource)
-			{
-				int velocity = byte2;
-				constexpr float recip_127 = 1.0f / 127.0f;
-				float velocityN = (float)velocity * recip_127;
-
-				DoNoteOff(timestamp, voiceState->voiceControlContainer_, byte1, velocityN);
-			}
-		}
-		break;
+		// NOTE_ON and NOTE_OFF removed — performance events now handled by ug_container::OnMidi.
 
 		case SYSTEM_MSG: // SYSEX.
 			if (midiMessage[0] == SYSTEM_EXCLUSIVE)
@@ -616,41 +318,7 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 
 					switch (status)
 					{
-					case GmpiMidi::MIDI_NoteOn:
-					{
-						if (sendToNoteSource)
-						{
-							int velocity_12b = val_12b;
-//							int directPitch_20b = val_20b;
-
-							float velocityN = val20BitToFloat(velocity_12b);
-
-							//						_RPT2(_CRT_WARN, "HD Note On vel %d:%f\n", velocity_12b, velocityN);
-#ifdef DEBUG_LOG_PM_TO_FILE
-//							fwprintf(outputStream, L"\nHD Note On  %d (ts %d)\n", keyNumber, (int)timestamp);
-#endif
-
-							DoNoteOn(timestamp, voiceState->voiceControlContainer_, keyNumber, velocityN);
-						}
-					}
-					break;
-
-					case GmpiMidi::MIDI_NoteOff:
-					{
-						if (sendToNoteSource)
-						{
-							int velocity_12b = val_12b;
-							constexpr float recip = 1.0f / (float)0xFFF;
-							float velocityN = (float)velocity_12b * recip;
-
-#ifdef DEBUG_LOG_PM_TO_FILE
-//							fwprintf(outputStream, L"\nHD Note Off  %d (ts %d)\n", keyNumber, (int)timestamp);
-#endif
-
-							DoNoteOff(timestamp, voiceState->voiceControlContainer_, keyNumber, velocityN);
-						}
-					}
-					break;
+					// HD-protocol NoteOn/NoteOff removed — performance events now handled by ug_container::OnMidi.
 
 					case GmpiMidi::MIDI_ControlChange:
 					{
@@ -659,7 +327,7 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 
 						const float normalised = val20BitToFloat(controllerValue_20b);
 
-						if (keyNumber == 0xFF) // Regular Monophonic CCs
+						if (keyNumber == 0xFF) // Regular Monophonic CCs — parameter automation.
 						{
 							if (!fromMidiCv)
 							{
@@ -668,53 +336,7 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 								vst_Automation(voiceState->voiceControlContainer_, timestamp, unified_controller_id, normalised);
 							}
 						}
-						else // Polyphonic CCs (Note Expression).
-						{
-							if (sendToNoteSource)
-							{
-								int controllerType = ControllerType::VoiceNoteExpression;
-
-								// Send Sample-ID.
-								if (controllerNumber_12b == 300) // Special case for Waves Sampler Region-ID. Pass integer value unmolested out Note-Expression.User3 
-								{
-									const float realWorld = (float)controllerValue_20b; // !! NOT Normalised. Direct int-to-float equality.
-									controllerNumber_12b = ControllerType::kCustomStart + 2;
-
-									int lookupController = (controllerType << 24) | ((controllerNumber_12b & 0xFF) << 16) | keyNumber;
-
-									// Send direct without scaling to parameter min/max to avoid loss of precision.
-									//int controllerType = lookupController >> 24;
-									assert(controllerType == lookupController >> 24);
-									int voiceId = keyNumber; //-1; // all voices
-									//_RPT2(_CRT_WARN,"set Region MIDI( key %d, region %d)\n", voiceId, controllerValue_20b);
-
-									// send to polyphonic parameters.
-									int voiceContainerHandle = voiceState->voiceControlContainer_->Handle();
-									if (ControllerType::isPolyphonic(controllerType))
-									{
-										voiceId = lookupController & 0x7f;
-										int polylookupController = lookupController & 0xffff0000; // mask off key number
-
-										const auto range = vst_automation_map.equal_range(polylookupController);
-										for (auto it = range.first; it != range.second; ++it)
-										{
-											auto parameter = (*it).second;
-
-											if (parameter->isPolyphonic() && parameter->getModuleHandle() == voiceContainerHandle)
-											{
-												parameter->vst_automate2(timestamp, voiceId, RawData3(realWorld), RawSize(realWorld), true);
-											}
-										}
-									}
-								}
-								else
-								{
-									//								_RPTN(0, "MIDI2: key %3d type %2d value %f\n", keyNumber, val_12b, normalised);
-									int automation_id = (controllerType << 24) | ((controllerNumber_12b & 0xFF) << 16) | keyNumber;
-									vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalised);
-								}
-							}
-						}
+						// Polyphonic CCs (Note Expression) removed — performance events now handled by ug_container::OnMidi.
 					}
 					break;
 					}
@@ -749,86 +371,9 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 					vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalised);
 				}
 
-				if (sendToNoteSource)
-				{
-					if (manufactureId == 0x7E || manufactureId == 0x7F) // 7F - Universal Real Time SysEx header, 7E - Universal Non-Real Time SysEx header
-					{
-						if (midiMessage[3] == 0x08)	// 08  sub-ID#1 = "MIDI Tuning Standard"
-						{
-							auto timestamp_oversampled = voiceState->voiceControlContainer_->CalculateOversampledTimestamp(Container(), timestamp);
-
-							voiceState->OnMidiTuneMessageA(timestamp_oversampled, midiMessage);
-						}
-					}
-
-					if (manufactureId == 0x7F) // Universal Real Time SysEx header
-					{
-						if (midiMessage[3] == 0x0A) // �Key-Based Instrument Control�
-						{
-							/*
-							Key-Based Instrument Controller message. (Polyphonic controllers).
-							F0 7F Universal Real Time SysEx header
-							<device ID> ID of target device (7F = all devices)
-							0A sub-ID#1 = �Key-Based Instrument Control�
-							01 sub-ID#2 = 01 Basic Message
-							0n MIDI Channel Number
-							kk Key number
-							[nn,vv] Controller Number and Value
-							:
-							F7 EOX
-							*/
-
-							midiChannel = midiMessage[5] & 0x0f;
-							int keyNumber = midiMessage[6];
-							int controllerId = midiMessage[7];
-							int controllerValue = midiMessage[8];
-
-							const unsigned char allSoundOff = 0x78;
-							int controllerType = ControllerType::VoiceNoteExpression;
-							int NoteExpressionCc = -1;
-							switch (controllerId)
-							{
-							case allSoundOff:
-							{
-								voiceState->voiceControlContainer_->killVoice(timestamp, keyNumber);
-							}
-							break;
-
-							case 7: // Volume.
-								NoteExpressionCc = ControllerType::kVolumeTypeID;
-								break;
-
-							case 10: // Pan.
-								NoteExpressionCc = ControllerType::kPanTypeID;
-								break;
-
-							case 77: // Vibrato Depth.
-								NoteExpressionCc = ControllerType::kVibratoTypeID;
-								break;
-
-							case 1: // Expression.
-								NoteExpressionCc = ControllerType::kExpressionTypeID;
-								break;
-
-							case 74: // Brightness.
-								NoteExpressionCc = ControllerType::kBrightnessTypeID;
-								break;
-
-							case 65: // Portamento On/Off .
-								controllerType = ControllerType::VoiceNoteControl;
-								NoteExpressionCc = ControllerType::kPortamentoEnable;
-								break;
-							}
-
-							if (NoteExpressionCc > -1)
-							{
-								float normalised = controllerValue * (1.0f / 127.0f);
-								automation_id = (controllerType << 24) | (NoteExpressionCc << 16) | keyNumber;
-								vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalised);
-							}
-						}
-					}
-				}
+				// MIDI-Tuning SysEx and Key-Based Instrument Control SysEx removed — those are
+				// performance events (per-note tuning, poly expression, all-sound-off) and now
+				// belong in ug_container::OnMidi.
 			}
 
 			break;
@@ -992,84 +537,17 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 
 			if (!fromMidiCv)
 			{
+				// All CCs — including 64 (hold), 120 (all-sound-off), 123 (all-notes-off), mono/poly mode —
+				// reach wired parameters as ordinary 0-1 automation here. Their performance meaning
+				// (held notes, killed voices, allocation mode changes) is dispatched by ug_container::OnMidi.
 				vst_Automation(voiceState->voiceControlContainer_, timestamp, unified_controller_id, normalised_value);
 			}
 
-			if (sendToNoteSource && 0x03000000 == unified_controller_id) // Pitch Bend Range
-			{
-				vst_Automation(voiceState->voiceControlContainer_, timestamp, unified_controller_id, normalised_value, sendToNoteSource, sendToNonNoteSource);
-			}
-
-			// Must be after automation in case MIDI-Learn is active ( don't want to 'learn' the VelocityOff message).
+			// Must be after automation in case MIDI-Learn is active (don't want to 'learn' the reset).
 			switch (midi_controller_id)
 			{
-				/* All Sound Off.
-				The difference between this message and All Notes Off is that this message immediately mutes all
-				sound on the device regardless of whether the Hold Pedal is on, and mutes the sound quickly
-				regardless of any lengthy VCA release times. It's often used by sequencers to quickly mute all
-				sound when the musician presses "Stop" in the middle of a song.
-				*/
-			case MIDI_CC_ALL_SOUND_OFF: // CC 120
-			{
-				if (sendToNoteSource)
-				{
-					for (int keyNumber = 0; keyNumber < 128; ++keyNumber)
-					{
-						// Send gate automation
-						int automation_id = (ControllerType::Gate << 24) | keyNumber;
-						float normalised = 0.0f;
-						vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalised);
-
-						voiceState->voiceControlContainer_->killVoice(timestamp, keyNumber);
-					}
-				}
-			}
-			break;
-
-			case MIDI_CC_ALL_NOTES_OFF: // CC 123
-			{
-				if (sendToNoteSource)
-				{
-					const int velocity = 64;
-
-					for (int keyNumber = 0; keyNumber < 128; ++keyNumber)
-					{
-						// Send velocity-off automation
-						int automation_id = (ControllerType::VelocityOff << 24) | keyNumber;
-						float normalised = (float)velocity / 127.0f;
-						vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalised);
-						// Send gate automation
-						automation_id = (ControllerType::Gate << 24) | keyNumber;
-						normalised = 0.0f;
-						vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalised);
-					}
-				}
-			}
-			break;
-
-			case 64: // Damper/Hold Pedal on/off (Sustain).
-			case 69: // Hold 2.
-			{
-				int automation_id = (ControllerType::CC << 24) | midi_controller_id;
-				float normalised = (float)byte2 / 127.0f;
-				vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalised, sendToNoteSource, sendToNonNoteSource);
-
-				if (sendToNoteSource)
-				{
-					voiceState->voiceControlContainer_->SetHoldPedalState(b3 >= 64);
-				}
-			}
-			break;
-
-			case CC_HighResolutionVelocityPrefix:
-			{
-				highResolutionVelocityPrefix = midi_controller_val;
-			}
-			break;
-
 			case CC_ResetAllControllers:
 			{
-				highResolutionVelocityPrefix = 0;
 				memset(two_byte_controler_value, 0, sizeof(two_byte_controler_value));
 
 				if (!fromMidiCv)
@@ -1082,108 +560,25 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 			}
 			break;
 
-			case CC_MonoOn:
-			case CC_PolyOn:
-			{
-				if (sendToNoteSource && midiChannel == 0) // Mode messages are recognized only when sent on the Basic Channel
-				{
-					MidiSetMonoMode(timestamp, CC_MonoOn == midi_controller_id);
-				}
-			}
-			break;
+			// MIDI_CC_ALL_SOUND_OFF, MIDI_CC_ALL_NOTES_OFF, CC 64/69 hold pedal, CC_MonoOn/PolyOn,
+			// and CC_HighResolutionVelocityPrefix removed — all performance-related. Handled by
+			// ug_container::OnMidi (hold, all-sound/notes-off) or dropped (high-res velocity prefix
+			// was only used here to seed note-on velocity).
 
 			} // switch midi_controller_id
 		} // case CONTROL_CHANGE
 		break;
 
-		case POLY_AFTERTOUCH:
-			if (sendToNoteSource)
-			{
-				int automation_id = (ControllerType::PolyAftertouch << 24) | byte1; // byte1 = note_num
-				float normalised = (float)byte2 / 127.0f;
-				vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalised);
-			}
-			break;
-
-		case CHANNEL_PRESSURE:
-			if (sendToNoteSource)
-			{
-				int automation_id = ControllerType::ChannelPressure << 24;
-				float normalised = (float)byte1 / 127.0f;
-				vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalised);
-			}
-			break;
-
-		case PITCHBEND:
-		{
-			const auto normalized = gmpi::midi::utils::bipoler14bitToNormalized(static_cast<uint8_t>(byte2), static_cast<uint8_t>(byte1));
-
-			constexpr int automation_id = ControllerType::Bender << 24;
-			vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalized, sendToNoteSource, sendToNonNoteSource);
-		}
-		break;
+		// POLY_AFTERTOUCH, CHANNEL_PRESSURE, PITCHBEND removed — performance events now handled
+		// by ug_container::OnMidi.
 		};
 	}
 }
 
-void DspPatchManager::MidiSetMonoMode(timestamp_t timestamp, bool newMonoMode)
-{
-	for (auto parameter : m_parameters)
-	{
-		// monophonic parameters only
-		if (parameter->getHostControlId() != HC_VOICE_ALLOCATION_MODE)
-			continue;
-
-		auto voiceAllocationMode = (int32_t)parameter->GetValueRaw2();
-		const bool oldIsMonoMode = voice_allocation::isMonoMode(voiceAllocationMode);
-
-		// changin mono mode can be destructive, since we can't specify *which* poly mode we want, so avoid messing with it if possible.
-		if (newMonoMode != oldIsMonoMode)
-		{
-			// set MM_IN_USE and MM_ON
-			voiceAllocationMode = voiceAllocationMode | ((MM_IN_USE | MM_ON) << voice_allocation::bits::MonoModes_startbit);
-
-			if (!newMonoMode)
-			{
-				// clear MM_ON
-				voiceAllocationMode = voiceAllocationMode & ~(MM_ON << voice_allocation::bits::MonoModes_startbit);
-			}
-
-			parameter->vst_automate2(timestamp, 0, &voiceAllocationMode, sizeof(voiceAllocationMode), kIsMidiMappedAutomation);
-		}
-	}
-}
-
-void DspPatchManager::DoNoteOff(timestamp_t timestamp, ug_container* voiceControlContainer, int voiceId, float velocity)
-{
-	int automation_id;
-
-	// Send gate automation.
-	automation_id = ( ControllerType::Gate << 24 ) | voiceId;
-	float normalised = 0.0f;
-	vst_Automation(voiceControlContainer, timestamp, automation_id, normalised);
-
-	// Send velocity-off automation
-	automation_id = ( ControllerType::VelocityOff << 24 ) | voiceId;
-	vst_Automation(voiceControlContainer, timestamp, automation_id, velocity);
-}
-
-void DspPatchManager::DoNoteOn(timestamp_t timestamp, ug_container* voiceControlContainer, int voiceId, float velocity)
-{
-	// Send velocity-on automation
-	int automation_id = ( ControllerType::VelocityOn << 24 ) | voiceId;
-	vst_Automation(voiceControlContainer, timestamp, automation_id, velocity);
-
-#if 0 // attempt to get poly controllers persistent over many notes (requested by Davidson)
-	// Reset poly-aftertouch automation
-	automation_id = ( ControllerType::PolyAftertouch << 24 ) | voiceId;
-	vst_Automation(voiceControlContainer, timestamp, automation_id, 0.0f);
-#endif
-
-	// Send gate automation.
-	automation_id = ( ControllerType::Gate << 24 ) | voiceId;
-	vst_Automation(voiceControlContainer, timestamp, automation_id, 1.0f);
-}
+// DoNoteOn, DoNoteOff, MidiSetMonoMode removed as part of the MIDI-dispatch refactor.
+// Their responsibilities moved to ug_container::OnMidi (performance-event direct path) and
+// VoiceList::DoNoteOn / DoNoteOff (voice-activation HC fan-out). patch_manager no longer
+// handles performance events.
 
 float DspPatchManager::InitializeVoiceParameters(ug_container* voiceControlContainer, timestamp_t timestamp, Voice* voice, bool sendTrigger)
 {

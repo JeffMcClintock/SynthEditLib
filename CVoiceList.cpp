@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <math.h>
 #include "CVoiceList.h"
+// #define DEBUG_CONTAINER_MIDI 1
+#include "debug_midi_log.h"
 #include "ug_base.h"
 #include "SeAudioMaster.h"
 #include "ug_container.h"
@@ -257,6 +259,10 @@ VoiceList::VoiceList( ) :
 	{
 		note_status[i] = false;
 	}
+	for (int i = 0; i < 128; ++i)
+	{
+		pendingNoteVelocity_[i] = 0.5f; // reasonable default until a real NoteOn arrives for this key
+	}
 	
 	#if defined( DEBUG_VOICE_ALLOCATION )
 	!!! can open 100's of log files !!!!
@@ -279,6 +285,8 @@ void VoiceList::AddUG( ug_base* ug )
 
 void VoiceList::VoiceAllocationNoteOn(timestamp_t timestamp, /*int midiChannel,*/ int MidiKeyNumber/*, int velocity*/, int usePhysicalVoice)
 {
+	DMIDI_LOG("    VoiceAllocationNoteOn key=%d ts=%lld mode=0x%x keysHeld=%d\n",
+		MidiKeyNumber, (long long)timestamp, voiceAllocationMode_, keysHeldCount);
 	if (!note_status[MidiKeyNumber])
 	{
 		note_status[MidiKeyNumber] = true;
@@ -943,12 +951,57 @@ void VoiceList::ConnectVoiceHostControl(HostControls hostConnect, UPlug* plug)
 			voiceIdHc_.ConnectPin( plug );
 		break;
 
-		//case HC_VOICE_GATE:
-		//	voiceGateHc_.ConnectPin( plug );
-		//break;
-        default:
-            assert(false);
-            break;
+		default:
+			if (isDirectPathHostControl(hostConnect))
+			{
+				assert(hostConnect >= 0 && hostConnect < HC_NUM_HOST_CONTROLS);
+				directPathHostControls_[hostConnect].ConnectPin(plug);
+			}
+			else
+			{
+				assert(false);
+			}
+			break;
+	}
+}
+
+// Fire a direct-path host-control value to voice modules via the fanout's pins.
+//
+// Direct-path HCs (see isDirectPathHostControl()) bypass the patch manager — their pins
+// live on ug_voice_host_control_fanout. This function is called from:
+//   - ug_container::OnMidi (MIDI performance events: note on/off, gate, pitch, velocity,
+//     hold pedal, pitch bend, channel pressure, etc.)
+//   - VoiceList::DoNoteOn / DoNoteOff (voice-allocation-driven HCs: pitch, trigger,
+//     velocity, gate, glide-start-pitch)
+//
+// VALUE SCALE convention: MidiToCv2 / ug_midi_to_cv expect SE volts (0–10 V) on most HC
+// inputs (e.g. pinHoldPedal < 5.0f threshold, pinVoicePitch in volts). MIDI CC values
+// decode to 0.0–1.0 normalised — caller must scale × 10 where appropriate. See the CC64
+// case in ug_container::OnMidi for the pattern.
+//
+// physicalVoiceNumber is the Voice slot index (0..polyphony-1). For mono HCs it's ignored.
+void VoiceList::sendDirectPathValue(HostControls hc, timestamp_t clock, ug_container* container, int physicalVoiceNumber, int32_t size, void* data)
+{
+	assert(hc >= 0 && hc < HC_NUM_HOST_CONTROLS);
+#ifdef DEBUG_CONTAINER_MIDI
+	if (size == sizeof(float))
+	{
+		DMIDI_LOG("    sendDirectPathValue hc=%d ts=%lld physVoice=%d value=%.4f\n",
+			(int)hc, (long long)clock, physicalVoiceNumber, *(float*)data);
+	}
+	else
+	{
+		DMIDI_LOG("    sendDirectPathValue hc=%d ts=%lld physVoice=%d size=%d\n",
+			(int)hc, (long long)clock, physicalVoiceNumber, size);
+	}
+#endif
+	if (HostControlisPolyphonic(hc))
+	{
+		directPathHostControls_[hc].sendValue(clock, container, physicalVoiceNumber, size, data);
+	}
+	else
+	{
+		directPathHostControls_[hc].sendMonoValue(clock, container, size, data);
 	}
 }
 
@@ -1792,7 +1845,12 @@ void VoiceList::DoNoteOn(timestamp_t timestamp, Voice* voice, int voiceId, bool 
 	// bool hardReset = ( (voiceAllocationMode & 0xff) == 1 /*PolyHard*/ ) || voice->IsSuspended();
 	// no also needs setting if muting... bool hardReset = voice->voiceState_ == VS_SUSPENDED;
 	const bool hardReset = voice->voiceState_ != VS_ACTIVE || voice->IsRefreshing();
-	
+
+	// Capture previous note before we overwrite voice->NoteNum. Used below for the
+	// HC_GLIDE_START_PITCH fire so MidiToCv2's constant-rate-glide calculation correctly
+	// scales transition time by the actual pitch jump on legato note transitions.
+	const int previousNote = voice->NoteNum;
+
 	voice->NoteNum = static_cast<short>(voiceId);
 	voice->activate(timestamp, /*channel,*/ voiceId);
 
@@ -1807,7 +1865,45 @@ void VoiceList::DoNoteOn(timestamp_t timestamp, Voice* voice, int voiceId, bool 
 	}
 	SetVoiceParameters(timestamp, voice, voiceActive, voiceId);
 
-	// Glide.
+	// Fire direct-path performance events for the newly-activated voice. The legacy
+	// InitializeVoiceParameters call above handles only the patch-parameter fan-out, which is a
+	// no-op for direct-path HCs (their pins live on ug_voice_host_control_fanout, not on the
+	// patch-param-setter). Fire pitch/trigger/velocity/gate explicitly here so downstream voice
+	// modules (oscillators, envelopes, etc.) receive the events at voice activation — whether
+	// this is an initial note-on, a mono-last-note replacement (inside VoiceAllocationNoteOff),
+	// or a voice-steal.
+	const int voiceId7 = voiceId & 0x7f;
+	// Pitch: SE convention is Volts, 1V/octave, with MIDI A4 (key 69) = 5.0V.
+	//
+	// Read the tuning table instead of assuming key = pitch. The table is equal-temperament
+	// by default (GetKeyTune(n) returns n semitones) but can be retuned by:
+	//   - MIDI 2.0 Note-On with attributeType=Pitch (per-note pitch attribute)
+	//   - MIDI 2.0 PolyControlChange PolyPitch (permanent per-key retuning)
+	//   - MIDI Tuning Standard SysEx (bank/single-note tunings)
+	// ug_container::OnMidi keeps the container's tuning table in sync with voiceState's whenever
+	// it handles those messages, so GetKeyTune here reads the authoritative value.
+	//
+	// volts = semitones/12 - 0.75 mirrors VoiceControlState::OnKeyTuningChangedA's conversion.
+	float pitchVolts = GetKeyTune(voiceId7) * (1.0f / 12.0f) - 0.75f;
+	(void)previousNote; // legacy mrnPitch tracking below replaces our previous-note legato fix.
+
+	// ─── autoGlide + mrnPitch: compute BEFORE firing HC_GLIDE_START_PITCH ───
+	// When overlapping keys are held with non-zero portamento, legacy CVoiceList glides the
+	// pitch from the previous note's pitch to the new note over `portamento_` time. The
+	// polyphonic aggregator's "previous pitch" is tracked in `mrnPitch` (most-recent-note
+	// pitch). On each note-on:
+	//   - If autoGlide && portamento > 0 && we have a prior note:
+	//        advance mrnPitch by (time elapsed × portamentoIncrement), clamp to portamentoTarget,
+	//        recompute portamentoIncrement for the new target. mrnPitch stays at the
+	//        current glide position (NOT the new pitch).
+	//   - Otherwise: snap mrnPitch to the new pitch, increment=0 (no glide).
+	//
+	// THIS MUST RUN BEFORE the HC_GLIDE_START_PITCH fire. An earlier version of this code
+	// fired HC_GLIDE_START_PITCH = new pitch straight away, so MidiToCv2's pitchInterpolator
+	// jumped instant to the new pitch instead of gliding — the oscillator's phase drifted a
+	// tiny amount relative to the reference (which did glide), showing as ~-15 dB audio error
+	// on note 2+ in Voice_Allocation_CV2_Poly_Hard. Mirror legacy's order: glide first,
+	// THEN fire GlideStartPitch = mrnPitch. See reference_event_system_and_polyphony.md.
 	{
 		// Get glide type.
 		int lVoiceAllocationMode;
@@ -1827,7 +1923,6 @@ void VoiceList::DoNoteOn(timestamp_t timestamp, Voice* voice, int voiceId, bool 
 		{
 			// Calculate new glide time in samples.
 			const float time = thisContainer->getSampleRate() * powf(10.0f, (portamento_ * 0.4f) - 3.0f);
-			//_RPT1(_CRT_WARN, "\nVoiceList:Glidetime %fs\n", powf(10.0f, (portamento_ * 0.4f) - 3.0f));
 
 			const float minimumNonZeroGlide = 1.0f; // Prevent floating divide-by-zero exception due to glide time being VERY small.
 			if (time > minimumNonZeroGlide)
@@ -1835,68 +1930,74 @@ void VoiceList::DoNoteOn(timestamp_t timestamp, Voice* voice, int voiceId, bool 
 				// Calculate where glide has reached since last note-on.
 				auto delta = timestamp - mrnTimeStamp;
 
-				//_RPT3(_CRT_WARN, "VoiceList:was Gliding %f -> %f for %fs \n", mrnPitch, portamentoTarget, (float) (delta / thisContainer->SampleRate()));
-
 				mrnPitch += portamentoIncrement * (float)delta;
 
 				// If we've had enough time to reach target, clamp to target.
 				if (portamentoIncrement > 0.0f)
 				{
-					if (mrnPitch > portamentoTarget)
-					{
-						mrnPitch = portamentoTarget;
-					}
+					if (mrnPitch > portamentoTarget) mrnPitch = portamentoTarget;
 				}
 				else
 				{
-					if (mrnPitch < portamentoTarget)
-					{
-						mrnPitch = portamentoTarget;
-					}
+					if (mrnPitch < portamentoTarget) mrnPitch = portamentoTarget;
 				}
 
 				// Calculate the NEW increment.
-				//_RPT1(_CRT_WARN, "VoiceList:Glide Pitch now %f\n", mrnPitch);
-				//auto constantRateGlide = ( lVoiceAllocationMode >> 18 ) & 0x01;lVoiceAllocationMode
 				const bool constantRateGlide = GT_CONST_RATE == voice_allocation::extractBits(lVoiceAllocationMode, voice_allocation::bits::GlideRate_startbit, 1);
 				if (constantRateGlide)
 				{
 					// Distance fixed at 1 octave.
-					if (voicePitch > mrnPitch)
-					{
-						portamentoIncrement = 1.0f / time;
-					}
-					else
-					{
-						portamentoIncrement = -1.0f / time;
-					}
+					portamentoIncrement = (pitchVolts > mrnPitch) ? 1.0f / time : -1.0f / time;
 				}
 				else
 				{
-					portamentoIncrement = (voicePitch - mrnPitch) / time;  //difference v
+					portamentoIncrement = (pitchVolts - mrnPitch) / time;
 				}
-				//_RPT2(_CRT_WARN, "VoiceList:New target %f, inc %f\n", voicePitch, portamentoIncrement);
 			}
 			else
 			{
 				portamentoIncrement = 0.0f;
-				mrnPitch = voicePitch;
+				mrnPitch = pitchVolts;
 			}
 		}
 		else
 		{
 			portamentoIncrement = 0.0f;
-			mrnPitch = voicePitch;
+			mrnPitch = pitchVolts;
 		}
 
-		// Send glide start-pitch automation
-		const int automation_id = ( ControllerType::GlideStartPitch << 24 ) | voiceId;
-		const float normalised = mrnPitch * 0.1f;
-		thisContainer->get_patch_manager()->vst_Automation(thisContainer, timestamp, automation_id, normalised);
-
-		portamentoTarget = voicePitch;
+		portamentoTarget = pitchVolts;
 		mrnTimeStamp = timestamp;
 	}
+
+	// Fire GlideStartPitch using mrnPitch (computed above): for autoGlide this is the previous
+	// note's pitch / current glide position; for non-autoGlide it equals the current note's pitch
+	// (so MidiToCv2's pitchInterpolator jumps to the new pitch instantly).
+	{
+		float gStartVolts = mrnPitch;
+		sendDirectPathValue(HC_GLIDE_START_PITCH, timestamp, thisContainer, voice->m_voice_number,
+			sizeof(gStartVolts), &gStartVolts);
+	}
+	sendDirectPathValue(HC_VOICE_PITCH, timestamp, thisContainer, voice->m_voice_number,
+		sizeof(pitchVolts), &pitchVolts);
+	if (sendTrigger)
+	{
+		nextVoiceReset_ += 1.0f; // change value so modules detect the trigger transition
+		sendDirectPathValue(HC_VOICE_TRIGGER, timestamp, thisContainer, voice->m_voice_number,
+			sizeof(nextVoiceReset_), &nextVoiceReset_);
+	}
+	// pendingNoteVelocity_ is stashed as MIDI-normalised 0..1, but MidiToCv2.pinVoiceVelocityKeyOn
+	// follows the SE volts convention (0..10 V) — its output stage is `0.1 * pinVoiceVelocityKeyOn`
+	// so the 0.1× expects volts on the input. Same pattern as HC_VOICE_PITCH (fired as volts
+	// a few lines above) and HC_HOLD_PEDAL / HC_VOICE_AFTERTOUCH (fixed earlier). Without the
+	// × 10 the envelope's Overall Level pin arrives at 1/10 the intended value and the whole
+	// voice attacks way too quietly.
+	float vel = pendingNoteVelocity_[voiceId7] * 10.0f;
+	sendDirectPathValue(HC_VOICE_VELOCITY_KEY_ON, timestamp, thisContainer, voice->m_voice_number,
+		sizeof(vel), &vel);
+	float gateOn = 1.0f;
+	sendDirectPathValue(HC_VOICE_GATE, timestamp, thisContainer, voice->m_voice_number,
+		sizeof(gateOn), &gateOn);
 }
 
 // Sets voice note-off time.
@@ -1910,6 +2011,8 @@ void VoiceList::DoNoteOff( timestamp_t timestamp, Voice* voice, float voiceActiv
 
 void VoiceList::VoiceAllocationNoteOff( timestamp_t timestamp, /*int channel,*/ int voiceId)//, int voiceAllocationMode )
 {
+	DMIDI_LOG("    VoiceAllocationNoteOff key=%d ts=%lld mode=0x%x keysHeld=%d monoNotePlaying=%d\n",
+		voiceId, (long long)timestamp, voiceAllocationMode_, keysHeldCount, monoNotePlaying_);
 	int lVoiceAllocationMode;
 	if (overridingVoiceAllocationMode_ != -1)
 	{
@@ -2003,6 +2106,8 @@ void VoiceList::VoiceAllocationNoteOff( timestamp_t timestamp, /*int channel,*/ 
 
 			if( replacementVoiceId >= 0 )
 			{
+				DMIDI_LOG("      mono-last: replacing with key=%d sendTrigger=%d\n",
+					replacementVoiceId, (int)(!voice_allocation::isMonoMode(lVoiceAllocationMode) || voice_allocation::isMonoRetrigger(lVoiceAllocationMode)));
 				note_memory_idx++;
 				note_memory_idx %= MCV_NOTE_MEM_SIZE;
 				note_memory[note_memory_idx] = static_cast<char>(replacementVoiceId);
@@ -2085,5 +2190,20 @@ void HostVoiceControl::sendValue( timestamp_t clock, ug_container* container, in
 		}
 
         plug->TransmitPolyphonic( timestamp, physicalVoiceNumber, size, data );
+	}
+}
+
+void HostVoiceControl::sendMonoValue( timestamp_t clock, ug_container* container, int32_t size, void* data )
+{
+    for( auto plug : outputPins_ )
+    {
+        timestamp_t timestamp = plug->UG->ParentContainer()->CalculateOversampledTimestamp( container, clock );
+
+		if (plug->GetFlag(PF_PARAMETER_1_BLOCK_LATENCY))
+		{
+			timestamp += plug->UG->AudioMaster()->BlockSize();
+		}
+
+        plug->Transmit( timestamp, size, data );
 	}
 }

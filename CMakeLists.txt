@@ -439,6 +439,8 @@ ug_patch_param_setter.cpp
 ug_patch_param_setter.h
 ug_patch_param_watcher.cpp
 ug_patch_param_watcher.h
+ug_voice_host_control_fanout.cpp
+ug_voice_host_control_fanout.h
 ug_peak_det.cpp
 ug_peak_det.h
 ug_plugin3.cpp

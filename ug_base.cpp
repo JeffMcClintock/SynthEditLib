@@ -2792,33 +2792,63 @@ SeAudioMaster* ug_base::AudioMaster2()
 
 void CreateMidiRedirector(ug_base* midiCv)
 {
-	if (midiCv->GetPlug(0)->DataType == DT_MIDI)
+	// Find the MIDI In pin. For MidiToCv2 / ug_midi_to_cv it's typically plug 0, but modules
+	// like "Keyboard (CV)" declare it at a non-zero index so that adding the pin doesn't shift
+	// other pin indices and break saved patches. Scan for the first DT_MIDI2 input pin.
+	UPlug* midiInPlug = nullptr;
+	for (auto p : midiCv->plugs)
 	{
-		auto redirector = ModuleFactory()->GetById(L"SE MIDICVRedirect")->BuildSynthOb();
-
-		midiCv->parent_container->AddUG(redirector);
-		redirector->patch_control_container = midiCv->patch_control_container;
-		/*
-		Problem, in 'UnterminatedPoly_Patch_point" unit test, this causes the MIDI player2 to be delayed by one block.
-		*/
-		redirector->SetupWithoutCug();
-		redirector->SetFlag(UGF_MIDI_REDIRECTOR); // prevent feedback error when controls connected to modules upstream of MIDI-CV MIDI port.
-
-		// old way was to connect dummy to MIDI-CV. Which only works if there is one MIDI-CV only and no Keyboard2.
-
-		// Because MIDI Redirect sends it's Voice controls via Patch-parameter-setter,
-		// it needs to always be upstream of it. Else events can arrive late to secondary modules (e.g. keyboard2).
-		auto redirectorDummyOut = redirector->GetPlug(2);
-		//shitty, design flaw		midiCv->connect(redirectorDummyOut, midiCv->ParentContainer()->GetParameterSetter()->GetPlug(0));
-		// reinstated for depth-first sort. Else MCV Redirect can end up downstream of stuff it's controlling indirectly VIA dsp-patch-manager -> PPS.
-		// ref: oversampled_synth_no_patch_mgr.se1
-		midiCv->connect(redirectorDummyOut, midiCv->ParentContainer()->GetParameterSetter()->GetPlug(0));
-
-		midiCv->connect(redirectorDummyOut, midiCv->GetPlug(0)); // -> MIDI-CV.MIDI-In
-
-		// Redirect any MIDI connections to redirector.
-		midiCv->GetPlug(0)->Proxy = redirector->GetPlug(0); // Redirector MIDI In.
-		midiCv->GetPlug(1)->Proxy = redirector->GetPlug(1); // MIDI Chan.
-		redirector->cpuParent = midiCv->cpuParent;
+		if (p->Direction == DR_IN && p->DataType == DT_MIDI2)
+		{
+			midiInPlug = p;
+			break;
+		}
 	}
+	if (!midiInPlug)
+		return;
+
+	// Find a Channel pin (DT_ENUM input) — optional. Prefer the pin immediately adjacent to
+	// MIDI In: for Keyboard-style modules we'll declare them as consecutive plug indices; for
+	// modules where Channel was declared before MIDI In it'll be at midiInIdx-1. If no
+	// adjacent enum pin exists, there's no channel filter — the redirector's own Channel
+	// default ("All = -1") applies.
+	UPlug* channelPlug = nullptr;
+	{
+		const int midiInIdx = midiInPlug->getPlugIndex();
+		auto tryChannel = [&](int idx) -> UPlug* {
+			if (idx < 0 || idx >= (int)midiCv->plugs.size()) return nullptr;
+			auto p = midiCv->plugs[idx];
+			return (p->Direction == DR_IN && p->DataType == DT_ENUM) ? p : nullptr;
+		};
+		channelPlug = tryChannel(midiInIdx + 1);
+		if (!channelPlug) channelPlug = tryChannel(midiInIdx - 1);
+	}
+
+	auto redirector = ModuleFactory()->GetById(L"SE MIDICVRedirect")->BuildSynthOb();
+
+	midiCv->parent_container->AddUG(redirector);
+	redirector->patch_control_container = midiCv->patch_control_container;
+	/*
+	Problem, in 'UnterminatedPoly_Patch_point" unit test, this causes the MIDI player2 to be delayed by one block.
+	*/
+	redirector->SetupWithoutCug();
+	redirector->SetFlag(UGF_MIDI_REDIRECTOR); // prevent feedback error when controls connected to modules upstream of MIDI-CV MIDI port.
+
+	// old way was to connect dummy to MIDI-CV. Which only works if there is one MIDI-CV only and no Keyboard2.
+
+	// Because MIDI Redirect sends it's Voice controls via Patch-parameter-setter,
+	// it needs to always be upstream of it. Else events can arrive late to secondary modules (e.g. keyboard2).
+	auto redirectorDummyOut = redirector->GetPlug(2);
+	//shitty, design flaw		midiCv->connect(redirectorDummyOut, midiCv->ParentContainer()->GetParameterSetter()->GetPlug(0));
+	// reinstated for depth-first sort. Else MCV Redirect can end up downstream of stuff it's controlling indirectly VIA dsp-patch-manager -> PPS.
+	// ref: oversampled_synth_no_patch_mgr.se1
+	midiCv->connect(redirectorDummyOut, midiCv->ParentContainer()->GetParameterSetter()->GetPlug(0));
+
+	midiCv->connect(redirectorDummyOut, midiInPlug); // -> MIDI-CV.MIDI-In
+
+	// Redirect any MIDI connections to redirector.
+	midiInPlug->Proxy = redirector->GetPlug(0); // Redirector MIDI In.
+	if (channelPlug)
+		channelPlug->Proxy = redirector->GetPlug(1); // MIDI Chan.
+	redirector->cpuParent = midiCv->cpuParent;
 }

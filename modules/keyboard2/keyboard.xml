@@ -18,6 +18,14 @@
       <Pin id="11" name="Bend Range" direction="in" datatype="float" rate="audio" default="0.2"/>
       <Pin id="20" name="HoldPedal" direction="in" datatype="float" hostConnect="HoldPedal"  />
 
+      <!-- MIDI In + Channel pins added so CreateMidiRedirector builds a MIDI-CV redirector for
+           this module (same mechanism as MidiToCv2). Without them, a patch that uses Keyboard
+           (CV) as its only MIDI source has no redirector to feed container->OnMidi, and voices
+           never get allocated. Appended at the end (ids 21, 22 — the next free after id=20
+           HoldPedal) so existing saved-patch pin indices keep working. -->
+      <Pin id="21" name="MIDI In" direction="in" datatype="midi"/>
+      <Pin id="22" name="Channel" direction="in" datatype="enum" default="-1" ignorePatchChange="true" metadata="All=-1,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16"/>
+
       <Pin id="12" name="Pitch" direction="out" datatype="float" rate="audio"/>
       <Pin id="13" name="Trigger" direction="out" datatype="float" rate="audio"/>
       <Pin id="14" name="Gate" direction="out" datatype="float" rate="audio"/>

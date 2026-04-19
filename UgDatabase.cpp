@@ -1202,6 +1202,7 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(ug_pan);
 	INIT_STATIC_FILE(ug_patch_param_setter);
 	INIT_STATIC_FILE(ug_patch_param_watcher);
+	INIT_STATIC_FILE(ug_voice_host_control_fanout);
 	INIT_STATIC_FILE(ug_peak_det);
 	INIT_STATIC_FILE(ug_quantiser);
 	INIT_STATIC_FILE(ug_random);

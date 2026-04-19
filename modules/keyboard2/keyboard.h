@@ -42,6 +42,13 @@ private:
 	FloatOutPin pinRawVelocityOut;
 	FloatOutPin pinRawVelocityOffOut;
 
+	// MIDI In + Channel exist so the MIDI-CV redirector gets auto-created for this module
+	// (see CreateMidiRedirector). We don't parse MIDI ourselves — the redirector dispatches
+	// the stream to ug_container::OnMidi which fires HC events at our voice-cloned input
+	// pins (Voice/Gate, Voice/Pitch, etc.) via the direct-path fanout.
+	MidiInPin pinMIDIIn;
+	IntInPin pinChannel;
+
 	float previousGate_;
 
 	RampGenerator pitchInterpolator_;
