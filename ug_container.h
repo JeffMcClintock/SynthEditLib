@@ -2,6 +2,7 @@
 
 #include "CVoiceList.h"
 #include "ug_base.h"
+#include "modules/se_sdk3/mp_midi.h"
 
 class ug_container : public VoiceList, public ug_base
 {
@@ -15,9 +16,11 @@ public:
 	class ug_voice_host_control_fanout* GetVoiceHostControlFanout();
 	void ConnectHostControl(HostControls hostConnect, UPlug* plug);
 
-	// MIDI-CV redirector calls here instead of patch_manager->OnMidi. Parses MIDI,
-	// fires performance events directly via VoiceList::sendDirectPathValue (no patch-manager involvement),
-	// and silently ignores non-performance events (route those through a Patch-Automator).
+	// MIDI-CV redirector calls here instead of patch_manager->OnMidi. Incoming MIDI is
+	// normalised to MIDI 2.0 by midiConverter_, then dispatchMidi2 fires performance events
+	// directly via VoiceList::sendDirectPathValue (no patch-manager involvement). Non-
+	// performance events (arbitrary CCs for MIDI-Learn, etc.) are silently ignored here —
+	// route those through a Patch-Automator.
 	void OnMidi(struct VoiceControlState* voiceState, timestamp_t timestamp, const unsigned char* midiMessage, int size);
 	ug_base* GetDefaultSetter();
 	class ug_patch_param_watcher* GetParameterWatcher();
@@ -75,12 +78,16 @@ private:
 	ug_base* defaultSetter_; // cached for fast access.
 	int nextRefreshVoice_;
 
-	// MIDI 1.0 RPN/NRPN state machine. Performance events (currently just RPN 0 = PitchBend
-	// Sensitivity) that arrive via the container's OnMidi need to track which RPN is currently
-	// selected so the subsequent data-entry CC (CC 6 MSB / CC 38 LSB) knows what to update.
-	// Duplicates what DspPatchManager keeps for the automation path — the two state machines are
-	// independent because the two MIDI dispatch routes don't share state.
-	unsigned short incomingRpn_ = 0xffff;  // NULL_RPN
-	unsigned short incomingNrpn_ = 0xffff; // NULL_RPN
-	short dataEntry14bit_ = 0;
+	// Normalises inbound MIDI to MIDI 2.0 UMP format so OnMidi can dispatch a single branch.
+	// The converter holds the RPN/NRPN state machine (per-channel) internally, so MIDI 1.0
+	// data-entry CCs (CC 6/38) arrive pre-assembled as full MIDI 2.0 RPN or NRPN messages.
+	// Initialised in ug_container() with a sink that forwards to dispatchMidi2.
+	gmpi::midi_2_0::MidiConverter2 midiConverter_;
+
+	// Dispatch a single MIDI 2.0 message. Called by midiConverter_'s sink, or (for MIDI Tuning
+	// Standard SysEx) directly by OnMidi before the converter. voiceState_ is the VoiceControlState
+	// current OnMidi is running on behalf of — cached because the converter's sink signature
+	// doesn't carry it.
+	struct VoiceControlState* voiceState_ = nullptr;
+	void dispatchMidi2(timestamp_t timestamp, gmpi::midi::message_view msg);
 };

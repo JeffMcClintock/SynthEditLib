@@ -360,14 +360,14 @@ namespace gmpi
 		{
 			PolyModulation = 1, // Modulation
 			PolyBreath = 2, // Breath
-			PolyPitch = 3, // Absolute Pitch 7.25 – Section 4.2.14.2, see also Poly Bender
-			// 4–6 , // Reserved
+			PolyPitch = 3, // Absolute Pitch 7.25 ï¿½ Section 4.2.14.2, see also Poly Bender
+			// 4ï¿½6 , // Reserved
 			PolyVolume = 7, // Volume
 			PolyBalance = 8, // Balance
 			// 9 , // Reserved
 			PolyPan = 10, // Pan
 			PolyExpression = 11, // Expression
-			// 12–69 , // Reserved
+			// 12ï¿½69 , // Reserved
 			PolySoundController1 = 70, // Sound Controller 1 Sound Variation
 			PolySoundController2 = 71, // Sound Controller 2 Timbre/Harmonic Intensity
 			PolySoundController3 = 72, // Sound Controller 3 Release Time
@@ -378,7 +378,7 @@ namespace gmpi
 			PolySoundController8 = 77, //  Sound Controller 8 Vibrato Depth
 			PolySoundController9 = 78, //  Sound Controller 9 Vibrato Delay
 			PolySoundController10 = 79, //  Sound Controller 10 Undefined
-			// 80–90, //  Reserved
+			// 80ï¿½90, //  Reserved
 			PolyEffects1Depth = 91, //  Effects 1 Depth Reverb Send Level MMA RP-023 [MMA05]
 			PolyEffects2Depth = 92, //  Effects 2 Depth (formerly Tremolo Depth)
 			PolyEffects3Depth = 93, //  Effects 3 Depth Chorus Send Level MMA RP-023 [MMA05]
@@ -963,11 +963,14 @@ namespace gmpi
 
 			void processMidi(const midi::message_view msg, int timestamp, std::function<void(const midi::message_view, int timestamp)> sink)
 			{
-				// MIDI 2.0 messages need no conversion
+				// MIDI 2.0 messages need no conversion â€” pass through and return. Without the
+				// return, the code below would also attempt to decode the bytes as MIDI 1.0,
+				// which would either produce a garbage extra dispatch or assert on a malformed
+				// message.
 				if (gmpi::midi_2_0::isMidi2Message(msg))
 				{
-					// no conversion.
 					sink(msg, timestamp);
+					return;
 				}
 
 				const auto header = gmpi::midi_1_0::decodeHeader(msg);
@@ -978,13 +981,30 @@ namespace gmpi
 				{
 					auto note = midi_1_0::decodeNote(msg);
 
-					const auto msgout = gmpi::midi_2_0::makeNoteOnMessage(
-						note.noteNumber,
-						note.velocity,
-						header.channel
-					);
+					// MIDI 1.0 convention: NoteOn with velocity 0 is a NoteOff. Translate here
+					// so receivers on the MIDI 2.0 side see the intended semantic event rather
+					// than a zero-velocity attack. The original velocity (0) is preserved so
+					// release-velocity consumers see the expected value.
+					if (msg[2] == 0)
+					{
+						const auto msgout = gmpi::midi_2_0::makeNoteOffMessage(
+							note.noteNumber,
+							note.velocity,
+							header.channel
+						);
 
-					sink({ msgout.m }, timestamp);
+						sink({ msgout.m }, timestamp);
+					}
+					else
+					{
+						const auto msgout = gmpi::midi_2_0::makeNoteOnMessage(
+							note.noteNumber,
+							note.velocity,
+							header.channel
+						);
+
+						sink({ msgout.m }, timestamp);
+					}
 				}
 				break;
 
@@ -1066,7 +1086,7 @@ namespace gmpi
 						incoming_rpn[header.channel] = NULL_RPN;	// NRPNs are coming, cancel RPNS msgs
 						break;
 
-					case 6:	// RPN_CONTROLLER MSB
+					case 6:	// Data Entry MSB â€” completes whichever of RPN or NRPN is active.
 					{
 						cntrl_update_msb(incoming_rpn_value, static_cast<short>(msg[2]));
 
@@ -1079,11 +1099,23 @@ namespace gmpi
 							);
 							sink({ msgout.m }, timestamp);
 						}
-						else
+						else if (incoming_nrpn[header.channel] != NULL_RPN)
 						{
 							const auto msgout = gmpi::midi_2_0::makeNrpnRaw(
-								incoming_rpn[header.channel],
-								gmpi::midi::utils::scaleUp(incoming_rpn_value, 14, 32), // 14 bit value converted to 32-bit value.
+								incoming_nrpn[header.channel],  // was incoming_rpn â€” a bug: always NULL_RPN here.
+								gmpi::midi::utils::scaleUp(incoming_rpn_value, 14, 32),
+								header.channel
+							);
+							sink({ msgout.m }, timestamp);
+						}
+						else
+						{
+							// No RPN/NRPN selected â€” data-entry CC 6 is a plain CC in its own right.
+							// Pass through as a MIDI 2.0 ControlChange so MIDI-Learn bindings on CC 6
+							// itself still work.
+							const auto msgout = gmpi::midi_2_0::makeController(
+								controller.controllerNumber,
+								controller.value,
 								header.channel
 							);
 							sink({ msgout.m }, timestamp);
@@ -1091,7 +1123,7 @@ namespace gmpi
 					}
 					break;
 
-					case 38:	// RPN_CONTROLLER LSB
+					case 38:	// Data Entry LSB â€” completes the current RPN/NRPN with fine resolution.
 					{
 						cntrl_update_lsb(incoming_rpn_value, static_cast<short>(msg[2]));
 
@@ -1099,22 +1131,31 @@ namespace gmpi
 						{
 							const auto msgout = gmpi::midi_2_0::makeRpnRaw(
 								incoming_rpn[header.channel],
-								gmpi::midi::utils::scaleUp(incoming_rpn_value, 14, 32), // 14 bit value converted to 32-bit value.
+								gmpi::midi::utils::scaleUp(incoming_rpn_value, 14, 32),
 								header.channel
 							);
-
+							sink({ msgout.m }, timestamp);
+						}
+						else if (incoming_nrpn[header.channel] != NULL_RPN)
+						{
+							const auto msgout = gmpi::midi_2_0::makeNrpnRaw(
+								incoming_nrpn[header.channel],  // was incoming_rpn â€” a bug: always NULL_RPN here.
+								gmpi::midi::utils::scaleUp(incoming_rpn_value, 14, 32),
+								header.channel
+							);
 							sink({ msgout.m }, timestamp);
 						}
 						else
 						{
-							const auto msgout = gmpi::midi_2_0::makeNrpnRaw(
-								incoming_rpn[header.channel],
-								gmpi::midi::utils::scaleUp(incoming_rpn_value, 14, 32), // 14 bit value converted to 32-bit value.
+							// See the CC 6 MSB branch â€” CC 38 on its own is a plain CC too.
+							const auto msgout = gmpi::midi_2_0::makeController(
+								controller.controllerNumber,
+								controller.value,
 								header.channel
 							);
 							sink({ msgout.m }, timestamp);
 						}
-						}
+					}
 					break;
 
 					default:

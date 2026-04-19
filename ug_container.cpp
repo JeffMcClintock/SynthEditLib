@@ -278,6 +278,9 @@ ug_container::ug_container() :
 	, parameterWatcher_(0)
 	,defaultSetter_(0)
 	, nextRefreshVoice_(-1)
+	, midiConverter_([this](gmpi::midi::message_view msg, int ts) {
+		dispatchMidi2(static_cast<timestamp_t>(ts), msg);
+	})
 {
 	push_back(new Voice(this, 0));		// create voice zero
 	SET_PROCESS_FUNC(&ug_base::process_sleep);
@@ -1148,19 +1151,46 @@ void ug_container::OnMidi(VoiceControlState* voiceState, timestamp_t timestamp, 
 	if (!isContainerPolyphonic())
 		return;
 
-	const gmpi::midi::message_view msg(midiMessage, size);
-
-	// TODO, rather than handle MIDI 1.0 and MIDI 2.0 seperatly, could we use a gmpi::midi_2_0::MidiConverter2 to convert everything to MIDI 2.0 and delete the 1.0 path?
-	//       would need to double check that every case handled here is also handled by the midi converter (else we should enhance the midi converter)
-
-	if (gmpi::midi_2_0::isMidi2Message(midiMessage, size))
+	// MIDI Tuning Standard SysEx (F0 7E/7F <device> 08 <sub-id2> … F7) is a performance event
+	// that retunes keys. MidiConverter2 chunks SysEx into multiple 8-byte UMP packets (would
+	// have to be reassembled on the other side), so intercept before converting and parse the
+	// raw MIDI 1.0 bytes directly. Both voiceState and the container need the update — see
+	// VoiceList::DoNoteOn's GetKeyTune call.
+	if (size >= 5
+		&& midiMessage[0] == SYSTEM_EXCLUSIVE
+		&& (midiMessage[1] == 0x7e || midiMessage[1] == 0x7f)
+		&& midiMessage[3] == 0x08)
 	{
-		const auto header = gmpi::midi_2_0::decodeHeader(msg);
-		if (header.messageType != gmpi::midi_2_0::ChannelVoice64)
-			return;
+		voiceState->OnMidiTuneMessageA(timestamp, midiMessage);
+		OnMidiTuneMessageA(timestamp, midiMessage);
+		return;
+	}
 
-		switch (header.status)
-		{
+	// Normalise every other message to MIDI 2.0 via the converter — it handles MIDI 1.0 →
+	// MIDI 2.0 translation including the RPN/NRPN 14-bit state machine across CC 100/101 +
+	// CC 6/38, velocity-0 NoteOn → NoteOff, and the vanilla NoteOn/Off/PitchBend/Pressure/
+	// PolyAftertouch/ControlChange cases. MIDI 2.0 input passes straight through.
+	voiceState_ = voiceState;
+	midiConverter_.processMidi(
+		gmpi::midi::message_view(midiMessage, size),
+		static_cast<int>(timestamp));
+	voiceState_ = nullptr;
+}
+
+// Dispatch a MIDI 2.0 UMP that has already been normalised (either because the input was
+// already MIDI 2.0, or because MidiConverter2 translated it from MIDI 1.0).
+void ug_container::dispatchMidi2(timestamp_t timestamp, gmpi::midi::message_view msg)
+{
+	auto voiceState = voiceState_;
+	if (!voiceState)
+		return;
+
+	const auto header = gmpi::midi_2_0::decodeHeader(msg);
+	if (header.messageType != gmpi::midi_2_0::ChannelVoice64)
+		return;
+
+	switch (header.status)
+	{
 		case gmpi::midi_2_0::NoteOn:
 		{
 			const auto note = gmpi::midi_2_0::decodeNote(msg);
@@ -1334,175 +1364,6 @@ void ug_container::OnMidi(VoiceControlState* voiceState, timestamp_t timestamp, 
 		}
 		break;
 		}
-		return;
-	}
-
-	// MIDI 1.0 path.
-	int status = midiMessage[0] & 0xf0;
-	if (midiMessage[2] == 0 && status == NOTE_ON)
-		status = NOTE_OFF;
-	const int byte1 = midiMessage[1] & 0x7F;
-	const int byte2 = midiMessage[2] & 0x7F;
-
-	switch (status)
-	{
-	case NOTE_ON:
-	{
-		const float velocityN = (float)byte2 / 127.0f;
-		// TODO: honour the high-resolution velocity prefix (CC 88). A sender that supports it
-		// emits `CC 88 = <lsb>` immediately before NoteOn, forming a 14-bit velocity that scales
-		// by 1/16383. The legacy patch_manager path supported it; this direct path currently
-		// does not. Add an `highResVelocityPrefix_` member that CC 88 writes to and NoteOn reads
-		// (resetting it to 0 afterwards), giving `velocityN = ((byte2<<7) | prefix) / 16383.0f`.
-		DMIDI_LOG("[container ts=%lld] NOTE_ON key=%d vel=%.3f\n", (long long)timestamp, byte1, velocityN);
-		// Stash velocity so DoNoteOn can fire it on voice activation (including mono-last replacement).
-		pendingNoteVelocity_[byte1 & 0x7f] = velocityN;
-		VoiceAllocationNoteOn(timestamp, byte1);
-	}
-	break;
-
-	case NOTE_OFF:
-	{
-		const float velocityN = (float)byte2 / 127.0f;
-		DMIDI_LOG("[container ts=%lld] NOTE_OFF key=%d vel=%.3f\n", (long long)timestamp, byte1, velocityN);
-		// VoiceAllocationNoteOff FIRST — mono-last-note priority may reassign the voice to a previously-held note.
-		// If reassigned, GetVoice(releasedKey) returns nullptr and we correctly skip firing gate=0.
-		VoiceAllocationNoteOff(timestamp, byte1);
-		if (auto voice = GetVoice(static_cast<short>(byte1)))
-		{
-			DMIDI_LOG("  voice=%d still assigned after VoiceAlloc, firing gate=0, velocity-off\n", voice->m_voice_number);
-			firePoly(this, HC_VOICE_GATE, timestamp, this, voice->m_voice_number, 0.0f);
-			// Velocity in SE volts (0-10 V).
-			firePoly(this, HC_VOICE_VELOCITY_KEY_OFF, timestamp, this, voice->m_voice_number, velocityN * 10.0f);
-		}
-		else
-		{
-			DMIDI_LOG("  voice released/reassigned — no gate-off fire\n");
-		}
-	}
-	break;
-
-	case POLY_AFTERTOUCH:
-	{
-		// See MIDI 2.0 PolyAfterTouch branch above: pinVoiceAftertouch uses 0-10 V, not
-		// 0-1 normalised. Convert 0-127 MIDI directly to 0-10 V.
-		if (auto voice = GetVoice(static_cast<short>(byte1)))
-			firePoly(this, HC_VOICE_AFTERTOUCH, timestamp, this, voice->m_voice_number, (float)byte2 * (10.0f / 127.0f));
-	}
-	break;
-
-	case CHANNEL_PRESSURE:
-		fireMono(this, HC_CHANNEL_PRESSURE, timestamp, this, (float)byte1 / 127.0f);
-		break;
-
-	case PITCHBEND:
-	{
-		// bipoler14bitToNormalized returns 0..1 (center = 0.5). Remap to [-1, +1] for MidiToCv2
-		// — see the MIDI 2.0 PitchBend branch above for why.
-		const auto normalized = gmpi::midi::utils::bipoler14bitToNormalized(static_cast<uint8_t>(byte2), static_cast<uint8_t>(byte1));
-		fireMono(this, HC_PITCH_BENDER, timestamp, this, normalized * 2.0f - 1.0f);
-	}
-	break;
-
-	case SYSTEM_MSG:
-	{
-		// MIDI Tuning Standard SysEx: F0 7E/7F <device> 08 <sub-id2> ... F7
-		// This is a performance event — it directly retunes keys, affecting the pitch of every
-		// subsequent note-on. It's never used for regular parameter automation and isn't
-		// persistent in the way patch parameters are. So route it via the same direct path as
-		// NoteOn pitch-attribute and PolyPitch, updating both voiceState's table (so its
-		// OnKeyTuningChangedA automation fires — which drives any HC_PITCH-wired pins on
-		// downstream modules) and the container's own table (which VoiceList::DoNoteOn reads
-		// via GetKeyTune when computing each voice's pitch).
-		//
-		// size >= 5 covers F0 + Universal-ID + device + sub-id1 + sub-id2 = the minimum needed
-		// to identify a tuning message. The actual payload length varies with sub-id2.
-		if (size >= 5
-			&& midiMessage[0] == SYSTEM_EXCLUSIVE
-			&& (midiMessage[1] == 0x7e || midiMessage[1] == 0x7f) // Universal Non-Realtime / Realtime
-			&& midiMessage[3] == 0x08)                            // Sub-ID#1 = MIDI Tuning Standard
-		{
-			voiceState->OnMidiTuneMessageA(timestamp, midiMessage);
-			OnMidiTuneMessageA(timestamp, midiMessage);
-		}
-	}
-	break;
-
-	case CONTROL_CHANGE:
-		switch (byte1)
-		{
-		case 64: // Damper / Sustain
-		case 69: // Hold 2
-		{
-			// Scale 0-127 MIDI to 0-10 V — MidiToCv2's pinHoldPedal uses a 5 V threshold.
-			const float pedalVolts = (float)byte2 * (10.0f / 127.0f);
-			fireMono(this, HC_HOLD_PEDAL, timestamp, this, pedalVolts);
-			SetHoldPedalState(byte2 >= 64);
-		}
-		break;
-
-		case MIDI_CC_ALL_SOUND_OFF:
-			for (int key = 0; key < 128; ++key)
-			{
-				if (auto voice = GetVoice(static_cast<short>(key)))
-					firePoly(this, HC_VOICE_GATE, timestamp, this, voice->m_voice_number, 0.0f);
-				killVoice(timestamp, key);
-			}
-			break;
-
-		case MIDI_CC_ALL_NOTES_OFF:
-			for (int key = 0; key < 128; ++key)
-			{
-				if (auto voice = GetVoice(static_cast<short>(key)))
-				{
-					firePoly(this, HC_VOICE_GATE, timestamp, this, voice->m_voice_number, 0.0f);
-					firePoly(this, HC_VOICE_VELOCITY_KEY_OFF, timestamp, this, voice->m_voice_number, 0.5f);
-				}
-			}
-			break;
-
-		// MIDI 1.0 RPN/NRPN state machine. The sender sets the active RPN number via CC 101/100
-		// (MSB/LSB) and NRPN number via CC 99/98, then writes the value via data-entry CC 6 MSB
-		// and (optionally) CC 38 LSB. Only RPN 0 (PitchBendSensitivity / BenderRange) is a
-		// performance event we care about here — everything else is parameter automation and
-		// belongs on the patch_manager path.
-		case NRPN_MSB:
-			incomingNrpn_ = (incomingNrpn_ & 0x007f) | ((byte2 & 0x7f) << 7);
-			incomingRpn_ = 0xffff;
-			break;
-		case NRPN_LSB:
-			incomingNrpn_ = (incomingNrpn_ & 0x3f80) | (byte2 & 0x7f);
-			incomingRpn_ = 0xffff;
-			break;
-		case RPN_MSB:
-			incomingRpn_ = (incomingRpn_ & 0x007f) | ((byte2 & 0x7f) << 7);
-			incomingNrpn_ = 0xffff;
-			break;
-		case RPN_LSB:
-			incomingRpn_ = (incomingRpn_ & 0x3f80) | (byte2 & 0x7f);
-			incomingNrpn_ = 0xffff;
-			break;
-
-		case RPN_CONTROLLER: // CC 6 = data-entry MSB
-			dataEntry14bit_ = (byte2 & 0x7f) << 7;
-			if (incomingRpn_ == 0) // RPN 0 = PitchBend Sensitivity
-			{
-				// See MIDI 2.0 RPN branch above for why we fire semitones not normalised.
-				const float semitones = (float)dataEntry14bit_ / 128.0f;
-				fireMono(this, HC_BENDER_RANGE, timestamp, this, semitones);
-			}
-			break;
-		case RPN_CONTROLLER + 32: // CC 38 = data-entry LSB (fine)
-			dataEntry14bit_ = (dataEntry14bit_ & 0x3f80) | (byte2 & 0x7f);
-			if (incomingRpn_ == 0)
-			{
-				const float semitones = (float)dataEntry14bit_ / 128.0f;
-				fireMono(this, HC_BENDER_RANGE, timestamp, this, semitones);
-			}
-			break;
-		}
-		break;
-	}
 }
 
 void ug_container::ConnectHostControl(HostControls hostConnect, UPlug* plug)
