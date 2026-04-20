@@ -40,6 +40,15 @@ public:
 	void SetupDynamicPlugs() override;
 	virtual ug_base* Clone(CUGLookupList& UGLookupList) override;
 
+	// Hosts the UET_PLAY_WAITING_NOTES event fired by VoiceList::OnVoiceSuspended —
+	// scheduled at next block start to safely re-attempt allocation of held-back notes
+	// once the currently-executing MIDI-CV/keyboard module finishes. We own this event
+	// (instead of the patch-manager's param setter) because we share the same voice
+	// container and sort earlier than the MIDI-CV redirector — and because keeping the
+	// patch-manager out of the voice-activation path eliminates cycles in the directed
+	// graph.
+	void HandleEvent(class SynthEditEvent* e) override;
+
 	// Create an output pin for the given direct-path HC, connect it to toPlug,
 	// and register the pin in the voice container's direct-path fan-out table.
 	// Multiple destinations for the same HC reuse the same pin (many-to-many

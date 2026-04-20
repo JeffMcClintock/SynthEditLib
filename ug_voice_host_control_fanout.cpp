@@ -7,6 +7,8 @@
 #include "ug_oversampler_in.h"
 #include "CVoiceList.h"
 #include "UPlug.h"
+#include "ug_event.h"
+#include "modules/se_sdk2/se_datatypes.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_voice_host_control_fanout)
 
@@ -160,6 +162,20 @@ int ug_voice_host_control_fanout::calcDelayCompensation()
 
 	cumulativeLatencySamples = effectiveLatency;
 	return cumulativeLatencySamples;
+}
+
+void ug_voice_host_control_fanout::HandleEvent(SynthEditEvent* e)
+{
+	switch (e->eventType)
+	{
+	case UET_PLAY_WAITING_NOTES:
+		// parent_container is the voice container we live in — same one that queued noteStack.
+		parent_container->PlayWaitingNotes(e->timeStamp);
+		break;
+
+	default:
+		ug_base::HandleEvent(e);
+	}
 }
 
 ug_base* ug_voice_host_control_fanout::Clone(CUGLookupList& UGLookupList)

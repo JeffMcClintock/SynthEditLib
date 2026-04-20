@@ -268,6 +268,8 @@ void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, 
 	if (filenameA.empty() || filenameB.empty())
 		return;
 
+	_RPT0(0, "\n------------------------------\n");
+
 	_RPT1(0, "A: %s\n", WStringToUtf8(filenameA).c_str());
 	_RPT1(0, "B: %s\n", WStringToUtf8(filenameB).c_str());
 

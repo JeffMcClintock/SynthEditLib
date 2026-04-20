@@ -14,8 +14,7 @@
 #include "UgDatabase.h"
 #include "ug_patch_automator.h"
 #include "midi_defs.h"
-#include "dsp_patch_manager.h"
-#include "ug_patch_param_setter.h"
+#include "ug_voice_host_control_fanout.h"
 #include "SeException.h"
 #include "mfc_emulation.h"
 
@@ -2127,46 +2126,32 @@ void VoiceList::VoiceAllocationNoteOff( timestamp_t timestamp, /*int channel,*/ 
 
 void VoiceList::OnVoiceSuspended( timestamp_t )
 {
-	if( !noteStack.empty() )
-	{
-		// Not safe to restart voice right here because currently executing ug is likely to a midi-cv or keyboard2, and be
-		// re-activated (causing it to be re-sorted into running ug list, causing some
-		// running ugs with same sort-order to be skipped and crash.
-		// Schedule PlayHeldBackNotes() on next block start of DspPatchManager (NOT proxy, which will crash).
+	if( noteStack.empty() )
+		return;
 
-		// get 'real' patch manager
-		auto container = static_cast<ug_container*>(this);
-		auto am = container->AudioMaster();
-		while (dynamic_cast<DspPatchManager*>(container->get_patch_manager()) == nullptr)
-		{
-			container = dynamic_cast<ug_oversampler*>(am)->ParentContainer();
-		}
-
-		ug_base* u = container->GetParameterSetter(); 
-
-		// spit pointer into two 32-bit values.
-		union notNice
-		{
-			ug_container* c;
-			int32_t raw[2];
-		} pointerToContainer;
-
-		pointerToContainer.c = container;
+	// Not safe to restart voice right here because currently-executing ug is likely a midi-cv or
+	// keyboard2, and would be re-sorted into the running-ug list — causing some running ugs with
+	// the same sort-order to be skipped and crash.
+	//
+	// Schedule PlayWaitingNotes() for next block start on the voice container's direct-path
+	// fan-out module. That module shares our container (so parent_container points back at us)
+	// and sorts earlier than the MIDI-CV redirector, so the retry happens before any further
+	// performance events in the next block. Hosting this event off the patch-manager keeps it
+	// out of the voice-activation path and removes a source of cycles in the directed graph.
+	auto container = static_cast<ug_container*>(this);
+	ug_base* u = container->GetVoiceHostControlFanout();
 
 #if defined( SE_FIXED_POOL_MEMORY_ALLOCATION )
-		u->AddEvent( u->AudioMaster()->AllocateMessage(
+	u->AddEvent( u->AudioMaster()->AllocateMessage(
 #else
-		u->AddEvent(new_SynthEditEvent
+	u->AddEvent(new_SynthEditEvent
 #endif
-			(
-				container->AudioMaster()->NextGlobalStartClock(), // IMPORTANT to use outer containers time
-				UET_PLAY_WAITING_NOTES,
-				pointerToContainer.raw[0],
-				pointerToContainer.raw[1]
-			)
-		);
-		return;
-	}
+		(
+			u->AudioMaster()->NextGlobalStartClock(),
+			UET_PLAY_WAITING_NOTES,
+			0, 0
+		)
+	);
 }
 
 

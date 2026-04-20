@@ -89,25 +89,6 @@ void ug_patch_param_setter::HandleEvent(SynthEditEvent* e)
 		}
 		break;
 
-	case UET_PLAY_WAITING_NOTES:
-		{
-#if 1
-			// get pointer from two 32-bit values.
-			union notNice
-			{
-				ug_container* c;
-				int32_t raw[2];
-			} pointerToContainer;
-
-			pointerToContainer.raw[0] = e->parm1;
-			pointerToContainer.raw[1] = e->parm2;
-			pointerToContainer.c->PlayWaitingNotes(e->timeStamp);
-#else
-			parent_container->PlayWaitingNotes( e->timeStamp );
-#endif
-		}
-		break;
-
 	default:
 		ug_base::HandleEvent( e );
 	};
