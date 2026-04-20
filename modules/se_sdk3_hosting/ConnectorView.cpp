@@ -74,6 +74,7 @@ namespace SE2
 		wasPickedUp = true;
 
 		parent->setCapture(this);
+		parent->autoScrollStart();
 
 		CalcBounds();
 

@@ -607,6 +607,7 @@ namespace SE2
 			return gmpi::ReturnCode::Unhandled;
 		}
 
+		parent->autoScrollStop();
 		parent->releaseCapture();
 		return gmpi::ReturnCode::Unhandled;
 	}
@@ -767,6 +768,7 @@ namespace SE2
 					draggingNode = hoverNode;
 					pointPrev = point;
 					parent->setCapture(this);
+					parent->autoScrollStart();
 					return gmpi::ReturnCode::Unhandled;
 				}
 				else
@@ -780,6 +782,7 @@ namespace SE2
 
 					draggingNode = hoverSegment;
 					parent->setCapture(this);
+					parent->autoScrollStart();
 					CalcBounds();
 					parent->ChildInvalidateRect(bounds_); // sometimes bounds don't change, but still need to draw new node.
 
