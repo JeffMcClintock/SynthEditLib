@@ -265,8 +265,11 @@ void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, 
 {
 #ifdef _DEBUG
 
-    if (filenameA.empty() || filenameB.empty())
-        return;
+	if (filenameA.empty() || filenameB.empty())
+		return;
+
+	_RPT1(0, "A: %s\n", WStringToUtf8(filenameA).c_str());
+	_RPT1(0, "B: %s\n", WStringToUtf8(filenameB).c_str());
 
 	std::vector<mod_an> resultsA;
     const auto blockSize = serializeCancelationSnapshot(filenameA.c_str(), resultsA);
@@ -556,6 +559,7 @@ void CancellationAnalyse(CSynthEditAppBase* app, const std::wstring& filenameA, 
 	{
 		candidatesSorted.push_back({ c.first, c.second.inError, c.second.outError });
 	}
+
 
 	_RPT0(0, "\n===============================\nTop cancellation error modules\n");
 	std::sort(candidatesSorted.begin(), candidatesSorted.end(), [](const inouterror& n1, const inouterror& n2) {
