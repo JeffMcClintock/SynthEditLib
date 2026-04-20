@@ -1854,9 +1854,7 @@ void VoiceList::DoNoteOn(timestamp_t timestamp, Voice* voice, int voiceId, bool 
 	voice->NoteNum = static_cast<short>(voiceId);
 	voice->activate(timestamp, /*channel,*/ voiceId);
 
-	// bring poly controller values up-to-date for new voice.
 	auto thisContainer = static_cast<ug_container*>( this );
-	float voicePitch = thisContainer->get_patch_manager()->InitializeVoiceParameters(thisContainer, timestamp, voice, sendTrigger);
 
 	float voiceActive = voice->voiceActive_; // default is to leave it alone.
 	if( hardReset )
@@ -1865,13 +1863,13 @@ void VoiceList::DoNoteOn(timestamp_t timestamp, Voice* voice, int voiceId, bool 
 	}
 	SetVoiceParameters(timestamp, voice, voiceActive, voiceId);
 
-	// Fire direct-path performance events for the newly-activated voice. The legacy
-	// InitializeVoiceParameters call above handles only the patch-parameter fan-out, which is a
-	// no-op for direct-path HCs (their pins live on ug_voice_host_control_fanout, not on the
-	// patch-param-setter). Fire pitch/trigger/velocity/gate explicitly here so downstream voice
-	// modules (oscillators, envelopes, etc.) receive the events at voice activation — whether
-	// this is an initial note-on, a mono-last-note replacement (inside VoiceAllocationNoteOff),
-	// or a voice-steal.
+	// Fire direct-path performance events for the newly-activated voice. Every performance
+	// host-control (pitch, trigger, velocity, gate, aftertouch, pitch-bend, hold-pedal,
+	// bender-range, per-note expression …) flows through ug_voice_host_control_fanout rather
+	// than the patch-parameter setter, so voice activation doesn't need to consult patch_manager
+	// at all. If a user sets up a custom polyphonic parameter outside the direct-path HC set,
+	// its value won't auto-refresh on voice activation — add it to isDirectPathHostControl()
+	// instead of reintroducing a patch_manager call here.
 	const int voiceId7 = voiceId & 0x7f;
 	// Pitch: SE convention is Volts, 1V/octave, with MIDI A4 (key 69) = 5.0V.
 	//
@@ -2020,7 +2018,7 @@ void VoiceList::VoiceAllocationNoteOff( timestamp_t timestamp, /*int channel,*/ 
 	}
 	else
 	{
-		lVoiceAllocationMode = voiceAllocationMode_; //  thisContainer->get_patch_manager()->getVoiceAllocationMode();
+		lVoiceAllocationMode = voiceAllocationMode_;
 	}
 
 	// cancel any held-back notes on this note-number.
@@ -2127,7 +2125,7 @@ void VoiceList::VoiceAllocationNoteOff( timestamp_t timestamp, /*int channel,*/ 
 	NoteOff(timestamp, static_cast<short>(voiceId));
 }
 
-void VoiceList::OnVoiceSuspended( timestamp_t /*p_clock*/ )
+void VoiceList::OnVoiceSuspended( timestamp_t )
 {
 	if( !noteStack.empty() )
 	{

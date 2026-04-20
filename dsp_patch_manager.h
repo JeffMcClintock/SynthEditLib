@@ -53,7 +53,6 @@ public:
 		MidiCvControlsVoices_ = true;
 	}
 	virtual void OnMidi(VoiceControlState* voiceState, timestamp_t timestamp, const unsigned char* midiMessage, int size, bool fromMidiCv) override;
-	float InitializeVoiceParameters(ug_container* voiceControlContainer, timestamp_t timestamp, Voice* voice, /*int voiceId, bool hardReset,*/ bool sendTrigger) override;
 	void vst_Automation2(timestamp_t p_clock, int p_controller_id, const void* data, int size ) override;
 
 	class dsp_patch_parameter_base* GetHostControl(int32_t hostControl, int32_t attachedToContainerHandle = -1) override;
@@ -73,13 +72,10 @@ protected:
 
 private:
 	dsp_parameters_type m_parameters;
-	dsp_parameters_type m_poly_parameters_cache; // sub-set for faster iterating of poly params.
 	dsp_patch_parameter_base* vst_learn_parameter; // midi_learn.
 	dsp_automation_map_type vst_automation_map;
 	ug_container* m_container;
 	int midiChannel_;
-	// HC_VOICE_TRIGGER this just increments each time a voice is reset. modules can ignore value zero which is sent on initial update (not a actual note).
-	float nextVoiceReset_ = 0.0f;
 
 	// used only in plugins, but harmless in editor.
 	std::vector<dsp_patch_parameter_base*> parameterIndexes_; // VST-Host's parameter ID's.

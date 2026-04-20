@@ -580,50 +580,6 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 // VoiceList::DoNoteOn / DoNoteOff (voice-activation HC fan-out). patch_manager no longer
 // handles performance events.
 
-float DspPatchManager::InitializeVoiceParameters(ug_container* voiceControlContainer, timestamp_t timestamp, Voice* voice, bool sendTrigger)
-{
-	const int voiceContainerHandle = voiceControlContainer->Handle();
-	float pitch = 0;
-	auto voiceId = voice->NoteNum;
-
-	for( auto parameter : m_poly_parameters_cache )
-	{
-		assert(parameter->isPolyphonic());
-		if (parameter->getModuleHandle() == voiceContainerHandle )
-		{
-			auto controllerId = parameter->UnifiedControllerId();
-			switch( controllerId )
-			{
-			case ControllerType::Trigger << 24:
-			{
-				if (sendTrigger)
-				{
-					// not strictly needed because pin update is forced, but safer.
-					nextVoiceReset_++; // actual value don't matter, only that it changes.
-					parameter->SetValueRaw2(&nextVoiceReset_, sizeof(nextVoiceReset_), parameter->EffectivePatch(), voiceId);
-					parameter->SendValuePt2(timestamp, voice);
-				}
-			}
-			break;
-
-			case ControllerType::Pitch << 24:
-			{
-				int32_t size = 0;
-				pitch = *(float*) parameter->SerialiseForEvent(voiceId, size);
-			}
-			[[fallthrough]];
-
-			default:
-				// send pin update (forced).
-				parameter->SendValuePt2(timestamp, voice);
-				break;
-			}
-		}
-	}
-
-	return pitch;
-}
-
 void DspPatchManager::InitializeAllParameters()
 {
 	parameterIndexes_.assign(m_parameters.size(), nullptr); // a rough guess, there might be more.
@@ -645,11 +601,6 @@ void DspPatchManager::InitializeAllParameters()
 			parameterIndexes_[parameter->WavesParameterIndex] = parameter;
 		}
 
-		if( parameter->isPolyphonic() )
-		{
-			// cache polyphonic parameters (to save time vs traversing ALL parameters)
-			m_poly_parameters_cache.push_back( parameter );
-		}
 	}
 
 	// Send out initial values of all parameters.

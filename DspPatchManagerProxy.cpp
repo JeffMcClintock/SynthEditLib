@@ -37,25 +37,6 @@ void DspPatchManagerProxy::OnMidi(VoiceControlState* voiceState, timestamp_t tim
 	oversampler_->get_patch_manager()->OnMidi(voiceState, oversampler_->upsampleTimestamp(timestamp), midiMessage, size, fromMidiCv);
 }
 
-float DspPatchManagerProxy::InitializeVoiceParameters(ug_container* voiceControlContainer, timestamp_t timestamp, Voice* voice /*int voiceId, bool hardReset*/, bool sendTrigger)//, bool patchManagerAllocatesVoices)
-{
-	// BUG: if timestamp is not a multiple of oversample rate, it will get rounded down by the time it's re-converted.
-	// e.g.upsampleTimestamp(100 at 8x) -> 12 --downsampled--> 96 !!! = assertion (past timestamp)
-	/*
-	ug_patch_param_setter::HandleEvent (UET_GENERIC1)
-	   parent_container->Play WaitingNotes( e->timeStamp );
-	      VoiceList::DoNoteOn()
-		     DspPatchManagerProxy::InitializeVoiceParameters ..
-			    dsp_patch_parameter_base::SendValuePoly with downsampled timestamp
-	*/
-#ifdef _DEBUG
-	const auto oversampleRate = (int) (voiceControlContainer->getSampleRate() / oversampler_->ParentContainer()->getSampleRate() );
-	assert(timestamp == (timestamp / oversampleRate) * oversampleRate);
-#endif
-
-	return oversampler_->get_patch_manager()->InitializeVoiceParameters(voiceControlContainer, oversampler_->upsampleTimestamp(timestamp), voice /*int voiceId, bool hardReset*/, sendTrigger);
-}
-
 void DspPatchManagerProxy::vst_Automation(ug_container* voiceControlContainer, timestamp_t timestamp, int p_controller_id, float p_normalised_value, bool sendToMidiCv, bool sendToNonMidiCv)
 {
 #ifdef _DEBUG
