@@ -187,6 +187,7 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 		if (searchWithSkin)
 		{
 			const std::vector<std::wstring> skinNames = {
+				L"PSS",	// project-specific-skin
 				JmUnicodeConversions::Utf8ToWstring(skinName),
 				L"default",
 				L"_fallback" // fallback is last location searched. It is to avoid the problem of the structure-view not finding resources unless they are put in default skin (which is not meant for user content)
@@ -194,18 +195,22 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 
 			if (isEditor())
 			{
-				// Search project-specific skin folder first (e.g., mysynth.skin/)
-				if (!projectFile.empty())
-				{
-					const auto projectSkinFolder = (projectFile.parent_path() / (projectFile.stem().wstring() + L".skin")).wstring();
-					searchFolders.push_back({ projectSkinFolder, combine_path_and_file(projectSkinFolder, bare) });
-				}
-
-				// Then search standard skins folder (../skins/blue/filename)
 				for (const auto& skin : skinNames)
 				{
-					auto filenameTemplate = combine_path_and_file(standardFolder, combine_path_and_file(skin, bare));
-					searchFolders.push_back({ standardFolder, filenameTemplate });
+					if(L"PSS" == skin)
+					{
+						// Search project-specific skin folder first (e.g., mysynth.skin/)
+						if(!projectFile.empty())
+						{
+							const auto projectSkinFolder = (projectFile.parent_path() / (projectFile.stem().wstring() + L".skin")).wstring();
+							searchFolders.push_back({ projectSkinFolder, combine_path_and_file(projectSkinFolder, bare) });
+						}
+					}
+					else
+					{
+						auto filenameTemplate = combine_path_and_file(standardFolder, combine_path_and_file(skin, bare));
+						searchFolders.push_back({ standardFolder, filenameTemplate });
+					}
 				}
 			}
 			else
