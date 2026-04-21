@@ -398,20 +398,20 @@ void SubView::process()
 	processUnidirectionalModules();
 }
 
-bool SubView::hitTest(int32_t flags, gmpi::drawing::Point* point)
+gmpi::ReturnCode SubView::hitTest(gmpi::drawing::Point point, int32_t flags)
 {
 	if (isShown())
 	{
-		const auto localPoint = *point * inv_viewTransform;
+		const auto localPoint = point * inv_viewTransform;
 		for (auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 		{
 			auto m = (*it).get();
 			if (m->hitTest(localPoint, flags) == gmpi::ReturnCode::Ok)
-				return true;
+				return gmpi::ReturnCode::Ok;
 		}
 	}
 
-	return false;
+	return gmpi::ReturnCode::Unhandled;
 }
 
 // These four overrides exist only for the isShown()/mouseCaptureObject guards.

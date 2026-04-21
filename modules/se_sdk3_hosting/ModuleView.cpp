@@ -818,8 +818,6 @@ namespace SE2
 
 			if(pluginParameters_GMPI)
 				pluginParameters_GMPI->setHost(static_cast<gmpi::api::IEditorHost*>(gmpiHelper.get()));
-			//else if(subView)
-			//	subView->setHost(static_cast<gmpi::api::IEditorHost*>(gmpiHelper.get()));
 
 			if(pluginGraphics_GMPI)
 				pluginGraphics_GMPI->open(static_cast<gmpi::api::IDrawingHost*>(gmpiHelper.get()));
@@ -986,15 +984,10 @@ if(pluginGraphics)
 
 				if(!clientHit)
 				{
-					if(subView)
-						clientHit = subView->hitTest(flags, &local);
-					else
-					{
-						if(pluginInput_GMPI)
-							clientHit = gmpi::ReturnCode::Ok == pluginInput_GMPI->hitTest(local, flags);
-						else if(pluginGraphics2)
-							clientHit = gmpi::ReturnCode::Ok == (gmpi::ReturnCode) pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local));
-					}
+					if(pluginInput_GMPI)
+						clientHit = gmpi::ReturnCode::Ok == pluginInput_GMPI->hitTest(local, flags);
+					else if(pluginGraphics2)
+						clientHit = 0 == pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local));
 				}
 
 				// In Panel-view, we can assume mouse already hit-tested against client. On Structure-view it could be a click on client OR on pins.
@@ -1559,22 +1552,13 @@ if(pluginGraphics)
 		if (pluginInput_GMPI)
 			return pluginInput_GMPI->hitTest(*(gmpi::drawing::Point*) &local, flags);
 
-		if (subView)
-		{
-			return subView->hitTest(flags, &local) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
-		}
-		else
-		{
-			if (pluginGraphics3)
-			{
-				// TODO!! use editEnabled to somehow ignore click on knob titles when no editing.
-				// e.g. List entry and knobs on PD303 have blank area at top that blocks anything above from being clicked.
-				// either add a flag, or a host-control ("is editor") to allow plugin to know if it's in edit mode.
-				return pluginGraphics3->hitTest2(flags, *reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local)) == gmpi::MP_OK ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
-			}
+		// TODO!! use editEnabled to somehow ignore click on knob titles when no editing.
+		// e.g. List entry and knobs on PD303 have blank area at top that blocks anything above from being clicked.
+		// either add a flag, or a host-control ("is editor") to allow plugin to know if it's in edit mode.
+		if (pluginGraphics3)
+			return pluginGraphics3->hitTest2(flags, *reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local)) == gmpi::MP_OK ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
 
-			return pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local)) == gmpi::MP_OK ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
-		}
+		return pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local)) == gmpi::MP_OK ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
 	}
 
 	gmpi::ReturnCode ModuleView::hitTest(gmpi::drawing::Point point, int32_t flags)
@@ -1701,9 +1685,7 @@ if(pluginGraphics)
 
 		// ignore hidden panels when selecting by lasso
 		if (subView)
-		{
 			return subView->isVisible();
-		}
 
 		return true;
 	}

@@ -35,7 +35,6 @@ class DECLSPEC_NOVTABLE ISubView : public gmpi::api::IUnknown
 {
 public:
 	virtual void OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex) = 0;
-	virtual bool hitTest(int32_t flags, gmpi::drawing::Point* point) = 0;
 	virtual bool MP_STDCALL isVisible() = 0;
 	virtual void process() = 0;
 

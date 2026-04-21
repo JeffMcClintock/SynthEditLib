@@ -146,7 +146,9 @@ public:
 
 	// ISubView
 	void OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex) override;
-	bool hitTest(int32_t flags, gmpi::drawing::Point* point) override;
+	//bool hitTest(int32_t flags, gmpi::drawing::Point* point) override;
+	gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override;
+
 	bool MP_STDCALL isVisible() override
 	{
 		return isShown();
