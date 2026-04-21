@@ -14,6 +14,7 @@
 #include <fstream>
 #include <chrono>
 #include <atomic>
+#include <memory>
 #include "EventProcessor.h"
 #include "./dsp_msg_target.h"
 #include "./EventProcessor.h"
@@ -241,12 +242,7 @@ public:
 class AudioMasterBase : public ISeAudioMaster
 {
 public:
-	AudioMasterBase() :
-		main_container(nullptr)
-#if defined( _DEBUG )
-			,error_msg_count(0) // prevent 'floods' of msgs to debug window
-#endif
-			{}
+	AudioMasterBase();
 
 	virtual ~AudioMasterBase();
 
@@ -299,8 +295,8 @@ public:
 	ug_container* main_container;
     
 #if defined( _DEBUG )
-    std::vector<USampBlock*> dbg_copy_output_array;
-    void copy_buffers(ug_base* ug);
+	std::vector<std::unique_ptr<USampBlock>> dbg_copy_output_array;
+	void copy_buffers(ug_base* ug);
 	void checkBuffers(EventProcessor * ug, timestamp_t sample_clock, int debug_start_pos, int sampleframes, bool check_blocks);
 	void verify_buffers( ug_base* ug, int start_pos, int sampleframes );
     void check_out_values(ug_base* ug, int start_pos, int sampleframes);

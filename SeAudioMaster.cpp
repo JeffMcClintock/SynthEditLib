@@ -40,6 +40,15 @@ using namespace std;
 using namespace gmpi::hosting;
 
 #define MAX_DEBUG_BUFFERS 40
+
+AudioMasterBase::AudioMasterBase() :
+	main_container(nullptr)
+#if defined( _DEBUG )
+	, error_msg_count(0) // prevent 'floods' of msgs to debug window
+#endif
+{
+}
+
 // 16k buffer
 #define AUTOMATION_MESSAGE_QUE_SIZE 0x800
 
@@ -323,11 +332,6 @@ void SeAudioMaster::setMpeMode(int32_t mpemode)
 AudioMasterBase::~AudioMasterBase()
 {
 #ifdef _DEBUG
-
-	for( auto it = dbg_copy_output_array.begin(); it != dbg_copy_output_array.end() ; ++it )
-	{
-		delete *it;
-	}
 
 #endif
 
@@ -2253,11 +2257,11 @@ int SeAudioMaster::Open( )
 	// AudioDevs = NULL;
 	activeModules.clear();
 #ifdef _DEBUG
-	dbg_copy_output_array.assign(MAX_DEBUG_BUFFERS,(USampBlock*)0);
+	dbg_copy_output_array.clear();
 
 	for( int i = 0 ; i < MAX_DEBUG_BUFFERS ; ++i )
 	{
-		dbg_copy_output_array[i] = new USampBlock( BlockSize() );
+		dbg_copy_output_array.push_back(std::make_unique<USampBlock>( BlockSize() ));
 	}
 
 #endif

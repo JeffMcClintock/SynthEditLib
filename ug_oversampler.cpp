@@ -467,11 +467,11 @@ int ug_oversampler::Open()
 	// needs to be zero while openeing children, then initiialised properly.
 	clientNextGlobalStartClock_ = BlockSize();
 #ifdef _DEBUG
-	dbg_copy_output_array.assign(MAX_DEBUG_BUFFERS,(USampBlock*)0);
+	dbg_copy_output_array.clear();
 
 	for( int i = 0 ; i < MAX_DEBUG_BUFFERS ; ++i )
 	{
-		dbg_copy_output_array[i] = new USampBlock( BlockSize() );
+		dbg_copy_output_array.push_back(std::make_unique<USampBlock>( BlockSize() ));
 	}
 
 #endif
