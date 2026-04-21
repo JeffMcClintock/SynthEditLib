@@ -804,11 +804,12 @@ void CStringToAnsi(const std::wstring& p_cstring, char* p_ansi, int p_max_char )
 
 std::string WstringToString(const std::wstring p_cstring)
 {
-	int bytes_required = 1 + WideCharToMultiByte( CP_ACP, 0, p_cstring.c_str(), -1, 0, 0, NULL, NULL);
-	char* temp = new char[bytes_required];
-	WideCharToMultiByte( CP_ACP, 0, p_cstring.c_str(), -1, temp, bytes_required, NULL, NULL);
-	string res(temp);
-	delete [] temp;
+	int bytes_required = WideCharToMultiByte( CP_ACP, 0, p_cstring.c_str(), -1, 0, 0, NULL, NULL);
+	if (bytes_required <= 1)
+		return {};
+
+	std::string res(bytes_required - 1, '\0');
+	WideCharToMultiByte( CP_ACP, 0, p_cstring.c_str(), -1, res.data(), bytes_required, NULL, NULL);
 	return res;
 }
 #endif
@@ -823,15 +824,15 @@ std::wstring ToWstring(const char* p_string)
 {
 #if defined(_WIN32)
 	const int codepage = CP_ACP;
-	int length = 1 + MultiByteToWideChar(codepage, 0, p_string, -1, (LPWSTR)0, 0 );
-	wchar_t* wide = new wchar_t[length];
-	wide[0] = 0; // Handle null input pointers.
-	MultiByteToWideChar( codepage, 0, p_string, -1, (LPWSTR)wide, length );
-	std::wstring temp(wide);
-	delete [] wide;
- 	return temp;
+	int length = MultiByteToWideChar(codepage, 0, p_string, -1, (LPWSTR)0, 0 );
+	if (length <= 1)
+		return {};
+
+	std::wstring res(length - 1, L'\0');
+	MultiByteToWideChar( codepage, 0, p_string, -1, (LPWSTR)res.data(), length );
+	return res;
 #else
-    return Utf8ToWstring(p_string);
+	return Utf8ToWstring(p_string);
 #endif
 }
 
