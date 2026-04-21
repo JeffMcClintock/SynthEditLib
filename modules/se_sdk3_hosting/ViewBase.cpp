@@ -170,7 +170,7 @@ namespace SE2
 		const auto pointAbsolute = point;
 		point = point * inv_viewTransform;
 
-#if 1 //def DEBUG_HIT_TEST
+#ifdef DEBUG_HIT_TEST
 		_RPT3(0, "ViewBase::onPointerDown(%x, (%f, %f))\n", flags, point.x, point.y);
 #endif
 		Presenter()->NotDragging();

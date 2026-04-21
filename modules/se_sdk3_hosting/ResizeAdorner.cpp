@@ -87,6 +87,8 @@ namespace SE2
 		auto r = clientBoundsToAdorner(finalRect);
 		topLeft.x = r.left;
 		topLeft.y = r.top;
+
+		prevClipArea = getClipArea();
 	}
 
 	gmpi::drawing::Rect ResizeAdorner::clientBoundsToAdorner(gmpi::drawing::Rect r)
