@@ -40,7 +40,7 @@ R"XML(
 
 int32_t SubView::StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint)
 {
-	auto moduleview = dynamic_cast<SE2::ModuleView*>(parent);
+	auto moduleview = parent;
 	// child-local -> Container plugin-local via SubView's pan,
 	// then Container plugin-local -> Container doc-local via OffsetToClient's inverse.
 	dragStartPoint = dragStartPoint * viewTransform;
@@ -57,9 +57,7 @@ void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point
 	dragPoint = dragPoint * inv_viewTransform;
 
 	for (auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
-	{
 		(*it)->OnCableDrag(dragline, dragPoint, bestDistance, bestModule, bestPinIndex);
-	}
 }
 
 SubView::SubView(SE2::ModuleView* pparent, int pparentViewType) : ViewBase({1000, 1000})
@@ -68,20 +66,9 @@ SubView::SubView(SE2::ModuleView* pparent, int pparentViewType) : ViewBase({1000
 {
     assert(parent);
 
-#if 0
-	if (parentViewType == CF_PANEL_VIEW)
-	{
-		initializePin(0, showControlsLegacy, static_cast<MpGuiBaseMemberPtr2>(&SubView::onValueChanged));
-		// 1 : "Controls on Module" not needed.
-		initializePin(2, showControls, static_cast<MpGuiBaseMemberPtr2>(&SubView::onValueChanged));
-		// 3 : "Ignore Program Change" not needed.
-	}
-	else
-	{
-		// Hack - Reroute Show-Controls-On-Module to Show-Controls-On-Panel
-		initializePin(1, showControls, static_cast<MpGuiBaseMemberPtr2>(&SubView::onValueChanged));
-	}
-#endif
+	showControlsLegacy.onUpdate = [this](auto*) { onValueChanged(); };
+	showControls.onUpdate = [this](auto*) { onValueChanged(); };
+
 	// pan starts at identity (viewTransform defaults to identity Matrix3x2).
 	// panInitialized_ stays false until initialize() or measure() computes the real pan.
 }
@@ -142,9 +129,7 @@ void SubView::onValueChanged()
 	// if we just blinked into existence, need to update mouse over object
 	if (isShown())
 	{
-		//auto moduleview = dynamic_cast<SE2::ModuleView*>(drawingHost.get());
-		//moduleview->
-		dynamic_cast<SE2::ModuleView*>(parent)->parent->onSubPanelMadeVisible();
+		parent->parent->onSubPanelMadeVisible();
 	}
 
 	OnPatchCablesVisibilityUpdate();

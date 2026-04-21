@@ -125,7 +125,7 @@ public:
 		auto transform = viewTransform;
 
 		// Get parent ModuleView (the Container module that owns this SubView)
-		auto moduleview = dynamic_cast<SE2::ModuleView*>(parent);
+		auto moduleview = parent;
 		if (moduleview)
 		{
 			// Container plugin-local -> Container module-local -> doc
