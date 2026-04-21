@@ -1296,6 +1296,15 @@ MpParameter* MpController::createHostParameter(int32_t hostControl)
 	}
 	break;
 
+	case HC_PLUGIN_UI_SCALE:
+	{
+		p = new SeParameter_vst3_hostControl(this, hostControl);
+		p->datatype_ = DT_FLOAT;
+		const float initialVal = 1.0f;
+		RawView raw(initialVal);
+		p->setParameterRaw(gmpi::MP_FT_VALUE, (int32_t)raw.size(), raw.data());
+	}
+	break;
 
 	/* what would it do?
 	case HC_MIDI_CHANNEL:

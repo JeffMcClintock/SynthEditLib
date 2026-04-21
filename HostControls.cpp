@@ -131,7 +131,8 @@ static const HostControlStruct lookup[] =
 	{L"Processor/DiagnosticFlags", HC_DIAGNOSTIC_FLAGS			, DT_INT,  ControllerType::None},
 	{L"Processor/Offline"		, HC_PROCESSOR_OFFLINE			, DT_BOOL, ControllerType::None},
 	{L"Process/Bypass"			, HC_PROCESS_BYPASS  			, DT_BOOL, ControllerType::None },
-	
+	{L"Plugin/UIScale"			, HC_PLUGIN_UI_SCALE			, DT_FLOAT, ControllerType::None },
+
 	// MAINTAIN ORDER TO PRESERVE OLDER WAVES EXPORTS DSP.XML consistency
 };
 
