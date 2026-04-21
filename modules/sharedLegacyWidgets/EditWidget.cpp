@@ -112,7 +112,7 @@ void EditWidget::Init(const char* style, bool digitsOnly)
 		// This is here only for calculating the widget size for backwards compatibility.
 		FontMetadata* fontData{};
 		GetTextFormat(getHost(), getGuiHost(), "Custom:EditWidget", &fontData);
-		default_text_size = Size(8, fontData->bodyHeight_); // (float)fontData->pixelWidth_, (float)fontData->pixelHeight_);
+		default_text_size = Size(8, (float)fontData->size_);
 	}
 
 	const auto outlineHeight = default_text_size.height - 1.0f; // when drawing we shrink outline 1/2 pixel each side.
