@@ -167,9 +167,10 @@ namespace SE2
 
 	gmpi::ReturnCode ViewBase::onPointerDown(gmpi::drawing::Point point, int32_t flags)
 	{
+		const auto pointAbsolute = point;
 		point = point * inv_viewTransform;
 
-#ifdef DEBUG_HIT_TEST
+#if 1 //def DEBUG_HIT_TEST
 		_RPT3(0, "ViewBase::onPointerDown(%x, (%f, %f))\n", flags, point.x, point.y);
 #endif
 		Presenter()->NotDragging();
@@ -188,7 +189,7 @@ namespace SE2
 					gmpi_gui_api::GG_POINTER_FLAG_FOURTHBUTTON
 					);
 
-			onPointerMove(point, simulatedFlags);
+			onPointerMove(pointAbsolute, simulatedFlags);
 		}
         
 		if(mouseCaptureObject)
