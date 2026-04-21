@@ -17,10 +17,11 @@ int32_t GmpiResourceManager_editor::OpenUri(const char* fullUri, gmpi::IProtecte
 {
 	if (auto sp = strstr(fullUri, "__fontMetrics"); sp) // special magic 'file'.
 	{
-		std::string skinName(fullUri, sp - fullUri - 1);
-		std::string temp = SkinMgr::Instance()->getSkin(Utf8ToWstring(skinName))->GetPixelHeights();
-		*returnStream = new ProtectedMemFile2(temp.data(), temp.size());
-		return gmpi::MP_OK;
+		// seems obsolete. don't work on mac anyhow.
+		//std::string skinName(fullUri, sp - fullUri - 1);
+		//std::string temp = SkinMgr::Instance()->getSkin(Utf8ToWstring(skinName))->GetPixelHeights();
+		//*returnStream = new ProtectedMemFile2(temp.data(), temp.size());
+		return gmpi::MP_NOSUPPORT;
 	}
 
 	

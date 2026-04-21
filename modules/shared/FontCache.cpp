@@ -151,7 +151,7 @@ GmpiDrawing::TextFormat_readonly FontCache::CreateTextFormatAndCache(gmpi::IMpUs
 		// Fontsize will use fontmetadata->bodyHeight_ if provided. which should be populated by widget to suit the widgets dimensions.
 		// Otherwise fallback to font-size (which varies between fonts/platforms).
 		const float minimumFontSize = 1.0f;
-		const float fallBackBodyHeight = (std::max)(minimumFontSize, static_cast<float>(fontmetadata->pixelHeight_));
+		const float fallBackBodyHeight = (std::max)(minimumFontSize, static_cast<float>(fontmetadata->size_));
 
 		const float bodyHeight = fontmetadata->bodyHeight_ > 0.0f ? fontmetadata->bodyHeight_ : fallBackBodyHeight;
 

@@ -24,7 +24,7 @@ void PanelGroupGui::onSetText()
 	if (!textFormat_.isNull())
 	{
 		text_size = textFormat_.GetTextExtentU(pinText.getValue());
-		text_size.height = floor( 0.5f * (textData->pixelHeight_ + textFormat_.GetTextExtentU("8M").height)); // SE compatible "average" character height.
+		text_size.height = floor( 0.5f * (textData->size_ + textFormat_.GetTextExtentU("8M").height)); // SE compatible "average" character height.
 	}
 	title_utf8 = (std::string) pinText;
 
@@ -84,7 +84,7 @@ int32_t PanelGroupGui::hitTest(MP1_POINT point)
 	// ignore clicks within border
 	auto bitmap_size = bitmapMetadata_->frameSize;
 	int width = 4 + bitmap_.GetSize().width - bitmap_size.width;
-	int font_height = textData->pixelHeight_;
+	int font_height = textData->size_;
 	r.Deflate(width, width + font_height / 4);
 	r.Offset(0, font_height / 4);
 

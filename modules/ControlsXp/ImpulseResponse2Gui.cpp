@@ -292,7 +292,7 @@ public:
 			g.FillRectangle(r, background_brush);
 		}
 
-		int fontHeight = typeface_->pixelHeight_;
+		int fontHeight = typeface_->size_;
 		float penWidth = 1.0f;
 
 		brush.SetColor(typeface_->color_);

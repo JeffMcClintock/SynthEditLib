@@ -59,7 +59,7 @@ void TextEditWidget::Init(const char* style)
 GmpiDrawing::Size TextEditWidget::getSize()
 {
 //	return Size(8.0f, ceilf(typeface_->pixelHeight_) + 4); // + GetSystemMetrics(SM_CYEDGE) * 4 + hack.
-	return Size(8.0f, static_cast<float>(typeface_->pixelHeight_));
+	return Size(8.0f, static_cast<float>(typeface_->size_));
 }
 
 bool TextEditWidget::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point)

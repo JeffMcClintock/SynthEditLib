@@ -27,7 +27,7 @@ void TextWidgetBase::InitTextFormat(const char* base_style, bool digitsOnly, boo
 					else
 					{
 						// Calculate text height to fit nicely in cell. Based on local font-metrics.
-						const float cellHeight = static_cast<float>(customFont->pixelHeight_);
+						const float cellHeight = static_cast<float>(customFont->size_);
 						const float padding = cellHeight < 16.0f ? 0.0f : 0.5f; // 1 DIP, on small text 0.5 DIPs
 						const float bodyHeight = cellHeight - padding;
 
@@ -55,7 +55,7 @@ void TextWidgetBase::InitTextFormat(const char* base_style, bool digitsOnly, boo
 
 void TextWidgetBase::VerticalCenterText(bool digitsOnly, float borderShrink)
 {
-	const auto widgetHeight = (float)typeface_->pixelHeight_;
+	const auto widgetHeight = (float)typeface_->size_;
 
 	const auto boundingBoxSize = dtextFormat.GetTextExtentU("A");
 	GmpiDrawing_API::MP1_FONT_METRICS fontMetrics;

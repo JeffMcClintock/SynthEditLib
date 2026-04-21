@@ -65,7 +65,7 @@ GmpiDrawing::Size TextWidget::getSize()
 //	_RPT4(_CRT_WARN, "text extent'%s'", text.c_str());
 //	_RPT2(_CRT_WARN, " text_size (%f,%f) \n", text_size.width, text_size.height);
 
-	widgetSize.height = (float)typeface_->pixelHeight_;
+	widgetSize.height = (float)typeface_->size_;
 
 	// allow for margins.
 //? 	text_size.height += 2;

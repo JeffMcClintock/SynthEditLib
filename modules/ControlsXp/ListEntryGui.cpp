@@ -545,7 +545,7 @@ int32_t ListEntryGui::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawi
 
 	FontMetadata* returnMetadata;
 	FontCache::instance()->GetTextFormat( getHost(), getGuiHost(), "control_label", &returnMetadata);
-	returnDesiredSize->height += returnMetadata->pixelHeight_; // FontCache::instance()->getOriginalPixelHeight("control_label"); // Header size
+	returnDesiredSize->height += returnMetadata->size_; // FontCache::instance()->getOriginalPixelHeight("control_label"); // Header size
 
 #ifdef _DEBUG
 	ismeasured = true;

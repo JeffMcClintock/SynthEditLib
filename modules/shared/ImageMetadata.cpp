@@ -342,7 +342,7 @@ void SkinMetadata::Serialise(mp_shared_ptr<gmpi::IProtectedFile2> stream)
 
 					if (words[0] == "font-size")
 					{
-						current->pixelHeight_ = current->size_ = StringToInt(words[1]);
+						current->size_ = StringToInt(words[1]);
 					}
 
 					if (words[0] == "vst3-vertical-offset")
@@ -352,14 +352,6 @@ void SkinMetadata::Serialise(mp_shared_ptr<gmpi::IProtectedFile2> stream)
 					if (words[0] == "legacy-vertical-offset")
 					{
 						current->verticalSnapBackwardCompatibilityMode = (0 != StringToInt(words[1]));
-					}
-					if (words[0] == "GDI_pixelHeight")
-					{
-						current->pixelHeight_ = StringToInt(words[1]);
-					}
-					if (words[0] == "GDI_pixelWidth")
-					{
-						current->pixelWidth_ = StringToInt(words[1]);
 					}
 
 					if( words[0] == "font-color" )

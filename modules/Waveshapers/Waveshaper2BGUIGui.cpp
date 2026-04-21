@@ -193,7 +193,7 @@ public:
 					//TextOut(hDC, mid_x + tick_width, mid_y - (int)y - fontHeight / 2, txt, (int)wcslen(txt));
 					int tx = mid_x + tick_width;
 					int ty = mid_y - (int)y - fontHeight / 2;
-					GmpiDrawing::Rect textRect(tx, ty, tx + 100, ty + typeface->pixelHeight_);
+					GmpiDrawing::Rect textRect(tx, ty, tx + 100, ty + typeface->size_);
 					g.DrawTextU(txt, dtextFormat, textRect, brush2);
 				}
 			}
@@ -211,7 +211,7 @@ public:
 					float x = fv * h_scale / 5.f;
 					int tx = mid_x + (int)x;
 					int ty = mid_y + tick_width;
-					GmpiDrawing::Rect textRect(tx - 50, ty, tx + 50, ty + typeface->pixelHeight_);
+					GmpiDrawing::Rect textRect(tx - 50, ty, tx + 50, ty + typeface->size_);
 					g.DrawTextU(txt, dtextFormat, textRect, brush2);
 				}
 			}

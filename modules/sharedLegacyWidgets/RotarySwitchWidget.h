@@ -64,8 +64,7 @@ public:
 
 		dtextFormat = GetTextFormat(patchMemoryHost_, guiHost_, "switch_label", &typeface_);
 
-		// SE 1.1 used font 'size', SE 1.4 used pixelHeight_, which resulted in different (more spaced-out) results.
-		float fontSize = static_cast<float>(typeface_->verticalSnapBackwardCompatibilityMode ? typeface_->pixelHeight_ : typeface_->size_);
+		float fontSize = static_cast<float>(typeface_->size_);
 
 		it_enum_list itr(itemList);
 		

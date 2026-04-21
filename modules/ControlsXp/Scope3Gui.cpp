@@ -541,7 +541,7 @@ int32_t Scope3Gui::initialize()
 			{
 				if(!customFont->verticalSnapBackwardCompatibilityMode)
 				{
-					customFont->bodyHeight_ = customFont->pixelHeight_;
+					customFont->bodyHeight_ = static_cast<float>(customFont->size_);
 					customFont->bodyHeightDigitsOnly_ = false;
 					customFont->vst3_vertical_offset_ = 0;
 				}
