@@ -123,7 +123,7 @@ UPlug::~UPlug()
 
 void UPlug::DestroyBuffer()
 {
-	// delete attached buffers
+	// remove attached buffers
 	if( (flags & PF_OWNS_BUFFER) != 0 )
 	{
 		switch( DataType )

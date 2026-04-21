@@ -243,7 +243,7 @@ void EventProcessor::DiscardOldPinEvents( int pin_index, int datatype)
 		}
 	}
 
-	// delete any earlier events on same pin.
+	// remove any earlier events on same pin.
 	for( ; it != events.rend() ; --it )
 	{
 		SynthEditEvent* e2 = *it;

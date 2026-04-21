@@ -386,7 +386,7 @@ int ug_wave_player::open_file()
 	if (m_currently_loaded_file == FileName)
 		return false;
 
-	// delete any prev loaded headers
+	// remove any prev loaded headers
 	m_currently_loaded_file.clear();
 	cursor = nullptr;
 	loop_start = loop_end = -1;

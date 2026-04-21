@@ -464,7 +464,7 @@ struct FeedbackTrace* ug_poly_to_monoB::PPSetDownstream()
 {
 	auto helper = GetPlug(1)->connections.front()->UG;
 
-	// delete unnesc default connection to helper audio input.
+	// remove unnesc default connection to helper audio input.
 	auto oldfrom = helper->GetPlug(0)->connections.front();
 	oldfrom->DeleteConnection(helper->GetPlug(0));
 

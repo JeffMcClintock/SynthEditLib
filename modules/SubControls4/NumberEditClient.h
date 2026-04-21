@@ -269,7 +269,7 @@ public:
             {
                 if (key == 0x08)
                 {
-                    // delete prev character
+                    // remove prev character
                     if (cursorPos > 0)
                     {
                         text = text.substr(0, cursorPos - 1) + text.substr(cursorPos);
@@ -278,7 +278,7 @@ public:
                 }
                 else // <DEL>
                 {
-                    // delete next character
+                    // remove next character
                     if (cursorPos < text.length())
                     {
                         text = text.substr(0, cursorPos) + text.substr(cursorPos + 1);
@@ -287,7 +287,7 @@ public:
             }
             else
             {
-                // delete highlighted text
+                // remove highlighted text
                 text = text.substr(0, selectedFrom) + text.substr(selectedTo);
                 cursorPos = selectedTo = selectedFrom;
             }
@@ -440,7 +440,7 @@ public:
     {
         auto text = numberEditGlyfs.text_utf32;
 
-        // delete highlighted text
+        // remove highlighted text
         if (selectedFrom != selectedTo)
         {
             text = text.substr(0, selectedFrom) + text.substr(selectedTo);

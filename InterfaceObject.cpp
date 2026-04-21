@@ -55,7 +55,7 @@ std::wstring uniformDefaultString(std::wstring defaultValue, EPlugDataType dataT
 
 SafeInterfaceObjectArray::~SafeInterfaceObjectArray()
 {
-	// delete contained objects
+	// remove contained objects
 	for( auto it = begin(); it != end() ; ++it )
 	{
 		delete *it;

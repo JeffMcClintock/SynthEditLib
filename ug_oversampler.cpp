@@ -300,7 +300,7 @@ void ug_oversampler::Setup2(bool xmlMethod)
 				{
 					UPlug* from = tiedTo->connections.front();
 					oversampler_out->connect(from, op);
-					// delete old connection.
+					// remove old connection.
 					from->DeleteConnection(tiedTo);
 				}
 
@@ -351,7 +351,7 @@ void ug_oversampler::Setup2(bool xmlMethod)
 					*input = output;
 				}
 
-				// delete old connection to the inner module
+				// remove old connection to the inner module
 				to_plug->DisConnect(old_inward_io_mod_pin);
 			}
 #endif
@@ -377,7 +377,7 @@ void ug_oversampler::Setup2(bool xmlMethod)
 					*input = output;
 				}
 
-				// delete old connection to the inner module
+				// remove old connection to the inner module
 				to_plug->DisConnect(inside_pin);
 
 			}
@@ -392,7 +392,7 @@ void ug_oversampler::Setup2(bool xmlMethod)
 				// connect default_setter to oversampler
 				connect(outerConnection, plugs[x - CONTAINER_FIXED_PLUG_COUNT]);
 
-				// delete old connection from the default-setter to the container
+				// remove old connection from the default-setter to the container
 				outerConnection->DisConnect(p);
 			}
 			p->connections.clear();

@@ -758,7 +758,7 @@ CModuleFactory::~CModuleFactory()
 		std::replace(s.begin(), s.end(), ' ', '_');
 	}
 
-	// delete even elements from the vector
+	// remove even elements from the vector
 	staticInitCheck2.erase(std::remove_if(staticInitCheck2.begin(), staticInitCheck2.end(), [this](const std::string& x) {
 		return std::find(staticInitCheck.begin(), staticInitCheck.end(), x) != staticInitCheck.end();
 		}), staticInitCheck2.end());
