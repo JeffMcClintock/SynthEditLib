@@ -62,6 +62,8 @@ struct DrawingFrameBase2 :
 
     std::atomic<bool> isInit;
 
+    float pluginUIScale = 1.0f; // HC_PLUGIN_UI_SCALE multiplier (plugin builds only, not the editor)
+
     gmpi::drawing::Point currentPointerPos{ -1, -1 };
     GmpiGui::PopupMenu contextMenu;
     gmpi::shared_ptr<gmpi::api::IPopupMenu> popupMenu;

@@ -187,7 +187,7 @@ gmpi::ReturnCode DrawingFrameBase2::releaseCapture()
 float DrawingFrameHwndBase::getRasterizationScale()
 {
     const auto dpiX = GetDpiForWindow(getWindowHandle());
-    return dpiX / 96.f;
+    return (dpiX / 96.f) * pluginUIScale;
 }
 
 HRESULT DrawingFrameHwndBase::createNativeSwapChain

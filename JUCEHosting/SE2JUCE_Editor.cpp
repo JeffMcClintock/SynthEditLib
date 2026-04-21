@@ -8,6 +8,8 @@
 
 #include "SE2JUCE_Editor.h"
 #include "SE2JUCE_Processor.h"
+#include "SE2JUCE_Controller.h"
+#include "../HostControls.h"
 
 #ifdef _WIN32
 #include <Windowsx.h>
@@ -42,7 +44,18 @@ SynthEditEditor::SynthEditEditor (SE2JUCE_Processor& p, SeJuceController& pcontr
 
 	const int width = gui_json["width"].asInt();
 	const int height = gui_json["height"].asInt();
-	setSize(width, height);
+
+	float uiScale = 1.0f;
+#ifdef _WIN32
+	if (auto* param = controller.getHostParameter(HC_PLUGIN_UI_SCALE))
+	{
+		auto rawValue = param->getValueRaw(gmpi::MP_FT_VALUE, 0);
+		uiScale = (float)rawValue;
+	}
+	drawingframe.pluginUIScale = uiScale;
+#endif
+
+	setSize(static_cast<int>(width * uiScale), static_cast<int>(height * uiScale));
 }
 
 void SynthEditEditor::parentHierarchyChanged()
