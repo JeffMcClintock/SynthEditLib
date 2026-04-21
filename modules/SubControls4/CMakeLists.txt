@@ -11,6 +11,7 @@ gmpi_plugin(
     IS_OFFICIAL_MODULE
     FORMATS_LIST GMPI
     SOURCE_FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/../PluginUIScale/PluginUIScaleGui.cpp
         GmpiUiTest.cpp
         DialogGui.cpp
         DirectoryDialogGui.cpp

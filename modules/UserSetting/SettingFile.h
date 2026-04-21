@@ -11,11 +11,10 @@
 #include "../shared/unicode_conversion2.h"
 #include <sys/stat.h>
 
-using namespace FastUnicode;
-using namespace tinyxml2;
-
 namespace SettingsFile
 {
+	using namespace tinyxml2;
+
 	// Determine settings file: C:\Users\Jeff\AppData\Local\Plugin\Preferences.xml
 	inline std::string getSettingFilePath(std::wstring product)
 	{
@@ -34,7 +33,7 @@ namespace SettingsFile
                 homeDir = pwd->pw_dir;
         }
         
-        auto meSettingsFile = Utf8ToWstring(homeDir) + L"/Library/Preferences/";
+        auto meSettingsFile = FastUnicode::Utf8ToWstring(homeDir) + L"/Library/Preferences/";
 #endif
 		meSettingsFile += product;
 
@@ -42,12 +41,12 @@ namespace SettingsFile
 #ifdef _WIN32
 		_wmkdir(meSettingsFile.c_str());
 #else
-		mkdir(WStringToUtf8(meSettingsFile).c_str(), 0775);
+		mkdir(FastUnicode::WStringToUtf8(meSettingsFile).c_str(), 0775);
 #endif
 
 		meSettingsFile += L"/Preferences.xml";
 
-		return  WStringToUtf8(meSettingsFile);
+		return  FastUnicode::WStringToUtf8(meSettingsFile);
 	}
 
 	inline std::wstring Sanitize(std::wstring s)
@@ -82,12 +81,12 @@ namespace SettingsFile
 
 			if (settingsXml)
 			{
-				auto keyXml = settingsXml->FirstChildElement(WStringToUtf8(key).c_str());
+				auto keyXml = settingsXml->FirstChildElement(FastUnicode::WStringToUtf8(key).c_str());
 
 				if (keyXml)
 				{
 					auto s = keyXml->GetText();
-					return s ? Utf8ToWstring(s) : L"";
+					return s ? FastUnicode::Utf8ToWstring(s) : L"";
 				}
 			}
 		}
@@ -124,7 +123,7 @@ namespace SettingsFile
 			doc.LinkEndChild(element_preferences);
 		}
 
-		auto key = WStringToUtf8(pkey);
+		auto key = FastUnicode::WStringToUtf8(pkey);
 
 		auto keyXml = element_preferences->FirstChildElement(key.c_str());
 
@@ -136,7 +135,7 @@ namespace SettingsFile
 		}
 
 		// If key value element don't exist, create it.
-		auto textValue = WStringToUtf8(value);
+		auto textValue = FastUnicode::WStringToUtf8(value);
 		XMLText* textE = nullptr;
 
 		if (keyXml->FirstChild())

@@ -10,6 +10,7 @@
 #include "GmpiResourceManager.h"
 #include "./Presenter.h"
 #include "BundleInfo.h"
+#include "../UserSetting/SettingFile.h"
 #include "midi_defs.h"
 #include "ListBuilder.h"
 #include "Shared/se_logger.h"
@@ -214,6 +215,21 @@ void MpController::UpdatePresetBrowser()
 	}
 }
 
+float MpController::getStoredUIScale()
+{
+	const auto product = JmUnicodeConversions::Utf8ToWstring(BundleInfo::instance()->getPluginInfo().pluginName);
+	const auto str = SettingsFile::GetValue(product, L"PluginUIScale", L"");
+	if (!str.empty())
+		try { return std::stof(str); } catch (...) {}
+	return 1.0f;
+}
+
+void MpController::storeUIScale(float scale)
+{
+	const auto product = JmUnicodeConversions::Utf8ToWstring(BundleInfo::instance()->getPluginInfo().pluginName);
+	SettingsFile::SetValue(product, L"PluginUIScale", std::to_wstring(scale));
+}
+
 void MpController::Initialize()
 {
     if(isInitialized)
@@ -390,6 +406,28 @@ void MpController::Initialize()
 		if (seParameter->hostControl_ == HC_PROGRAM_NAME)
 		{
 			full_reset_preset_name = WStringToUtf8(RawToValue<std::wstring>(seParameter->rawValues_[0].data(), seParameter->rawValues_[0].size()));
+		}
+		if(seParameter->hostControl_ == HC_PLUGIN_UI_SCALE)
+		{
+			const float savedScale = getStoredUIScale();
+
+			seParameter->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, sizeof(savedScale), &savedScale);
+
+			const auto handle = seParameter->parameterHandle_;
+			parameterAttachments[handle] = gmpi::shared_ptr<ParameterAttachment>(new ParameterAttachment());
+			parameterAttachments[handle]->callback = (
+				[this](int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, RawView value)
+				{
+					if(fieldId != gmpi::Field::Value)
+						return;
+
+					const auto newScale = (float)value;
+					storeUIScale(newScale);
+
+					if(onPluginUIScaleChanged)
+						onPluginUIScaleChanged(newScale);
+				}
+			);
 		}
 	}
 
@@ -944,6 +982,7 @@ gmpi_gui::IMpGraphicsHost* MpController::getGraphicsHost()
 	return nullptr;
 }
 
+// SeParameter_vst3_hostControl ONLY
 void MpController::OnSetHostControl(int hostControl, int32_t paramField, int32_t size, const void* data, int32_t voice)
 {
 	switch (hostControl)
@@ -1300,7 +1339,18 @@ MpParameter* MpController::createHostParameter(int32_t hostControl)
 	{
 		p = new SeParameter_vst3_hostControl(this, hostControl);
 		p->datatype_ = DT_FLOAT;
-		const float initialVal = 1.0f;
+
+		// Load persisted user preference (per-plugin, not per-preset).
+		float initialVal = 1.0f;
+		const auto productW = JmUnicodeConversions::Utf8ToWstring(BundleInfo::instance()->getPluginInfo().pluginName);
+		const auto stored = SettingsFile::GetValue(productW, L"PluginUIScale", L"");
+		if (!stored.empty())
+		{
+			try { initialVal = std::stof(stored); } catch (...) {}
+			// clamp to sane range
+			if (!(initialVal >= 0.25f && initialVal <= 8.0f)) initialVal = 1.0f;
+		}
+
 		RawView raw(initialVal);
 		p->setParameterRaw(gmpi::MP_FT_VALUE, (int32_t)raw.size(), raw.data());
 	}
@@ -1381,7 +1431,7 @@ int32_t MpController::getParameterHandle(int32_t moduleHandle, int32_t modulePar
 	return -1;
 }
 
-void MpController::initializeGui(gmpi::IMpParameterObserver* gui, int32_t parameterHandle, gmpi::FieldType FieldId)
+void MpController::initializeGui(gmpi::api::IParameterObserver* gui, int32_t parameterHandle, gmpi::Field FieldId)
 {
 	auto it = ParameterHandleIndex.find(parameterHandle);
 
@@ -1391,8 +1441,8 @@ void MpController::initializeGui(gmpi::IMpParameterObserver* gui, int32_t parame
 
 		for (int voice = 0; voice < p->getVoiceCount(); ++voice)
 		{
-			auto raw = p->getValueRaw(FieldId, voice);
-			gui->setParameter(parameterHandle, FieldId, voice, raw.data(), (int32_t)raw.size());
+			auto raw = p->getValueRaw(static_cast<gmpi::FieldType>(FieldId), voice);
+			gui->setParameter(parameterHandle, FieldId, voice, (int32_t)raw.size(), (const uint8_t*)raw.data());
 		}
 	}
 }

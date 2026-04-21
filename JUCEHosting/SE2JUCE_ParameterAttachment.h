@@ -7,6 +7,7 @@
 #include "RawConversions.h"
 #include "IGuiHost2.h"
 #include "it_enum_list.h"
+#include "RefCountMacros.h"
 
 /*
 #include "SE2JUCE_ParameterAttachment.h"
@@ -536,7 +537,7 @@ struct Pin
     }
 };
 
-struct HasParameterAttachments : gmpi::IMpParameterObserver
+struct HasParameterAttachments : gmpi::api::IParameterObserver
 {
 public:
 	std::unordered_map<int32_t, std::vector< std::unique_ptr<SeParameterAttachment> > > parameterAttachments;
@@ -546,7 +547,7 @@ public:
     {
         controller.RegisterGui2(this);
     }
-    
+
     ~HasParameterAttachments()
     {
         controller.UnRegisterGui2(this);
@@ -640,13 +641,13 @@ public:
         for (auto& param : parameterAttachments)
         {
 			auto handle = param.first;
-            controller.initializeGui(this, handle, gmpi::MP_FT_NORMALIZED);
-            controller.initializeGui(this, handle, gmpi::MP_FT_VALUE);
+            controller.initializeGui(this, handle, gmpi::Field::Normalized);
+            controller.initializeGui(this, handle, gmpi::Field::Value);
         }
     }
 
-    // IMpParameterObserver
-    int32_t MP_STDCALL setParameter(int32_t parameterHandle, int32_t fieldId, int32_t voice, const void* data, int32_t size) override
+    // IParameterObserver
+    gmpi::ReturnCode setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override
     {
         if (auto it = parameterAttachments.find(parameterHandle); it != parameterAttachments.end())
         {
@@ -655,13 +656,13 @@ public:
 #if 0 // def _DEBUG
                 _RPTN(0, "setParameter: %d %s\n", parameterHandle, SeParameters::getParameterName(parameterHandle));
 #endif
-                attachment->setParameter(parameterHandle, fieldId, voice, data, size);
+                attachment->setParameter(parameterHandle, static_cast<int32_t>(fieldId), voice, (const void*)data, size);
             }
         }
 
-		return gmpi::MP_OK;
+		return gmpi::ReturnCode::Ok;
     }
 
-    GMPI_QUERYINTERFACE1(gmpi::MP_IID_PARAMETER_OBSERVER, gmpi::IMpParameterObserver);
+    GMPI_QUERYINTERFACE_METHOD(gmpi::api::IParameterObserver);
     GMPI_REFCOUNT;
 };

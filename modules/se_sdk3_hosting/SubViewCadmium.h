@@ -11,7 +11,7 @@ namespace SE2
 }
 
 // sub-view shown on Panel.
-class SubViewCadmium : public SE2::ViewBase, public gmpi::IMpParameterObserver, public se_sdk::TimerClient
+class SubViewCadmium : public SE2::ViewBase, public gmpi::api::IParameterObserver, public se_sdk::TimerClient
 {
 	BoolGuiPin showControlsLegacy;
 	BoolGuiPin showControls;
@@ -113,16 +113,16 @@ public:
 	virtual void OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, SE2::IViewChild*& bestModule, int& bestPinIndex);
 	void OnPatchCablesVisibilityUpdate() override;
 
-	// IMpParameterObserver
-	int32_t MP_STDCALL setParameter(int32_t parameterHandle, int32_t fieldId, int32_t voice, const void* data, int32_t size) override;
+	// IParameterObserver
+	gmpi::ReturnCode setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override;
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
 		*returnInterface = nullptr;
 
-		if (*iid == *(const gmpi::api::Guid*)&gmpi::MP_IID_PARAMETER_OBSERVER)
+		if (*iid == gmpi::api::IParameterObserver::guid)
 		{
-			*returnInterface = static_cast<gmpi::IMpParameterObserver*>(this);
+			*returnInterface = static_cast<gmpi::api::IParameterObserver*>(this);
 			addRef();
 			return gmpi::ReturnCode::Ok;
 		}

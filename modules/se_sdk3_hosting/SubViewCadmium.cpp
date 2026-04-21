@@ -689,15 +689,15 @@ void SubViewCadmium::BuildView(Json::Value* context)
 	functionalUI.step();
 }
 
-int32_t SubViewCadmium::setParameter(int32_t parameterHandle, int32_t fieldId, int32_t voice, const void* data, int32_t size)
+gmpi::ReturnCode SubViewCadmium::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
 {
-	if(fieldId != MP_FT_VALUE || size != sizeof(float))
-		return MP_OK;
+	if(fieldId != gmpi::Field::Value || size != sizeof(float))
+		return gmpi::ReturnCode::Ok;
 
 	auto it = nodeParameters.find(parameterHandle);
 
 	if (it == nodeParameters.end())
-		return MP_OK;
+		return gmpi::ReturnCode::Ok;
 /*
 	auto& node = *it->second;
 
@@ -706,7 +706,7 @@ int32_t SubViewCadmium::setParameter(int32_t parameterHandle, int32_t fieldId, i
 	auto& state = *it->second;
 
 	// this combo messy, wrap it somehow.
-	functionalUI.updateState(state, *(float*)data);
+	functionalUI.updateState(state, *(const float*)data);
 	StartTimer();
 
 	/*
@@ -715,5 +715,5 @@ int32_t SubViewCadmium::setParameter(int32_t parameterHandle, int32_t fieldId, i
 	functionalUI.step();
 	invalidateRect(); //TESTIN!!!!
 	*/
-	return MP_OK;
+	return gmpi::ReturnCode::Ok;
 }

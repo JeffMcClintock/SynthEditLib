@@ -1,5 +1,6 @@
 #pragma once
 
+#error don't use obsolete.
 /*
 #include "modules/se_sdk3_hosting/gmpi_gui_hosting.h"
 using namespace GmpiGuiHosting;
@@ -11,6 +12,7 @@ using namespace GmpiGuiHosting;
 #include "../se_sdk3/mp_sdk_gui2.h"
 #include "../se_sdk3/mp_gui.h"
 #include "../shared/unicode_conversion.h"
+#include "helpers/NativeUi.h"
 
 namespace GmpiGuiHosting
 {
@@ -73,6 +75,7 @@ namespace GmpiGuiHosting
 		{}
 	};
 
+#if 0
 	class ContextItemsSink : public gmpi::IMpContextItemSink
 	{
 	public:
@@ -90,7 +93,7 @@ namespace GmpiGuiHosting
 		GMPI_QUERYINTERFACE1(gmpi::MP_IID_CONTEXT_ITEMS_SINK, gmpi::IMpContextItemSink)
 		GMPI_REFCOUNT_NO_DELETE;
 	};
-    
+
 	// deprecated. see instead ContextMenuHelper
 	class ContextItemsSink2 : public gmpi::IMpContextItemSink
 	{
@@ -231,6 +234,7 @@ namespace GmpiGuiHosting
 		GMPI_QUERYINTERFACE1(gmpi::MP_IID_CONTEXT_ITEMS_SINK, gmpi::IMpContextItemSink)
 		GMPI_REFCOUNT_NO_DELETE
 	};
+#endif
 
 #ifdef _WIN32
 	// This code is for Win32 desktop apps
@@ -399,27 +403,24 @@ namespace GmpiGuiHosting
 		GMPI_REFCOUNT
 	};
 
-	class PGCC_PlatformMenu : public gmpi_gui::IMpPlatformMenu
+	// New-API popup menu for old (pre-gmpi_ui) Win32 drawing frames.
+	// Implements only IPopupMenu; wrap in LegacyMenuAdapter to hand to old SDK code.
+	class PGCC_PlatformMenu : public gmpi::api::IPopupMenu
 	{
 		HMENU hmenu;
 		std::vector<HMENU> hmenus;
 		HWND parentWnd;
 		int align;
-		float dpiScale;
 		GmpiDrawing::Rect editrect_s;
-		int32_t selectedId;
 		std::vector<int32_t> menuIds;
 
 	public:
-		// Might need to apply DPI to Text size, like text-entry does.
-		PGCC_PlatformMenu(HWND pParentWnd, GmpiDrawing_API::MP1_RECT* editrect, float dpi = 1.0f) : hmenu(0)
+		PGCC_PlatformMenu(HWND pParentWnd, GmpiDrawing_API::MP1_RECT* editrect, float /*dpi*/ = 1.0f)
+			: hmenu(CreatePopupMenu())
 			, parentWnd(pParentWnd)
 			, align(TPM_LEFTALIGN)
-			, dpiScale(dpi)
 			, editrect_s(*editrect)
-			, selectedId(-1)
 		{
-			hmenu = CreatePopupMenu();
 			hmenus.push_back(hmenu);
 		}
 
@@ -428,107 +429,85 @@ namespace GmpiGuiHosting
 			DestroyMenu(hmenu);
 		}
 
-		int32_t AddItem(const char* text, int32_t id, int32_t flags) override
+		gmpi::ReturnCode addItem(const char* text, int32_t id, int32_t flags, gmpi::api::IUnknown* /*callback*/) override
 		{
 			UINT nativeFlags = MF_STRING;
-			if ((flags & gmpi_gui::MP_PLATFORM_MENU_TICKED) != 0)
-			{
-				nativeFlags |= MF_CHECKED;
-			}
-			if ((flags & gmpi_gui::MP_PLATFORM_MENU_GRAYED) != 0)
-			{
-				nativeFlags |= MF_GRAYED;
-			}
-			if ((flags & gmpi_gui::MP_PLATFORM_MENU_SEPARATOR) != 0)
-			{
-				nativeFlags |= MF_SEPARATOR;
-			}
-			if ((flags & gmpi_gui::MP_PLATFORM_MENU_BREAK) != 0)
-			{
-				nativeFlags |= MF_MENUBREAK;
-			}
+			if (flags & gmpi_gui::MP_PLATFORM_MENU_TICKED)    nativeFlags |= MF_CHECKED;
+			if (flags & gmpi_gui::MP_PLATFORM_MENU_GRAYED)    nativeFlags |= MF_GRAYED;
+			if (flags & gmpi_gui::MP_PLATFORM_MENU_SEPARATOR) nativeFlags |= MF_SEPARATOR;
+			if (flags & gmpi_gui::MP_PLATFORM_MENU_BREAK)     nativeFlags |= MF_MENUBREAK;
 
-			if ((flags & (gmpi_gui::MP_PLATFORM_SUB_MENU_BEGIN | gmpi_gui::MP_PLATFORM_SUB_MENU_END)) != 0)
+			const bool isSubStart = (flags & gmpi_gui::MP_PLATFORM_SUB_MENU_BEGIN) != 0;
+			const bool isSubEnd   = (flags & gmpi_gui::MP_PLATFORM_SUB_MENU_END)   != 0;
+
+			if (isSubStart || isSubEnd)
 			{
-				if ((flags & gmpi_gui::MP_PLATFORM_SUB_MENU_BEGIN) != 0)
+				if (isSubStart)
 				{
-					auto submenu = CreatePopupMenu();
-					AppendMenu(hmenus.back(), nativeFlags | MF_POPUP, (UINT_PTR) submenu, JmUnicodeConversions::Utf8ToWstring(text).c_str());
-					hmenus.push_back(submenu);
+					auto sub = CreatePopupMenu();
+					AppendMenu(hmenus.back(), nativeFlags | MF_POPUP, (UINT_PTR)sub,
+						JmUnicodeConversions::Utf8ToWstring(text).c_str());
+					hmenus.push_back(sub);
 				}
-				if ((flags & gmpi_gui::MP_PLATFORM_SUB_MENU_END) != 0)
-				{
+				if (isSubEnd)
 					hmenus.pop_back();
-				}
 			}
 			else
 			{
 				menuIds.push_back(id);
-				AppendMenu(hmenus.back(), nativeFlags, menuIds.size(), JmUnicodeConversions::Utf8ToWstring(text).c_str());
+				AppendMenu(hmenus.back(), nativeFlags, menuIds.size(),
+					JmUnicodeConversions::Utf8ToWstring(text).c_str());
 			}
-
-			return gmpi::MP_OK;
+			return gmpi::ReturnCode::Ok;
 		}
 
-		int32_t ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) override
-		{
-			POINT nativePoint;
-			nativePoint.x = (int)editrect_s.left;
-			nativePoint.y = (int)editrect_s.top;
-			ClientToScreen(parentWnd, &nativePoint);
-
-			int flags = align | TPM_LEFTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD;
-
-			auto index = TrackPopupMenu(hmenu, flags, nativePoint.x, nativePoint.y, 0, parentWnd, 0) - 1;
-
-			if (index >= 0)
-			{
-				selectedId = menuIds[index];
-			}
-			else
-			{
-				selectedId = 0; // N/A
-			}
-
-			returnCompletionHandler->OnComplete(index >= 0 ? gmpi::MP_OK : gmpi::MP_CANCEL);
-
-			return gmpi::MP_OK;
-		}
-
-		int32_t SetAlignment(int32_t alignment) override
+		gmpi::ReturnCode setAlignment(int32_t alignment) override
 		{
 			switch (alignment)
 			{
-			case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_LEADING:
-				align = TPM_LEFTALIGN;
-				break;
-			case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_CENTER:
-				align = TPM_CENTERALIGN;
-				break;
-			case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_TRAILING:
-			default:
-				align = TPM_RIGHTALIGN;
-				break;
+			case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_LEADING:  align = TPM_LEFTALIGN;   break;
+			case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_CENTER:   align = TPM_CENTERALIGN; break;
+			default:                                           align = TPM_RIGHTALIGN;  break;
 			}
-			return gmpi::MP_OK;
+			return gmpi::ReturnCode::Ok;
 		}
 
-		int32_t GetSelectedId() override
+		gmpi::ReturnCode showAsync(gmpi::api::IUnknown* pcallback) override
 		{
-			return selectedId;
+			POINT pt = { (LONG)editrect_s.left, (LONG)editrect_s.top };
+			ClientToScreen(parentWnd, &pt);
+			const int flags = align | TPM_LEFTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD;
+			const auto index = TrackPopupMenu(hmenu, flags, pt.x, pt.y, 0, parentWnd, 0) - 1;
+			const int32_t selId = (index >= 0) ? menuIds[index] : 0;
+
+			gmpi::api::IPopupMenuCallback* cb{};
+			if (pcallback)
+				pcallback->queryInterface(&gmpi::api::IPopupMenuCallback::guid, (void**)&cb);
+			if (cb)
+			{
+				cb->onComplete(index >= 0 ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Cancel, selId);
+				cb->release();
+			}
+
+			return gmpi::ReturnCode::Ok;
 		}
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_MENU, gmpi_gui::IMpPlatformMenu)
+		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+		{
+			*returnInterface = {};
+			GMPI_QUERYINTERFACE(gmpi::api::IPopupMenu);
+			GMPI_QUERYINTERFACE(gmpi::api::IContextItemSink);
+			return gmpi::ReturnCode::NoSupport;
+		}
 		GMPI_REFCOUNT
 	};
 
-	class Gmpi_Win_FileDialog : public gmpi_gui::IMpFileDialog
+	class Gmpi_Win_FileDialog : public gmpi::api::IFileDialog
 	{
 		HWND parentWnd;
 		int32_t mode_;
 		std::wstring initial_filename;
 		std::wstring initial_folder;
-		std::string selectedFilename;
 
 	public:
 		std::vector< std::pair< std::string, std::string> > extensions;
@@ -539,10 +518,10 @@ namespace GmpiGuiHosting
 		{
 		}
 
-		int32_t AddExtension(const char* extension, const char* description ) override
+		gmpi::ReturnCode addExtension(const char* extension, const char* description = "") override
 		{
-			std::string ext(extension);
-			std::string desc(description);
+			std::string ext(extension ? extension : "");
+			std::string desc(description ? description : "");
 			if( desc.empty() )
 			{
 				if( ext == "*" )
@@ -551,58 +530,46 @@ namespace GmpiGuiHosting
 					desc = ext;
 				desc += " Files";
 			}
-			extensions.push_back(std::pair<std::string, std::string>(extension, desc));
-			return gmpi::MP_OK;
+			extensions.push_back(std::pair<std::string, std::string>(ext, desc));
+			return gmpi::ReturnCode::Ok;
 		}
-		int32_t SetInitialFilename(const char* text) override
+		gmpi::ReturnCode setInitialFilename(const char* text) override
 		{
-			initial_filename = JmUnicodeConversions::Utf8ToWstring( text );
-			return gmpi::MP_OK;
+			initial_filename = JmUnicodeConversions::Utf8ToWstring(text ? text : "");
+			return gmpi::ReturnCode::Ok;
 		}
-		int32_t setInitialDirectory(const char* text) override
+		gmpi::ReturnCode setInitialDirectory(const char* text) override
 		{
-			initial_folder = JmUnicodeConversions::Utf8ToWstring(text);
-			return gmpi::MP_OK;
+			initial_folder = JmUnicodeConversions::Utf8ToWstring(text ? text : "");
+			return gmpi::ReturnCode::Ok;
 		}
 
-//		int32_t Show(IMpUnknown* returnString) override;
-		int32_t ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) override;
-		int32_t GetSelectedFilename(IMpUnknown* returnString) override;
+		gmpi::ReturnCode showAsync(const gmpi::drawing::Rect* /*rect*/, gmpi::api::IUnknown* callback) override;
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_FILE_DIALOG, gmpi_gui::IMpFileDialog)
+		GMPI_QUERYINTERFACE_METHOD(gmpi::api::IFileDialog)
 		GMPI_REFCOUNT
 	};
 
 
 	
-	class Gmpi_Win_OkCancelDialog : public gmpi_gui::IMpOkCancelDialog
+	class Gmpi_Win_OkCancelDialog : public gmpi::api::IStockDialog
 	{
 		HWND parentWnd;
-		int32_t mode_;
-		std::wstring title;
-		std::wstring text;
+		gmpi::api::StockDialogType dialogType;
+		std::string title;
+		std::string text;
 
 	public:
-		Gmpi_Win_OkCancelDialog(int32_t mode, HWND pParentWnd) :
-			parentWnd(pParentWnd)
-			, mode_(mode)
-		{
-		}
+		Gmpi_Win_OkCancelDialog(HWND hwnd, int32_t type, const char* ptitle, const char* ptext) :
+			parentWnd(hwnd)
+			, dialogType(static_cast<gmpi::api::StockDialogType>(type))
+			, title(ptitle ? ptitle : "")
+			, text(ptext ? ptext : "")
+		{}
 
-		int32_t SetTitle(const char* ptext) override
-		{
-			title = JmUnicodeConversions::Utf8ToWstring(ptext);
-			return gmpi::MP_OK;
-		}
-		int32_t SetText(const char* ptext) override
-		{
-			text = JmUnicodeConversions::Utf8ToWstring(ptext);
-			return gmpi::MP_OK;
-		}
+		gmpi::ReturnCode showAsync(gmpi::api::IUnknown* callback) override;
 
-		int32_t ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) override;
-
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, gmpi_gui::IMpOkCancelDialog)
+		GMPI_QUERYINTERFACE_METHOD(gmpi::api::IStockDialog)
 		GMPI_REFCOUNT
 	};
 

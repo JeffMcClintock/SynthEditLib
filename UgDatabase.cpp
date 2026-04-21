@@ -1226,7 +1226,8 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(MIDI2Converter);
 	INIT_STATIC_FILE(MPEToMIDI2);
 	INIT_STATIC_FILE(Blob2Test);
-    
+//	INIT_STATIC_FILE(PluginUIScaleGui)
+
 #if SE_GRAPHICS_SUPPORT
 	// temporarily built in SELib to make iterating on this quicker
 //	INIT_STATIC_FILE(GmpiUiTest);

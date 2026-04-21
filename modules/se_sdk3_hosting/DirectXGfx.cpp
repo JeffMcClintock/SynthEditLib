@@ -3,11 +3,8 @@
 #include <sstream>
 #include "./DirectXGfx.h"
 #include "../shared/xplatform.h"
-#include "../se_sdk3_hosting/gmpi_gui_hosting.h"
 #include "BundleInfo.h"
 #include "Shared/DrawingFrame2_win.h"
-
-using namespace GmpiGuiHosting;
 
 namespace se
 {

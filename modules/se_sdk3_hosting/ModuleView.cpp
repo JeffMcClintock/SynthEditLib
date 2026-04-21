@@ -8,6 +8,7 @@
 #include "ConnectorView.h"
 #include "UgDatabase.h"
 #include "legacy_sdk_gui2.h"
+#include "LegacyMenuAdapter.h"
 #include "modules/shared/xplatform.h"
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "BundleInfo.h"
@@ -372,22 +373,22 @@ namespace SE2
 
 		*returnMenu = nullptr;
 
-     auto localRect = *reinterpret_cast<gmpi::drawing::Rect*>(rect);
+		auto localRect = *reinterpret_cast<gmpi::drawing::Rect*>(rect);
 		const auto adjustedRect = moduleview.MapPluginRectToView(localRect);
 
 		gmpi::shared_ptr<gmpi::api::IUnknown> popupMenu;
 		const auto result = moduleview.parent->dialogHost->createPopupMenu(&adjustedRect, popupMenu.put());
 		if(result != gmpi::ReturnCode::Ok || popupMenu.isNull())
-		{
 			return gmpi::MP_FAIL;
-		}
 
-		const auto queryResult = popupMenu->queryInterface(&gmpi_gui::legacy::IMpPlatformMenu::guid, reinterpret_cast<void**>(returnMenu));
-		if(queryResult != gmpi::ReturnCode::Ok || !*returnMenu)
-		{
+		gmpi::api::IPopupMenu* newMenu{};
+		popupMenu->queryInterface(&gmpi::api::IPopupMenu::guid, (void**)&newMenu);
+		if (!newMenu)
 			return gmpi::MP_FAIL;
-		}
 
+		// Wrap new-API menu in adapter; cast is safe — vtable layout of both IMpPlatformMenu variants is identical.
+		// QI above addRef'd newMenu; LegacyMenuAdapter::inner.attach takes ownership without addRef.
+		*returnMenu = reinterpret_cast<gmpi_gui::IMpPlatformMenu*>(new LegacyMenuAdapter(newMenu));
 		return gmpi::MP_OK;
 	}
 
@@ -1212,66 +1213,6 @@ if(pluginGraphics)
 
 		return gmpi::drawing::Point();
 	}
-
-#if 0 // deprecated
-	int32_t ModuleView::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
-	{
-		(void)rect;
-		(void)returnTextEdit;
-		return gmpi::MP_NOSUPPORT;
-	}
-
-	int32_t ModuleView::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
-	{
-		(void)rect;
-		(void)returnMenu;
-		return gmpi::MP_NOSUPPORT;
-	}
-
-	int32_t ModuleView::createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog)
-	{
-		(void)dialogType;
-		(void)returnFileDialog;
-		return gmpi::MP_NOSUPPORT;
-	}
-	int32_t ModuleView::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnFileDialog)
-	{
-		(void)dialogType;
-		(void)returnFileDialog;
-		return gmpi::MP_NOSUPPORT;
-	}
-
-	void ModuleView::invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect)
-	{ 
-		if (invalidRect)
-		{
-			gmpi::drawing::Rect r{ invalidRect->left, invalidRect->top, invalidRect->right, invalidRect->bottom };
-			r = offsetRect(r, { bounds_.left + pluginGraphicsPos.left, bounds_.top + pluginGraphicsPos.top });
-			parent->ChildInvalidateRect(r);
-		}
-		else
-			parent->ChildInvalidateRect(bounds_);
-	}
-
-	int32_t ModuleView::setCapture()
-	{
-		mouseCaptured = true;
-		return parent->setCapture(this); // getGuiHost()->setCapture();
-	}
-
-	int32_t ModuleView::getCapture(int32_t& returnValue)
-	{
-		returnValue = mouseCaptured;
-		//	returnValue = WpfHost->IsMouseCaptured;
-		return gmpi::MP_OK;
-	}
-
-	int32_t ModuleView::releaseCapture()
-	{
-		mouseCaptured = false;
-		return parent->releaseCapture();
-	}
-#endif
 
 	void ModuleView::OnMoved(gmpi::drawing::Rect& newRect)
 	{

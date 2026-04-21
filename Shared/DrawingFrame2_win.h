@@ -226,6 +226,8 @@ public:
     bool onTimer() override;
     void OnPaint() override; // should call Paint with the dirty area
 
+    gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override;
+
     // provids a default message handler. Note that some clients provide their own. e.g. MyFrameWndDirectX
     LRESULT WindowProc(
         HWND hwnd,

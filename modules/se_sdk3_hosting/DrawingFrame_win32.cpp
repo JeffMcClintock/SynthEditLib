@@ -11,6 +11,9 @@
 
 #include "IGuiHost2.h"
 #include "unicode_conversion.h"
+#include "LegacyMenuAdapter.h"
+#include "LegacyFileDialogAdapter.h"
+#include "LegacyOkCancelDialogAdapter.h"
 
 using namespace std;
 using namespace gmpi;
@@ -749,7 +752,7 @@ void DrawingFrameBase::CreateDevice()
 	float whiteMult{ 1.0f };
 #endif
 	{
-		// query for the device object’s IDXGIDevice interface
+		// query for the device objectâ€™s IDXGIDevice interface
 		ComPtr<IDXGIDevice> dxdevice;
 		D3D11Device.As(&dxdevice);
 
@@ -888,7 +891,7 @@ void DrawingFrameBase::CreateDevice()
 		} while (r == 0x887a002d); // The application requested an operation that depends on an SDK component that is missing or mismatched. (no DEBUG LAYER).
 	}
 
-	// query for the device object’s IDXGIDevice interface
+	// query for the device objectâ€™s IDXGIDevice interface
 	ComPtr<IDXGIDevice> dxdevice;
 	D3D11Device.As(&dxdevice);
 
@@ -896,7 +899,7 @@ void DrawingFrameBase::CreateDevice()
 	ComPtr<IDXGIAdapter> adapter;
 	dxdevice->GetAdapter(adapter.GetAddressOf());
 
-	// adapter’s parent object is the DXGI factory
+	// adapterâ€™s parent object is the DXGI factory
 	ComPtr<IDXGIFactory2> factory; // Minimum supported client: Windows 8 and Platform Update for Windows 7 
 	adapter->GetParent(__uuidof(factory), reinterpret_cast<void **>(factory.GetAddressOf()));
 
@@ -1211,7 +1214,9 @@ int32_t DrawingFrameBase::releaseCapture()
 int32_t DrawingFrameBase::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
 {
 	auto nativeRect = DipsToWindow.TransformRect(*rect);
-	*returnMenu = new GmpiGuiHosting::PGCC_PlatformMenu(getWindowHandle(), &nativeRect, DipsToWindow._22);
+	auto newMenu = new GmpiGuiHosting::PGCC_PlatformMenu(getWindowHandle(), &nativeRect, DipsToWindow._22);
+	// Wrap new-API menu in adapter; cast is safe â€” vtable layout of both IMpPlatformMenu variants is identical.
+	*returnMenu = reinterpret_cast<gmpi_gui::IMpPlatformMenu*>(new LegacyMenuAdapter(newMenu));
 	return gmpi::MP_OK;
 }
 
@@ -1225,13 +1230,15 @@ int32_t DrawingFrameBase::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect
 
 int32_t DrawingFrameBase::createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog)
 {
-	*returnFileDialog = new Gmpi_Win_FileDialog(dialogType, getWindowHandle());
+	auto* nativeDialog = new GmpiGuiHosting::Gmpi_Win_FileDialog(dialogType, getWindowHandle());
+	// Wrap new-API dialog in adapter; reinterpret_cast is safe â€” vtable layout identical on x64.
+	*returnFileDialog = reinterpret_cast<gmpi_gui::IMpFileDialog*>(new LegacyFileDialogAdapter(nativeDialog));
 	return gmpi::MP_OK;
 }
 
 int32_t DrawingFrameBase::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog)
 {
-	*returnDialog = new Gmpi_Win_OkCancelDialog(dialogType, getWindowHandle());
+	*returnDialog = reinterpret_cast<gmpi_gui::IMpOkCancelDialog*>(new LegacyOkCancelDialogAdapter(dialogType, getWindowHandle()));
 	return gmpi::MP_OK;
 }
 

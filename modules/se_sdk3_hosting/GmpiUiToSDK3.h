@@ -4,7 +4,6 @@
 #include "GmpiUiToSDK3.h"
 */
 
-#include "./gmpi_gui_hosting.h"
 #include "GmpiApiDrawing.h"
 
 namespace se

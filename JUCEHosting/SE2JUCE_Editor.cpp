@@ -42,20 +42,35 @@ SynthEditEditor::SynthEditEditor (SE2JUCE_Processor& p, SeJuceController& pcontr
 
 	auto& gui_json = document_json["gui"];
 
-	const int width = gui_json["width"].asInt();
-	const int height = gui_json["height"].asInt();
+	baseWidth  = gui_json["width"].asInt();
+	baseHeight = gui_json["height"].asInt();
 
 	float uiScale = 1.0f;
-#ifdef _WIN32
 	if (auto* param = controller.getHostParameter(HC_PLUGIN_UI_SCALE))
 	{
 		auto rawValue = param->getValueRaw(gmpi::MP_FT_VALUE, 0);
 		uiScale = (float)rawValue;
 	}
+#ifdef _WIN32
 	drawingframe.pluginUIScale = uiScale;
 #endif
 
-	setSize(static_cast<int>(width * uiScale), static_cast<int>(height * uiScale));
+	setSize(static_cast<int>(baseWidth * uiScale), static_cast<int>(baseHeight * uiScale));
+
+	// Runtime resize: when HC_PLUGIN_UI_SCALE changes, rescale the JUCE editor.
+	// JUCE bridges setSize() to the host (VST3 / AU) internally.
+	controller.onPluginUIScaleChanged = [this](float newScale) {
+#ifdef _WIN32
+		drawingframe.pluginUIScale = newScale;
+#endif
+		setSize(static_cast<int>(baseWidth * newScale), static_cast<int>(baseHeight * newScale));
+	};
+}
+
+SynthEditEditor::~SynthEditEditor()
+{
+	// Detach callback before we go away.
+	controller.onPluginUIScaleChanged = nullptr;
 }
 
 void SynthEditEditor::parentHierarchyChanged()

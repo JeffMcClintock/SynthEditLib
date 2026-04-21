@@ -5,6 +5,7 @@
 #include "mp_sdk_gui2.h"
 
 using namespace gmpi;
+using namespace FastUnicode;
 
 class UserSettingTextController : public GmpiSdk::Controller
 {

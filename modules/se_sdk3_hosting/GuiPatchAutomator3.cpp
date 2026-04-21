@@ -43,7 +43,7 @@ int32_t GuiPatchAutomator3::initialize()
 	{
 		const auto parameterId = static_cast<int32_t>(p.first & 0xffffffff);
 		const auto fieldId = p.first >> 32;
-		patchManager_->initializeGui(this, parameterId, (gmpi::FieldType)fieldId);
+		patchManager_->initializeGui(this, parameterId, static_cast<gmpi::Field>(fieldId));
 	}
 
 	return res;
@@ -111,13 +111,13 @@ int GuiPatchAutomator3::Register(int moduleHandle, int moduleParamId, ParameterF
 	return pinId;
 }
 
-int32_t GuiPatchAutomator3::setParameter(int32_t parameterHandle, int32_t fieldId, int32_t voice, const void* data, int32_t size)
+gmpi::ReturnCode GuiPatchAutomator3::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
 {
-	auto it = parameterToPinIndex_.find(makePinIndexKey(parameterHandle, fieldId));
+	auto it = parameterToPinIndex_.find(makePinIndexKey(parameterHandle, static_cast<int32_t>(fieldId)));
 	if (it != parameterToPinIndex_.end())
 	{
 		getHost()->pinTransmit((*it).second, size, data, voice);
 	}
 
-	return gmpi::MP_OK;
+	return gmpi::ReturnCode::Ok;
 }

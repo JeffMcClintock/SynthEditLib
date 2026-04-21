@@ -28,7 +28,8 @@ class SynthEditEditor :
 {
 public:
     SynthEditEditor (class SE2JUCE_Processor&, class SeJuceController&);
-    
+    ~SynthEditEditor() override;
+
     //==============================================================================
     void parentHierarchyChanged() override;
     void paint (juce::Graphics&) override;
@@ -37,6 +38,8 @@ public:
 private:
     SeJuceController& controller;
     JuceDrawingFrame drawingframe;
+    int baseWidth = 0;   // JSON-declared width (uiScale = 1.0 baseline)
+    int baseHeight = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SynthEditEditor)
 };

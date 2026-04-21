@@ -16,6 +16,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "SDK3Adaptor.h"
 #include "GmpiUiToSDK3.h"
 #include "mp_sdk_gui.h"
+#include "LegacyMenuAdapter.h"
+#include "LegacyFileDialogAdapter.h"
 
 using namespace gmpi;
 using namespace gmpi::editor;
@@ -180,7 +182,15 @@ int32_t MP_STDCALL SDK3AdaptorClient::createPlatformMenu(GmpiDrawing_API::MP1_RE
 	gmpi::shared_ptr<gmpi::api::IUnknown> unk;
 	gmpiEditor.dialogHost->createPopupMenu((gmpi::drawing::Rect*)rect, unk.put());
 
-	return (int32_t)unk->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_PLATFORM_MENU, (void**)returnMenu);
+	gmpi::api::IPopupMenu* newMenu{};
+	unk->queryInterface(&gmpi::api::IPopupMenu::guid, (void**)&newMenu);
+	if (!newMenu)
+		return gmpi::MP_FAIL;
+
+	// Wrap new-API menu in adapter; cast is safe — vtable layout of both IMpPlatformMenu variants is identical.
+	// QI above addRef'd newMenu; LegacyMenuAdapter::inner.attach takes ownership without addRef.
+	*returnMenu = reinterpret_cast<gmpi_gui::IMpPlatformMenu*>(new LegacyMenuAdapter(newMenu));
+	return gmpi::MP_OK;
 }
 int32_t MP_STDCALL SDK3AdaptorClient::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
 {
@@ -199,10 +209,18 @@ int32_t MP_STDCALL SDK3AdaptorClient::createOkCancelDialog(int32_t dialogType, g
 
 int32_t MP_STDCALL SDK3AdaptorClient::createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog)
 {
-	gmpi::shared_ptr<gmpi::api::IUnknown> unk;
-	gmpiEditor.dialogHost->createFileDialog(dialogType, unk.put());
+	gmpi::api::IFileDialog* nativeDialog{};
+	{
+		gmpi::shared_ptr<gmpi::api::IUnknown> unk;
+		gmpiEditor.dialogHost->createFileDialog(dialogType, unk.put());
+		unk->queryInterface(&gmpi::api::IFileDialog::guid, (void**)&nativeDialog);
+	}
+	if (!nativeDialog)
+		return gmpi::MP_FAIL;
 
-	return (int32_t)unk->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_PLATFORM_FILE_DIALOG, (void**)returnFileDialog);
+	// nativeDialog was addRef'd by QI; LegacyFileDialogAdapter::inner.attach takes ownership.
+	*returnFileDialog = reinterpret_cast<gmpi_gui::IMpFileDialog*>(new LegacyFileDialogAdapter(nativeDialog));
+	return gmpi::MP_OK;
 }
 
 
@@ -224,12 +242,12 @@ int32_t SDK3AdaptorClient::queryInterface(const gmpi::MpGuid& iid, void** return
 		return gmpi::MP_OK;
 	}
 
-	if (iid == (const gmpi::MpGuid&)legacy::IGraphicsRedrawClient::guid)
+	if (iid == (const gmpi::MpGuid&)::legacy::IGraphicsRedrawClient::guid)
 	{
 		//// cheat a bit, reply on GMPI-UI and SDK3 having exact same interface and guid for this.
 		//return (int32_t) gmpiEditor.drawingHost->queryInterface((const gmpi::api::Guid*)&iid, returnInterface);
 
-		*returnInterface = reinterpret_cast<void*>(static_cast<legacy::IGraphicsRedrawClient*>(this));
+		*returnInterface = reinterpret_cast<void*>(static_cast<::legacy::IGraphicsRedrawClient*>(this));
 		addRef();
 		return gmpi::MP_OK;
 	}

@@ -226,8 +226,6 @@ ${se_sdk_hosting_folder}/SDK3Adaptor.h
 ${se_sdk_hosting_folder}/SDK3Adaptor.cpp
 
 ${se_sdk_hosting_folder}/IGuiHost2.h
-${se_sdk_hosting_folder}/gmpi_gui_hosting.h
-${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp
 ${se_sdk_hosting_folder}/DirectXGfx.h
 ${se_sdk_hosting_folder}/DirectXGfx.cpp
 ${se_sdk_hosting_folder}/Controller.h
@@ -616,8 +614,6 @@ ${se_sdk_hosting_folder}/IViewChild.cpp
 ${se_sdk_hosting_folder}/IGuiHost2.h
 ${se_sdk_hosting_folder}/ViewBase.h
 ${se_sdk_hosting_folder}/ViewBase.cpp
-${se_sdk_hosting_folder}/gmpi_gui_hosting.h
-${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp
 ${se_sdk_hosting_folder}/ContainerView.h
 ${se_sdk_hosting_folder}/ContainerView.cpp
 ${se_sdk_hosting_folder}/ResizeAdorner.h

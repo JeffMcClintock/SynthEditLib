@@ -8,6 +8,7 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include <functional>
 #include "../se_sdk3/TimerManager.h"
 #include "../se_sdk3/mp_gui.h"
 #include "../shared/FileWatcher.h"
@@ -18,14 +19,11 @@
 #include "ProcessorWatchdog.h"
 #include "Shared/se_logger.h"
 #include "Hosting/message_queues.h"
-
-//namespace SynthEdit2
-//{
-//	class IPresenter;
-//}
+#include "GmpiSdkCommon.h"
+#include "RefCountMacros.h"
 
 // Manages SEM plugin's controllers.
-class ControllerManager : public gmpi::IMpParameterObserver
+class ControllerManager : public gmpi::api::IParameterObserver
 {
 public:
 	std::vector< std::pair<int32_t, std::unique_ptr<ControllerHost> > > childPluginControllers;
@@ -33,7 +31,7 @@ public:
 
     virtual ~ControllerManager(){}
 
-	int32_t setParameter(int32_t parameterHandle, int32_t fieldId, int32_t voice, const void* data, int32_t size) override
+	gmpi::ReturnCode setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override
 	{
 		int32_t moduleHandle = -1;
 		int32_t moduleParameterId = -1;
@@ -43,11 +41,11 @@ public:
 		{
 			if (m.first == moduleHandle)
 			{
-				m.second->setPluginParameter(parameterHandle, fieldId, voice, data, size);
+				m.second->setPluginParameter(parameterHandle, static_cast<int32_t>(fieldId), voice, data, size);
 			}
 		}
 
-		return gmpi::MP_OK;
+		return gmpi::ReturnCode::Ok;
 	}
 
 	void addController(int32_t handle, gmpi_sdk::mp_shared_ptr<gmpi::IMpController> controller)
@@ -72,8 +70,8 @@ public:
 		*/
 	}
 
-	GMPI_QUERYINTERFACE1(gmpi::MP_IID_PARAMETER_OBSERVER, gmpi::IMpParameterObserver)
-	GMPI_REFCOUNT
+	GMPI_QUERYINTERFACE_METHOD(gmpi::api::IParameterObserver);
+	GMPI_REFCOUNT_NO_DELETE
 };
 
 class MpController;
@@ -112,6 +110,23 @@ public:
 	bool canRedo();
 	bool isPresetModified();
 };
+
+struct ParameterAttachment : gmpi::api::IParameterObserver
+{
+	std::function<void(int32_t parameterIndex, gmpi::Field fieldId, int32_t voice, RawView value)> callback = [](int32_t,  gmpi::Field, int32_t, RawView) {};
+
+	virtual ~ParameterAttachment() = default;
+
+	gmpi::ReturnCode setParameter(int32_t parameterIndex, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override
+	{
+		callback(parameterIndex, fieldId, voice, RawView(data, size));
+		return gmpi::ReturnCode::Ok;
+	}
+
+	GMPI_QUERYINTERFACE_METHOD(gmpi::api::IParameterObserver);
+	GMPI_REFCOUNT;
+};
+
 
 class MpController : public IGuiHost2, public gmpi::hosting::interThreadQueUser, public se_sdk::TimerClient
 {
@@ -159,7 +174,8 @@ protected:
 	std::vector< std::unique_ptr<MpParameter> > parameters_;
 	std::map< std::pair<int, int>, int > moduleParameterIndex;		// Module Handle/ParamID to Param Handle.
 	std::unordered_map< int, MpParameter* > ParameterHandleIndex;	// Param Handle to Parameter*.
-	std::vector<gmpi::IMpParameterObserver*> m_guis2;
+	std::vector<gmpi::api::IParameterObserver*> m_guis2;
+	std::unordered_map< int32_t, gmpi::shared_ptr<ParameterAttachment> > parameterAttachments;
 	SE2::IPresenter* presenter_ = nullptr;
 
 	GmpiGui::FileDialog nativeFileDialog;
@@ -250,12 +266,12 @@ public:
 	void OnSetHostControl(int hostControl, int32_t paramField, int32_t size, const void * data, int32_t voice);
 
 	// IGuiHost2
-	int32_t RegisterGui2(gmpi::IMpParameterObserver* gui) override
+	int32_t RegisterGui2(gmpi::api::IParameterObserver* gui) override
 	{
 		m_guis2.push_back(gui);
 		return gmpi::MP_OK;
 	}
-	int32_t UnRegisterGui2(gmpi::IMpParameterObserver* gui) override
+	int32_t UnRegisterGui2(gmpi::api::IParameterObserver* gui) override
 	{
 #if _HAS_CXX20
 		std::erase(m_guis2, gui);
@@ -265,12 +281,19 @@ public:
 #endif
 		return gmpi::MP_OK;
 	}
-	void initializeGui(gmpi::IMpParameterObserver* gui, int32_t parameterHandle, gmpi::FieldType FieldId) override;
+	void initializeGui(gmpi::api::IParameterObserver* gui, int32_t parameterHandle, gmpi::Field FieldId) override;
 	int32_t getParameterHandle(int32_t moduleHandle, int32_t moduleParameterId) override;
 	int32_t getParameterModuleAndParamId(int32_t parameterHandle, int32_t* returnModuleHandle, int32_t* returnModuleParameterId) override;
 	RawView getParameterValue(int32_t parameterHandle, int32_t fieldId, int32_t voice = 0) override;
 
 	MpParameter* getHostParameter(int32_t hostControl);
+
+	// Fired when HC_PLUGIN_UI_SCALE is changed. Editor subscribes to trigger a host-level resize.
+	// Not fired during initial load from disk (the editor reads the value directly at construction time).
+	std::function<void(float newScale)> onPluginUIScaleChanged;
+
+	float getStoredUIScale();
+	void storeUIScale(float scale);
 
 	void ImportPresetXml(const char* filename, int presetIndex = -1);
 	std::unique_ptr<const DawPreset> getPreset(std::string presetNameOverride = {});
@@ -300,10 +323,17 @@ public:
 		for (auto pa : m_guis2)
 		{
 			// Update value.
-			pa->setParameter(parameter->parameterHandle_, gmpi::MP_FT_VALUE, voice, rawValue.data(), (int32_t)rawValue.size());
+			pa->setParameter(parameter->parameterHandle_, gmpi::Field::Value, voice, (int32_t)rawValue.size(), (const uint8_t*)rawValue.data());
 
 			// Update normalized.
-			pa->setParameter(parameter->parameterHandle_, gmpi::MP_FT_NORMALIZED, voice, &normalized, (int32_t)sizeof(normalized));
+			pa->setParameter(parameter->parameterHandle_, gmpi::Field::Normalized, voice, (int32_t)sizeof(normalized), (const uint8_t*)&normalized);
+		}
+
+		// Call parameter attachments
+		if (auto it = parameterAttachments.find(parameter->parameterHandle_); it != parameterAttachments.end())
+		{
+			it->second->setParameter(parameter->parameterHandle_, gmpi::Field::Value, voice, (int32_t)rawValue.size(), (const uint8_t*)rawValue.data());
+			it->second->setParameter(parameter->parameterHandle_, gmpi::Field::Normalized, voice, (int32_t)sizeof(normalized), (const uint8_t*)&normalized);
 		}
 	}
 
@@ -319,7 +349,13 @@ public:
 #endif
 		for (auto pa : m_guis2)
 		{
-			pa->setParameter(parameter->parameterHandle_, fieldType, voice, rawValue.data(), (int32_t)rawValue.size());
+			pa->setParameter(parameter->parameterHandle_, static_cast<gmpi::Field>(fieldType), voice, (int32_t)rawValue.size(), (const uint8_t*)rawValue.data());
+		}
+
+		// Call parameter attachments
+		if (auto it = parameterAttachments.find(parameter->parameterHandle_); it != parameterAttachments.end())
+		{
+			it->second->setParameter(parameter->parameterHandle_, static_cast<gmpi::Field>(fieldType), voice, (int32_t)rawValue.size(), (const uint8_t*)rawValue.data());
 		}
 	}
 

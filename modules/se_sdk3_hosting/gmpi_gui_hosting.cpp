@@ -547,21 +547,7 @@ int32_t PGCC_PlatformTextEntry::ShowAsync(gmpi_gui::ICompletionCallback* returnC
 	return gmpi::MP_OK;
 }
 
-int32_t Gmpi_Win_FileDialog::GetSelectedFilename(IMpUnknown* returnString)
-{
-	IString* returnValue = 0;
-
-	if( MP_OK != returnString->queryInterface(gmpi::MP_IID_RETURNSTRING, reinterpret_cast<void**>( &returnValue)) )
-	{
-		return gmpi::MP_NOSUPPORT;
-	}
-
-	returnValue->setData(selectedFilename.data(), (int32_t)selectedFilename.size());
-
-	return gmpi::MP_OK;
-}
-
-int32_t Gmpi_Win_FileDialog::ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler)
+gmpi::ReturnCode Gmpi_Win_FileDialog::showAsync(const gmpi::drawing::Rect* /*rect*/, gmpi::api::IUnknown* callback)
 {
 	std::wstring primary_extension;
 
@@ -656,31 +642,60 @@ int32_t Gmpi_Win_FileDialog::ShowAsync(gmpi_gui::ICompletionCallback* returnComp
 		sucess = GetSaveFileName(&ofn);
 	}
 
-	if( sucess )
-	{
-		selectedFilename = JmUnicodeConversions::WStringToUtf8(filename_buf);
+	gmpi::api::IFileDialogCallback* cb{};
+	if (callback)
+		callback->queryInterface(&gmpi::api::IFileDialogCallback::guid, (void**)&cb);
 
-		returnCompletionHandler->OnComplete(gmpi::MP_OK);
+	if (sucess)
+	{
+		const auto filename = JmUnicodeConversions::WStringToUtf8(filename_buf);
+		if (cb) cb->onComplete(gmpi::ReturnCode::Ok, filename.c_str());
 	}
 	else
 	{
-		returnCompletionHandler->OnComplete(gmpi::MP_CANCEL);
+		if (cb) cb->onComplete(gmpi::ReturnCode::Cancel, "");
 	}
 
-	return gmpi::MP_OK;
+	if (cb) cb->release();
+
+	return gmpi::ReturnCode::Ok;
 }
 
-int32_t Gmpi_Win_OkCancelDialog::ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler)
+gmpi::ReturnCode Gmpi_Win_OkCancelDialog::showAsync(gmpi::api::IUnknown* callback)
 {
-	auto buttons = MB_OKCANCEL; // MB_RETRYCANCEL MB_YESNO MB_YESNOCANCEL MB_ABORTRETRYIGNORE MB_CANCELTRYCONTINUE MB_OK
+#if 0
+	gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+	unknown = callback;
+	auto dialogCallback = unknown.as<gmpi::api::IStockDialogCallback>();
+	if (!dialogCallback)
+		return gmpi::ReturnCode::Fail;
 
-	auto r = MessageBox(parentWnd, text.c_str(), title.c_str(), buttons);
+	UINT mbType = MB_ICONINFORMATION;
+	switch (dialogType)
+	{
+	case gmpi::api::StockDialogType::Ok:          mbType = MB_OK | MB_ICONINFORMATION;       break;
+	case gmpi::api::StockDialogType::OkCancel:    mbType = MB_OKCANCEL | MB_ICONQUESTION;    break;
+	case gmpi::api::StockDialogType::YesNo:       mbType = MB_YESNO | MB_ICONQUESTION;       break;
+	case gmpi::api::StockDialogType::YesNoCancel: mbType = MB_YESNOCANCEL | MB_ICONQUESTION; break;
+	}
 
-	auto result = r == IDOK ? gmpi::MP_OK : gmpi::MP_CANCEL;
+	const auto titleW = JmUnicodeConversions::Utf8ToWstring(title);
+	const auto textW  = JmUnicodeConversions::Utf8ToWstring(text);
+	const int r = MessageBoxW(parentWnd, textW.c_str(), titleW.c_str(), mbType);
 
-	returnCompletionHandler->OnComplete(result);
+	gmpi::api::StockDialogButton button{};
+	switch (r)
+	{
+	case IDOK:     button = gmpi::api::StockDialogButton::Ok;     break;
+	case IDCANCEL: button = gmpi::api::StockDialogButton::Cancel; break;
+	case IDYES:    button = gmpi::api::StockDialogButton::Yes;    break;
+	case IDNO:     button = gmpi::api::StockDialogButton::No;     break;
+	default:       button = gmpi::api::StockDialogButton::Cancel; break;
+	}
 
-	return gmpi::MP_OK;
+	dialogCallback->onComplete(button);
+#endif
+	return gmpi::ReturnCode::Ok;
 }
 
 #else // mac

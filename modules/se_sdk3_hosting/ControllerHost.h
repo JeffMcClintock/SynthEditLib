@@ -33,6 +33,22 @@ public:
 	GMPI_REFCOUNT;
 };
 
+// Adapts a legacy IMpParameterObserver to the new gmpi::api::IParameterObserver interface.
+struct LegacyObserverAdapter : gmpi::api::IParameterObserver
+{
+	gmpi::IMpParameterObserver* inner;
+	explicit LegacyObserverAdapter(gmpi::IMpParameterObserver* p) : inner(p) {}
+
+	gmpi::ReturnCode setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override
+	{
+		inner->setParameter(parameterHandle, static_cast<int32_t>(fieldId), voice, (const void*)data, size);
+		return gmpi::ReturnCode::Ok;
+	}
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid*, void** r) override { *r = {}; return gmpi::ReturnCode::NoSupport; }
+	int32_t addRef() override { return 1; }
+	int32_t release() override { return 1; }
+};
+
 // Acts as host for an instance of a SDK controller object.
 class ControllerHost final : public gmpi::IMpControllerHost
 {
@@ -40,9 +56,10 @@ public:
 	// Plugin asks host for parameter value. Host will call back indirectly via setParameter.
 	void updateParameter(int32_t parameterHandle, int32_t paramFieldType, int32_t voice) override
 	{
-		// apply filter/ lookup 
+		// apply filter/ lookup
 		assert(voice == 0); // patchManager now updates ALL voices
-		return patchManager->initializeGui(controller_.get(), parameterHandle, (gmpi::FieldType)paramFieldType);
+		LegacyObserverAdapter adapter{controller_.get()};
+		return patchManager->initializeGui(&adapter, parameterHandle, static_cast<gmpi::Field>(paramFieldType));
 	}
 
 	// plugin -> Patch-Manager.

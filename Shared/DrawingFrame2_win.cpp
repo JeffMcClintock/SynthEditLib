@@ -1,10 +1,10 @@
 #include "pch.h"
 
 #include "DrawingFrame2_win.h"
+#include "Core/GmpiApiEditor.h"
 #include "SDK3Adaptor.h"
 
 // Windows 32
-#include "modules/se_sdk3_hosting/gmpi_gui_hosting.h"
 
 using namespace legacy_converters;
 
@@ -216,6 +216,135 @@ void DrawingFrameBase2::OnSwapChainCreated()
     DXGI_MATRIX_3X2_F scale{};
     scale._22 = scale._11 = 1.f / dpiScale;
     [[maybe_unused]] auto hr = swapChain->SetMatrixTransform(&scale);
+}
+
+class Win32PopupMenu : public gmpi::api::IPopupMenu
+{
+    HMENU hmenu;
+    std::vector<HMENU> hmenus;
+    HWND parentWnd;
+    int align = TPM_LEFTALIGN;
+    gmpi::drawing::Rect editrect{};
+    int32_t selectedId = -1;
+    std::vector<int32_t> menuIds;
+    std::vector<gmpi::shared_ptr<gmpi::api::IUnknown>> itemCallbacks;
+
+    // Shared HMENU logic. Flag values are binary-compatible between old and new API.
+    void addItemCore(const char* text, int32_t id, int32_t flags)
+    {
+        UINT nativeFlags = MF_STRING;
+        if (flags & gmpi_gui::legacy::MP_PLATFORM_MENU_TICKED)    nativeFlags |= MF_CHECKED;
+        if (flags & gmpi_gui::legacy::MP_PLATFORM_MENU_GRAYED)    nativeFlags |= MF_GRAYED;
+        if (flags & gmpi_gui::legacy::MP_PLATFORM_MENU_SEPARATOR) nativeFlags |= MF_SEPARATOR;
+        if (flags & gmpi_gui::legacy::MP_PLATFORM_MENU_BREAK)     nativeFlags |= MF_MENUBREAK;
+
+        const bool isSubStart = (flags & gmpi_gui::legacy::MP_PLATFORM_SUB_MENU_BEGIN) != 0;
+        const bool isSubEnd   = (flags & gmpi_gui::legacy::MP_PLATFORM_SUB_MENU_END) != 0;
+
+        if (isSubStart || isSubEnd)
+        {
+            if (isSubStart)
+            {
+                auto sub = CreatePopupMenu();
+                AppendMenu(hmenus.back(), nativeFlags | MF_POPUP, (UINT_PTR)sub,
+                    JmUnicodeConversions::Utf8ToWstring(text).c_str());
+                hmenus.push_back(sub);
+            }
+            if (isSubEnd)
+                hmenus.pop_back();
+        }
+        else
+        {
+            menuIds.push_back(id);
+            itemCallbacks.emplace_back();
+            AppendMenu(hmenus.back(), nativeFlags, menuIds.size(),
+                JmUnicodeConversions::Utf8ToWstring(text).c_str());
+        }
+    }
+
+    int trackMenu()
+    {
+        POINT pt{ (LONG)editrect.left, (LONG)editrect.top };
+        ClientToScreen(parentWnd, &pt);
+        const int flags = align | TPM_LEFTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD;
+        const auto index = TrackPopupMenu(hmenu, flags, pt.x, pt.y, 0, parentWnd, 0) - 1;
+        selectedId = (index >= 0) ? menuIds[index] : 0;
+        return index;
+    }
+
+public:
+    Win32PopupMenu(HWND pParentWnd, const gmpi::drawing::Rect* r)
+        : parentWnd(pParentWnd), editrect(*r)
+    {
+        hmenu = CreatePopupMenu();
+        hmenus.push_back(hmenu);
+    }
+
+    ~Win32PopupMenu()
+    {
+        DestroyMenu(hmenu);
+    }
+
+    // === IPopupMenu ===
+    gmpi::ReturnCode addItem(const char* text, int32_t id, int32_t flags, gmpi::api::IUnknown* callback) override
+    {
+        addItemCore(text ? text : "", id, flags);
+        if (callback && !itemCallbacks.empty())
+        {
+            gmpi::shared_ptr<gmpi::api::IUnknown> cb;
+            cb.attach(callback);
+            itemCallbacks.back() = cb;
+        }
+        return gmpi::ReturnCode::Ok;
+    }
+
+    gmpi::ReturnCode setAlignment(int32_t alignment) override
+    {
+        switch (alignment)
+        {
+        case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_LEADING:  align = TPM_LEFTALIGN;   break;
+        case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_CENTER:   align = TPM_CENTERALIGN; break;
+        default:                                           align = TPM_RIGHTALIGN;  break;
+        }
+        return gmpi::ReturnCode::Ok;
+    }
+
+    gmpi::ReturnCode showAsync(gmpi::api::IUnknown* pcallback) override
+    {
+        const auto index = trackMenu();
+
+        gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+        unknown = pcallback;
+
+        if (auto cb = unknown.as<gmpi::api::IPopupMenuCallback>(); cb)
+            cb->onComplete(index >= 0 ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Cancel, selectedId);
+
+        if (index >= 0 && index < (int32_t)itemCallbacks.size() && itemCallbacks[index])
+        {
+            gmpi::shared_ptr<gmpi::api::IPopupMenuCallback> itemCb;
+            itemCallbacks[index]->queryInterface(&gmpi::api::IPopupMenuCallback::guid, itemCb.put_void());
+            if (itemCb)
+                itemCb->onComplete(gmpi::ReturnCode::Ok, menuIds[index]);
+        }
+
+        return gmpi::ReturnCode::Ok;
+    }
+
+    gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+    {
+        *returnInterface = {};
+        GMPI_QUERYINTERFACE(gmpi::api::IPopupMenu);
+        GMPI_QUERYINTERFACE(gmpi::api::IContextItemSink);
+        return gmpi::ReturnCode::NoSupport;
+    }
+
+    GMPI_REFCOUNT
+};
+
+gmpi::ReturnCode DrawingFrameHwndBase::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu)
+{
+    *returnPopupMenu = static_cast<gmpi::api::IPopupMenu*>(new Win32PopupMenu(getWindowHandle(), r));
+    return gmpi::ReturnCode::Ok;
 }
 
 void DrawingFrameHwndBase::initTooltip()

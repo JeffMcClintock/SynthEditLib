@@ -3,7 +3,6 @@
 #include "../se_sdk3_hosting/Presenter.h"
 #include "ModuleView.h"
 #include "ViewBase.h"
-#include "modules/se_sdk3_hosting/gmpi_gui_hosting.h"
 #include "InterfaceObject.h"
 #include "IGuiHost2.h"
 #include "BundleInfo.h"

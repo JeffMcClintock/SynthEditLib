@@ -9,6 +9,7 @@
 #include <vector>
 #include "helpers/NativeUi.h"
 #include "legacy_sdk_gui2.h"
+#include "LegacyMenuAdapter.h"
 
 namespace GmpiGuiHosting
 {
@@ -30,20 +31,16 @@ namespace GmpiGuiHosting
         #endif
     }
 
-	// Dual-API popup menu: implements both legacy gmpi_gui::IMpPlatformMenu
-	// and the new gmpi::api::IPopupMenu, sharing the same NSPopUpButton/NSMenu.
-	class PlatformMenu : public gmpi_gui::IMpPlatformMenu, public gmpi::api::IPopupMenu, public EventHelperClient
+	class PlatformMenu : public gmpi::api::IPopupMenu, public EventHelperClient
 	{
 		int32_t selectedId{};
 		NSView* view;
 		std::vector<int32_t> menuIds;
-		std::vector<gmpi::shared_ptr<gmpi::api::IUnknown>> itemCallbacks; // new-API per-item callbacks, parallel to menuIds
+		std::vector<gmpi::shared_ptr<gmpi::api::IUnknown>> itemCallbacks;
 		SYNTHEDIT_EVENT_HELPER_CLASSNAME* eventhelper;
-		gmpi_gui::ICompletionCallback* completionHandler{};          // legacy completion
-		gmpi::shared_ptr<gmpi::api::IUnknown> returnCallback;        // new-API completion
+		gmpi::shared_ptr<gmpi::api::IUnknown> returnCallback;
         NSPopUpButton* button;
         GmpiDrawing::Rect rect;
-
         std::vector<NSMenu*> menuStack;
 
 		void showButton()
@@ -59,37 +56,10 @@ namespace GmpiGuiHosting
 		{
 			view = pview;
             rect = *prect;
-
             eventhelper = [SYNTHEDIT_EVENT_HELPER_CLASSNAME alloc];
             [eventhelper initWithClient : this];
-//            theMenu = [[NSMenu alloc] initWithTitle:@"Contextual Menu"];
-
-
- //           popup = [[NSPopUpButtonCell alloc] initTextCell:@"" pullsDown:YES ];
- /*
-            [popup setTarget:eventhelper ];
-            [popup setAction:@selector(onMenuAction: )];
-            
-            [view addSubview : popup];
-  */
-/*
-			// As this is asyncronous, avoid creating multiple menus.
-			if (button != nil)
-			{
-                [button cancelOperation:button];
-				[button removeFromSuperview];
-				button = nil;
-			}
-*/
-//            button = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top)];
             button = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(10,1000,30,30)];
             menuStack.push_back([button menu]);
-            /*
-            [button setTarget:eventhelper ];
-            [button setAction:@selector(onMenuAction: )];
-            
-			[view addSubview : button];
-  */
 		}
 
 		~PlatformMenu()
@@ -106,18 +76,17 @@ namespace GmpiGuiHosting
             const int i = static_cast<int>([((NSMenuItem*) sender) tag]) - 1;
 			const bool validIndex = (i >= 0 && i < static_cast<int>(menuIds.size()));
 			if (validIndex)
-			{
 				selectedId = menuIds[i];
-			}
 
 			[button removeFromSuperview];
 
-			if (completionHandler)
-				completionHandler->OnComplete(validIndex ? gmpi::MP_OK : gmpi::MP_CANCEL);
-
 			if (returnCallback)
 			{
-				if (auto cb = returnCallback.as<gmpi::api::IPopupMenuCallback>(); cb)
+				// Clear before calling so that onComplete's adapter->release() doesn't
+				// leave a dangling ref when returnCallback's dtor runs.
+				auto cb = returnCallback.as<gmpi::api::IPopupMenuCallback>();
+				returnCallback = {};
+				if (cb)
 					cb->onComplete(validIndex ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Cancel, selectedId);
 			}
 
@@ -128,7 +97,7 @@ namespace GmpiGuiHosting
 			}
 		}
 
-		int32_t MP_STDCALL AddItem(const char* text, int32_t id, int32_t flags) override
+		gmpi::ReturnCode addItem(const char* text, int32_t id, int32_t flags, gmpi::api::IUnknown* callback) override
 		{
 			menuIds.push_back(id);
 			itemCallbacks.emplace_back();
@@ -139,144 +108,65 @@ namespace GmpiGuiHosting
             }
             else
             {
-                NSString* nsstr = [NSString stringWithCString : text encoding : NSUTF8StringEncoding];
+                NSString* nsstr = [NSString stringWithCString : (text ? text : "") encoding : NSUTF8StringEncoding];
 
                 if ((flags & (gmpi_gui::MP_PLATFORM_SUB_MENU_BEGIN | gmpi_gui::MP_PLATFORM_SUB_MENU_END)) != 0)
                 {
-                    if ((flags & (gmpi_gui::MP_PLATFORM_SUB_MENU_BEGIN)) != 0)
+                    if ((flags & gmpi_gui::MP_PLATFORM_SUB_MENU_BEGIN) != 0)
                     {
                         auto menuItem = [menuStack.back() addItemWithTitle:nsstr action : nil keyEquivalent:@""];
                         NSMenu* subMenu = [[NSMenu alloc] init];
                         [menuItem setSubmenu:subMenu];
                         menuStack.push_back(subMenu);
                     }
-                    if ((flags & (gmpi_gui::MP_PLATFORM_SUB_MENU_END)) != 0)
-                    {
+                    if ((flags & gmpi_gui::MP_PLATFORM_SUB_MENU_END) != 0)
                         menuStack.pop_back();
-                    }
                 }
                 else
                 {
                     NSMenuItem* menuItem;
                     if ((flags & gmpi_gui::MP_PLATFORM_MENU_GRAYED) != 0)
-                    {
                         menuItem = [menuStack.back() addItemWithTitle:nsstr action : nil keyEquivalent:@""];
-                    }
                     else
-                    {
                         menuItem = [menuStack.back() addItemWithTitle:nsstr action : @selector(menuItemSelected : ) keyEquivalent:@""];
-                    }
-                    
+
                     [menuItem setTarget : eventhelper];
-                    [menuItem setTag: menuIds.size()]; // successive tags, starting at 1
-                    
+                    [menuItem setTag: menuIds.size()];
+
                     if ((flags & gmpi_gui::MP_PLATFORM_MENU_TICKED) != 0)
-                    {
                         [menuItem setState:NSOnState];
-                    }
                 }
             }
-            
-			return gmpi::MP_OK;
-		}
 
-		int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* pCompletionHandler) override
-		{
-			completionHandler = pCompletionHandler;
-			showButton();
-			return gmpi::MP_OK;
-		}
-
-		// new-API IPopupMenu methods:
-		gmpi::ReturnCode addItem(const char* text, int32_t id, int32_t flags, gmpi::api::IUnknown* callback) override
-		{
-			(void) AddItem(text ? text : "", id, flags); // shared logic populates menuIds & NSMenu
-			// Record per-item new-API callback in the slot AddItem just pushed.
 			if (callback && !itemCallbacks.empty())
 			{
 				gmpi::shared_ptr<gmpi::api::IUnknown> cb;
-				cb.attach(callback); // caller transfers ownership (matches `new Callback(...)` convention)
+				cb = callback;
 				itemCallbacks.back() = cb;
 			}
 			return gmpi::ReturnCode::Ok;
 		}
 
-		gmpi::ReturnCode setAlignment(int32_t alignment) override
+		gmpi::ReturnCode setAlignment(int32_t /*alignment*/) override
 		{
-			(void) SetAlignment(alignment);
 			return gmpi::ReturnCode::Ok;
 		}
 
 		gmpi::ReturnCode showAsync(gmpi::api::IUnknown* pcallback) override
 		{
-			// Caller transfers ownership: `new Callback(...)` with refcount=1. attach() steals it.
-			returnCallback.attach(pcallback);
+			// Use assignment (not attach) so bridge_'s delegated refcount is incremented.
+			returnCallback = pcallback;
 			showButton();
 			return gmpi::ReturnCode::Ok;
 		}
 
-		int32_t MP_STDCALL SetAlignment(int32_t alignment) override
-		{
-			/*
-			switch (alignment)
-			{
-				case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_LEADING:
-					align = TPM_LEFTALIGN;
-					break;
-				case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_CENTER:
-					align = TPM_CENTERALIGN;
-					break;
-				case GmpiDrawing_API::MP1_TEXT_ALIGNMENT_TRAILING:
-				default:
-					align = TPM_RIGHTALIGN;
-					break;
-			}
-			 */
-			return gmpi::MP_OK;
-		}
-
-		int32_t MP_STDCALL GetSelectedId() override
-		{
-			return selectedId;
-		}
-
-		// legacy queryInterface (gmpi::MpGuid&): responds to legacy IID and bridges to new API
-		int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
-		{
-			*returnInterface = nullptr;
-			if (iid == gmpi_gui::SE_IID_GRAPHICS_PLATFORM_MENU || iid == gmpi::MP_IID_UNKNOWN)
-			{
-				*returnInterface = static_cast<gmpi_gui::IMpPlatformMenu*>(this);
-				addRef();
-				return gmpi::MP_OK;
-			}
-			if (iid == *reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::IPopupMenu::guid))
-			{
-				*returnInterface = static_cast<gmpi::api::IPopupMenu*>(this);
-				addRef();
-				return gmpi::MP_OK;
-			}
-			return gmpi::MP_NOSUPPORT;
-		}
-
-		// new-API queryInterface (gmpi::api::Guid*): responds to new IIDs and bridges to legacy
-		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
-		{
-			*returnInterface = nullptr;
-			if (*iid == gmpi::api::IPopupMenu::guid || *iid == gmpi::api::IUnknown::guid)
-			{
-				*returnInterface = static_cast<gmpi::api::IPopupMenu*>(this);
-				addRef();
-				return gmpi::ReturnCode::Ok;
-			}
-			if (*iid == gmpi_gui::legacy::IMpPlatformMenu::guid)
-			{
-				*returnInterface = static_cast<gmpi_gui::IMpPlatformMenu*>(this);
-				addRef();
-				return gmpi::ReturnCode::Ok;
-			}
-			return gmpi::ReturnCode::NoSupport;
-		}
+	    gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+	    {
+	        *returnInterface = {};
+	        GMPI_QUERYINTERFACE(gmpi::api::IPopupMenu);
+	        GMPI_QUERYINTERFACE(gmpi::api::IContextItemSink);
+	        return gmpi::ReturnCode::NoSupport;
+	    }
 
 		GMPI_REFCOUNT
 	};
@@ -1051,7 +941,9 @@ namespace GmpiGuiHosting
 
 		int32_t MP_STDCALL createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu) override
 		{
-			*returnMenu = new PlatformMenu(view, rect);
+			auto newMenu = new PlatformMenu(view, rect);
+			// Wrap new-API menu in adapter; cast is safe — vtable layout of both IMpPlatformMenu variants is identical.
+			*returnMenu = reinterpret_cast<gmpi_gui::IMpPlatformMenu*>(new GmpiGuiHosting::LegacyMenuAdapter(newMenu));
 			return gmpi::MP_OK;
 		}
 

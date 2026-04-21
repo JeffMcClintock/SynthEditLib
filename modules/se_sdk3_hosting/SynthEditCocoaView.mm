@@ -378,7 +378,9 @@ public:
     
     int32_t MP_STDCALL createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu) override
     {
-        *returnMenu = new GmpiGuiHosting::PlatformMenu(view, rect);
+        auto newMenu = new GmpiGuiHosting::PlatformMenu(view, rect);
+        // Wrap new-API menu in adapter; cast is safe — vtable layout of both IMpPlatformMenu variants is identical.
+        *returnMenu = reinterpret_cast<gmpi_gui::IMpPlatformMenu*>(new GmpiGuiHosting::LegacyMenuAdapter(newMenu));
         return gmpi::MP_OK;
     }
     int32_t MP_STDCALL createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override
