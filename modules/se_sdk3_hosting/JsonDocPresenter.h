@@ -397,14 +397,14 @@ public:
 		{
 			nagDialog.setNull(); // free previous.
 
+			const std::string message = "Failed to load the following GUI modules:\n" + failText;
 			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-			view->dialogHost->createStockDialog(0, "", "", unknown.put());
-			unknown->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)nagDialog.GetAddressOf());
+			view->dialogHost->createStockDialog(static_cast<int32_t>(gmpi::api::StockDialogType::Ok), "", message.c_str(), unknown.put());
+			unknown->queryInterface(&gmpi::api::IStockDialog::guid, (void**)nagDialog.GetAddressOf());
 
 			if (!nagDialog.isNull())
 			{
-				nagDialog.SetText("Failed to load the following GUI modules:\n" + failText);
-				nagDialog.ShowAsync([this](int32_t result) -> void {; });
+				nagDialog.ShowAsync([this](int32_t button) -> void {; });
 			}
 		}
 #endif
@@ -418,14 +418,12 @@ public:
 			nagDialog.setNull(); // free previous.
 
 			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-			view->dialogHost->createStockDialog(0, "", "", unknown.put());
-			unknown->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)nagDialog.GetAddressOf());
+			view->dialogHost->createStockDialog(static_cast<int32_t>(gmpi::api::StockDialogType::Ok), "", aboutMessage_.c_str(), unknown.put());
+			unknown->queryInterface(&gmpi::api::IStockDialog::guid, (void**)nagDialog.GetAddressOf());
 
 			if (!nagDialog.isNull())
 			{
-				nagDialog.SetText(aboutMessage_);
-
-				nagDialog.ShowAsync([this](int32_t result) -> void {; });
+				nagDialog.ShowAsync([this](int32_t button) -> void {; });
 			}
 		}
 	}
