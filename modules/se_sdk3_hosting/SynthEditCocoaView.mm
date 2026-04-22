@@ -24,6 +24,52 @@ namespace Json
     class Value;
 }
 
+class UpdateRegionMac // todo: unify with windows.
+{
+public:
+    std::vector<GmpiDrawing::Rect> rects;
+
+    // Merge-on-add. Mirrors DirtyRectQueue::add() on Windows so the queue
+    // never accumulates overlapping or subset rects.
+    void add(GmpiDrawing::Rect rect)
+    {
+        if (rect.right - rect.left <= 0.0f || rect.bottom - rect.top <= 0.0f)
+            return;
+        
+        // The incoming rect absorbs every existing rect that merges efficiently
+        // with it. Each absorption may grow `rect` enough to absorb further
+        // rects, so we rescan from the start until no more merges happen.
+        bool merged;
+        do
+        {
+            merged = false;
+            const auto area1 = rect.getWidth() * rect.getHeight();
+            
+            for (size_t i = 0; i < rects.size(); ++i)
+            {
+                const auto area2 = rects[i].getWidth() * rects[i].getHeight();
+                
+                GmpiDrawing::Rect unionrect(rect);
+                unionrect.top = (std::min)(unionrect.top, rects[i].top);
+                unionrect.bottom = (std::max)(unionrect.bottom, rects[i].bottom);
+                unionrect.left = (std::min)(unionrect.left, rects[i].left);
+                unionrect.right = (std::max)(unionrect.right, rects[i].right);
+                
+                const auto unionarea = unionrect.getWidth() * unionrect.getHeight();
+                if (unionarea <= area1 + area2)
+                {
+                    rect = unionrect;
+                    rects.erase(rects.begin() + i);
+                    merged = true;
+                    break;
+                }
+            }
+        } while (merged);
+        
+        rects.push_back(rect);
+    }
+};
+
 class DrawingFrameCocoa : public
       gmpi::api::IDrawingHost
     , gmpi::api::IDialogHost
@@ -33,7 +79,7 @@ class DrawingFrameCocoa : public
 {
     int32_t mouseCaptured = 0;
     GmpiGuiHosting::PlatformTextEntry* currentTextEdit = nullptr;
-    GmpiGuiHosting::UpdateRegionMac dirtyRects;
+    UpdateRegionMac dirtyRects;
 
 public:
     UniversalFactory drawingFactory;
@@ -41,6 +87,7 @@ public:
     gmpi_sdk::mp_shared_ptr<legacy::IGraphicsRedrawClient> frameUpdateClient;
     gmpi::shared_ptr<gmpi::api::IDrawingClient> drawingClient;
     gmpi::shared_ptr<gmpi::api::IInputClient> inputClient;
+    gmpi::shared_ptr<gmpi::api::IPopupMenu> popupMenu;
 
     NSView* view;
     NSBitmapImageRep* backBuffer{}; // backing buffer with linear colorspace for correct blending.
@@ -90,6 +137,7 @@ public:
      
      void DeInit()
      {
+        popupMenu = {};
         detachClient();
         if(backBuffer)
         {
@@ -301,6 +349,25 @@ public:
         auto menu = new GmpiGuiHosting::PlatformMenu(view, rect);
         *returnPopupMenu = static_cast<gmpi::api::IPopupMenu*>(menu);
         return gmpi::ReturnCode::Ok;
+    }
+    gmpi::ReturnCode launchContextMenu(const gmpi::drawing::Point& point)
+    {
+        if (!inputClient)
+            return gmpi::ReturnCode::Unhandled;
+
+        gmpi::drawing::Rect rect(point.x, point.y, point.x + 120, point.y + 20);
+
+        gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+        if (createPopupMenu(&rect, unknown.put()) != gmpi::ReturnCode::Ok)
+            return gmpi::ReturnCode::NoSupport;
+
+        popupMenu = unknown.as<gmpi::api::IPopupMenu>();
+        if (!popupMenu)
+            return gmpi::ReturnCode::NoSupport;
+
+        const auto returnCode = inputClient->populateContextMenu(point, popupMenu.get());
+        popupMenu->showAsync(nullptr);
+        return returnCode;
     }
     gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override
     {
@@ -537,8 +604,6 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
     int toolTipTimer;
     bool toolTipShown;
     gmpi::drawing::Point mousePos;
-    
-    GmpiGui::PopupMenu contextMenu;
 }
 
 - (id) initWithController: (class IGuiHost2*) _editController preferredSize: (NSSize) size;
@@ -765,43 +830,20 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
 {
     drawingFrame.removeTextEdit();
     [[self window] makeFirstResponder:self];
-        
+
     int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
     flags |= gmpi_gui_api::GG_POINTER_FLAG_NEW;
     flags |= gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON;
-    
+
     ApplyKeyModifiers(flags, theEvent);
     const auto pointRaw = se_mouseToGmpi(self, theEvent);
     const gmpi::drawing::Point point{ pointRaw.x, pointRaw.y };
     const auto r = drawingFrame.inputClient ? drawingFrame.inputClient->onPointerDown(point, flags) : gmpi::ReturnCode::Unhandled;
-    
+
     // Handle right-click context menu.
     if (r == gmpi::ReturnCode::Unhandled && (flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && drawingFrame.inputClient)
     {
-        contextMenu.setNull();
-
-        GmpiDrawing::Rect rect(point.x, point.y, point.x + 120, point.y + 20);
-        drawingFrame.createPlatformMenu(&rect, contextMenu.GetAddressOf());
-
-        GmpiGui::ContextItemsSinkAdaptor sink(contextMenu);
-
-        // inputClient expects gmpi::api::IUnknown* (GMPI), but sink implements the legacy IMpContextItemSink.
-        drawingFrame.inputClient->populateContextMenu(point, reinterpret_cast<gmpi::api::IUnknown*>(static_cast<gmpi::IMpContextItemSink*>(&sink)));
-
-        auto inputClient = drawingFrame.inputClient;
-        
-        contextMenu.ShowAsync(
-            [self, inputClient](int32_t res) -> int32_t
-            {
-                if (res == gmpi::MP_OK)
-                {
-                    const auto commandId = contextMenu.GetSelectedId();
-                    res = static_cast<int32_t>(inputClient->onContextMenu(commandId));
-                }
-                contextMenu = {};
-                return res;
-            }
-        );
+        drawingFrame.launchContextMenu(point);
     }
 }
 
