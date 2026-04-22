@@ -186,7 +186,6 @@ class JsonDocPresenter : public JsonPresenterBase
 
 	bool nagUser_;
 	std::string aboutMessage_;
-	GmpiGui::OkCancelDialog nagDialog;
 
 public:
 	JsonDocPresenter(IGuiHost2* controller)
@@ -395,17 +394,13 @@ public:
 		const auto failText = CModuleFactory::Instance()->GetFailedGuiModules();
 		if (!failText.empty() && view && view->dialogHost)
 		{
-			nagDialog.setNull(); // free previous.
-
 			const std::string message = "Failed to load the following GUI modules:\n" + failText;
 			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
 			view->dialogHost->createStockDialog(static_cast<int32_t>(gmpi::api::StockDialogType::Ok), "", message.c_str(), unknown.put());
-			unknown->queryInterface(&gmpi::api::IStockDialog::guid, (void**)nagDialog.GetAddressOf());
-
-			if (!nagDialog.isNull())
-			{
-				nagDialog.ShowAsync([this](int32_t button) -> void {; });
-			}
+			
+			auto nagDialog = unknown.as<gmpi::api::IStockDialog>();
+			if(nagDialog)
+				nagDialog->showAsync(nullptr);
 		}
 #endif
 	}
@@ -415,16 +410,11 @@ public:
 	{
 		if (view && view->dialogHost)
 		{
-			nagDialog.setNull(); // free previous.
-
 			gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
 			view->dialogHost->createStockDialog(static_cast<int32_t>(gmpi::api::StockDialogType::Ok), "", aboutMessage_.c_str(), unknown.put());
-			unknown->queryInterface(&gmpi::api::IStockDialog::guid, (void**)nagDialog.GetAddressOf());
-
-			if (!nagDialog.isNull())
-			{
-				nagDialog.ShowAsync([this](int32_t button) -> void {; });
-			}
+			auto nagDialog = unknown.as<gmpi::api::IStockDialog>();
+			if(nagDialog)
+				nagDialog->showAsync(nullptr);
 		}
 	}
 #endif
