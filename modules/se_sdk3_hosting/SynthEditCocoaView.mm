@@ -893,7 +893,7 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
     ApplyKeyModifiers(flags, theEvent);
 
-    constexpr float wheelConversion = 120.0f; // on windows the wheel scrolls 120 per knotch
+    constexpr float wheelConversion = 60.0f; // on windows the wheel scrolls 120 per knotch; halved on Mac to soften scroll sensitivity
     if(deltaY)
     {
         const auto pointRaw = se_mouseToGmpi(self, theEvent);
