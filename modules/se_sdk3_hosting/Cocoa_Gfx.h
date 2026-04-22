@@ -2010,13 +2010,16 @@ return gmpi::MP_FAIL;
                 // (Alternative is [image setFlipped:TRUE] in constructor, but that method is deprected).
                 [image lockFocus Flipped:TRUE];
 #endif
+                // Share the lockFocus CGContext so DrawTextU's counter-flip around NSString drawInRect works.
+                info.cgContext = [NSGraphicsContext currentContext].CGContext;
                 GraphicsContext::BeginDraw();
             }
-            
+
             int32_t MP_STDCALL EndDraw() override
             {
                 auto r = GraphicsContext::EndDraw();
                 [image unlockFocus];
+                info.cgContext = nullptr;
                 return r;
             }
             
