@@ -21,6 +21,7 @@
 #include "IGuiHost2.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
 #include "mfc_emulation.h"
+#include "InterfaceObject.h"
 #if defined(_DEBUG)
 #include "SubViewCadmium.h"
 #endif
@@ -280,6 +281,37 @@ namespace SE2
 	{
 		moduleview.setDirty();
 		return gmpi::ReturnCode::Ok;
+	}
+
+	int32_t GmpiHelper::getAutoduplicatePinCount_deprecated()
+	{
+		return moduleview.totalPins_ > -1 ? moduleview.totalPins_ : 0;
+	}
+
+	void GmpiHelper::listPins(gmpi::api::IUnknown* callback)
+	{
+		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+		unknown = callback; // assign assuming ownership is already managed from caller.
+
+		auto plugin_callback = unknown.as<synthedit::IPinsCallback>();
+		if (plugin_callback.isNull())
+			return;
+
+		moduleview.listGuiPins(plugin_callback.get());
+	}
+
+	void ModuleView::listGuiPins(synthedit::IPinsCallback* callback)
+	{
+		if (!moduleInfo)
+			return;
+
+		for (auto& [id, pin] : moduleInfo->gui_plugs)
+		{
+			callback->onPin(
+				pin->GetDirection() == DR_IN ? gmpi::PinDirection::In : gmpi::PinDirection::Out,
+				(gmpi::PinDatatype) pin->GetDatatype()
+			);
+		}
 	}
 
 	void Sdk3Helper::OnPatchCablesUpdate(RawView patchCablesRaw) // from PatchCableChangeNotifier

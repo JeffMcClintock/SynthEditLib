@@ -1553,6 +1553,20 @@ namespace SE2
 		return false;
 	}
 
+	void ModuleViewStruct::listGuiPins(synthedit::IPinsCallback* callback)
+	{
+		for (auto& pin : plugs_)
+		{
+			if (!pin.isGuiPlug)
+				continue;
+
+			callback->onPin(
+				pin.direction == DR_IN ? gmpi::PinDirection::In : gmpi::PinDirection::Out,
+				(gmpi::PinDatatype) pin.datatype
+			);
+		}
+	}
+
 	gmpi::drawing::Point ModuleViewStruct::getConnectionPoint(CableType cableType, int pinIndex)
 	{
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;

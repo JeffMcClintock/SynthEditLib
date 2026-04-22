@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include "mp_sdk_gui2.h"
 #include "Extensions/EmbeddedFile.h"
+#include "Extensions/PinCount.h"
 
 #include "Core/GmpiSdkCommon.h"
 #include "Core/GmpiApiEditor.h"
@@ -91,6 +92,7 @@ namespace SE2
 		, public gmpi::api::IDrawingHost
 		, public gmpi::api::IParameterSetter
 		, public synthedit::IEmbeddedFileSupport
+		, public synthedit::IPinCount
 	{
 		class ModuleView& moduleview;
 	public:
@@ -129,6 +131,10 @@ namespace SE2
 		// IEditorHost2_x
 		gmpi::ReturnCode setDirty() override;
 
+		// IPinCount
+		int32_t getAutoduplicatePinCount_deprecated() override;
+		void listPins(gmpi::api::IUnknown* callback) override;
+
 		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
 			*returnInterface = {};
@@ -139,6 +145,7 @@ namespace SE2
 			GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IParameterSetter);
 			GMPI_QUERYINTERFACE(synthedit::IEmbeddedFileSupport);
+			GMPI_QUERYINTERFACE(synthedit::IPinCount);
 			return gmpi::ReturnCode::NoSupport;
 		}
         GMPI_REFCOUNT_NO_DELETE
@@ -312,6 +319,7 @@ namespace SE2
 		void OnCableDrag(ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, ModuleView*& bestModule, int& bestPinIndex) override;
 		gmpi::drawing::Point getConnectionPoint(CableType cableType, int pinIndex) override;
 		std::vector<patchpoint_description>* getPatchPoints();
+		virtual void listGuiPins(synthedit::IPinsCallback* callback);
 
 		void OnMoved(gmpi::drawing::Rect& newRect) override;
 		void OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes) override {}

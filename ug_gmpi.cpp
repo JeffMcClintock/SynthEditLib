@@ -148,7 +148,7 @@ void ug_gmpi::listPins(gmpi::api::IUnknown* callback)
 	gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
 	unknown = callback; // asign assuming ownership is already managed from caller.
 
-	auto plugin_callback = unknown.as<synthedit::IProcessorPinsCallback>();
+	auto plugin_callback = unknown.as<synthedit::IPinsCallback>();
 
 	if(plugin_callback.isNull())
 		return;
