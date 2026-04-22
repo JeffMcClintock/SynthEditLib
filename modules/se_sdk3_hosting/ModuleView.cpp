@@ -305,12 +305,30 @@ namespace SE2
 		if (!moduleInfo)
 			return;
 
+		if(moduleInfo->gui_plugs.empty())
+			return; // else crash.
+
+		int index = 0;
 		for (auto& [id, pin] : moduleInfo->gui_plugs)
 		{
 			callback->onPin(
 				pin->GetDirection() == DR_IN ? gmpi::PinDirection::In : gmpi::PinDirection::Out,
 				(gmpi::PinDatatype) pin->GetDatatype()
 			);
+
+			++index;
+		}
+
+		auto& autoduplicatePin = moduleInfo->gui_plugs.rbegin()->second;
+		if(autoduplicatePin->autoDuplicate())
+		{
+			for(; index < totalPins_; ++index)
+			{
+				callback->onPin(
+					autoduplicatePin->GetDirection() == DR_IN ? gmpi::PinDirection::In : gmpi::PinDirection::Out,
+					(gmpi::PinDatatype)autoduplicatePin->GetDatatype()
+				);
+			}
 		}
 	}
 

@@ -319,7 +319,7 @@ namespace SE2
 		void OnCableDrag(ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, ModuleView*& bestModule, int& bestPinIndex) override;
 		gmpi::drawing::Point getConnectionPoint(CableType cableType, int pinIndex) override;
 		std::vector<patchpoint_description>* getPatchPoints();
-		virtual void listGuiPins(synthedit::IPinsCallback* callback);
+		void listGuiPins(synthedit::IPinsCallback* callback);
 
 		void OnMoved(gmpi::drawing::Rect& newRect) override;
 		void OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes) override {}

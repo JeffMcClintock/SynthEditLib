@@ -13,6 +13,7 @@ gmpi_plugin(
     SOURCE_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/../PluginUIScale/PluginUIScaleGui.cpp
         GmpiUiTest.cpp
+        IntToBoolsGui.cpp
         DialogGui.cpp
         DirectoryDialogGui.cpp
         ${GMPI_UI_SDK}/helpers/Timer.h

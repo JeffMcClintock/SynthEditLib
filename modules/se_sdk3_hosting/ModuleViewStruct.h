@@ -74,7 +74,6 @@ public:
 	gmpi::drawing::Point getConnectionPoint(CableType cableType, int pinIndex) override;
 	int getPinDatatype(int pinIndex);
 	bool getPinGuiType(int pinIndex);
-	void listGuiPins(synthedit::IPinsCallback* callback) override;
 	bool isMuted() override
 	{
 		return muted;
