@@ -3,7 +3,7 @@
 #include "Gfx_base.h"
 */
 
-#include "./gmpi_gui_hosting.h"
+//#include "./gmpi_gui_hosting.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "./Bezier.h"
