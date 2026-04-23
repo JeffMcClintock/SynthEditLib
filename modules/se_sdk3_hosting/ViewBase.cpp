@@ -420,6 +420,8 @@ namespace SE2
 
 	gmpi::ReturnCode ViewBase::populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink)
 	{
+		point *= inv_viewTransform;
+
 		Presenter()->NotDragging();
 
 		gmpi::shared_ptr<gmpi::api::IContextItemSink> menu;
@@ -429,18 +431,8 @@ namespace SE2
 		Presenter()->populateContextMenu(menu, point, moduleHandle);
 
 		if(mouseOverObject)
-		{
-			//			menu.populateFromObject(x, y, mouseOverObject);
-
-			//menu.currentCallback =
-			//	[this](int32_t idx)
-			//	{
-			//		return mouseOverObject->vc_onContextMenu(idx);
-			//	};
-
 			mouseOverObject->populateContextMenu(point, menu);
 
-		}
 		return gmpi::ReturnCode::Ok;
 	}
 
