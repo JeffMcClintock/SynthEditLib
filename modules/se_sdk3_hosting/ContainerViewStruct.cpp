@@ -108,7 +108,7 @@ namespace SE2
 			// Background
 			{
 				// fill in the area arround the drawing area. avoiding overdraw.
-				gmpi::drawing::Rect editingBounds{ 0.0f, 0.0f, 7968.0f, 7968.0f };
+				gmpi::drawing::Rect editingBounds{ 0.0f, 0.0f, (float)viewDimensions, (float)viewDimensions };
 				gmpi::drawing::Rect huge{ -100000.0f, -100000.0f, 100000.0f, 100000.0f };
 
 				auto backgroundBrush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x555555u));
@@ -157,10 +157,10 @@ namespace SE2
 
 				cliprect.left = (std::max)(cliprect.left, 0.0f);
 				cliprect.top = (std::max)(cliprect.top, 0.0f);
-				cliprect.right = (std::min)(cliprect.right, 7968.0f);
-				cliprect.bottom = (std::min)(cliprect.bottom, 7968.0f);
+				cliprect.right = (std::min)(cliprect.right, (float)viewDimensions);
+				cliprect.bottom = (std::min)(cliprect.bottom, (float)viewDimensions);
 
-				constexpr int viewDimensions = 7968;
+
 				constexpr int gridSize = 12; // *about that, dpi_ / 96;
 				constexpr int gridBoarder = 2; // 2 grids
 				constexpr int largeGridRatio = 5; // small grids per big grid.
@@ -245,7 +245,7 @@ namespace SE2
 				// outline entire grid to clean up 4 corners.
 				g.drawRectangle(
 					Rect{
-						gridSize * 2 - 0.5f, gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f, 7968.0f - gridSize * 2 - 0.5f
+						gridSize * 2 - 0.5f, gridSize * 2 - 0.5f, (float)viewDimensions - gridSize * 2 - 0.5f, (float)viewDimensions - gridSize * 2 - 0.5f
 					}
 					, brush
 					, thickLine.width

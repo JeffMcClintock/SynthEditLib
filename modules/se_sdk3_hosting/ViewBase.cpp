@@ -1174,7 +1174,7 @@ namespace SE2
 
 		avoidRecusion = true;
 
-		constexpr double canvasSize = 7968.0;
+		constexpr double canvasSize = viewDimensions;
 		const double viewWidth  = drawingBounds.right  - drawingBounds.left;
 		const double viewHeight = drawingBounds.bottom - drawingBounds.top;
 
@@ -1884,7 +1884,8 @@ namespace SE2
 		{
 			if (m->isVisable() && dynamic_cast<ConnectorViewBase*>(m.get()) == nullptr)
 			{
-				gmpi::drawing::Size savedSize(getWidth(m->getLayoutRect()), getHeight(m->getLayoutRect()));
+				auto layoutRect = m->getLayoutRect();
+				gmpi::drawing::Size savedSize(getWidth(layoutRect), getHeight(layoutRect));
 				gmpi::drawing::Size desired;
 				gmpi::drawing::Size actualSize;
 				bool changedSize = false;
@@ -1904,6 +1905,11 @@ namespace SE2
 					// stick with integer sizes for compatibility.
 					actualSize.height = ceilf(actualSize.height);
 					actualSize.width = ceilf(actualSize.width);
+
+					// place layoutRect centered on current view visible center
+					constexpr int canvasMidpoint = viewDimensions / 2;
+
+
 					changedSize = true;
 				}
 				else
@@ -1957,10 +1963,10 @@ namespace SE2
 					_RPT4(_CRT_WARN, "arrange r[ %f %f %f %f]\n", m->getBounds().left, m->getBounds().top, m->getBounds().left + actualSize.width, m->getBounds().top + actualSize.height);
 				}
 */
-				m->arrange(gmpi::drawing::Rect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height));
+				m->arrange(gmpi::drawing::Rect(layoutRect.left, layoutRect.top, layoutRect.left + actualSize.width, layoutRect.top + actualSize.height));
 
 				// Typically only when new object inserted.
-				if (changedSize) // actualSize != savedSize)
+				if (changedSize)
 				{
 					Presenter()->ResizeModule(m->getModuleHandle(), 2, 2, actualSize - savedSize);
 				}

@@ -22,6 +22,8 @@ namespace SE2
 {
 	class ConnectorViewBase;
 
+	constexpr int viewDimensions = 7968; // DIPs (divisible by grids 60x60 + 2 24 pixel borders)
+
 	struct scrollBarSpec
 	{
 		double Value;
@@ -101,7 +103,6 @@ bool isIteratingChildren = false;
 		void OnChildResize(IViewChild* child);
 		void RemoveChild(IViewChild* child);
 		virtual void markDirtyChild(IViewChild* child);
-//		gmpi::ReturnCode populateContextMenu2(gmpi::api::IContextItemSink* menu, gmpi::drawing::Point point);
 
 		gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
 #if 0 // OLD: handled by base class, to be removed.

@@ -41,7 +41,7 @@ namespace SE2
 		// Background
 		{
 			// fill in the area arround the drawing area. avoiding overdraw.
-			gmpi::drawing::Rect editingBounds{ 0.0f, 0.0f, 7968.0f, 7968.0f };
+			gmpi::drawing::Rect editingBounds{ 0.0f, 0.0f, (float)viewDimensions, (float)viewDimensions };
 			gmpi::drawing::Rect huge{ -100000.0f, -100000.0f, 100000.0f, 100000.0f };
 
 			auto backgroundBrush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x555555u));

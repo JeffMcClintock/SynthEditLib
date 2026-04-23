@@ -139,7 +139,6 @@ void SubView::onValueChanged()
 
 void SubView::OnPatchCablesVisibilityUpdate()
 {
-//	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 	parent->parent->OnPatchCablesVisibilityUpdate();
 }
 
@@ -151,7 +150,6 @@ SE2::ConnectorViewBase* SubView::createCable(SE2::CableType type, int32_t handle
 void SubView::markDirtyChild(SE2::IViewChild* child)
 {
 	SE2::ViewBase::markDirtyChild(child);
-//	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 	parent->parent->markDirtyChild(parent);
 }
 
@@ -159,9 +157,7 @@ int32_t SubView::setCapture(SE2::IViewChild* module)
 {
 	// Avoid situation where some module turns off panel then captures mouse (ensuring it never can un-capture it).
 	if (isShown())
-	{
 		return ViewBase::setCapture(module);
-	}
 
 	return gmpi::MP_FAIL;
 }
