@@ -91,6 +91,7 @@ public:
 
     NSView* view;
     NSBitmapImageRep* backBuffer{}; // backing buffer with linear colorspace for correct blending.
+    float pluginUIScale = 1.0f;     // HC_PLUGIN_UI_SCALE — frame-to-bounds ratio; drawings are upsampled by this factor.
 
     DrawingFrameCocoa() {}
     
@@ -331,7 +332,10 @@ public:
         // [view window] returns nil if the view has not been added to a window yet.
         // Sending backingScaleFactor to nil returns 0, which causes division-by-zero NaN in calcViewTransform.
         NSWindow* window = [view window];
-        return window ? (float)[window backingScaleFactor] : 1.0f;
+        const float dpi = window ? (float)[window backingScaleFactor] : 1.0f;
+        // Matches Windows: getRasterizationScale() folds pluginUIScale in so draw
+        // commands are issued at the higher device resolution rather than upsampled.
+        return dpi * pluginUIScale;
     }
     
     // IDialogHost — all dialog types route through the dual-API GmpiGuiHosting
@@ -535,8 +539,16 @@ public:
             backBuffer = nil;
         }
 
-        NSSize logicalsize = view.frame.size;
+        // Drawing happens in bounds coords. Under HC_PLUGIN_UI_SCALE the wrapper's
+        // bounds is the logical (base) DIP size while the frame is the physical size;
+        // Cocoa scales from bounds→frame on blit. So the logical buffer size matches bounds.
+        // For the pixel resolution we also multiply by pluginUIScale — otherwise the bounds→frame
+        // blit is an upsample and the UI looks blurry at scales > 1. Matches Windows, which
+        // folds pluginUIScale into the rasterization scale instead of upsampling.
+        NSSize logicalsize = view.bounds.size;
         NSSize pysicalsize = [view convertRectToBacking:[view bounds]].size;
+        pysicalsize.width  *= pluginUIScale;
+        pysicalsize.height *= pluginUIScale;
 
         // kCGColorSpaceGenericRGBLinear - middle gray is darker, blend seems correct.
         // kCGColorSpaceExtendedLinearSRGB, kCGColorSpaceLinearDisplayP3 - same
@@ -571,8 +583,11 @@ public:
     void onResize()
     {
         initBackingBitmap();
-        
-        NSSize logicalsize = view.frame.size;
+
+        // arrange() takes the logical (DIP/base) size, which on Mac lives in bounds — not
+        // frame. With pluginUIScale > 1 the wrapper sets frame = base*scale and bounds = base,
+        // and we want the UI laid out at the base size.
+        NSSize logicalsize = view.bounds.size;
         gmpi::drawing::Rect finalRect{0,0, (float) logicalsize.width, (float) logicalsize.height};
         if (drawingClient)
             drawingClient->arrange(&finalRect);
@@ -609,6 +624,7 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
 - (id) initWithController: (class IGuiHost2*) _editController preferredSize: (NSSize) size;
 - (void)drawRect:(NSRect)dirtyRect;
 - (void)onTimer: (NSTimer*) t;
+- (void)setPluginUIScale: (float) scale;
 
 @end
 
@@ -752,7 +768,27 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
 - (void) setFrame: (NSRect) newSize
 {
     [super setFrame: newSize];
-    
+
+    // Keep bounds at the logical (base/DIP) size so layout stays unchanged while the
+    // wrapper grows. Cocoa auto-scales drawings from bounds→frame on blit, giving us
+    // the plugin-UI-scale zoom. With scale==1 this is a no-op (bounds tracks frame).
+    const float s = drawingFrame.pluginUIScale > 0.0f ? drawingFrame.pluginUIScale : 1.0f;
+    [self setBoundsSize: NSMakeSize(newSize.size.width / s, newSize.size.height / s)];
+
+    drawingFrame.onResize();
+}
+
+//--------------------------------------------------------------------------------------------------------------
+- (void) setPluginUIScale: (float) scale
+{
+    if (scale <= 0.0f) scale = 1.0f;
+    drawingFrame.pluginUIScale = scale;
+
+    // Re-apply the bounds split for the current frame so the change takes effect
+    // even if the host does not follow up with a resize (or if the frame was already
+    // sized for this scale). onResize() rebuilds the backing bitmap and re-arranges.
+    NSRect f = [self frame];
+    [self setBoundsSize: NSMakeSize(f.size.width / scale, f.size.height / scale)];
     drawingFrame.onResize();
 }
 
@@ -998,6 +1034,16 @@ void onCloseNativeView(void* view_ptr)
 {
     auto view = (SYNTHEDIT_PLUGIN_COCOA_NSVIEW_WRAPPER_CLASSNAME*) view_ptr;
     [view onClose];
+}
+
+// C adaptor for SEVSTGUIEditorMac (Obj-C-free TU) to push HC_PLUGIN_UI_SCALE
+// changes into the NSView wrapper. Updates the bounds→frame split that drives
+// the UI zoom; caller still needs to resize the view to the physical size.
+void setPluginViewScale(void* view_ptr, float scale)
+{
+    if (!view_ptr) return;
+    auto view = (SYNTHEDIT_PLUGIN_COCOA_NSVIEW_WRAPPER_CLASSNAME*) view_ptr;
+    [view setPluginUIScale: scale];
 }
 
 /* duplicates GMPI one
