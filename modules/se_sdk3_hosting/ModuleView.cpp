@@ -9,6 +9,7 @@
 #include "UgDatabase.h"
 #include "legacy_sdk_gui2.h"
 #include "LegacyMenuAdapter.h"
+#include "LegacyFileDialogAdapter.h"
 #include "modules/shared/xplatform.h"
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "BundleInfo.h"
@@ -402,18 +403,32 @@ namespace SE2
 
 	int32_t Sdk3Helper::createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog)
 	{
-		(void)dialogType;
-		if (returnFileDialog)
-			*returnFileDialog = nullptr;
-		return gmpi::MP_UNHANDLED;
+		gmpi::api::IFileDialog* nativeDialog{};
+		{
+			gmpi::shared_ptr<gmpi::api::IUnknown> unk;
+			moduleview.parent->dialogHost->createFileDialog(dialogType, unk.put());
+			if (unk)
+				unk->queryInterface(&gmpi::api::IFileDialog::guid, (void**)&nativeDialog);
+		}
+		if (!nativeDialog)
+		{
+			if (returnFileDialog) *returnFileDialog = nullptr;
+			return gmpi::MP_FAIL;
+		}
+		*returnFileDialog = reinterpret_cast<gmpi_gui::IMpFileDialog*>(new LegacyFileDialogAdapter(nativeDialog));
+		return gmpi::MP_OK;
 	}
 
 	int32_t Sdk3Helper::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog)
 	{
-		(void)dialogType;
-		if (returnDialog)
-			*returnDialog = nullptr;
-		return gmpi::MP_UNHANDLED;
+		gmpi::shared_ptr<gmpi::api::IUnknown> unk;
+		moduleview.parent->dialogHost->createStockDialog(dialogType, "", "", unk.put());
+		if (!unk)
+		{
+			if (returnDialog) *returnDialog = nullptr;
+			return gmpi::MP_FAIL;
+		}
+		return (int32_t)unk->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)returnDialog);
 	}
 
 	int32_t Sdk3Helper::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
@@ -452,7 +467,7 @@ namespace SE2
 		*returnTextEdit = nullptr;
 
         // adjust coordinates to parent using the module's full transform.
-     auto localRect = *reinterpret_cast<gmpi::drawing::Rect*>(rect);
+		auto localRect = *reinterpret_cast<gmpi::drawing::Rect*>(rect);
 		const auto adjustedRect = moduleview.MapPluginRectToView(localRect);
 
 		// create a GMPI-UI widget.
