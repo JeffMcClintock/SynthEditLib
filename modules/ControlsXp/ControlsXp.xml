@@ -146,7 +146,7 @@
     </Plugin>
 
     <!-- Drop-in replacement for KeyBoard2 -->
-  <Plugin id="SE Keyboard2" name="Keyboard (CV)" category="Controls" helpUrl="Keyboard2.html" graphicsApi="GmpiGui" polyphonicSource="true" polyphonic="true" cloned="true">
+  <Plugin id="SE Keyboard2" name="Keyboard (CV)" category="Old" helpUrl="Keyboard2.html" graphicsApi="GmpiGui" polyphonicSource="true" polyphonic="true" cloned="true">
     <Audio>
       <Pin name="PitchX" datatype="float" private="true" hostConnect="Voice/Pitch" />
       <Pin name="TriggerX" datatype="float" private="true" hostConnect="Voice/Trigger" />
