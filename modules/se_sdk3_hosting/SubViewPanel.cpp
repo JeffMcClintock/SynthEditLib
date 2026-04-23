@@ -344,7 +344,7 @@ bool SubView::isShown()
 	if (parentViewType == CF_PANEL_VIEW)
 		return showControls.value || showControlsLegacy.value;
 	else
-		return showControls.value;
+		return showControlsOnModule.value;
 }
 
 gmpi::ReturnCode SubView::render(gmpi::drawing::api::IDeviceContext* drawingContext)
