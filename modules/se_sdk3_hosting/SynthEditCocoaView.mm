@@ -8,7 +8,9 @@
 #include "./CocoaGuiHost.h"
 #import "./ContainerView.h"
 #include "./JsonDocPresenter.h"
+#include "./Controller.h"
 #include "BundleInfo.h"
+#include "HostControls.h"
 #include "backends/CocoaGfx.h"
 #include "backends/DrawingFrameMac.h"
 #include "Shared/DrawingFrame2_mac.h"
@@ -591,6 +593,13 @@ public:
         gmpi::drawing::Rect finalRect{0,0, (float) logicalsize.width, (float) logicalsize.height};
         if (drawingClient)
             drawingClient->arrange(&finalRect);
+
+        // The new backing bitmap is blank and our dirty-rect queue was cleared by the last
+        // render. Without this, the next drawRect: finds nothing to paint and blits the empty
+        // buffer as black — seen in AU after rescaling, and until the host happens to
+        // invalidate us for some other reason. Cast disambiguates the two invalidateRect
+        // overloads (legacy sdk3 MP1_RECT vs. new gmpi Rect).
+        invalidateRect(static_cast<const gmpi::drawing::Rect*>(nullptr));
     }
     
     GMPI_REFCOUNT_NO_DELETE;
@@ -619,6 +628,9 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
     int toolTipTimer;
     bool toolTipShown;
     gmpi::drawing::Point mousePos;
+    class MpController* mpController; // weak ref; cleared in onClose so the scale callback can unsubscribe.
+    int baseWidth;                    // Base DIP width from gui.se.json; frame = base × pluginUIScale.
+    int baseHeight;
 }
 
 - (id) initWithController: (class IGuiHost2*) _editController preferredSize: (NSSize) size;
@@ -647,11 +659,18 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
         self->trackingArea = [NSTrackingArea alloc];
         [self->trackingArea initWithRect:NSZeroRect options:(NSTrackingMouseEnteredAndExited | NSTrackingInVisibleRect | NSTrackingMouseMoved| NSTrackingActiveAlways) owner:self userInfo:nil];
         [self addTrackingArea:self->trackingArea ];
-        
+
+        baseWidth  = width;
+        baseHeight = height;
+        mpController = dynamic_cast<MpController*>(_editController);
+
         drawingFrame.view = self;
         auto presenter = new JsonDocPresenter(_editController);
         drawingFrame.Init();
 
+        // Keep pluginUIScale at 1 during container construction so the container sizes at
+        // base DIP. getRasterizationScale folds pluginUIScale in — if we raised it first,
+        // overrideSizef below would shrink to base/scale.
         const auto scale = 1.0f / drawingFrame.getRasterizationScale();
         const gmpi::drawing::Size overrideSizef{ static_cast<float>(width) * scale, static_cast<float>(height) * scale };
 
@@ -666,7 +685,37 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
         cv->setDocument(presenter);
 
         presenter->RefreshView();
-        
+
+        // Apply the stored HC_PLUGIN_UI_SCALE and subscribe to future changes. For AU hosts
+        // (Logic, Ableton, etc.) this is what makes runtime rescaling visible — setFrameSize
+        // fires NSViewFrameDidChangeNotification and the host's wrapping window tracks us.
+        // In VST3 this closure is overwritten by SEVSTGUIEditorMac::attached (which also
+        // calls plugFrame->resizeView for host notification), so both paths stay coherent.
+        if (mpController)
+        {
+            const auto paramHandle = mpController->getParameterHandle(-1, -1 - HC_PLUGIN_UI_SCALE);
+            const float initialScale = (paramHandle != -1)
+                ? (float)mpController->getParameterValue(paramHandle, gmpi::MP_FT_VALUE, 0)
+                : 1.0f;
+
+            if (initialScale > 0.0f && initialScale != 1.0f)
+            {
+                // Set the scale field first so the subsequent setFrameSize: override computes
+                // bounds against the new scale. Doing setPluginUIScale first would momentarily
+                // use (oldFrame / newScale) for bounds and arrange() at the wrong size.
+                drawingFrame.pluginUIScale = initialScale;
+                [self setFrameSize: NSMakeSize(baseWidth * initialScale, baseHeight * initialScale)];
+            }
+
+            mpController->onPluginUIScaleChanged = [self](float newScale) {
+                if (newScale <= 0.0f) return;
+                drawingFrame.pluginUIScale = newScale;
+                // setFrameSize posts NSViewFrameDidChangeNotification so the AU host's wrapping
+                // window follows, and our setFrameSize: override updates bounds + redraws.
+                [self setFrameSize: NSMakeSize(self->baseWidth * newScale, self->baseHeight * newScale)];
+            };
+        }
+
         // TODO might need this to mitigate crash on close plugin. also need to unregister when editor is closed.
 #if defined(SE_TARGET_AU)
         dynamic_cast<SEInstrumentBase*>(_editController)->callbackOnUnloadPlugin = [this]
@@ -718,14 +767,22 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
         [trackingArea release];
         trackingArea = nil;
     }
-    
+
     // timer will retain NSView, so need to manually stop timer right before we release this view
     if( timer )
     {
         [self->timer invalidate];
         self->timer = nil;
     }
-    
+
+    // Detach the scale-change callback before the view is released. The closure captures
+    // self as an unretained raw pointer, so it must not outlive the view.
+    if (mpController)
+    {
+        mpController->onPluginUIScaleChanged = nullptr;
+        mpController = nullptr;
+    }
+
     drawingFrame.DeInit();
     drawingFrame.view = nil;
 }
@@ -765,17 +822,30 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
  }
 
 //--------------------------------------------------------------------------------------------------------------
-- (void) setFrame: (NSRect) newSize
+// Keep bounds at the logical (base/DIP) size so layout stays unchanged while the wrapper
+// grows. Cocoa auto-scales drawings from bounds→frame on blit, giving us the plugin-UI-scale
+// zoom. With scale==1 this is a no-op (bounds tracks frame).
+- (void) updateBoundsForCurrentFrameAndResize
 {
-    [super setFrame: newSize];
-
-    // Keep bounds at the logical (base/DIP) size so layout stays unchanged while the
-    // wrapper grows. Cocoa auto-scales drawings from bounds→frame on blit, giving us
-    // the plugin-UI-scale zoom. With scale==1 this is a no-op (bounds tracks frame).
     const float s = drawingFrame.pluginUIScale > 0.0f ? drawingFrame.pluginUIScale : 1.0f;
-    [self setBoundsSize: NSMakeSize(newSize.size.width / s, newSize.size.height / s)];
-
+    NSRect f = [self frame];
+    [self setBoundsSize: NSMakeSize(f.size.width / s, f.size.height / s)];
     drawingFrame.onResize();
+}
+
+// NSView's size setters are independent — setFrame: does NOT call setFrameSize: (or vice
+// versa). Override all the size-changing entry points or AU hosts that use setFrameSize:
+// will leave our bounds stale and drawings appear at the wrong scale.
+- (void) setFrame: (NSRect) newFrame
+{
+    [super setFrame: newFrame];
+    [self updateBoundsForCurrentFrameAndResize];
+}
+
+- (void) setFrameSize: (NSSize) newSize
+{
+    [super setFrameSize: newSize];
+    [self updateBoundsForCurrentFrameAndResize];
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -784,12 +854,9 @@ gmpi::drawing::Point se_mouseToGmpi(NSView* view, NSEvent* theEvent)
     if (scale <= 0.0f) scale = 1.0f;
     drawingFrame.pluginUIScale = scale;
 
-    // Re-apply the bounds split for the current frame so the change takes effect
-    // even if the host does not follow up with a resize (or if the frame was already
-    // sized for this scale). onResize() rebuilds the backing bitmap and re-arranges.
-    NSRect f = [self frame];
-    [self setBoundsSize: NSMakeSize(f.size.width / scale, f.size.height / scale)];
-    drawingFrame.onResize();
+    // Re-apply the bounds split for the current frame so the change takes effect even if the
+    // caller does not follow up with a resize.
+    [self updateBoundsForCurrentFrameAndResize];
 }
 
 //--------------------------------------------------------------------------------------------------------------
