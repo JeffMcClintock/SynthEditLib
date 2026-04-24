@@ -72,6 +72,16 @@ namespace SE2
 
 		const auto r = ViewBase::render(drawingContext);
 
+#ifdef _DEBUG
+		{
+			constexpr float cx = viewDimensions * 0.5f;
+			constexpr float arm = 20.0f;
+			auto crossBrush = g.createSolidColorBrush(Colors::Orange);
+			g.drawLine({ cx - arm, cx }, { cx + arm, cx }, crossBrush, 1.0f);
+			g.drawLine({ cx, cx - arm }, { cx, cx + arm }, crossBrush, 1.0f);
+		}
+#endif
+
 		g.setTransform(originalTransform);
 
 		return r;
