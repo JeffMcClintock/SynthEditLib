@@ -17,6 +17,7 @@ class SubView : public SE2::ViewBase, public ISubView
 	gmpi::editor::Pin<bool> showControls;
 
 	gmpi::drawing::Rect viewBounds;
+	gmpi::drawing::Rect viewClipBounds;
 	int parentViewType = 0;
 	SE2::ModuleView* parent = {};
 
