@@ -16,6 +16,7 @@
 #include "IGuiHost2.h"
 #include "InterfaceObject.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
+#include "helpers/PixelSnapper.h"
 
 #ifdef _WIN32
 #include "Shared/DrawingFrame2_win.h"
@@ -1212,6 +1213,108 @@ namespace SE2
 		avoidRecusion = false;
 	}
 
+	void TopView::renderGrid(Graphics& g, Color gridColor)
+	{
+		const auto zoom = g.getTransform()._11;
+		if (zoom <= 0.1f)
+			return;
+
+		auto brush = g.createSolidColorBrush(gridColor);
+
+		pixelSnapper2 snap(g.getTransform(), drawingHost->getRasterizationScale());
+
+		const auto thinLine = snap.thickness(1.0f);
+		const auto thickLine = snap.thickness(3.0f);
+
+		const auto drawFinegrid = zoom > 0.6f;
+
+		Rect cliprect = g.getAxisAlignedClip();
+		cliprect.left   = (std::max)(cliprect.left,   0.0f);
+		cliprect.top    = (std::max)(cliprect.top,    0.0f);
+		cliprect.right  = (std::min)(cliprect.right,  (float)viewDimensions);
+		cliprect.bottom = (std::min)(cliprect.bottom, (float)viewDimensions);
+
+		constexpr int gridSize = 12;
+		constexpr int gridBoarder = 2;
+		constexpr int largeGridRatio = 5;
+		constexpr int totalGrids = viewDimensions / gridSize - 2 * gridBoarder;
+
+		int startX = static_cast<int>(cliprect.left) / gridSize;
+		startX = (std::max)(startX, gridBoarder);
+		startX = startX * gridSize;
+
+		int startY = static_cast<int>(cliprect.top) / gridSize;
+		startY = (std::max)(startY, gridBoarder);
+		startY = startY * gridSize;
+
+		int endX = (static_cast<int>(cliprect.right) + gridSize) / gridSize;
+		endX = (std::min)(endX, totalGrids + gridBoarder);
+		endX = endX * gridSize + 1;
+
+		int endY = (static_cast<int>(cliprect.bottom) + gridSize) / gridSize;
+		endY = (std::min)(endY, totalGrids + gridBoarder);
+		endY = endY * gridSize + 1;
+
+		// vertical lines.
+		int thickLineCounter = ((startX + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
+		const float y1 = startY + 0.5f;
+		const float y2 = endY   - 0.5f;
+		for (int x = startX; x < endX; x += gridSize)
+		{
+			const auto xo = snap.snapX(static_cast<float>(x));
+
+			if (++thickLineCounter == largeGridRatio)
+			{
+				thickLineCounter = 0;
+				const auto xsnapped = xo + thickLine.center_offset;
+				g.drawLine({ xsnapped, y1 }, { xsnapped, y2 }, brush, thickLine.width);
+			}
+			else
+			{
+				if (!drawFinegrid)
+					continue;
+				const auto xsnapped = xo + thinLine.center_offset;
+				g.drawLine({ xsnapped, y1 }, { xsnapped, y2 }, brush, thinLine.width);
+			}
+		}
+
+		// horizontal lines.
+		{
+			thickLineCounter = ((startY + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
+			const float x1 = startX + 0.5f;
+			const float x2 = endX   - 0.5f;
+
+			for (int y = startY; y < endY; y += gridSize)
+			{
+				const auto yo = snap.snapY(static_cast<float>(y));
+
+				if (++thickLineCounter == largeGridRatio)
+				{
+					thickLineCounter = 0;
+					const auto ysnapped = yo + thickLine.center_offset;
+					g.drawLine({ x1, ysnapped }, { x2, ysnapped }, brush, thickLine.width);
+				}
+				else
+				{
+					if (!drawFinegrid)
+						continue;
+					const auto ysnapped = yo + thinLine.center_offset;
+					g.drawLine({ x1, ysnapped }, { x2, ysnapped }, brush, thinLine.width);
+				}
+			}
+		}
+
+		// outline entire grid to clean up 4 corners.
+		g.drawRectangle(
+			Rect{
+				gridSize * 2 - 0.5f, gridSize * 2 - 0.5f,
+				(float)viewDimensions - gridSize * 2 - 0.5f, (float)viewDimensions - gridSize * 2 - 0.5f
+			}
+			, brush
+			, thickLine.width
+		);
+	}
+
 	// dragStartPoint is the center of the pin we are dragging from, mousePoint is where the mouse is (usually very near)
 	int32_t ViewBase::StartCableDrag(IViewChild* fromModule, int fromPin, Point dragStartPoint, gmpi::drawing::Point mousePoint)
 	{
@@ -1909,6 +2012,17 @@ namespace SE2
 					// place layoutRect centered on current view visible center
 					constexpr int canvasMidpoint = viewDimensions / 2;
 
+					// when Containerizing object on the struct view, the panel view will default to top-left, center it on canvas instead.
+					if(isNull(layoutRect))
+					{
+						layoutRect.left = canvasMidpoint - actualSize.width / 2;
+						layoutRect.top = canvasMidpoint - actualSize.height / 2;
+
+//						Presenter()->ResizeModule(m->getModuleHandle(), 2, 2, actualSize - savedSize);
+					}
+
+					layoutRect.right = layoutRect.left + actualSize.width;
+					layoutRect.bottom = layoutRect.top + actualSize.height;
 
 					changedSize = true;
 				}

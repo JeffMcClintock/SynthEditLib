@@ -13,7 +13,6 @@
 #include "IGuiHost2.h"
 #include "ModuleViewStruct.h"
 #include "ConnectorViewStruct.h"
-#include "helpers/PixelSnapper.h"
 #include "gmpi_drawing_conversions.h"
 
 using namespace std;
@@ -135,128 +134,7 @@ namespace SE2
 				g.fillRectangle(editingBounds, backgroundBrush);
 			}
 
-			auto zoom = g.getTransform()._11; // horizontal scale.
-			// BACKGROUND GRID LINES.
-			auto brush = g.createSolidColorBrush(backGroundColor + 0x040404u); // grid color.
-			if (zoom > 0.1f)
-			{
-				pixelSnapper2 snap( g.getTransform(), drawingHost->getRasterizationScale() );
-
-				const auto thinLine = snap.thickness(1.0f);
-				const auto thickLine = snap.thickness(3.0f);
-
-				const auto drawFinegrid = zoom > 0.6f;
-
-				gmpi::drawing::Rect cliprectF = g.getAxisAlignedClip();
-				gmpi::drawing::Rect cliprect{
-					  cliprectF.left
-					, cliprectF.top
-					, cliprectF.right
-					, cliprectF.bottom
-				};
-
-				cliprect.left = (std::max)(cliprect.left, 0.0f);
-				cliprect.top = (std::max)(cliprect.top, 0.0f);
-				cliprect.right = (std::min)(cliprect.right, (float)viewDimensions);
-				cliprect.bottom = (std::min)(cliprect.bottom, (float)viewDimensions);
-
-
-				constexpr int gridSize = 12; // *about that, dpi_ / 96;
-				constexpr int gridBoarder = 2; // 2 grids
-				constexpr int largeGridRatio = 5; // small grids per big grid.
-				constexpr int totalGrids = viewDimensions / gridSize - 2 * gridBoarder;
-
-				// quantize start x/y to grid.
-				int startX = static_cast<int>(cliprect.left) / gridSize;
-				startX = (std::max)(startX, gridBoarder);
-				startX = startX * gridSize;
-
-				int startY = static_cast<int>(cliprect.top) / gridSize;
-				startY = (std::max)(startY, gridBoarder);
-				startY = startY * gridSize;
-
-				int endX = (static_cast<int>(cliprect.right) + gridSize) / gridSize;
-				endX = (std::min)(endX, totalGrids + gridBoarder);
-				endX = endX * gridSize + 1;
-
-				int endY = (static_cast<int>(cliprect.bottom) + gridSize) / gridSize;
-				endY = (std::min)(endY, totalGrids + gridBoarder);
-				endY = endY * gridSize + 1;
-
-				// vertical lines.
-				int thickLineCounter = ((startX + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
-				const float y1 = startY + 0.5f;
-				const float y2 = endY   - 0.5f;
-				for (int x = startX; x < endX; x += gridSize)
-				{
-					const auto xo = snap.snapX(static_cast<float>(x));
-
-					if (++thickLineCounter == largeGridRatio)
-					{
-						thickLineCounter = 0;
-
-						const auto& line = thickLine;
-						const auto xsnapped = xo + line.center_offset;
-						g.drawLine({ xsnapped, y1 }, { xsnapped, y2 }, brush, line.width);
-					}
-					else
-					{
-						if (!drawFinegrid)
-							continue;
-
-						const auto& line = thinLine;
-						const auto xsnapped = xo + line.center_offset;
-						g.drawLine({ xsnapped, y1 }, { xsnapped, y2 }, brush, line.width);
-
-//						_RPTN(0, "draw fine vertical x=%f w=%f\n", transformPoint(snap.inverted, { xsnapped, 0.0f }).x, thinLine.width / drawingHost->getRasterizationScale());
-					}
-				}
-
-				// horizonal lines.
-				{
-					thickLineCounter = ((startY + gridSize * (largeGridRatio - gridBoarder)) / gridSize) % largeGridRatio;
-					const float x1 = startX + 0.5f;
-					const float x2 = endX   - 0.5f;
-
-					for(int y = startY; y < endY; y += gridSize)
-					{
-						auto yo = snap.snapY(static_cast<float>(y));
-
-						if(++thickLineCounter == largeGridRatio)
-						{
-							thickLineCounter = 0;
-
-							const auto& line = thickLine;
-							const auto ysnapped = yo + line.center_offset;
-							g.drawLine({ x1, ysnapped }, { x2, ysnapped }, brush, line.width);
-						}
-						else
-						{
-							if(!drawFinegrid)
-								continue;
-
-							const auto& line = thinLine;
-							const auto ysnapped = yo + line.center_offset;
-							g.drawLine({ x1, ysnapped }, { x2, ysnapped }, brush, line.width);
-						}
-					}
-				}
-
-				// outline entire grid to clean up 4 corners.
-				g.drawRectangle(
-					Rect{
-						gridSize * 2 - 0.5f, gridSize * 2 - 0.5f, (float)viewDimensions - gridSize * 2 - 0.5f, (float)viewDimensions - gridSize * 2 - 0.5f
-					}
-					, brush
-					, thickLine.width
-				);
-/* check alignment
-auto p = 5 * 12.0f;
-auto testBrush = g.createSolidColorBrush(Colors::Red);
-g.drawLine(p, 100.f, p, -100.f, testBrush);
-g.drawLine(100.f, p, -100.f, p, testBrush);
-*/
-			}
+			renderGrid(g, colorFromHex(backGroundColor + 0x040404u));
 		}
 
 		const auto r = ViewBase::render(drawingContext);

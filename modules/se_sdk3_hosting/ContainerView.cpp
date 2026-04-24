@@ -68,6 +68,7 @@ namespace SE2
 			g.fillRectangle(editingBounds, backgroundBrush);
 		}
 
+		renderGrid(g, colorFromHex(0xDDDDDDu)); // slightly lighter than LightGray background
 
 		const auto r = ViewBase::render(drawingContext);
 

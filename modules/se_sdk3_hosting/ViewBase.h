@@ -306,6 +306,8 @@ bool isIteratingChildren = false;
 		void onHScroll(double visibleLeft);
 		void onVScroll(double visibleTop);
 		void updateScrollBars();
+
+		void renderGrid(gmpi::drawing::Graphics& g, gmpi::drawing::Color gridColor);
 	};
 
 	class SelectionDragBox : public ViewChild
