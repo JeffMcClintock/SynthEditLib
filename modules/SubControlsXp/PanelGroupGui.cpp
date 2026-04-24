@@ -28,7 +28,6 @@ void PanelGroupGui::onSetText()
 	}
 	title_utf8 = (std::string) pinText;
 
-//	cachedRender_.setNull();
 	invalidateRect();
 }
 

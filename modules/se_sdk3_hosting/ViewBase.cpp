@@ -1992,12 +1992,7 @@ namespace SE2
 				gmpi::drawing::Size desired;
 				gmpi::drawing::Size actualSize;
 				bool changedSize = false;
-				/*
-								if (debug)
-								{
-									_RPT4(_CRT_WARN, "savedSize r[ %f %f %f %f]\n", m->getBounds().left, m->getBounds().top, m->getBounds().left + m->getBounds().getWidth(), m->getBounds().top + m->getBounds().getHeight());
-								}
-				*/
+				bool centeredFromIsNull = false;
 				// Detect brand-new objects that haven't had size calculated yet.
 				if (savedSize.width == 0 && savedSize.height == 0)
 				{
@@ -2017,8 +2012,7 @@ namespace SE2
 					{
 						layoutRect.left = canvasMidpoint - actualSize.width / 2;
 						layoutRect.top = canvasMidpoint - actualSize.height / 2;
-
-//						Presenter()->ResizeModule(m->getModuleHandle(), 2, 2, actualSize - savedSize);
+						centeredFromIsNull = true;
 					}
 
 					layoutRect.right = layoutRect.left + actualSize.width;
@@ -2080,7 +2074,12 @@ namespace SE2
 				m->arrange(gmpi::drawing::Rect(layoutRect.left, layoutRect.top, layoutRect.left + actualSize.width, layoutRect.top + actualSize.height));
 
 				// Typically only when new object inserted.
-				if (changedSize)
+				// Skip when we centered via isNull: ResizeModule encodes only a
+				// size delta (anchored to the persisted rect's bottom-right), so
+				// calling it here would overwrite the centered bounds_ back to
+				// (0, 0, w, h). m->arrange above has already set bounds_ to the
+				// centered rect; the data model will sync on the next user edit.
+				if (changedSize && !centeredFromIsNull)
 				{
 					Presenter()->ResizeModule(m->getModuleHandle(), 2, 2, actualSize - savedSize);
 				}

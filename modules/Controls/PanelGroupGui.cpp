@@ -160,6 +160,13 @@ public:
 		return r;
 	}
 
+	ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
+	{
+		const auto inner = inflateRect(bounds, -8.f);
+
+		return pointInRect(point, inner) ? ReturnCode::Fail : ReturnCode::Ok;
+	}
+
 	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
 	{
 		Graphics g(drawingContext);
@@ -201,7 +208,8 @@ public:
 			sink.addLine    ({ r.left + gapStart,   r.top          }); // horizontal stub past the corner
 			sink.endFigure(FigureEnd::Open);
 			sink.close();
-			g.drawGeometry(geom, brush, sw);
+			auto strokeStyle = g.getFactory().createStrokeStyle(CapStyle::Round);
+			g.drawGeometry(geom, brush, sw, strokeStyle);
 
 			// Label: skin font, same colour as the stroke.
 			auto textBrush = g.createSolidColorBrush(getColor());

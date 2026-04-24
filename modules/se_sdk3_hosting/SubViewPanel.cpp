@@ -188,7 +188,7 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 
 	// calc my bounds.
 	// Start with inverted rect (no area).
-	 viewBounds = gmpi::drawing::Rect(200000, 200000, -200000, -200000);
+	viewBounds = gmpi::drawing::Rect(200000, 200000, -200000, -200000);
 
     const gmpi::drawing::Size veryLarge(100000, 100000);
 	gmpi::drawing::Size notused;
@@ -282,12 +282,28 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 	returnDesiredSize->width = (std::max)(0.0f, getWidth(viewBounds));
 	returnDesiredSize->height = (std::max)(0.0f, getHeight(viewBounds));
 
+	_RPT4(_CRT_WARN, "SubView::measure viewBounds[%f %f %f %f]",
+		viewBounds.left, viewBounds.top, viewBounds.right, viewBounds.bottom);
+	_RPT4(_CRT_WARN, " parent.bounds_[%f %f %f %f]",
+		parent->bounds_.left, parent->bounds_.top, parent->bounds_.right, parent->bounds_.bottom);
+	_RPT4(_CRT_WARN, " parent.layoutRect[%f %f %f %f] panInit=%d\n",
+		parent->getLayoutRect().left, parent->getLayoutRect().top,
+		parent->getLayoutRect().right, parent->getLayoutRect().bottom,
+		(int)panInitialized_);
+
 	// On first open, need to calc offset relative to view.
 	// ref control_group_auto_size::RecalcBounds()
 	if (!panInitialized_)
 	{
-		const float newPanX = static_cast<float>(-static_cast<int32_t>(viewBounds.left));
-		const float newPanY = static_cast<float>(-static_cast<int32_t>(viewBounds.top));
+		// Align the children's bounding-box top-left with plugin-local origin so
+		// the Container's own layoutRect naturally encloses its contents (matches
+		// OnChildMoved). The outer ViewBase::arrange then centers the Container
+		// on the canvas via its isNull-layoutRect logic, and the second-pass
+		// parentAdjust compensation below computes zero — so a freshly-
+		// containerized object ends up roughly where it was before.
+		const float newPanX = -viewBounds.left;
+		const float newPanY = -viewBounds.top;
+
 		setPan(newPanX, newPanY);
 
 		// avoid 'show on module' structure view messing up panel view's offset.

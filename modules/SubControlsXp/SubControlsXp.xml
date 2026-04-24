@@ -177,7 +177,7 @@
     </GUI>
   </Plugin>
   
-  <Plugin id="SE Panel Group" name="Panel Group" category="Controls" graphicsApi="GmpiGui">
+  <Plugin id="SE Panel Group" name="Panel Group" category="Controls/Old" graphicsApi="GmpiGui">
     <GUI>
       <Pin name="Text" datatype="string" default="Group" />
     </GUI>
