@@ -10,12 +10,11 @@
 #include "ConnectorView.h"
 #include "SubViewPanel.h"
 #include "tinyxml/tinyxml.h"
-#include "IGuiHost2.h"
+#include "BundleInfo.h"
 #include "gmpi_drawing_conversions.h"
 
 using namespace std;
 using namespace gmpi;
-//using namespace gmpi_gui;
 using namespace gmpi::drawing;
 using namespace legacy_converters;
 
@@ -68,17 +67,18 @@ namespace SE2
 			g.fillRectangle(editingBounds, backgroundBrush);
 		}
 
-		renderGrid(g, colorFromHex(0xDDDDDDu)); // slightly lighter than LightGray background
+		if(BundleInfo::instance()->isEditor)
+			renderGrid(g, colorFromHex(0xDDDDDDu)); // slightly lighter than LightGray background
 
 		const auto r = ViewBase::render(drawingContext);
 
 #ifdef _DEBUG
 		{
 			constexpr float cx = viewDimensions * 0.5f;
-			constexpr float arm = 20.0f;
+			constexpr float arm = 60.0f;
 			auto crossBrush = g.createSolidColorBrush(Colors::Orange);
-			g.drawLine({ cx - arm, cx }, { cx + arm, cx }, crossBrush, 1.0f);
-			g.drawLine({ cx, cx - arm }, { cx, cx + arm }, crossBrush, 1.0f);
+			g.drawLine({ cx - arm, cx }, { cx + arm, cx }, crossBrush, 5.0f);
+			g.drawLine({ cx, cx - arm }, { cx, cx + arm }, crossBrush, 5.0f);
 		}
 #endif
 
