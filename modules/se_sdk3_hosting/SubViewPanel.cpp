@@ -189,6 +189,7 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 	// calc my bounds.
 	// Start with inverted rect (no area).
 	viewBounds = gmpi::drawing::Rect(200000, 200000, -200000, -200000);
+	viewClipBounds = viewBounds;
 
     const gmpi::drawing::Size veryLarge(100000, 100000);
 	gmpi::drawing::Size notused;
@@ -270,6 +271,13 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 			viewBounds.right = (std::max)(viewBounds.right, moduleRect.right);
 			viewBounds.top = (std::min)(viewBounds.top, moduleRect.top);
 			viewBounds.bottom = (std::max)(viewBounds.bottom, moduleRect.bottom);
+
+			// Include child's clip area (which includes shadow layers).
+			auto childClipArea = m->getClipArea();
+			viewClipBounds.left = (std::min)(viewClipBounds.left, childClipArea.left);
+			viewClipBounds.right = (std::max)(viewClipBounds.right, childClipArea.right);
+			viewClipBounds.top = (std::min)(viewClipBounds.top, childClipArea.top);
+			viewClipBounds.bottom = (std::max)(viewClipBounds.bottom, childClipArea.bottom);
 		}
 	}
 
@@ -277,6 +285,7 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 	{
 		viewBounds.left = viewBounds.top = 0;
 		viewBounds.right = viewBounds.bottom = 10;
+		viewClipBounds = viewBounds;
 	}
 
 	returnDesiredSize->width = (std::max)(0.0f, getWidth(viewBounds));
@@ -442,8 +451,8 @@ void SubView::OnChildMoved()
 //	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 
 	gmpi::drawing::Rect viewBoundsNew;
-	gmpi::drawing::Rect unused2;
-	calcBounds(viewBoundsNew, unused2);
+	gmpi::drawing::Rect viewClipBoundsNew;
+	calcBounds(viewBoundsNew, viewClipBoundsNew);
 
 	if (viewBounds == viewBoundsNew)
 		return;
@@ -463,6 +472,7 @@ void SubView::OnChildMoved()
 	parentLayoutRect.bottom = parentLayoutRect.top + viewBoundsNew.bottom - viewBoundsNew.top;
 
 	viewBounds = viewBoundsNew;
+	viewClipBounds = viewClipBoundsNew;
 	setPan(-viewBoundsNew.left, -viewBoundsNew.top);
 
 	parent->parent->OnChangedChildPosition(parent->handle, parentLayoutRect);
@@ -473,6 +483,7 @@ void SubView::calcBounds(gmpi::drawing::Rect& returnLayoutRect, gmpi::drawing::R
 	// calc my bounds.
 	// Start with inverted rect (no area).
 	returnLayoutRect = gmpi::drawing::Rect(200000, 200000, -200000, -200000);
+	returnClipRect = returnLayoutRect;
 
 	const gmpi::drawing::Size veryLarge(100000, 100000);
 	gmpi::drawing::Size notused;
@@ -555,6 +566,13 @@ void SubView::calcBounds(gmpi::drawing::Rect& returnLayoutRect, gmpi::drawing::R
 			returnLayoutRect.right = (std::max)(returnLayoutRect.right, moduleRect.right);
 			returnLayoutRect.top = (std::min)(returnLayoutRect.top, moduleRect.top);
 			returnLayoutRect.bottom = (std::max)(returnLayoutRect.bottom, moduleRect.bottom);
+
+			// Include child's clip area (which includes shadow layers).
+			auto childClipArea = m->getClipArea();
+			returnClipRect.left = (std::min)(returnClipRect.left, childClipArea.left);
+			returnClipRect.right = (std::max)(returnClipRect.right, childClipArea.right);
+			returnClipRect.top = (std::min)(returnClipRect.top, childClipArea.top);
+			returnClipRect.bottom = (std::max)(returnClipRect.bottom, childClipArea.bottom);
 		}
 	}
 
@@ -562,6 +580,7 @@ void SubView::calcBounds(gmpi::drawing::Rect& returnLayoutRect, gmpi::drawing::R
 	{
 		returnLayoutRect.left = returnLayoutRect.top = 0;
 		returnLayoutRect.right = returnLayoutRect.bottom = 10;
+		returnClipRect = returnLayoutRect;
 	}
 
 	returnLayoutRect.left = floorf(returnLayoutRect.left);

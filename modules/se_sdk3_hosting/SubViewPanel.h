@@ -17,6 +17,7 @@ class SubView : public SE2::ViewBase, public ISubView
 	gmpi::editor::Pin<bool> showControls;
 
 	gmpi::drawing::Rect viewBounds;
+	gmpi::drawing::Rect viewClipBounds;
 	int parentViewType = 0;
 	SE2::ModuleView* parent = {};
 
@@ -87,6 +88,10 @@ public:
 	void OnChildMoved() override;
 
 	void calcBounds(gmpi::drawing::Rect & returnLayoutRect, gmpi::drawing::Rect & returnClipRect);
+	gmpi::drawing::Rect getClipArea()
+	{
+		return viewClipBounds;
+	}
 
 	gmpi::drawing::Point MapPointToView(ViewBase* parentView, gmpi::drawing::Point p) override
 	{
