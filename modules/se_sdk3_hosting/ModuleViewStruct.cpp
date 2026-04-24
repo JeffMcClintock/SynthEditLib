@@ -643,6 +643,19 @@ namespace SE2
 			g.fillRectangle(r, backgroundBrush);
 		}
 
+		// Render plugin's shadow layer under module body
+		if (pluginDrawingLayer_GMPI)
+		{
+			const auto transform = g.getTransform();
+			auto adjustedTransform = makeTranslation(pluginGraphicsPos.left, pluginGraphicsPos.top) * transform;
+			g.setTransform(adjustedTransform);
+
+			auto gmpiContext = AccessPtr::get(g);
+			pluginDrawingLayer_GMPI->renderLayer(gmpiContext, -1);
+
+			g.setTransform(transform);
+		}
+
 		// Draw pin text elements.
 		auto outlineBrush = g.createSolidColorBrush(Colors::Gray);
 		if (zoomFactor > 0.1f)
@@ -777,7 +790,7 @@ namespace SE2
 
 	void ModuleViewStruct::renderPluginLayer(Graphics& g, int32_t layer)
 	{
-		if (pluginDrawingLayer_GMPI)
+		if (pluginDrawingLayer_GMPI && layer != -1)
 		{
 			const auto transform = g.getTransform();
 			auto adjustedTransform = makeTranslation(pluginGraphicsPos.left, pluginGraphicsPos.top) * transform;
