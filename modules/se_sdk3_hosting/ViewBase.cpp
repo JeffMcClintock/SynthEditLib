@@ -1988,6 +1988,7 @@ namespace SE2
 			if (m->isVisable() && dynamic_cast<ConnectorViewBase*>(m.get()) == nullptr)
 			{
 				auto layoutRect = m->getLayoutRect();
+				const auto originalLayoutRect = layoutRect;
 				gmpi::drawing::Size savedSize(getWidth(layoutRect), getHeight(layoutRect));
 				gmpi::drawing::Size desired;
 				gmpi::drawing::Size actualSize;
@@ -2074,14 +2075,28 @@ namespace SE2
 				m->arrange(gmpi::drawing::Rect(layoutRect.left, layoutRect.top, layoutRect.left + actualSize.width, layoutRect.top + actualSize.height));
 
 				// Typically only when new object inserted.
-				// Skip when we centered via isNull: ResizeModule encodes only a
-				// size delta (anchored to the persisted rect's bottom-right), so
-				// calling it here would overwrite the centered bounds_ back to
-				// (0, 0, w, h). m->arrange above has already set bounds_ to the
-				// centered rect; the data model will sync on the next user edit.
-				if (changedSize && !centeredFromIsNull)
+				if (changedSize)
 				{
-					Presenter()->ResizeModule(m->getModuleHandle(), 2, 2, actualSize - savedSize);
+					if (centeredFromIsNull)
+					{
+						// Persist both the new position AND the new size. ResizeModule
+						// encodes a delta anchored to one corner, so two calls are needed.
+						// Move bottom-right first so the intermediate rect isn't inverted:
+						//   (L0,T0,R0,B0) --(2,2, R-R0,B-B0)--> (L0,T0,R,B)
+						//                 --(0,0, L-L0,T-T0)--> (L,T,R,B)
+						Presenter()->ResizeModule(m->getModuleHandle(), 2, 2,
+							gmpi::drawing::Size(
+								layoutRect.right  - originalLayoutRect.right,
+								layoutRect.bottom - originalLayoutRect.bottom));
+						Presenter()->ResizeModule(m->getModuleHandle(), 0, 0,
+							gmpi::drawing::Size(
+								layoutRect.left - originalLayoutRect.left,
+								layoutRect.top  - originalLayoutRect.top));
+					}
+					else
+					{
+						Presenter()->ResizeModule(m->getModuleHandle(), 2, 2, actualSize - savedSize);
+					}
 				}
 			}
 		}

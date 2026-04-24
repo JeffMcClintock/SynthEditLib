@@ -282,15 +282,6 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 	returnDesiredSize->width = (std::max)(0.0f, getWidth(viewBounds));
 	returnDesiredSize->height = (std::max)(0.0f, getHeight(viewBounds));
 
-	_RPT4(_CRT_WARN, "SubView::measure viewBounds[%f %f %f %f]",
-		viewBounds.left, viewBounds.top, viewBounds.right, viewBounds.bottom);
-	_RPT4(_CRT_WARN, " parent.bounds_[%f %f %f %f]",
-		parent->bounds_.left, parent->bounds_.top, parent->bounds_.right, parent->bounds_.bottom);
-	_RPT4(_CRT_WARN, " parent.layoutRect[%f %f %f %f] panInit=%d\n",
-		parent->getLayoutRect().left, parent->getLayoutRect().top,
-		parent->getLayoutRect().right, parent->getLayoutRect().bottom,
-		(int)panInitialized_);
-
 	// On first open, need to calc offset relative to view.
 	// ref control_group_auto_size::RecalcBounds()
 	if (!panInitialized_)
