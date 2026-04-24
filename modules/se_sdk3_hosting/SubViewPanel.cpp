@@ -189,7 +189,6 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 	// calc my bounds.
 	// Start with inverted rect (no area).
 	viewBounds = gmpi::drawing::Rect(200000, 200000, -200000, -200000);
-	viewClipBounds = viewBounds;
 
     const gmpi::drawing::Size veryLarge(100000, 100000);
 	gmpi::drawing::Size notused;
@@ -271,13 +270,6 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 			viewBounds.right = (std::max)(viewBounds.right, moduleRect.right);
 			viewBounds.top = (std::min)(viewBounds.top, moduleRect.top);
 			viewBounds.bottom = (std::max)(viewBounds.bottom, moduleRect.bottom);
-
-			// Include child's clip area (which includes shadow layers).
-			auto childClipArea = m->getClipArea();
-			viewClipBounds.left = (std::min)(viewClipBounds.left, childClipArea.left);
-			viewClipBounds.right = (std::max)(viewClipBounds.right, childClipArea.right);
-			viewClipBounds.top = (std::min)(viewClipBounds.top, childClipArea.top);
-			viewClipBounds.bottom = (std::max)(viewClipBounds.bottom, childClipArea.bottom);
 		}
 	}
 
@@ -285,7 +277,6 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 	{
 		viewBounds.left = viewBounds.top = 0;
 		viewBounds.right = viewBounds.bottom = 10;
-		viewClipBounds = viewBounds;
 	}
 
 	returnDesiredSize->width = (std::max)(0.0f, getWidth(viewBounds));
@@ -373,14 +364,8 @@ gmpi::ReturnCode SubView::render(gmpi::drawing::api::IDeviceContext* drawingCont
 		const auto originalTransform = g.getTransform();
 		g.setTransform(viewTransform * originalTransform);
 
-		// Clip to include child module shadow layers.
-		auto clipRect = viewClipBounds;
-		clipRect = gmpi::drawing::offsetRect(clipRect, { -viewBounds.left, -viewBounds.top });
-		g.pushAxisAlignedClip(clipRect);
-
 		auto res = SE2::ViewBase::render(drawingContext);
 
-		g.popAxisAlignedClip();
 		g.setTransform(originalTransform);
 		return res;
 	}
@@ -457,8 +442,8 @@ void SubView::OnChildMoved()
 //	auto parent = dynamic_cast<SE2::ViewChild*> (drawingHost.get());
 
 	gmpi::drawing::Rect viewBoundsNew;
-	gmpi::drawing::Rect viewClipBoundsNew;
-	calcBounds(viewBoundsNew, viewClipBoundsNew);
+	gmpi::drawing::Rect unused2;
+	calcBounds(viewBoundsNew, unused2);
 
 	if (viewBounds == viewBoundsNew)
 		return;
@@ -478,7 +463,6 @@ void SubView::OnChildMoved()
 	parentLayoutRect.bottom = parentLayoutRect.top + viewBoundsNew.bottom - viewBoundsNew.top;
 
 	viewBounds = viewBoundsNew;
-	viewClipBounds = viewClipBoundsNew;
 	setPan(-viewBoundsNew.left, -viewBoundsNew.top);
 
 	parent->parent->OnChangedChildPosition(parent->handle, parentLayoutRect);
@@ -489,7 +473,6 @@ void SubView::calcBounds(gmpi::drawing::Rect& returnLayoutRect, gmpi::drawing::R
 	// calc my bounds.
 	// Start with inverted rect (no area).
 	returnLayoutRect = gmpi::drawing::Rect(200000, 200000, -200000, -200000);
-	returnClipRect = returnLayoutRect;
 
 	const gmpi::drawing::Size veryLarge(100000, 100000);
 	gmpi::drawing::Size notused;
@@ -572,13 +555,6 @@ void SubView::calcBounds(gmpi::drawing::Rect& returnLayoutRect, gmpi::drawing::R
 			returnLayoutRect.right = (std::max)(returnLayoutRect.right, moduleRect.right);
 			returnLayoutRect.top = (std::min)(returnLayoutRect.top, moduleRect.top);
 			returnLayoutRect.bottom = (std::max)(returnLayoutRect.bottom, moduleRect.bottom);
-
-			// Include child's clip area (which includes shadow layers).
-			auto childClipArea = m->getClipArea();
-			returnClipRect.left = (std::min)(returnClipRect.left, childClipArea.left);
-			returnClipRect.right = (std::max)(returnClipRect.right, childClipArea.right);
-			returnClipRect.top = (std::min)(returnClipRect.top, childClipArea.top);
-			returnClipRect.bottom = (std::max)(returnClipRect.bottom, childClipArea.bottom);
 		}
 	}
 
@@ -592,7 +568,4 @@ void SubView::calcBounds(gmpi::drawing::Rect& returnLayoutRect, gmpi::drawing::R
 	returnLayoutRect.top = floorf(returnLayoutRect.top);
 	returnLayoutRect.right = ceilf(returnLayoutRect.right);
 	returnLayoutRect.bottom = ceilf(returnLayoutRect.bottom);
-
-	if (returnClipRect.right == -200000) // no children
-		returnClipRect = returnLayoutRect;
 }
