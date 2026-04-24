@@ -76,6 +76,7 @@ public:
 	gmpi::ReturnCode initialize() override;
 	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override;
 	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
+	gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override;
 	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
 	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
@@ -88,10 +89,6 @@ public:
 	void OnChildMoved() override;
 
 	void calcBounds(gmpi::drawing::Rect & returnLayoutRect, gmpi::drawing::Rect & returnClipRect);
-	gmpi::drawing::Rect getClipArea()
-	{
-		return viewClipBounds;
-	}
 
 	gmpi::drawing::Point MapPointToView(ViewBase* parentView, gmpi::drawing::Point p) override
 	{

@@ -189,6 +189,7 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 	// calc my bounds.
 	// Start with inverted rect (no area).
 	viewBounds = gmpi::drawing::Rect(200000, 200000, -200000, -200000);
+	// Clip bounds will be initialized from viewBounds after it's calculated
 	viewClipBounds = viewBounds;
 
     const gmpi::drawing::Size veryLarge(100000, 100000);
@@ -272,8 +273,10 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 			viewBounds.top = (std::min)(viewBounds.top, moduleRect.top);
 			viewBounds.bottom = (std::max)(viewBounds.bottom, moduleRect.bottom);
 
-			// Include child's clip area (which includes shadow layers).
-			auto childClipArea = m->getClipArea();
+			// Child's getClipArea() already returns the child's clip rect in our
+			// child-local coord space (its bounds_ is our child-local layout rect),
+			// possibly inflated to include shadow/glow overhang. No offset needed.
+			const auto childClipArea = m->getClipArea();
 			viewClipBounds.left = (std::min)(viewClipBounds.left, childClipArea.left);
 			viewClipBounds.right = (std::max)(viewClipBounds.right, childClipArea.right);
 			viewClipBounds.top = (std::min)(viewClipBounds.top, childClipArea.top);
@@ -357,6 +360,19 @@ bool SubView::isShown()
 		return showControls.value || showControlsLegacy.value;
 	else
 		return showControlsOnModule.value;
+}
+
+gmpi::ReturnCode SubView::getClipArea(gmpi::drawing::Rect* returnRect)
+{
+	if (!returnRect)
+		return gmpi::ReturnCode::Fail;
+
+	// Return plugin-local coords. viewClipBounds is in child-local coord space;
+	// viewTransform (pan) maps child-local -> plugin-local. The owning
+	// ModuleViewPanel offsets by bounds_ + pluginGraphicsPos to reach parent view.
+	*returnRect = gmpi::drawing::offsetRect(viewClipBounds, { panX(), panY() });
+
+	return gmpi::ReturnCode::Ok;
 }
 
 gmpi::ReturnCode SubView::render(gmpi::drawing::api::IDeviceContext* drawingContext)
@@ -473,6 +489,7 @@ void SubView::OnChildMoved()
 
 	viewBounds = viewBoundsNew;
 	viewClipBounds = viewClipBoundsNew;
+
 	setPan(-viewBoundsNew.left, -viewBoundsNew.top);
 
 	parent->parent->OnChangedChildPosition(parent->handle, parentLayoutRect);
@@ -567,8 +584,8 @@ void SubView::calcBounds(gmpi::drawing::Rect& returnLayoutRect, gmpi::drawing::R
 			returnLayoutRect.top = (std::min)(returnLayoutRect.top, moduleRect.top);
 			returnLayoutRect.bottom = (std::max)(returnLayoutRect.bottom, moduleRect.bottom);
 
-			// Include child's clip area (which includes shadow layers).
-			auto childClipArea = m->getClipArea();
+			// Child's getClipArea() is already in child-local SubView coords.
+			const auto childClipArea = m->getClipArea();
 			returnClipRect.left = (std::min)(returnClipRect.left, childClipArea.left);
 			returnClipRect.right = (std::max)(returnClipRect.right, childClipArea.right);
 			returnClipRect.top = (std::min)(returnClipRect.top, childClipArea.top);
