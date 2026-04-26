@@ -80,6 +80,7 @@ struct GuiTech
 const GuiTech guiTypes[] = {
 	{""				, 0							},
 	{"none"			, 0							},
+	{"GmpiUi"		, MP_WINDOW_TYPE_XP			},
 	{"GmpiGui"		, MP_WINDOW_TYPE_XP			},
 	{"composited"	, MP_WINDOW_TYPE_COMPOSITED	},
 	{"HWND"			, MP_WINDOW_TYPE_HWND		},
