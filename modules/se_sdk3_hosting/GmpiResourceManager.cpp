@@ -200,11 +200,12 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 					if(L"PSS" == skin)
 					{
 						// Search project-specific skin folder first (e.g., mysynth.skin/)
-						if(!projectFile.empty())
-						{
-							const auto projectSkinFolder = (projectFile.parent_path() / (projectFile.stem().wstring() + L".skin")).wstring();
-							searchFolders.push_back({ projectSkinFolder, combine_path_and_file(projectSkinFolder, bare) });
-						}
+						const auto psf = projectSkinFolder();
+							if (!psf.empty())
+							{
+								const auto psfStr = psf.wstring();
+								searchFolders.push_back({ psfStr, combine_path_and_file(psfStr, bare) });
+							}
 					}
 					else
 					{
@@ -335,8 +336,8 @@ std::filesystem::path GmpiResourceManager::ResolveResourceUri(const std::filesys
 	// Build search folders list: projectSkinFolder, then skins/skinName, skins/default, skins/_fallback
 	std::vector<fs::path> searchFolders;
 
-	if (!projectFile.empty())
-		searchFolders.push_back(projectFile.parent_path() / (projectFile.stem().wstring() + L".skin"));
+	if (const auto psf = projectSkinFolder(); !psf.empty())
+		searchFolders.push_back(psf);
 
 	const fs::path skinsFolder(resourceFolders[GmpiResourceType::Image]);
 	searchFolders.push_back(skinsFolder / skinName);
@@ -364,10 +365,9 @@ std::string GmpiResourceManager::ShortenResourceUri(const std::string& fullPath)
 	if (isEditor())
 	{
 		// Check project-specific skin folder first (e.g., mysynth.skin/)
-		if (!projectFile.empty())
+		if (const auto psf = projectSkinFolder(); !psf.empty())
 		{
-			const auto projectSkinFolder = projectFile.parent_path() / (projectFile.stem().wstring() + L".skin");
-			if (fullPath.starts_with(projectSkinFolder.string()))
+			if (fullPath.starts_with(psf.string()))
 			{
 				// File is in project skin folder - return just the filename
 				return filename.string();
