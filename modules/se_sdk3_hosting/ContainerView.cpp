@@ -72,7 +72,7 @@ namespace SE2
 
 		const auto r = ViewBase::render(drawingContext);
 
-#ifdef _DEBUG
+#if 0 //def _DEBUG
 		{
 			constexpr float cx = viewDimensions * 0.5f;
 			constexpr float arm = 60.0f;
