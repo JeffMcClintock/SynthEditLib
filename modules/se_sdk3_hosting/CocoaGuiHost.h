@@ -575,20 +575,37 @@ namespace GmpiGuiHosting
 
 			NSSavePanel* dialog = buildPanel();
 
-			// Sheet-modal async: retain the typed callback via block capture.
-			auto prevent_release = fileCallback;
-			[dialog beginSheetModalForWindow:[view window] completionHandler:^(NSModalResponse result) {
-				if (result == NSModalResponseOK)
+			if (view)
+			{
+				// Sheet-modal async: retain the typed callback via block capture.
+				auto prevent_release = fileCallback;
+				[dialog beginSheetModalForWindow:[view window] completionHandler:^(NSModalResponse result) {
+					if (result == NSModalResponseOK)
+					{
+						const char* path = [[dialog URL] fileSystemRepresentation];
+						selectedFilename = path ? path : "";
+						prevent_release->onComplete(gmpi::ReturnCode::Ok, selectedFilename.c_str());
+					}
+					else
+					{
+						prevent_release->onComplete(gmpi::ReturnCode::Cancel, "");
+					}
+				}];
+			}
+			else
+			{
+				// No view: run synchronously as an app-level modal dialog.
+				if ([dialog runModal] == NSModalResponseOK)
 				{
 					const char* path = [[dialog URL] fileSystemRepresentation];
 					selectedFilename = path ? path : "";
-					prevent_release->onComplete(gmpi::ReturnCode::Ok, selectedFilename.c_str());
+					fileCallback->onComplete(gmpi::ReturnCode::Ok, selectedFilename.c_str());
 				}
 				else
 				{
-					prevent_release->onComplete(gmpi::ReturnCode::Cancel, "");
+					fileCallback->onComplete(gmpi::ReturnCode::Cancel, "");
 				}
-			}];
+			}
 
 			return gmpi::ReturnCode::Ok;
 		}
