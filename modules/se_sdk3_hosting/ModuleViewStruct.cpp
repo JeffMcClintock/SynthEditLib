@@ -1596,14 +1596,8 @@ namespace SE2
 
 	float ModuleViewStruct::hitTestFuzzy(int32_t flags, gmpi::drawing::Point point)
 	{
-		constexpr float fuzzyLimit = 12.f;
-		constexpr float solidHit = 0.f;
-		constexpr float totalMiss = 1000.f;
-
 		if (!isVisable())
-		{
 			return totalMiss;
-		}
 
 		const auto r = getLayoutRect();
 		auto r2 = r;
@@ -1612,24 +1606,18 @@ namespace SE2
 		r2.top -= 16.0f; // allow for title bar.
 
 		if(!pointInRect(point, r2)) // weed out clear misses fast.
-		{
 			return totalMiss;
-		}
 
 		// client area is always a hit, even when adorner active.
 		{
 			const gmpi::drawing::Point localPoint{ point.x - bounds_.left, point.y - bounds_.top };
 			if(pointInRect(localPoint, pluginGraphicsPos))
-			{
 				return solidHit;
-			}
 		}
 
 		// hits solidly within outline are good.
 		if(pointInRect(point, r))
-		{
 			return solidHit;
-		}
 
 		float best = totalMiss;
 		auto pin = getPinUnderMouse(point);

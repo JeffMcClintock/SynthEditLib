@@ -42,15 +42,13 @@ newestVoice_( 0 )
 	initializePin(3, pinGates, static_cast<MpGuiBaseMemberIndexedPtr2>(&Scope3Gui::onVoicesActiveChanged));
 	initializePin(4, pinPolyMode, static_cast<MpGuiBaseMemberPtr2>(&Scope3Gui::onPolyModeChanged));
 
-	for( int i = 0 ; i < MP_VOICE_COUNT ; ++i )
-	{
-		VoiceLastUpdated[i] = std::chrono::steady_clock::now();
-	}
+	const auto now = std::chrono::steady_clock::now();
+	std::fill(std::begin(VoiceLastUpdated), std::end(VoiceLastUpdated), now);
 }
 
 void Scope3Gui::onValueChanged( int voiceId )
 {
-	VoiceLastUpdated[voiceId] = std::chrono::steady_clock::now(); // timeGetTime();
+	VoiceLastUpdated[voiceId] = std::chrono::steady_clock::now();
 
 	invalidateRect();
 }

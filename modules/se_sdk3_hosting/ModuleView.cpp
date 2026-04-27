@@ -1696,6 +1696,63 @@ if(pluginGraphics)
 		return true;
 	}
 
+	float ModuleViewPanel::hitTestFuzzy(int32_t flags, gmpi::drawing::Point point)
+	{
+		if(!isVisable() || (!pluginInput_GMPI && !pluginGraphics2))
+			return totalMiss;
+
+		if(pointInRect(point, getLayoutRect()))
+		{
+			auto local = PointToPlugin(point);
+
+			// if client says it's a hit, it's a solid hit.
+			if(pluginInput_GMPI)
+			{
+				if(pluginInput_GMPI->hitTest(local, flags) == gmpi::ReturnCode::Ok)
+					return solidHit;
+			}
+			else if(pluginGraphics3)
+			{
+				if(pluginGraphics3->hitTest2(flags, *reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local)) == gmpi::MP_OK)
+					return solidHit;
+			}
+			else if(pluginGraphics2)
+			{
+				if(pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local)) == gmpi::MP_OK)
+					return solidHit;
+			}
+		}
+
+		// TODO!! use editEnabled to somehow ignore click on knob titles when no editing.
+		// e.g. List entry and knobs on PD303 have blank area at top that blocks anything above from being clicked.
+		// either add a flag, or a host-control ("is editor") to allow plugin to know if it's in edit mode.
+
+		if(!BundleInfo::instance()->isEditor)
+			return totalMiss;
+
+		const auto r = getLayoutRect();
+		auto r2 = r;
+
+		r2 = inflateRect(r2, fuzzyLimit);
+
+	//	r2.top -= 16.0f; // allow for title bar.
+
+		if(!pointInRect(point, r2)) // weed out clear misses fast.
+			return totalMiss;
+
+		// hits solidly within outline are good.
+		if(pointInRect(point, r))
+			return solidHit;
+
+		float best = totalMiss;
+
+		// return distance to outline
+		const auto distanceToOutline = max(max(r.left - point.x, point.x - r.right), max(r.top - point.y, point.y - r.bottom));
+		best = (std::min)(best, distanceToOutline);
+
+		return best;
+	}
+
 	bool ModuleViewPanel::isDraggable(bool editEnabled)
 	{
 		// default is that anything can be dragged in the editor.

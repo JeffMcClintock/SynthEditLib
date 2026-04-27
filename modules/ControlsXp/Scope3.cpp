@@ -275,7 +275,6 @@ void Scope3::onSetPins()  // one or more pins_ updated.  Check pin update flags 
 			SET_PROCESS(&Scope3::subProcessNothing);
 //			setSleep( true );
 		}
-
 	}
 
 	setSleep(false);

@@ -216,6 +216,9 @@ namespace SE2
 		
 		static const int SelectionFrameOffset = 1;
 		static const int ResizeHandleRadius = 3;
+		inline static const float fuzzyLimit = 12.f;
+		inline static const float solidHit = 0.f;
+		inline static const float totalMiss = 1000.f;
 
 		bool initialised_;
 		std::vector<int> inputPinIds;
@@ -509,10 +512,7 @@ namespace SE2
 		}
 		gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override;
 		bool hitTestR(int32_t flags, gmpi::drawing::Rect selectionRect) override;
-		float hitTestFuzzy(int32_t flags, gmpi::drawing::Point point) override
-		{
-			return hitTest(point, flags) == gmpi::ReturnCode::Ok ? 0.0f : 1000.0f;
-		}
+		float hitTestFuzzy(int32_t flags, gmpi::drawing::Point point) override;
 		gmpi::ReturnCode setHover(bool mouseIsOverMe) override;
 
 		bool isShown() override;
