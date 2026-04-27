@@ -6,7 +6,7 @@
 using namespace gmpi;
 using namespace GmpiDrawing;
 
-GMPI_REGISTER_GUI(MP_SUB_TYPE_GUI2, Keyboard2Gui, L"SE Keyboard2" );
+// GMPI_REGISTER_GUI(MP_SUB_TYPE_GUI2, Keyboard2Gui, L"SE Keyboard2" );
 
 Keyboard2Gui::Keyboard2Gui()
 {
@@ -36,9 +36,6 @@ void Keyboard2Gui::onValueChanged(int voice)
 
 int32_t KeyboardBase::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 {
-	return gmpi::MP_UNHANDLED; // playing notes via patch manager no longer supported.
-
-
 	// Let host handle right-clicks.
 	if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) == 0)
 	{
@@ -63,8 +60,6 @@ int32_t KeyboardBase::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT po
 
 int32_t KeyboardBase::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 {
-	return gmpi::MP_UNHANDLED; // playing notes via patch manager no longer supported.
-
 	if (!getCapture())
 		return gmpi::MP_OK;
 
@@ -92,8 +87,6 @@ int32_t KeyboardBase::onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT po
 
 int32_t KeyboardBase::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point)
 {
-	return gmpi::MP_UNHANDLED; // playing notes via patch manager no longer supported.
-
 	if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) == 0)
 	{
 		return gmpi::MP_UNHANDLED;

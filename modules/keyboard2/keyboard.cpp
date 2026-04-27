@@ -8,7 +8,7 @@
 // New. 0v = 0.001s, 10V = 10s
 #define VoltageToTime(v) ( powf( 10.0f,((v) * 0.4f ) - 3.0f ) )
 
-REGISTER_PLUGIN(Keyboard, L"SynthEdit Keyboard2");	// GDI Version.
+// REGISTER_PLUGIN(Keyboard, L"SynthEdit Keyboard2");	// GDI Version.
 REGISTER_PLUGIN(Keyboard, L"SE Keyboard2");			// GMPI-GUI Version
 
 Keyboard::Keyboard(IMpUnknown* host) : MpBase(host)

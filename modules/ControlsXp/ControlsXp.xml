@@ -177,13 +177,12 @@
       <Pin name="MIDI In" datatype="midi" />
       <Pin name="Channel" datatype="enum" default="-1" ignorePatchChange="true" metadata="All=-1,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16" />
     </Audio>
-    <GUI>
       <!--
-      <Pin name="Pitch" datatype="float" private="true" isPolyphonic="true" hostConnect="Voice/Pitch" />
-      -->
+    <GUI>
       <Pin id="2" name="Gate" datatype="float" private="true" isPolyphonic="true" hostConnect="Voice/Gate" />
       <Pin name="Velocity" datatype="float" private="true" isPolyphonic="true" hostConnect="Voice/VelocityKeyOn" />
     </GUI>
+      -->
   </Plugin>
   
   <Plugin id="SE Keyboard (MPE)" name="Keyboard (MPE)" category="Controls">
