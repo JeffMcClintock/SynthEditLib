@@ -1738,17 +1738,24 @@ namespace SE2
 		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
 		{
 			// Handle double-click on module. (only if didn't click on a child control)
-			auto now = std::chrono::steady_clock::now();
-			auto timeSincePreviousClick = now - lastClickedTime;
-			auto timeSincePreviousClick_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeSincePreviousClick).count();
-			lastClickedTime = now;
+			// On Mac the OS sets GG_POINTER_FLAG_DOUBLE via clickCount; on Windows fall back to timing.
+			bool isDoubleClick = (flags & gmpi_gui_api::GG_POINTER_FLAG_DOUBLE) != 0;
+			if (!isDoubleClick)
+			{
+				auto now = std::chrono::steady_clock::now();
+				auto timeSincePreviousClick = now - lastClickedTime;
+				auto timeSincePreviousClick_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeSincePreviousClick).count();
+				lastClickedTime = now;
 
-#if defined( _WIN32)
-			const int doubleClickThreshold_ms = GetDoubleClickTime();
+#if defined(_WIN32)
+				const int doubleClickThreshold_ms = GetDoubleClickTime();
 #else
-			const int doubleClickThreshold_ms = 500;
+				const int doubleClickThreshold_ms = 500;
 #endif
-			if (timeSincePreviousClick_ms < doubleClickThreshold_ms)
+				isDoubleClick = timeSincePreviousClick_ms < doubleClickThreshold_ms;
+			}
+
+			if (isDoubleClick)
 			{
 				auto res2 = (gmpi::ReturnCode) OnDoubleClicked(point, flags);
 
