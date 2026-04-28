@@ -1720,7 +1720,7 @@ namespace SE2
 	{
 		auto res = ModuleView::onPointerDown(point, flags);
 
-		if(gmpi::ReturnCode::Ok == res || gmpi::ReturnCode::Handled == res) // Client was hit (and cared).
+		if(gmpi::ReturnCode::Ok != res && gmpi::ReturnCode::Handled != res) // module ignoring mouse?
 			return res;
 
 		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
