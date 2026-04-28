@@ -25,7 +25,7 @@ public:
 	int32_t initialize() override;
 
 	void onValueChanged( int voiceId );
-	void onVoicesActiveChanged( int voiceId );
+//	void onVoicesActiveChanged( int voiceId );
 	void onPolyModeChanged();
 	void DrawTrace(GmpiDrawing::Factory& factory, GmpiDrawing::Graphics& g, float* capturedata, GmpiDrawing::Brush& pen, float mid_y, float scale, int width);
 
@@ -34,7 +34,7 @@ public:
 
 	BlobArrayGuiPin pinSamplesA;
 	BlobArrayGuiPin pinSamplesB;
-	FloatArrayGuiPin pinGates;
+	FloatArrayGuiPin pinGates_deprecated;
 	BoolGuiPin pinPolyMode;
 
 private:
@@ -42,4 +42,5 @@ private:
 	FontMetadata* typeface_ = {};
 	int newestVoice_;
 	std::chrono::steady_clock::time_point VoiceLastUpdated[MP_VOICE_COUNT];
+	float VoiceStatus[MP_VOICE_COUNT] = {};
 };

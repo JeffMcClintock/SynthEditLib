@@ -39,7 +39,7 @@ newestVoice_( 0 )
 {
 	initializePin(0, pinSamplesA, static_cast<MpGuiBaseMemberIndexedPtr2>(&Scope3Gui::onValueChanged));
 	initializePin(1, pinSamplesB, static_cast<MpGuiBaseMemberIndexedPtr2>(&Scope3Gui::onValueChanged));
-	initializePin(3, pinGates, static_cast<MpGuiBaseMemberIndexedPtr2>(&Scope3Gui::onVoicesActiveChanged));
+	initializePin(3, pinGates_deprecated);// , static_cast<MpGuiBaseMemberIndexedPtr2>(&Scope3Gui::onVoicesActiveChanged));
 	initializePin(4, pinPolyMode, static_cast<MpGuiBaseMemberPtr2>(&Scope3Gui::onPolyModeChanged));
 
 	const auto now = std::chrono::steady_clock::now();
@@ -50,16 +50,30 @@ void Scope3Gui::onValueChanged( int voiceId )
 {
 	VoiceLastUpdated[voiceId] = std::chrono::steady_clock::now();
 
+	const auto beforeStatus = VoiceStatus[voiceId];
+	if(pinSamplesA.rawSize(voiceId) == sizeof(float) * SCOPE_BUFFER_SIZE)
+	{
+		float* capturedata = (float*)pinSamplesA.rawData(voiceId);
+		VoiceStatus[voiceId] = capturedata[SCOPE_BUFFER_SIZE - 1]; // last entry is voice-active
+	}
+	else
+	{
+		VoiceStatus[voiceId] = 0;
+	}
+
+	if(beforeStatus != VoiceStatus[voiceId] && VoiceStatus[voiceId] > 0.0f)
+		newestVoice_ = voiceId;
+
 	invalidateRect();
 }
 
-void Scope3Gui::onVoicesActiveChanged( int voiceId )
-{
-	if( pinPolyMode == true && pinGates.getValue( voiceId ) )
-	{
-		newestVoice_ = voiceId;
-	}
-}
+//void Scope3Gui::onVoicesActiveChanged( int voiceId )
+//{
+//	if( pinPolyMode == true && pinGates.getValue( voiceId ) )
+//	{
+//		newestVoice_ = voiceId;
+//	}
+//}
 
 void Scope3Gui::onPolyModeChanged()
 {
@@ -418,7 +432,7 @@ int32_t Scope3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 		// 'B' trace.
 		for(int voice = 0 ; voice < 128 ; ++voice )
 		{
-			if( pinGates.getValue(voice) > 0.0f || VoiceLastUpdated[voice] > showUpdatesAfter )
+			if( /*pinGates.getValue(voice) > 0.0f ||*/ VoiceLastUpdated[voice] > showUpdatesAfter )
 			{
 				voicesStillActive = true;
 
@@ -444,7 +458,7 @@ int32_t Scope3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 
 		for(int voice = 0 ; voice < 128 ; ++voice )
 		{
-			if( pinGates.getValue(voice) > 0.0f || VoiceLastUpdated[voice] > showUpdatesAfter )
+			if(/* pinGates.getValue(voice) > 0.0f ||*/ VoiceLastUpdated[voice] > showUpdatesAfter )
 			{
 				voicesStillActive = true;
 
@@ -466,7 +480,7 @@ int32_t Scope3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 
 	// main trace drawn bright.
 	// Note: Only works when MIDI connected to Patch-Automator. Else Gate host controls not active.
-	if( ( newestVoice_ >= 0 && (pinGates.getValue(newestVoice_) || VoiceLastUpdated[newestVoice_] > showUpdatesAfter )) || pinPolyMode == false )
+	if( ( newestVoice_ >= 0 && /* (pinGates.getValue(newestVoice_) ||*/ VoiceLastUpdated[newestVoice_] > showUpdatesAfter) || pinPolyMode == false )
 	{
 		if( pinSamplesB.rawSize(newestVoice_) == sizeof(float) * SCOPE_BUFFER_SIZE )
 		{

@@ -180,10 +180,11 @@ void Scope3::sendResultToGui(int block_offset)
 			}
 		}
 		*/
-		const int datasize = SCOPE_BUFFER_SIZE * sizeof(resultsA_[0]);
+		constexpr int datasize = SCOPE_BUFFER_SIZE * sizeof(resultsA_[0]);
 
 		if (channelsleepCount_[0] > 0)
 		{
+			resultsA_[captureSamples - 1] = pinVoiceActive.getValue(); // last entry is voice-active
 			pinSamplesA.setValueRaw( datasize, &resultsA_ );
 			pinSamplesA.sendPinUpdate( block_offset );
 		}
