@@ -1700,7 +1700,7 @@ if(pluginGraphics)
 
 	float ModuleViewPanel::hitTestFuzzy(int32_t flags, gmpi::drawing::Point point)
 	{
-		if(!isVisable() || (!pluginInput_GMPI && !pluginGraphics2))
+		if(!isVisable() || ignoreMouse || (!pluginInput_GMPI && !pluginGraphics2))
 			return totalMiss;
 
 		if(pointInRect(point, getLayoutRect()))
