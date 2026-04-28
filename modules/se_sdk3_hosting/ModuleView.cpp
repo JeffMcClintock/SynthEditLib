@@ -1556,6 +1556,8 @@ if(pluginGraphics)
 			return gmpi::ReturnCode::Unhandled;
 
 		auto local = PointToPlugin(point);
+		if(!pointInRect(local, pluginGraphicsPos))
+			return gmpi::ReturnCode::Unhandled;
 
 		if (pluginInput_GMPI)
 			return pluginInput_GMPI->hitTest(*(gmpi::drawing::Point*) &local, flags);
@@ -1742,17 +1744,13 @@ if(pluginGraphics)
 		if(!pointInRect(point, r2)) // weed out clear misses fast.
 			return totalMiss;
 
-		// hits solidly within outline are good.
+		// hits solidly within outline are good, but are secondary to solid hits on overlapping sub-views.
 		if(pointInRect(point, r))
-			return solidHit;
-
-		float best = totalMiss;
+			return weakHit;
 
 		// return distance to outline
 		const auto distanceToOutline = max(max(r.left - point.x, point.x - r.right), max(r.top - point.y, point.y - r.bottom));
-		best = (std::min)(best, distanceToOutline);
-
-		return best;
+		return weakHit + distanceToOutline;
 	}
 
 	bool ModuleViewPanel::isDraggable(bool editEnabled)

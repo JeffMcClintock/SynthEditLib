@@ -218,6 +218,7 @@ namespace SE2
 		static const int ResizeHandleRadius = 3;
 		inline static const float fuzzyLimit = 12.f;
 		inline static const float solidHit = 0.f;
+		inline static const float weakHit = 6.f;
 		inline static const float totalMiss = 1000.f;
 
 		bool initialised_;

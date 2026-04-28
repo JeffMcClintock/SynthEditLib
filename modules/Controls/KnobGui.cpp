@@ -170,6 +170,21 @@ public:
 		return PluginEditor::queryInterface(iid, returnInterface);
 	}
 
+	ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
+	{
+		const auto width  = (std::max)(1.f, getWidth(bounds));
+		const auto height = (std::max)(1.f, getHeight(bounds));
+		const Size size{ width, height };
+		const auto radius = 0.5f * (std::min)(size.width, size.height);
+		const auto radiusSquared = radius * radius;
+		const auto centerPoint = Point{ size.width * 0.5f, size.height * 0.5f };
+		const auto dx = point.x - centerPoint.x;
+		const auto dy = point.y - centerPoint.y;
+		bool inCircle = (dx * dx + dy * dy) <= radiusSquared;
+
+		return inCircle ? ReturnCode::Ok : ReturnCode::Unhandled;
+	}
+
 	ReturnCode onPointerDown(Point point, int32_t flags) override
 	{
 		if((flags & static_cast<int32_t>(gmpi::api::GG_POINTER_FLAG_FIRSTBUTTON)) == 0)
@@ -209,7 +224,6 @@ public:
 		pinMouseDown = false;
 		return ReturnCode::Ok;
 	}
-
 };
 
 namespace
