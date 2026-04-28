@@ -1080,8 +1080,10 @@ if(pluginGraphics)
 				return gmpi::ReturnCode::Handled;
 		}
 
+		const bool outlineHit = BundleInfo::instance()->isEditor;
+
 		// don't handle right-clicks, otherwise context menu is not shown.
-		return clientHit && ((flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) == 0) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
+		return (outlineHit || clientHit) && ((flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) == 0) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
 	}
 
 	gmpi::ReturnCode ModuleView::onPointerMove(gmpi::drawing::Point point, int32_t flags)
