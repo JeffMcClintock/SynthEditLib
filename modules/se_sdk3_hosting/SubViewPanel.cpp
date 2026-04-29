@@ -166,16 +166,11 @@ gmpi::ReturnCode SubView::initialize()
 {
 	onValueChanged(); // nesc in case initial value is 0.
 
-	// Presenter returns (-99999, -99999) when no view-center has been persisted yet.
-	// In that case leave panInitialized_ false so measure() computes a default pan.
-	const auto panelOffset = Presenter()->GetViewCenter();
-	if (panelOffset.x != -99999.f)
-	{
-		auto module = parent;
-		setPan(panelOffset.x - module->bounds_.left,
-		       panelOffset.y - module->bounds_.top);
-	}
-
+	// Pan is computed by measure() from the children's bbox, not restored
+	// here — for a SubView the children's own layoutRects ARE the persisted
+	// state (each module has its own panel-position in JSON), so there's
+	// nothing extra to restore. Setting pan here based on a stored ViewCenter
+	// raced with the children-loading cycle and committed bad pans.
 	return SE2::ViewBase::initialize();
 }
 
@@ -294,45 +289,39 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 	returnDesiredSize->width = (std::max)(0.0f, getWidth(viewBounds));
 	returnDesiredSize->height = (std::max)(0.0f, getHeight(viewBounds));
 
-	// On first open, need to calc offset relative to view.
-	// ref control_group_auto_size::RecalcBounds()
-	if (!panInitialized_)
+	// Re-align pan to the current children's bbox so the children's top-left
+	// maps to the SubView's plugin-local origin. Recomputing on every
+	// measure (rather than only the first) handles layout cascades — e.g.
+	// after paste a SubView is rebuilt and may receive several measures with
+	// placeholder children before real bounds_ load; pan auto-corrects on
+	// each call. We deliberately do NOT shift the parent module here: doing
+	// that during innocuous cascades yanked the parent to a wrong position.
+	// User-driven moves go through OnChildMoved() which keeps pan + parent
+	// in sync atomically.
+	//
+	// Skip when viewBounds is at origin (placeholder pattern from children
+	// whose bounds_ haven't been loaded yet); a later real-data measure or
+	// the render-time fallback will set pan correctly.
+	const bool placeholderViewBounds =
+		viewBounds.left == 0.0f && viewBounds.top == 0.0f;
+	if (!placeholderViewBounds)
 	{
-		// Align the children's bounding-box top-left with plugin-local origin so
-		// the Container's own layoutRect naturally encloses its contents (matches
-		// OnChildMoved). The outer ViewBase::arrange then centers the Container
-		// on the canvas via its isNull-layoutRect logic, and the second-pass
-		// parentAdjust compensation below computes zero — so a freshly-
-		// containerized object ends up roughly where it was before.
 		const float newPanX = -viewBounds.left;
 		const float newPanY = -viewBounds.top;
+		const bool firstRealSet = !panInitialized_;
 
 		setPan(newPanX, newPanY);
 
-		// avoid 'show on module' structure view messing up panel view's offset.
-		if (parentViewType == CF_PANEL_VIEW)
+		// On the first measure with real data, persist the pan offset so
+		// future sessions can restore it without going through a layout
+		// cascade. (Save/load uses module.bounds_.topLeft + pan.)
+		if (firstRealSet && parentViewType == CF_PANEL_VIEW)
 		{
 			auto module = parent;
 			Presenter()->SetViewCenter({
 				newPanX + module->bounds_.left,
 				newPanY + module->bounds_.top
 			});
-		}
-	}
-	else
-	{
-		// if top-left coords have changed last opened.
-		// then shift sub-panel to compensate (panel view only).
-		int32_t parentAdjustX(static_cast<int32_t>(panX() + viewBounds.left));
-		int32_t parentAdjustY(static_cast<int32_t>(panY() + viewBounds.top));
-
-		if (parentAdjustX != 0 || parentAdjustY != 0)
-		{
-			setPan(panX() - parentAdjustX, panY() - parentAdjustY);
-
-			// Adjust module top-left.
-			if (parent->parent->getViewType() == CF_PANEL_VIEW)
-				parent->Presenter()->ResizeModule(parent->handle, 0, 0, gmpi::drawing::Size((float)parentAdjustX, (float)parentAdjustY));
 		}
 	}
 	return gmpi::ReturnCode::Ok;
@@ -383,6 +372,34 @@ gmpi::ReturnCode SubView::render(gmpi::drawing::api::IDeviceContext* drawingCont
 	if (isShown())
 	{
 		gmpi::drawing::Graphics g(drawingContext);
+
+		// Belt-and-braces: re-derive pan from current children's bbox just
+		// before drawing. Measure may have run with placeholder data (e.g.
+		// during a post-paste rebuild where child bounds_ load asynchronously
+		// across measure cycles); by render time the children's bounds_ may
+		// have settled into real values that an earlier measure didn't see.
+		// This guarantees the render transform matches the layout state.
+		gmpi::drawing::Rect freshBounds(200000.0f, 200000.0f, -200000.0f, -200000.0f);
+		for (auto& m : children)
+		{
+			if (m->isVisable() && dynamic_cast<SE2::ConnectorViewBase*>(m.get()) == nullptr)
+			{
+				const auto r = m->getLayoutRect();
+				freshBounds.left   = (std::min)(freshBounds.left,   r.left);
+				freshBounds.top    = (std::min)(freshBounds.top,    r.top);
+				freshBounds.right  = (std::max)(freshBounds.right,  r.right);
+				freshBounds.bottom = (std::max)(freshBounds.bottom, r.bottom);
+			}
+		}
+		const bool freshIsReal =
+			freshBounds.right > -200000.0f
+			&& (freshBounds.left != 0.0f || freshBounds.top != 0.0f);
+		if (freshIsReal
+			&& (viewTransform._31 != -freshBounds.left
+			 || viewTransform._32 != -freshBounds.top))
+		{
+			setPan(-freshBounds.left, -freshBounds.top);
+		}
 
 		// Apply SubView's pan (child-local -> Container plugin-local) on top of the
 		// caller's transform so children render in the right place.
