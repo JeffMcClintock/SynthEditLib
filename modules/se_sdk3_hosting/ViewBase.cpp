@@ -1993,7 +1993,6 @@ namespace SE2
 			if (m->isVisable() && dynamic_cast<ConnectorViewBase*>(m.get()) == nullptr)
 			{
 				auto layoutRect = m->getLayoutRect();
-				const auto originalLayoutRect = layoutRect;
 				gmpi::drawing::Size savedSize(getWidth(layoutRect), getHeight(layoutRect));
 				gmpi::drawing::Size desired;
 				gmpi::drawing::Size actualSize;
@@ -2084,25 +2083,14 @@ namespace SE2
 				{
 					if (centeredFromIsNull)
 					{
-						// Persist both the new position AND the new size. ResizeModule
-						// encodes a delta anchored to one corner, so two calls are needed.
-						// Move bottom-right first so the intermediate rect isn't inverted:
-						//   (L0,T0,R0,B0) --(2,2, R-R0,B-B0)--> (L0,T0,R,B)
-						//                 --(0,0, L-L0,T-T0)--> (L,T,R,B)
-						// Note: relies on the persisted patch rect equalling
-						// originalLayoutRect (typically (0,0,0,0)). If they
-						// diverge — e.g. AddModule seeds a phantom position
-						// on the inactive view — the math will land off.
-						// CContainer::OnNewUG was fixed to leave the inactive
-						// view's rect null for that reason.
-						Presenter()->ResizeModule(m->getModuleHandle(), 2, 2,
-							gmpi::drawing::Size(
-								layoutRect.right  - originalLayoutRect.right,
-								layoutRect.bottom - originalLayoutRect.bottom));
-						Presenter()->ResizeModule(m->getModuleHandle(), 0, 0,
-							gmpi::drawing::Size(
-								layoutRect.left - originalLayoutRect.left,
-								layoutRect.top  - originalLayoutRect.top));
+						// Persist the absolute target rect. SetModuleRect calls
+						// setViewObRect directly, bypassing ResizeModule's
+						// drag-node-relative delta semantics — those compounded
+						// badly when the persisted rect had drifted from
+						// bounds_/JSON across view re-opens.
+						Presenter()->SetModuleRect(m->getModuleHandle(),
+							gmpi::drawing::Rect(layoutRect.left, layoutRect.top,
+								layoutRect.right, layoutRect.bottom));
 					}
 					else
 					{

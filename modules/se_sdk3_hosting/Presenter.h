@@ -65,6 +65,12 @@ enum class CableType;
 		virtual void DragNode(int32_t fromModule, int32_t nodeIdx, gmpi::drawing::Point point) = 0;
 		virtual void InsertNode(int32_t fromLine, int32_t nodeInsertIdx, gmpi::drawing::Point point) = 0;
 		virtual void ResizeModule(int handle, int dragNodeX, int dragNodeY, gmpi::drawing::Size) = 0;
+		// Set the module's persisted view-rect absolutely, bypassing
+		// ResizeModule's drag-node-relative delta semantics. Used by isNull
+		// centering in ViewBase::arrange to set both position and size in
+		// one shot — the delta math compounds badly when the persisted rect
+		// has drifted from bounds_/JSON (e.g. across view re-opens).
+		virtual void SetModuleRect(int handle, gmpi::drawing::Rect rect) {}
 		virtual int32_t OnCommand(PresenterCommand c, int32_t moduleHandle = -1) = 0;
 		virtual void OnFrameGotFocus() = 0;
 		virtual IGuiHost2* GetPatchManager() = 0;
