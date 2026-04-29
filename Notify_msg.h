@@ -64,6 +64,7 @@
 #define OM_UPDATE_MRU_FILES				72
 #define OM_SHOW_MIDI_AUTOMATION_DIALOG  73
 #define OM_VIEW_PANORZOOM_CHANGED      74
+#define OM_INSERT_MODULE_AT_VIEW_CENTER 75 // pHint = module id (const char*); insert at active view's centre
 
 #define OM_USER_1						2000 // thru 3000. UG CAN USE THIS FOR ANYTHING IT WANTS
 
