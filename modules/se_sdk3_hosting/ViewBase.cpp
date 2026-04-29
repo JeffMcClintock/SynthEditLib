@@ -1578,17 +1578,22 @@ namespace SE2
 
 		assert(!isIteratingChildren);
 
+		// Call preDelete on the module before erasing it (adorner's preDelete is a no-op).
 		auto it = std::find_if(children.begin(), children.end(), [handle](const std::unique_ptr<IViewChild>& child) {
 			return child->getModuleHandle() == handle;
 		});
 
 		if (it != children.end())
-		{
-			auto& mod = *it;
-			mod->preDelete();
+			(*it)->preDelete();
 
-			children.erase(it);
-		}
+		// Erase the module AND any ResizeAdorner that shares the same handle, so the adorner
+		// doesn't outlive the ModuleView* it holds (e.g. after containerize removes the module).
+		children.erase(
+			std::remove_if(children.begin(), children.end(), [handle](const std::unique_ptr<IViewChild>& child) {
+				return child->getModuleHandle() == handle;
+			}),
+			children.end()
+		);
 	}
 
 	void ViewBase::OnChangedChildHighlight(int phandle, int flags)
