@@ -59,7 +59,7 @@
       <Pin name="Animation Position" datatype="float" direction="out" />
     </GUI>
   </Plugin>
-  <Plugin id="SE Bools To Int2" name="Bools To Int" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE Bools To Int2" name="Bools To Int" category="Sub-Controls/Old" helpUrl="Sub-control-converters.htm">
     <GUI>
       <Pin name="Int Val" datatype="int" direction="out" />
       <Pin name="Bool Val" datatype="bool" autoDuplicate="true" />
@@ -77,7 +77,7 @@
       <Pin name="In" datatype="float" autoDuplicate="true" />
     </GUI>
   </Plugin>
-  <Plugin id="SE IntToBool GUI" name="Int to Bool" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE IntToBool GUI" name="Int to Bool" category="Sub-Controls/Old" helpUrl="Sub-control-converters.htm">
     <GUI>
       <Pin id="0" name="Int Val" direction="in" datatype="int"/>
       <Pin id="1" name="Bool Val" direction="out" datatype="bool"/>
@@ -160,7 +160,7 @@
     </GUI>
   </Plugin>
 
-  <Plugin id="SE Int to Bools" name="Int to Bools" category="Sub-Controls/Conversion" graphicsApi="none" helpUrl="synthedit.chm::/mdl_sdk3/IntToBools.htm">
+  <Plugin id="SE Int to Bools" name="Int to Bools" category="Sub-Controls/Old" graphicsApi="none" helpUrl="synthedit.chm::/mdl_sdk3/IntToBools.htm">
     <GUI>
       <Pin id="0" name="Value" direction="in" datatype="int"/>
       <Pin id="1" name="Spare" direction="out" datatype="bool" autoDuplicate="true" autoRename="true"/>
