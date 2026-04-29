@@ -2015,9 +2015,24 @@ namespace SE2
 					// when Containerizing object on the struct view, the panel view will default to top-left, center it on canvas instead.
 					if(isNull(layoutRect))
 					{
-						layoutRect.left = canvasMidpoint - actualSize.width / 2;
-						layoutRect.top = canvasMidpoint - actualSize.height / 2;
-						centeredFromIsNull = true;
+						// bounds_ (loaded from a JSON snapshot) may be stale
+						// relative to the data model — e.g. the user has
+						// already moved this module on the panel and the
+						// snapshot was taken before. Check the persisted rect
+						// first; only center if it's also null.
+						const auto persistedRect = Presenter()->GetModuleRect(m->getModuleHandle());
+						if (isNull(persistedRect))
+						{
+							layoutRect.left = canvasMidpoint - actualSize.width / 2;
+							layoutRect.top = canvasMidpoint - actualSize.height / 2;
+							centeredFromIsNull = true;
+						}
+						else
+						{
+							layoutRect = persistedRect;
+							actualSize.width  = layoutRect.right  - layoutRect.left;
+							actualSize.height = layoutRect.bottom - layoutRect.top;
+						}
 					}
 
 					layoutRect.right = layoutRect.left + actualSize.width;

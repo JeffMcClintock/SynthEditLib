@@ -71,6 +71,10 @@ enum class CableType;
 		// one shot — the delta math compounds badly when the persisted rect
 		// has drifted from bounds_/JSON (e.g. across view re-opens).
 		virtual void SetModuleRect(int handle, gmpi::drawing::Rect rect) {}
+		// Read the module's persisted view-rect. Used by isNull centering to
+		// detect when the data model says the user has already positioned the
+		// module — the JSON snapshot used to seed bounds_ may be stale.
+		virtual gmpi::drawing::Rect GetModuleRect(int handle) { return {}; }
 		virtual int32_t OnCommand(PresenterCommand c, int32_t moduleHandle = -1) = 0;
 		virtual void OnFrameGotFocus() = 0;
 		virtual IGuiHost2* GetPatchManager() = 0;
