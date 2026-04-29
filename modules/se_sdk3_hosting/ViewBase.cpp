@@ -2089,6 +2089,12 @@ namespace SE2
 						// Move bottom-right first so the intermediate rect isn't inverted:
 						//   (L0,T0,R0,B0) --(2,2, R-R0,B-B0)--> (L0,T0,R,B)
 						//                 --(0,0, L-L0,T-T0)--> (L,T,R,B)
+						// Note: relies on the persisted patch rect equalling
+						// originalLayoutRect (typically (0,0,0,0)). If they
+						// diverge — e.g. AddModule seeds a phantom position
+						// on the inactive view — the math will land off.
+						// CContainer::OnNewUG was fixed to leave the inactive
+						// view's rect null for that reason.
 						Presenter()->ResizeModule(m->getModuleHandle(), 2, 2,
 							gmpi::drawing::Size(
 								layoutRect.right  - originalLayoutRect.right,
