@@ -15,7 +15,7 @@ gmpi_plugin(
 	  LEDGui.cpp
 	  BumpGui.cpp
 	  PanelGroupGui.cpp
-      PlainImageGui.cpp
+          PlainImageGui.cpp
 	  ${GMPI_UI_SDK}/helpers/ImageCache.cpp
 	  ${GMPI_UI_SDK}/helpers/ImageMetadata.cpp
 	  VUMeterGui.cpp
@@ -23,4 +23,5 @@ gmpi_plugin(
 	  PostItGui.cpp
 	  TextEntryGui.cpp
 	  TextEntry.cpp
+          LabelGui.cpp
 )
