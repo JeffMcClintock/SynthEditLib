@@ -700,7 +700,10 @@ void DrawingFrameBase2::renderFrame(ID2D1DeviceContext* deviceContext, std::span
         graphics.popAxisAlignedClip();
     }
 
-    graphics.endDraw();
+    if (graphics.endDraw() != gmpi::ReturnCode::Ok)
+    {
+        ReleaseDevice();
+    }
 }
 
 void DrawingFrameBase2::sizeClientDips(float width, float height)
