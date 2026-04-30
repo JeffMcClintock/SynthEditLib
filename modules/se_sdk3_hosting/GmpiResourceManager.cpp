@@ -44,8 +44,10 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 	{
 		if (resourceNameL == L"__fontMetrics" || resourceNameL == L"global") // special magic psudo file.
 		{
-			returnUri = combine_path_and_file(JmUnicodeConversions::Utf8ToWstring(skinName), JmUnicodeConversions::Utf8ToWstring(resourceName)) + L".txt";
-			goto storeFullUri;
+			//returnUri = combine_path_and_file(JmUnicodeConversions::Utf8ToWstring(skinName), JmUnicodeConversions::Utf8ToWstring(resourceName)) + L".txt";
+			//goto storeFullUri;
+			searchExtensions.push_back(L".txt");
+			searchWithSkin = true;
 		}
 	}
 	else
