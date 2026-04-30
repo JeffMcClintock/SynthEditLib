@@ -2029,9 +2029,15 @@ namespace SE2
 						}
 						else
 						{
+							// Persisted rect is already correct — no need to
+							// resize via ResizeModule. Sync savedSize to
+							// actualSize so the post-arrange delta is zero,
+							// otherwise ResizeModule(2,2, actualSize - 0)
+							// would grow the persisted rect.
 							layoutRect = persistedRect;
 							actualSize.width  = layoutRect.right  - layoutRect.left;
 							actualSize.height = layoutRect.bottom - layoutRect.top;
+							savedSize = actualSize;
 						}
 					}
 

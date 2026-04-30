@@ -260,7 +260,29 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 			_RPT4(_CRT_WARN, "arrange r[ %f %f %f %f]\n", m->getBounds().left, m->getBounds().top, m->getBounds().left + actualSize.width, m->getBounds().top + actualSize.height);
 			}
 			*/
-			gmpi::drawing::Rect moduleRect(m->getLayoutRect().left, m->getLayoutRect().top, m->getLayoutRect().left + actualSize.width, m->getLayoutRect().top + actualSize.height);
+			// SubView's children have their bounds_ loaded from a JSON
+			// snapshot that may not include panel rects (only emitted when
+			// isImbeddedView is set during export). When bounds_ is null
+			// but the data model has a real persisted rect, use the
+			// persisted rect for viewBounds — otherwise our bbox would be
+			// stuck at the origin and the SubView would report a too-small
+			// desired size, leaving the parent module's bounds clipped.
+			auto effectiveLayout = m->getLayoutRect();
+			if (effectiveLayout.left == 0.0f && effectiveLayout.top == 0.0f &&
+				effectiveLayout.right == 0.0f && effectiveLayout.bottom == 0.0f)
+			{
+				const auto persistedRect = Presenter()->GetModuleRect(m->getModuleHandle());
+				if (persistedRect.right != 0.0f || persistedRect.bottom != 0.0f
+					|| persistedRect.left != 0.0f || persistedRect.top != 0.0f)
+				{
+					effectiveLayout = persistedRect;
+					actualSize.width  = effectiveLayout.right  - effectiveLayout.left;
+					actualSize.height = effectiveLayout.bottom - effectiveLayout.top;
+				}
+			}
+
+			gmpi::drawing::Rect moduleRect(effectiveLayout.left, effectiveLayout.top,
+				effectiveLayout.left + actualSize.width, effectiveLayout.top + actualSize.height);
 
 			// Typically only when new object inserted.
 			viewBounds.left = (std::min)(viewBounds.left, moduleRect.left);
