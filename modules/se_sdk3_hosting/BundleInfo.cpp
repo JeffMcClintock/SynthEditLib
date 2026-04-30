@@ -567,6 +567,7 @@ void BundleInfo::initPluginInfo()
             filename == L"SynthEdit" || // mac app
             filename.find(L"SynthEditCL") != std::string::npos ||
             filename.find(L"SynthEdit.") != std::string::npos ||
+            filename.find(L"_tests") != std::string::npos ||
             filename.find(L"TIDE") == 0;
     }
 
@@ -592,6 +593,7 @@ void BundleInfo::initPluginInfo()
         path.find(L"SynthEditMac.app") != std::string::npos ||
         path.find(L"SynthEditCL") != std::string::npos ||
         path.find(L"SynthEdit.") != std::string::npos ||
+        path.find(L"_tests") != std::string::npos ||
         path.find(L"TIDE") == 0;
 
     pluginIsBundle = path.find(L".vst3/Contents") != std::string::npos || path.find(L".vst3\\Contents") != std::string::npos;

@@ -134,6 +134,7 @@ namespace SE2
 				g.fillRectangle(editingBounds, backgroundBrush);
 			}
 
+			// draw grid
 			renderGrid(g, colorFromHex(backGroundColor + 0x040404u));
 		}
 
