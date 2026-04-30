@@ -46,8 +46,10 @@ public:
 	{
 		return 1;
 	}
-	void AddModule(const wchar_t* uniqueid, gmpi::drawing::Point point) override
-	{}
+	int AddModule(const wchar_t* uniqueid, gmpi::drawing::Point point) override
+	{
+		return -1;
+	}
 	bool AddConnector(int32_t fromModule, int fromPin, int32_t toModule, int toPin, bool placeAtBack) override
 	{
 		return false;

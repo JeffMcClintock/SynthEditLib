@@ -54,7 +54,10 @@ enum class CableType;
 		virtual void populateContextMenu(gmpi::api::IContextItemSink* menu, gmpi::drawing::Point p, int32_t moduleHandle, int32_t nodeIndex = -1) = 0;
 //		virtual int32_t onContextMenu(int32_t idx) = 0;
 
-		virtual void AddModule(const wchar_t* uniqueid, gmpi::drawing::Point point) = 0;
+		// Returns the unique handle of the inserted module, or -1 if none was
+		// created (e.g. prefab paths that spawn multiple modules, or stub
+		// presenters that don't actually mutate the document).
+		virtual int AddModule(const wchar_t* uniqueid, gmpi::drawing::Point point) = 0;
 		virtual bool CanConnect(CableType cabletype, int32_t fromModule, int fromPin, int32_t toModule, int toPin) = 0;
 		virtual bool AddConnector(int32_t fromModule, int fromPin, int32_t toModule, int toPin, bool placeAtBack) = 0;
 		virtual void HighlightConnector(int32_t moduleHandle, int pin, int highlightType) = 0;
