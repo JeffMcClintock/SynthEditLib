@@ -2057,12 +2057,15 @@ namespace SE2
 						_RPT2(_CRT_WARN, "desired s[ %f %f]\n", desired.width, desired.height);
 					}
 */
-// Font variations cause Slider to report different desired size.
-// However resizing it causes alignment errors on Panel. It shifts left or right.
-// Avoid resizing unless module clearly needs a different size. Structure view always sizes to fit (else plugs end up with wrapped text)
-// Only during this during initial arrange, later when user drags object, use normal sizing logic.
+// Font variations and dynamic effects (e.g. shadow inflation) make
+// measure() report a slightly different desired size from one call to
+// the next. Honoring those tiny differences would (a) cause Slider to
+// shift left/right between opens, and (b) cause Button-style modules
+// with shadow padding to grow by a pixel each open as ceilf rounds the
+// measurement upward. Only resize when the difference exceeds a
+// tolerance — preserving the user's saved size across re-opens.
 					float tolerence = getViewType() == CF_PANEL_VIEW ? 3.0f : 0.0f;
-					if (isArranged || (fabsf(desired.width - savedSize.width) > tolerence || fabsf(desired.height - savedSize.height) > tolerence))
+					if (fabsf(desired.width - savedSize.width) > tolerence || fabsf(desired.height - savedSize.height) > tolerence)
 					{
 						actualSize = desired;
 						// stick with integer sizes for compatibility.
@@ -2072,7 +2075,7 @@ namespace SE2
 					}
 					else
 					{
-						// Used save size from project, even if it varies a little.
+						// Use saved size from project, even if it varies a little.
 						actualSize = savedSize;
 					}
 				}
