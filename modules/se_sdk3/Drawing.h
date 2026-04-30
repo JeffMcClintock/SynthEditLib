@@ -2417,7 +2417,7 @@ namespace GmpiDrawing
 		inline SolidColorBrush CreateSolidColorBrush(Color color /*, BrushProperties& brushProperties*/)
 		{
 			SolidColorBrush temp;
-			Get()->CreateSolidColorBrush(&color, /*&brushProperties, */ temp.GetAddressOf() );
+			Get()->CreateSolidColorBrush(&color, temp.GetAddressOf());
 			return temp;
 		}
 
