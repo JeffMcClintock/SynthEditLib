@@ -56,14 +56,20 @@ protected:
 		mutable gmpi::shared_ptr<gmpi::drawing::api::IBrush> native_;
 		GmpiDrawing_API::IMpFactory* factory_{};
 	public:
-		g3_BrushBase(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBrush* native) : native_(native) {}
+		g3_BrushBase(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBrush* native) { native_ = native; }
 		auto native() const {return native_.get();}
 	};
 
 	inline static gmpi::drawing::api::IBrush* toGMPI(const GmpiDrawing_API::IMpBrush* brush)
 	{
-		if(brush)
-			return dynamic_cast<const g3_BrushBase*>(brush)->native();
+		if (!brush)
+			return {};
+		// g3_SolidColorBrush / g3_LinearGradientBrush / g3_RadialGradientBrush all
+		// derive from g3_BrushBase. g3_BitmapBrush does not — handle it explicitly.
+		if (auto bb = dynamic_cast<const g3_BrushBase*>(brush))
+			return bb->native();
+		if (auto bb = dynamic_cast<const g3_BitmapBrush*>(brush))
+			return bb->native();
 		return {};
 	}
 
@@ -98,7 +104,7 @@ protected:
 		mutable gmpi::shared_ptr<gmpi::drawing::api::IGradientstopCollection> native_;
 		GmpiDrawing_API::IMpFactory* factory_{};
 	public:
-		g3_GradientStopCollection(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IGradientstopCollection* native) : native_(native), factory_(factory) {}
+		g3_GradientStopCollection(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IGradientstopCollection* native) : factory_(factory) { native_ = native; }
 		auto native() const { return native_.get(); }
 
 		// IMpResource
@@ -171,7 +177,7 @@ protected:
 		mutable gmpi::shared_ptr<gmpi::drawing::api::IBitmapBrush> native_;
 		GmpiDrawing_API::IMpFactory* factory_{};
 	public:
-		g3_BitmapBrush(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBitmapBrush* native) : native_(native), factory_(factory) {}
+		g3_BitmapBrush(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBitmapBrush* native) : factory_(factory) { native_ = native; }
 		auto native() const { return native_.get(); }
 
 		// IMpBitmapBrush, methods not supported by GMPI-UI
@@ -198,7 +204,7 @@ protected:
 		GmpiDrawing_API::IMpFactory* factory_{};
 		GmpiDrawing_API::MP1_STROKE_STYLE_PROPERTIES strokeStyleProperties_{};
 	public:
-		g3_StrokeStyle(GmpiDrawing_API::IMpFactory* factory, const GmpiDrawing_API::MP1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, gmpi::drawing::api::IStrokeStyle* native) : native_(native), strokeStyleProperties_(*strokeStyleProperties), factory_(factory){}
+		g3_StrokeStyle(GmpiDrawing_API::IMpFactory* factory, const GmpiDrawing_API::MP1_STROKE_STYLE_PROPERTIES* strokeStyleProperties, gmpi::drawing::api::IStrokeStyle* native) : strokeStyleProperties_(*strokeStyleProperties), factory_(factory) { native_ = native; }
 		auto native() const { return native_.get(); }
 
 		// IMpStrokeStyle
@@ -231,7 +237,7 @@ protected:
 		mutable gmpi::shared_ptr<gmpi::drawing::api::IGeometrySink> native_;
 		GmpiDrawing_API::IMpFactory* factory_{};
 	public:
-		g3_GeometrySink(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IGeometrySink* native) : native_(native), factory_(factory) {}
+		g3_GeometrySink(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IGeometrySink* native) : factory_(factory) { native_ = native; }
 		auto native() const { return native_.get(); }
 
 		// IMpSimplifiedGeometrySink
@@ -304,7 +310,7 @@ protected:
 		mutable gmpi::shared_ptr<gmpi::drawing::api::IPathGeometry> native_;
 		GmpiDrawing_API::IMpFactory* factory_{};
 	public:
-		g3_PathGeometry(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IPathGeometry* native) : native_(native), factory_(factory) {}
+		g3_PathGeometry(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IPathGeometry* native) : factory_(factory) { native_ = native; }
 		auto native() const { return native_.get(); }
 
 		// IMpPathGeometry
@@ -347,7 +353,7 @@ protected:
 		mutable gmpi::shared_ptr<gmpi::drawing::api::ITextFormat> native_;
 		GmpiDrawing_API::IMpFactory* factory_{};
 	public:
-		g3_TextFormat(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::ITextFormat* native) : native_(native), factory_(factory) {}
+		g3_TextFormat(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::ITextFormat* native) : factory_(factory) { native_ = native; }
 		auto native() const { return native_.get(); }
 
 		// IMpTextFormat
@@ -391,7 +397,7 @@ protected:
 		mutable gmpi::shared_ptr<gmpi::drawing::api::IBitmapPixels> native_;
 		GmpiDrawing_API::IMpFactory* factory_{};
 	public:
-		g3_BitmapPixels(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBitmapPixels* native) : native_(native), factory_(factory) {}
+		g3_BitmapPixels(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBitmapPixels* native) : factory_(factory) { native_ = native; }
 		auto native() const { return native_.get(); }
 
 		// IMpBitmapPixels
@@ -423,7 +429,7 @@ protected:
 		mutable gmpi::shared_ptr<gmpi::drawing::api::IBitmap> native_;
 		GmpiDrawing_API::IMpFactory* factory_{};
 	public:
-		g3_Bitmap(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBitmap* native) : native_(native), factory_(factory) {}
+		g3_Bitmap(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBitmap* native) : factory_(factory) { native_ = native; }
 		auto native() const { return native_.get(); }
 
 		// IMpBitmap
@@ -445,8 +451,8 @@ protected:
 		}
 		int32_t MP_STDCALL lockPixels(GmpiDrawing_API::IMpBitmapPixels** returnPixels, int32_t flags) override
 		{
-			gmpi::drawing::api::IBitmapPixels* pixels{};
-			auto hr = native()->lockPixels(&pixels, flags);
+			gmpi::shared_ptr<gmpi::drawing::api::IBitmapPixels> pixels;
+			auto hr = native()->lockPixels(pixels.put(), flags);
 			if (hr == gmpi::ReturnCode::Ok)
 			{
 				*returnPixels = new g3_BitmapPixels(factory_, pixels);
@@ -594,10 +600,14 @@ public:
 
 	int32_t CreateBitmapBrush(const GmpiDrawing_API::IMpBitmap* bitmap, const GmpiDrawing_API::MP1_BITMAP_BRUSH_PROPERTIES* bitmapBrushProperties, const GmpiDrawing_API::MP1_BRUSH_PROPERTIES* brushProperties, GmpiDrawing_API::IMpBitmapBrush** returnBrush) override
 	{
-		returnBrush = nullptr;
+		*returnBrush = nullptr;
+
+		auto* g3 = dynamic_cast<const g3_Bitmap*>(bitmap);
+		if (!g3)
+			return gmpi::MP_FAIL; // bitmap not produced by this bridge — caller should be using the matching factory
 
 		gmpi::shared_ptr<gmpi::drawing::api::IBitmapBrush> b;
-		auto hr = context_->createBitmapBrush(dynamic_cast<const g3_Bitmap*>(bitmap)->native(), (const gmpi::drawing::BrushProperties*)brushProperties, b.put());
+		auto hr = context_->createBitmapBrush(g3->native(), (const gmpi::drawing::BrushProperties*)brushProperties, b.put());
 
 		if (hr == gmpi::ReturnCode::Ok)
 		{
