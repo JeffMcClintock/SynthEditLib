@@ -1027,6 +1027,7 @@ static const TextToIntStruct2 parameterFieldInfo[] =
 	, "Default",			FT_DEFAULT
 	, "Grab",				FT_GRAB
 	, "Normalized",			FT_NORMALIZED
+	, "Hint",				FT_HINT
 //	, "Persistant",			FT_STATEFUL // not modifiable by module
 };
 const int PFI_COUNT = (sizeof(parameterFieldInfo) / sizeof(TextToIntStruct));
