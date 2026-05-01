@@ -76,6 +76,7 @@ protected:
 	Pin<std::string> pinHint;
 	Pin<std::string> pinColor1;
 	Pin<std::string> pinColor2;
+
 	Point            pointPrevious{};
 
 	ValueControlBase()

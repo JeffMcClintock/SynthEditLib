@@ -178,7 +178,7 @@ protected:
 		GmpiDrawing_API::IMpFactory* factory_{};
 	public:
 		g3_BitmapBrush(GmpiDrawing_API::IMpFactory* factory, gmpi::drawing::api::IBitmapBrush* native) : factory_(factory) { native_ = native; }
-		auto native() const { return native_.get(); }
+		gmpi::drawing::api::IBitmapBrush* native() const { return native_.get(); }
 
 		// IMpBitmapBrush, methods not supported by GMPI-UI
 		void MP_STDCALL SetExtendModeX(GmpiDrawing_API::MP1_EXTEND_MODE extendModeX) override
