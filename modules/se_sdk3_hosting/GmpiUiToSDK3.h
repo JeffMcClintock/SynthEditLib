@@ -723,7 +723,7 @@ public:
 
 class g3_BitmapRenderTarget final : public GmpiToSDK3Context_base // emulated by careful layout: public IBitmapRenderTarget
 {
-//	mutable gmpi::shared_ptr<gmpi::drawing::api::IBitmapRenderTarget> native_;
+  gmpi::shared_ptr<gmpi::drawing::api::IDeviceContext> contextOwner_;
 
 	gmpi::drawing::api::IBitmapRenderTarget* makeNative(GmpiToSDK3Context_base* g, const gmpi::drawing::Size* desiredSize) const
 	{
@@ -735,18 +735,22 @@ public:
 	g3_BitmapRenderTarget(GmpiDrawing_API::IMpFactory2* pfactory, GmpiToSDK3Context_base* g, const gmpi::drawing::Size* desiredSize/*, GmpiDrawing_API::IMpFactory* pfactory*/) :
 		GmpiToSDK3Context_base(pfactory, nullptr, makeNative(g, desiredSize))
 	{
-		context_->queryInterface(&gmpi::drawing::api::IBitmapRenderTarget::guid, (void**)&context_);
+        contextOwner_.attach(context_);
 	}
 
 	// HACK, to be ABI compatible with IBitmapRenderTarget we need this virtual function,
 	// and it needs to be in the vtable right after all virtual functions of GraphicsContext
 	virtual gmpi::ReturnCode getBitmap(gmpi::drawing::api::IBitmap** returnBitmap)
 	{
-		gmpi::drawing::api::IBitmapRenderTarget* native{};
-		context_->queryInterface(&gmpi::drawing::api::IBitmapRenderTarget::guid, (void**)&native);
+      gmpi::shared_ptr<gmpi::drawing::api::IBitmapRenderTarget> native;
+		auto hr = context_->queryInterface(&gmpi::drawing::api::IBitmapRenderTarget::guid, native.put_void());
+		if (hr != gmpi::ReturnCode::Ok)
+			return hr;
 
 		gmpi::shared_ptr<gmpi::drawing::api::IBitmap> bitmap;
-		native->getBitmap(bitmap.put());
+        hr = native->getBitmap(bitmap.put());
+		if (hr != gmpi::ReturnCode::Ok)
+			return hr;
 
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> b2;
 		b2.Attach(new GmpiToSDK3Context::g3_Bitmap(factory, bitmap));
@@ -790,7 +794,7 @@ inline int32_t GmpiToSDK3Context_base::CreateCompatibleRenderTarget(const GmpiDr
 	*bitmapRenderTarget = nullptr;
 
 	gmpi_sdk::mp_shared_ptr<GmpiDrawing_API::IMpDeviceContext> b2;
-	b2.Attach(new g3_BitmapRenderTarget(factory, this, (const gmpi::drawing::Size*) &desiredSize/*, &factory*/));
+   b2.Attach(new g3_BitmapRenderTarget(factory, this, (const gmpi::drawing::Size*) desiredSize/*, &factory*/));
 	return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI, reinterpret_cast<void**>(bitmapRenderTarget));
 }
 
