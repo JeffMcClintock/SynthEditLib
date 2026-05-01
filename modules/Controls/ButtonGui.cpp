@@ -22,8 +22,8 @@ Color withAlpha(Color color, float alpha)
 class ButtonGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 {
 	Pin<bool> pinValue;
-	Pin<std::string> pinHint;
 	Pin<bool> pinMouseDown;
+	Pin<std::string> pinHint;
 	Pin<bool> pinToggle;
 	Pin<std::string> pinColor1;
 	Pin<std::string> pinColor2;
@@ -255,8 +255,8 @@ auto r = gmpi::Register<ButtonGui>::withXml(R"XML(
 <Plugin id="SE Button" name="Button" category="Sub-Controls">
 	<GUI>
 		<Pin name="Value" datatype="bool"/>
-		<Pin name="Hint" datatype="string"/>
 		<Pin name="Mouse Down" datatype="bool"/>
+		<Pin name="Hint" datatype="string"/>
 		<Pin name="Toggle" datatype="bool"/>
 		<Pin name="Base Color" datatype="string" default="2E79C7"/>
 		<Pin name="Line Color" datatype="string" default="EEEEEE"/>

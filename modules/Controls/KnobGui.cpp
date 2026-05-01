@@ -233,10 +233,10 @@ auto r = gmpi::Register<KnobGui>::withXml(R"XML(
 <Plugin id="SE Knob" name="Knob" category="Sub-Controls">
     <GUI graphicsApi="GmpiGui">
         <Pin name="Normalized" datatype="float" default="0.0"/>
-		<Pin name="Hint" datatype="string"/>
 		<Pin name="Menu Items" datatype="string"/>
 		<Pin name="Menu Selection" datatype="int"/>
 		<Pin name="Mouse Down" datatype="bool"/>
+		<Pin name="Hint" datatype="string"/>
 		<Pin name="Base Color" datatype="string" default="2E79C7"/>
 		<Pin name="Line Color" datatype="string" default="EEEEEE"/>
     </GUI>

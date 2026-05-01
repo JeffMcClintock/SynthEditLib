@@ -70,10 +70,10 @@ class ValueControlBase : public ControlsBase
 {
 protected:
 	Pin<float>       pinValue;
-	Pin<std::string> pinHint;
 	Pin<std::string> pinMenuItems;
 	Pin<int32_t>     pinMenuSelection;
 	Pin<bool>        pinMouseDown;
+	Pin<std::string> pinHint;
 	Pin<std::string> pinColor1;
 	Pin<std::string> pinColor2;
 	Point            pointPrevious{};
