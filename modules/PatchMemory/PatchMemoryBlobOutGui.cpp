@@ -15,6 +15,8 @@ PatchMemoryBlobOutGui::PatchMemoryBlobOutGui( IMpUnknown* host ) : MpGuiBase( ho
 	INIT_PINB(5, Value);
 	INIT_PINB(6, MenuItems);
 	INIT_PINB(7, MenuSelection);
+	INIT_PINB(8, HintIn);
+	INIT_PINB(9, Hint);
 }
 
 void PatchMemoryBlobOutGui::onValueInChanged()
@@ -55,5 +57,15 @@ void PatchMemoryBlobOutGui::onMenuItemsChanged()
 void PatchMemoryBlobOutGui::onMenuSelectionChanged()
 {
 	pinMenuSelectionIn = pinMenuSelection;
+}
+
+void PatchMemoryBlobOutGui::onHintInChanged()
+{
+	pinHint = pinHintIn;
+}
+
+void PatchMemoryBlobOutGui::onHintChanged()
+{
+	pinHintIn = pinHint;
 }
 

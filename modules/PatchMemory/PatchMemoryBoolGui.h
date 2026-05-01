@@ -22,6 +22,8 @@ public:
 	StringGuiPin	pinMenuItems;
 	IntGuiPin		pinMenuSelection;
 	BoolGuiPin		pinMouseDown;
+	StringGuiPin	pinHintIn;
+	StringGuiPin	pinHint;
 	bool inhibitFeedback = {};
 
 private:
@@ -37,6 +39,8 @@ private:
 	void onMenuSelectionInChanged();
 	void onMenuItemsChanged();
 	void onMenuSelectionChanged();
+	void onHintInChanged();
+	void onHintChanged();
 };
 
 #endif

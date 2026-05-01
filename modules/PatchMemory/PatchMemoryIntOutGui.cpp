@@ -23,6 +23,8 @@ PatchMemoryIntOutGui::PatchMemoryIntOutGui( IMpUnknown* host ) : MpGuiBase( host
 	initializePin( pinMenuItems);
 	//initializePin(10, pinMenuSelection, static_cast<MpGuiBaseMemberPtr>( &PatchMemoryIntOutGui::onMenuSelectionChanged ));
 	INIT_PINB( MenuSelection);
+	INIT_PINB( HintIn);
+	INIT_PINB( Hint);
 }
 
 
@@ -69,5 +71,15 @@ void PatchMemoryIntOutGui::onMenuItemsChanged()
 void PatchMemoryIntOutGui::onMenuSelectionChanged()
 {
 	pinMenuSelectionIn = pinMenuSelection;
+}
+
+void PatchMemoryIntOutGui::onHintInChanged()
+{
+	pinHint = pinHintIn;
+}
+
+void PatchMemoryIntOutGui::onHintChanged()
+{
+	pinHintIn = pinHint;
 }
 

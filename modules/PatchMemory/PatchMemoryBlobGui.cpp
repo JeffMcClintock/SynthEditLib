@@ -21,6 +21,8 @@ PatchMemoryBlobGui::PatchMemoryBlobGui(IMpUnknown* host) : MpGuiBase(host)
 	INIT_PINB(7, Type);
 	INIT_PINB(8, MenuItems);
 	INIT_PINB(9, MenuSelection);
+	INIT_PINB(10, HintIn);
+	INIT_PINB(11, Hint);
 }
 
 void PatchMemoryBlobGui::onValueInChanged()
@@ -74,5 +76,15 @@ void PatchMemoryBlobGui::onMenuItemsChanged()
 void PatchMemoryBlobGui::onMenuSelectionChanged()
 {
 	pinMenuSelectionIn = pinMenuSelection;
+}
+
+void PatchMemoryBlobGui::onHintInChanged()
+{
+	pinHint = pinHintIn;
+}
+
+void PatchMemoryBlobGui::onHintChanged()
+{
+	pinHintIn = pinHint;
 }
 

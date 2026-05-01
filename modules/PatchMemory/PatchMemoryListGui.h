@@ -22,6 +22,8 @@ public:
 	StringGuiPin	pinMenuItems;
 	IntGuiPin		pinMenuSelection;
 	BoolGuiPin		pinMouseDown;
+	StringGuiPin	pinHintIn;
+	StringGuiPin	pinHint;
 
 private:
 	void onValueInChanged();
@@ -36,6 +38,8 @@ private:
 	void onListValuesChanged();
 	void onMenuItemsChanged();
 	void onMenuSelectionChanged();
+	void onHintInChanged();
+	void onHintChanged();
 };
 
 #endif

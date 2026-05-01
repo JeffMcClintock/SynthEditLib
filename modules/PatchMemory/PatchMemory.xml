@@ -93,9 +93,11 @@
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
       <Pin id="11" name="Mouse Down" direction="out" datatype="bool"/>
+      <Pin id="12" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="13" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
-  
+
   <Plugin id="SE PatchMemory Bool Out" name="PatchMemory Bool Out" category="Sub-Controls" helpUrl="Patchmemory.htm" >
     <Parameters>
       <Parameter id="0" datatype="bool" persistant="false" ignorePatchChange="true" />
@@ -119,6 +121,8 @@
       <Pin id="8" name="Animation Position" direction="out" datatype="float" />
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
+      <Pin id="11" name="PM Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="12" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
 
@@ -147,6 +151,8 @@
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
       <Pin id="11" name="Mouse Down" direction="out" datatype="bool"/>
+      <Pin id="12" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="13" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
 
@@ -175,6 +181,8 @@
       <Pin id="8" name="Animation Position" direction="out" datatype="float" />
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
+      <Pin id="11" name="PM Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="12" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
 
@@ -205,7 +213,9 @@
       <Pin id="8" name="Animation Position" direction="out" datatype="float" />
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
-      <Pin id="11" name="Mouse Down" direction="out" datatype="bool"/>      
+      <Pin id="11" name="Mouse Down" direction="out" datatype="bool"/>
+      <Pin id="12" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="13" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
 
@@ -237,7 +247,7 @@
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
     </GUI>
   </Plugin>
-  
+
   <Plugin id="SE PatchMemory Int" name="PatchMemory Int" category="Sub-Controls" helpUrl="Patchmemory.htm" >
     <Parameters>
       <Parameter id="0" datatype="int" />
@@ -263,6 +273,8 @@
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
       <Pin id="11" name="Mouse Down" direction="out" datatype="bool"/>
+      <Pin id="12" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="13" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
 
@@ -289,6 +301,8 @@
       <Pin id="8" name="Animation Position" direction="out" datatype="float" />
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
+      <Pin id="11" name="PM Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="12" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
 
@@ -323,6 +337,8 @@
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
       <Pin id="11" name="Mouse Down" direction="out" datatype="bool"/>
+      <Pin id="12" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="13" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
 
@@ -347,6 +363,8 @@
       <Pin id="7" name="File Extension" direction="out" datatype="string"/>
       <Pin id="8" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="9" name="Menu Selection" direction="out" datatype="int"/>
+      <Pin id="10" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="11" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
 
@@ -376,9 +394,11 @@
       -->
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
+      <Pin id="11" name="PM Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="12" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
-  
+
   <Plugin id="SE PatchMemory Blob" name="PatchMemory Blob" category="Sub-Controls" helpUrl="Patchmemory.htm" >
     <Parameters>
       <Parameter id="0" datatype="blob" />
@@ -400,6 +420,8 @@
       <!-- TODO <Pin id="7" name="Type" direction="out" datatype="string"/> -->
       <Pin id="8" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="9" name="Menu Selection" direction="out" datatype="int"/>
+      <Pin id="10" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="11" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
 
@@ -424,6 +446,8 @@
       <Pin id="5" name="Value" direction="out" datatype="blob" />
       <Pin id="6" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="7" name="Menu Selection" direction="out" datatype="int"/>
+      <Pin id="8" name="PM Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
+      <Pin id="9" name="Hint" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
 </PluginList>

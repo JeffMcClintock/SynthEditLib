@@ -22,6 +22,8 @@ PatchMemoryBoolOutGui::PatchMemoryBoolOutGui( IMpUnknown* host ) : MpGuiBase( ho
 
 	INIT_PINB(9, MenuItems);
 	INIT_PINB(10, MenuSelection);
+	INIT_PINB(11, HintIn);
+	INIT_PINB(12, Hint);
 }
 
 void PatchMemoryBoolOutGui::onValueInChanged()
@@ -67,5 +69,15 @@ void PatchMemoryBoolOutGui::onMenuItemsChanged()
 void PatchMemoryBoolOutGui::onMenuSelectionChanged()
 {
 	pinMenuSelectionIn = pinMenuSelection;
+}
+
+void PatchMemoryBoolOutGui::onHintInChanged()
+{
+	pinHint = pinHintIn;
+}
+
+void PatchMemoryBoolOutGui::onHintChanged()
+{
+	pinHintIn = pinHint;
 }
 

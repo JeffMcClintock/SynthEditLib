@@ -18,6 +18,8 @@ public:
 	BlobGuiPin		pinValue;
 	StringGuiPin	pinMenuItems;
 	IntGuiPin		pinMenuSelection;
+	StringGuiPin	pinHintIn;
+	StringGuiPin	pinHint;
 
 private:
 	void onValueInChanged();
@@ -28,6 +30,8 @@ private:
 	void onMenuSelectionInChanged();
 	void onMenuItemsChanged();
 	void onMenuSelectionChanged();
+	void onHintInChanged();
+	void onHintChanged();
 };
 
 #endif

@@ -20,6 +20,8 @@ public:
 	FloatGuiPin		pinAnimationPosition;
 	StringGuiPin	pinMenuItems;
 	IntGuiPin		pinMenuSelection;
+	StringGuiPin	pinHintIn;
+	StringGuiPin	pinHint;
 private:
 	void onValueInChanged();
 	void onValueChanged();
@@ -30,6 +32,8 @@ private:
 	void onMenuSelectionInChanged();
 	void onMenuItemsChanged();
 	void onMenuSelectionChanged();
+	void onHintInChanged();
+	void onHintChanged();
 };
 
 #endif

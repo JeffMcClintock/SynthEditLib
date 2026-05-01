@@ -26,6 +26,8 @@ PatchMemoryFloatGui::PatchMemoryFloatGui(IMpUnknown* host) : MpGuiBase(host)
 	INIT_PINB(9, MenuItems);
 	INIT_PINB(10, MenuSelection);
 	INIT_PINB(11, MouseDown);
+	INIT_PINB(12, HintIn);
+	INIT_PINB(13, Hint);
 }
 
 void PatchMemoryFloatGui::onValueInChanged()
@@ -86,4 +88,14 @@ void PatchMemoryFloatGui::onMouseDownChanged()
 void PatchMemoryFloatGui::onMouseDownInChanged()
 {
 	pinMouseDown = pinMouseDownIn;
+}
+
+void PatchMemoryFloatGui::onHintInChanged()
+{
+	pinHint = pinHintIn;
+}
+
+void PatchMemoryFloatGui::onHintChanged()
+{
+	pinHintIn = pinHint;
 }

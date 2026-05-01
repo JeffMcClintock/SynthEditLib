@@ -27,6 +27,8 @@ PatchMemoryFloatOutGui::PatchMemoryFloatOutGui( IMpUnknown* host ) : MpGuiBase( 
 
 	INIT_PINB(9, MenuItems);
 	INIT_PINB(10, MenuSelection);
+	INIT_PINB(11, HintIn);
+	INIT_PINB(12, Hint);
 }
 
 void PatchMemoryFloatOutGui::onValueInChanged()
@@ -73,5 +75,15 @@ void PatchMemoryFloatOutGui::onMenuItemsChanged()
 void PatchMemoryFloatOutGui::onMenuSelectionChanged()
 {
 	pinMenuSelectionIn = pinMenuSelection;
+}
+
+void PatchMemoryFloatOutGui::onHintInChanged()
+{
+	pinHint = pinHintIn;
+}
+
+void PatchMemoryFloatOutGui::onHintChanged()
+{
+	pinHintIn = pinHint;
 }
 

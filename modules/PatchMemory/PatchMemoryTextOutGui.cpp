@@ -16,6 +16,8 @@ PatchMemoryTextOutGui::PatchMemoryTextOutGui( IMpUnknown* host ) : MpGuiBase( ho
 	INIT_PINB(6, Value);
 	INIT_PINB(9, MenuItems);
 	INIT_PINB(10, MenuSelection);
+	INIT_PINB(11, HintIn);
+	INIT_PINB(12, Hint);
 }
 
 void PatchMemoryTextOutGui::onValueInChanged()
@@ -56,5 +58,15 @@ void PatchMemoryTextOutGui::onMenuItemsChanged()
 void PatchMemoryTextOutGui::onMenuSelectionChanged()
 {
 	pinMenuSelectionIn = pinMenuSelection;
+}
+
+void PatchMemoryTextOutGui::onHintInChanged()
+{
+	pinHint = pinHintIn;
+}
+
+void PatchMemoryTextOutGui::onHintChanged()
+{
+	pinHintIn = pinHint;
 }
 
