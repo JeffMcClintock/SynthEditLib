@@ -93,8 +93,8 @@
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
       <Pin id="11" name="Mouse Down" direction="out" datatype="bool"/>
-      <Pin id="12" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
-      <Pin id="13" name="Hint" direction="out" datatype="string"/>
+      <Pin id="12" name="Hint In" direction="in" datatype="string_utf8" parameterId="0" parameterField="Hint"/>
+      <Pin id="13" name="Hint" direction="out" datatype="string_utf8"/>
     </GUI>
   </Plugin>
 
@@ -151,8 +151,8 @@
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
       <Pin id="11" name="Mouse Down" direction="out" datatype="bool"/>
-      <Pin id="12" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
-      <Pin id="13" name="Hint" direction="out" datatype="string"/>
+      <Pin id="12" name="Hint In" direction="in" datatype="string_utf8" parameterId="0" parameterField="Hint"/>
+      <Pin id="13" name="Hint" direction="out" datatype="string_utf8"/>
     </GUI>
   </Plugin>
 
@@ -214,8 +214,8 @@
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
       <Pin id="11" name="Mouse Down" direction="out" datatype="bool"/>
-      <Pin id="12" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
-      <Pin id="13" name="Hint" direction="out" datatype="string"/>
+      <Pin id="12" name="Hint In" direction="in" datatype="string_utf8" parameterId="0" parameterField="Hint"/>
+      <Pin id="13" name="Hint" direction="out" datatype="string_utf8"/>
     </GUI>
   </Plugin>
 
@@ -273,8 +273,8 @@
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
       <Pin id="11" name="Mouse Down" direction="out" datatype="bool"/>
-      <Pin id="12" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
-      <Pin id="13" name="Hint" direction="out" datatype="string"/>
+      <Pin id="12" name="Hint In" direction="in" datatype="string_utf8" parameterId="0" parameterField="Hint"/>
+      <Pin id="13" name="Hint" direction="out" datatype="string_utf8"/>
     </GUI>
   </Plugin>
 
@@ -337,8 +337,8 @@
       <Pin id="9" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="10" name="Menu Selection" direction="out" datatype="int"/>
       <Pin id="11" name="Mouse Down" direction="out" datatype="bool"/>
-      <Pin id="12" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
-      <Pin id="13" name="Hint" direction="out" datatype="string"/>
+      <Pin id="12" name="Hint In" direction="in" datatype="string_utf8" parameterId="0" parameterField="Hint"/>
+      <Pin id="13" name="Hint" direction="out" datatype="string_utf8"/>
     </GUI>
   </Plugin>
 
@@ -363,8 +363,8 @@
       <Pin id="7" name="File Extension" direction="out" datatype="string"/>
       <Pin id="8" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="9" name="Menu Selection" direction="out" datatype="int"/>
-      <Pin id="10" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
-      <Pin id="11" name="Hint" direction="out" datatype="string"/>
+      <Pin id="10" name="Hint In" direction="in" datatype="string_utf8" parameterId="0" parameterField="Hint"/>
+      <Pin id="11" name="Hint" direction="out" datatype="string_utf8"/>
     </GUI>
   </Plugin>
 
@@ -420,8 +420,8 @@
       <!-- TODO <Pin id="7" name="Type" direction="out" datatype="string"/> -->
       <Pin id="8" name="Menu Items" direction="out" datatype="string"/>
       <Pin id="9" name="Menu Selection" direction="out" datatype="int"/>
-      <Pin id="10" name="Hint In" direction="in" datatype="string" parameterId="0" parameterField="Hint"/>
-      <Pin id="11" name="Hint" direction="out" datatype="string"/>
+      <Pin id="10" name="Hint In" direction="in" datatype="string_utf8" parameterId="0" parameterField="Hint"/>
+      <Pin id="11" name="Hint" direction="out" datatype="string_utf8"/>
     </GUI>
   </Plugin>
 
