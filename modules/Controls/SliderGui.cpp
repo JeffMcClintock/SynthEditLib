@@ -342,10 +342,10 @@ auto r = gmpi::Register<SliderGui>::withXml(R"XML(
         <Pin name="Normalized" datatype="float" default="0.0"/>
 		<Pin name="Hint" datatype="string"/>
 		<Pin name="Menu Items" datatype="string"/>
-		<Pin name="Menu Selection" datatype="int" direction="out"/>
-		<Pin name="Mouse Down" datatype="bool" direction="out"/>
-		<Pin name="Color 1" datatype="string" default="2E79C7"/>
-		<Pin name="Color 2" datatype="string" default="FFFFFFFF"/>
+		<Pin name="Menu Selection" datatype="int"/>
+		<Pin name="Mouse Down" datatype="bool"/>
+		<Pin name="Base Color" datatype="string" default="2E79C7"/>
+		<Pin name="Line Color" datatype="string" default="EEEEEE"/>
     </GUI>
 </Plugin>
 )XML");

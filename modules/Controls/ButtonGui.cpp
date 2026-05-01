@@ -256,10 +256,10 @@ auto r = gmpi::Register<ButtonGui>::withXml(R"XML(
 	<GUI>
 		<Pin name="Value" datatype="bool"/>
 		<Pin name="Hint" datatype="string"/>
-		<Pin name="Mouse Down" datatype="bool" direction="out"/>
+		<Pin name="Mouse Down" datatype="bool"/>
 		<Pin name="Toggle" datatype="bool"/>
-		<Pin name="Color 1" datatype="string" default="2E79C7"/>
-		<Pin name="Color 2" datatype="string" default="FFFFFFFF"/>
+		<Pin name="Base Color" datatype="string" default="2E79C7"/>
+		<Pin name="Line Color" datatype="string" default="EEEEEE"/>
 		<Pin name="Radius" datatype="float" default="0.24"/>
 	</GUI>
 </Plugin>
