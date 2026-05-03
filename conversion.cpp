@@ -1,5 +1,6 @@
 
 #include <algorithm>
+#include <map>
 #include <string>
 // Fix for <sstream> on Mac (sstream uses undefined int_64t)
 #include "./modules/se_sdk3/mp_api.h"
@@ -641,6 +642,41 @@ bool AreCompatible( EPlugDataType d1, EPlugDataType d2 )
 //		return true;
 
 	return false;
+}
+
+const wchar_t* getGuiConverterId(EPlugDataType from, EPlugDataType to)
+{
+	// DT_ENUM is treated as DT_INT on the GUI side (no separate enum type).
+	if (from == DT_ENUM) from = DT_INT;
+	if (to   == DT_ENUM) to   = DT_INT;
+
+	if (from == to)
+		return nullptr;
+
+	// Map of available GUI-side converter modules. Keep in sync with the
+	// REGISTER_GUI_PLUGIN entries in modules/Converters/ConvertersGui.cpp.
+	static const std::map<std::pair<EPlugDataType, EPlugDataType>, const wchar_t*> converterIds = {
+		{{DT_INT,    DT_BOOL},   L"SE IntToBool GUI"},
+		{{DT_INT,    DT_FLOAT},  L"SE IntToFloat GUI"},
+		{{DT_INT,    DT_TEXT},   L"SE IntToText GUI"},
+		{{DT_INT,    DT_INT64},  L"SE IntToInt64Gui"},
+		{{DT_INT64,  DT_INT},    L"SE Int64ToIntGui"},
+		{{DT_FLOAT,  DT_INT},    L"SE FloatToInt GUI"},
+		{{DT_FLOAT,  DT_BOOL},   L"SE FloatToBool GUI"},
+		{{DT_FLOAT,  DT_DOUBLE}, L"SE FloatToFloat64Gui"},
+		{{DT_DOUBLE, DT_FLOAT},  L"SE Float64ToFloatGui"},
+		{{DT_BOOL,   DT_INT},    L"SE BoolToInt GUI"},
+		{{DT_BOOL,   DT_FLOAT},  L"SE BoolToFloat GUI"},
+		{{DT_BOOL,   DT_TEXT},   L"SE BoolToText GUI"},
+		{{DT_TEXT,   DT_INT},    L"SE TextToInt GUI"},
+		{{DT_TEXT,   DT_FLOAT},  L"SE TextToFloat GUI"},
+		{{DT_TEXT,   DT_BOOL},   L"SE TextToBool GUI"},
+		{{DT_TEXT,   DT_BLOB},   L"SE TextToBlob GUI"},
+		{{DT_BLOB,   DT_TEXT},   L"SE BlobToText GUI"},
+	};
+
+	auto it = converterIds.find({from, to});
+	return it == converterIds.end() ? nullptr : it->second;
 }
 
 int SampleToMs( timestamp_t s, int sample_rate)   // being carefull to avoid numeric overflow

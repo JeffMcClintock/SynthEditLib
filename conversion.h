@@ -66,6 +66,10 @@ bool SetBit(int& flags, int bitmask, bool new_state);
 
 bool AreCompatible( EPlugDataType d1, EPlugDataType d2 );
 
+// Returns the GUI converter module ID for the given pin datatype pair, or nullptr
+// if no converter exists. d1 == d2 also returns nullptr (no converter needed).
+const wchar_t* getGuiConverterId(EPlugDataType from, EPlugDataType to);
+
 // Safe preferred option.
 inline uint32_t idToInt32(std::string id)
 {

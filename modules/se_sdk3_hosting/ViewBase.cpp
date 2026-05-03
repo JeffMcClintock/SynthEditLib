@@ -596,6 +596,41 @@ namespace SE2
 				fromPinIndex = lineElement["fPin"].asInt();
 				toPinIndex = lineElement["tPin"].asInt();
 
+				// Insert a type-converter module when the from/to pin datatypes differ.
+				const auto fromModuleInfo = from->getModuleType();
+				const auto toModuleInfo = to->getModuleType();
+				if (fromModuleInfo && toModuleInfo
+					&& fromModuleInfo->GuiPlugCount() > 0
+					&& toModuleInfo->GuiPlugCount() > 0)
+				{
+					auto fromPinDesc = fromModuleInfo->getGuiPinDescriptionByPosition(
+						(std::min)(fromPinIndex, fromModuleInfo->GuiPlugCount() - 1));
+					auto toPinDesc = toModuleInfo->getGuiPinDescriptionByPosition(
+						(std::min)(toPinIndex, toModuleInfo->GuiPlugCount() - 1));
+
+					if (fromPinDesc && toPinDesc)
+					{
+						if (auto converterId = getGuiConverterId(fromPinDesc->GetDatatype(), toPinDesc->GetDatatype()))
+						{
+							auto converterModule = std::make_unique<ModuleViewPanel>(
+								converterId, this, Presenter()->GenerateTemporaryHandle());
+							auto converterRaw = converterModule.get();
+							guiObjectMap.insert({converterRaw->getModuleHandle(), converterRaw});
+							assert(!isIteratingChildren);
+							children.push_back(std::move(converterModule));
+
+							// Wire from[fromPinIndex] ↔ converter[0] (input side).
+							from->AddConnection(fromPinIndex, converterRaw, 0);
+							converterRaw->AddConnection(0, from, fromPinIndex);
+							connectedInputs.push_back({converterRaw, 0});
+
+							// Let the normal connect below wire converter[1] ↔ to[toPinIndex].
+							from = converterRaw;
+							fromPinIndex = 1;
+						}
+					}
+				}
+
 				from->AddConnection(fromPinIndex, to, toPinIndex);
 				to->AddConnection(toPinIndex, from, fromPinIndex);
 
