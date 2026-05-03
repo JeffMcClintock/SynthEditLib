@@ -141,9 +141,9 @@ public:
 		pinColor.onUpdate        = [this](PinBase*) { redraw(); };
 	}
 
-	ReturnCode open(gmpi::api::IUnknown* host) override
+	ReturnCode setHost(gmpi::api::IUnknown* host) override
 	{
-		const auto r = PluginEditor::open(host);   // sets up drawingHost
+		const auto r = PluginEditor::setHost(host);   // populates drawingHost
 
 		// Locate and parse the skin's global.txt to get the "panel_group" font.
 		if (auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>())

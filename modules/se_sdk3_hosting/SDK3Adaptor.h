@@ -217,12 +217,13 @@ public:
 
 	SDK3Adaptor() : client(*this){}
 	~SDK3Adaptor();
+
+	// Single setHost serves IEditor + IDrawingClient + IInputClient (MI collapse).
 	gmpi::ReturnCode setHost(gmpi::api::IUnknown* phost) override;
 
 	void attachClient(gmpi::IMpUnknown* pcontainerView);
 
 	// IDrawingClient
-	gmpi::ReturnCode open(gmpi::api::IUnknown* host) override;
 	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override;
 	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
 	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;

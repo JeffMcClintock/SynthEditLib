@@ -138,9 +138,9 @@ public:
 		pinAlignment.onUpdate = [this](PinBase*) { rebuildTextFormat(); redraw(); };
 	}
 
-	ReturnCode open(gmpi::api::IUnknown* host) override
+	ReturnCode setHost(gmpi::api::IUnknown* host) override
 	{
-		const auto r = PluginEditor::open(host);
+		const auto r = PluginEditor::setHost(host);
 
 		// Locate and parse the skin's global.txt for FONT_CATEGORY styles.
 		if (auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>())

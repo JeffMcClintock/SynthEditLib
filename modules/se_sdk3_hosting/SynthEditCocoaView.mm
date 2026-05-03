@@ -130,7 +130,7 @@ public:
         }
 
         if (drawingClient)
-            drawingClient->open(static_cast<gmpi::api::IDrawingHost*>(this));
+            drawingClient->setHost(static_cast<gmpi::api::IDrawingHost*>(this));
     }
 
     void Init()

@@ -42,8 +42,8 @@ namespace SE2
 	{
 		Init(ppresentor);
 	}
-#if 0 
-	gmpi::ReturnCode ViewBase::open(gmpi::api::IUnknown* host)
+#if 0
+	gmpi::ReturnCode ViewBase::setHost(gmpi::api::IUnknown* host)
 	{
 		if (inputHost_)
 		{

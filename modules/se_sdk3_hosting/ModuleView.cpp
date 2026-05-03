@@ -886,7 +886,7 @@ namespace SE2
 				pluginParameters_GMPI->setHost(static_cast<gmpi::api::IEditorHost*>(gmpiHelper.get()));
 
 			if(pluginGraphics_GMPI)
-				pluginGraphics_GMPI->open(static_cast<gmpi::api::IDrawingHost*>(gmpiHelper.get()));
+				pluginGraphics_GMPI->setHost(static_cast<gmpi::api::IDrawingHost*>(gmpiHelper.get()));
 		}
 
 		// SDK3 client

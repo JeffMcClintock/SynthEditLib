@@ -44,28 +44,16 @@ void SDK3Adaptor::attachClient(gmpi::IMpUnknown* pclient)
 
 ReturnCode SDK3Adaptor::setHost(gmpi::api::IUnknown* phost)
 {
-	/* moved to open()
-
 	gmpi::editor::PluginEditor::setHost(phost);
+
+	if (!phost)
+		return ReturnCode::Ok;
 
 	gmpi::shared_ptr<gmpi::api::IUnknown> nativeFactory;
 	drawingHost->getDrawingFactory(nativeFactory.put());
 
 	client.setFactory(nativeFactory.get());
-*/
-	return ReturnCode::Ok;
-}
 
-// IDrawingClient
-ReturnCode SDK3Adaptor::open(gmpi::api::IUnknown* host)
-{
-    gmpi::editor::PluginEditor::setHost(host);
-
-    gmpi::shared_ptr<gmpi::api::IUnknown> nativeFactory;
-    drawingHost->getDrawingFactory(nativeFactory.put());
-
-    client.setFactory(nativeFactory.get());
-    
 	return ReturnCode::Ok;
 }
 

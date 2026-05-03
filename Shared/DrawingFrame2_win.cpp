@@ -88,7 +88,7 @@ void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient)
     }
 
     if (graphics_gmpi)
-        graphics_gmpi->open(static_cast<gmpi::api::IDrawingHost*>(this));
+        graphics_gmpi->setHost(static_cast<gmpi::api::IDrawingHost*>(this));
 }
 
 // old
@@ -143,8 +143,12 @@ void DrawingFrameBase2::detachClient()
     // Notify the client that the host (drawing surface) is going away.
     // Without this, ViewBase::drawingHost holds a dangling pointer after the
     // window closes, and any in-flight DSP→GUI invalidation will crash.
-    if (auto ieditor = graphics_gmpi.as<gmpi::api::IEditor>())
-        ieditor->setHost(nullptr);
+    // setHost is now shared across IEditor/IDrawingClient/IInputClient — calling
+    // through any one interface reaches the same override (via MI collapse).
+    if (graphics_gmpi)
+        graphics_gmpi->setHost(nullptr);
+    else if (editor_gmpi)
+        editor_gmpi->setHost(nullptr);
 
     graphics_gmpi = {};
     editor_gmpi = {};

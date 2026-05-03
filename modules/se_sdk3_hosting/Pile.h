@@ -22,7 +22,7 @@ struct hasGmpiUiChildren
 		if (auto graphic = unknown.as<gmpi::api::IDrawingClient>(); graphic)
 		{
 			graphics_gmpi.push_back(graphic);
-			graphic->open(host);
+			graphic->setHost(host);
 		}
 
 		if (auto editor = unknown.as<gmpi::api::IInputClient>(); editor)
@@ -129,7 +129,7 @@ struct GmpiUiLayer :
 
 		if (graphic)
 		{
-			graphic->open(static_cast<gmpi::api::IDrawingHost*>(&children.back()->host));
+			graphic->setHost(static_cast<gmpi::api::IDrawingHost*>(&children.back()->host));
 
 			if (isMeasured)
 			{
@@ -226,7 +226,7 @@ struct GmpiUiLayer :
 	}
 
 	// IDrawingClient
-	gmpi::ReturnCode open(gmpi::api::IUnknown* phost) override
+	gmpi::ReturnCode setHost(gmpi::api::IUnknown* phost) override
 	{
 		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
 		unknown = (gmpi::api::IUnknown*) phost;
@@ -587,8 +587,10 @@ struct Pile :
 		{
 			graphics_gmpi.push_back(graphic);
 
+			// Children always go through the per-pile redirector, never the parent's
+			// raw drawingHost (which doesn't necessarily provide IInputHost/IDialogHost).
 			if(drawingHost)
-				graphic->open(drawingHost.get());
+				graphic->setHost(static_cast<gmpi::api::IDrawingHost*>(&childhost_gmpi));
 		}
 
 		if (auto editor = unknown.as<gmpi::api::IInputClient>(); editor)
@@ -608,7 +610,7 @@ struct Pile :
 	}
 
 	// IDrawingClient
-	gmpi::ReturnCode open(gmpi::api::IUnknown* phost) override
+	gmpi::ReturnCode setHost(gmpi::api::IUnknown* phost) override
 	{
 		gmpi::shared_ptr<gmpi::api::IUnknown> unknown(phost);
 
@@ -618,19 +620,14 @@ struct Pile :
 
 		for(auto& graphic : graphics_gmpi)
 		{
-			graphic->open(drawingHost.get());
+			// One setHost reaches IDrawingClient, IInputClient and IEditor on the child
+			// (identical-signature pure virtuals collapse to a single override under MI).
+			// Children always go through the per-pile redirector — childhost_gmpi exposes
+			// IDrawingHost / IInputHost / IDialogHost — not the parent's raw drawingHost.
+			graphic->setHost(static_cast<gmpi::api::IDrawingHost*>(&childhost_gmpi));
 
-#if 0
-			// nasty hack, perhaps ViewBase should inherit IEditor, or I should merge open and setHost into one method.
-			if(auto viewBase = dynamic_cast<SE2::ViewBase*>(graphic.get()); viewBase)
-				viewBase->setHost(static_cast<gmpi::api::IDrawingHost*>(&childhost_gmpi));
-#endif
-			auto ieditor = graphic.as<gmpi::api::IEditor>();
-			if(ieditor)
-			{
-				ieditor->setHost(static_cast<gmpi::api::IDrawingHost*>(&childhost_gmpi));
+			if(auto ieditor = graphic.as<gmpi::api::IEditor>())
 				ieditor->initialize();
-			}
 		}
 
 		return gmpi::ReturnCode::Ok;

@@ -107,7 +107,7 @@ bool isIteratingChildren = false;
 		gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
 #if 0 // OLD: handled by base class, to be removed.
 		// gmpi::api::IDrawingClient
-		gmpi::ReturnCode open(gmpi::api::IUnknown* host) override;
+		gmpi::ReturnCode setHost(gmpi::api::IUnknown* host) override;
 		gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override;
 #endif
 		gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override;

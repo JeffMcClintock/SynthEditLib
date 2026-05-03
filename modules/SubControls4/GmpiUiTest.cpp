@@ -50,10 +50,10 @@ public:
 	{
     }
 
-    ReturnCode open(gmpi::api::IUnknown* host) override
+    ReturnCode setHost(gmpi::api::IUnknown* host) override
     {
 		updateTextFromValue();
-        return PluginEditor::open(host);
+        return PluginEditor::setHost(host);
     }
 
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
