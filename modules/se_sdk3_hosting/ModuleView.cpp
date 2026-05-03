@@ -1492,41 +1492,11 @@ if(pluginGraphics)
 		}
 	}
 
-	// adapt SDK3 to GMPI-UI context menu callback
-	class ContextMenuAdaptor :  public gmpi::IMpContextItemSink
-	{
-		gmpi::api::IContextItemSink* sink{};
-		gmpi::shared_ptr<gmpi::api::IUnknown> currentCallback;
-
-	public:
-
-		void setCallback(std::function<void(int32_t selectedId)> pcallback)
-		{
-			currentCallback = {};
-			if(pcallback)
-				currentCallback = new gmpi::sdk::PopupMenuCallback(pcallback);
-		}
-
-		ContextMenuAdaptor(gmpi::api::IUnknown* psink)
-		{
-			psink->queryInterface(&gmpi::api::IContextItemSink::guid, (void**)&sink);
-		}
-
-		// IMpContextItemSink
-		int32_t MP_STDCALL AddItem(const char* text, int32_t id, int32_t flags = 0) override
-		{
-			return (int32_t) sink->addItem(text, id, flags, currentCallback.get());
-		}
-
-		GMPI_QUERYINTERFACE1(gmpi::MP_IID_CONTEXT_ITEMS_SINK, gmpi::IMpContextItemSink);
-		GMPI_REFCOUNT_NO_DELETE;
-	};
-
 	gmpi::ReturnCode ModuleView::populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink)
 	{
-		if(false)
+		if(pluginInput_GMPI)
 		{
-			// TODO!!! GMPI-UI client support for context menu
+			pluginInput_GMPI->populateContextMenu(point, contextMenuItemsSink);
 		}
 		else if (pluginParameters)
 		{

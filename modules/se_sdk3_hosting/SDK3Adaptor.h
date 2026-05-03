@@ -241,7 +241,6 @@ public:
 
 	// right-click menu
 	gmpi::ReturnCode populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink) override;
-	gmpi::ReturnCode onContextMenu(int32_t idx) override;
 #if 0
 	// gmpi_gui::IMpGraphicsHostBase
 	int32_t GetDrawingFactory(GmpiDrawing_API::IMpFactory** returnFactory) override

@@ -121,7 +121,6 @@ bool isIteratingChildren = false;
 		gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
 		gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override;
 		gmpi::ReturnCode populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink) override;
-		gmpi::ReturnCode onContextMenu(int32_t idx) override;
 		gmpi::ReturnCode onKeyPress(wchar_t c) override;
 
 		// called when a drag-to-create operation from the module browser ends (drop or cancel)

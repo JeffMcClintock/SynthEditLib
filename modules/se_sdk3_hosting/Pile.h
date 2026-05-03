@@ -217,12 +217,6 @@ struct GmpiUiLayer :
 		return gmpi::ReturnCode::Unhandled;
 	}
 
-	gmpi::ReturnCode onContextMenu(int32_t idx) override
-	{
-		(void)idx;
-		return gmpi::ReturnCode::Unhandled;
-	}
-
 	gmpi::ReturnCode onKeyPress(wchar_t c) override
 	{
 		if(keyHandler)
@@ -786,12 +780,12 @@ struct Pile :
 		return gmpi::ReturnCode::Unhandled;
 	}
 
-	gmpi::ReturnCode onContextMenu(int32_t idx) override
-	{
-		if (auto editor = getEditor(); editor)
-			return editor->onContextMenu(idx);
-		return gmpi::ReturnCode::Unhandled;
-	}
+	//gmpi::ReturnCode onContextMenu(int32_t idx) override
+	//{
+	//	if (auto editor = getEditor(); editor)
+	//		return editor->onContextMenu(idx);
+	//	return gmpi::ReturnCode::Unhandled;
+	//}
 
 	gmpi::ReturnCode onKeyPress(wchar_t c) override
 	{

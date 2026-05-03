@@ -121,12 +121,14 @@ gmpi::ReturnCode SDK3Adaptor::onMouseWheel(gmpi::drawing::Point point, int32_t f
 // right-click menu
 gmpi::ReturnCode SDK3Adaptor::populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink)
 {
-	return (ReturnCode)client.pluginParameters2B->populateContextMenu(point.x, point.y, (gmpi::IMpUnknown*) contextMenuItemsSink);
-}
+	ContextMenuAdaptor menu(contextMenuItemsSink);
 
-gmpi::ReturnCode SDK3Adaptor::onContextMenu(int32_t idx)
-{
-	return (ReturnCode)client.pluginParameters2B->onContextMenu(idx);
+	menu.setCallback([this](int32_t selectedId)
+		{
+			client.pluginParameters2B->onContextMenu(selectedId);
+		});
+
+	return (ReturnCode)client.pluginParameters2B->populateContextMenu(point.x, point.y, (gmpi::IMpUnknown*) &menu);
 }
 
 ReturnCode SDK3Adaptor::render(gmpi::drawing::api::IDeviceContext* drawingContext)

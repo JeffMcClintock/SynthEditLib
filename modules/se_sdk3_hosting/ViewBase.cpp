@@ -437,11 +437,6 @@ namespace SE2
 		return gmpi::ReturnCode::Ok;
 	}
 
-	gmpi::ReturnCode ViewBase::onContextMenu(int32_t idx)
-	{
-		return ReturnCode::Unhandled;
-	}
-
 #if 0
 	gmpi::ReturnCode ViewBase::populateContextMenu2(gmpi::api::IContextItemSink* menu, gmpi::drawing::Point point)
 	{

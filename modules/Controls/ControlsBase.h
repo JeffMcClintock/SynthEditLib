@@ -114,6 +114,14 @@ protected:
 			return ReturnCode::Fail;
 
 		ContextMenuHelper menu(sink.get());
+
+		menu.currentCallback =
+			[this](int32_t selectedId)
+			{
+				pinMenuSelection = selectedId;
+				pinMenuSelection = -1;
+			};
+
 		for(const auto& item : it_enum_list2(pinMenuItems.value))
 		{
 			switch(menuItemType(item.text))
@@ -125,13 +133,6 @@ protected:
 			case MenuItemType::Normal:     menu.addItem(menuText(item.text).c_str(), item.id); break;
 			}
 		}
-		return ReturnCode::Ok;
-	}
-
-	gmpi::ReturnCode onContextMenu(int32_t idx) override
-	{
-		pinMenuSelection = idx;
-		pinMenuSelection = -1;
 		return ReturnCode::Ok;
 	}
 
