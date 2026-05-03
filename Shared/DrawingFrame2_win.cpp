@@ -134,7 +134,7 @@ gmpi::ReturnCode DrawingFrameBase2::launchContextMenu(const gmpi::drawing::Point
         return gmpi::ReturnCode::NoSupport;
 
     const auto returnCode = editor_gmpi->populateContextMenu(point, popupMenu);
-    popupMenu->showAsync(nullptr);
+    popupMenu->showAsync();
     return returnCode;
 }
 
@@ -309,15 +309,9 @@ public:
         return gmpi::ReturnCode::Ok;
     }
 
-    gmpi::ReturnCode showAsync(gmpi::api::IUnknown* pcallback) override
+    gmpi::ReturnCode showAsync() override
     {
         const auto index = trackMenu();
-
-        gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-        unknown = pcallback;
-
-        if (auto cb = unknown.as<gmpi::api::IPopupMenuCallback>(); cb)
-            cb->onComplete(index >= 0 ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Cancel, selectedId);
 
         if (index >= 0 && index < (int32_t)itemCallbacks.size() && itemCallbacks[index])
         {

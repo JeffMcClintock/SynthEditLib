@@ -3,6 +3,8 @@
 #include "modules/se_sdk3_hosting/LegacyMenuAdapter.h"
 */
 
+#include <string>
+#include <vector>
 #include "../se_sdk3/legacy_sdk_gui2.h"
 #include "helpers/NativeUi.h"
 #include "RefCountMacros.h"
@@ -40,14 +42,27 @@ public:
 // Implements the old IMpPlatformMenu interface by delegating to a new-API IPopupMenu.
 // All platform popup-menu implementations expose only IPopupMenu; callers that need
 // the legacy interface obtain it via this adapter.
+//
+// Legacy AddItem/ShowAsync provide a single completion callback for the whole menu;
+// the new IPopupMenu uses per-item callbacks. To bridge: buffer items in AddItem
+// and, at ShowAsync time, replay them onto inner with a single bridge attached as
+// each item's callback. Only the selected item's callback fires (no cancel notification).
 struct LegacyMenuAdapter : gmpi_gui::legacy::IMpPlatformMenu
 {
     gmpi::shared_ptr<gmpi::api::IPopupMenu> inner;
     int32_t selectedId = -1;
 
-    // Heap-allocated bridge: independent lifecycle from adapter, safe for async use.
-    // Platform stores it as callback2; when the menu closes, onComplete fires and
-    // releases the adapter's ShowAsync ref.
+    struct BufferedItem
+    {
+        std::string text;
+        int32_t id;
+        int32_t flags;
+    };
+    std::vector<BufferedItem> bufferedItems;
+
+    // Heap-allocated bridge attached to every item; only the chosen item fires onComplete.
+    // Lifetime is bounded by the adapter (adapter holds inner, inner stores the bridge in
+    // its per-item callback list), so the raw `adapter` pointer is safe.
     struct CompletionBridge : gmpi::api::IPopupMenuCallback
     {
         LegacyMenuAdapter* adapter;
@@ -60,8 +75,8 @@ struct LegacyMenuAdapter : gmpi_gui::legacy::IMpPlatformMenu
         void onComplete(gmpi::ReturnCode result, int32_t id) override
         {
             adapter->selectedId = id;
-            oldCb->OnComplete(result == gmpi::ReturnCode::Ok ? gmpi::MP_OK : gmpi::MP_CANCEL);
-            adapter->release(); // balance the addRef in ShowAsync
+            if (oldCb)
+                oldCb->OnComplete(result == gmpi::ReturnCode::Ok ? gmpi::MP_OK : gmpi::MP_CANCEL);
         }
 
         gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** r) override
@@ -93,7 +108,7 @@ struct LegacyMenuAdapter : gmpi_gui::legacy::IMpPlatformMenu
 
     int32_t MP_STDCALL AddItem(const char* text, int32_t id, int32_t flags) override
     {
-        inner->addItem(text ? text : "", id, flags, nullptr);
+        bufferedItems.push_back({ text ? text : "", id, flags });
         return gmpi::MP_OK;
     }
 
@@ -105,12 +120,17 @@ struct LegacyMenuAdapter : gmpi_gui::legacy::IMpPlatformMenu
 
     int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* cb) override
     {
-        addRef(); // keep adapter alive until bridge fires onComplete
-
-        // Bridge is heap-allocated so its lifecycle is independent from the adapter.
+        // Bridge is heap-allocated; inner addRefs it via each addItem and releases when destroyed.
         auto* bridge = new CompletionBridge(this, cb); // refCount_ = 1
-        inner->showAsync(static_cast<gmpi::api::IPopupMenuCallback*>(bridge));
-        bridge->release(); // release our creation ref; platform holds its QI ref
+
+        for (const auto& item : bufferedItems)
+        {
+            inner->addItem(item.text.c_str(), item.id, item.flags,
+                static_cast<gmpi::api::IPopupMenuCallback*>(bridge));
+        }
+        bridge->release(); // platform retained N refs via addItem; drop our creation ref
+
+        inner->showAsync();
         return gmpi::MP_OK;
     }
 
