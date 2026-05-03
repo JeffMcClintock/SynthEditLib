@@ -38,7 +38,6 @@ namespace GmpiGuiHosting
 		std::vector<int32_t> menuIds;
 		std::vector<gmpi::shared_ptr<gmpi::api::IUnknown>> itemCallbacks;
 		SYNTHEDIT_EVENT_HELPER_CLASSNAME* eventhelper;
-		gmpi::shared_ptr<gmpi::api::IUnknown> returnCallback;
         NSPopUpButton* button;
         GmpiDrawing::Rect rect;
         std::vector<NSMenu*> menuStack;
@@ -79,16 +78,6 @@ namespace GmpiGuiHosting
 				selectedId = menuIds[i];
 
 			[button removeFromSuperview];
-
-			if (returnCallback)
-			{
-				// Clear before calling so that onComplete's adapter->release() doesn't
-				// leave a dangling ref when returnCallback's dtor runs.
-				auto cb = returnCallback.as<gmpi::api::IPopupMenuCallback>();
-				returnCallback = {};
-				if (cb)
-					cb->onComplete(validIndex ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Cancel, selectedId);
-			}
 
 			if (validIndex && i < static_cast<int>(itemCallbacks.size()) && itemCallbacks[i])
 			{
@@ -152,10 +141,8 @@ namespace GmpiGuiHosting
 			return gmpi::ReturnCode::Ok;
 		}
 
-		gmpi::ReturnCode showAsync(gmpi::api::IUnknown* pcallback) override
+		gmpi::ReturnCode showAsync() override
 		{
-			// Use assignment (not attach) so bridge_'s delegated refcount is incremented.
-			returnCallback = pcallback;
 			showButton();
 			return gmpi::ReturnCode::Ok;
 		}

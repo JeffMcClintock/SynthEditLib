@@ -372,7 +372,7 @@ public:
             return gmpi::ReturnCode::NoSupport;
 
         const auto returnCode = inputClient->populateContextMenu(point, popupMenu.get());
-        popupMenu->showAsync(nullptr);
+        popupMenu->showAsync();
         return returnCode;
     }
     gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override
