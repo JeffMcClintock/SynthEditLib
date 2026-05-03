@@ -669,6 +669,8 @@ const wchar_t* getGuiConverterId(EPlugDataType from, EPlugDataType to)
 		{{DT_BOOL,   DT_FLOAT},  L"SE BoolToFloat GUI"},
 		{{DT_BOOL,   DT_TEXT},   L"SE BoolToText GUI"},
 		{{DT_TEXT,   DT_INT},    L"SE TextToInt GUI"},
+		{{DT_TEXT,   DT_STRING_UTF8},  L"SE TextToText8Gui"},
+		{{DT_STRING_UTF8,  DT_TEXT },  L"SE Text8ToTextGui"},
 		{{DT_TEXT,   DT_FLOAT},  L"SE TextToFloat GUI"},
 		{{DT_TEXT,   DT_BOOL},   L"SE TextToBool GUI"},
 		{{DT_TEXT,   DT_BLOB},   L"SE TextToBlob GUI"},

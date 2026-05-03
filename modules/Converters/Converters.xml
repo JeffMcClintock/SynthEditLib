@@ -141,6 +141,20 @@
     </GUI>
   </Plugin>
 
+  <Plugin id="SE TextToText8Gui" name="Text To Text8" category="Debug" helpUrl="converters.htm" alwaysExport="true">
+  <GUI>
+    <Pin id="0" name="Text Val" direction="in" datatype="string"/>
+    <Pin id="1" name="Text Val" direction="out" datatype="string_utf8"/>
+  </GUI>
+  </Plugin>
+
+  <Plugin id="SE Text8ToTextGui" name="Text8 To Text" category="Debug" helpUrl="converters.htm" alwaysExport="true">
+  <GUI>
+    <Pin id="0" name="Text Val" direction="in" datatype="string_utf8"/>
+    <Pin id="1" name="Text Val" direction="out" datatype="string"/>
+  </GUI>
+  </Plugin>
+
   <Plugin id="SE TextToInt GUI" name="Text To Int" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
     <GUI>
       <Pin id="0" name="Text Val" direction="in" datatype="string"/>

@@ -23,6 +23,8 @@ typedef SimpleGuiConverter<bool, std::wstring> BoolToText;
 typedef SimpleGuiConverter<std::wstring, int> TextToInt;
 typedef SimpleGuiConverter<std::wstring, float> TextToFloat;
 typedef SimpleGuiConverter<std::wstring, bool> TextToBool;
+typedef SimpleGuiConverter<std::wstring, std::string> TextToText8Gui;
+typedef SimpleGuiConverter<std::string, std::wstring> Text8ToTextGui;
 
 typedef SimpleGuiConverter<std::wstring, MpBlob> TextToBlob;
 typedef SimpleGuiConverter<MpBlob, std::wstring> BlobToText;
@@ -45,6 +47,8 @@ REGISTER_GUI_PLUGIN( BoolToText, L"SE BoolToText GUI" );
 REGISTER_GUI_PLUGIN( TextToInt, L"SE TextToInt GUI" );
 REGISTER_GUI_PLUGIN( TextToFloat, L"SE TextToFloat GUI" );
 REGISTER_GUI_PLUGIN( TextToBool, L"SE TextToBool GUI" );
+REGISTER_GUI_PLUGIN( TextToText8Gui, L"SE TextToText8Gui" );
+REGISTER_GUI_PLUGIN( Text8ToTextGui, L"SE Text8ToTextGui" );
 
 REGISTER_GUI_PLUGIN( TextToBlob, L"SE TextToBlob GUI" );
 REGISTER_GUI_PLUGIN( BlobToText, L"SE BlobToText GUI" );
