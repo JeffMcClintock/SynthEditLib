@@ -72,8 +72,9 @@ namespace SE2
 
 		const auto r = ViewBase::render(drawingContext);
 
-#if 0 //def _DEBUG
+#ifdef _DEBUG
 		{
+			// draw cross at center of view, to help with alignment and debugging pan/zoom.
 			constexpr float cx = viewDimensions * 0.5f;
 			constexpr float arm = 60.0f;
 			auto crossBrush = g.createSolidColorBrush(Colors::Orange);
