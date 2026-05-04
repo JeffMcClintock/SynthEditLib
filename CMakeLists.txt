@@ -518,6 +518,34 @@ ${GMPI_UI_SDK}/backends/DrawingFrameMac.mm
 )
 ENDIF()
 
+IF(SE_GRAPHICS_SUPPORT)
+set(srcs
+${srcs}
+${se_sdk_hosting_folder}/GuiPatchAutomator3.h
+${se_sdk_hosting_folder}/GuiPatchAutomator3.cpp
+${se_sdk_hosting_folder}/IViewChild.h
+${se_sdk_hosting_folder}/IViewChild.cpp
+${se_sdk_hosting_folder}/IGuiHost2.h
+${se_sdk_hosting_folder}/ViewBase.h
+${se_sdk_hosting_folder}/ViewBase.cpp
+${se_sdk_hosting_folder}/ContainerView.h
+${se_sdk_hosting_folder}/ContainerView.cpp
+${se_sdk_hosting_folder}/ResizeAdorner.h
+${se_sdk_hosting_folder}/ResizeAdorner.cpp
+${se_sdk_hosting_folder}/SubViewPanel.h
+${se_sdk_hosting_folder}/SubViewPanel.cpp
+${se_sdk_hosting_folder}/ConnectorView.h
+${se_sdk_hosting_folder}/ConnectorView.cpp
+${se_sdk_hosting_folder}/ModuleView.h
+${se_sdk_hosting_folder}/ModuleView.cpp
+${se_sdk_hosting_folder}/DirectXGfx.h
+${se_sdk_hosting_folder}/DirectXGfx.cpp
+${se_sdk_hosting_folder}/JsonDocPresenter.h)
+ENDIF()
+
+
+IF(SE2JUCE)
+
 # graphics modules
 IF(SE_GRAPHICS_SUPPORT)
 set(srcs
@@ -605,33 +633,10 @@ modules/PatchMemory/PatchBrowserGui.cpp
 modules/PatchMemory/PatchInfoGui.cpp
 modules/ControlsXp/ClassicControlGuiBase.h
 modules/OversamplingControl/OversamplingControlGui.h
-
-${se_sdk_hosting_folder}/GuiPatchAutomator3.h
-${se_sdk_hosting_folder}/GuiPatchAutomator3.cpp
-${se_sdk_hosting_folder}/IViewChild.h
-${se_sdk_hosting_folder}/IViewChild.cpp
-${se_sdk_hosting_folder}/IGuiHost2.h
-${se_sdk_hosting_folder}/ViewBase.h
-${se_sdk_hosting_folder}/ViewBase.cpp
-${se_sdk_hosting_folder}/ContainerView.h
-${se_sdk_hosting_folder}/ContainerView.cpp
-${se_sdk_hosting_folder}/ResizeAdorner.h
-${se_sdk_hosting_folder}/ResizeAdorner.cpp
-${se_sdk_hosting_folder}/SubViewPanel.h
-${se_sdk_hosting_folder}/SubViewPanel.cpp
-${se_sdk_hosting_folder}/ConnectorView.h
-${se_sdk_hosting_folder}/ConnectorView.cpp
-${se_sdk_hosting_folder}/ModuleView.h
-${se_sdk_hosting_folder}/ModuleView.cpp
-${se_sdk_hosting_folder}/DirectXGfx.h
-${se_sdk_hosting_folder}/DirectXGfx.cpp
-${se_sdk_hosting_folder}/JsonDocPresenter.h
-
 )
 
 ENDIF() # SE_GRAPHICS_SUPPORT
 
-IF(SE2JUCE)
 
 # non-graphics modules
 set(srcs
