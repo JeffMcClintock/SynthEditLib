@@ -597,7 +597,6 @@ modules/SubControlsXp/Image2GuiXp.h
 modules/SubControlsXp/TextSubcontrol.h
 modules/SubControlsXp/Image2GuiXp.cpp
 modules/SubControlsXp/PanelGroupGui.cpp
-modules/SubControlsXp/PlainImageGui.cpp
 modules/PolyphonyControl/PolyphonyControlGui.cpp
 modules/SubControlsXp/PopupMenuGui.cpp
 modules/SubControlsXp/TextEntry4Gui.cpp

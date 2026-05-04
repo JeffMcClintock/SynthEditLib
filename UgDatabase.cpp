@@ -1161,7 +1161,6 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(PatchPointsGui)
 	INIT_STATIC_FILE(CpuMeterGui);
 	INIT_STATIC_FILE(PatchPoints);
-	INIT_STATIC_FILE(PlainImage_Gui)
 #endif
 
 	INIT_STATIC_FILE(VoiceMute);
