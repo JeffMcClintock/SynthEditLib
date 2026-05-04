@@ -123,7 +123,7 @@ gmpi::ReturnCode DrawingFrameBase2::launchContextMenu(const gmpi::drawing::Point
     if (!editor_gmpi)
         return gmpi::ReturnCode::Unhandled;
 
-    gmpi::drawing::Rect rect(point.x, point.y, point.x + 120, point.y + 20);
+    gmpi::drawing::Rect rect{ point.x, point.y, point.x + 120, point.y + 20 };
 
     gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
     if (createPopupMenu(&rect, unknown.put()) != gmpi::ReturnCode::Ok)
