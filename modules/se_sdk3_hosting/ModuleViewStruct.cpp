@@ -680,7 +680,7 @@ namespace SE2
 					// Spare container pins white.
 					const int datatype = (pin.isAutoduplicatePlug && pin.isIoPlug) ? static_cast<int>(sharedGraphicResources_struct::pinColors.size()) - 1 : pin.datatype;
 
-					const bool isPinCircleHovered = (hoveredPin_.pinIndex == pinIndex && hoveredPin_.hitCircle);
+					const bool isPinCircleHovered = (hoveredPinInstant_.pinIndex == pinIndex && hoveredPinInstant_.hitCircle);
 					auto& fillBrush = isPinCircleHovered ? resources->pinFillBrushesHovered[datatype] : resources->pinFillBrushes[datatype];
 					auto& pinOutlineBrush = isPinCircleHovered ? resources->pinOutlineBrushesHovered[datatype] : resources->pinOutlineBrushes[datatype];
 
@@ -1795,43 +1795,16 @@ namespace SE2
 
 	gmpi::ReturnCode ModuleViewStruct::onPointerMove(gmpi::drawing::Point point, int32_t flags)
 	{
+		lastMousePos = point;
 		if (!mouseCaptured)
 		{
-			auto newHoveredPin = getPinUnderMouse(point);
+			hoveredCounter = hoveredCounterInit;
 
-			if (hoveredPin_.pinIndex != newHoveredPin.pinIndex || hoveredPin_.hitCircle != newHoveredPin.hitCircle)
+			auto newHoveredPin = getPinUnderMouse(lastMousePos);
+
+			if(hoveredPinInstant_.pinIndex != newHoveredPin.pinIndex || hoveredPinInstant_.hitCircle != newHoveredPin.hitCircle)
 			{
-				// temporarily trace, only while highlighted
-				if(hoveredPin_.pinIndex > -1)
-				{
-					Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
-
-//	hoverScopeWaveform can be null if you turn off audio while scope displayed, still needs erasing but				if(hoverScopeWaveform || !hoverScopeText.empty())
-					{
-						invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
-					}
-				}
-
-				if(newHoveredPin.pinIndex > -1)
-					Presenter()->HighlightConnector(this->handle, newHoveredPin.pinIndex, PinHighlightFlag_EmphasiseMomentary);
-
-				hoveredPin_ = newHoveredPin;
-				hoverScopeWaveform = {};
-				scopeIsWave = false;
-				hoverScopeText.clear();
-				std::fill(std::begin(movingPeaks), std::end(movingPeaks), -99.0f);
-
-				int dspHoverPin = hoveredPin_.hitCircle ? -1 : hoveredPin_.pinIndex;
-
-				if (editorPinValues && hoveredPin_.guiPin >= 0 && !hoveredPin_.hitCircle)
-				{
-					auto& vals = *editorPinValues.get();
-					auto& raw = vals[hoveredPin_.guiPin];
-
-					dspHoverPin = -1; // CUG has nothing to do.
-					hoverScopeText = NiceFormatted(raw, (EPlugDataType) plugs_[hoveredPin_.pinIndex].datatype);
-				}
-				Presenter()->setHoverScopePin(handle, dspHoverPin);
+				hoveredPinInstant_ = newHoveredPin;
 				parent->ChildInvalidateRect(getClipArea());
 			}
 		}
@@ -1844,33 +1817,91 @@ namespace SE2
 			*/
 		}
 
-		ModuleView::onPointerMove(point, flags);
-		return gmpi::ReturnCode::Unhandled;
+		return ModuleView::onPointerMove(point, flags);
 	}
 
 	gmpi::ReturnCode ModuleViewStruct::setHover(bool mouseIsOverMe)
 	{
-		bool visualStateChanged = isHovered_ != mouseIsOverMe;
+		const bool repaint = isHovered_ != mouseIsOverMe;
 
 		auto r = ModuleView::setHover(mouseIsOverMe);
 
-		if (!mouseIsOverMe && hoveredPin_.pinIndex != -1)
+		if(mouseIsOverMe)
 		{
-			Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
+			hoveredCounter = hoveredCounterInit;
+			startTimer();
+		}
+		else
+		{
+			stopTimer();
 
-			invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
+			hoveredPinInstant_ = { -1, -1, -1, -1, 0.0f, true };
 
-			hoveredPin_ = { -1, -1, -1, -1, 0.0f, true };
-			hoverScopeWaveform = {};
-			scopeIsWave = false;
-			hoverScopeText.clear();
-			Presenter()->setHoverScopePin(handle, -1);
+			if(hoveredPin_.pinIndex != -1)
+			{
+				Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
+
+				invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
+
+				hoveredPin_ = { -1, -1, -1, -1, 0.0f, true };
+				hoverScopeWaveform = {};
+				scopeIsWave = false;
+				hoverScopeText.clear();
+				Presenter()->setHoverScopePin(handle, -1);
+			}
 		}
 
-		if (visualStateChanged)
+		if (repaint)
 			parent->ChildInvalidateRect(getClipArea());
 
 		return r;
+	}
+
+	bool ModuleViewStruct::onTimer()
+	{
+		if(hoveredCounter-- == 0)
+			onMousePausedOverMe();
+
+		return true;
+	}
+
+	void ModuleViewStruct::onMousePausedOverMe()
+	{
+		auto& newHoveredPin = hoveredPinInstant_;
+
+		if(hoveredPin_.pinIndex != newHoveredPin.pinIndex || hoveredPin_.hitCircle != newHoveredPin.hitCircle)
+		{
+			// temporarily trace, only while highlighted
+			if(hoveredPin_.pinIndex > -1)
+			{
+				Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
+
+				//	hoverScopeWaveform can be null if you turn off audio while scope displayed, still needs erasing but				if(hoverScopeWaveform || !hoverScopeText.empty())
+				invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
+			}
+
+			if(newHoveredPin.pinIndex > -1)
+				Presenter()->HighlightConnector(this->handle, newHoveredPin.pinIndex, PinHighlightFlag_EmphasiseMomentary);
+
+			hoveredPin_ = newHoveredPin;
+			hoverScopeWaveform = {};
+			scopeIsWave = false;
+			hoverScopeText.clear();
+			std::fill(std::begin(movingPeaks), std::end(movingPeaks), -99.0f);
+
+			int dspHoverPin = hoveredPin_.hitCircle ? -1 : hoveredPin_.pinIndex;
+
+			if(editorPinValues && hoveredPin_.guiPin >= 0 && !hoveredPin_.hitCircle)
+			{
+				auto& vals = *editorPinValues.get();
+				auto& raw = vals[hoveredPin_.guiPin];
+
+				dspHoverPin = -1; // CUG has nothing to do.
+				hoverScopeText = NiceFormatted(raw, (EPlugDataType)plugs_[hoveredPin_.pinIndex].datatype);
+			}
+			Presenter()->setHoverScopePin(handle, dspHoverPin);
+			parent->ChildInvalidateRect(getClipArea());
+		}
 	}
 
 	void ModuleViewStruct::OnCableDrag(ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistanceSquared, ModuleView*& bestModule, int& bestPinIndex)

@@ -1,6 +1,7 @@
 #pragma once
 #include <chrono>
 #include "ModuleView.h"
+#include "helpers/Timer.h"
 
 namespace SE2
 {
@@ -14,7 +15,7 @@ struct pinHit
 	bool hitCircle;
 };
 
-class ModuleViewStruct : public ModuleView
+class ModuleViewStruct : public ModuleView, public gmpi::TimerClient
 {
 	std::string lPlugNames;
 	std::string rPlugNames;
@@ -24,13 +25,17 @@ class ModuleViewStruct : public ModuleView
 	const int plugTextHorizontalPadding = -1; // gap between plug text and plug circle outer radius.
 	gmpi::drawing::Rect clipArea;
 	bool muted = false;
-	pinHit hoveredPin_{ -1, -1, -1, -1, 0.0f, true };
+	pinHit hoveredPinInstant_{ -1, -1, -1, -1, 0.0f, true };	// updates instantly
+	pinHit hoveredPin_{ -1, -1, -1, -1, 0.0f, true };			// updates after deliberate pause of mouse
 	gmpi::drawing::Rect boundsOnMouseDown;
 	bool scopeIsWave{};
 	std::string hoverScopeText;
 	std::unique_ptr< std::vector<float> > hoverScopeWaveform;
 	float movingPeaks[512] = {};
 	int movingPeaksIdx = 0;
+	gmpi::drawing::Point lastMousePos;
+	const static int hoveredCounterInit = 2;
+	int hoveredCounter = hoveredCounterInit;
 	static std::chrono::time_point<std::chrono::steady_clock> lastClickedTime;
 
 	std::shared_ptr<sharedGraphicResources_struct> drawingResources;
@@ -93,6 +98,8 @@ public:
 	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode setHover(bool mouseIsOverMe) override;
+	bool onTimer() override;
+	void onMousePausedOverMe();
 
 	void OnClickedButDidntDrag() override;
 	void OnCableDrag(ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, ModuleView*& bestModule, int& bestPinIndex) override;
