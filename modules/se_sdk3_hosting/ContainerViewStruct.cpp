@@ -99,46 +99,54 @@ namespace SE2
 		const auto transformed = originalTransform * viewTransform;
 		g.setTransform(transformed);
 
-//		if (viewType == CF_STRUCTURE_VIEW)
+		// THEME
+		const unsigned int backGroundColor = 0xACACACu; // Background color
+
+		// Background
 		{
-			// THEME
-			const unsigned int backGroundColor = 0xACACACu; // Background color
+			// fill in the area arround the drawing area. avoiding overdraw.
+			gmpi::drawing::Rect editingBounds{ 0.0f, 0.0f, (float)viewDimensions, (float)viewDimensions };
+			gmpi::drawing::Rect huge{ -100000.0f, -100000.0f, 100000.0f, 100000.0f };
 
-			// Background
-			{
-				// fill in the area arround the drawing area. avoiding overdraw.
-				gmpi::drawing::Rect editingBounds{ 0.0f, 0.0f, (float)viewDimensions, (float)viewDimensions };
-				gmpi::drawing::Rect huge{ -100000.0f, -100000.0f, 100000.0f, 100000.0f };
+			auto backgroundBrush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x555555u));
+			auto temp = huge;
+			temp.bottom = editingBounds.top;
+			g.fillRectangle(temp, backgroundBrush);
 
-				auto backgroundBrush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x555555u));
-				auto temp = huge;
-				temp.bottom = editingBounds.top;
-				g.fillRectangle(temp, backgroundBrush);
+			temp = huge;
+			temp.top = editingBounds.bottom;
+			g.fillRectangle(temp, backgroundBrush);
 
-				temp = huge;
-				temp.top = editingBounds.bottom;
-				g.fillRectangle(temp, backgroundBrush);
+			temp = huge;
+			temp.top = editingBounds.top - 1.0f;
+			temp.bottom = editingBounds.bottom + 1.0f;
+			temp.right = editingBounds.left;
+			g.fillRectangle(temp, backgroundBrush);
 
-				temp = huge;
-				temp.top = editingBounds.top - 1.0f;
-				temp.bottom = editingBounds.bottom + 1.0f;
-				temp.right = editingBounds.left;
-				g.fillRectangle(temp, backgroundBrush);
+			temp.left = editingBounds.right;
+			temp.right = huge.right;
+			g.fillRectangle(temp, backgroundBrush);
 
-				temp.left = editingBounds.right;
-				temp.right = huge.right;
-				g.fillRectangle(temp, backgroundBrush);
-
-				// fill the drawing area
-				backgroundBrush.setColor(backGroundColor);
-				g.fillRectangle(editingBounds, backgroundBrush);
-			}
-
-			// draw grid
-			renderGrid(g, colorFromHex(backGroundColor + 0x040404u));
+			// fill the drawing area
+			backgroundBrush.setColor(backGroundColor);
+			g.fillRectangle(editingBounds, backgroundBrush);
 		}
 
+		// draw grid
+		renderGrid(g, colorFromHex(backGroundColor + 0x040404u));
+
 		const auto r = ViewBase::render(drawingContext);
+
+#ifdef _DEBUG
+		{
+			// draw cross at center of view, to help with alignment and debugging pan/zoom.
+			constexpr float cx = viewDimensions * 0.5f;
+			constexpr float arm = 60.0f;
+			auto crossBrush = g.createSolidColorBrush(Colors::Orange);
+			g.drawLine({ cx - arm, cx }, { cx + arm, cx }, crossBrush, 5.0f);
+			g.drawLine({ cx, cx - arm }, { cx, cx + arm }, crossBrush, 5.0f);
+		}
+#endif
 
 		g.setTransform(originalTransform);
 
