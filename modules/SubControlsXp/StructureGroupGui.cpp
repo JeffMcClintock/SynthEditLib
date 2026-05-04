@@ -54,7 +54,7 @@ public:
 
 	int32_t MP_STDCALL hitTest(GmpiDrawing_API::MP1_POINT point) override
 	{
-		return point.y < headerHeight ? gmpi::MP_OK : gmpi::MP_FAIL;
+		return point.y < headerHeight ? gmpi::MP_OK : gmpi::MP_NOSUPPORT; // MP_NOSUPPORT is a stronger miss than usual. means that click in bounds dosn't count.
 	}
 };
 

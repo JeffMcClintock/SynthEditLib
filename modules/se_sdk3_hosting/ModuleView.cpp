@@ -1680,21 +1680,21 @@ if(pluginGraphics)
 			auto local = PointToPlugin(point);
 
 			// if client says it's a hit, it's a solid hit.
+			gmpi::ReturnCode hitTestResult = gmpi::ReturnCode::Fail;
+
 			if(pluginInput_GMPI)
-			{
-				if(pluginInput_GMPI->hitTest(local, flags) == gmpi::ReturnCode::Ok)
-					return solidHit;
-			}
+				hitTestResult = pluginInput_GMPI->hitTest(local, flags);
 			else if(pluginGraphics3)
-			{
-				if(pluginGraphics3->hitTest2(flags, *reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local)) == gmpi::MP_OK)
-					return solidHit;
-			}
+				hitTestResult = (gmpi::ReturnCode) pluginGraphics3->hitTest2(flags, *reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local));
 			else if(pluginGraphics2)
-			{
-				if(pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local)) == gmpi::MP_OK)
-					return solidHit;
-			}
+				hitTestResult = (gmpi::ReturnCode)pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local));
+
+			if(gmpi::ReturnCode::Ok == hitTestResult)
+				return solidHit;
+
+			// structure panel can return an extra-hard miss on bottom area. so that normal mouse behaviour passes through (e.g. drag selection rect)
+			if(gmpi::ReturnCode::NoSupport == hitTestResult)
+				return totalMiss;
 		}
 
 		// TODO!! use editEnabled to somehow ignore click on knob titles when no editing.
