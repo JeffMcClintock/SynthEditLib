@@ -1,5 +1,7 @@
 #pragma once
+#ifndef _LIBCPP_DISABLE_DEPRECATION_WARNINGS
 #define _LIBCPP_DISABLE_DEPRECATION_WARNINGS 1
+#endif
 /*
 #include "Cocoa_Gfx.h"
 */
@@ -744,7 +746,7 @@ namespace se
 			int32_t MP_STDCALL SetLineSpacing(float lineSpacing, float baseline) override
 			{
 				// Hack, reuse this method to enable legacy-mode.
-				if (IMpTextFormat::ImprovedVerticalBaselineSnapping == lineSpacing)
+				if (static_cast<float>(IMpTextFormat::ImprovedVerticalBaselineSnapping) == lineSpacing)
 				{
 					useLegacyBaseLineSnapping = false;
 					return gmpi::MP_OK;
@@ -1060,11 +1062,11 @@ return gmpi::MP_FAIL;
 				{
 				case GmpiDrawing_API::MP1_FILL_MODE_ALTERNATE:
                 case GmpiDrawing_API::MP1_FILL_MODE_FORCE_DWORD:
-					[geometry_ setWindingRule : NSEvenOddWindingRule];
+					[geometry_ setWindingRule : NSWindingRuleEvenOdd];
 					break;
 
 				case GmpiDrawing_API::MP1_FILL_MODE_WINDING:
-					[geometry_ setWindingRule : NSNonZeroWindingRule];
+					[geometry_ setWindingRule : NSWindingRuleNonZero];
 					break;
 				}
 			}
