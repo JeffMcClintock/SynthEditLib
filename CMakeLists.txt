@@ -740,6 +740,20 @@ MARK_AS_ADVANCED (COREFOUNDATION_LIBRARY)
 endif()
 
 include (GenerateExportHeader)
+
+# Drop Windows-only sources from non-Windows builds.
+# pch.cpp is a Visual Studio precompiled-header anchor; DirectXGfx.cpp is the
+# Direct2D rendering backend. Both compile to symbol-less .o files on Apple/Linux
+# and trigger ranlib "has no symbols" warnings, so just skip them.
+if(NOT WIN32)
+  list(REMOVE_ITEM srcs
+    pch.cpp
+    pch.h
+    ${se_sdk_hosting_folder}/DirectXGfx.h
+    ${se_sdk_hosting_folder}/DirectXGfx.cpp
+  )
+endif()
+
 add_library(${PROJECT_NAME} STATIC ${sdk_srcs} ${srcs} ${srcs_json} ${srcs_modules_internal} ${srcs_xml} ${srcs_gmpi_forms} $<TARGET_OBJECTS:dspfilters_objs>)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE 
