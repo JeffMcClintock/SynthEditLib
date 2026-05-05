@@ -43,19 +43,8 @@ ${GMPI_SDK}/Core/GmpiApiCommon.h
 ${GMPI_SDK}/Core/Processor.h
 ${GMPI_SDK}/Core/Processor.cpp
 
-${GMPI_UI_SDK}/GmpiApiDrawing.h
-${GMPI_UI_SDK}/Drawing.h
-${GMPI_UI_SDK}/helpers/GmpiPluginEditor.h
 ${GMPI_UI_SDK}/helpers/Timer.h
 ${GMPI_UI_SDK}/helpers/Timer.cpp
-${GMPI_UI_SDK}/helpers/NativeUi.h
-${GMPI_UI_SDK}/helpers/ImageCache.h
-${GMPI_UI_SDK}/helpers/ImageCache.cpp
-${GMPI_UI_SDK}/helpers/ImageMetadata.h
-${GMPI_UI_SDK}/helpers/ImageMetadata.cpp
-${GMPI_UI_SDK}/helpers/AnimatedBitmap.h
-${GMPI_UI_SDK}/backends/DrawingFrameCommon.h
-${GMPI_UI_SDK}/backends/DrawingFrameCommon.cpp
 
 ${se_sdk_folder}/mp_sdk_common.h
 ${se_sdk_folder}/mp_sdk_common.cpp
@@ -88,6 +77,20 @@ ${GMPI_SDK}/Hosting/message_queues.h
 ${GMPI_SDK}/Hosting/message_queues.cpp
 )
 
+if(SE_GRAPHICS_SUPPORT)
+set(sdk_srcs ${sdk_srcs}
+${GMPI_UI_SDK}/GmpiApiDrawing.h
+${GMPI_UI_SDK}/Drawing.h
+${GMPI_UI_SDK}/helpers/GmpiPluginEditor.h
+${GMPI_UI_SDK}/helpers/NativeUi.h
+${GMPI_UI_SDK}/helpers/ImageCache.h
+${GMPI_UI_SDK}/helpers/ImageCache.cpp
+${GMPI_UI_SDK}/helpers/ImageMetadata.h
+${GMPI_UI_SDK}/helpers/ImageMetadata.cpp
+${GMPI_UI_SDK}/helpers/AnimatedBitmap.h
+${GMPI_UI_SDK}/backends/DrawingFrameCommon.h
+${GMPI_UI_SDK}/backends/DrawingFrameCommon.cpp
+)
 IF(WIN32)
 set(sdk_srcs
   ${sdk_srcs}
@@ -99,6 +102,7 @@ set(sdk_srcs
   Shared/DrawingFrame2_win.cpp
 )
 endif()
+endif() # SE_GRAPHICS_SUPPORT
 
 set(srcs_json
 Shared/jsoncpp/json/json.h
@@ -221,13 +225,7 @@ set(srcs
 Shared/AuPreset.h
 Shared/AuPreset.cpp
 
-${se_sdk_hosting_folder}/GmpiUiToSDK3.h
-${se_sdk_hosting_folder}/SDK3Adaptor.h
-${se_sdk_hosting_folder}/SDK3Adaptor.cpp
-
 ${se_sdk_hosting_folder}/IGuiHost2.h
-${se_sdk_hosting_folder}/DirectXGfx.h
-${se_sdk_hosting_folder}/DirectXGfx.cpp
 ${se_sdk_hosting_folder}/Controller.h
 ${se_sdk_hosting_folder}/Controller.cpp
 ${se_sdk_hosting_folder}/MpParameter.h
@@ -500,11 +498,9 @@ variable_policies.h
 se_file_format_version.h
 conversion.h
 conversion.cpp
-modules/se_sdk3_hosting/Presenter.h
-modules/se_sdk3_hosting/Presenter.cpp
 )
 
-IF(APPLE)
+IF(APPLE AND SE_GRAPHICS_SUPPORT)
 set(srcs ${srcs}
 modules/se_sdk3_hosting/Cocoa_Gfx.h
 modules/se_sdk3_hosting/EventHelper.h
@@ -521,6 +517,9 @@ ENDIF()
 IF(SE_GRAPHICS_SUPPORT)
 set(srcs
 ${srcs}
+${se_sdk_hosting_folder}/GmpiUiToSDK3.h
+${se_sdk_hosting_folder}/SDK3Adaptor.h
+${se_sdk_hosting_folder}/SDK3Adaptor.cpp
 ${se_sdk_hosting_folder}/GuiPatchAutomator3.h
 ${se_sdk_hosting_folder}/GuiPatchAutomator3.cpp
 ${se_sdk_hosting_folder}/IViewChild.h
@@ -540,7 +539,10 @@ ${se_sdk_hosting_folder}/ModuleView.h
 ${se_sdk_hosting_folder}/ModuleView.cpp
 ${se_sdk_hosting_folder}/DirectXGfx.h
 ${se_sdk_hosting_folder}/DirectXGfx.cpp
-${se_sdk_hosting_folder}/JsonDocPresenter.h)
+${se_sdk_hosting_folder}/JsonDocPresenter.h
+modules/se_sdk3_hosting/Presenter.h
+modules/se_sdk3_hosting/Presenter.cpp
+)
 ENDIF()
 
 
@@ -715,6 +717,8 @@ ${se_shared_folder}
 ${se_sdk_hosting_folder}
 )
 
+set(srcs_gmpi_forms "")
+if(SE_GRAPHICS_SUPPORT)
 set(srcs_gmpi_forms
 ${GMPI_UI_SDK}/experimental/primatives.h
 ${GMPI_UI_SDK}/experimental/primatives.cpp
@@ -729,6 +733,7 @@ ${GMPI_UI_SDK}/experimental/ui_facades.h
 ${GMPI_UI_SDK}/experimental/ui_facades.cpp
 ${GMPI_UI_SDK}/experimental/observable.h
 )
+endif()
 
 source_group(vst3_sdk FILES ${sdk_vst3_srcs})
 source_group(se_sdk FILES ${sdk_srcs})
