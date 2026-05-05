@@ -219,28 +219,57 @@ namespace SE2
 	//     distance nodeX, nodeY
 	std::tuple<float, int, int> ResizeAdorner::hitTestWhat(gmpi::drawing::Point point)
 	{
-		auto nodeRect = getNodeRect();
+		const auto nodeRect = getNodeRect();
 
-		const auto definatalyOutside = !pointInRect(point, inflateRect(nodeRect, fuzzyHitTestLimit + ResizeHandleRadius));
+		const auto definitelyOutside = !pointInRect(point, inflateRect(nodeRect, fuzzyHitTestLimit + ResizeHandleRadius));
 
-		if(definatalyOutside)
+		if(definitelyOutside)
 			return { 1000.0f, -1, -1 }; // not-hit.
 
 		const Point pointLocal(point.x - topLeft.x, point.y - topLeft.y);
 
-		// if point is inside module imbedded graphics, then return a miss.
+		// if point is inside module imbedded graphics, then return a miss. except for direct hit on node.
+		bool pointInClientArea{};
 		{
 			const Size offsetToModule(module->bounds_.left - topLeft.x, module->bounds_.top - topLeft.y);
 			auto pluginGraphicsPos = offsetRect(module->pluginGraphicsPos, offsetToModule); // outline of module graphics insert.
-			if(pointInRect(pointLocal, pluginGraphicsPos))
-				return { 1000.0f, -1, -1 }; // not-hit.
+			pointInClientArea = pointInRect(pointLocal, pluginGraphicsPos);
 		}
 
-		gmpi::drawing::Rect r(getNodeRect());
+		// client area trumps anything except a hard hit inside a node.
+		float best = pointInClientArea ? 0.1f : fuzzyHitTestLimit;
+
+		// distance to nodes.
+		int hitNodeX = -1;
+		int hitNodeY = -1;
+		{
+			float bestSquared = (best + ResizeHandleRadius) * (best + ResizeHandleRadius);
+			for(auto& n : getNodes())
+			{
+				const float dx = n.location.x - pointLocal.x;
+				const float dy = n.location.y - pointLocal.y;
+				const auto distance2 = dx * dx + dy * dy;
+
+				if(distance2 > bestSquared)
+					continue;
+
+				bestSquared = distance2;
+
+				hitNodeX = n.xIndex;
+				hitNodeY = n.yIndex;
+			}
+
+			if(hitNodeX > -1)
+				best = (std::max)(0.0f, sqrtf(bestSquared) - ResizeHandleRadius);
+		}
+
+		// client are takes priority, except for direct hit on node.
+		if(pointInClientArea && hitNodeX == -1)
+			return { 1000.0f, -1, -1 }; // not-hit.
 
 		if(hasGripper) // hit gripper?
 		{
-			gmpi::drawing::Rect dragArea(r);
+			gmpi::drawing::Rect dragArea(nodeRect);
 			dragArea.bottom = dragArea.top + DragAreaheight;
 
 			if(pointInRect(point, dragArea))
@@ -248,38 +277,22 @@ namespace SE2
 		}
 
 		// distance outside rect.
-		const auto distanceOutside = std::max(std::max(r.left - point.x, point.x - r.right), std::max(r.top - point.y, point.y - r.bottom));
+		const auto distanceOutside = std::max(std::max(nodeRect.left - point.x, point.x - nodeRect.right), std::max(nodeRect.top - point.y, point.y - nodeRect.bottom));
 
-		float best = distanceOutside > 0.0f ? distanceOutside : fuzzyHitTestLimit;
+		if(distanceOutside > 0.0f && distanceOutside < best)
+		{
+			best = distanceOutside;
+			hitNodeX = hitNodeY = -1;
+		}
 
 		// destance inside rect
-		const auto distanceInside = std::min(std::min(point.x - r.left, r.right - point.x), std::min(point.y - r.top, r.bottom - point.y));
+		const auto distanceInside = std::min(std::min(point.x - nodeRect.left, nodeRect.right - point.x), std::min(point.y - nodeRect.top, nodeRect.bottom - point.y));
 
 		if(distanceInside >= 0.0f && distanceInside < best) // negative distance are not inside. ignore.
-			best = distanceInside;
-
-		// distance to nodes.
-		float bestSquared = (best + ResizeHandleRadius) * (best + ResizeHandleRadius);
-		int hitNodeX = -1;
-		int hitNodeY = -1;
-		for(auto& n : getNodes())
 		{
-			const float dx = n.location.x - pointLocal.x;
-			const float dy = n.location.y - pointLocal.y;
-			const auto distance2 = dx * dx + dy * dy;
-
-			if(distance2 > bestSquared)
-				continue;
-
-			bestSquared = distance2;
-
-			hitNodeX = n.xIndex;
-			hitNodeY = n.yIndex;
+			best = distanceInside;
+			hitNodeX = hitNodeY = -1;
 		}
-//		const auto nearestNode = sqrtf(bestSquared) - ResizeHandleRadius;
-
-		if(hitNodeX > -1)
-			best = sqrtf(bestSquared) - ResizeHandleRadius;
 
 //		_RPTN(0, "ResizeAdorner::hitTestFuzzy: distanceOutside=%.1f distanceInside=%.1f best=%.1f\n", distanceOutside, distanceInside, best);
 		return { best, hitNodeX, hitNodeY };
