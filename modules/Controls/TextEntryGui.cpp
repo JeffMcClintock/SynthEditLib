@@ -9,6 +9,7 @@ class TextEntryGui final : public ControlsBase
 	Pin<std::string> pinpatchValue;
 	Pin<std::string> pinHint;
 
+	gmpi::shared_ptr<gmpi::api::ITextEdit> textEdit;
 	TextFormat cachedTextFormat;
 
 	TextFormat& getTextFormat(Graphics& g)
@@ -30,23 +31,34 @@ class TextEntryGui final : public ControlsBase
 		if (!dialogHost)
 			return;
 
+		textEdit = {};
+
 		gmpi::shared_ptr<gmpi::api::IUnknown> unk;
 		if (dialogHost->createTextEdit(&bounds, unk.put()) != ReturnCode::Ok || !unk)
 			return;
 
-		auto textEdit = unk.as<gmpi::api::ITextEdit>();
+		textEdit = unk.as<gmpi::api::ITextEdit>();
 		if (!textEdit)
 			return;
 
 		textEdit->setText(pinpatchValue.value.c_str());
 		textEdit->setTextSize(12.0f);
 
-		textEditCallback = gmpi::sdk::TextEditCallback([this](const std::string& newText) {
-			pinpatchValue = newText;
-			redraw();
-		});
+		//textEditCallback = gmpi::sdk::TextEditCallback([this](const std::string& newText) {
+		//	pinpatchValue = newText;
+		//	redraw();
+		//});
 		nativeTextEdit = textEdit;
-		textEdit->showAsync(static_cast<gmpi::api::IUnknown*>(&textEditCallback));
+		textEdit->showAsync(
+			new gmpi::sdk::TextEditCallback
+			(
+				[this](const std::string& newText)
+				{
+					pinpatchValue = newText;
+					redraw();
+				}
+			)
+		);
 	}
 
 	gmpi::sdk::TextEditCallback textEditCallback;
@@ -92,9 +104,23 @@ public:
 		if ((flags & static_cast<int32_t>(gmpi::api::GG_POINTER_FLAG_FIRSTBUTTON)) == 0)
 			return ReturnCode::Unhandled;
 
-		startTextEdit();
+		inputHost->setCapture();
 		return ReturnCode::Ok;
 	}
+
+	ReturnCode onPointerUp(Point point, int32_t flags) override
+	{
+		bool isCaptured{};
+		inputHost->getCapture(isCaptured);
+		if(!isCaptured)
+			return ReturnCode::Unhandled;
+
+		inputHost->releaseCapture();
+		startTextEdit();
+
+		return ReturnCode::Ok;
+	}
+
 /* TODO
 	ReturnCode getToolTip(Point, gmpi::api::IString* returnString) override
 	{
