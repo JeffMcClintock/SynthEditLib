@@ -122,12 +122,15 @@ namespace SE2
 	gmpi::drawing::Rect ResizeAdorner::getClipArea()
 	{
 		// getNodeRect() is already in parent-view coords; getClipArea must also return parent coords.
-		return inflateRect(getNodeRect(), ResizeHandleRadius + 1.0f);
+		return inflateRect(getNodeRect(), ResizeHandleRadius + 0.5f * nodeStrokeWidth);
 	}
 
 	gmpi::drawing::Rect ResizeAdornerStructure::getClipArea()
 	{
-		return inflateRect(module->getClipArea(), 2.5f);
+		const auto outlineRect = inflateRect(module->getClipArea(), strokeWidth * 0.5f);
+		const auto nodeRect = inflateRect(getNodeRect(), ResizeHandleRadius + 0.5f * nodeStrokeWidth);
+
+		return unionRect(outlineRect, nodeRect);
 	}
 
 	void ResizeAdorner::OnMoved(gmpi::drawing::Rect&)
@@ -150,7 +153,6 @@ namespace SE2
 		auto r = offsetRect(getNodeRect(), { -topLeft.x, -topLeft.y });
 		auto brush = g.createSolidColorBrush(color);
 		auto highlightBrush = g.createSolidColorBrush(gmpi::drawing::Colors::DeepSkyBlue);
-		const float strokeWidth = 2.5;
 
 		// Blue Outline
 		{
@@ -203,6 +205,14 @@ namespace SE2
 			g.fillCircle(n.location, (float)ResizeHandleRadius, isHighlighted ? highlightBrush : fillBrush);
 			g.drawCircle(n.location, (float)ResizeHandleRadius, brush);
 		}
+#if 0
+		brush.setColor(gmpi::drawing::Colors::Orange);
+		auto ro = offsetRect(getClipArea(), { -topLeft.x, -topLeft.y });
+		g.drawRectangle(ro, brush, 0.1f);
+
+		auto nr = offsetRect(getNodeRect(), { -topLeft.x, -topLeft.y });
+		g.drawRectangle(nr, brush, 0.1f);
+#endif
 	}
 
 	gmpi::ReturnCode ResizeAdorner::hitTest(gmpi::drawing::Point point, int32_t)

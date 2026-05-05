@@ -14,6 +14,8 @@ namespace SE2
 		static constexpr float SelectionFrameOffset = 1.5f;
 		static constexpr float ResizeHandleRadius = 4;
 		static constexpr float DragAreaheight = 4;
+		static constexpr float strokeWidth = 2.5;
+		static constexpr float nodeStrokeWidth = 1.0;
 
 		ViewBase* parent{};
 		ModuleView* module{};
