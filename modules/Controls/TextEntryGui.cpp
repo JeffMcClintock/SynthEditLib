@@ -101,7 +101,7 @@ public:
 
 	ReturnCode onPointerDown(Point point, int32_t flags) override
 	{
-		if ((flags & static_cast<int32_t>(gmpi::api::GG_POINTER_FLAG_FIRSTBUTTON)) == 0)
+		if ((flags & static_cast<int32_t>(gmpi::api::PointerFlags::FirstButton)) == 0)
 			return ReturnCode::Unhandled;
 
 		inputHost->setCapture();

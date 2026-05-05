@@ -78,30 +78,32 @@ protected:
     virtual gmpi::drawing::RectL getFullDirtyRect() = 0;
     static int32_t makePointerFlags()
     {
-        return gmpi::api::GG_POINTER_FLAG_INCONTACT | gmpi::api::GG_POINTER_FLAG_PRIMARY | gmpi::api::GG_POINTER_FLAG_CONFIDENCE;
+        return static_cast<int32_t>(gmpi::api::PointerFlags::InContact)
+             | static_cast<int32_t>(gmpi::api::PointerFlags::Primary)
+             | static_cast<int32_t>(gmpi::api::PointerFlags::Confidence);
     }
     static void addPointerButtonFlags(int32_t& flags, bool firstButton, bool secondButton, bool thirdButton = false)
     {
         if (firstButton)
-            flags |= gmpi::api::GG_POINTER_FLAG_FIRSTBUTTON;
+            flags |= static_cast<int32_t>(gmpi::api::PointerFlags::FirstButton);
         if (secondButton)
-            flags |= gmpi::api::GG_POINTER_FLAG_SECONDBUTTON;
+            flags |= static_cast<int32_t>(gmpi::api::PointerFlags::SecondButton);
         if (thirdButton)
-            flags |= gmpi::api::GG_POINTER_FLAG_THIRDBUTTON;
+            flags |= static_cast<int32_t>(gmpi::api::PointerFlags::ThirdButton);
     }
     static void addPointerKeyFlags(int32_t& flags, bool shift, bool control, bool alt)
     {
         if (shift)
-            flags |= gmpi::api::GG_POINTER_KEY_SHIFT;
+            flags |= static_cast<int32_t>(gmpi::api::PointerFlags::KeyShift);
         if (control)
-            flags |= gmpi::api::GG_POINTER_KEY_CONTROL;
+            flags |= static_cast<int32_t>(gmpi::api::PointerFlags::KeyControl);
         if (alt)
-            flags |= gmpi::api::GG_POINTER_KEY_ALT;
+            flags |= static_cast<int32_t>(gmpi::api::PointerFlags::KeyAlt);
     }
     static void addPointerNewFlag(int32_t& flags, bool isNew)
     {
         if (isNew)
-            flags |= gmpi::api::GG_POINTER_FLAG_NEW;
+            flags |= static_cast<int32_t>(gmpi::api::PointerFlags::New);
     }
     std::span<gmpi::drawing::RectL> getDirtyRects() { return dirtyRects.get(); }
     std::span<const gmpi::drawing::RectL> getDirtyRects() const { return dirtyRects.get(); }
@@ -139,7 +141,7 @@ public:
     virtual void autoScrollStop() {}
 
     void attachClient(gmpi::api::IUnknown* pclient);
-                                                        void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx);
+    void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx);
     void detachClient();
     void detachAndRecreate();
     void sizeClientDips(float width, float height) override;
@@ -172,8 +174,6 @@ public:
     // returns IStockDialog
     gmpi::ReturnCode createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) override
     {return gmpi::ReturnCode::NoSupport;}
-
-    void MP_STDCALL invalidateMeasure() override {}
 
     gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
     {

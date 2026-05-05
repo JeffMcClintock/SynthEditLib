@@ -187,7 +187,7 @@ public:
 
 	ReturnCode onPointerDown(Point point, int32_t flags) override
 	{
-		if((flags & static_cast<int32_t>(gmpi::api::GG_POINTER_FLAG_FIRSTBUTTON)) == 0)
+		if((flags & static_cast<int32_t>(gmpi::api::PointerFlags::FirstButton)) == 0)
 			return ReturnCode::Ok;
 
 		pointPrevious = point;
@@ -204,7 +204,7 @@ public:
 		if(!hasCapture())
 			return ReturnCode::Unhandled;
 
-		const float coarseness = (flags & static_cast<int32_t>(gmpi::api::GG_POINTER_KEY_CONTROL)) != 0 ? 0.001f : 0.005f;
+		const float coarseness = (flags & static_cast<int32_t>(gmpi::api::PointerFlags::KeyControl)) != 0 ? 0.001f : 0.005f;
 		auto newValue = pinValue.value - coarseness * (point.y - pointPrevious.y);
 		newValue = (std::clamp)(newValue, 0.0f, 1.0f);
 		pointPrevious = point;

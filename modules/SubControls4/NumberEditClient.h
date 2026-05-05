@@ -299,7 +299,7 @@ public:
 			const auto prevCursor = cursorPos;
             cursorPos = (std::max)(cursorPos - 1, 0);
 
-            if (flags & gmpi::api::GG_POINTER_KEY_SHIFT)
+            if (flags & static_cast<int32_t>(gmpi::api::PointerFlags::KeyShift))
             {
 				if (prevCursor == selectedFrom)
 					selectedFrom = cursorPos;
@@ -319,7 +319,7 @@ public:
             const auto prevCursor = cursorPos;
             cursorPos = (std::min)(cursorPos + 1, (int) text.size());
 
-            if (flags & gmpi::api::GG_POINTER_KEY_SHIFT)
+            if (flags & static_cast<int32_t>(gmpi::api::PointerFlags::KeyShift))
             {
                 if (prevCursor == selectedTo)
                     selectedTo = cursorPos;
@@ -336,7 +336,7 @@ public:
 
         default:
         {
-            if (flags & gmpi::api::GG_POINTER_KEY_CONTROL) // <ctrl> key
+            if (flags & static_cast<int32_t>(gmpi::api::PointerFlags::KeyControl)) // <ctrl> key
             {
                 switch (key)
                 {

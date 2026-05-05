@@ -276,7 +276,7 @@ public:
 
 	ReturnCode onPointerDown(Point point, int32_t flags) override
 	{
-		if((flags & static_cast<int32_t>(gmpi::api::GG_POINTER_FLAG_FIRSTBUTTON)) == 0)
+		if((flags & static_cast<int32_t>(gmpi::api::PointerFlags::FirstButton)) == 0)
 			return ReturnCode::Ok;
 
 		pointPrevious = point;
@@ -304,7 +304,7 @@ public:
 		const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
 		const auto localBounds = getLocalBounds({ width, height });
 
-		const bool fineControl = (flags & static_cast<int32_t>(gmpi::api::GG_POINTER_KEY_CONTROL)) != 0;
+		const bool fineControl = (flags & static_cast<int32_t>(gmpi::api::PointerFlags::KeyControl)) != 0;
 		if(fineControl)
 		{
 			const float coarseness = 0.001f;
