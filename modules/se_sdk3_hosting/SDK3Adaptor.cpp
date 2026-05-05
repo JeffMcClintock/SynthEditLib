@@ -18,6 +18,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "mp_sdk_gui.h"
 #include "LegacyMenuAdapter.h"
 #include "LegacyFileDialogAdapter.h"
+#include "LegacyTextEditAdapter.h"
 
 using namespace gmpi;
 using namespace gmpi::editor;
@@ -184,10 +185,19 @@ int32_t MP_STDCALL SDK3AdaptorClient::createPlatformMenu(GmpiDrawing_API::MP1_RE
 }
 int32_t MP_STDCALL SDK3AdaptorClient::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
 {
-	gmpi::shared_ptr<gmpi::api::IUnknown> unk;
-	gmpiEditor.dialogHost->createTextEdit((gmpi::drawing::Rect*)rect, unk.put());
+	gmpi::api::ITextEdit* native{};
+	{
+		gmpi::shared_ptr<gmpi::api::IUnknown> unk;
+		gmpiEditor.dialogHost->createTextEdit((gmpi::drawing::Rect*)rect, unk.put());
+		unk->queryInterface(&gmpi::api::ITextEdit::guid, (void**)&native);
+	}
+	if (!native)
+		return gmpi::MP_FAIL;
 
-	return (int32_t) unk->queryInterface((const gmpi::api::Guid*) &gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT, (void**)returnTextEdit);
+	// native was addRef'd by QI; LegacyTextEditAdapter::inner.attach takes ownership.
+	// Cast is safe — vtable layout of both IMpPlatformText variants is identical.
+	*returnTextEdit = reinterpret_cast<gmpi_gui::IMpPlatformText*>(new LegacyTextEditAdapter(native));
+	return gmpi::MP_OK;
 }
 int32_t MP_STDCALL SDK3AdaptorClient::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog)
 {

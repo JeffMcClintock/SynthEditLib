@@ -10,6 +10,7 @@
 #include "legacy_sdk_gui2.h"
 #include "LegacyMenuAdapter.h"
 #include "LegacyFileDialogAdapter.h"
+#include "LegacyTextEditAdapter.h"
 #include "modules/shared/xplatform.h"
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "BundleInfo.h"
@@ -477,8 +478,15 @@ namespace SE2
 		if(retValue != gmpi::ReturnCode::Ok || retWidget.isNull())
 			return gmpi::MP_FAIL;
 
-		// cast GMPI-UI widget to it's legacy equivalent.
-		return (int32_t) retWidget->queryInterface(&gmpi_gui::legacy::IMpPlatformText::guid, (void**)returnTextEdit);
+		gmpi::api::ITextEdit* native{};
+		retWidget->queryInterface(&gmpi::api::ITextEdit::guid, (void**)&native);
+		if (!native)
+			return gmpi::MP_FAIL;
+
+		// Wrap new-API text-edit in adapter; cast is safe — vtable layout of both IMpPlatformText variants is identical.
+		// QI above addRef'd native; LegacyTextEditAdapter::inner.attach takes ownership without addRef.
+		*returnTextEdit = reinterpret_cast<gmpi_gui::IMpPlatformText*>(new LegacyTextEditAdapter(native));
+		return gmpi::MP_OK;
 	}
 
 	int32_t Sdk3Helper::pinTransmit(int32_t pinIndex, int32_t size, const void* data, int32_t voice)
