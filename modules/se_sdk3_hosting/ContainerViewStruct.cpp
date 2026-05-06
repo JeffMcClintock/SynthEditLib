@@ -95,8 +95,14 @@ namespace SE2
 
 		const Matrix3x2 originalTransform = g.getTransform();
 
-		// pan and zoom
-		const auto transformed = originalTransform * viewTransform;
+		// pan and zoom. Row-vector composition: viewTransform (doc→drawing)
+		// must run before originalTransform (drawing→pixel). Reversed order
+		// only happens to work when originalTransform is identity (top-level
+		// view); embedding under a non-identity outer transform reveals the
+		// bug — invalidate rects (which use viewTransform alone via
+		// ChildInvalidateRect) and rendered pixels disagree by
+		// canvasCenter*(outer_scale-1), leaving uncleared trails on drag.
+		const auto transformed = viewTransform * originalTransform;
 		g.setTransform(transformed);
 
 		// THEME
