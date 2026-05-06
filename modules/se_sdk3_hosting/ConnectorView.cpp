@@ -61,7 +61,7 @@ namespace SE2
 		parent->ChildInvalidateRect(getClipArea());
 	}
 
-	void ConnectorViewBase::pickup(int pdraggingFromEnd, gmpi::drawing::Point pMousePos)
+	void ConnectorViewBase::startDrag(int pdraggingFromEnd, gmpi::drawing::Point pMousePos)
 	{
 		parent->ChildInvalidateRect(getClipArea());
 
@@ -71,7 +71,6 @@ namespace SE2
 			to_ = pMousePos;
 
 		draggingFromEnd = pdraggingFromEnd;
-		wasPickedUp = true;
 
 		parent->setCapture(this);
 		parent->autoScrollStart();
@@ -315,12 +314,13 @@ namespace SE2
 */
 
 			// Left-click
+			wasPickedUp = true;
 			gmpi::drawing::Size delta = from_ - Point(point);
 			const float lengthSquared = delta.width * delta.width + delta.height * delta.height;
 			constexpr float hitRadiusSquared = mouseNearEndDist * mouseNearEndDist;
 			const int hitEnd = (lengthSquared < hitRadiusSquared) ? 0 : 1;
 
-			pickup(hitEnd, point);
+			startDrag(hitEnd, point);
 		}
 
 		return gmpi::ReturnCode::Unhandled;

@@ -1640,8 +1640,6 @@ namespace SE2
 
 		constexpr auto plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
-		const float pinHitRadiusSquared = plugDiameter * plugDiameter; // twice drawn size.
-
 		const float left = getLayoutRect().left + plugDiameter * 0.5f;
 		const float right = getLayoutRect().right - plugDiameter * 0.5f;
 
@@ -1664,13 +1662,13 @@ namespace SE2
 
 			if (pin.direction == DR_IN)
 			{
-				p.x = left;
+				p.x = left - plugDiameter * 0.5f;
 				pinRect.left = left + plugDiameter;
 				pinRect.right = left + plugHitWidth;
 			}
 			else
 			{
-				p.x = right;
+				p.x = right + plugDiameter * 0.5f;
 				pinRect.right = right - plugDiameter;
 				pinRect.left = right - plugHitWidth;
 			}
@@ -1688,7 +1686,7 @@ namespace SE2
 				return closestPin;
 			}
 
-			float distanceSquared = (point.x - p.x) * (point.x - p.x) + (point.y - p.y) * (point.y - p.y);
+			const float distanceSquared = (point.x - p.x) * (point.x - p.x) + (point.y - p.y) * (point.y - p.y);
 
 			if(distanceSquared < closestPin.distance)
 			{

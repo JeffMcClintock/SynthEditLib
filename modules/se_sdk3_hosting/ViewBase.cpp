@@ -1356,7 +1356,7 @@ namespace SE2
 		cable->to_ = mousePoint;
 		cable->type = CableType::StructureCable;
 
-		cable->pickup(1, mousePoint);
+		cable->startDrag(1, mousePoint);
 
 		assert(!isIteratingChildren);
 		children.push_back(std::unique_ptr<IViewChild>(cable));

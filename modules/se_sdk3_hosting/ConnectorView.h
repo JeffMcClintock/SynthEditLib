@@ -58,7 +58,7 @@ namespace SE2
 			return false;
 		}
 
-		void pickup(int draggingFromEnd, gmpi::drawing::Point pMousePos);
+		void startDrag(int draggingFromEnd, gmpi::drawing::Point pMousePos);
 
 		const connector_pin& fixedEnd() const
 		{
