@@ -71,7 +71,10 @@ namespace SE2
 		sharedGraphicResources_connectors* getDrawingResources(gmpi::drawing::Graphics& g);
 		bool mouseHover = {};
 		static gmpi::drawing::Point pointPrev; // for dragging nodes
-		
+
+		// returns { distance, hoverNode, hoverSegment }. distance: 0 = solid hit, 0..fuzzyHitTestLimit = fuzzy, totalMiss otherwise.
+		std::tuple<float, int, int> hitTestWhat(gmpi::drawing::Point point);
+
 	public:
 		// Dynamic patch-cables.
 		ConnectorView2(Json::Value* pDatacontext, ViewBase* pParent) :
@@ -107,6 +110,7 @@ namespace SE2
 		void CalcBounds() override;
 		void render(gmpi::drawing::Graphics& g) override;
 		gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override;
+		float hitTestFuzzy(int32_t flags, gmpi::drawing::Point point) override;
 		bool hitTestR(int32_t flags, gmpi::drawing::Rect selectionRect) override;
 		void measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize) override;
 		gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;

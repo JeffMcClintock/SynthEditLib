@@ -526,9 +526,9 @@ namespace SE2
 		assert(brush3);
 		g.drawGeometry(geometry, *brush3, snappedStrokeWidth, strokeStyle);
 
-		if (getSelected() && hoverSegment != -1)
+		if (getSelected() && mouseHover && hoverSegment != -1)
 		{
-			auto segments = GetSegmentGeometrys();
+			auto& segments = GetSegmentGeometrys();
 			g.drawGeometry(segments[hoverSegment], *brush3, snappedStrokeWidth + 1);
 		}
 
@@ -612,75 +612,123 @@ namespace SE2
 		return gmpi::ReturnCode::Unhandled;
 	}
 
-	gmpi::ReturnCode ConnectorView2::hitTest(gmpi::drawing::Point point, int32_t flags)
+	// returns { distance, hoverNode, hoverSegment }
+	//   distance: 0 = solid hit, 0..fuzzyHitTestLimit = fuzzy hit, totalMiss otherwise.
+	std::tuple<float, int, int> ConnectorView2::hitTestWhat(gmpi::drawing::Point point)
 	{
-		hoverNode = -1;
-		hoverSegment = -1;
+		constexpr float totalMiss = 1000.0f;
 
-		if (!pointInRect(point, getClipArea()) || !geometry)
-			return gmpi::ReturnCode::Unhandled;
+		if (!geometry)
+			return { totalMiss, -1, -1 };
 
-		if (!geometry.strokeContainsPoint(point, 3.0f))
-			return gmpi::ReturnCode::Unhandled;
+		// Cheap reject: outside fuzzy bounds.
+		if (!pointInRect(point, inflateRect(bounds_, fuzzyHitTestLimit)))
+			return { totalMiss, -1, -1 };
+
+		// Cheap reject by max-fuzzy stroke width before iterating geometry repeatedly.
+		// strokeContainsPoint(p, w) is true iff distance(p, line) <= w/2,
+		// so testing at hitTestWidth + 2*fuzzyHitTestLimit covers any point within fuzzyHitTestLimit of the solid-hit area.
+		const float maxFuzzyStrokeWidth = hitTestWidth + 2.0f * fuzzyHitTestLimit;
+		if (!geometry.strokeContainsPoint(point, maxFuzzyStrokeWidth))
+			return { totalMiss, -1, -1 };
 
 		// when highlighted, line moves in front of pin, so ignore hits near to the end.
-		if(highlightFlags != 0)
+		if (highlightFlags != 0)
 		{
-			const float endIgnoreDistanceSquared = 10.0f * 10.0f;
+			constexpr float endIgnoreDistanceSquared = 10.0f * 10.0f;
 			if (   vectorFromPoints(point, from_).LengthSquared() < endIgnoreDistanceSquared
 				|| vectorFromPoints(point, to_  ).LengthSquared() < endIgnoreDistanceSquared)
-				return gmpi::ReturnCode::Unhandled;
+				return { totalMiss, -1, -1 };
 		}
 
-		// hit test individual node points.
-		int i = 0;
-		for (auto& n : nodes)
+		// Distance to closest node (clamped to 0 for solid hit).
+		constexpr float nodeHitRadius = 1.0f + NodeRadius;
+		int closestNode = -1;
+		float closestNodeDistance = totalMiss;
+		for (int i = 0; i < (int)nodes.size(); ++i)
 		{
-			float dx = n.x - point.x;
-			float dy = n.y - point.y;
-
-			if ((dx * dx + dy * dy) <= (float)((1 + NodeRadius) * (1 + NodeRadius)))
+			const float dx = nodes[i].x - point.x;
+			const float dy = nodes[i].y - point.y;
+			const float distance = sqrtf(dx * dx + dy * dy) - nodeHitRadius;
+			if (distance < closestNodeDistance)
 			{
-				hoverNode = i;
+				closestNodeDistance = distance;
+				closestNode = i;
+			}
+		}
+		if (closestNodeDistance < 0.0f) closestNodeDistance = 0.0f;
+		if (closestNodeDistance > fuzzyHitTestLimit) closestNode = -1;
+
+		// Distance to closest line segment, plus the stroke width to use when identifying which segment.
+		float closestLineDistance;
+		float lineMatchStrokeWidth;
+		if (geometry.strokeContainsPoint(point, hitTestWidth))
+		{
+			closestLineDistance = 0.0f;
+			lineMatchStrokeWidth = hitTestWidth;
+		}
+		else
+		{
+			// Binary search for minimum stroke width that contains point.
+			// Invariant: strokeContainsPoint(point, lo)==false, strokeContainsPoint(point, hi)==true.
+			// fuzzy_distance = (hi - hitTestWidth) / 2, so 2 DIPs of width-precision yields ~1 DIP of distance-precision.
+			float lo = hitTestWidth;
+			float hi = maxFuzzyStrokeWidth;
+			while (hi - lo > 2.0f)
+			{
+				const float mid = (lo + hi) * 0.5f;
+				if (geometry.strokeContainsPoint(point, mid))
+					hi = mid;
+				else
+					lo = mid;
+			}
+			closestLineDistance = (hi - hitTestWidth) * 0.5f;
+			lineMatchStrokeWidth = hi;
+		}
+
+		// Pick winner: closer wins, node breaks ties.
+		if (closestNode != -1 && closestNodeDistance <= closestLineDistance)
+		{
+			return { closestNodeDistance, closestNode, -1 };
+		}
+
+		// Identify which segment is closest using the stroke width that just barely contains the point.
+		int hitSegment = -1;
+		auto& segments = GetSegmentGeometrys();
+		for (int j = 0; j < (int)segments.size(); ++j)
+		{
+			if (segments[j].strokeContainsPoint(point, lineMatchStrokeWidth))
+			{
+				hitSegment = j;
 				break;
 			}
-			++i;
 		}
 
-		// hit test individual segments.
-		if (hoverNode == -1)
+		if (hitSegment == -1 && !segments.empty())
 		{
-			hoverSegment = -1;
-
-			auto segments = GetSegmentGeometrys();
-			int j = 0;
-			for (auto& s : segments)
-			{
-				if (s.strokeContainsPoint(point, hitTestWidth))
-				{
-					hoverSegment = j;
-					break;
-				}
-				++j;
-			}
-
-			if (hoverSegment == -1)
-			{
-				// handle mouse over elbows and minor hit test glitches by defaulting to nearest end.
-				auto d1 = vectorFromPoints(from_, point).LengthSquared();
-				auto d2 = vectorFromPoints(to_, point).LengthSquared();
-				if (d1 < d2)
-				{
-					hoverSegment = 0;
-				}
-				else
-				{
-					hoverSegment = static_cast<int>(segments.size()) - 1;
-				}
-			}
+			// handle mouse over elbows and minor hit test glitches by defaulting to nearest end.
+			const auto d1 = vectorFromPoints(from_, point).LengthSquared();
+			const auto d2 = vectorFromPoints(to_, point).LengthSquared();
+			hitSegment = (d1 < d2) ? 0 : static_cast<int>(segments.size()) - 1;
 		}
 
-		return gmpi::ReturnCode::Ok;
+		return { closestLineDistance, -1, hitSegment };
+	}
+
+	gmpi::ReturnCode ConnectorView2::hitTest(gmpi::drawing::Point point, int32_t flags)
+	{
+		auto [distance, hn, hs] = hitTestWhat(point);
+		hoverNode = hn;
+		hoverSegment = hs;
+		return distance <= 0.0f ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
+	}
+
+	float ConnectorView2::hitTestFuzzy(int32_t flags, gmpi::drawing::Point point)
+	{
+		auto [distance, hn, hs] = hitTestWhat(point);
+		hoverNode = hn;
+		hoverSegment = hs;
+		return distance;
 	}
 
 	bool ConnectorView2::hitTestR(int32_t flags, gmpi::drawing::Rect selectionRect)
