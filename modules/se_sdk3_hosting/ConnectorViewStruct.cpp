@@ -778,6 +778,7 @@ namespace SE2
 	void ConnectorView2::OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes)
 	{
 		nodes = newNodes;
+		CalcBounds(); // rebuild geometry/segment cache so hitTest stays in sync with nodes
 		parent->markDirtyChild(this);
 		parent->invalidateRect();
 	}
