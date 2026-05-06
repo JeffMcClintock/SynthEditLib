@@ -632,30 +632,39 @@ namespace SE2
 		if (!geometry.strokeContainsPoint(point, maxFuzzyStrokeWidth))
 			return { totalMiss, -1, -1 };
 
-		// when highlighted, line moves in front of pin, so ignore hits near to the end.
-		if (highlightFlags != 0)
-		{
-			constexpr float endIgnoreDistanceSquared = 10.0f * 10.0f;
-			if (   vectorFromPoints(point, from_).LengthSquared() < endIgnoreDistanceSquared
-				|| vectorFromPoints(point, to_  ).LengthSquared() < endIgnoreDistanceSquared)
-				return { totalMiss, -1, -1 };
-		}
+		// Ignore hits near to the end that mess with clickin plugs. Unless it's a direct hit on a node.
+		constexpr float endIgnoreDistanceSquared = 18.0f * 18.0f;
+		bool mouseNearEndZone = vectorFromPoints(point, from_).LengthSquared() < endIgnoreDistanceSquared
+			|| vectorFromPoints(point, to_).LengthSquared() < endIgnoreDistanceSquared;
 
 		// Distance to closest node (clamped to 0 for solid hit).
 		constexpr float nodeHitRadius = 1.0f + NodeRadius;
+		constexpr float nodeHitRadiusSquared = nodeHitRadius * nodeHitRadius;
 		int closestNode = -1;
-		float closestNodeDistance = totalMiss;
-		for (int i = 0; i < (int)nodes.size(); ++i)
+		float closestNodeDistanceSquared = mouseNearEndZone ? nodeHitRadiusSquared : totalMiss; // near line end we become very strict, to avoid missing clicks on pins.
+		for(int i = 0; i < (int)nodes.size(); ++i)
 		{
 			const float dx = nodes[i].x - point.x;
 			const float dy = nodes[i].y - point.y;
-			const float distance = sqrtf(dx * dx + dy * dy) - nodeHitRadius;
-			if (distance < closestNodeDistance)
+			const float distanceSquared = dx * dx + dy * dy;
+			if(distanceSquared < closestNodeDistanceSquared)
 			{
-				closestNodeDistance = distance;
+				closestNodeDistanceSquared = distanceSquared;
 				closestNode = i;
 			}
 		}
+
+		float closestNodeDistance = mouseNearEndZone ? nodeHitRadius : totalMiss;
+		if(closestNode != -1)
+		{
+			closestNodeDistance = closestNodeDistanceSquared <= nodeHitRadiusSquared
+				? 0.0f
+				: sqrtf(closestNodeDistanceSquared) - nodeHitRadius;
+		}
+
+		if(mouseNearEndZone && closestNode == -1)
+			return { totalMiss, -1, -1 };
+
 		if (closestNodeDistance < 0.0f) closestNodeDistance = 0.0f;
 		if (closestNodeDistance > fuzzyHitTestLimit) closestNode = -1;
 
