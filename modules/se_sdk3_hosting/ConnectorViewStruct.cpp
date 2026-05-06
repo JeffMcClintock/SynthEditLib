@@ -431,15 +431,25 @@ namespace SE2
 
 		auto oldBounds = bounds_;
 
-		float expand = getSelected() ? (float)NodeRadius * 2 + 1 : (float)cableDiameter;
+		bounds_ = geometry.getWidenedBounds((float)cableDiameter, strokeStyle);
 
-		bounds_ = geometry.getWidenedBounds(expand, strokeStyle);
+		// Node circles are drawn outside the path geometry, so the path-widened bounds
+		// don't cover them. Union in each node's visual extent (radius + outline + AA).
+		if (getSelected())
+		{
+			const float nodeOutset = (float)NodeRadius + 2.0f;
+			for (const auto& n : nodes)
+			{
+				bounds_ = unionRect(bounds_, gmpi::drawing::Rect{
+					n.x - nodeOutset, n.y - nodeOutset,
+					n.x + nodeOutset, n.y + nodeOutset });
+			}
+		}
 
 		if (oldBounds != bounds_)
 		{
 			oldBounds = unionRect(oldBounds, bounds_);
 			parent->ChildInvalidateRect(oldBounds);
-//			parent->invalidateRect(&oldBounds);
 		}
 	}
 
