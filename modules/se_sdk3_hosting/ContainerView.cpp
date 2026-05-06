@@ -33,8 +33,10 @@ namespace SE2
 
 		const Matrix3x2 originalTransform = g.getTransform();
 
-		// pan and zoom
-		const auto viewTransformL = originalTransform * viewTransform;
+		// pan and zoom. Row-vector composition: viewTransform (doc→drawing)
+		// must run before originalTransform (drawing→pixel). See sibling
+		// ContainerViewStruct::render for the same fix.
+		const auto viewTransformL = viewTransform * originalTransform;
 		g.setTransform(viewTransformL);
 
 		// Background
