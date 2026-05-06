@@ -890,11 +890,13 @@ namespace SE2
 			if(pluginParameters_GMPI || pluginGraphics_GMPI || pluginEditor2)
 				gmpiHelper = std::make_unique<GmpiHelper>(*this);
 
+           // PluginEditor-derived GMPI clients expose IEditor/IDrawingClient/IInputClient on one object
+			// and expect a single setHost() call to initialize all host-facing interfaces.
+			if(gmpiHelper && (pluginParameters_GMPI || pluginGraphics_GMPI))
+				object->queryInterface(&gmpi::api::IEditor::guid, reinterpret_cast<void**>(&pluginParameters_GMPI));
+
 			if(pluginParameters_GMPI)
 				pluginParameters_GMPI->setHost(static_cast<gmpi::api::IEditorHost*>(gmpiHelper.get()));
-
-			if(pluginGraphics_GMPI)
-				pluginGraphics_GMPI->setHost(static_cast<gmpi::api::IDrawingHost*>(gmpiHelper.get()));
 		}
 
 		// SDK3 client
