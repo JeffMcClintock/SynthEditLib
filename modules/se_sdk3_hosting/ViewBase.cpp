@@ -1404,9 +1404,9 @@ namespace SE2
 		if (mouseCaptureObject == dragline)
 			releaseCapture();
 
-//		const auto dragLineRect = dragline->getClipArea();
-//		invalidateRect(&dragLineRect);
-// needed?		ChildInvalidateRect(dragLineRect);
+		// erase old line, important esp if drag was cancelled.
+		const auto dragLineRect = dragline->getClipArea();
+		ChildInvalidateRect(dragLineRect);
 
 		if(dragline->type == CableType::StructureCable)
 		{
