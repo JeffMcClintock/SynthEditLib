@@ -35,14 +35,8 @@ class GmpiUiTest : public gmpi::editor::PluginEditor, public NumberEditClient
 
 	void updateTextFromValue()
 	{
-#if defined(__cpp_lib_format) && (__cpp_lib_format >= 201907)
         const auto s = std::format("{:.2f}", value);
-#else
-        char buf[32];
-        std::snprintf(buf, sizeof(buf), "%.2f", value);
-        std::string s(buf);
-#endif
-		numberEdit.setText(s);
+        numberEdit.setText(s);
 	}
 
 public:
@@ -368,9 +362,18 @@ struct PatchMemUpdateFloatText final : public PluginEditorNoGui
     ReturnCode process() override
 	{
         if (text_mod.value != text_orig.value)
-            pinValue = (float)strtod(text_mod.value.c_str(), 0);
+        {
+            // Format using C++20 std::format.
+            int decimals = 2; // default decimals if needed
+
+            // Attempt to find decimals from pinValue_in or fallback
+            // but no decimals input here, so fallback to 2
+            pinValue = static_cast<float>(strtod(text_mod.value.c_str(), nullptr));
+        }
         else
+        {
             pinValue = pinValue_in.value;
+        }
 
 		return ReturnCode::Ok;
     }
@@ -925,34 +928,17 @@ struct Float2Text final : public PluginEditorNoGui
                         decimals = 0;
         }
 
-        // longest float value is about 40 characters.
-        const int maxSize = 50;
+        // Format using C++20 std::format.
+        auto output = std::format("{:.{}f}", static_cast<double>(pinValue_in.value), decimals);
 
-        char formatString[maxSize];
-
-        // Use safe printf if available.
-#if defined(_MSC_VER)
-        sprintf_s(formatString, maxSize, "%%.%df", decimals);
-#else
-        sprintf(formatString, "%%.%df", decimals);
-#endif
-
-        char outputString[maxSize];
-
-        //#if defined(_MSC_VER)
-        //	swprintf_s( outputString, maxSize, formatString, (double) (float) inputValue );
-        //#else
-        snprintf(outputString, maxSize, formatString, (double)pinValue_in.value);
-        //	#endif
-
-            // Replace -0.0 with 0.0 ( same for -0.00 and -0.000 etc).
-            // deliberate 'feature' of printf is to round small negative numbers to -0.0
-        if (outputString[0] == '-' && (float)pinValue_in.value > -1.0f)
+        // Replace -0.0 with 0.0 (same for -0.00 and -0.000 etc).
+        // deliberate 'feature' of printf/format is to round small negative numbers to -0.0
+        if (!output.empty() && output[0] == '-' && (float)pinValue_in.value > -1.0f)
         {
-            int i = (int)strlen(outputString) - 1;
+            int i = static_cast<int>(output.size()) - 1;
             while (i > 0)
             {
-                if (outputString[i] != '0' && outputString[i] != '.')
+                if (output[static_cast<size_t>(i)] != '0' && output[static_cast<size_t>(i)] != '.')
                 {
                     break;
                 }
@@ -960,11 +946,11 @@ struct Float2Text final : public PluginEditorNoGui
             }
             if (i == 0) // nothing but zeros (or dot). remove leading minus sign.
             {
-                strcpy(outputString, outputString + 1);
+                output.erase(output.begin());
             }
         }
 
-        pinOutput = outputString;
+        pinOutput = output;
 
         return ReturnCode::Ok;
     }
@@ -1743,3 +1729,4 @@ auto r24 = gmpi::Register<Mask2Bitmap>::withXml(R"XML(
 </PluginList>
 )XML");
 }
+
