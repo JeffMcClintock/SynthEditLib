@@ -40,7 +40,17 @@ public:
 	GMPI_REFCOUNT_NO_DELETE;
 };
 
-class GmpiToSDK3Context_base : public GmpiDrawing_API::IMpDeviceContext, public GmpiDrawing_API::IMpDeviceContextExt
+class GmpiToSDK3Context_base : public GmpiDrawing_API::IMpDeviceContext
+// NOTE: IMpDeviceContextExt is intentionally NOT a direct base. It used to be
+// (`public IMpDeviceContext, public IMpDeviceContextExt`), but that put its
+// CreateBitmapRenderTarget method into the primary v-table at the slot where
+// IMpBitmapRenderTarget::GetBitmap is expected. The "careful layout" hack in
+// `g3_BitmapRenderTarget` (which appends a virtual `getBitmap` and reinterpret
+// _casts to IMpBitmapRenderTarget*) then dispatched callers' GetBitmap calls to
+// CreateBitmapRenderTarget — segfaulting on argument-register mismatch the
+// moment any plugin (e.g. SE Scope3 XP) called dc.GetBitmap() during render.
+// Now IMpDeviceContextExt is served via the aggregated `extAdapter_` member;
+// queryInterface returns &extAdapter_ for that GUID.
 {
 	friend class GmpiToSDK3Factory;
 	friend class g3_BitmapRenderTarget;
@@ -49,6 +59,21 @@ protected:
 	gmpi::drawing::api::IDeviceContext* context_{};
 	GmpiDrawing_API::IMpFactory2* factory{};
 	gmpi::IMpUnknown* fallback{};
+
+	// Aggregated IMpDeviceContextExt — see class-level note above.
+	struct ExtAdapter : public GmpiDrawing_API::IMpDeviceContextExt
+	{
+		GmpiToSDK3Context_base* outer;
+		ExtAdapter(GmpiToSDK3Context_base* o) : outer(o) {}
+		int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
+		{
+			return outer->queryInterface(iid, returnInterface);
+		}
+		int32_t MP_STDCALL addRef()  override { return outer->addRef(); }
+		int32_t MP_STDCALL release() override { return outer->release(); }
+		int32_t MP_STDCALL CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget) override;
+	};
+	ExtAdapter extAdapter_{ this };
 
 	class g3_BrushBase
 	{
@@ -645,8 +670,7 @@ public:
 
 	int32_t CreateCompatibleRenderTarget(const GmpiDrawing_API::MP1_SIZE* desiredSize, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget) override;
 
-	// IMpDeviceContextExt
-	int32_t MP_STDCALL CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget) override;
+	// IMpDeviceContextExt::CreateBitmapRenderTarget moved to ExtAdapter (see top of class).
 
 	void DrawRoundedRectangle(const GmpiDrawing_API::MP1_ROUNDED_RECT* roundedRect, const GmpiDrawing_API::IMpBrush* brush, float strokeWidth, const GmpiDrawing_API::IMpStrokeStyle* strokeStyle) override
 	{
@@ -701,7 +725,7 @@ public:
 		*returnInterface = {};
 		if (iid == GmpiDrawing_API::IMpDeviceContextExt::guid)
 		{
-			*returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(this);
+			*returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(&extAdapter_);
 			addRef();
 			return gmpi::MP_OK;
 		}
@@ -770,7 +794,7 @@ public:
 		}
 		if (iid == GmpiDrawing_API::IMpDeviceContextExt::guid)
 		{
-			*returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(this);
+			*returnInterface = static_cast<GmpiDrawing_API::IMpDeviceContextExt*>(&extAdapter_);
 			addRef();
 			return gmpi::MP_OK;
 		}
@@ -798,15 +822,16 @@ inline int32_t GmpiToSDK3Context_base::CreateCompatibleRenderTarget(const GmpiDr
 	return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI, reinterpret_cast<void**>(bitmapRenderTarget));
 }
 
-// IMpDeviceContextExt
-inline int32_t MP_STDCALL GmpiToSDK3Context_base::CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool enableLockPixels, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget)
+// IMpDeviceContextExt — served via the ExtAdapter aggregated object so it doesn't
+// pollute the primary v-table of GmpiToSDK3Context_base (see class-level note).
+inline int32_t MP_STDCALL GmpiToSDK3Context_base::ExtAdapter::CreateBitmapRenderTarget(GmpiDrawing_API::MP1_SIZE_L desiredSize, bool /*enableLockPixels*/, GmpiDrawing_API::IMpBitmapRenderTarget** bitmapRenderTarget)
 {
 	*bitmapRenderTarget = nullptr;
 
 	const gmpi::drawing::Size sizef{ static_cast<float>(desiredSize.width), static_cast<float>(desiredSize.height) };
 
 	gmpi_sdk::mp_shared_ptr<GmpiDrawing_API::IMpDeviceContext> b2;
-	b2.Attach(static_cast<GmpiDrawing_API::IMpDeviceContext*>(new g3_BitmapRenderTarget(factory, this, &sizef/*, &factory, enableLockPixels*/)));
+	b2.Attach(static_cast<GmpiDrawing_API::IMpDeviceContext*>(new g3_BitmapRenderTarget(outer->factory, outer, &sizef)));
 	return b2->queryInterface(GmpiDrawing_API::SE_IID_BITMAP_RENDERTARGET_MPGUI, reinterpret_cast<void**>(bitmapRenderTarget));
 }
 
