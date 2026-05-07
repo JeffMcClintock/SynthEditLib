@@ -1673,14 +1673,55 @@ if(pluginGraphics)
 		if (!isVisable())
 			return false;
 
-		if(!ModuleView::hitTestR(flags, selectionRect))
+		const auto bounds = getLayoutRect();
+
+		// Calculate intersection of selection rect with bounds.
+		const float intersectLeft = (std::max)(selectionRect.left, bounds.left);
+		const float intersectTop = (std::max)(selectionRect.top, bounds.top);
+		const float intersectRight = (std::min)(selectionRect.right, bounds.right);
+		const float intersectBottom = (std::min)(selectionRect.bottom, bounds.bottom);
+
+		// No intersection.
+		if (intersectRight <= intersectLeft || intersectBottom <= intersectTop)
 			return false;
 
 		// ignore hidden panels when selecting by lasso
-		if (subView)
-			return subView->isVisible();
+		if (subView && !subView->isVisible())
+			return false;
 
-		return true;
+		// If no plugin to test, just use bounds overlap.
+		if (!pluginInput_GMPI && !pluginGraphics2 && !pluginGraphics3)
+			return true;
+
+		// Sample points in a grid within the intersection of selection rect and bounds.
+		constexpr float spacing = 10.0f;
+		constexpr float minSpacing = 0.1f; // prevent infinite loop on zero-size rect
+
+		const float rectWidth = intersectRight - intersectLeft;
+		const float rectHeight = intersectBottom - intersectTop;
+		const float xSpacing = (std::max)(minSpacing, (std::min)(spacing, rectWidth));
+		const float ySpacing = (std::max)(minSpacing, (std::min)(spacing, rectHeight));
+
+		for (float y = intersectTop + ySpacing * 0.5f; y <= intersectBottom - ySpacing * 0.5f; y += ySpacing)
+		{
+			for (float x = intersectLeft + xSpacing * 0.5f; x <= intersectRight - xSpacing * 0.5f; x += xSpacing)
+			{
+				auto local = PointToPlugin({x, y});
+				gmpi::ReturnCode hitTestResult = gmpi::ReturnCode::Fail;
+
+				if (pluginInput_GMPI)
+					hitTestResult = pluginInput_GMPI->hitTest(local, flags);
+				else if (pluginGraphics3)
+					hitTestResult = (gmpi::ReturnCode) pluginGraphics3->hitTest2(flags, *reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local));
+				else if (pluginGraphics2)
+					hitTestResult = (gmpi::ReturnCode)pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local));
+
+				if (gmpi::ReturnCode::Ok == hitTestResult)
+					return true;
+			}
+		}
+
+		return false;
 	}
 
 	float ModuleViewPanel::hitTestFuzzy(int32_t flags, gmpi::drawing::Point point)
