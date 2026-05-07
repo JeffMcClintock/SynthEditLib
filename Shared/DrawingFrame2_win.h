@@ -1,7 +1,5 @@
 #pragma once
 
-#include <chrono>
-#include <functional>
 #include <d3d11_4.h>
 #include <span>
 #include "GraphicsRedrawClient.h"

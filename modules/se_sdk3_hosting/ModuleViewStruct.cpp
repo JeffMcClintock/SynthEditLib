@@ -45,7 +45,6 @@ inline PathGeometry DataToGraph(Graphics& g, const std::vector<Point>& inData)
 
 namespace SE2
 {
-	std::chrono::time_point<std::chrono::steady_clock> ModuleViewStruct::lastClickedTime;
 	GraphicsResourceCache<sharedGraphicResources_struct> ModuleViewStruct::drawingResourcesCache;
 
 	ModuleViewStruct::ModuleViewStruct(Json::Value* context, class ViewBase* pParent, std::map<int, class ModuleView*>& guiObjectMap) : ModuleView(context, pParent)
@@ -1724,24 +1723,7 @@ namespace SE2
 		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
 		{
 			// Handle double-click on module. (only if didn't click on a child control)
-			// On Mac the OS sets GG_POINTER_FLAG_DOUBLE via clickCount; on Windows fall back to timing.
-			bool isDoubleClick = (flags & gmpi_gui_api::GG_POINTER_FLAG_DOUBLE) != 0;
-			if (!isDoubleClick)
-			{
-				auto now = std::chrono::steady_clock::now();
-				auto timeSincePreviousClick = now - lastClickedTime;
-				auto timeSincePreviousClick_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeSincePreviousClick).count();
-				lastClickedTime = now;
-
-#if defined(_WIN32)
-				const int doubleClickThreshold_ms = GetDoubleClickTime();
-#else
-				const int doubleClickThreshold_ms = 500;
-#endif
-				isDoubleClick = timeSincePreviousClick_ms < doubleClickThreshold_ms;
-			}
-
-			if (isDoubleClick)
+			if ((flags & gmpi_gui_api::GG_POINTER_FLAG_DOUBLE) != 0)
 			{
 				auto res2 = (gmpi::ReturnCode) OnDoubleClicked(point, flags);
 

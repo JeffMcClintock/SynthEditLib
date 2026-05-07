@@ -1,5 +1,4 @@
 #pragma once
-#include <chrono>
 #include "ModuleView.h"
 #include "helpers/Timer.h"
 
@@ -36,7 +35,6 @@ class ModuleViewStruct : public ModuleView, public gmpi::TimerClient
 	gmpi::drawing::Point lastMousePos;
 	const static int hoveredCounterInit = 2;
 	int hoveredCounter = hoveredCounterInit;
-	static std::chrono::time_point<std::chrono::steady_clock> lastClickedTime;
 
 	std::shared_ptr<sharedGraphicResources_struct> drawingResources;
 	static GraphicsResourceCache<sharedGraphicResources_struct> drawingResourcesCache;
