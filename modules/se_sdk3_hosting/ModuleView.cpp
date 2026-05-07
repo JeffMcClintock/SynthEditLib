@@ -1059,7 +1059,7 @@ if(pluginGraphics)
 			if(pluginGraphics_GMPI || pluginGraphics2) // Client supports proper hit testing.
 			{
 				// In Panel-view, we can assume mouse already hit-tested against client. On Structure-view it could be a click on client OR on pins.
-				clientHit = parent->getViewType() == CF_PANEL_VIEW;
+				clientHit = Presenter()->editEnabled(); // no. UI imbedded on module are not editable. parent->getViewType() == CF_PANEL_VIEW;
 
 				if(!clientHit)
 				{
