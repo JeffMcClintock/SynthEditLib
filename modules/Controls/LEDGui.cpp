@@ -192,6 +192,11 @@ public:
 		return ReturnCode::Ok;
 	}
 
+	ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
+	{
+		return ReturnCode::Unhandled; // return Unhandled to allow clicks to pass through to underlying controls.
+	}
+
 	ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
 		*returnInterface = {};
