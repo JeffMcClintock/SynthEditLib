@@ -1058,18 +1058,12 @@ if(pluginGraphics)
 
 			if(pluginGraphics_GMPI || pluginGraphics2) // Client supports proper hit testing.
 			{
-				// In Panel-view, we can assume mouse already hit-tested against client. On Structure-view it could be a click on client OR on pins.
-				clientHit = Presenter()->editEnabled(); // no. UI imbedded on module are not editable. parent->getViewType() == CF_PANEL_VIEW;
+				// clicking on client? if not we're clicking inside it's bounds in an empty area.
+				if(pluginInput_GMPI)
+					clientHit = gmpi::ReturnCode::Ok == pluginInput_GMPI->hitTest(local, flags);
+				else if(pluginGraphics2)
+					clientHit = 0 == pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local));
 
-				if(!clientHit)
-				{
-					if(pluginInput_GMPI)
-						clientHit = gmpi::ReturnCode::Ok == pluginInput_GMPI->hitTest(local, flags);
-					else if(pluginGraphics2)
-						clientHit = 0 == pluginGraphics2->hitTest(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local));
-				}
-
-				// In Panel-view, we can assume mouse already hit-tested against client. On Structure-view it could be a click on client OR on pins.
 				if(clientHit)
 				{
 					if(pluginInput_GMPI)
@@ -1086,17 +1080,15 @@ if(pluginGraphics)
 				clientHit = (res == gmpi::ReturnCode::Ok || res == gmpi::ReturnCode::Handled);
 
 				if(clientHit && parent->getViewType() == CF_PANEL_VIEW)
-					Presenter()->ObjectClicked(handle, flags); //gmpi::modifier_keys::getHeldKeys());
+					Presenter()->ObjectClicked(handle, flags);
 			}
 
-			if(gmpi::ReturnCode::Handled == res) // Client indicates no further processing needed.
-				return gmpi::ReturnCode::Handled;
+			if(clientHit && gmpi::ReturnCode::Handled == res) // Client indicates no further processing needed.
+				return res;
 		}
 
-		const bool outlineHit = BundleInfo::instance()->isEditor;
-
-		// don't handle right-clicks, otherwise context menu is not shown.
-		return (outlineHit || clientHit) && ((flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) == 0) ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Unhandled;
+		// client ignoring mouse, or outer area hit (can only happen when selected else hit test fails and we never get here. and therefore in editor mode.
+		return gmpi::ReturnCode::Ok; // initiates drag of module.
 	}
 
 	gmpi::ReturnCode ModuleView::onPointerMove(gmpi::drawing::Point point, int32_t flags)
@@ -1110,6 +1102,7 @@ if(pluginGraphics)
 
 		return gmpi::ReturnCode::Unhandled;
 	}
+
 	gmpi::ReturnCode ModuleView::onPointerUp(gmpi::drawing::Point point, int32_t flags)
 	{
 		const auto local = PointToPlugin(point);
