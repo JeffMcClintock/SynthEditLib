@@ -602,6 +602,37 @@ void BundleInfo::initPluginInfo()
 //    if(pluginIsBundle)
     semFolder = (getBundleContentsFolder() / L"PlugIns" / "").wstring(); // blank is a trailing slash
 
+    // Dev-tree fallback. Installed builds (SynthEditCL.exe in
+    // %ProgramFiles%/SynthEditCL/, SynthEdit.app on macOS, etc.) ship with
+    // their factory modules at <bundle>/PlugIns/, so the line above is
+    // exactly right and the block below short-circuits at first-iteration
+    // exists() check. But running a dev build directly out of the build/
+    // tree (build/SynthEditCL/Debug/SynthEditCL.exe, build/tests/Debug/
+    // synth_ui_tests.exe) puts no PlugIns folder next to the exe — so
+    // walk up looking for a sibling SynthEdit2/PlugIns/, the curated set
+    // of pre-built modules in the SE16 source repo. Only triggers when
+    // the bundle-default doesn't exist, so it's a no-op for installed
+    // users and a quiet convenience for repo contributors.
+    if (!std::filesystem::exists(semFolder))
+    {
+        std::filesystem::path dir(path);
+        dir = dir.parent_path();
+        std::filesystem::path prev;
+        while (!dir.empty() && dir != prev && dir != dir.root_path())
+        {
+            const auto candidate = dir / L"SynthEdit2" / L"PlugIns";
+            std::error_code ec;
+            if (std::filesystem::exists(candidate, ec))
+            {
+                // Trailing slash matches the format of the line above.
+                semFolder = (candidate / "").wstring();
+                break;
+            }
+            prev = dir;
+            dir = dir.parent_path();
+        }
+    }
+
     if (isEditor)
         return;
 
