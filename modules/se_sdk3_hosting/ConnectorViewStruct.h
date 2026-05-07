@@ -103,11 +103,6 @@ namespace SE2
 			type = CableType::StructureCable;
 		}
 
-		~ConnectorView2()
-		{
-			int x = 9;
-		}
-
 		void CalcArrowGeometery(gmpi::drawing::GeometrySink & sink, gmpi::drawing::Point ArrowTip, Gmpi::VectorMath::Vector2D v1);
 
 		void CreateGeometry() override;

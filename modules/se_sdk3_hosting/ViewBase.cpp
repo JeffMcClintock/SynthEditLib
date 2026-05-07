@@ -1410,11 +1410,26 @@ namespace SE2
 
 		if(dragline->type == CableType::StructureCable)
 		{
+			// which pin are we snapped to?
+			// 4x drawn size is maximum snap distance.
+			constexpr float maxSnapRangeSquared = 4 * sharedGraphicResources_struct::plugDiameter * sharedGraphicResources_struct::plugDiameter; // 4x drawn size is maximum snap distance.
+			float bestDistanceSquared = maxSnapRangeSquared;
+
+			ModuleView* bestModule{};
+			int bestPinIndex = 0;
+			for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
+				(*it)->OnCableDrag(dragline, dragline->dragPoint(), bestDistanceSquared, bestModule, bestPinIndex);
+
+/* just gets first compatible pin, not best.
+			
 			for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 			{
 				if((*it)->EndCableDrag(point, dragline, keyFlags))
 					return true; // connection made OK.
 			}
+*/
+			if(bestModule && bestModule->EndCableDrag(dragline->dragPoint(), dragline, keyFlags))
+				return true; // connection made OK.
 
 			// unsuccessful, remove drag-line.
 			RemoveChild(dragline); // WARNING children vector renewed, dragline no longer valid.
