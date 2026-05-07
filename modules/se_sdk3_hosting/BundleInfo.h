@@ -54,6 +54,13 @@ public:
 
     bool pluginIsBundle = true;
     bool isEditor = false;
+    // True when the factory folder was set by USER intent (test harness;
+    // SynthEditCL's `-factorysemsfolder` arg) rather than the app's own
+    // natural default. SemCacheName() reads this to pick a per-override
+    // Plugin-Cache filename so the user's installed-app cache isn't clobbered
+    // by a dev/test run, and so repeat runs against the same override folder
+    // share one cache (e.g. a 20-test sweep scans once, not 20 times).
+    bool isSemFolderOverridden = false;
     
     static BundleInfo* instance();
     
