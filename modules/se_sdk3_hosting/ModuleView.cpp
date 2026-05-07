@@ -1493,16 +1493,13 @@ if(pluginGraphics)
 			int size;
 			void* data;
 		};
-		const DspMsgInfo* nfo = (DspMsgInfo*)msg;
+		const auto nfo = (DspMsgInfo*)msg;
 
 		if (pluginParameters)
-		{
 			pluginParameters->receiveMessageFromAudio(nfo->id, nfo->size, nfo->data);
-		}
+
 		if (pluginParametersLegacy)
-		{
 			pluginParametersLegacy->receiveMessageFromAudio(nfo->id, nfo->size, nfo->data);
-		}
 	}
 
 	gmpi::ReturnCode ModuleView::populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink)
@@ -1751,19 +1748,19 @@ if(pluginGraphics)
 				return totalMiss;
 		}
 
-		// TODO!! use editEnabled to somehow ignore click on knob titles when no editing.
-		// e.g. List entry and knobs on PD303 have blank area at top that blocks anything above from being clicked.
-		// either add a flag, or a host-control ("is editor") to allow plugin to know if it's in edit mode.
-
-		if(!BundleInfo::instance()->isEditor)
+		// not in editor or panel locked. ignore outline rect.
+		if(!Presenter()->editEnabled())
 			return totalMiss;
 
+		// not selected, ignore outline rect (less 'noise')
+		if(!getSelected())
+			return totalMiss;
+
+		// we are selected, so bounds rect is visible. allow fuzzy hit on it, but less than client area.
 		const auto r = getLayoutRect();
 		auto r2 = r;
 
 		r2 = inflateRect(r2, fuzzyLimit);
-
-	//	r2.top -= 16.0f; // allow for title bar.
 
 		if(!pointInRect(point, r2)) // weed out clear misses fast.
 			return totalMiss;
