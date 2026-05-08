@@ -169,6 +169,15 @@ gmpi::ReturnCode DrawingFrameBase2::createKeyListener(const gmpi::drawing::Rect*
     return gmpi::ReturnCode::Ok;
 }
 
+// Shared with gmpi_ui's DxDrawingFrameBase — both call into the same Win32 modal
+// edit-box class defined in gmpi_ui/backends/DrawingFrameWin.cpp. Previously this
+// returned NoSupport, which broke text-entry widgets (EditWidget::onPointerUp ->
+// Sdk3Helper::createPlatformTextEdit -> dialogHost->createTextEdit).
+gmpi::ReturnCode DrawingFrameBase2::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit)
+{
+    return gmpi::hosting::win32::createPlatformTextEdit(getWindowHandle(), r, DipsToWindow._22, returnTextEdit);
+}
+
 // IInputHost
 gmpi::ReturnCode DrawingFrameBase2::setCapture()
 {

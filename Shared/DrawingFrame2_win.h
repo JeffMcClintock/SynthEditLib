@@ -162,8 +162,10 @@ public:
     gmpi::ReturnCode releaseCapture() override;
 
 	// gmpi::api::IDialogHost. derived classes need to implement these if they want dialogs.
-    gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override
-    {return gmpi::ReturnCode::NoSupport;}
+	// createTextEdit is implemented in DrawingFrame2_win.cpp using the shared
+	// gmpi::hosting::win32::createPlatformTextEdit factory (single Win32 source of truth,
+	// also used by gmpi_ui's DxDrawingFrameBase).
+    gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override;
     gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override
     {return gmpi::ReturnCode::NoSupport;}
     gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override;
