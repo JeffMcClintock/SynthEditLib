@@ -84,11 +84,11 @@ struct DrawingFrameBase2 :
     // IDialogHost reaches us via DxDrawingFrameBase. Listing it again here would
     // create a duplicate base subobject (warning C4584).
 {
-    std::unique_ptr<UniversalFactory> universalFactory; // wraps inherited DrawingFactory; serves SDK3 IIDs
+    std::unique_ptr<UniversalFactory> universalFactory; // SDK3-aware queryInterface dispatcher
 
-    gmpi::shared_ptr<gmpi::api::IDrawingClient> graphics_gmpi;
-    gmpi::shared_ptr<gmpi::api::IInputClient> editor_gmpi;
-    gmpi::shared_ptr<gmpi::api::IGraphicsRedrawClient> frameUpdateClient;
+    // drawingClient / inputClient / frameUpdateClient now inherited from
+    // DxDrawingFrameBase (Phase 4b collapsed graphics_gmpi/editor_gmpi/
+    // frameUpdateClient duplicates).
 
     std::atomic<bool> isInit;
 
@@ -99,7 +99,8 @@ struct DrawingFrameBase2 :
     gmpi::shared_ptr<gmpi::api::IPopupMenu> popupMenu;
 
 protected:
-    gmpi::hosting::DirtyRectQueue dirtyRects;
+    // dirtyRects member now inherited as DxDrawingFrameBase::backBufferDirtyRects
+    // (Phase 4b). The helpers below operate on the inherited queue.
 
     void queueDirtyRect(gmpi::drawing::RectL rect);
     void queueDirtyRect(const gmpi::drawing::Rect* invalidRect);
@@ -137,10 +138,10 @@ protected:
         if (isNew)
             flags |= static_cast<int32_t>(gmpi::api::PointerFlags::New);
     }
-    std::span<gmpi::drawing::RectL> getDirtyRects() { return dirtyRects.get(); }
-    std::span<const gmpi::drawing::RectL> getDirtyRects() const { return dirtyRects.get(); }
-    bool hasDirtyRects() const { return !dirtyRects.empty(); }
-    void clearDirtyRects() { dirtyRects.clear(); }
+    std::span<gmpi::drawing::RectL> getDirtyRects() { return backBufferDirtyRects.get(); }
+    std::span<const gmpi::drawing::RectL> getDirtyRects() const { return backBufferDirtyRects.get(); }
+    bool hasDirtyRects() const { return !backBufferDirtyRects.empty(); }
+    void clearDirtyRects() { backBufferDirtyRects.clear(); }
     bool preGraphicsRedraw();
     void PaintQueuedDirtyRects();
     gmpi::ReturnCode launchContextMenu(const gmpi::drawing::Point& point);
@@ -187,7 +188,8 @@ public:
     // SDK3 overload — wraps an IMpGraphics3 client in SDK3Adaptor and delegates.
     // Live callers: SE2JUCE_Editor.cpp:106, Pile.h:577.
     void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx);
-    void detachClient();
+    // detachClient inherited from DxDrawingFrameBase — same body now that
+    // graphics_gmpi/editor_gmpi were renamed to drawingClient/inputClient.
     void detachAndRecreate();
     void sizeClientDips(float width, float height) override;
 

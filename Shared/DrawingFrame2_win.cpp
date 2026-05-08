@@ -15,17 +15,17 @@ DrawingFrameBase2::DrawingFrameBase2()
 
 void DrawingFrameBase2::queueDirtyRect(gmpi::drawing::RectL rect)
 {
-    dirtyRects.add(rect);
+    backBufferDirtyRects.add(rect);
 }
 
 void DrawingFrameBase2::queueDirtyRect(const gmpi::drawing::Rect* invalidRect)
 {
-    dirtyRects.add(invalidRect, DipsToWindow);
+    backBufferDirtyRects.add(invalidRect, DipsToWindow);
 }
 
 void DrawingFrameBase2::replaceDirtyRects(gmpi::drawing::RectL rect)
 {
-    dirtyRects.replace(rect);
+    backBufferDirtyRects.replace(rect);
 }
 
 void DrawingFrameBase2::invalidateAll()
@@ -60,8 +60,8 @@ void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient)
     gmpi::shared_ptr<gmpi::api::IUnknown> unknown; // no, does not increment refcount (pclient);
     unknown = pclient;
 
-    editor_gmpi       = unknown.as<gmpi::api::IInputClient>();
-    graphics_gmpi     = unknown.as<gmpi::api::IDrawingClient>();
+    inputClient       = unknown.as<gmpi::api::IInputClient>();
+    drawingClient     = unknown.as<gmpi::api::IDrawingClient>();
 	frameUpdateClient = unknown.as<gmpi::api::IGraphicsRedrawClient>();
 
 #if 0 // TODO
@@ -87,8 +87,8 @@ void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient)
         );
     }
 
-    if (graphics_gmpi)
-        graphics_gmpi->setHost(static_cast<gmpi::api::IDrawingHost*>(this));
+    if (drawingClient)
+        drawingClient->setHost(static_cast<gmpi::api::IDrawingHost*>(this));
 }
 
 // old
@@ -106,7 +106,7 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
 void DrawingFrameBase2::Closed()
 {
     /* TODO
-    if(auto* viewBase = dynamic_cast<SE2::ViewBase*>(graphics_gmpi.get()))
+    if(auto* viewBase = dynamic_cast<SE2::ViewBase*>(drawingClient.get()))
     {
         viewBase->Unload();
     }
@@ -120,7 +120,7 @@ void DrawingFrameBase2::Closed()
 
 gmpi::ReturnCode DrawingFrameBase2::launchContextMenu(const gmpi::drawing::Point& point)
 {
-    if (!editor_gmpi)
+    if (!inputClient)
         return gmpi::ReturnCode::Unhandled;
 
     gmpi::drawing::Rect rect{ point.x, point.y, point.x + 120, point.y + 20 };
@@ -133,27 +133,13 @@ gmpi::ReturnCode DrawingFrameBase2::launchContextMenu(const gmpi::drawing::Point
     if (!popupMenu)
         return gmpi::ReturnCode::NoSupport;
 
-    const auto returnCode = editor_gmpi->populateContextMenu(point, popupMenu);
+    const auto returnCode = inputClient->populateContextMenu(point, popupMenu);
     popupMenu->showAsync();
     return returnCode;
 }
 
-void DrawingFrameBase2::detachClient()
-{
-    // Notify the client that the host (drawing surface) is going away.
-    // Without this, ViewBase::drawingHost holds a dangling pointer after the
-    // window closes, and any in-flight DSP→GUI invalidation will crash.
-    // setHost is now shared across IEditor/IDrawingClient/IInputClient — calling
-    // through any one interface reaches the same override (via MI collapse).
-    if (graphics_gmpi)
-        graphics_gmpi->setHost(nullptr);
-    else if (editor_gmpi)
-        editor_gmpi->setHost(nullptr);
-
-    graphics_gmpi = {};
-    editor_gmpi = {};
-    frameUpdateClient = {};
-}
+// detachClient is now inherited from DxDrawingFrameBase — same body
+// (setHost(nullptr) notification + null out the smart pointers).
 
 void DrawingFrameBase2::detachAndRecreate()
 {
@@ -216,7 +202,7 @@ LRESULT DrawingFrameHwndBase::WindowProc(
     WPARAM wParam,
     LPARAM lParam)
 {
-    if (!graphics_gmpi)
+    if (!drawingClient)
         return DefWindowProc(hwnd, message, wParam, lParam);
 
     switch (message)
@@ -244,15 +230,15 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         {
         case WM_MOUSEMOVE:
         {
-            if (editor_gmpi)
-                r = editor_gmpi->onPointerMove(point, flags);
+            if (inputClient)
+                r = inputClient->onPointerMove(point, flags);
 
             // get notified when mouse leaves window
             if (!isTrackingMouse)
             {
                 gmpi::hosting::win32::beginMouseTracking(hwnd, isTrackingMouse);
-                if (editor_gmpi)
-                    editor_gmpi->setHover(true);
+                if (inputClient)
+                    inputClient->setHover(true);
             }
         }
         break;
@@ -261,13 +247,13 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         case WM_RBUTTONDOWN:
         case WM_MBUTTONDOWN:
             {
-                if (editor_gmpi)
-                    r = editor_gmpi->onPointerDown(point, flags);
+                if (inputClient)
+                    r = inputClient->onPointerDown(point, flags);
 
                 ::SetFocus(hwnd);
 
                 // Handle right-click context menu.
-                if (r == gmpi::ReturnCode::Unhandled && (flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && editor_gmpi)
+                if (r == gmpi::ReturnCode::Unhandled && (flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && inputClient)
                 {
                     contextMenu.setNull();
                     r = launchContextMenu(point);
@@ -278,8 +264,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
         case WM_MBUTTONUP:
         case WM_RBUTTONUP:
         case WM_LBUTTONUP:
-            if (editor_gmpi)
-                r = editor_gmpi->onPointerUp(point, flags);
+            if (inputClient)
+                r = inputClient->onPointerUp(point, flags);
             break;
         }
     }
@@ -287,8 +273,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
 
     case WM_MOUSELEAVE:
         isTrackingMouse = false;
-        if (editor_gmpi)
-            editor_gmpi->setHover(false);
+        if (inputClient)
+            inputClient->setHover(false);
         break;
 
     case WM_MOUSEWHEEL:
@@ -301,8 +287,8 @@ LRESULT DrawingFrameHwndBase::WindowProc(
 
         int32_t flags = gmpi::hosting::win32::makeWheelFlags(message, wParam);
 
-        if (editor_gmpi)
-            /*auto r =*/ editor_gmpi->onMouseWheel(p, flags, zDelta);
+        if (inputClient)
+            /*auto r =*/ inputClient->onMouseWheel(p, flags, zDelta);
     }
     break;
 
@@ -403,7 +389,7 @@ void DrawingFrameHwndBase::ReSize(int left, int top, int right, int bottom)
 bool DrawingFrameHwndBase::onTimer()
 {
     auto hwnd = getWindowHandle();
-    if (hwnd == nullptr || graphics_gmpi == nullptr)
+    if (hwnd == nullptr || drawingClient == nullptr)
         return true;
 
     if (pollHdrChangesCount-- < 0)
@@ -430,7 +416,7 @@ bool DrawingFrameHwndBase::onTimer()
             const auto point = gmpi::drawing::transformPoint(WindowToDips, { static_cast<float>(P.x), static_cast<float>(P.y) });
 /* TODO !!???
             gmpi_sdk::MpString text;
-            editor_gmpi->getToolTip({point.x, point.y}, & text);
+            inputClient->getToolTip({point.x, point.y}, & text);
             if (!text.str().empty())
             {
               tooltip.getText() = JmUnicodeConversions::Utf8ToWstring(text.str());
@@ -490,7 +476,7 @@ void DrawingFrameBase2::renderInDeviceContext(ID2D1DeviceContext* deviceContext,
     gmpi::drawing::Graphics graphics(&context);
 
     graphics.beginDraw();
-    paintLoop(&context, dirtyRects, graphics_gmpi.get());
+    paintLoop(&context, dirtyRects, drawingClient.get());
     if (graphics.endDraw() != gmpi::ReturnCode::Ok)
     {
         ReleaseDevice();
@@ -499,15 +485,15 @@ void DrawingFrameBase2::renderInDeviceContext(ID2D1DeviceContext* deviceContext,
 
 void DrawingFrameBase2::sizeClientDips(float width, float height)
 {
-    if (graphics_gmpi)
+    if (drawingClient)
     {
         gmpi::drawing::Size available{ width, height };
         gmpi::drawing::Size desired{};
 
-        graphics_gmpi->measure(&available, &desired);
+        drawingClient->measure(&available, &desired);
 
 		gmpi::drawing::Rect finalRect{ 0, 0, width, height };
-        graphics_gmpi->arrange(&finalRect);
+        drawingClient->arrange(&finalRect);
     }
 }
 
