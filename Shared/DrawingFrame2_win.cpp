@@ -523,45 +523,21 @@ bool DrawingFrameBase2::canPaint(std::span<gmpi::drawing::RectL> dirtyRects)
 
 void DrawingFrameBase2::renderFrame(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects)
 {
+    // UniversalGraphicsContext is the SE-specific context that dispatches both
+    // GMPI and SDK3 IIDs in queryInterface. The dirty-rect loop is shared via
+    // tempSharedD2DBase::paintLoop — only the context type differs from gmpi_ui.
     se::directx::UniversalGraphicsContext context(DrawingFactory.get(), deviceContext);
     gmpi::drawing::Graphics graphics(&context);
 
     graphics.beginDraw();
-
-    for (const auto& r : dirtyRects)
-    {
-        const gmpi::drawing::Rect dirtyRectPixels{ (float)r.left, (float)r.top, (float)r.right, (float)r.bottom };
-        const auto dirtyRectDips = dirtyRectPixels * WindowToDips;
-
-        graphics.pushAxisAlignedClip(dirtyRectDips);
-
-        if (graphics_gmpi)
-        {
-            graphics_gmpi->render(&context);
-        }
-        else
-        {
-            gmpi::drawing::Color blankColor{ 0.f, 0.f, 0.f, 1.f };
-            graphics.clear(blankColor);
-        }
-
-        if constexpr(false) // keywords: diagnose dirty rects debug dirty rects
-        {
-            static int32_t diagColor = 0;
-            diagColor += 10;
-            diagColor -= 0x1000;
-            gmpi::drawing::Graphics g(static_cast<gmpi::drawing::api::IDeviceContext*>(&context));
-            auto brush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(diagColor, 0.3f));
-            g.fillRectangle(dirtyRectDips, brush);
-        }
-
-        graphics.popAxisAlignedClip();
-    }
-
+    paintLoop(&context, dirtyRects, graphics_gmpi.get());
     if (graphics.endDraw() != gmpi::ReturnCode::Ok)
     {
         ReleaseDevice();
     }
+
+    // (Compile-time-disabled `diagnose dirty rects` overlay was here. Removed
+    // in favour of the shared paintLoop; resurrect via git history if needed.)
 }
 
 void DrawingFrameBase2::sizeClientDips(float width, float height)
