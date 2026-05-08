@@ -517,21 +517,9 @@ bool DrawingFrameBase2::canPaint(std::span<gmpi::drawing::RectL> dirtyRects)
     return isInit.load(std::memory_order_relaxed);
 }
 
-bool DrawingFrameBase2::preparePaint(std::span<gmpi::drawing::RectL> dirtyRects)
-{
-    if (swapChain)
-    {
-        gmpi::directx::ComPtr<::IDXGIFactory2> dxgiFactory;
-        swapChain->GetParent(__uuidof(dxgiFactory), dxgiFactory.put_void());
-        if (!dxgiFactory->IsCurrent())
-        {
-            recreateSwapChainAndClientAsync();
-            return false;
-        }
-    }
-
-    return true;
-}
+// preparePaint (the IsCurrent adapter-changed check) is now the default impl on
+// gmpi::hosting::tempSharedD2DBase — promoted up from here so gmpi_ui's
+// DxDrawingFrameBase gains the same behaviour.
 
 void DrawingFrameBase2::renderFrame(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects)
 {

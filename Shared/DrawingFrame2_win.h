@@ -128,7 +128,7 @@ public:
         return DrawingFactory ? DrawingFactory->gmpiFactory.getD2dFactory() : nullptr;
     }
     bool canPaint(std::span<gmpi::drawing::RectL> dirtyRects) override;
-    bool preparePaint(std::span<gmpi::drawing::RectL> dirtyRects) override;
+    // preparePaint inherits the tempSharedD2DBase default (IsCurrent adapter check).
     bool recreateDeviceOnPaint() const override
     {
         return true;
