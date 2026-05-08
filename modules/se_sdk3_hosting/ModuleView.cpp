@@ -728,8 +728,16 @@ namespace SE2
 
 	ModuleViewPanel::ModuleViewPanel(const wchar_t* typeId, ViewBase* pParent, int handle) : ModuleView(typeId, pParent, handle)
 	{
-		if (!moduleInfo || moduleInfo->UniqueId() == L"Container")
+		if (!moduleInfo)
+		{
+			_RPTN(0, "ModuleViewPanel created for unregistered module type '%S'\n", typeId);
 			return;
+		}
+		if (moduleInfo->UniqueId() == L"Container")
+		{
+			_RPTN(0, "ModuleViewPanel created for Container (should use SubView instead)\n");
+			return;
+		}
 		Build();
 	}
 
