@@ -728,7 +728,8 @@ namespace SE2
 
 	ModuleViewPanel::ModuleViewPanel(const wchar_t* typeId, ViewBase* pParent, int handle) : ModuleView(typeId, pParent, handle)
 	{
-		assert(moduleInfo != nullptr && moduleInfo->UniqueId() != L"Container");
+		if (!moduleInfo || moduleInfo->UniqueId() == L"Container")
+			return;
 		Build();
 	}
 
