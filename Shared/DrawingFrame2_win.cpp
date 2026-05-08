@@ -178,6 +178,19 @@ gmpi::ReturnCode DrawingFrameBase2::createTextEdit(const gmpi::drawing::Rect* r,
     return gmpi::hosting::win32::createPlatformTextEdit(getWindowHandle(), r, DipsToWindow._22, returnTextEdit);
 }
 
+// File-open / file-save dialogs. Same delegation pattern as createTextEdit —
+// the GMPI_WIN_FileDialog class lives privately in gmpi_ui/backends/DrawingFrameWin.cpp.
+gmpi::ReturnCode DrawingFrameBase2::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog)
+{
+    return gmpi::hosting::win32::createPlatformFileDialog(getWindowHandle(), dialogType, returnDialog);
+}
+
+// Stock OK / Cancel / Yes / No message-box dialogs.
+gmpi::ReturnCode DrawingFrameBase2::createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog)
+{
+    return gmpi::hosting::win32::createPlatformStockDialog(getWindowHandle(), dialogType, title, text, returnDialog);
+}
+
 // IInputHost
 gmpi::ReturnCode DrawingFrameBase2::setCapture()
 {

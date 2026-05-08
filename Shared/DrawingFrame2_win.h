@@ -169,11 +169,11 @@ public:
     gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override
     {return gmpi::ReturnCode::NoSupport;}
     gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override;
-    gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override
-    {return gmpi::ReturnCode::NoSupport;}
+    // Both delegate to gmpi::hosting::win32::createPlatform{File,Stock}Dialog —
+    // shared factories also used by gmpi_ui's DxDrawingFrameBase.
+    gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override;
     // returns IStockDialog
-    gmpi::ReturnCode createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) override
-    {return gmpi::ReturnCode::NoSupport;}
+    gmpi::ReturnCode createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) override;
 
     gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
     {
