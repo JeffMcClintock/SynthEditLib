@@ -1149,6 +1149,12 @@ namespace SE2
 			centerPos.x -= autoScrolDx / zoomFactor;
 			centerPos.y -= autoScrolDy / zoomFactor;
 			calcViewTransform(); // and redraws
+			// Auto-scroll changes centerPos but calcViewTransform alone
+			// doesn't refresh the scrollbar spec — external scrollbars
+			// (TIDE's drawn ones, the GUI app's WinUI ones) stay frozen
+			// while the canvas glides under the cursor unless we ping
+			// updateScrollBars here.
+			updateScrollBars();
 
 			// pointer moves (relative to the view)
 			int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
