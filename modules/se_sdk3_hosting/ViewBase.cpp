@@ -1128,8 +1128,16 @@ namespace SE2
 		if (!isAutoScrolling)
 			return false;
 
-		float autoScrolDx = (std::max)(0.0f, -currentPointerPosAbsolute.x) - (std::max)(0.0f, currentPointerPosAbsolute.x - (drawingBounds.right - drawingBounds.left));
-		float autoScrolDy = (std::max)(0.0f, -currentPointerPosAbsolute.y) - (std::max)(0.0f, currentPointerPosAbsolute.y - (drawingBounds.bottom - drawingBounds.top));
+		// Auto-scroll triggers when the mouse leaves drawingBounds. Compare
+		// the mouse position to the actual edges; the previous formula used
+		// (right - left) on one side, which only worked when drawingBounds
+		// started at (0,0). In contexts where the view is arranged off-origin
+		// (e.g. the TIDE plugin's three-pane layout, where the editor strip
+		// starts at the browser-strip's right edge), that made auto-scroll
+		// kick in well inside the visible area on the right and never fire
+		// on the left.
+		float autoScrolDx = (std::max)(0.0f, drawingBounds.left - currentPointerPosAbsolute.x) - (std::max)(0.0f, currentPointerPosAbsolute.x - drawingBounds.right);
+		float autoScrolDy = (std::max)(0.0f, drawingBounds.top  - currentPointerPosAbsolute.y) - (std::max)(0.0f, currentPointerPosAbsolute.y - drawingBounds.bottom);
 
 		constexpr float maxSpeed = 22.f; // pixels per timer tick (24ms)
 		autoScrolDx = std::clamp(autoScrolDx * 0.5f, -maxSpeed, maxSpeed);
