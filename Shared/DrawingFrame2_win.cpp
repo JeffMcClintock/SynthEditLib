@@ -234,20 +234,8 @@ gmpi::ReturnCode DrawingFrameBase2::createPopupMenu(const gmpi::drawing::Rect* r
     return gmpi::hosting::win32::createPlatformPopupMenu(getWindowHandle(), r, DipsToWindow._22, returnPopupMenu);
 }
 
-void DrawingFrameHwndBase::initTooltip()
-{
-    tooltip.init(getDllHandle(), getWindowHandle());
-}
-
-void DrawingFrameHwndBase::ShowToolTip()
-{
-    tooltip.show(getWindowHandle());
-}
-
-void DrawingFrameHwndBase::HideToolTip()
-{
-    tooltip.hide(getWindowHandle());
-}
+// Tooltip forwarders (initTooltip/ShowToolTip/HideToolTip/TooltipOnMouseActivity)
+// are now inline on tempSharedD2DBase.
 
 LRESULT CALLBACK DrawingFrame2WindowProc(
     HWND hwnd,
@@ -507,11 +495,6 @@ bool DrawingFrameHwndBase::onTimer()
     clearDirtyRects();
 
     return true;
-}
-
-void DrawingFrameHwndBase::TooltipOnMouseActivity()
-{
-    tooltip.onMouseActivity(getWindowHandle());
 }
 
 void DrawingFrameHwndBase::OnPaint()

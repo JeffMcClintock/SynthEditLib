@@ -190,15 +190,12 @@ protected:
     HWND parentWnd = {};
     gmpi::drawing::Point cubaseBugPreviousMouseMove = { -1,-1 };
     bool isTrackingMouse = false;
-    gmpi::hosting::ToolTipManager tooltip;
+    // `tooltip` member + initTooltip/HideToolTip/ShowToolTip/TooltipOnMouseActivity
+    // now live on tempSharedD2DBase.
     // Paint() uses Direct-2d which block on vsync. Therefore all invalid rects should be applied in one "hit", else windows message queue chokes calling WM_PAINT repeately and blocking on every rect.
 	gmpi::hosting::UpdateRegionWinGdi updateRegion_native;
     int pollHdrChangesCount = 100;
 
-    void initTooltip();
-    void HideToolTip();
-    void ShowToolTip();
-    void TooltipOnMouseActivity();
     gmpi::drawing::RectL getFullDirtyRect() override;
 
 public:
