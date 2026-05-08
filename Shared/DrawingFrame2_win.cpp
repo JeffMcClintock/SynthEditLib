@@ -10,11 +10,7 @@ using namespace legacy_converters;
 
 DrawingFrameBase2::DrawingFrameBase2()
 {
-    // The inherited gmpi::directx::Factory (DrawingFactory member of
-    // DxDrawingFrameBase) is default-constructed before this body runs;
-    // wrap it in UniversalFactory so SDK3 plugins get their queryInterface
-    // dispatch.
-    universalFactory = std::make_unique<UniversalFactory>(&DrawingFactory);
+    universalFactory = std::make_unique<UniversalFactory>();
 }
 
 void DrawingFrameBase2::queueDirtyRect(gmpi::drawing::RectL rect)
@@ -164,7 +160,7 @@ void DrawingFrameBase2::detachAndRecreate()
     assert(!reentrant); // do this async please.
 
     detachClient();
-    CreateSwapPanel(DrawingFactory.getD2dFactory());
+    CreateSwapPanel(universalFactory->gmpiFactory.getD2dFactory());
 }
 
 // IDialogHost methods (createTextEdit / createPopupMenu / createKeyListener /
@@ -364,7 +360,7 @@ void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZ
     {
 		setWindowHandle(windowHandle);
 
-        CreateSwapPanel(DrawingFactory.getD2dFactory());
+        CreateSwapPanel(universalFactory->gmpiFactory.getD2dFactory());
 
         initTooltip();
 

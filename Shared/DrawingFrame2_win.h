@@ -22,21 +22,23 @@ namespace SE2
 
 class CSynthEditDocBase;
 
-// Wraps a borrowed gmpi::directx::Factory so SDK3 plugins (which query for
-// SE_IID_FACTORY*_MPGUI) can be served alongside modern GMPI plugins. The
-// gmpi factory itself lives on DxDrawingFrameBase (the inherited DrawingFactory
-// member); UniversalFactory holds a pointer to it, not a copy — so there's
-// only one factory instance per frame.
+// Wraps a gmpi::directx::Factory so SDK3 plugins (which query for
+// SE_IID_FACTORY*_MPGUI) can be served alongside modern GMPI plugins.
+// Owns its gmpi factory by value — DrawingFrameBase2's inherited DrawingFactory
+// from DxDrawingFrameBase is therefore unused on the SE path; SE methods route
+// through universalFactory->gmpiFactory consistently. Phase 4b may collapse
+// this to use the inherited factory once we're confident in the dispatch.
+//
+// ScreenshotFactory_win.cpp also creates these standalone (no enclosing frame),
+// hence the default constructor.
 struct UniversalFactory : public gmpi::api::IUnknown
 {
-    gmpi::directx::Factory* gmpiFactory; // borrowed, not owned
+    gmpi::directx::Factory gmpiFactory;
     se::directx::Factory_base sdk3Factory;
 
-    explicit UniversalFactory(gmpi::directx::Factory* pgmpiFactory)
-        : gmpiFactory(pgmpiFactory)
-        , sdk3Factory(pgmpiFactory->getInfo()) // SDK3 factory borrows the guts from the GMPI factory.
-    {
-    }
+	UniversalFactory() : sdk3Factory(gmpiFactory.getInfo()) // SDK3 factory borrows the guts from the GMPI factory.
+	{
+	}
 
     // dispatch queries to correct factory
     gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
@@ -46,7 +48,7 @@ struct UniversalFactory : public gmpi::api::IUnknown
 			return (gmpi::ReturnCode) sdk3Factory.queryInterface(* (const gmpi::MpGuid*) iid, returnInterface);
         }
 
-		return gmpiFactory->queryInterface(iid, returnInterface);
+		return gmpiFactory.queryInterface(iid, returnInterface);
     }
 
     GMPI_REFCOUNT_NO_DELETE;
@@ -71,7 +73,8 @@ struct UniversalFactory : public gmpi::api::IUnknown
 // State collapse comes in Phase 4b.
 struct DrawingFrameBase2 :
       public virtual gmpi::hosting::DxDrawingFrameBase
-    , public gmpi::api::IDialogHost
+    // IDialogHost reaches us via DxDrawingFrameBase. Listing it again here would
+    // create a duplicate base subobject (warning C4584).
 {
     std::unique_ptr<UniversalFactory> universalFactory; // wraps inherited DrawingFactory; serves SDK3 IIDs
 
@@ -94,7 +97,9 @@ protected:
     void queueDirtyRect(const gmpi::drawing::Rect* invalidRect);
     void replaceDirtyRects(gmpi::drawing::RectL rect);
     void invalidateAll();
-    virtual gmpi::drawing::RectL getFullDirtyRect() = 0;
+    // getFullDirtyRect already declared pure virtual on tempSharedD2DBase
+    // (via DxDrawingFrameBase). Re-declaring here would split the virtual into
+    // two override slots and make the diamond ambiguous (C2250).
     static int32_t makePointerFlags()
     {
         return static_cast<int32_t>(gmpi::api::PointerFlags::InContact)
@@ -145,12 +150,12 @@ public:
 
     void OnSwapChainCreated() override;
 
-    // Override gmpi_ui's getD2dFactory to use the inherited DrawingFactory
-    // directly (UniversalFactory is just a queryInterface dispatcher; the D2D
-    // factory lives on the inherited gmpi::directx::Factory).
+    // Override gmpi_ui's getD2dFactory to use universalFactory's gmpi factory.
+    // (The inherited DrawingFactory from DxDrawingFrameBase is unused on the SE
+    // path — Phase 4b may collapse them to share one instance.)
     ID2D1Factory1* getD2dFactory() override
     {
-        return DrawingFactory.getD2dFactory();
+        return universalFactory ? universalFactory->gmpiFactory.getD2dFactory() : nullptr;
     }
     // canPaint gates on isInit (set true at end of open() after startTimer)
     // rather than gmpi_ui's "drawingClient != nullptr" check, so the first
