@@ -10,7 +10,11 @@ using namespace legacy_converters;
 
 DrawingFrameBase2::DrawingFrameBase2()
 {
-    DrawingFactory = std::make_unique<UniversalFactory>();
+    // The inherited gmpi::directx::Factory (DrawingFactory member of
+    // DxDrawingFrameBase) is default-constructed before this body runs;
+    // wrap it in UniversalFactory so SDK3 plugins get their queryInterface
+    // dispatch.
+    universalFactory = std::make_unique<UniversalFactory>(&DrawingFactory);
 }
 
 void DrawingFrameBase2::queueDirtyRect(gmpi::drawing::RectL rect)
@@ -114,7 +118,7 @@ void DrawingFrameBase2::Closed()
 
     popupMenu = {};
     detachClient();
-    DrawingFactory = {};
+    universalFactory = {};
     ReleaseDevice();
 }
 
@@ -160,38 +164,19 @@ void DrawingFrameBase2::detachAndRecreate()
     assert(!reentrant); // do this async please.
 
     detachClient();
-    CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
+    CreateSwapPanel(DrawingFactory.getD2dFactory());
 }
 
-gmpi::ReturnCode DrawingFrameBase2::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
-{
-    *returnKeyListener = new gmpi::hosting::win32::PlatformKeyListener(getWindowHandle(), r);
-    return gmpi::ReturnCode::Ok;
-}
+// IDialogHost methods (createTextEdit / createPopupMenu / createKeyListener /
+// createFileDialog / createStockDialog) are inherited from gmpi_ui's
+// DxDrawingFrameBase — same body (delegates to the shared
+// gmpi::hosting::win32::createPlatform* factories). HostedView (WinUI3) still
+// overrides for SwapChainPanel-native widgets.
+//
+// IInputHost (setCapture / getCapture / releaseCapture) is on tempSharedD2DBase.
 
-// Shared with gmpi_ui's DxDrawingFrameBase — both call into the same Win32 modal
-// edit-box class defined in gmpi_ui/backends/DrawingFrameWin.cpp. Previously this
-// returned NoSupport, which broke text-entry widgets (EditWidget::onPointerUp ->
-// Sdk3Helper::createPlatformTextEdit -> dialogHost->createTextEdit).
-gmpi::ReturnCode DrawingFrameBase2::createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit)
-{
-    return gmpi::hosting::win32::createPlatformTextEdit(getWindowHandle(), r, DipsToWindow._22, returnTextEdit);
-}
-
-// File-open / file-save dialogs. Same delegation pattern as createTextEdit —
-// the GMPI_WIN_FileDialog class lives privately in gmpi_ui/backends/DrawingFrameWin.cpp.
-gmpi::ReturnCode DrawingFrameBase2::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog)
-{
-    return gmpi::hosting::win32::createPlatformFileDialog(getWindowHandle(), dialogType, returnDialog);
-}
-
-// Stock OK / Cancel / Yes / No message-box dialogs.
-gmpi::ReturnCode DrawingFrameBase2::createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog)
-{
-    return gmpi::hosting::win32::createPlatformStockDialog(getWindowHandle(), dialogType, title, text, returnDialog);
-}
-
-// IInputHost (setCapture/getCapture/releaseCapture) is now inline on tempSharedD2DBase.
+// queryInterface is inherited from DxDrawingFrameBase (same IDrawingHost /
+// IInputHost / IDialogHost handling, plus the parameterHost fallback).
 
 float DrawingFrameHwndBase::getRasterizationScale()
 {
@@ -199,23 +184,7 @@ float DrawingFrameHwndBase::getRasterizationScale()
     return (dpiX / 96.f) * pluginUIScale;
 }
 
-HRESULT DrawingFrameHwndBase::createNativeSwapChain
-(
-    IDXGIFactory2* factory,
-    ID3D11Device* d3dDevice,
-    DXGI_SWAP_CHAIN_DESC1* desc,
-    IDXGISwapChain1** returnSwapChain
-)
-{
-    return factory->CreateSwapChainForHwnd(
-        d3dDevice,
-        getWindowHandle(),
-        desc,
-        nullptr,
-        nullptr,
-        returnSwapChain
-    );
-}
+// createNativeSwapChain is inherited from DxDrawingFrameHwnd (CreateSwapChainForHwnd).
 
 void DrawingFrameBase2::OnSwapChainCreated()
 {
@@ -227,15 +196,8 @@ void DrawingFrameBase2::OnSwapChainCreated()
     [[maybe_unused]] auto hr = swapChain->SetMatrixTransform(&scale);
 }
 
-// Shared Win32 popup-menu impl now lives in gmpi_ui/backends/DrawingFrameWin.cpp
-// as GMPI_WIN_PopupMenu, exposed via the createPlatformPopupMenu factory.
-gmpi::ReturnCode DrawingFrameBase2::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu)
-{
-    return gmpi::hosting::win32::createPlatformPopupMenu(getWindowHandle(), r, DipsToWindow._22, returnPopupMenu);
-}
-
-// Tooltip forwarders (initTooltip/ShowToolTip/HideToolTip/TooltipOnMouseActivity)
-// are now inline on tempSharedD2DBase.
+// createPopupMenu inherited from DxDrawingFrameBase (same factory delegate).
+// Tooltip forwarders inline on tempSharedD2DBase.
 
 LRESULT CALLBACK DrawingFrame2WindowProc(
     HWND hwnd,
@@ -402,7 +364,7 @@ void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZ
     {
 		setWindowHandle(windowHandle);
 
-        CreateSwapPanel(DrawingFactory->gmpiFactory.getD2dFactory());
+        CreateSwapPanel(DrawingFactory.getD2dFactory());
 
         initTooltip();
 
@@ -521,12 +483,14 @@ bool DrawingFrameBase2::canPaint(std::span<gmpi::drawing::RectL> dirtyRects)
 // gmpi::hosting::tempSharedD2DBase — promoted up from here so gmpi_ui's
 // DxDrawingFrameBase gains the same behaviour.
 
-void DrawingFrameBase2::renderFrame(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects)
+// renderFrame is inherited from DxDrawingFrameBase (a thin wrapper around
+// renderInDeviceContext below).
+void DrawingFrameBase2::renderInDeviceContext(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects)
 {
-    // UniversalGraphicsContext is the SE-specific context that dispatches both
-    // GMPI and SDK3 IIDs in queryInterface. The dirty-rect loop is shared via
-    // tempSharedD2DBase::paintLoop — only the context type differs from gmpi_ui.
-    se::directx::UniversalGraphicsContext context(DrawingFactory.get(), deviceContext);
+    // UniversalGraphicsContext dispatches both GMPI and SDK3 IIDs in
+    // queryInterface — that's why SE overrides this hook. The dirty-rect loop
+    // (tempSharedD2DBase::paintLoop) is shared with gmpi_ui.
+    se::directx::UniversalGraphicsContext context(universalFactory.get(), deviceContext);
     gmpi::drawing::Graphics graphics(&context);
 
     graphics.beginDraw();
@@ -535,9 +499,6 @@ void DrawingFrameBase2::renderFrame(ID2D1DeviceContext* deviceContext, std::span
     {
         ReleaseDevice();
     }
-
-    // (Compile-time-disabled `diagnose dirty rects` overlay was here. Removed
-    // in favour of the shared paintLoop; resurrect via git history if needed.)
 }
 
 void DrawingFrameBase2::sizeClientDips(float width, float height)
@@ -562,10 +523,6 @@ void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect
         invalidateAll();
 }
 
-gmpi::drawing::RectL DrawingFrameHwndBase::getFullDirtyRect()
-{
-    RECT clientRect{};
-    GetClientRect(getWindowHandle(), &clientRect);
-    return { clientRect.left, clientRect.top, clientRect.right, clientRect.bottom };
-}
+// getFullDirtyRect is inherited from DxDrawingFrameHwnd (identical
+// GetClientRect-based body). Single virtual subobject via the virtual base.
 
