@@ -94,7 +94,6 @@ modules_internal/Blob2Test.cpp
 modules_internal/CadmiumModules.cpp
 modules_internal/MIDI2Converter.cpp
 modules_internal/MPEToMIDI2.cpp
-modules_internal/PatchPoints.cpp
 modules_internal/RegistrationCheck.cpp
 modules_internal/VoiceMute/VoiceMute.h
 modules_internal/VoiceMute/VoiceMute.cpp
@@ -103,6 +102,7 @@ modules_internal/VoiceMute/VoiceMute.cpp
 if(SE_GRAPHICS_SUPPORT)
 set(srcs_modules_internal
 ${srcs_modules_internal}
+modules_internal/PatchPoints.cpp
 modules_internal/CpuMeter/CpuMeterGui.cpp
 modules_internal/PatchPointsGui.h
 modules_internal/PatchPointsGui.cpp
