@@ -161,13 +161,12 @@ public:
     gmpi::ReturnCode getCapture(bool& returnValue) override;
     gmpi::ReturnCode releaseCapture() override;
 
-	// gmpi::api::IDialogHost. derived classes need to implement these if they want dialogs.
-	// createTextEdit is implemented in DrawingFrame2_win.cpp using the shared
-	// gmpi::hosting::win32::createPlatformTextEdit factory (single Win32 source of truth,
-	// also used by gmpi_ui's DxDrawingFrameBase).
+	// gmpi::api::IDialogHost. All Win32 implementations live in DrawingFrame2_win.cpp
+	// and delegate to the shared gmpi::hosting::win32::createPlatform* factories,
+	// which are also used by gmpi_ui's DxDrawingFrameBase. HostedView (WinUI3)
+	// overrides these for SwapChainPanel-native widgets.
     gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override;
-    gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override
-    {return gmpi::ReturnCode::NoSupport;}
+    gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override;
     gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener) override;
     // Both delegate to gmpi::hosting::win32::createPlatform{File,Stock}Dialog —
     // shared factories also used by gmpi_ui's DxDrawingFrameBase.
@@ -226,7 +225,7 @@ public:
     bool onTimer() override;
     void OnPaint() override; // should call Paint with the dirty area
 
-    gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override;
+    // (createPopupMenu now lives on DrawingFrameBase2 — shared Win32 impl.)
 
     // provids a default message handler. Note that some clients provide their own. e.g. MyFrameWndDirectX
     LRESULT WindowProc(
