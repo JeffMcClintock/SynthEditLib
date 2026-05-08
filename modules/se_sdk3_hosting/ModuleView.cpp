@@ -735,7 +735,7 @@ namespace SE2
 		}
 		if (moduleInfo->UniqueId() == L"Container")
 		{
-			_RPTN(0, "ModuleViewPanel created for Container (should use SubView instead)\n");
+			_RPT0(0, "ModuleViewPanel created for Container (should use SubView instead)\n");
 			return;
 		}
 		Build();
