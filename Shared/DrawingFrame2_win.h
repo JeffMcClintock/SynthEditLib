@@ -92,23 +92,19 @@ struct DrawingFrameBase2 :
 
     std::atomic<bool> isInit;
 
-    float pluginUIScale = 1.0f; // HC_PLUGIN_UI_SCALE multiplier (plugin builds only, not the editor)
+    // pluginUIScale (HC_PLUGIN_UI_SCALE) inherited from DxDrawingFrameBase as of Phase 4c-5.
 
     gmpi::drawing::Point currentPointerPos{ -1, -1 };
-    GmpiGui::PopupMenu contextMenu;
-    gmpi::shared_ptr<gmpi::api::IPopupMenu> popupMenu;
+    // GmpiGui::PopupMenu contextMenu and gmpi::shared_ptr<IPopupMenu> popupMenu
+    // dropped in Phase 4c-3 — context-menu lifetime now handled by the
+    // inherited DxDrawingFrameBase::contextMenu member, populated by the
+    // shared doContextMenu helper.
 
 protected:
-    // dirtyRects member now inherited as DxDrawingFrameBase::backBufferDirtyRects
-    // (Phase 4b). The helpers below operate on the inherited queue.
+    // Dirty-rect helpers (queueDirtyRect / replaceDirtyRects / invalidateAll /
+    // getDirtyRects / hasDirtyRects / clearDirtyRects / preGraphicsRedraw / Paint)
+    // are inherited from DxDrawingFrameBase as of Phase 4c-1.
 
-    void queueDirtyRect(gmpi::drawing::RectL rect);
-    void queueDirtyRect(const gmpi::drawing::Rect* invalidRect);
-    void replaceDirtyRects(gmpi::drawing::RectL rect);
-    void invalidateAll();
-    // getFullDirtyRect already declared pure virtual on tempSharedD2DBase
-    // (via DxDrawingFrameBase). Re-declaring here would split the virtual into
-    // two override slots and make the diamond ambiguous (C2250).
     static int32_t makePointerFlags()
     {
         return static_cast<int32_t>(gmpi::api::PointerFlags::InContact)
@@ -138,13 +134,8 @@ protected:
         if (isNew)
             flags |= static_cast<int32_t>(gmpi::api::PointerFlags::New);
     }
-    std::span<gmpi::drawing::RectL> getDirtyRects() { return backBufferDirtyRects.get(); }
-    std::span<const gmpi::drawing::RectL> getDirtyRects() const { return backBufferDirtyRects.get(); }
-    bool hasDirtyRects() const { return !backBufferDirtyRects.empty(); }
-    void clearDirtyRects() { backBufferDirtyRects.clear(); }
-    bool preGraphicsRedraw();
-    void PaintQueuedDirtyRects();
-    gmpi::ReturnCode launchContextMenu(const gmpi::drawing::Point& point);
+    // launchContextMenu replaced by inherited DxDrawingFrameBase::doContextMenu
+    // (Phase 4c-3 fixed gmpi_ui's body so it no longer re-fires onPointerDown).
 
 public:
 
@@ -180,11 +171,9 @@ public:
     // GraphicsContext, then run the shared paintLoop.
     void renderInDeviceContext(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects) override;
 
-    // attachClient(IUnknown*) inherits from DxDrawingFrameBase but is shadowed
-    // by SE's override below, which writes to graphics_gmpi/editor_gmpi (Phase 4a
-    // duplicate state) and adds the swap-chain-size-on-attach behaviour SE has
-    // historically relied on.
-    void attachClient(gmpi::api::IUnknown* pclient);
+    // attachClient(IUnknown*) inherited from DxDrawingFrameBase — same body
+    // (Phase 4c-2 promoted SE's swap-chain-size-on-attach into the base).
+    using DxDrawingFrameBase::attachClient;
     // SDK3 overload — wraps an IMpGraphics3 client in SDK3Adaptor and delegates.
     // Live callers: SE2JUCE_Editor.cpp:106, Pile.h:577.
     void attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx);
@@ -193,8 +182,11 @@ public:
     void detachAndRecreate();
     void sizeClientDips(float width, float height) override;
 
-    virtual void OnPaint() = 0; // Derived should call Paint with the dirty area
-    void Paint(std::span<gmpi::drawing::RectL> dirtyRects);
+    // OnPaint as a virtual hook so HostedView (WinUI3) can override and the
+    // gmpi_ui-side DxDrawingFrameHwnd::OnPaint can satisfy DrawingFrameHwndBase
+    // via the dominance rule. Default no-op covers any derived class that
+    // doesn't draw via this path.
+    virtual void OnPaint() {}
 
     virtual void Closed();
 
@@ -236,42 +228,24 @@ class DrawingFrameHwndBase :
 {
 protected:
     HWND parentWnd = {};
-    int pollHdrChangesCount = 100;
 
-    // cubaseBugPreviousMouseMove, isTrackingMouse, updateRegion_native,
-    // createNativeSwapChain, getFullDirtyRect — all inherited from
-    // DxDrawingFrameHwnd (single subobject via virtual inheritance).
+    // pollHdrChangesCount, cubaseBugPreviousMouseMove, isTrackingMouse,
+    // updateRegion_native, createNativeSwapChain, getFullDirtyRect, WindowProc,
+    // onTimer (with HDR poll), invalidateRect, getRasterizationScale —
+    // all inherited from DxDrawingFrameHwnd (single subobject via virtual base).
 
 public:
     void open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZE_L* overrideSize = {});
 	virtual void setWindowHandle(HWND hwnd) = 0; // provides the new hwnd to the derived class
 
-    // IMpGraphicsHost — SE's invalidateRect routes through SE's dirtyRects
-    // queue (queueDirtyRect/invalidateAll). Different queue from gmpi_ui's
-    // backBufferDirtyRects; collapses in Phase 4b.
-    void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
-    // Adds pluginUIScale on top of gmpi_ui's GetDpiForWindow result.
-    float getRasterizationScale() override;
-
     void ReSize(int left, int top, int right, int bottom);
     virtual void DoClose() {}
 
-    // Drains SE's dirtyRects queue + adds HDR-white-level poll for monitor
-    // mode changes (e.g. HDR toggle).
-    bool onTimer() override;
-
-    // Pure virtual on DrawingFrameBase2; SE's body uses Paint() which routes
-    // through the dirty-rect helpers.
-    void OnPaint() override;
-
-    // Default message handler. Note that some clients provide their own
-    // (e.g. MyFrameWndDirectX wraps it). SE's body has defensive
-    // "if (editor_gmpi)" guards at every dispatch site that gmpi_ui's lacks.
-    LRESULT WindowProc(
-        HWND hwnd,
-        UINT message,
-        WPARAM wParam,
-        LPARAM lParam);
+    // OnPaint on the diamond: DrawingFrameBase2 declares it virtual (default
+    // no-op for non-HWND consumers), DxDrawingFrameHwnd has its own non-virtual
+    // OnPaint with the GDI dirty-region body. Forward through here so the
+    // virtual dispatch reaches the HWND impl.
+    void OnPaint() override { DxDrawingFrameHwnd::OnPaint(); }
 };
 
 // This is used in VST3. Native HWND window frame, owned by this.

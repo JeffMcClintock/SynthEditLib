@@ -13,85 +13,14 @@ DrawingFrameBase2::DrawingFrameBase2()
     universalFactory = std::make_unique<UniversalFactory>();
 }
 
-void DrawingFrameBase2::queueDirtyRect(gmpi::drawing::RectL rect)
-{
-    backBufferDirtyRects.add(rect);
-}
+// Dirty-rect helpers (queueDirtyRect / replaceDirtyRects / invalidateAll /
+// preGraphicsRedraw / Paint, plus the get/has/clear accessors) are now inline
+// on gmpi_ui's DxDrawingFrameBase. Dead PaintQueuedDirtyRects helper removed.
 
-void DrawingFrameBase2::queueDirtyRect(const gmpi::drawing::Rect* invalidRect)
-{
-    backBufferDirtyRects.add(invalidRect, DipsToWindow);
-}
+// attachClient(IUnknown*) inherited from DxDrawingFrameBase — Phase 4c-2 promoted
+// the swap-chain-size-on-attach block out of SE.
 
-void DrawingFrameBase2::replaceDirtyRects(gmpi::drawing::RectL rect)
-{
-    backBufferDirtyRects.replace(rect);
-}
-
-void DrawingFrameBase2::invalidateAll()
-{
-    replaceDirtyRects(getFullDirtyRect());
-}
-
-bool DrawingFrameBase2::preGraphicsRedraw()
-{
-    if (frameUpdateClient)
-    {
-        frameUpdateClient->preGraphicsRedraw();
-    }
-
-    return hasDirtyRects();
-}
-
-void DrawingFrameBase2::PaintQueuedDirtyRects()
-{
-    if (!hasDirtyRects())
-        return;
-
-    Paint(getDirtyRects());
-    clearDirtyRects();
-}
-
-// new
-void DrawingFrameBase2::attachClient(gmpi::api::IUnknown* pclient)
-{
-    detachClient();
-
-    gmpi::shared_ptr<gmpi::api::IUnknown> unknown; // no, does not increment refcount (pclient);
-    unknown = pclient;
-
-    inputClient       = unknown.as<gmpi::api::IInputClient>();
-    drawingClient     = unknown.as<gmpi::api::IDrawingClient>();
-	frameUpdateClient = unknown.as<gmpi::api::IGraphicsRedrawClient>();
-
-#if 0 // TODO
-    gmpi_gui_client = gfx;
-
-    gfx->queryInterface(IGraphicsRedrawClient::guid, frameUpdateClient.asIMpUnknownPtr());
-#endif
-
-    auto ieditor = unknown.as<gmpi::api::IEditor>();
-    if(ieditor)
-    {
-        ieditor->setHost(static_cast<gmpi::api::IDrawingHost*>(this));
-        ieditor->initialize();
-    }
-
-    if (swapChain)
-    {
-        const auto scale = 1.0 / getRasterizationScale();
-
-        sizeClientDips(
-            static_cast<float>(swapChainSize.width) * scale,
-            static_cast<float>(swapChainSize.height) * scale
-        );
-    }
-
-    if (drawingClient)
-        drawingClient->setHost(static_cast<gmpi::api::IDrawingHost*>(this));
-}
-
-// old
+// SDK3 overload — wraps an IMpGraphics3 client in SDK3Adaptor and delegates.
 void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx)
 {
 	auto wrapper = new SDK3Adaptor();
@@ -112,31 +41,12 @@ void DrawingFrameBase2::Closed()
     }
     */
 
-    popupMenu = {};
     detachClient();
     universalFactory = {};
     ReleaseDevice();
 }
 
-gmpi::ReturnCode DrawingFrameBase2::launchContextMenu(const gmpi::drawing::Point& point)
-{
-    if (!inputClient)
-        return gmpi::ReturnCode::Unhandled;
-
-    gmpi::drawing::Rect rect{ point.x, point.y, point.x + 120, point.y + 20 };
-
-    gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-    if (createPopupMenu(&rect, unknown.put()) != gmpi::ReturnCode::Ok)
-        return gmpi::ReturnCode::NoSupport;
-
-    popupMenu = unknown.as<gmpi::api::IPopupMenu>();
-    if (!popupMenu)
-        return gmpi::ReturnCode::NoSupport;
-
-    const auto returnCode = inputClient->populateContextMenu(point, popupMenu);
-    popupMenu->showAsync();
-    return returnCode;
-}
+// launchContextMenu replaced by inherited DxDrawingFrameBase::doContextMenu.
 
 // detachClient is now inherited from DxDrawingFrameBase — same body
 // (setHost(nullptr) notification + null out the smart pointers).
@@ -160,11 +70,8 @@ void DrawingFrameBase2::detachAndRecreate()
 // queryInterface is inherited from DxDrawingFrameBase (same IDrawingHost /
 // IInputHost / IDialogHost handling, plus the parameterHost fallback).
 
-float DrawingFrameHwndBase::getRasterizationScale()
-{
-    const auto dpiX = GetDpiForWindow(getWindowHandle());
-    return (dpiX / 96.f) * pluginUIScale;
-}
+// getRasterizationScale inherited from DxDrawingFrameBase — Phase 4c-5
+// promoted pluginUIScale into the gmpi_ui base.
 
 // createNativeSwapChain is inherited from DxDrawingFrameHwnd (CreateSwapChainForHwnd).
 
@@ -196,132 +103,10 @@ LRESULT CALLBACK DrawingFrame2WindowProc(
     return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
-LRESULT DrawingFrameHwndBase::WindowProc(
-    HWND hwnd,
-    UINT message,
-    WPARAM wParam,
-    LPARAM lParam)
-{
-    if (!drawingClient)
-        return DefWindowProc(hwnd, message, wParam, lParam);
-
-    switch (message)
-    {
-    case WM_MBUTTONDOWN:
-    case WM_MBUTTONUP:
-    case WM_MOUSEMOVE:
-    case WM_LBUTTONDOWN:
-    case WM_LBUTTONUP:
-    case WM_RBUTTONDOWN:
-    case WM_RBUTTONUP:
-    {
-        const auto point = gmpi::hosting::win32::pointFromLParam(lParam, WindowToDips);
-        if (gmpi::hosting::win32::isDuplicateMouseMove(message, point, cubaseBugPreviousMouseMove))
-        {
-            return TRUE;
-        }
-
-        TooltipOnMouseActivity();
-
-        int32_t flags = gmpi::hosting::win32::makePointerFlags(message);
-
-        gmpi::ReturnCode r{ gmpi::ReturnCode::Unhandled};
-        switch (message)
-        {
-        case WM_MOUSEMOVE:
-        {
-            if (inputClient)
-                r = inputClient->onPointerMove(point, flags);
-
-            // get notified when mouse leaves window
-            if (!isTrackingMouse)
-            {
-                gmpi::hosting::win32::beginMouseTracking(hwnd, isTrackingMouse);
-                if (inputClient)
-                    inputClient->setHover(true);
-            }
-        }
-        break;
-
-        case WM_LBUTTONDOWN:
-        case WM_RBUTTONDOWN:
-        case WM_MBUTTONDOWN:
-            {
-                if (inputClient)
-                    r = inputClient->onPointerDown(point, flags);
-
-                ::SetFocus(hwnd);
-
-                // Handle right-click context menu.
-                if (r == gmpi::ReturnCode::Unhandled && (flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && inputClient)
-                {
-                    contextMenu.setNull();
-                    r = launchContextMenu(point);
-                }
-            }
-            break;
-
-        case WM_MBUTTONUP:
-        case WM_RBUTTONUP:
-        case WM_LBUTTONUP:
-            if (inputClient)
-                r = inputClient->onPointerUp(point, flags);
-            break;
-        }
-    }
-    break;
-
-    case WM_MOUSELEAVE:
-        isTrackingMouse = false;
-        if (inputClient)
-            inputClient->setHover(false);
-        break;
-
-    case WM_MOUSEWHEEL:
-    case WM_MOUSEHWHEEL:
-    {
-        const auto p = gmpi::hosting::win32::pointFromScreenLParam(getWindowHandle(), lParam, WindowToDips);
-
-        //The wheel rotation will be a multiple of WHEEL_DELTA, which is set at 120. This is the threshold for action to be taken, and one such action (for example, scrolling one increment) should occur for each delta.
-        const auto zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-
-        int32_t flags = gmpi::hosting::win32::makeWheelFlags(message, wParam);
-
-        if (inputClient)
-            /*auto r =*/ inputClient->onMouseWheel(p, flags, zDelta);
-    }
-    break;
-
-    case WM_CHAR:
-#if 0 // TODO!!!
-        if (gmpi_key_client)
-            gmpi_key_client->OnKeyPress((wchar_t)wParam);
-#endif
-        break;
-
-    case WM_PAINT:
-    {
-        OnPaint();
-        //		return ::DefWindowProc(hwnd, message, wParam, lParam); // clear update rect.
-    }
-    break;
-
-    case WM_SIZE:
-    {
-        UINT width = LOWORD(lParam);
-        UINT height = HIWORD(lParam);
-
-        OnSize(width, height);
-        return ::DefWindowProc(hwnd, message, wParam, lParam); // clear update rect.
-    }
-    break;
-
-    default:
-        return DefWindowProc(hwnd, message, wParam, lParam);
-
-    }
-    return TRUE;
-}
+// WindowProc inherited from DxDrawingFrameHwnd — Phase 4c-3 promoted SE's
+// defensive `if (inputClient)` guards and the WM_MOUSELEAVE setHover(false)
+// notification into the gmpi_ui base, and fixed gmpi_ui's doContextMenu so
+// it no longer re-fires onPointerDown.
 
 void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZE_L* overrideSize)
 {
@@ -385,76 +170,12 @@ void DrawingFrameHwndBase::ReSize(int left, int top, int right, int bottom)
     }
 }
 
-// Ideally this is called at 60Hz so we can draw as fast as practical, but without blocking to wait for Vsync all the time (makes host unresponsive).
-bool DrawingFrameHwndBase::onTimer()
-{
-    auto hwnd = getWindowHandle();
-    if (hwnd == nullptr || drawingClient == nullptr)
-        return true;
+// onTimer inherited from DxDrawingFrameHwnd — Phase 4c-5 promoted SE's
+// HDR-white-level poll up there. The disabled tooltip-readyToShow body that
+// was here is preserved in git history if anyone wants to revive it.
 
-    if (pollHdrChangesCount-- < 0)
-    {
-        pollHdrChangesCount = 100; // 1.5s
-
-        if (windowWhiteLevel != calcWhiteLevel())
-        {
-            recreateSwapChainAndClientAsync();
-        }
-    }
-
-    // Tooltips
-    if (tooltip.readyToShow())
-    {
-        POINT P;
-        GetCursorPos(&P);
-
-        // Check mouse in window and not captured.
-        if (WindowFromPoint(P) == hwnd && GetCapture() != hwnd)
-        {
-            ScreenToClient(hwnd, &P);
-
-            const auto point = gmpi::drawing::transformPoint(WindowToDips, { static_cast<float>(P.x), static_cast<float>(P.y) });
-/* TODO !!???
-            gmpi_sdk::MpString text;
-            inputClient->getToolTip({point.x, point.y}, & text);
-            if (!text.str().empty())
-            {
-              tooltip.getText() = JmUnicodeConversions::Utf8ToWstring(text.str());
-                ShowToolTip();
-            }
-*/
-        }
-    }
-
-    preGraphicsRedraw();
-
-    // Queue pending drawing updates to backbuffer.
-    const BOOL bErase = FALSE;
-
-    for (const auto& invalidRect : getDirtyRects())
-    {
-        RECT rect{ invalidRect.left, invalidRect.top, invalidRect.right, invalidRect.bottom };
-        ::InvalidateRect(hwnd, &rect, bErase);
-    }
-    clearDirtyRects();
-
-    return true;
-}
-
-void DrawingFrameHwndBase::OnPaint()
-{
-    // First clear update region (else windows will pound on this repeatedly).
-    updateRegion_native.copyDirtyRects(getWindowHandle(), { static_cast<int32_t>(swapChainSize.width) , static_cast<int32_t>(swapChainSize.height) });
-    ValidateRect(getWindowHandle(), NULL); // Clear invalid region for next frame.
-
-    auto& dirtyRects = updateRegion_native.getUpdateRects();
-    Paint({ dirtyRects.data(), dirtyRects.size() });
-}
-
-void DrawingFrameBase2::Paint(std::span<gmpi::drawing::RectL> dirtyRects)
-{
-    PaintFrame(dirtyRects);
-}
+// OnPaint forwarder defined inline in the header — DxDrawingFrameHwnd::OnPaint()
+// runs the GDI dirty-region body.
 
 bool DrawingFrameBase2::canPaint(std::span<gmpi::drawing::RectL> dirtyRects)
 {
@@ -497,13 +218,8 @@ void DrawingFrameBase2::sizeClientDips(float width, float height)
     }
 }
 
-void DrawingFrameHwndBase::invalidateRect(const gmpi::drawing::Rect* invalidRect)
-{
-    if (invalidRect)
-        queueDirtyRect(invalidRect);
-    else
-        invalidateAll();
-}
+// invalidateRect inherited from DxDrawingFrameBase — same body now that the
+// dirty-rect helpers are promoted (Phase 4c-1).
 
 // getFullDirtyRect is inherited from DxDrawingFrameHwnd (identical
 // GetClientRect-based body). Single virtual subobject via the virtual base.
