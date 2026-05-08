@@ -13,6 +13,14 @@
 // GMPI-UI to replace custom code.
 #include "backends/DrawingFrameWin.h"
 
+// Suppress C4250 ("class inherits via dominance") — fired by every diamond
+// member function in DrawingFrameHwndBase / DrawingFrame2 because MSVC reports
+// dominance resolution as informational. The behaviour it warns about is
+// guaranteed-correct C++, and the diamond is by design (see DrawingFrameHwndBase
+// comments below). Scoped to this header so unrelated code keeps the warning.
+#pragma warning(push)
+#pragma warning(disable: 4250)
+
 using namespace legacy_converters;
 
 namespace SE2
@@ -279,3 +287,5 @@ public:
         return windowHandle;
     }
 };
+
+#pragma warning(pop) // C4250 (inherits via dominance)
