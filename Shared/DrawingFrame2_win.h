@@ -50,7 +50,7 @@ struct UniversalFactory : public gmpi::api::IUnknown
 struct DrawingFrameBase2 :
       public gmpi::hosting::tempSharedD2DBase
     , public gmpi::api::IDialogHost
-    , public gmpi::api::IInputHost
+    // IInputHost inherited via tempSharedD2DBase (HWND-pointer-capture impls live there).
 {
     std::unique_ptr<UniversalFactory> DrawingFactory;
 
@@ -156,10 +156,7 @@ public:
         return gmpi::ReturnCode::Ok;
     }
 
-    // IInputHost
-    gmpi::ReturnCode setCapture() override;
-    gmpi::ReturnCode getCapture(bool& returnValue) override;
-    gmpi::ReturnCode releaseCapture() override;
+    // IInputHost — implemented inline on tempSharedD2DBase.
 
 	// gmpi::api::IDialogHost. All Win32 implementations live in DrawingFrame2_win.cpp
 	// and delegate to the shared gmpi::hosting::win32::createPlatform* factories,

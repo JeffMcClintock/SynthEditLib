@@ -191,24 +191,7 @@ gmpi::ReturnCode DrawingFrameBase2::createStockDialog(int32_t dialogType, const 
     return gmpi::hosting::win32::createPlatformStockDialog(getWindowHandle(), dialogType, title, text, returnDialog);
 }
 
-// IInputHost
-gmpi::ReturnCode DrawingFrameBase2::setCapture()
-{
-    ::SetCapture(getWindowHandle());
-    return gmpi::ReturnCode::Ok;
-}
-
-gmpi::ReturnCode DrawingFrameBase2::getCapture(bool& returnValue)
-{
-    returnValue = ::GetCapture() == getWindowHandle();
-    return gmpi::ReturnCode::Ok;
-}
-
-gmpi::ReturnCode DrawingFrameBase2::releaseCapture()
-{
-    ::ReleaseCapture();
-    return gmpi::ReturnCode::Ok;
-}
+// IInputHost (setCapture/getCapture/releaseCapture) is now inline on tempSharedD2DBase.
 
 float DrawingFrameHwndBase::getRasterizationScale()
 {
