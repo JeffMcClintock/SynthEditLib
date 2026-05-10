@@ -194,7 +194,15 @@ public:
 
 	ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
 	{
-		return ReturnCode::Unhandled; // return Unhandled to allow clicks to pass through to underlying controls.
+       const auto center = getCenter(bounds);
+		const auto radius = 0.5f * (std::min)(getWidth(bounds), getHeight(bounds));
+		const auto dx = point.x - center.x;
+		const auto dy = point.y - center.y;
+
+		if((dx * dx + dy * dy) <= radius * radius)
+			return ReturnCode::Ok;
+
+		return ReturnCode::Unhandled;
 	}
 
 	ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
@@ -219,7 +227,7 @@ auto r = gmpi::Register<LEDGui>::withXml(R"XML(
 <Plugin id="SE LED" name="LED" category="Sub-Controls">
     <GUI graphicsApi="GmpiGui">
         <Pin name="Animation Position" datatype="float"/>
-        <Pin name="Red" datatype="bool"/>
+        <Pin name="Red" datatype="bool" default="1"/>
 		<Pin name="Green" datatype="bool"/>
 		<Pin name="Blue" datatype="bool"/>
     </GUI>
