@@ -12,6 +12,7 @@ gmpi_plugin(
 	  ButtonGui.cpp
 	  SliderGui.cpp
 	  HSliderGui.cpp
+	  ModWheelGui.cpp
 	  LEDGui.cpp
 	  BumpGui.cpp
 	  PanelGroupGui.cpp
