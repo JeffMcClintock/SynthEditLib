@@ -74,16 +74,10 @@ class ModWheelGui final : public ValueControlBase, public gmpi::api::IDrawingLay
 		};
 	}
 
-	float getShadowOffset() const
-	{
-		const float width = (std::max)(1.f, getWidth(bounds));
-		return (std::max)(2.0f, width * 0.2f);
-	}
-
 	int getShadowBlurRadius() const
 	{
 		const float width = (std::max)(1.f, getWidth(bounds));
-		return (std::max)(2, static_cast<int>(std::ceil(width * 0.15f)));
+		return 1; // (std::max)(2, static_cast<int>(std::ceil(width * 0.15f)));
 	}
 
 	ReturnCode drawShadow(Graphics& g, const Rect& localBounds)
@@ -93,27 +87,62 @@ class ModWheelGui final : public ValueControlBase, public gmpi::api::IDrawingLay
 		shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.55f };
 		shadowBlur.blurRadius = getShadowBlurRadius();
 
-		const float blurOffset = getShadowOffset();
+		// The shadow is a single closed D-shape path:
+		//   1. top-left rounded corner
+		//   2. flat top edge (length = wheel face width — the dimension the
+		//      cylinder actually casts)
+		//   3. one elliptical arc from top-right to bottom-right (the cylinder's
+		//      end-cap projection, bulging right)
+		//   4. flat bottom edge
+		//   5. bottom-left rounded corner
+		//   6. left edge closing the path
+		// The shape's top is tucked behind the wheel's rounded top corner by
+		// slotCornerR; the bottom extends past the wheel face by the same
+		// amount so the shadow emerges from beneath the wheel.
+		// A 45° Y-shear (pivoted on the wheel's right edge) tilts the whole
+		// path down-right as if lit from the upper-left.
 		const float padding = static_cast<float>(shadowBlur.blurRadius) + 1.0f;
+		const float bodyHalfHeight = (std::max)(1.0f, layout.wheelRadius);
+		const float bodyCenterY    = layout.wheelCenterY + layout.slotCornerR;
+		const float cornerR        = layout.slotCornerR;
+		const float arcXRadius     = layout.wheelRadius * 0.5f;
+		const float flatWidth      = getWidth(layout.face);
 
+		const float bitmapWidth  = cornerR + flatWidth + arcXRadius + padding;
+		const float bitmapHeight = 2.0f * bodyHalfHeight + 2.0f * padding;
+		gmpi::drawing::Rect bitmapRect{ 0.0f, 0.0f, bitmapWidth, bitmapHeight };
+
+		constexpr float kPi = 3.14159265f;
 		const auto orig = g.getTransform();
-		g.setTransform(makeTranslation({ blurOffset, 0.0f }) * orig);
-
-		// Canvas extends past the wheel to leave room for the blur to spread without clipping
-		gmpi::drawing::Rect bitmapRect{
-			-padding,
-			-padding,
-			getWidth(localBounds) + padding,
-			getHeight(localBounds) + padding
-		};
+		const auto translate = makeTranslation({
+			layout.slot.right,
+			bodyCenterY - bodyHalfHeight - padding
+		});
+		const auto skew = makeSkew(0.0f, kPi * 0.25f, { layout.slot.right, 0.0f });
+		g.setTransform(translate * skew * orig);
 
 		shadowBlur.draw(g, bitmapRect, [&](Graphics& mask)
 			{
 				auto brush = mask.createSolidColorBrush(Colors::White);
-				mask.fillRoundedRectangle(
-					{ layout.slot, layout.slotCornerR, layout.slotCornerR },
-					brush
-				);
+
+				const float topY      = padding;
+				const float bottomY   = padding + 2.0f * bodyHalfHeight;
+				const float leftX     = 0.0f;
+				const float arcStartX = /*cornerR +*/ flatWidth;
+
+				auto geometry = mask.getFactory().createPathGeometry();
+				auto sink = geometry.open();
+				sink.beginFigure({ cornerR, topY }, FigureBegin::Filled);
+				sink.addLine({ arcStartX, topY });
+				sink.addArc({ { arcStartX, bottomY }, { arcXRadius, bodyHalfHeight }, 0.f, SweepDirection::Clockwise, ArcSize::Small });
+				sink.addLine({ cornerR, bottomY });
+				sink.addArc({ { leftX, bottomY - cornerR }, { cornerR, cornerR }, 0.f, SweepDirection::Clockwise, ArcSize::Small });
+				sink.addLine({ leftX, topY + cornerR });
+				sink.addArc({ { cornerR, topY }, { cornerR, cornerR }, 0.f, SweepDirection::Clockwise, ArcSize::Small });
+				sink.endFigure();
+				sink.close();
+
+				mask.fillGeometry(geometry, brush);
 			});
 		g.setTransform(orig);
 
@@ -222,14 +251,29 @@ public:
 
 	ReturnCode getClipArea(Rect* returnRect) override
 	{
-		const auto shadowOffset = getShadowOffset();
-		const auto shadowBlur_ = static_cast<float>(getShadowBlurRadius());
+		const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
+		const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
+		const auto localBounds = getLocalBounds({ width, height });
+		const auto layout = computeLayout(localBounds);
+
+		const float padding = static_cast<float>(getShadowBlurRadius()) + 1.0f;
+		const float bodyHalfHeight = (std::max)(1.0f, layout.wheelRadius);
+		const float bodyCenterY    = layout.wheelCenterY + layout.slotCornerR;
+		const float cornerR        = layout.slotCornerR;
+		const float arcXRadius     = layout.wheelRadius * 0.5f;
+		const float flatWidth      = getWidth(layout.face);
+		const float shadowRightExtent = cornerR + flatWidth + arcXRadius;
+		// 45° Y-shear pivoted on slot.right shifts the bitmap's right edge down
+		// by (bitmap right extent - slot.right). Top of the bitmap stays put
+		// because its left edge sits on the pivot.
+		const float shadowRight  = layout.slot.right + shadowRightExtent + padding;
+		const float shadowBottom = bodyCenterY + bodyHalfHeight + shadowRightExtent + 2.0f * padding;
 
 		*returnRect = {
 			bounds.left,
-			bounds.top - shadowBlur_,
-			bounds.right + shadowOffset + shadowBlur_,
-			bounds.bottom + shadowBlur_
+			bounds.top,
+			(std::max)(bounds.right,  bounds.left + shadowRight),
+			(std::max)(bounds.bottom, bounds.top + shadowBottom)
 		};
 		return ReturnCode::Ok;
 	}
@@ -352,7 +396,7 @@ auto r = gmpi::Register<ModWheelGui>::withXml(R"XML(
 		<Pin name="Mouse Down" datatype="bool"/>
 		<Pin name="Hint" datatype="string"/>
 		<Pin name="Base Color" datatype="string" default="888888"/>
-		<Pin name="Line Color" datatype="string" default="111111"/>
+		<Pin name="Line Color" datatype="string" default="CC111111"/>
     </GUI>
 </Plugin>
 )XML");
