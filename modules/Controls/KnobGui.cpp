@@ -43,11 +43,17 @@ class KnobGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 		// Fill
 		{
 			const auto fillColor = getFillColor();
+
+			Gradientstop gradientstops[] = {
+				{ 0.0f, interpolateColor(fillColor, Colors::White, 0.15f)},
+				{ 0.5f, fillColor},
+				{ 1.0f, interpolateColor(fillColor, Colors::Black, 0.90f)}
+			};
+
 			auto fillBrush = g.createRadialGradientBrush(
-				{ center.x - radius, center.y - radius },
-				radius * 4.f,
-				interpolateColor(fillColor, Colors::White, 0.45f),
-				interpolateColor(fillColor, Colors::Black, 0.10f)
+				gradientstops,
+				{ center.x - radius * 0.3f, center.y - radius * 0.3f },
+				radius * 1.31f
 			);
 			g.fillCircle(center, radius, fillBrush);
 		}
@@ -102,8 +108,8 @@ class KnobGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 			auto bevelBrush = g.createLinearGradientBrush(
 				{ center.x - radius, center.y - radius },
 				{ center.x + radius, center.y + radius },
-				Color{ 0.85f, 0.85f, 0.85f, 0.55f },
-				Color{ 0.20f, 0.20f, 0.20f, 0.55f }
+				Color{ 1,1,1, 0.15f },
+				Color{ 0,0,0, 0.15f }
 			);
 			g.drawCircle(center, bevelRadius, bevelBrush, bevelWidth);
 		}

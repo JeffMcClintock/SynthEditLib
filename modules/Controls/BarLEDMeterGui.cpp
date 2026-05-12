@@ -22,6 +22,7 @@ class BarLEDMeterGui final : public PluginEditor, public gmpi::api::IDrawingLaye
 	Pin<bool> pinGreen;
 	Pin<bool> pinBlue;
 	Pin<float> pinRadius;
+	Pin<float> pinBrightness;
 
 	static constexpr int ledCount = 12;
 	static constexpr float ledGap = 2.0f;
@@ -173,6 +174,7 @@ public:
 		pinGreen.onUpdate = [this](PinBase*) { onSetColor(); };
 		pinBlue.onUpdate = [this](PinBase*) { onSetColor(); };
 		pinRadius.onUpdate = [this](PinBase*) { glowBitmapDirty = true; redraw(); };
+		pinBrightness.onUpdate = [this](PinBase*) { redraw(); };
 	}
 
 	int32_t addRef() override
@@ -249,7 +251,7 @@ public:
 		const Rect srcRect{ 0.0f, 0.0f, static_cast<float>(bmpW), static_cast<float>(bmpH) };
 		const float litLeds = normalized * static_cast<float>(ledCount);
 		const float pad = static_cast<float>(glowPadding);
-		float brightness = 0.5f; // todo make it a ppin
+		const float brightness = (std::clamp)(pinBrightness.value, 0.0f, 1.0f);
 		for (int i = 0; i < ledCount; ++i)
 		{
 			const float ledIndex = static_cast<float>(i);
@@ -297,6 +299,7 @@ auto r = gmpi::Register<BarLEDMeterGui>::withXml(R"XML(
         <Pin name="Green" datatype="bool"/>
         <Pin name="Blue" datatype="bool"/>
         <Pin name="Radius" datatype="float" default="2"/>
+        <Pin name="Brightness" datatype="float" default="0.2"/>
     </GUI>
 </Plugin>
 )XML");

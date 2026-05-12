@@ -39,12 +39,16 @@ class BumpGui final : public PluginEditor
 	static constexpr int32_t kMask = (int32_t)BitmapRenderTargetFlags::Mask
 		| (int32_t)BitmapRenderTargetFlags::CpuReadable;
 	static constexpr int32_t kColorCpu = (int32_t)BitmapRenderTargetFlags::CpuReadable;
-	static constexpr float kInsetScale = 24.0f / 128.0f;
+	static constexpr float kBlurRadius = 5.0f; // matches cachedBlur default
 
 	void redraw()
 	{
 		if(drawingHost)
-			drawingHost->invalidateRect(&bounds);
+		{
+			Rect clipArea;
+			getClipArea(&clipArea);
+			drawingHost->invalidateRect(&clipArea);
+		}
 	}
 
 	void invalidateShadowBitmap()
@@ -57,20 +61,20 @@ class BumpGui final : public PluginEditor
 		return { 0.0f, 0.0f, static_cast<float>(size.width), static_cast<float>(size.height) };
 	}
 
-	RoundedRect getShape(const Rect& localBounds) const
+	float getOverdraw() const
 	{
-		const auto width = getWidth(localBounds);
-		const auto height = getHeight(localBounds);
-		const auto inset = (std::min)(width, height) * kInsetScale;
-		const auto insetX = (std::min)((std::max)(4.0f, inset), width * 0.25f);
-		const auto insetY = (std::min)((std::max)(4.0f, inset), height * 0.25f);
+		// Room for the outer shadow / highlight to fade off outside the layout rect:
+		// shadow offset plus several blur radii of Gaussian falloff.
+		return (std::max)(4.0f, getShadowDepth() + 4.0f * kBlurRadius);
+	}
 
-		RoundedRect shape{ { insetX, insetY, width - insetX, height - insetY }, 0.0f, 0.0f };
-		const auto maxRadius = 0.5f * (std::min)(getWidth(shape.rect), getHeight(shape.rect));
+	RoundedRect getShape(const Rect& layoutRect) const
+	{
+		const auto width = getWidth(layoutRect);
+		const auto height = getHeight(layoutRect);
+		const auto maxRadius = 0.5f * (std::min)(width, height);
 		const auto radius = (std::clamp)(pinCornerRadius.value, 0.0f, maxRadius);
-		shape.radiusX = radius;
-		shape.radiusY = radius;
-		return shape;
+		return RoundedRect{ layoutRect, radius, radius };
 	}
 
 	float getBlackBlurAlpha() const
@@ -258,18 +262,37 @@ public:
 	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
 	{
 		Graphics g(drawingContext);
-		const auto width = (std::max)(1.0f, getWidth(bounds));
-		const auto height = (std::max)(1.0f, getHeight(bounds));
-		const SizeU size{ static_cast<uint32_t>(std::ceil(width)), static_cast<uint32_t>(std::ceil(height)) };
+		const auto overdraw = getOverdraw();
+		const auto layoutWidth = (std::max)(1.0f, getWidth(bounds));
+		const auto layoutHeight = (std::max)(1.0f, getHeight(bounds));
+		const auto totalWidth = layoutWidth + 2.0f * overdraw;
+		const auto totalHeight = layoutHeight + 2.0f * overdraw;
+		const SizeU size{ static_cast<uint32_t>(std::ceil(totalWidth)), static_cast<uint32_t>(std::ceil(totalHeight)) };
 		const auto localBounds = getLocalBounds(size);
-		const auto shape = getShape(localBounds);
+		const Rect layoutInLocalBounds{ overdraw, overdraw, overdraw + layoutWidth, overdraw + layoutHeight };
+		const auto shape = getShape(layoutInLocalBounds);
 
       auto rc = updateShadowBitmap(g, size, localBounds, shape);
 		if(rc != ReturnCode::Ok)
 			return rc;
 
-		g.drawBitmap(shadowBitmap, bounds, localBounds);
+		const auto destRect = inflateRect(bounds, overdraw);
+		g.drawBitmap(shadowBitmap, destRect, localBounds);
 		return ReturnCode::Ok;
+	}
+
+	ReturnCode getClipArea(Rect* returnRect) override
+	{
+		*returnRect = inflateRect(bounds, getOverdraw());
+		return ReturnCode::Ok;
+	}
+
+	ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
+	{
+		// ignore hits on inner area, there are usually other modules in there.
+		const auto inner = inflateRect(bounds, -8.f);
+
+		return pointInRect(point, inner) ? ReturnCode::Fail : ReturnCode::Ok;
 	}
 };
 

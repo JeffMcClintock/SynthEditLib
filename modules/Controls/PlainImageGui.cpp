@@ -184,7 +184,7 @@ auto r = gmpi::Register<PlainImageGui>::withXml(R"XML(
 <Plugin id="SE Background Image" name="Background Image" category="Debug">
 	<GUI>
 		<Pin name="Filename" datatype="string" default="background" metadata="bmp"/>
-		<Pin name="Stretch Mode" datatype="enum" default="0" metadata="Fixed,Tiled,Stretch"/>
+		<Pin name="Stretch Mode" datatype="enum" metadata="Fixed,Tiled,Stretch"/>
 		<Pin name="Layer" datatype="enum" default="-2" metadata="Background=-2,Shadow=-1,Normal=0,Glow=1"/>
 	</GUI>
 </Plugin>
