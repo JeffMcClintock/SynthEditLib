@@ -333,7 +333,7 @@ namespace GmpiGuiHosting
 		GMPI_REFCOUNT
 	};
 */
-	class PGCC_PlatformTextEntry : public gmpi_gui::IMpPlatformText
+	class PGCC_PlatformTextEntry : public gmpi::api::ITextEdit
 	{
 		HWND hWndEdit{};
 		HWND parentWnd{};
@@ -341,6 +341,7 @@ namespace GmpiGuiHosting
 		float dpiScale;
 		float textHeight;
 		GmpiDrawing::Rect editrect_s;
+		gmpi::shared_ptr<gmpi::api::IUnknown> callback;
 
 	public:
 		std::string text_;
@@ -356,36 +357,21 @@ namespace GmpiGuiHosting
 		{
 		}
 
-		int32_t SetText(const char* text) override
+		gmpi::ReturnCode setText(const char* text) override
 		{
-			text_ = text;
+			text_ = text ? text : "";
 			if( hWndEdit )
 			{
 				::SetWindowTextW(hWndEdit, JmUnicodeConversions::Utf8ToWstring(text_).c_str());
 			}
-			return gmpi::MP_OK;
+			return gmpi::ReturnCode::Ok;
 		}
 
-		int32_t GetText(IMpUnknown* returnString) override
-		{
-			gmpi::IString* returnValue = 0;
-
-			if (gmpi::MP_OK != returnString->queryInterface(gmpi::MP_IID_RETURNSTRING, reinterpret_cast<void**>( &returnValue)))
-			{
-				return gmpi::MP_NOSUPPORT;
-			}
-
-			returnValue->setData(text_.data(), (int32_t) text_.size());
-			return gmpi::MP_OK;
-		}
-
-		int32_t ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) override;
-
-		int32_t SetAlignment(int32_t alignment) override
+		gmpi::ReturnCode setAlignment(int32_t alignment) override
 		{
 			align = (alignment & 0x03);
 			multiline_ = (alignment >> 16) == 1;
-			return gmpi::MP_OK;
+			return gmpi::ReturnCode::Ok;
 		}
 
 		int32_t getAlignment()
@@ -393,13 +379,26 @@ namespace GmpiGuiHosting
 			return align;
 		}
 
-		int32_t SetTextSize(float height) override
+		gmpi::ReturnCode setTextSize(float height) override
 		{
 			textHeight = height;
-			return gmpi::MP_OK;
+			return gmpi::ReturnCode::Ok;
 		}
 
-		GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT, gmpi_gui::IMpPlatformText)
+		gmpi::ReturnCode showAsync(gmpi::api::IUnknown* pcallback) override;
+
+		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+		{
+			*returnInterface = nullptr;
+			if (*iid == gmpi::api::ITextEdit::guid || *iid == gmpi::api::IUnknown::guid)
+			{
+				*returnInterface = static_cast<gmpi::api::ITextEdit*>(this);
+				addRef();
+				return gmpi::ReturnCode::Ok;
+			}
+			return gmpi::ReturnCode::NoSupport;
+		}
+
 		GMPI_REFCOUNT
 	};
 
@@ -586,14 +585,14 @@ public:
 	void add(GmpiDrawing::Rect rect);
 };
 
-class PGCC_PlatformTextEntry : public gmpi_gui::IMpPlatformText
+class PGCC_PlatformTextEntry : public gmpi::api::ITextEdit
 {
 	void* parentWnd;
-//	int align;
 	float dpiScale;
 	int offsetX;
 	int offsetY;
 	float textHeight;
+	gmpi::shared_ptr<gmpi::api::IUnknown> callback;
 
 public:
 	std::string text_;
@@ -607,63 +606,41 @@ public:
 	{
 	}
 
-	int32_t SetText(const char* text) override
+	gmpi::ReturnCode setText(const char* text) override
 	{
-		text_ = text;
-		//if( hWndEdit )
-		//{
-		//	::SetWindowTextW(hWndEdit, Utf8ToWstring(text_).c_str());
-		//}
-		return gmpi::MP_OK;
+		text_ = text ? text : "";
+		return gmpi::ReturnCode::Ok;
 	}
-    
-    int32_t GetText(IMpUnknown* returnString) override
-    {
-        gmpi::IString* returnValue = 0;
-        
-        if (gmpi::MP_OK != returnString->queryInterface(gmpi::MP_IID_RETURNSTRING, reinterpret_cast<void**>( &returnValue)) )
-        {
-            return gmpi::MP_NOSUPPORT;
-        }
-        
-        returnValue->setData(text_.data(), (int32_t) text_.size());
-        return gmpi::MP_OK;
-    }
-    
-//	int32_t Show(float x, float y, float w, float h, IMpUnknown* returnString);
-    int32_t ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler) override;
+
+	gmpi::ReturnCode setAlignment(int32_t alignment) override
+	{
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode setTextSize(float height) override
+	{
+		textHeight = height;
+		return gmpi::ReturnCode::Ok;
+	}
+
+	gmpi::ReturnCode showAsync(gmpi::api::IUnknown* pcallback) override;
 
 	void OnEditReturn()
 	{
-		//		::DestroyWindow(hWndEdit);
 	}
 
-	int32_t SetAlignment(int32_t alignment) override
-	{/*
-		switch( alignment )
-		{
-		case gmpi_gui::PopupMenu::HorizontalAlignment::A_Left:
-			align = TPM_LEFTALIGN;
-			break;
-		case gmpi_gui::PopupMenu::HorizontalAlignment::A_Center:
-			align = TPM_CENTERALIGN;
-			break;
-		case gmpi_gui::PopupMenu::HorizontalAlignment::A_Right:
-		default:
-			align = TPM_RIGHTALIGN;
-			break;
-		}
-      */
-		return gmpi::MP_OK;
-	}
-
-	int32_t SetTextSize(float height) override
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 	{
-		textHeight = height;
-		return gmpi::MP_OK;
+		*returnInterface = nullptr;
+		if (*iid == gmpi::api::ITextEdit::guid || *iid == gmpi::api::IUnknown::guid)
+		{
+			*returnInterface = static_cast<gmpi::api::ITextEdit*>(this);
+			addRef();
+			return gmpi::ReturnCode::Ok;
+		}
+		return gmpi::ReturnCode::NoSupport;
 	}
 
-	GMPI_QUERYINTERFACE1(gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT, gmpi_gui::IMpPlatformText)
 	GMPI_REFCOUNT
 };
 #endif

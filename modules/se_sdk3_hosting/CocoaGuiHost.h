@@ -163,17 +163,16 @@ namespace GmpiGuiHosting
         virtual void onTextEditRemoved() = 0;
     };
 
-	// Dual-API text edit: implements both legacy gmpi_gui::IMpPlatformText
-	// and the new gmpi::api::ITextEdit, sharing the same NSTextField.
-	class PlatformTextEntry : public gmpi_gui::IMpPlatformText, public gmpi::api::ITextEdit, public EventHelperClient
+	// New-API text edit: implements gmpi::api::ITextEdit. Legacy callers
+	// wrap this with LegacyTextEditAdapter to get the old IMpPlatformText interface.
+	class PlatformTextEntry : public gmpi::api::ITextEdit, public EventHelperClient
 	{
         NSView* view;
 		float textHeight;
         int align = 0;
         bool multiline = false;
 		GmpiDrawing::Rect rect;
-        gmpi_gui::ICompletionCallback* completionHandler{};         // legacy completion
-        gmpi::shared_ptr<gmpi::api::IUnknown> newCallback;          // new-API completion
+        gmpi::shared_ptr<gmpi::api::IUnknown> callback;
         SYNTHEDIT_EVENT_HELPER_CLASSNAME* eventhelper;
         PlatformTextEntryObserver* drawingFrame;
 
@@ -202,7 +201,6 @@ namespace GmpiGuiHosting
                 drawingFrame->onTextEditRemoved();
 		}
 
-		// Shared routine used by both legacy and new-API showAsync.
 		void showField()
 		{
 			if (textField != nil)
@@ -243,68 +241,29 @@ namespace GmpiGuiHosting
 			[textField becomeFirstResponder];
 		}
 
-		int32_t MP_STDCALL SetText(const char* text) override
-		{
-			text_ = text ? text : "";
-			return gmpi::MP_OK;
-		}
-
-		int32_t MP_STDCALL GetText(IMpUnknown* returnString) override
-		{
-			gmpi::IString* returnValue = 0;
-
-			if (gmpi::MP_OK != returnString->queryInterface(gmpi::MP_IID_RETURNSTRING, reinterpret_cast<void**>(&returnValue)))
-			{
-				return gmpi::MP_NOSUPPORT;
-			}
-
-			returnValue->setData(text_.data(), (int32_t)text_.size());
-			return gmpi::MP_OK;
-		}
-
-		int32_t MP_STDCALL ShowAsync(gmpi_gui::ICompletionCallback* pCompletionHandler) override
-		{
-            completionHandler = pCompletionHandler;
-            showField();
-			return gmpi::MP_OK;
-		}
-
-		int32_t MP_STDCALL SetAlignment(int32_t alignment) override
-		{
-            align = (alignment & 0x03);
-            multiline = (alignment > 16) == 1;
-			return gmpi::MP_OK;
-		}
-
-		int32_t MP_STDCALL SetTextSize(float height) override
-		{
-			textHeight = height;
-			return gmpi::MP_OK;
-		}
-
-		// new-API ITextEdit methods:
 		gmpi::ReturnCode setText(const char* text) override
 		{
-			(void) SetText(text);
+			text_ = text ? text : "";
 			return gmpi::ReturnCode::Ok;
 		}
 
 		gmpi::ReturnCode setAlignment(int32_t alignment) override
 		{
-			(void) SetAlignment(alignment);
+            align = (alignment & 0x03);
+            multiline = (alignment > 16) == 1;
 			return gmpi::ReturnCode::Ok;
 		}
 
 		gmpi::ReturnCode setTextSize(float height) override
 		{
-			(void) SetTextSize(height);
+			textHeight = height;
 			return gmpi::ReturnCode::Ok;
 		}
 
 		gmpi::ReturnCode showAsync(gmpi::api::IUnknown* pcallback) override
 		{
 			// Caller transfers ownership: `new Callback(...)` with refcount=1. attach() steals it.
-			newCallback.attach(pcallback);
+			callback.attach(pcallback);
 			showField();
 			return gmpi::ReturnCode::Ok;
 		}
@@ -316,12 +275,9 @@ namespace GmpiGuiHosting
 
             [textField removeFromSuperview];
 
-            if (completionHandler)
-                completionHandler->OnComplete(gmpi::MP_OK);
-
-            if (newCallback)
+            if (callback)
             {
-                if (auto cb = newCallback.as<gmpi::api::ITextEditCallback>(); cb)
+                if (auto cb = callback.as<gmpi::api::ITextEditCallback>(); cb)
                 {
                     cb->onChanged(text_.c_str());
                     cb->onComplete(gmpi::ReturnCode::Ok);
@@ -329,38 +285,12 @@ namespace GmpiGuiHosting
             }
         }
 
-		// legacy queryInterface (gmpi::MpGuid&): responds to legacy IID and bridges to new API
-		int32_t MP_STDCALL queryInterface(const gmpi::MpGuid& iid, void** returnInterface) override
-		{
-			*returnInterface = nullptr;
-			if (iid == gmpi_gui::SE_IID_GRAPHICS_PLATFORM_TEXT || iid == gmpi::MP_IID_UNKNOWN)
-			{
-				*returnInterface = static_cast<gmpi_gui::IMpPlatformText*>(this);
-				addRef();
-				return gmpi::MP_OK;
-			}
-			if (iid == *reinterpret_cast<const gmpi::MpGuid*>(&gmpi::api::ITextEdit::guid))
-			{
-				*returnInterface = static_cast<gmpi::api::ITextEdit*>(this);
-				addRef();
-				return gmpi::MP_OK;
-			}
-			return gmpi::MP_NOSUPPORT;
-		}
-
-		// new-API queryInterface (gmpi::api::Guid*): responds to new IIDs and bridges to legacy
 		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
 			*returnInterface = nullptr;
 			if (*iid == gmpi::api::ITextEdit::guid || *iid == gmpi::api::IUnknown::guid)
 			{
 				*returnInterface = static_cast<gmpi::api::ITextEdit*>(this);
-				addRef();
-				return gmpi::ReturnCode::Ok;
-			}
-			if (*iid == gmpi_gui::legacy::IMpPlatformText::guid)
-			{
-				*returnInterface = static_cast<gmpi_gui::IMpPlatformText*>(this);
 				addRef();
 				return gmpi::ReturnCode::Ok;
 			}

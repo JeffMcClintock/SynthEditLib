@@ -17,6 +17,7 @@
 #include "legacy_sdk_gui2.h"
 #include "IGuiHost2.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
+#include "LegacyTextEditAdapter.h"
 
 // In VST3 wrapper this object is a child window of SynthEditPluginCocoaView,
 // It serves to provide a C++ to Objective-C adaptor to the gmpi Drawing framework.
@@ -459,7 +460,8 @@ public:
     int32_t MP_STDCALL createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override
     {
         currentTextEdit = new GmpiGuiHosting::PlatformTextEntry(this, view, rect);
-        *returnTextEdit = currentTextEdit;
+        currentTextEdit->addRef(); // for the adapter
+        *returnTextEdit = reinterpret_cast<gmpi_gui::IMpPlatformText*>(new LegacyTextEditAdapter(currentTextEdit));
         return gmpi::MP_OK;
     }
     int32_t MP_STDCALL createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override

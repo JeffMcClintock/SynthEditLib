@@ -354,8 +354,9 @@ LPWORD lpwAlign(LPWORD lpIn)
 	return (LPWORD)ptr;
 }
 
-int32_t PGCC_PlatformTextEntry::ShowAsync(gmpi_gui::ICompletionCallback* returnCompletionHandler)
+gmpi::ReturnCode PGCC_PlatformTextEntry::showAsync(gmpi::api::IUnknown* pcallback)
 {
+	callback.attach(pcallback); // Caller transfers ownership
 	currentPlatformTextEntry = this;
 
 	// find parents absolute location(so we know where to draw edit box)
@@ -541,10 +542,17 @@ int32_t PGCC_PlatformTextEntry::ShowAsync(gmpi_gui::ICompletionCallback* returnC
 
 	DeleteObject(dialogFont);
 
-	returnCompletionHandler->OnComplete(dr == TRUE ? gmpi::MP_OK : gmpi::MP_CANCEL);
+	if (callback)
+	{
+		if (auto cb = callback.as<gmpi::api::ITextEditCallback>(); cb)
+		{
+			cb->onChanged(text_.c_str());
+			cb->onComplete(dr == TRUE ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::Cancel);
+		}
+	}
 
 	currentPlatformTextEntry = nullptr;
-	return gmpi::MP_OK;
+	return gmpi::ReturnCode::Ok;
 }
 
 gmpi::ReturnCode Gmpi_Win_FileDialog::showAsync(const gmpi::drawing::Rect* /*rect*/, gmpi::api::IUnknown* callback)
