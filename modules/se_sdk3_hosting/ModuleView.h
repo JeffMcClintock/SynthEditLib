@@ -300,6 +300,7 @@ namespace SE2
 
 		gmpi::drawing::Rect MapPluginRectToView(const gmpi::drawing::Rect& localRect) const;
 		void InvalidatePluginRect(const gmpi::drawing::Rect* invalidRect);
+		void InvalidateMeasure();
 		gmpi::ReturnCode setCaptureFromHost();
 		gmpi::ReturnCode releaseCaptureFromHost();
 		bool getCaptureFromHost() const;

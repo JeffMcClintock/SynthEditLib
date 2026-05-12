@@ -117,7 +117,7 @@ public:
 	{
 		return false;
 	}
-//	void invalidateMeasure() override;
+
 	void invalidateRect(gmpi::drawing::Rect* r = nullptr) {};// todo
 	void invalidateMyRect(gmpi::drawing::Rect localRect);
 };

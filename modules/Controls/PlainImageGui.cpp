@@ -15,6 +15,7 @@ class PlainImageGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 {
 	Pin<std::string> pinFilename;
 	Pin<int32_t> pinStretchMode;
+	Pin<int32_t> pinLayer;
 
 	Bitmap bitmap_;
 	gmpi_helper::ImageMetadata* bitmapMetadata_ = nullptr;
@@ -24,9 +25,7 @@ class PlainImageGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 	void redraw()
 	{
 		if (drawingHost)
-		{
 			drawingHost->invalidateRect(&bounds);
-		}
 	}
 
 	void onSetFilename()
@@ -78,6 +77,7 @@ public:
 	{
 		pinFilename.onUpdate = [this](PinBase*) { onSetFilename(); };
 		pinStretchMode.onUpdate = [this](PinBase*) { onSetMode(); };
+		pinLayer.onUpdate = [this](PinBase*) { redraw(); };
 	}
 
 	int32_t addRef() override
@@ -95,7 +95,7 @@ public:
 		switch (pinStretchMode.value)
 		{
 		case (int)StretchMode::Fixed:
-			if (!AccessPtr::get(bitmap_))
+			if (!bitmap_)
 			{
 				*returnDesiredSize = Size{ 10.0f, 10.0f };
 			}
@@ -118,12 +118,12 @@ public:
 
 	ReturnCode renderLayer(drawing::api::IDeviceContext* drawingContext, int32_t layer) override
 	{
-		if (layer != -2)
+		if (layer != pinLayer.value)
 			return ReturnCode::NoSupport;
 
 		Graphics g(drawingContext);
 
-		if (!AccessPtr::get(bitmap_))
+		if (!bitmap_)
 		{
 			auto fallbackBrush = g.createSolidColorBrush(Colors::Gray);
 			g.fillRectangle(bounds, fallbackBrush);
@@ -183,8 +183,9 @@ auto r = gmpi::Register<PlainImageGui>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
 <Plugin id="SE Background Image" name="Background Image" category="Debug">
 	<GUI>
-		<Pin name="Filename" datatype="string" metadata="filename"/>
-		<Pin name="Stretch Mode" datatype="int" default="0" metadata="Fixed,Tiled,Stretch"/>
+		<Pin name="Filename" datatype="string" default="background" metadata="bmp"/>
+		<Pin name="Stretch Mode" datatype="enum" default="0" metadata="Fixed,Tiled,Stretch"/>
+		<Pin name="Layer" datatype="enum" default="-2" metadata="Background=-2,Shadow=-1,Normal=0,Glow=1"/>
 	</GUI>
 </Plugin>
 )XML");

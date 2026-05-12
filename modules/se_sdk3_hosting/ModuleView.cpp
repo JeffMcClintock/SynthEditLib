@@ -35,117 +35,6 @@ using namespace gmpi::drawing;
 
 namespace SE2
 {
-#if 0 // deprecated
-// IInputHost
-	ReturnCode GmpiHelper::setCapture() { return (gmpi::ReturnCode) moduleview.setCapture();}
-	ReturnCode GmpiHelper::getCapture(bool& returnValue) { int32_t cap{}; moduleview.getCapture(cap); returnValue = cap != 0; return gmpi::ReturnCode::Ok; }
-	ReturnCode GmpiHelper::releaseCapture() { return (gmpi::ReturnCode) moduleview.releaseCapture(); }
-	//ReturnCode GmpiHelper::getFocus() { return gmpi::ReturnCode::NoSupport; }
-	//ReturnCode GmpiHelper::releaseFocus() { return gmpi::ReturnCode::NoSupport; }
-	// IEditorHost
-	ReturnCode GmpiHelper::setPin(int32_t pinId, int32_t voice, int32_t size, const uint8_t* data) { return (gmpi::ReturnCode) moduleview.pinTransmit(pinId, size, data, voice); }
-	int32_t GmpiHelper::getHandle() { return moduleview.handle; }
-	// IDrawingHost
-	ReturnCode GmpiHelper::getDrawingFactory(gmpi::api::IUnknown** returnFactory) { return moduleview.parent->getDrawingFactory(returnFactory); }
-	void GmpiHelper::invalidateRect(const gmpi::drawing::Rect* invalidRect) { moduleview.invalidateRect(reinterpret_cast<const GmpiDrawing_API::MP1_RECT*>(invalidRect)); }
-	void GmpiHelper::invalidateMeasure() { moduleview.invalidateMeasure(); }
-
-	float GmpiHelper::getRasterizationScale()
-	{
-		return 1.0f;
-	}
-	// IDialogHost
-	ReturnCode GmpiHelper::createTextEdit(const gmpi::drawing::Rect* rect, gmpi::api::IUnknown** returnTextEdit)
-	{
-		(void)rect;
-		(void)returnTextEdit;
-		return gmpi::ReturnCode::NoSupport;
-	}
-
-	ReturnCode GmpiHelper::createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) { return gmpi::ReturnCode::NoSupport; }
-	ReturnCode GmpiHelper::createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnKeyListener)
-	{
-		(void)r;
-		(void)returnKeyListener;
-		return gmpi::ReturnCode::NoSupport;
-	}
-	ReturnCode GmpiHelper::createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::NoSupport; }
-	ReturnCode GmpiHelper::createStockDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) { return gmpi::ReturnCode::NoSupport; }
-
-	gmpi::ReturnCode GmpiHelper::getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle)
-	{
-		// get my own parameter handle.
-		returnHandle = moduleview.parent->Presenter()->GetPatchManager()->getParameterHandle(moduleview.handle, moduleParameterId);
-		return gmpi::ReturnCode::Ok;
-	}
-	gmpi::ReturnCode GmpiHelper::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
-	{
-		auto patchMgr = moduleview.parent->Presenter()->GetPatchManager();
-
-		if (fieldId == gmpi::Field::Value || fieldId == gmpi::Field::Normalized)
-		{
-			// normalised is sensitive to tiny rounding errors. Causes 'changed' flag to be set even when value is the same. (due to rounding in conversion to real value)
-
-			const float current = (float)patchMgr->getParameterValue(parameterHandle, (gmpi::FieldType)fieldId);
-
-			if (fabsf(current - *(float*)data) < 0.000001f)
-			{
-				return gmpi::ReturnCode::Ok; // ignore small change.
-			}
-		}
-
-		// set ANY parameter.
-		patchMgr->setParameterValue({ data, static_cast<size_t>(size) }, parameterHandle, (gmpi::FieldType) fieldId);
-
-		if (fieldId == gmpi::Field::Value || fieldId == gmpi::Field::Normalized)
-		{
-			_RPTN(0, "GmpiHelper::setParameter %d -> %f\n", parameterHandle, *(float*)data);
-		}
-
-		return gmpi::ReturnCode::Ok;
-	}
-	gmpi::ReturnCode GmpiHelper::setDirty()
-	{
-		moduleview.setDirty();
-		return gmpi::ReturnCode::Ok;
-	}
-
-	//////////////////////////////////////////////////////// IEmbeddedFileSupport
-
-	gmpi::ReturnCode GmpiHelper::findResourceUri(const char* fileName, /*const char* resourceType,*/ gmpi::api::IString* returnFullUri)
-	{
-#if 0 // std::filesystem
-		std::filesystem::path uri(fileName);
-		auto resourceType = uri.extension().generic_string();
-		if (!resourceType.empty())
-		{
-			resourceType = resourceType.substr(1); // remove leading dot.
-		}
-#else
-		const std::wstring fileNameW(Utf8ToWstring(fileName));
-		std::wstring r_file, r_path, resourceTypeW;
-		decompose_filename(fileNameW, r_file, r_path, resourceTypeW);
-		const auto resourceType = WStringToUtf8(resourceTypeW);
-#endif
-
-		return (gmpi::ReturnCode) moduleview.FindResourceU(fileName, resourceType.c_str(), (gmpi::IString*)returnFullUri);
-	}
-	gmpi::ReturnCode GmpiHelper::registerResourceUri(const char* fullUri)
-	{
-		return (gmpi::ReturnCode) GmpiResourceManager::Instance()->RegisterResourceUri(moduleview.handle, fullUri);
-	}
-	gmpi::ReturnCode GmpiHelper::openUri(const char* fullUri, gmpi::api::IUnknown** returnStream)
-	{
-		// TODO
-		return gmpi::ReturnCode::NoSupport;
-	}
-	gmpi::ReturnCode GmpiHelper::clearResourceUris()
-	{
-		// TODO
-		return gmpi::ReturnCode::NoSupport;
-	}
-#endif
-
 	ReturnCode GmpiHelper::setCapture()
 	{
         return moduleview.setCaptureFromHost();
@@ -153,7 +42,7 @@ namespace SE2
 
 	ReturnCode GmpiHelper::getCapture(bool& returnValue)
 	{
-     returnValue = moduleview.getCaptureFromHost();
+		returnValue = moduleview.getCaptureFromHost();
 		return gmpi::ReturnCode::Ok;
 	}
 
@@ -186,13 +75,12 @@ namespace SE2
 
 	void GmpiHelper::invalidateRect(const gmpi::drawing::Rect* invalidRect)
 	{
-     moduleview.InvalidatePluginRect(invalidRect);
+		moduleview.InvalidatePluginRect(invalidRect);
 	}
 
 	void GmpiHelper::invalidateMeasure()
 	{
-		if (moduleview.parent)
-			moduleview.parent->OnChildResize(&moduleview);
+		moduleview.InvalidateMeasure();
 	}
 
 	float GmpiHelper::getRasterizationScale()
@@ -367,23 +255,7 @@ namespace SE2
 
 	void Sdk3Helper::invalidateMeasure()
 	{
-		if(!moduleview.initialised_)
-			return;
-
-		gmpi::drawing::Size current{ getWidth(moduleview.bounds_), getHeight(moduleview.bounds_) };
-		gmpi::drawing::Size desired{};
-		moduleview.measure(current, &desired);
-
-		if(current != desired)
-		{
-			moduleview.parent->Presenter()->DirtyView(); // recreate entire view. async. editor-only.
-		}
-		else
-		{
-			// if size remains the same, just arrange and redraw.
-			moduleview.arrange(moduleview.bounds_);
-			invalidateRect(nullptr);
-		}
+		moduleview.InvalidateMeasure();
 	}
 
 	int32_t Sdk3Helper::setCapture()
@@ -999,6 +871,27 @@ if(pluginGraphics)
 		else
 		{
 			parent->ChildInvalidateRect(bounds_);
+		}
+	}
+
+	void ModuleView::InvalidateMeasure()
+	{
+		if (!initialised_)
+			return;
+
+		gmpi::drawing::Size current{ getWidth(bounds_), getHeight(bounds_) };
+		gmpi::drawing::Size desired{};
+		measure(current, &desired);
+
+		if (current != desired)
+		{
+			parent->Presenter()->DirtyView(); // recreate entire view. async. editor-only.
+		}
+		else
+		{
+			// if size remains the same, just arrange and redraw.
+			arrange(bounds_);
+			InvalidatePluginRect(nullptr);
 		}
 	}
 
