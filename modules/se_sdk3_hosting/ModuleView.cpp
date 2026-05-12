@@ -990,7 +990,10 @@ if(pluginGraphics)
 		}
 
 		// client ignoring mouse, or outer area hit (can only happen when selected else hit test fails and we never get here. and therefore in editor mode.
-		return gmpi::ReturnCode::Ok; // initiates drag of module.
+		// don't handle right-clicks, otherwise context menu is not shown.
+		return ((flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0)
+			? gmpi::ReturnCode::Unhandled
+			: gmpi::ReturnCode::Ok; // left-click initiates drag of module.
 	}
 
 	gmpi::ReturnCode ModuleView::onPointerMove(gmpi::drawing::Point point, int32_t flags)
