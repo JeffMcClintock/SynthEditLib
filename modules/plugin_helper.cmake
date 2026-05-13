@@ -215,6 +215,7 @@ if(${BUILD_GMPI_PLUGIN_IS_OFFICIAL_MODULE})
     # Run after all other rules within the target have been executed
     POST_BUILD
     COMMAND xcopy /c /y "\"$(OutDir)$(TargetName)$(TargetExt)\"" "\"C:\\SE\\SE16\\SynthEdit2\\PlugIns\\$(TargetName)$(TargetExt)\\Contents\\x86_64-win\\\""
+    COMMAND xcopy /c /y "\"${CMAKE_CURRENT_SOURCE_DIR}\\${BUILD_GMPI_PLUGIN_PROJECT_NAME}.xml\"" "\"C:\\SE\\SE16\\SynthEdit2\\PlugIns\\$(TargetName)$(TargetExt)\\Contents\\Resources\\\""
     COMMENT "Copy to SynthEdit plugin folder"
     )
 else()
@@ -388,6 +389,7 @@ if(${BUILD_GMPI_PLUGIN_IS_OFFICIAL_MODULE})
     # Run after all other rules within the target have been executed
     POST_BUILD
     COMMAND xcopy /c /y "\"$(OutDir)$(TargetName)$(TargetExt)\"" "\"C:\\SE\\SE16\\SynthEdit2\\PlugIns\\$(TargetName)$(TargetExt)\\Contents\\x86_64-win\\\""
+    COMMAND $<$<BOOL:${GMPI_PLUGIN_HAS_XML}>:xcopy> $<$<BOOL:${GMPI_PLUGIN_HAS_XML}>:/c> $<$<BOOL:${GMPI_PLUGIN_HAS_XML}>:/y> $<$<BOOL:${GMPI_PLUGIN_HAS_XML}>:"\"${CMAKE_CURRENT_SOURCE_DIR}\\${GMPI_PLUGIN_PROJECT_NAME}.xml\""> $<$<BOOL:${GMPI_PLUGIN_HAS_XML}>:"\"C:\\SE\\SE16\\SynthEdit2\\PlugIns\\$(TargetName)$(TargetExt)\\Contents\\Resources\\\"">
     COMMENT "Copy to SynthEdit plugin folder"
     )
 else()
