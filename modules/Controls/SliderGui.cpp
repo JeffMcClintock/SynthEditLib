@@ -97,7 +97,7 @@ class SliderGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 			const float trackLeft = localBounds.left + (width - trackStrokeWidth) * 0.5f;
 			const float trackRadius = trackStrokeWidth * 0.5f;
 
-			auto trackBrush = g.createSolidColorBrush(Color{ 0.0f, 0.0f, 0.0f, 0.15f });
+			auto trackBrush = g.createSolidColorBrush(Color{ 0.0f, 0.0f, 0.0f, 0.25f });
 			g.fillRoundedRectangle(
 				{ { trackLeft, localBounds.top, trackLeft + trackStrokeWidth, localBounds.bottom }, trackRadius, trackRadius },
 				trackBrush
@@ -142,8 +142,8 @@ class SliderGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 			auto fillBrush = g.createLinearGradientBrush(
 				{ handleRect.left, handleRect.top },
 				{ handleRect.right, handleRect.bottom },
-				interpolateColor(fillColor, Colors::White, 0.35f),
-				interpolateColor(fillColor, Colors::Black, 0.05f)
+				interpolateColor(fillColor, Colors::White, 0.15f),
+				interpolateColor(fillColor, Colors::Black, 0.90f)
 			);
 			g.fillRoundedRectangle(
 				{ handleRect, radius, radius },
@@ -187,8 +187,8 @@ class SliderGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 			auto bevelBrush = g.createLinearGradientBrush(
 				{ bevelRect.left, bevelRect.top },
 				{ bevelRect.right, bevelRect.bottom },
-				Color{ 0.85f, 0.85f, 0.85f, 0.55f },
-				Color{ 0.20f, 0.20f, 0.20f, 0.55f }
+				Color{ 1,1,1, 0.15f },
+				Color{ 0,0,0, 0.15f }
 			);
 			g.drawRoundedRectangle(
 				{ bevelRect, bevelCorner, bevelCorner },
