@@ -14,6 +14,8 @@
 #include "LegacyMenuAdapter.h"
 #include "LegacyFileDialogAdapter.h"
 #include "LegacyOkCancelDialogAdapter.h"
+#include "LegacyTextEditAdapter.h"
+#include "backends/DrawingFrameWin.h"
 
 using namespace std;
 using namespace gmpi;
@@ -1222,9 +1224,21 @@ int32_t DrawingFrameBase::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gm
 
 int32_t DrawingFrameBase::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit)
 {
-	auto nativeRect = DipsToWindow.TransformRect(*rect);
-	*returnTextEdit = new GmpiGuiHosting::PGCC_PlatformTextEntry(getWindowHandle(), &nativeRect, DipsToWindow._22);
+	// gmpi_ui's factory takes DIPs and applies dpiScale internally.
+	auto* gmpiRect = reinterpret_cast<gmpi::drawing::Rect*>(rect);
+	gmpi::api::IUnknown* unknown = nullptr;
+	const auto rc = gmpi::hosting::win32::createPlatformTextEdit(
+		getWindowHandle(), gmpiRect, DipsToWindow._22, &unknown);
+	if (rc != gmpi::ReturnCode::Ok || !unknown)
+		return gmpi::MP_FAIL;
 
+	gmpi::api::ITextEdit* textEdit{};
+	unknown->queryInterface(&gmpi::api::ITextEdit::guid, (void**)&textEdit);
+	unknown->release(); // QI added a ref; drop the factory's
+	if (!textEdit)
+		return gmpi::MP_FAIL;
+
+	*returnTextEdit = reinterpret_cast<gmpi_gui::IMpPlatformText*>(new LegacyTextEditAdapter(textEdit));
 	return gmpi::MP_OK;
 }
 

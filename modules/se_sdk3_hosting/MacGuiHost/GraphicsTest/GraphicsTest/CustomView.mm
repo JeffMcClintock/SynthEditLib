@@ -3,6 +3,8 @@
 #import "CustomView.h"
 #import "../../../../se_sdk3_hosting/Cocoa_Gfx.h"
 #import "../../../../se_sdk3_hosting/CocoaGuiHost.h"
+#include "backends/MacTextEdit.h"
+#include "../../../../se_sdk3_hosting/LegacyTextEditAdapter.h"
 //#import "../../../../../../Shared/ContainerView.h"
 //#include "../../Shared/JsonDocPresenter.h"
 //#include "BundleInfo.h"
@@ -11,13 +13,11 @@
 #include "GraphicsClientCodeTest.h"
 
 class DrawingFrameCocoa : public gmpi_gui::IMpGraphicsHost, public gmpi::IMpUserInterfaceHost2
-    , public GmpiGuiHosting::PlatformTextEntryObserver
 {
     gmpi::cocoa::DrawingFactory DrawingFactory;
 //    IGuiHost2* controller;
     int32_t mouseCaptured = 0;
-    GmpiGuiHosting::PlatformTextEntry* currentTextEdit = nullptr;
-    
+
 public:
     NSView* view = nullptr;
     gmpi_gui_api::IMpGraphics *client = nullptr;
@@ -140,8 +140,9 @@ public:
     }
     virtual int32_t MP_STDCALL createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override
     {
-        currentTextEdit = new GmpiGuiHosting::PlatformTextEntry(this, view, rect);
-        *returnTextEdit = currentTextEdit;
+        auto* gmpiRect = reinterpret_cast<gmpi::drawing::Rect*>(rect);
+        auto* te = new GMPI_MAC_TextEdit(view, *gmpiRect);
+        *returnTextEdit = reinterpret_cast<gmpi_gui::IMpPlatformText*>(new LegacyTextEditAdapter(te));
         return gmpi::MP_OK;
     }
     virtual int32_t MP_STDCALL createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override
@@ -176,19 +177,6 @@ public:
         
         *returnInterface = 0;
         return gmpi::MP_NOSUPPORT;
-    }
-
-    void removeTextEdit()
-    {
-        if(!currentTextEdit)
-            return;
-        
-        currentTextEdit->CallbackFromCocoa(nil);
-    }
-    
-    void onTextEditRemoved() override
-    {
-        currentTextEdit = nullptr;
     }
 
     GMPI_REFCOUNT_NO_DELETE;

@@ -15,18 +15,21 @@
 #define SYNTHEDIT_EVENT_HELPER_CLASSNAME SE_MAKE_CLASSNAME(CocoaEventHelper)
 
 
-struct EventHelperClient
+// Renamed from EventHelperClient to avoid global-namespace clash with gmpi_ui's
+// EventHelperClient (in backends/MacTextEdit.h). They differ in member function set,
+// so cannot coexist in one translation unit.
+struct CocoaEventHelperClient
 {
     virtual void CallbackFromCocoa(NSObject* sender) = 0;
 };
 
 
 @interface SYNTHEDIT_EVENT_HELPER_CLASSNAME : NSObject {
-    EventHelperClient* client;
-    
+    CocoaEventHelperClient* client;
+
 }
 
-- (void)initWithClient:(EventHelperClient*)client;
+- (void)initWithClient:(CocoaEventHelperClient*)client;
 - (void)menuItemSelected: (id) sender;
 - (void)endEditing: (id) sender;
 

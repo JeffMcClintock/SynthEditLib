@@ -18,6 +18,7 @@
 #include "IGuiHost2.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
 #include "LegacyTextEditAdapter.h"
+#include "backends/MacTextEdit.h"
 
 // In VST3 wrapper this object is a child window of SynthEditPluginCocoaView,
 // It serves to provide a C++ to Objective-C adaptor to the gmpi Drawing framework.
@@ -78,10 +79,8 @@ class DrawingFrameCocoa : public
     , gmpi::api::IDialogHost
     , gmpi_gui::legacy::IMpGraphicsHost
     , gmpi::legacy::IMpUserInterfaceHost2
-    , GmpiGuiHosting::PlatformTextEntryObserver
 {
     int32_t mouseCaptured = 0;
-    GmpiGuiHosting::PlatformTextEntry* currentTextEdit = nullptr;
     UpdateRegionMac dirtyRects;
 
 public:
@@ -345,8 +344,7 @@ public:
     // classes (see CocoaGuiHost.h) so plugins can use either legacy or new APIs.
     gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override
     {
-        auto* rect = reinterpret_cast<GmpiDrawing_API::MP1_RECT*>(const_cast<gmpi::drawing::Rect*>(r));
-        auto te = new GmpiGuiHosting::PlatformTextEntry(/*observer*/ nullptr, view, rect);
+        auto te = new GMPI_MAC_TextEdit(view, *r);
         *returnTextEdit = static_cast<gmpi::api::ITextEdit*>(te);
         return gmpi::ReturnCode::Ok;
     }
@@ -459,9 +457,9 @@ public:
     }
     int32_t MP_STDCALL createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override
     {
-        currentTextEdit = new GmpiGuiHosting::PlatformTextEntry(this, view, rect);
-        currentTextEdit->addRef(); // for the adapter
-        *returnTextEdit = reinterpret_cast<gmpi_gui::IMpPlatformText*>(new LegacyTextEditAdapter(currentTextEdit));
+        auto* gmpiRect = reinterpret_cast<gmpi::drawing::Rect*>(rect);
+        auto* te = new GMPI_MAC_TextEdit(view, *gmpiRect);
+        *returnTextEdit = reinterpret_cast<gmpi_gui::IMpPlatformText*>(new LegacyTextEditAdapter(te));
         return gmpi::MP_OK;
     }
     int32_t MP_STDCALL createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override
@@ -523,18 +521,6 @@ public:
         return gmpi::ReturnCode::NoSupport;
     }
     
-    void removeTextEdit()
-    {
-        if(!currentTextEdit)
-            return;
-        
-        currentTextEdit->CallbackFromCocoa(nil);
-    }
-    
-    void onTextEditRemoved() override
-    {
-        currentTextEdit = nullptr;
-    }
     void initBackingBitmap()
     {
         if(backBuffer)
@@ -891,31 +877,9 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
 
 - (void)mouseDown:(NSEvent *)theEvent
 {
-//test    [[self window] setColorSpace:[NSColorSpace genericRGBColorSpace]];
-    // Try to close text edit
-        /*
-    if( [[[self window] firstResponder]isKindOfClass:[NSTextView class]])
-    {
-        auto textview = (NSTextView*) [[self window] firstResponder];
- //       [[textview delegate] textView:<#(nonnull NSTextView *)#> doCommandBySelector:<#(nonnull SEL)#>];
-    }
-
-        
-        drawingFrame.removeTextEdit();
-/ *
-        auto textview = (NSTextView*) [[self window] firstResponder];
-        auto del = textview.delegate;
-        auto notification = [NSNotification alloc];// notification;
-        [del textDidEndEditing:notification];
-  //      [textview.delegate textDidEndEditing:textview];
-//        [[(NSTextView*)[[self window] firstResponder] delegate] textDidEndEditing:<#(nonnull NSNotification *)#>];
-//[[self window] performSelector:@selector(resignFirstResponder:) withObject:myTextField afterDelay:0.0];
- * /
-    }
- */
-    drawingFrame.removeTextEdit();
-    
-    [[self window] makeFirstResponder:self]; // take focus off any text-edit. Works but does not dimiss it.
+    // gmpi_ui's GMPI_MAC_TextEdit observes NSControlTextDidEndEditingNotification,
+    // so losing focus dismisses any open text editor and fires its completion callback.
+    [[self window] makeFirstResponder:self];
  
     int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
     flags |= gmpi_gui_api::GG_POINTER_FLAG_NEW;
@@ -933,7 +897,6 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
 
 - (void)rightMouseDown:(NSEvent *)theEvent
 {
-    drawingFrame.removeTextEdit();
     [[self window] makeFirstResponder:self];
 
     int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;

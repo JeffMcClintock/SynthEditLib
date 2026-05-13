@@ -11,7 +11,7 @@
 
 @implementation SYNTHEDIT_EVENT_HELPER_CLASSNAME
 
-- (void)initWithClient:(EventHelperClient*)pclient
+- (void)initWithClient:(CocoaEventHelperClient*)pclient
 {
     client = pclient;
 }
