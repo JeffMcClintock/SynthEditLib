@@ -9,13 +9,9 @@
 
 #include "./gmpi_gui_hosting.h"
 
-
-using namespace std;
-using namespace gmpi;
-using namespace gmpi_gui;
-using namespace GmpiGuiHosting;
-using namespace GmpiDrawing_API;
 #ifdef _WIN32
+
+using namespace GmpiGuiHosting;
 
 void UpdateRegionWinGdi::copyDirtyRects(HWND window, GmpiDrawing::SizeL swapChainSize)
 {
@@ -117,45 +113,4 @@ UpdateRegionWinGdi::~UpdateRegionWinGdi()
 		DeleteObject(hRegion);
 }
 
-
-#else // mac
-
-void UpdateRegionMac::add(GmpiDrawing::Rect rect)
-{
-	if (rect.right - rect.left <= 0.0f || rect.bottom - rect.top <= 0.0f)
-		return;
-
-	// The incoming rect absorbs every existing rect that merges efficiently
-	// with it. Each absorption may grow `rect` enough to absorb further
-	// rects, so we rescan from the start until no more merges happen.
-	bool merged;
-	do
-	{
-		merged = false;
-		const auto area1 = rect.getWidth() * rect.getHeight();
-
-		for (size_t i = 0; i < rects.size(); ++i)
-		{
-			const auto area2 = rects[i].getWidth() * rects[i].getHeight();
-
-			GmpiDrawing::Rect unionrect(rect);
-			unionrect.top = (std::min)(unionrect.top, rects[i].top);
-			unionrect.bottom = (std::max)(unionrect.bottom, rects[i].bottom);
-			unionrect.left = (std::min)(unionrect.left, rects[i].left);
-			unionrect.right = (std::max)(unionrect.right, rects[i].right);
-
-			const auto unionarea = unionrect.getWidth() * unionrect.getHeight();
-			if (unionarea <= area1 + area2)
-			{
-				rect = unionrect;
-				rects.erase(rects.begin() + i);
-				merged = true;
-				break;
-			}
-		}
-	} while (merged);
-
-	rects.push_back(rect);
-}
-
-#endif // desktop
+#endif // _WIN32

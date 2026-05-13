@@ -14,11 +14,14 @@ using namespace GmpiGuiHosting;
 #include "../shared/unicode_conversion.h"
 #include "helpers/NativeUi.h"
 
+#ifdef _WIN32
+
 namespace GmpiGuiHosting
 {
-#ifdef _WIN32
-	// This code is for Win32 desktop apps
-
+	// Win32 dirty-region accounting used by the orphan DrawingFrame_win32 path
+	// (referenced by SynthEdit IDE / GMPI_Wrappers, but not by SynthEditLib's
+	// CMake build). Mac builds get UpdateRegionMac directly inside
+	// SynthEditCocoaView.mm.
 	class UpdateRegionWinGdi
 	{
 		std::vector<GmpiDrawing::RectL> rects;
@@ -37,23 +40,7 @@ namespace GmpiGuiHosting
 		{
 			return rects;
 		}
-		//inline GmpiDrawing::RectL& getBoundingRect()
-		//{
-		//	return bounds;
-		//}
 	};
-#else
-
-class UpdateRegionMac
-{
-public:
-	std::vector<GmpiDrawing::Rect> rects;
-
-	// Merge-on-add. Mirrors DirtyRectQueue::add() on Windows so the queue
-	// never accumulates overlapping or subset rects.
-	void add(GmpiDrawing::Rect rect);
-};
+} // namespace.
 
 #endif
-
-} // namespace.
