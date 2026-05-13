@@ -295,7 +295,7 @@ auto r = gmpi::Register<BarLEDMeterGui>::withXml(R"XML(
 <Plugin id="SE Bar LED Meter" name="Bar LED Meter" category="Sub-Controls">
     <GUI graphicsApi="GmpiGui">
         <Pin name="Normalized" datatype="float" default="0.0"/>
-        <Pin name="Red" datatype="bool"/>
+        <Pin name="Red" datatype="bool" default="1"/>
         <Pin name="Green" datatype="bool"/>
         <Pin name="Blue" datatype="bool"/>
         <Pin name="Radius" datatype="float" default="2"/>
