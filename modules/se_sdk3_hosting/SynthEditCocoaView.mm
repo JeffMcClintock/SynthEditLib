@@ -19,6 +19,7 @@
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
 #include "LegacyTextEditAdapter.h"
 #include "backends/MacTextEdit.h"
+#include "backends/MacPopupMenu.h"
 
 // In VST3 wrapper this object is a child window of SynthEditPluginCocoaView,
 // It serves to provide a C++ to Objective-C adaptor to the gmpi Drawing framework.
@@ -350,8 +351,7 @@ public:
     }
     gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnPopupMenu) override
     {
-        auto* rect = reinterpret_cast<GmpiDrawing_API::MP1_RECT*>(const_cast<gmpi::drawing::Rect*>(r));
-        auto menu = new GmpiGuiHosting::PlatformMenu(view, rect);
+        auto menu = new GMPI_MAC_PopupMenu(view, *r);
         *returnPopupMenu = static_cast<gmpi::api::IPopupMenu*>(menu);
         return gmpi::ReturnCode::Ok;
     }
@@ -450,7 +450,8 @@ public:
     
     int32_t MP_STDCALL createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu) override
     {
-        auto newMenu = new GmpiGuiHosting::PlatformMenu(view, rect);
+        auto* gmpiRect = reinterpret_cast<gmpi::drawing::Rect*>(rect);
+        auto newMenu = new GMPI_MAC_PopupMenu(view, *gmpiRect);
         // Wrap new-API menu in adapter; cast is safe — vtable layout of both IMpPlatformMenu variants is identical.
         *returnMenu = reinterpret_cast<gmpi_gui::IMpPlatformMenu*>(new LegacyMenuAdapter(newMenu));
         return gmpi::MP_OK;

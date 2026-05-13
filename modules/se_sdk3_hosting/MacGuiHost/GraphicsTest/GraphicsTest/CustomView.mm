@@ -4,7 +4,9 @@
 #import "../../../../se_sdk3_hosting/Cocoa_Gfx.h"
 #import "../../../../se_sdk3_hosting/CocoaGuiHost.h"
 #include "backends/MacTextEdit.h"
+#include "backends/MacPopupMenu.h"
 #include "../../../../se_sdk3_hosting/LegacyTextEditAdapter.h"
+#include "../../../../se_sdk3_hosting/LegacyMenuAdapter.h"
 //#import "../../../../../../Shared/ContainerView.h"
 //#include "../../Shared/JsonDocPresenter.h"
 //#include "BundleInfo.h"
@@ -135,7 +137,9 @@ public:
     
     virtual int32_t MP_STDCALL createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu) override
     {
-        *returnMenu = new GmpiGuiHosting::PlatformMenu(view, rect);
+        auto* gmpiRect = reinterpret_cast<gmpi::drawing::Rect*>(rect);
+        auto* newMenu = new GMPI_MAC_PopupMenu(view, *gmpiRect);
+        *returnMenu = reinterpret_cast<gmpi_gui::IMpPlatformMenu*>(new LegacyMenuAdapter(newMenu));
         return gmpi::MP_OK;
     }
     virtual int32_t MP_STDCALL createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override
