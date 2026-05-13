@@ -17,13 +17,14 @@
 #include "legacy_sdk_gui2.h"
 #include "IGuiHost2.h"
 #include "../se_sdk3_hosting/GraphicsRedrawClient.h"
+#include "LegacyMenuAdapter.h"
 #include "LegacyTextEditAdapter.h"
+#include "LegacyFileDialogAdapter.h"
+#include "LegacyOkCancelDialogAdapter.h"
 #include "backends/MacTextEdit.h"
 #include "backends/MacPopupMenu.h"
 #include "backends/MacFileDialog.h"
 #include "backends/MacStockDialog.h"
-#include "LegacyFileDialogAdapter.h"
-#include "LegacyOkCancelDialogAdapter.h"
 
 // In VST3 wrapper this object is a child window of SynthEditPluginCocoaView,
 // It serves to provide a C++ to Objective-C adaptor to the gmpi Drawing framework.
@@ -345,8 +346,9 @@ public:
         return dpi * pluginUIScale;
     }
     
-    // IDialogHost — all dialog types route through the dual-API GmpiGuiHosting
-    // classes (see CocoaGuiHost.h) so plugins can use either legacy or new APIs.
+    // IDialogHost — all dialog types use gmpi_ui's single-header Mac backends
+    // (GMPI_MAC_TextEdit, GMPI_MAC_PopupMenu, GMPI_MAC_FileDialog, GMPI_MAC_StockDialog).
+    // Legacy callers wrap them with the Legacy*Adapter classes.
     gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** returnTextEdit) override
     {
         auto te = new GMPI_MAC_TextEdit(view, *r);

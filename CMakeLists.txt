@@ -503,10 +503,8 @@ conversion.cpp
 IF(APPLE AND SE_GRAPHICS_SUPPORT)
 set(srcs ${srcs}
 modules/se_sdk3_hosting/Cocoa_Gfx.h
-modules/se_sdk3_hosting/EventHelper.h
 modules/se_sdk3_hosting/SynthEditCocoaView.mm # legacy IGuiHost2 adaptor - still used by SynthEdit se_vst3 (SEVSTGUIEditorMac) and SE2JUCE_Editor; migrate to gmpi DrawingFrameMac createNativeView to retire
 modules/se_sdk3_hosting/CocoaGuiHost.h
-modules/se_sdk3_hosting/CocoaGuiHost.mm
 modules/se_sdk3_hosting/gmpi_drawing_conversions.h
 ${GMPI_UI_SDK}/backends/CocoaGfx.h
 ${GMPI_UI_SDK}/backends/DrawingFrameMac.h
