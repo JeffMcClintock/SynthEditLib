@@ -25,7 +25,6 @@ namespace SynthEdit2
 		//virtual int32_t onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
 		//virtual int32_t onPointerMove(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
 		//virtual int32_t onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT point) override;
-//		virtual int32_t populateContextMenu(GmpiDrawing_API::MP1_POINT point, GmpiGuiHosting::ContextItemsSink2* contextMenuItemsSink) override;
 
 //		virtual void OnMoved(GmpiDrawing::Rect& newRect) override;
 //		virtual void MP_STDCALL invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override;
