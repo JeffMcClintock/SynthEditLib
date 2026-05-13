@@ -1717,7 +1717,9 @@ namespace SE2
 	{
 		auto res = ModuleView::onPointerDown(point, flags);
 
-		if(gmpi::ReturnCode::Ok != res && gmpi::ReturnCode::Handled != res) // module ignoring mouse?
+		// Plugin returning Handled means "I swallowed it" — skip wrapper's pin/double-click handling.
+		// Ok falls through so pin clicks and module-level double-click (open container) still work.
+		if (gmpi::ReturnCode::Handled == res)
 			return res;
 
 		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)

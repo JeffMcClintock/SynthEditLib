@@ -223,7 +223,9 @@ namespace SE2
 #ifdef DEBUG_HIT_TEST
 				_RPT0(0, " and captured\n");
 #endif
-				return gmpi::ReturnCode::Ok;
+				// Preserve Handled so it propagates past outer wrappers (e.g. ModuleViewStruct's
+				// double-click "open container"). Otherwise default to Ok to signal hit.
+				return result == gmpi::ReturnCode::Handled ? result : gmpi::ReturnCode::Ok;
 			}
 
 			// module didn't capture mouse, drag object around.

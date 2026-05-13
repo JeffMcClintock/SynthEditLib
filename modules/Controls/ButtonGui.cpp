@@ -291,7 +291,7 @@ public:
 	ReturnCode onPointerDown(Point, int32_t flags) override
 	{
 		if((flags & static_cast<int32_t>(gmpi::api::PointerFlags::FirstButton)) == 0)
-			return ReturnCode::Ok;
+			return ReturnCode::Unhandled;
 
 		if(inputHost.get())
 			inputHost->setCapture();
@@ -299,8 +299,7 @@ public:
 		pinMouseDown = true;
 		pinValue = pinToggle.value ? !pinValue.value : true;
 
-//		redraw();
-		return ReturnCode::Ok;
+		return ReturnCode::Handled; // Swallow click — prevents enclosing module's double-click "open structure" handler.
 	}
 
 	ReturnCode onPointerMove(Point, int32_t) override
@@ -322,7 +321,6 @@ public:
 		pinMouseDown = false;
 		pinValue = pinToggle.value ? pinValue.value: false;
 
-//		redraw();
 		return ReturnCode::Ok;
 	}
 };
