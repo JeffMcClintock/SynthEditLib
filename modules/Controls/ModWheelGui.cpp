@@ -231,21 +231,6 @@ class ModWheelGui final : public ValueControlBase, public gmpi::api::IDrawingLay
 		return ReturnCode::Ok;
 	}
 
-	float valueFromPoint(const Rect& localBounds, Point point) const
-	{
-		const auto layout = computeLayout(localBounds);
-		if (layout.wheelRadius <= 0.0f)
-			return 0.0f;
-
-		// Treat the point's y position relative to the wheel centre as the
-		// vertical projection of the notch around the cylinder.
-		const float dy = (std::clamp)(layout.wheelCenterY - point.y, -layout.wheelRadius, layout.wheelRadius);
-
-		constexpr float kPi = 3.14159265f;
-		const float angle = std::asin(dy / layout.wheelRadius); // [-pi/2, +pi/2]
-		return (std::clamp)(angle / kPi + 0.5f, 0.0f, 1.0f);
-	}
-
 public:
 	ModWheelGui() = default;
 
@@ -340,7 +325,6 @@ public:
 		const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
 		const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
 		const auto localBounds = getLocalBounds({ width, height });
-		pinValue = valueFromPoint(localBounds, point);
 
 		return ReturnCode::Ok;
 	}
@@ -355,17 +339,10 @@ public:
 		const auto localBounds = getLocalBounds({ width, height });
 
 		const bool fineControl = (flags & static_cast<int32_t>(gmpi::api::PointerFlags::KeyControl)) != 0;
-		if (fineControl)
-		{
-			const float coarseness = 0.001f;
-			auto newValue = pinValue.value - coarseness * (point.y - pointPrevious.y);
-			newValue = (std::clamp)(newValue, 0.0f, 1.0f);
-			pinValue = newValue;
-		}
-		else
-		{
-			pinValue = valueFromPoint(localBounds, point);
-		}
+		const float coarseness = fineControl ? 0.0005f : 0.005f;
+
+		auto newValue = pinValue.value + coarseness * (point.y - pointPrevious.y);
+		pinValue = (std::clamp)(newValue, 0.0f, 1.0f);
 
 		pointPrevious = point;
 		return ReturnCode::Ok;

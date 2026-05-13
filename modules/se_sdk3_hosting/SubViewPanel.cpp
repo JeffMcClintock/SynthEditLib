@@ -499,6 +499,32 @@ gmpi::ReturnCode SubView::onMouseWheel(gmpi::drawing::Point point, int32_t flags
 	return ViewBase::onMouseWheel(point, flags, delta);
 }
 
+// Embedded sub-views are read-only — skip the editor-level items
+// (Cut/Copy/Paste/Delete/Arrange and the background "Panel Edit.../Goto Parent.../Screenshot"
+// tail) that the inherited ViewBase::populateContextMenu would add. Without this override,
+// right-clicking a module inside a sub-view shows those items twice: once from the enclosing
+// view's ViewBase::populateContextMenu (correct, operating on the sub-view module itself) and
+// once from the sub-view's own inherited body (a duplicate, with moduleHandle == -1 because
+// the sub-view's mouseOverObject isn't tracking — producing the background-menu tail).
+//
+// We still forward to mouseOverObject so any inner module's own plugin items (e.g. a Knob's
+// Learn=1/UnLearn/Edit) can appear when its pointer-tracking does land on a child.
+gmpi::ReturnCode SubView::populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink)
+{
+	if (!isShown())
+		return gmpi::ReturnCode::Unhandled;
+
+	point *= inv_viewTransform;
+
+	gmpi::shared_ptr<gmpi::api::IContextItemSink> menu;
+	contextMenuItemsSink->queryInterface(&gmpi::api::IContextItemSink::guid, menu.put_void());
+
+	if (mouseOverObject)
+		mouseOverObject->populateContextMenu(point, menu);
+
+	return gmpi::ReturnCode::Ok;
+}
+
 void SubView::OnChildMoved()
 {
 	// TODO : enhancement - also calc my cliprect on sum of child cliprects.

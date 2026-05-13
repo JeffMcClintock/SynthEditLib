@@ -71,22 +71,6 @@ class HSliderGui final : public ValueControlBase, public gmpi::api::IDrawingLaye
 		};
 	}
 
-	float valueFromPoint(const Rect& localBounds, Point point) const
-	{
-		const float width = getWidth(localBounds);
-		const float handleWidth = (std::max)(12.0f, width * 0.12f);
-		const float margin = handleWidth * 0.5f;
-		const float trackLeft = localBounds.left + margin;
-		const float trackRight = localBounds.right - margin;
-		const float trackRange = trackRight - trackLeft;
-
-		if(trackRange <= 0.0f)
-			return 0.0f;
-
-		// left = 0.0, right = 1.0
-		return (std::clamp)((point.x - trackLeft) / trackRange, 0.0f, 1.0f);
-	}
-
 	ReturnCode drawShadow(Graphics& g, const Rect& localBounds)
 	{
 		const float height = getHeight(localBounds);
@@ -289,8 +273,6 @@ public:
 		const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
 		const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
 		const auto localBounds = getLocalBounds({ width, height });
-		const auto newValue = valueFromPoint(localBounds, point);
-		pinValue = newValue;
 
 		return ReturnCode::Ok;
 	}
@@ -305,18 +287,10 @@ public:
 		const auto localBounds = getLocalBounds({ width, height });
 
 		const bool fineControl = (flags & static_cast<int32_t>(gmpi::api::PointerFlags::KeyControl)) != 0;
-		if(fineControl)
-		{
-			const float coarseness = 0.001f;
-			auto newValue = pinValue.value + coarseness * (point.x - pointPrevious.x);
-			newValue = (std::clamp)(newValue, 0.0f, 1.0f);
-			pinValue = newValue;
-		}
-		else
-		{
-			const auto newValue = valueFromPoint(localBounds, point);
-			pinValue = newValue;
-		}
+		const float coarseness = fineControl ? 0.0005f : 0.005f;
+
+		auto newValue = pinValue.value + coarseness * (point.x - pointPrevious.x);
+		pinValue = (std::clamp)(newValue, 0.0f, 1.0f);
 
 		pointPrevious = point;
 		return ReturnCode::Ok;
