@@ -1370,7 +1370,6 @@ namespace SE2
 
 		cable->from_ = dragStartPoint;
 		cable->to_ = mousePoint;
-		cable->type = CableType::StructureCable;
 
 		cable->startDrag(1, mousePoint);
 
