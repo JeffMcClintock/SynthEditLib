@@ -82,6 +82,7 @@ public:
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override;
+	gmpi::ReturnCode populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink) override;
 // TODO	int32_t getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString);
 	// ChildInvalidateRect not overridden — ViewBase::ChildInvalidateRect uses
 	// viewTransform which SubView keeps synced via setPan().
