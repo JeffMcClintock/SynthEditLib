@@ -5,8 +5,10 @@
 #import "../../../../se_sdk3_hosting/CocoaGuiHost.h"
 #include "backends/MacTextEdit.h"
 #include "backends/MacPopupMenu.h"
+#include "backends/MacFileDialog.h"
 #include "../../../../se_sdk3_hosting/LegacyTextEditAdapter.h"
 #include "../../../../se_sdk3_hosting/LegacyMenuAdapter.h"
+#include "../../../../se_sdk3_hosting/LegacyFileDialogAdapter.h"
 //#import "../../../../../../Shared/ContainerView.h"
 //#include "../../Shared/JsonDocPresenter.h"
 //#include "BundleInfo.h"
@@ -151,7 +153,8 @@ public:
     }
     virtual int32_t MP_STDCALL createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override
     {
-        *returnFileDialog = new GmpiGuiHosting::PlatformFileDialog(dialogType, view);
+        auto* dlg = new GMPI_MAC_FileDialog(view, static_cast<gmpi::api::FileDialogType>(dialogType));
+        *returnFileDialog = reinterpret_cast<gmpi_gui::IMpFileDialog*>(new LegacyFileDialogAdapter(dlg));
         return gmpi::MP_OK;
     }
     virtual int32_t MP_STDCALL createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override

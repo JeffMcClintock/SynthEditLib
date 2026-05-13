@@ -20,6 +20,8 @@
 #include "LegacyTextEditAdapter.h"
 #include "backends/MacTextEdit.h"
 #include "backends/MacPopupMenu.h"
+#include "backends/MacFileDialog.h"
+#include "LegacyFileDialogAdapter.h"
 
 // In VST3 wrapper this object is a child window of SynthEditPluginCocoaView,
 // It serves to provide a C++ to Objective-C adaptor to the gmpi Drawing framework.
@@ -381,7 +383,7 @@ public:
     }
     gmpi::ReturnCode createFileDialog(int32_t dialogType, gmpi::api::IUnknown** returnDialog) override
     {
-        auto dlg = new GmpiGuiHosting::PlatformFileDialog(dialogType, view);
+        auto dlg = new GMPI_MAC_FileDialog(view, static_cast<gmpi::api::FileDialogType>(dialogType));
         *returnDialog = static_cast<gmpi::api::IFileDialog*>(dlg);
         return gmpi::ReturnCode::Ok;
     }
@@ -465,8 +467,8 @@ public:
     }
     int32_t MP_STDCALL createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog) override
     {
-        // PlatformFileDialog implements the new API; hand out its legacy adapter.
-        *returnFileDialog = (new GmpiGuiHosting::PlatformFileDialog(dialogType, view))->asLegacy();
+        auto* dlg = new GMPI_MAC_FileDialog(view, static_cast<gmpi::api::FileDialogType>(dialogType));
+        *returnFileDialog = reinterpret_cast<gmpi_gui::IMpFileDialog*>(new LegacyFileDialogAdapter(dlg));
         return gmpi::MP_OK;
     }
     int32_t MP_STDCALL createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override

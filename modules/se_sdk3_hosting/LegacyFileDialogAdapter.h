@@ -3,6 +3,7 @@
 #include "modules/se_sdk3_hosting/LegacyFileDialogAdapter.h"
 */
 
+#include <string>
 #include "../se_sdk3/legacy_sdk_gui2.h"
 #include "helpers/NativeUi.h"
 #include "RefCountMacros.h"
@@ -58,7 +59,17 @@ struct LegacyFileDialogAdapter : gmpi_gui::legacy::IMpFileDialog
 
     int32_t MP_STDCALL AddExtension(const char* extension, const char* description = "") override
     {
-        inner->addExtension(extension ? extension : "", description ? description : "");
+        // Legacy callers commonly pass description="" and expect a default like
+        // "wav Files" or "All Files". gmpi_ui's IFileDialog leaves descriptions
+        // verbatim, so do the defaulting here in the adapter.
+        std::string ext(extension ? extension : "");
+        std::string desc(description ? description : "");
+        if (desc.empty())
+        {
+            desc = (ext == "*") ? "All" : ext;
+            desc += " Files";
+        }
+        inner->addExtension(ext.c_str(), desc.c_str());
         return gmpi::MP_OK;
     }
 

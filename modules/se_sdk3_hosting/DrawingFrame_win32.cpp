@@ -1259,7 +1259,18 @@ int32_t DrawingFrameBase::createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect
 
 int32_t DrawingFrameBase::createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog)
 {
-	auto* nativeDialog = new GmpiGuiHosting::Gmpi_Win_FileDialog(dialogType, getWindowHandle());
+	gmpi::api::IUnknown* unknown = nullptr;
+	const auto rc = gmpi::hosting::win32::createPlatformFileDialog(
+		getWindowHandle(), dialogType, &unknown);
+	if (rc != gmpi::ReturnCode::Ok || !unknown)
+		return gmpi::MP_FAIL;
+
+	gmpi::api::IFileDialog* nativeDialog{};
+	unknown->queryInterface(&gmpi::api::IFileDialog::guid, (void**)&nativeDialog);
+	unknown->release(); // QI added a ref; drop the factory's
+	if (!nativeDialog)
+		return gmpi::MP_FAIL;
+
 	// Wrap new-API dialog in adapter; reinterpret_cast is safe — vtable layout identical on x64.
 	*returnFileDialog = reinterpret_cast<gmpi_gui::IMpFileDialog*>(new LegacyFileDialogAdapter(nativeDialog));
 	return gmpi::MP_OK;

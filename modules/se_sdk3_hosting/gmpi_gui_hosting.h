@@ -333,56 +333,6 @@ namespace GmpiGuiHosting
 		GMPI_REFCOUNT
 	};
 */
-	class Gmpi_Win_FileDialog : public gmpi::api::IFileDialog
-	{
-		HWND parentWnd;
-		int32_t mode_;
-		std::wstring initial_filename;
-		std::wstring initial_folder;
-
-	public:
-		std::vector< std::pair< std::string, std::string> > extensions;
-
-		Gmpi_Win_FileDialog( int32_t mode, HWND pParentWnd) :
-			parentWnd(pParentWnd)
-			, mode_(mode)
-		{
-		}
-
-		gmpi::ReturnCode addExtension(const char* extension, const char* description = "") override
-		{
-			std::string ext(extension ? extension : "");
-			std::string desc(description ? description : "");
-			if( desc.empty() )
-			{
-				if( ext == "*" )
-					desc = "All";
-				else
-					desc = ext;
-				desc += " Files";
-			}
-			extensions.push_back(std::pair<std::string, std::string>(ext, desc));
-			return gmpi::ReturnCode::Ok;
-		}
-		gmpi::ReturnCode setInitialFilename(const char* text) override
-		{
-			initial_filename = JmUnicodeConversions::Utf8ToWstring(text ? text : "");
-			return gmpi::ReturnCode::Ok;
-		}
-		gmpi::ReturnCode setInitialDirectory(const char* text) override
-		{
-			initial_folder = JmUnicodeConversions::Utf8ToWstring(text ? text : "");
-			return gmpi::ReturnCode::Ok;
-		}
-
-		gmpi::ReturnCode showAsync(const gmpi::drawing::Rect* /*rect*/, gmpi::api::IUnknown* callback) override;
-
-		GMPI_QUERYINTERFACE_METHOD(gmpi::api::IFileDialog)
-		GMPI_REFCOUNT
-	};
-
-
-	
 	class Gmpi_Win_OkCancelDialog : public gmpi::api::IStockDialog
 	{
 		HWND parentWnd;
