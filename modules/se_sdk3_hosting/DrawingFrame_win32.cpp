@@ -1215,8 +1215,23 @@ int32_t DrawingFrameBase::releaseCapture()
 
 int32_t DrawingFrameBase::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
 {
+	// gmpi_ui's GMPI_WIN_PopupMenu treats the rect as native pixels (dpiScale is
+	// effectively unused for menu position — DPI=1 path preserved from legacy
+	// behaviour). Pre-scale here to match the original behaviour at high DPI.
 	auto nativeRect = DipsToWindow.TransformRect(*rect);
-	auto newMenu = new GmpiGuiHosting::PGCC_PlatformMenu(getWindowHandle(), &nativeRect, DipsToWindow._22);
+	auto* gmpiRect = reinterpret_cast<gmpi::drawing::Rect*>(&nativeRect);
+	gmpi::api::IUnknown* unknown = nullptr;
+	const auto rc = gmpi::hosting::win32::createPlatformPopupMenu(
+		getWindowHandle(), gmpiRect, DipsToWindow._22, &unknown);
+	if (rc != gmpi::ReturnCode::Ok || !unknown)
+		return gmpi::MP_FAIL;
+
+	gmpi::api::IPopupMenu* newMenu{};
+	unknown->queryInterface(&gmpi::api::IPopupMenu::guid, (void**)&newMenu);
+	unknown->release(); // QI added a ref; drop the factory's
+	if (!newMenu)
+		return gmpi::MP_FAIL;
+
 	// Wrap new-API menu in adapter; cast is safe — vtable layout of both IMpPlatformMenu variants is identical.
 	*returnMenu = reinterpret_cast<gmpi_gui::IMpPlatformMenu*>(new LegacyMenuAdapter(newMenu));
 	return gmpi::MP_OK;
