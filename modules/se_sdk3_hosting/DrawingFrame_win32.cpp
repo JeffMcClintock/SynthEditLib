@@ -1278,7 +1278,18 @@ int32_t DrawingFrameBase::createFileDialog(int32_t dialogType, gmpi_gui::IMpFile
 
 int32_t DrawingFrameBase::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog)
 {
-	*returnDialog = reinterpret_cast<gmpi_gui::IMpOkCancelDialog*>(new LegacyOkCancelDialogAdapter(dialogType, getWindowHandle()));
+	const HWND parentWnd = getWindowHandle();
+	auto builder = [parentWnd](int32_t type, const char* title, const char* text) -> gmpi::api::IStockDialog* {
+		gmpi::api::IUnknown* unknown = nullptr;
+		gmpi::hosting::win32::createPlatformStockDialog(parentWnd, type, title, text, &unknown);
+		if (!unknown)
+			return nullptr;
+		gmpi::api::IStockDialog* dlg{};
+		unknown->queryInterface(&gmpi::api::IStockDialog::guid, (void**)&dlg);
+		unknown->release(); // QI added a ref; drop the factory's
+		return dlg;
+	};
+	*returnDialog = reinterpret_cast<gmpi_gui::IMpOkCancelDialog*>(new LegacyOkCancelDialogAdapter(dialogType, std::move(builder)));
 	return gmpi::MP_OK;
 }
 

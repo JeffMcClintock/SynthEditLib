@@ -3,17 +3,23 @@
 #include "modules/se_sdk3_hosting/LegacyOkCancelDialogAdapter.h"
 */
 
+#include <functional>
+#include <string>
 #include "../se_sdk3/legacy_sdk_gui2.h"
 #include "helpers/NativeUi.h"
 #include "RefCountMacros.h"
-#include "gmpi_gui_hosting.h"
 
 // Implements the old IMpOkCancelDialog interface by delegating to a new-API IStockDialog.
 // Title and text are accumulated via SetTitle/SetText; the IStockDialog is constructed
-// with those values when ShowAsync is called (IStockDialog has no setters).
+// (via the caller-supplied platform builder) when ShowAsync is called — IStockDialog has
+// no setters, so we can't build it eagerly.
 struct LegacyOkCancelDialogAdapter : gmpi_gui::legacy::IMpOkCancelDialog
 {
-    HWND parentWnd;
+    // Builds a fresh, addRef'd IStockDialog* given dialog type, title and text.
+    // Caller owns the returned ref.
+    using Builder = std::function<gmpi::api::IStockDialog*(int32_t type, const char* title, const char* text)>;
+
+    Builder builder;
     int32_t dialogType;
     std::string title;
     std::string text;
@@ -52,7 +58,8 @@ struct LegacyOkCancelDialogAdapter : gmpi_gui::legacy::IMpOkCancelDialog
         }
     };
 
-    LegacyOkCancelDialogAdapter(int32_t type, HWND hwnd) : dialogType(type), parentWnd(hwnd) {}
+    LegacyOkCancelDialogAdapter(int32_t type, Builder b)
+        : builder(std::move(b)), dialogType(type) {}
 
     int32_t MP_STDCALL SetTitle(const char* t) override
     {
@@ -70,7 +77,7 @@ struct LegacyOkCancelDialogAdapter : gmpi_gui::legacy::IMpOkCancelDialog
     {
         addRef(); // keep adapter alive until bridge fires onComplete
 
-        auto* inner = new GmpiGuiHosting::Gmpi_Win_OkCancelDialog(parentWnd, dialogType, title.c_str(), text.c_str());
+        auto* inner = builder(dialogType, title.c_str(), text.c_str());
         auto* bridge = new CompletionBridge(this, cb); // refCount_ = 1
         inner->showAsync(static_cast<gmpi::api::IUnknown*>(bridge));
         bridge->release(); // release our creation ref; inner holds its QI ref

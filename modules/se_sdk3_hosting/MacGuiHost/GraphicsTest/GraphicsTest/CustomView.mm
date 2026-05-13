@@ -6,9 +6,11 @@
 #include "backends/MacTextEdit.h"
 #include "backends/MacPopupMenu.h"
 #include "backends/MacFileDialog.h"
+#include "backends/MacStockDialog.h"
 #include "../../../../se_sdk3_hosting/LegacyTextEditAdapter.h"
 #include "../../../../se_sdk3_hosting/LegacyMenuAdapter.h"
 #include "../../../../se_sdk3_hosting/LegacyFileDialogAdapter.h"
+#include "../../../../se_sdk3_hosting/LegacyOkCancelDialogAdapter.h"
 //#import "../../../../../../Shared/ContainerView.h"
 //#include "../../Shared/JsonDocPresenter.h"
 //#include "BundleInfo.h"
@@ -159,7 +161,11 @@ public:
     }
     virtual int32_t MP_STDCALL createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override
     {
-        *returnDialog = new GmpiGuiHosting::PlatformOkCancelDialog(dialogType, view);
+        NSView* localView = view;
+        auto builder = [localView](int32_t type, const char* title, const char* text) -> gmpi::api::IStockDialog* {
+            return new GMPI_MAC_StockDialog(localView, static_cast<gmpi::api::StockDialogType>(type), title, text);
+        };
+        *returnDialog = reinterpret_cast<gmpi_gui::IMpOkCancelDialog*>(new LegacyOkCancelDialogAdapter(dialogType, std::move(builder)));
         return gmpi::MP_OK;
     }
     

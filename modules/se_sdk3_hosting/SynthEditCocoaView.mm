@@ -21,7 +21,9 @@
 #include "backends/MacTextEdit.h"
 #include "backends/MacPopupMenu.h"
 #include "backends/MacFileDialog.h"
+#include "backends/MacStockDialog.h"
 #include "LegacyFileDialogAdapter.h"
+#include "LegacyOkCancelDialogAdapter.h"
 
 // In VST3 wrapper this object is a child window of SynthEditPluginCocoaView,
 // It serves to provide a C++ to Objective-C adaptor to the gmpi Drawing framework.
@@ -389,7 +391,7 @@ public:
     }
     gmpi::ReturnCode createStockDialog(int32_t dialogType, const char* title, const char* text, gmpi::api::IUnknown** returnDialog) override
     {
-        auto dlg = new GmpiGuiHosting::PlatformOkCancelDialog(dialogType, view, title, text);
+        auto dlg = new GMPI_MAC_StockDialog(view, static_cast<gmpi::api::StockDialogType>(dialogType), title, text);
         *returnDialog = static_cast<gmpi::api::IStockDialog*>(dlg);
         return gmpi::ReturnCode::Ok;
     }
@@ -473,7 +475,11 @@ public:
     }
     int32_t MP_STDCALL createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog) override
     {
-        *returnDialog = new GmpiGuiHosting::PlatformOkCancelDialog(dialogType, view);
+        NSView* localView = view;
+        auto builder = [localView](int32_t type, const char* title, const char* text) -> gmpi::api::IStockDialog* {
+            return new GMPI_MAC_StockDialog(localView, static_cast<gmpi::api::StockDialogType>(type), title, text);
+        };
+        *returnDialog = reinterpret_cast<gmpi_gui::IMpOkCancelDialog*>(new LegacyOkCancelDialogAdapter(dialogType, std::move(builder)));
         return gmpi::MP_OK;
     }
     

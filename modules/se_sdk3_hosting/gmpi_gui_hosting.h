@@ -333,28 +333,6 @@ namespace GmpiGuiHosting
 		GMPI_REFCOUNT
 	};
 */
-	class Gmpi_Win_OkCancelDialog : public gmpi::api::IStockDialog
-	{
-		HWND parentWnd;
-		gmpi::api::StockDialogType dialogType;
-		std::string title;
-		std::string text;
-
-	public:
-		Gmpi_Win_OkCancelDialog(HWND hwnd, int32_t type, const char* ptitle, const char* ptext) :
-			parentWnd(hwnd)
-			, dialogType(static_cast<gmpi::api::StockDialogType>(type))
-			, title(ptitle ? ptitle : "")
-			, text(ptext ? ptext : "")
-		{}
-
-		gmpi::ReturnCode showAsync(gmpi::api::IUnknown* callback) override;
-
-		GMPI_QUERYINTERFACE_METHOD(gmpi::api::IStockDialog)
-		GMPI_REFCOUNT
-	};
-
-
 #else
 
 class UpdateRegionMac

@@ -239,42 +239,6 @@ UpdateRegionWinGdi::~UpdateRegionWinGdi()
 		DeleteObject(hRegion);
 }
 
-gmpi::ReturnCode Gmpi_Win_OkCancelDialog::showAsync(gmpi::api::IUnknown* callback)
-{
-#if 0
-	gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-	unknown = callback;
-	auto dialogCallback = unknown.as<gmpi::api::IStockDialogCallback>();
-	if (!dialogCallback)
-		return gmpi::ReturnCode::Fail;
-
-	UINT mbType = MB_ICONINFORMATION;
-	switch (dialogType)
-	{
-	case gmpi::api::StockDialogType::Ok:          mbType = MB_OK | MB_ICONINFORMATION;       break;
-	case gmpi::api::StockDialogType::OkCancel:    mbType = MB_OKCANCEL | MB_ICONQUESTION;    break;
-	case gmpi::api::StockDialogType::YesNo:       mbType = MB_YESNO | MB_ICONQUESTION;       break;
-	case gmpi::api::StockDialogType::YesNoCancel: mbType = MB_YESNOCANCEL | MB_ICONQUESTION; break;
-	}
-
-	const auto titleW = JmUnicodeConversions::Utf8ToWstring(title);
-	const auto textW  = JmUnicodeConversions::Utf8ToWstring(text);
-	const int r = MessageBoxW(parentWnd, textW.c_str(), titleW.c_str(), mbType);
-
-	gmpi::api::StockDialogButton button{};
-	switch (r)
-	{
-	case IDOK:     button = gmpi::api::StockDialogButton::Ok;     break;
-	case IDCANCEL: button = gmpi::api::StockDialogButton::Cancel; break;
-	case IDYES:    button = gmpi::api::StockDialogButton::Yes;    break;
-	case IDNO:     button = gmpi::api::StockDialogButton::No;     break;
-	default:       button = gmpi::api::StockDialogButton::Cancel; break;
-	}
-
-	dialogCallback->onComplete(button);
-#endif
-	return gmpi::ReturnCode::Ok;
-}
 
 #else // mac
 
