@@ -341,7 +341,7 @@ public:
 		const bool fineControl = (flags & static_cast<int32_t>(gmpi::api::PointerFlags::KeyControl)) != 0;
 		const float coarseness = fineControl ? 0.0005f : 0.005f;
 
-		auto newValue = pinValue.value + coarseness * (point.y - pointPrevious.y);
+		auto newValue = pinValue.value + coarseness * (pointPrevious.y - point.y);
 		pinValue = (std::clamp)(newValue, 0.0f, 1.0f);
 
 		pointPrevious = point;
