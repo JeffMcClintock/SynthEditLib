@@ -210,14 +210,31 @@ public:
 
 			// Fill
 			{
-				const auto fillColor = getFillColor();
-				auto fillBrush = g.createRadialGradientBrush(
-					{ bodyRect.left, bodyRect.top },
-					(std::max)(widthF, heightF) * 1.8f,
-					interpolateColor(fillColor, Colors::White, pressed ? 0.05f : 0.15f),
-					interpolateColor(fillColor, Colors::Black, pressed ? 0.95f : 0.90f)
-				);
+				const auto fillColor = interpolateColor(getFillColor(), Colors::White, pressed ? 0.3f : 0.0f);
+				auto fillBrush = g.createSolidColorBrush(fillColor);
+
 				g.fillRoundedRectangle(buttonRect, fillBrush);
+			}
+
+			// shading
+			{
+				Gradientstop gradientstops[] = {
+					{ 0.0f, Color{ 1.0, 1.0, 1.0, 0.15f }},
+					{ 0.2f, Colors::TransparentWhite},
+					{ 0.2f, Colors::TransparentBlack},
+					{ 1.0f, Color{ 0.0, 0.0, 0.0, 0.45f }},
+				};
+
+				auto fillBrush = g.createLinearGradientBrush(
+					gradientstops,
+					Point{ bodyRect.left, bodyRect.top },
+					Point{ bodyRect.left, bodyRect.bottom }
+				);
+
+				g.fillRoundedRectangle(
+					buttonRect,
+					fillBrush
+				);
 			}
 
 			// Bevel ring around edge

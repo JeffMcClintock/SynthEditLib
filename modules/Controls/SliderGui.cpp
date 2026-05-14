@@ -119,16 +119,12 @@ class SliderGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 		const auto handleRect = getHandleRect(localBounds);
 		const float radius = (std::max)(1.0f, getHeight(handleRect) * 0.5f);
 		const float bevelWidth = (std::max)(1.0f, radius * 0.12f);
+		const auto fillColor = getFillColor();
 
 		// Handle fill
 		{
-			const auto fillColor = getFillColor();
-			auto fillBrush = g.createLinearGradientBrush(
-				{ handleRect.left, handleRect.top },
-				{ handleRect.right, handleRect.bottom },
-				interpolateColor(fillColor, Colors::White, 0.15f),
-				interpolateColor(fillColor, Colors::Black, 0.90f)
-			);
+			auto fillBrush = g.createSolidColorBrush(fillColor);
+
 			g.fillRoundedRectangle(
 				{ handleRect, radius, radius },
 				fillBrush
@@ -156,6 +152,27 @@ class SliderGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 
 			auto indicatorBrush = g.createSolidColorBrush(getIndicatorColor());
 			g.fillGeometry(geometry, indicatorBrush);
+		}
+
+		// shading
+		{
+			Gradientstop gradientstops[] = {
+				{ 0.0f, Color{ 1.0, 1.0, 1.0, 0.15f }},
+				{ 0.2f, Colors::TransparentWhite},
+				{ 0.2f, Colors::TransparentBlack},
+				{ 1.0f, Color{ 0.0, 0.0, 0.0, 0.45f }},
+			};
+
+			auto fillBrush = g.createLinearGradientBrush(
+				gradientstops,
+				Point{ handleRect.left, handleRect.top },
+				Point{ handleRect.left, handleRect.bottom }
+			);
+
+			g.fillRoundedRectangle(
+				{ handleRect, radius, radius },
+				fillBrush
+			);
 		}
 
 		// Bevel ring around handle
