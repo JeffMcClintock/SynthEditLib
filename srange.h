@@ -48,6 +48,11 @@ struct sRange
 			MaxVal = StringToDouble(words[2]);
 			MinVal = StringToDouble(words[3]);
 		}
+		else if(words.size() == 2)
+		{
+			MaxVal = MaxVis = StringToDouble(words[0]);
+			MinVal = MinVis = StringToDouble(words[1]);
+		}
 	}
 	double	MaxVis;
 	double	MinVis;
