@@ -94,11 +94,14 @@ public:
 class RootPitchChanging
 {
 public:
-	inline static void CalcInitialPsola(const float* pitchTable, float Increment, float PsolaRootPitch, float& grainIncrement)
+	inline static void CalcInitialPsola(const float* pitchTable, float Increment, float PsolaAmmount, float& grainIncrement)
 	{
 	};
-	inline static void CalculatePsola(const float* pitchTable, float Increment, float PsolaRootPitch, float& grainIncrement)
+	inline static void CalculatePsola(const float* pitchTable, float Increment, float PsolaAmmount, float& grainIncrement)
 	{
+#if 0
+		// was calc psola root pitch then interpolating between that and normal inc.
+		// not intuitive to use.
 		float psolaIncrement = ComputeIncrement2(pitchTable, PsolaRootPitch);
         float i = Increment + (psolaIncrement - Increment);
         const float psolaLimit = 0.25f; // prevent PSOLA going sub-sonic. two octave down anyhow.
@@ -108,6 +111,10 @@ public:
             i = minInc;
         }
         grainIncrement = 0.5f * i;
+#else
+		// calc PSOLA pitch as a ratio of normal pitch. e.g. 10V = +1 octave
+		grainIncrement = Increment * exp2f(PsolaAmmount);
+#endif
 	};
 	inline static void IncrementPointer(const float* ptr)
 	{

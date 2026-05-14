@@ -33,7 +33,7 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
 	  <Pin name="Signal Out" direction="out" datatype="float" rate="audio"/>
 	  <Pin name="Slot Modulation to GUI" direction="out" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
 	  <Pin name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" default="1" />
-	  <Pin name="PSOLA root pitch" datatype="float" rate="audio" default="3.24"/>
+	  <Pin name="Formant" datatype="float" rate="audio" metadata="-10,10"/>
 	  <Pin name="WaveTableFiles" datatype="string" parameterId="1" private="true" />
 	  <Pin name="WaveDisplay" direction="out" datatype="blob" parameterId="2" private="true" />
 	</Audio>
