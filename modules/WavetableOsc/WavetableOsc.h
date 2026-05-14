@@ -379,7 +379,7 @@ public:
 	void onSetPins() override;
 	void updateGuiWaveform(void);
 
-	// Interpolate between tables and between slots. float counter.
+	// Interpolate between slots. float counter.
 	inline float get_sample3b( const float* wavedata, int table_floor, float fraction ) const
 	{
 		assert(table_floor >= 0);

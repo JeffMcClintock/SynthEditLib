@@ -293,8 +293,6 @@ void WavetableOsc::updateGuiWaveform(void)
 
 		float* wave1a = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor, mipLevel);
 		float* wave1b = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor + 1, mipLevel);
-		float* wave2a = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor, mipLevel);
-		float* wave2b = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor + 1, mipLevel);
 
 		wave[0] = 0.0f; // due to phase alignment.
 
@@ -304,12 +302,7 @@ void WavetableOsc::updateGuiWaveform(void)
 			// Calc sample interpolating between slots. Wave1
 			float p1 = wave1a[c];
 			float p2 = wave1b[c];
-			float output1 = p1 + slot_frac * (p2 - p1);
-
-			// Calc sample interpolating between slots. Wave2
-			float p3 = wave2a[c];
-			float p4 = wave2b[c];
-			float grainSample = p3 + slot_frac * (p4 - p3);
+			float grainSample = p1 + slot_frac * (p2 - p1);
 
 			wave[c] = grainSample;
 		}
