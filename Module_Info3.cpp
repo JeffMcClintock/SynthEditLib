@@ -102,6 +102,7 @@ void PluginHolder::unload()
 		CFBundleUnloadExecutable((CFBundleRef)dllHandle);
 		CFRelease((CFBundleRef)dllHandle);
 #endif
+		dllHandle = {};
 	}
 }
 
