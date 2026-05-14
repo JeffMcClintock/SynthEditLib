@@ -94,18 +94,13 @@ public:
 class RootPitchChanging
 {
 public:
-	inline static void CalcInitialPsola(const float* pitchTable, float Increment, float PsolaIntensity, float PsolaRootPitch, float& grainIncrement)
+	inline static void CalcInitialPsola(const float* pitchTable, float Increment, float PsolaRootPitch, float& grainIncrement)
 	{
 	};
-	inline static void CalculatePsola(const float* pitchTable, float Increment, float PsolaIntensity, float PsolaRootPitch, float& grainIncrement)
+	inline static void CalculatePsola(const float* pitchTable, float Increment, float PsolaRootPitch, float& grainIncrement)
 	{
-		if(PsolaIntensity < 0.0f) // avoid crashing due to -ve increment when PSOLA AMNT heavily modulated.
-			PsolaIntensity = 0.0f;
-		if(PsolaIntensity > 1.0f)
-			PsolaIntensity = 1.0f;
-
 		float psolaIncrement = ComputeIncrement2(pitchTable, PsolaRootPitch);
-        float i = Increment + PsolaIntensity * (psolaIncrement - Increment);
+        float i = Increment + (psolaIncrement - Increment);
         const float psolaLimit = 0.25f; // prevent PSOLA going sub-sonic. two octave down anyhow.
         float minInc = Increment * psolaLimit;
         if( i < minInc )
@@ -124,11 +119,11 @@ public:
 class RootPitchFixed
 {
 public:
-	inline static void CalcInitialPsola( const float* pitchTable, float Increment, float PsolaIntensity, float PsolaRootPitch, float& grainIncrement )
+	inline static void CalcInitialPsola( const float* pitchTable, float Increment,  float PsolaRootPitch, float& grainIncrement )
 	{
-		return RootPitchChanging::CalculatePsola(pitchTable, Increment, PsolaIntensity, PsolaRootPitch, grainIncrement);
+		return RootPitchChanging::CalculatePsola(pitchTable, Increment, PsolaRootPitch, grainIncrement);
 	};
-	inline static void CalculatePsola( const float* pitchTable, float Increment, float PsolaIntensity, float PsolaRootPitch, float& grainIncrement )
+	inline static void CalculatePsola( const float* pitchTable, float Increment,  float PsolaRootPitch, float& grainIncrement )
 	{
 	};
 	inline static void IncrementPointer( const float* ptr )
@@ -228,102 +223,6 @@ public:
 	};
 };
 
-
-class PolicySyncOff
-{
-public:
-	enum { SyncActive = false };
-
-	inline static void IncrementPointer( const float* ptr )
-	{
-		// do nothing. Hopefully optimizes away to nothing.
-	};
-};
-
-class PolicySyncOn
-{
-public:
-	enum { SyncActive = true };
-
-	inline static void IncrementPointer( const float*& ptr )
-	{
-		++ptr;
-	};
-};
-
-class EffectNone
-{
-public:
-	inline static float ModifyPhase( float phase, float intensity )
-	{
-		// Hopefully optimizes away to nothing.
-		return phase;
-	}
-	// Mip level determined by increment.
-	inline static float MipIncrement( float increment, float intensity )
-	{
-		return increment;
-	}
-	inline static void IncrementPointer( const float* ptr )
-	{
-		// do nothing. Hopefully optimizes away to nothing.
-	};
-};
-
-class EffectPhaseDistortion : public EffectNone
-{
-private:
-	float countA;
-
-public:
-	inline static float ModifyPhase( float phase, float intensity )
-	{
-		float dist = std::min( intensity, 0.9f );
-		dist = 0.5f + dist * 0.5f;
-		float distortedPhase;
-		if( phase < dist )
-		{
-			distortedPhase = phase * 0.5f / dist;
-		}
-		else
-		{
-			distortedPhase = 0.5f + (phase - dist) * 0.5f / (1.0f - dist);
-		}
-
-		// additional phase-smoothing with sine function.
-		return phase + (1.0f + sinf((distortedPhase-0.25f) * (float) M_PI * 2.0f)) * (0.5f-dist) * 0.5f;
-	};
-	inline static void IncrementPointer( const float*& ptr )
-	{
-		++ptr;
-	};
-};
-
-class EffectFormant : public EffectNone
-{
-public:
-	inline static float ModifyPhase( float phase, float intensity )
-	{
-		float distortedPhase = 0.5f + (phase - 0.5f) * (1.0f + 10.0f * intensity);
-		if( distortedPhase >= 1.0f || distortedPhase <= -1.0f )
-		{
-			distortedPhase = 0.0f;
-		}
-
-		return distortedPhase;
-	};
-	// Mip level determined by increment.
-	inline static float MipIncrement( float increment, float intensity )
-	{
-		return increment * (1.0f + 10.0f * intensity);
-	};
-	inline static void IncrementPointer( const float*& ptr )
-	{
-		++ptr;
-	};
-};
-
-
 struct Grain
 {
 	float count;
@@ -413,33 +312,27 @@ public:
 	float currentGrain_slot = -1;
 	float grainform[grainformCount][maximumWaveSize * 2 + extraInterpolationPreSamples + extraInterpolationPostSamples]; // pre-calculated windowed cycles.
 	int GrainformDuration_;
-	template< class PitchModulationPolicy, class SlotModulationPolicy, class SyncModulationPolicy, class RootPitchModulationPolicy >
+	template< class PitchModulationPolicy, class SlotModulationPolicy, class RootPitchModulationPolicy >
 	void subProcess( int sampleFrames )
 	{
 		// get pointers to in/output buffers.
 		const float* pslot = getBuffer(pinSlot);
 		float* signalOut = getBuffer(pinSignalOut);
 		const float* pitch = getBuffer(pinPitch);
-		const float* intensity = getBuffer(pinEffect);
 		const float* rootPitch = getBuffer(pinPsolaRootPitch);
 
 		const float* sync = nullptr;
 
-		if( SyncModulationPolicy::SyncActive )
-		{
-			sync = getBuffer(pinSync);
-		}
-
 		float increment, grainIncrementFast, slot_frac;
 		int slot1_floor;
 		PitchModulationPolicy::CalcInitial( pitchTable, *pitch, increment );
-		RootPitchModulationPolicy::CalcInitialPsola( pitchTable, increment, *intensity, *rootPitch, grainIncrementFast );
+		RootPitchModulationPolicy::CalcInitialPsola( pitchTable, increment, *rootPitch, grainIncrementFast );
 		SlotModulationPolicy::CalcInitial( *pslot, slotCount, slot1_floor, slot_frac );
 
 		for( int s = sampleFrames; s > 0; --s )
 		{
 			PitchModulationPolicy::Calculate( pitchTable, *pitch, increment );
-			RootPitchModulationPolicy::CalculatePsola( pitchTable, increment, *intensity, *rootPitch, grainIncrementFast );
+			RootPitchModulationPolicy::CalculatePsola( pitchTable, increment, *rootPitch, grainIncrementFast );
 
 			float samp = 0.0f;
 			for( int g = 0 ; g < MaxGrains ; ++g )
@@ -451,19 +344,6 @@ public:
 					float fraction = index - (float) table_floor;
 					float grainSample = get_sample3b( grains[g].wave, table_floor, fraction );
 
-					if( SyncModulationPolicy::SyncActive )
-					{
-						if( grains[g].syncCounter < 1.0f ) // This grain being rapid-faded?
-						{
-							grainSample *= grains[g].syncCounter;
-							grains[g].syncCounter -= 1.0f / (float) syncCrossFadeSamples;
-							if( grains[g].syncCounter < 0.0f )
-							{
-								grains[g].waveSize = 0; // indicates inactive grain.
-							}
-						}
-					}
-
 					samp += grainSample;
 
 					grains[g].count += grainIncrementFast;
@@ -474,28 +354,6 @@ public:
 				}
 			}
 			*signalOut = samp;
-
-			// trigger sync?
-			if( SyncModulationPolicy::SyncActive )
-			{
-				if( ( *sync > 0.0f ) != syncState )
-				{
-					syncState = *sync > 0.0f;
-					if( syncState )
-					{
-						count = 1.0f;
-						for( int g2 = 0 ; g2 < MaxGrains ; ++g2 )
-						{
-							if( grains[g2].waveSize != 0 && grains[g2].syncCounter == 1.0f ) // indicates active grain.
-							{
-								grains[g2].syncCounter -= 1.0f / (float) syncCrossFadeSamples;
-							}
-						}
-
-					}
-				}
-				++sync;
-			}
 
 			count += increment;
 			if( count > 1.0f ) // is count wrapping? (pretty intensive on high frequencies )
@@ -612,13 +470,9 @@ private:
 
 	gmpi::AudioInPin pinPitch;
 	gmpi::AudioInPin pinSlot;
-	gmpi::AudioInPin pinEffect;
-	gmpi::EnumInPin pinMode;
 	gmpi::AudioOutPin pinSignalOut;
 	gmpi::FloatOutPin pinSlotModulationToGui;
 	gmpi::FloatInPin pinVoiceActive;
-	gmpi::BoolInPin pinSyncToNoteOn;
-	gmpi::AudioInPin pinSync;
 	gmpi::AudioInPin pinPsolaRootPitch;
 	gmpi::StringInPin pinWaveTableFiles;
 	gmpi::BlobOutPin pinGuiWaveDisplay;
@@ -632,7 +486,6 @@ private:
 	unsigned int countMaskA = 0;
 	unsigned int countMaskB;
 	bool previousActiveState = false;
-	bool syncState = false;
 
 	WavetableLoader waveLoader_;
 };

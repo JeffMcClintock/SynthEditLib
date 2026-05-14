@@ -30,13 +30,9 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
 	<Audio>
 	  <Pin name="Pitch" datatype="float" rate="audio" default="0.5"/>
 	  <Pin name="Slot" datatype="float" rate="audio" />
-	  <Pin name="Effect" datatype="float" rate="audio" default="0.5" />
-	  <Pin name="Effect Mode" datatype="enum" metadata="Off=-1, PSOLA = 3, PSOLA.fast, PSOLA - Wide Window" default="4"/>
 	  <Pin name="Signal Out" direction="out" datatype="float" rate="audio"/>
 	  <Pin name="Slot Modulation to GUI" direction="out" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
 	  <Pin name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" default="1" />
-	  <Pin name="Sync to NoteOn (DCO)" datatype="bool" default="1"/>
-	  <Pin name="Sync" datatype="float" rate="audio"/>
 	  <Pin name="PSOLA root pitch" datatype="float" rate="audio" default="3.24"/>
 	  <Pin name="WaveTableFiles" datatype="string" parameterId="1" private="true" />
 	  <Pin name="WaveDisplay" direction="out" datatype="blob" parameterId="2" private="true" />
@@ -142,26 +138,18 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 
 typedef void (WavetableOsc::* WavetableOscProcess_ptr)(int sampleFrames);
 
-#define TPA( pitch, slot, synct, root) (&WavetableOsc::subProcess<pitch, slot, synct, root> )
+#define TPA( pitch, slot, root) (&WavetableOsc::subProcess<pitch, slot, root> )
 
-const WavetableOscProcess_ptr ProcessSelection[2][2][2][2] =
+const WavetableOscProcess_ptr ProcessSelection[2][2][2] =
 {
-	TPA( PitchFixed,    SlotFixed,    PolicySyncOff, RootPitchFixed),
-	TPA( PitchFixed,    SlotFixed,    PolicySyncOff, RootPitchChanging),
-	TPA( PitchFixed,    SlotFixed,    PolicySyncOn , RootPitchFixed),
-	TPA( PitchFixed,    SlotFixed,    PolicySyncOn , RootPitchChanging),
-	TPA( PitchFixed,    SlotChanging, PolicySyncOff, RootPitchFixed),
-	TPA( PitchFixed,    SlotChanging, PolicySyncOff, RootPitchChanging),
-	TPA( PitchFixed,    SlotChanging, PolicySyncOn , RootPitchFixed),
-	TPA( PitchFixed,    SlotChanging, PolicySyncOn , RootPitchChanging),
-	TPA( PitchChanging, SlotFixed,    PolicySyncOff, RootPitchFixed),
-	TPA( PitchChanging, SlotFixed,    PolicySyncOff, RootPitchChanging),
-	TPA( PitchChanging, SlotFixed,    PolicySyncOn , RootPitchFixed),
-	TPA( PitchChanging, SlotFixed,    PolicySyncOn , RootPitchChanging),
-	TPA( PitchChanging, SlotChanging, PolicySyncOff, RootPitchFixed),
-	TPA( PitchChanging, SlotChanging, PolicySyncOff, RootPitchChanging),
-	TPA( PitchChanging, SlotChanging, PolicySyncOn , RootPitchFixed),
-	TPA( PitchChanging, SlotChanging, PolicySyncOn , RootPitchChanging),
+	TPA( PitchFixed,    SlotFixed,    RootPitchFixed),
+	TPA( PitchFixed,    SlotFixed,    RootPitchChanging),
+	TPA( PitchFixed,    SlotChanging, RootPitchFixed),
+	TPA( PitchFixed,    SlotChanging, RootPitchChanging),
+	TPA( PitchChanging, SlotFixed,    RootPitchFixed),
+	TPA( PitchChanging, SlotFixed,    RootPitchChanging),
+	TPA( PitchChanging, SlotChanging, RootPitchFixed),
+	TPA( PitchChanging, SlotChanging, RootPitchChanging),
 };
 
 void WavetableOsc::onSetPins(void)
@@ -220,7 +208,7 @@ void WavetableOsc::onSetPins(void)
 					float increment = ComputeIncrement2(pitchTable, pinPitch);
 					calcMipLevel(mipMapPolicy, increment, mipLevelA, countMaskA);
 
-					if( pinMode >= 3 )  // PSOLA
+	//				if( pinMode >= 3 )  // PSOLA
 					{
 						// Don't trigger new grain instantly becuase after a patch change, might need to wait a few samples for slot pin to settle.
 						count = 1.0f - increment * 4.0; // 4-5 samples till next grain.
@@ -239,17 +227,17 @@ void WavetableOsc::onSetPins(void)
 	// Set state of output audio pins.
 	pinSignalOut.setStreaming(true);
 
-	if(waveData_ != 0)
+	if(waveData_)
 	{
 		// If Pitch streaming, root-pitch also needs updating.
-		bool rootPitchStreaming = pinPitch.isStreaming() || pinEffect.isStreaming();
-		setSubProcess(static_cast <SubProcessPtr> ( ProcessSelection[ pinPitch.isStreaming() ][ pinSlot.isStreaming() ][ pinSync.isStreaming() ][rootPitchStreaming] ));
+		bool rootPitchStreaming = pinPitch.isStreaming();
+		setSubProcess(static_cast <SubProcessPtr> ( ProcessSelection[ pinPitch.isStreaming() ][ pinSlot.isStreaming() ][rootPitchStreaming] ));
 
-		if( pinMode == 0 )  // Auto-Sync
-		{
-			crossfadeincrement = 1.0f / syncCrossFadeSamples;
-		}
-		else
+		//if( pinMode == 0 )  // Auto-Sync
+		//{
+		//	crossfadeincrement = 1.0f / syncCrossFadeSamples;
+		//}
+		//else
 		{
 			crossfadeincrement = 1.0f / CrossFadeSamples;
 		}
