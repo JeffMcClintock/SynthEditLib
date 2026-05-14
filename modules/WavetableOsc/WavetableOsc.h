@@ -349,7 +349,7 @@ private:
 	const static int extraInterpolationPreSamples = 1;
 	const static int extraInterpolationPostSamples = 3;
 
-	float count;
+	float count = 0.99999999f;
 	float countB;
 	float crossfadeincrement;
 	Grain grains[MaxGrains];
@@ -358,7 +358,7 @@ private:
 	static const int HanningSize = 256;
 	static const int TableCount = 64;
 	float* waveData_{};
-	int guiUpdateCount_{};
+	int guiUpdateCount_ = 0;
     int guiUpdateRate_{};
 
 	// Shared memory (replaces allocateSharedMemory)
@@ -404,17 +404,17 @@ public:
 		return p0 + (p1 - p0) * fraction;
 	}
 
-	int slotCount;
+	int slotCount = 0;
 	static const int grainformCount = 4;
 	int currentGrainform;
-	int GrainformCounter;
+	int GrainformCounter = -1;
 	int currentGrainformMipwavesize;
-	int currentGrain_mipLevel;
-	float currentGrain_slot;
+	int currentGrain_mipLevel = -1;
+	float currentGrain_slot = -1;
 	float grainform[grainformCount][maximumWaveSize * 2 + extraInterpolationPreSamples + extraInterpolationPostSamples]; // pre-calculated windowed cycles.
 	int GrainformDuration_;
 	template< class PitchModulationPolicy, class SlotModulationPolicy, class SyncModulationPolicy, class RootPitchModulationPolicy >
-	void sub_process_PSOLA_template_fast( int sampleFrames )
+	void subProcess( int sampleFrames )
 	{
 		// get pointers to in/output buffers.
 		const float* pslot = getBuffer(pinSlot);
@@ -626,13 +626,13 @@ private:
 	float *pitchTable{};
 	WavetableMipmapPolicy mipMapPolicy;
 	WavetableMipmapPolicy mipMapPolicyHanning;
-	float syncCrossFadeLevel;
-	int mipLevelA;
-	int mipLevelB;
-	unsigned int countMaskA;
+	float syncCrossFadeLevel = 0.0f;
+	int mipLevelA = 0;
+	int mipLevelB = 0;
+	unsigned int countMaskA = 0;
 	unsigned int countMaskB;
-	bool previousActiveState;
-	bool syncState;
+	bool previousActiveState = false;
+	bool syncState = false;
 
 	WavetableLoader waveLoader_;
 };

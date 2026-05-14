@@ -47,23 +47,9 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
 }
 
 WavetableOsc::WavetableOsc()
-	:mipLevelA(0)
-	,mipLevelB(0)
-	,countMaskA(0)
-	,syncCrossFadeLevel(0.0f)
-	,previousActiveState(false)
-	,syncState(false)
-	,GrainformCounter(-1)
-	,slotCount(0)
-	,count(0.99999999f) // force calculation of miplevel on first sample.
-	,currentGrain_mipLevel( -1 )
-	,currentGrain_slot( -1 )
-	,guiUpdateCount_(0)
 {
-	for( int g = 0 ; g < MaxGrains ; ++g )
-	{
-		grains[g].wave = grainform[0]; // prevent crash.
-	}
+	for( auto& g : grains)
+		g.wave = grainform[0];
 }
 
 #define MAX_VOLTS ( 10.f )
@@ -156,7 +142,7 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 
 typedef void (WavetableOsc::* WavetableOscProcess_ptr)(int sampleFrames);
 
-#define TPA( pitch, slot, synct, root) (&WavetableOsc::sub_process_PSOLA_template_fast<pitch, slot, synct, root> )
+#define TPA( pitch, slot, synct, root) (&WavetableOsc::subProcess<pitch, slot, synct, root> )
 
 const WavetableOscProcess_ptr ProcessSelection[2][2][2][2] =
 {
@@ -236,7 +222,7 @@ void WavetableOsc::onSetPins(void)
 
 					if( pinMode >= 3 )  // PSOLA
 					{
-						// Don't trigger new grain instantly becuase after a patch change, might need to wait a few samples for slot and table pins to settle.
+						// Don't trigger new grain instantly becuase after a patch change, might need to wait a few samples for slot pin to settle.
 						count = 1.0f - increment * 4.0; // 4-5 samples till next grain.
 
 						for( int g = 0; g < MaxGrains; ++g )

@@ -23,7 +23,7 @@
                 <param type="10" handle="840371022" shortName="Capture Data B" ignorePC="true" private="true" stateful="false" isPolyphonic="true" module="732585325" moduleParamId="1"/>
                 <param type="6" handle="1311285963" shortName="Wavetable Osc Pitch" vstParameterNumber="0" module="185720371" moduleParamId="0">
                     <patch-list>
-                        <s>5.53333</s>
+                        <s>2.86666</s>
                         <s repeat="127">5</s>
                     </patch-list>
                 </param>
@@ -31,7 +31,7 @@
                 <param type="4" handle="1730994779" shortName="polyDetect" ignorePC="true" private="true" stateful="false" module="732585325" moduleParamId="2"/>
                 <param type="6" handle="2064520790" shortName="Wavetable Osc Pitch" vstParameterNumber="1" module="174695687" moduleParamId="0">
                     <patch-list>
-                        <s>8.86668</s>
+                        <s>3.5</s>
                         <s repeat="127">5</s>
                     </patch-list>
                 </param>
