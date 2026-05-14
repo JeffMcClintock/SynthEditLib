@@ -49,25 +49,25 @@ WavetableLoader::WavetableLoader()
 
 	// Mip-maps require extra memory. Calculate.
 	int newSlotCount = WaveTable::MorphedSlotRatio * (WaveTable::WavetableFileSlotCount - 1) + 1; // add extra slots in-between.
-	mipInfo.initialize(WaveTable::MaximumTables, WaveTable::WavetableFileSampleCount, newSlotCount, true);
+	mipInfo.initialize(WaveTable::WavetableFileSampleCount, newSlotCount, true);
 }
 
 void WavetableLoader::InitBuffer(WaveTable* waveTableHeader)
 {
-	waveTableHeader->SetSize(WaveTable::MaximumTables, mipInfo.getSlotCount(), WaveTable::WavetableFileSampleCount);
+	waveTableHeader->SetSize(mipInfo.getSlotCount(), WaveTable::WavetableFileSampleCount);
 }
 
 // Load wavetable off disk.
 void WavetableLoader::setWaveFileName(float* waveData, int osc, int wavetable, std::wstring& filename)
 {
-	if(loadedWavetables[osc][wavetable] != filename)
+	if(loadedWavetables[osc] != filename)
 	{
 		// Mip-maps require extra memory. Calculate.
 		int newSlotCount = WaveTable::MorphedSlotRatio * (WaveTable::WavetableFileSlotCount - 1) + 1; // add extra slots in-between.
 		WavetableMipmapPolicy mipInfo2;
-		mipInfo2.initialize(1, WaveTable::WavetableFileSampleCount, newSlotCount, true);
+		mipInfo2.initialize(WaveTable::WavetableFileSampleCount, newSlotCount, true);
 
-		loadedWavetables[osc][wavetable] = filename;
+		loadedWavetables[osc] = filename;
 		std::wstring resourceWaveFilename = filename;
 
 		// Copy Wavetable file into buffer.
@@ -75,7 +75,7 @@ void WavetableLoader::setWaveFileName(float* waveData, int osc, int wavetable, s
 		char WavetableStorage[sizeof(WaveTable)+(WaveTable::WavetableFileSampleCount * WaveTable::WavetableFileSlotCount - 1) * sizeof(float)];
 
 		WaveTable* waveTableFile = (WaveTable*)&WavetableStorage;
-		waveTableFile->SetSize(1, WaveTable::WavetableFileSlotCount, WaveTable::WavetableFileSampleCount);
+		waveTableFile->SetSize(WaveTable::WavetableFileSlotCount, WaveTable::WavetableFileSampleCount);
 
 		const wchar_t* searchPaths[] = { FactoryWavetableFolder_.c_str(), UserWavetableFolder_.c_str(), L"/Codex/" };
 
@@ -102,18 +102,18 @@ void WavetableLoader::setWaveFileName(float* waveData, int osc, int wavetable, s
 		}
 
 		// Generate Mip-mapped wavetable with extra morphed 'ghost' slots.
-		waveTableFile->CopyAndMipmap2(mipInfo, wavetable, waveData);
+		waveTableFile->CopyAndMipmap2(mipInfo, waveData);
 	}
 }
 
 // Load wavetable from memory.
 void WavetableLoader::setWaveFileName2(float* waveData, int osc, int wavetable, std::wstring& filename, WaveTable* sourceWaveTable)
 {
-	if(loadedWavetables[osc][wavetable] != filename)
+	if(loadedWavetables[osc] != filename)
 	{
-		loadedWavetables[osc][wavetable] = filename;
+		loadedWavetables[osc] = filename;
 
 		// Generate Mip-mapped wavetable with extra morphed 'ghost' slots.
-		sourceWaveTable->CopyAndMipmap2(mipInfo, wavetable, waveData);
+		sourceWaveTable->CopyAndMipmap2(mipInfo, waveData);
 	}
 }

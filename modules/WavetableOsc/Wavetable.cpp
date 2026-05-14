@@ -1578,7 +1578,6 @@ bool WaveTable::LoadFile2(int selectedFromSlot, const _TCHAR* filename, bool fil
 {
     assert( this->waveSize > 0 && this->waveSize < 5000 );
 	assert( this->slotCount > 0 && this->slotCount < 500 );
-	assert( this->waveTableCount > 0 && this->waveTableCount < 500 );
 
     assert( selectedFromSlot >= 0 && selectedFromSlot < slotCount );
 
@@ -1885,7 +1884,6 @@ void WaveTable::ExportFile( const std::wstring& pfilename, int wavetableNumber, 
 
 void WaveTable::GenerateWavetable( int wavetableNumber, int selectedFromSlot, int selectedToSlot, int shape )
 {
-    assert( wavetableNumber >= 0 && wavetableNumber < waveTableCount );
     assert( selectedFromSlot >= 0 && selectedFromSlot < slotCount );
     assert( selectedToSlot >= 0 && selectedToSlot < slotCount );
 
@@ -2348,7 +2346,6 @@ void WaveTable::CopyAndMipmap( WaveTable* sourceWavetable, WavetableMipmapPolicy
 {
 //    _RPT0(_CRT_WARN, "CopyAndMipmap(). START....\n" );
 
-	assert( sourceWavetable->waveTableCount == 1 ); // only handles a single wavetable.
 /*
     // Calculate size of DSP MIP-Mapped wavetable.
     WaveTable newDimensions = *sourceWavetable;
@@ -2461,7 +2458,7 @@ void WaveTable::CopyAndMipmap( WaveTable* sourceWavetable, WavetableMipmapPolicy
 
 				float scale = 2.0f / mipWaveSize;
 
-				float* dest = Wavedata + mipInfo.getSlotOffset( 0, destSlot, mip );
+				float* dest = Wavedata + mipInfo.getSlotOffset( destSlot, mip );
 
 				#ifdef SE_WT_OSC_STORE_HALF_CYCLES // Assume symetrical wave.
 					for( int count = 0 ; count < mipWaveSize / 2 ; ++count )
@@ -2480,7 +2477,7 @@ void WaveTable::CopyAndMipmap( WaveTable* sourceWavetable, WavetableMipmapPolicy
 //    _RPT0(_CRT_WARN, "CopyAndMipmap(). DONE....\n" );
 }
 
-void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, int wavetable, float* destSamples)
+void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, float* destSamples)
 {
 	// New
 	{
@@ -2498,7 +2495,7 @@ void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, int wavetable
 
 			// load next slot.
 			int loadSlot = std::min( std::max( slot + 2, 0 ), slotCount - 1);
-			float* src = GetSlotPtr( wavetable, loadSlot );
+			float* src = GetSlotPtr( loadSlot );
 			CalcMagnitudePhaseSpectrum( spectrumSource[interpolationSamples - 1], src, WaveTable::WavetableFileSampleCount );
 
 			if( slot >= 0 && slot < slotCount - 1 )
@@ -2568,7 +2565,7 @@ void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, int wavetable
 
 						float scale = 2.0f / mipWaveSize;
 
-						float* dest = destSamples + destMipInfo.getSlotOffset( wavetable, destSlot, mip );
+						float* dest = destSamples + destMipInfo.getSlotOffset( destSlot, mip );
 						//				_RPT4(_CRT_WARN, "CopyAndMipmap(). WT:%d SL:%d MIP:%d offset:%d\n", wavetable, destSlot, mip, destMipInfo.getSlotOffset(wavetable, destSlot, mip));
 
 						for( int count = 0; count < mipWaveSize / 2; ++count )

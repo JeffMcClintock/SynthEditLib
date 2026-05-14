@@ -229,42 +229,6 @@ public:
 };
 
 
-class TableFixed
-{
-public:
-	inline static void CalcInitial( const float table, int tableCount, int& returnFloor, float& returnFraction )
-	{
-		// same calculation as slot modulation.
-		SlotChanging::Calculate(table, tableCount, returnFloor, returnFraction);
-	};
-	inline static void Calculate( const float table, int tableCount, int& returnFloor, float& returnFraction  )
-	{
-		// do nothing. Hopefully optimizes away to nothing.
-	};
-	inline static void IncrementPointer( const float* ptr )
-	{
-		// do nothing. Hopefully optimizes away to nothing.
-	};
-};
-
-class TableChanging
-{
-public:
-	inline static void CalcInitial( const float table, int tableCount, int& returnFloor, float& returnFraction )
-	{
-		// do nothing. Hopefully optimizes away to nothing.
-	};
-	inline static void Calculate( const float table, int tableCount, int& returnFloor, float& returnFraction )
-	{
-		// same calculation as slot modulation.
-		SlotChanging::Calculate(table, tableCount, returnFloor, returnFraction);
-	};
-	inline static void IncrementPointer( const float*& ptr )
-	{
-		++ptr;
-	};
-};
-
 class PolicySyncOff
 {
 public:
@@ -446,15 +410,13 @@ public:
 	int GrainformCounter;
 	int currentGrainformMipwavesize;
 	int currentGrain_mipLevel;
-	float currentGrain_table;
 	float currentGrain_slot;
 	float grainform[grainformCount][maximumWaveSize * 2 + extraInterpolationPreSamples + extraInterpolationPostSamples]; // pre-calculated windowed cycles.
 	int GrainformDuration_;
-	template< class PitchModulationPolicy, class TableModulationPolicy, class SlotModulationPolicy, class SyncModulationPolicy, class RootPitchModulationPolicy >
+	template< class PitchModulationPolicy, class SlotModulationPolicy, class SyncModulationPolicy, class RootPitchModulationPolicy >
 	void sub_process_PSOLA_template_fast( int sampleFrames )
 	{
 		// get pointers to in/output buffers.
-		const float* table = getBuffer(pinTable);
 		const float* pslot = getBuffer(pinSlot);
 		float* signalOut = getBuffer(pinSignalOut);
 		const float* pitch = getBuffer(pinPitch);
@@ -468,11 +430,10 @@ public:
 			sync = getBuffer(pinSync);
 		}
 
-		float increment, grainIncrementFast, table_frac, slot_frac;
-		int table_floor, slot1_floor;
+		float increment, grainIncrementFast, slot_frac;
+		int slot1_floor;
 		PitchModulationPolicy::CalcInitial( pitchTable, *pitch, increment );
 		RootPitchModulationPolicy::CalcInitialPsola( pitchTable, increment, *intensity, *rootPitch, grainIncrementFast );
-		TableModulationPolicy::CalcInitial( *table, TableCount, table_floor, table_frac );
 		SlotModulationPolicy::CalcInitial( *pslot, slotCount, slot1_floor, slot_frac );
 
 		for( int s = sampleFrames; s > 0; --s )
@@ -558,15 +519,13 @@ public:
 							int mipLevel = mipMapPolicy.CalcMipLevel( grainIncrementFast * 2.0f );
 							int mipwavesize = currentGrainformMipwavesize = mipMapPolicy.GetWaveSize(mipLevel);
 
-							TableModulationPolicy::Calculate( *table, TableCount, table_floor, table_frac );
 							SlotModulationPolicy::Calculate( *pslot, slotCount, slot1_floor, slot_frac );
 
 							GrainformCounter = GrainformDuration_; // restart counter.
 							// If parameters the same, just re-use previous grain.
-							if( mipLevel != currentGrain_mipLevel || *table != currentGrain_table || *pslot != currentGrain_slot )
+							if( mipLevel != currentGrain_mipLevel || *pslot != currentGrain_slot )
 							{
 								currentGrain_mipLevel = mipLevel;
-								currentGrain_table = *table;
 								currentGrain_slot = *pslot;
 
 								// increment/wrap current grainform.
@@ -575,12 +534,10 @@ public:
 
 								// re-fill grainform.
 
-								float* wave1a = waveData_ + mipMapPolicy.getSlotOffset(table_floor, slot1_floor, mipLevel);
-								float* wave1b = waveData_ + mipMapPolicy.getSlotOffset(table_floor, slot1_floor + 1, mipLevel);
-								float* wave2a = waveData_ + mipMapPolicy.getSlotOffset(table_floor + 1, slot1_floor, mipLevel);
-								float* wave2b = waveData_ + mipMapPolicy.getSlotOffset(table_floor + 1, slot1_floor + 1, mipLevel);
+								float* wave1a = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor, mipLevel);
+								float* wave1b = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor + 1, mipLevel);
 
-								float* pHanning = hanning + mipMapPolicyHanning.getSlotOffset(0,0,mipLevel);
+								float* pHanning = hanning + mipMapPolicyHanning.getSlotOffset(0,mipLevel);
 
 								// Add sample 'off-front' to aid interpolation.
 								wave[-1] = 0.0f;
@@ -597,14 +554,8 @@ public:
 									// Calc sample interpolating between slots. Wave1
 									float p1 = wave1a[c];	// first slot's sample. no interpolation.
 									float p2 = wave1b[c];	// second slot's sample. no interpolation.
-									float output1 = p1 + slot_frac * (p2 - p1);		// interpolate between slots.
+									float grainSample = p1 + slot_frac * (p2 - p1);		// interpolate between slots.
 
-									// Calc sample interpolating between slots. Wave2
-									float p3 = wave2a[c];		// first slot's sample. no interpolation.
-									float p4 = wave2b[c];		// second slot's sample. no interpolation.
-									float output2 = p3 + slot_frac * (p4 - p3);		// interpolate between slots.
-
-									float grainSample = output1 + table_frac * (output2 - output1);	// interpolate between tables.
                                     wave[c]                 =  grainSample * pHanning[c];
 									wave[mipwavesize - c]   = -grainSample * pHanning[mipwavesize - c]; // calc 2nd half of cycle by flipping first half.
 									wave[mipwavesize + c]   = -wave[mipwavesize - c]; // Mirror first whole cycle into 2nd half of grain.
@@ -642,7 +593,6 @@ public:
 			// Increment buffer pointers.
 			++signalOut;
 			PitchModulationPolicy::IncrementPointer( pitch );
-			TableModulationPolicy::IncrementPointer( table );
 			SlotModulationPolicy::IncrementPointer( pslot );
 			RootPitchModulationPolicy::IncrementPointer( rootPitch );
 		}
@@ -660,19 +610,18 @@ private:
 
 	inline void calcMipLevel( WavetableMipmapPolicy& mipMapPolicy, float increment, int& returnMipLevelA, unsigned int& returnCountMaskA );
 
-	gmpi::AudioInPin pinPitch;                  // id=0
-	gmpi::AudioInPin pinTable;                  // id=1
-	gmpi::AudioInPin pinSlot;                   // id=2
-	gmpi::AudioInPin pinEffect;                 // id=3
-	gmpi::EnumInPin pinMode;                    // id=4
-	gmpi::AudioOutPin pinSignalOut;             // id=5
-	gmpi::FloatOutPin pinSlotModulationToGui;   // id=6
-	gmpi::FloatInPin pinVoiceActive;            // id=7
-	gmpi::BoolInPin pinSyncToNoteOn;            // id=8
-	gmpi::AudioInPin pinSync;                   // id=9
-	gmpi::AudioInPin pinPsolaRootPitch;         // id=10
-	gmpi::StringInPin pinWaveTableFiles;        // id=11
-	gmpi::BlobOutPin pinGuiWaveDisplay;         // id=12
+	gmpi::AudioInPin pinPitch;
+	gmpi::AudioInPin pinSlot;
+	gmpi::AudioInPin pinEffect;
+	gmpi::EnumInPin pinMode;
+	gmpi::AudioOutPin pinSignalOut;
+	gmpi::FloatOutPin pinSlotModulationToGui;
+	gmpi::FloatInPin pinVoiceActive;
+	gmpi::BoolInPin pinSyncToNoteOn;
+	gmpi::AudioInPin pinSync;
+	gmpi::AudioInPin pinPsolaRootPitch;
+	gmpi::StringInPin pinWaveTableFiles;
+	gmpi::BlobOutPin pinGuiWaveDisplay;
 
 	float *pitchTable{};
 	WavetableMipmapPolicy mipMapPolicy;

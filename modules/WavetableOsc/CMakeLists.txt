@@ -11,11 +11,15 @@ set(SDK_FILES
 
 synthedit_plugin(
 	PROJECT_NAME ${PROJECT_NAME}
-	HAS_DSP HAS_GUI IS_OFFICIAL_MODULE
+	HAS_DSP HAS_GUI IS_OFFICIAL_MODULE USE_STAGING
 	SOURCE_FILES
+	  WavetableOsc.h
 	  WavetableOsc.cpp
+	  WavetableOscGui.h
 	  WavetableOscGui.cpp
+	  Wavetable.h
 	  Wavetable.cpp
+	  WaveTableLoad.h
 	  WaveTableLoad.cpp
 	  WavetableMipmapPolicy.h
 	  ${SDK_FILES}

@@ -24,7 +24,6 @@ bool registeredGui = gmpi::Register<WavetableOscGui>::withId("SE Wavetable Osc")
 WavetableOscGui::WavetableOscGui()
 	: selectedFromSlot(0)
 	, selectedToSlot(0)
-	, pinWaveTableDisplay(0)
 	, idleTimer(-1)
 	, x(0)
 	, phase(0)
@@ -32,12 +31,11 @@ WavetableOscGui::WavetableOscGui()
 {
 	// Set up pin callbacks.
 	pinSlotModulation.onUpdate = [this](editor::PinBase*) { onModulationChanged(nullptr); };
-	pinWaveFiles.onUpdate = [this](editor::PinBase*) { updateCurrentWavetable(); UpGradeWavetable(); };
+	pinWaveFiles.onUpdate = [this](editor::PinBase*) { updateCurrentWavetable(); };
 	pinWaveDisplay.onUpdate = [this](editor::PinBase*) { updateWaveDisplay(); };
 
-	currentWavetableMem_ = new char[WaveTable::CalcMemoryRequired(1,WaveTable::WavetableFileSlotCount,WaveTable::WavetableFileSampleCount)];
+	currentWavetableMem_ = new char[WaveTable::CalcMemoryRequired(WaveTable::WavetableFileSlotCount,WaveTable::WavetableFileSampleCount)];
 
-	currentWavetable()->waveTableCount = 0;
 	currentWavetable()->slotCount = 0;
 	currentWavetable()->waveSize = 0;
 
@@ -59,42 +57,14 @@ WavetableOscGui::~WavetableOscGui()
 	delete [] currentWavetableMem_;
 }
 
-void WavetableOscGui::UpGradeWavetable()
-{
-	// Initialize default wavetable filenames if not set.
-	std::wstring wPinValue = JmUnicodeConversions::Utf8ToWstring(pinWaveFiles.value);
-	it_enum_list it(wPinValue);
-	it.FindIndex(32);
-	if( it.IsDone() || it.CurrentItem()->text.empty() )
-	{
-		string val;
-		for( int wavetableNumber = 0 ; wavetableNumber < 64 ; ++wavetableNumber )
-		{
-			char numb[10];
-			snprintf(numb, sizeof(numb), "%02d", wavetableNumber );
-			string filename = "F";
-			filename += numb;
-			filename += " XXX.wavetable.wav";
-
-			if( wavetableNumber > 0 )
-			{
-				val += ",";
-			}
-			val += filename;
-		}
-		pinWaveFiles = val;
-	}
-}
-
 // Load the current wavetable to the GUI, for display purposes only.
 void WavetableOscGui::updateCurrentWavetable()
 {
-	string curWaveFile = getWaveFileName(pinWaveTableDisplay);
+	string curWaveFile = getWaveFileName();
 	if( curWaveFile_ != curWaveFile )
 	{
 		curWaveFile_ = curWaveFile;
 
-		currentWavetable()->waveTableCount = 1;
 		currentWavetable()->slotCount = WaveTable::WavetableFileSlotCount;
 		currentWavetable()->waveSize = WaveTable::WavetableFileSampleCount;
 
@@ -124,7 +94,6 @@ void WavetableOscGui::updateCurrentWavetable()
 
 		if( !success )
 		{
-			currentWavetable()->waveTableCount = 0;
 			currentWavetable()->slotCount = 0;
 			currentWavetable()->waveSize = 0;
 		}
@@ -171,7 +140,7 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 
 	WaveTable* waveTable = currentWavetable();
 
-	if( waveTable->waveTableCount < 1 )
+	if(!waveTable)
 		return ReturnCode::Ok;
 
 	// Wavetable 3D display (when not animating).
@@ -188,7 +157,7 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 
 		for( int slot = waveTable->slotCount - 1 ; slot >= 0 ; --slot )
 		{
-			float* wavedata = waveTable->GetSlotPtr( pinWaveTableDisplay, slot );
+			float* wavedata = waveTable->GetSlotPtr(slot);
 
 			float yOffset = frontYaxis - (frontYaxis-backYaxis) * ((float) slot / (float) waveTable->slotCount);
 			float xOffset = (slot * horizontalDelta) / waveTable->slotCount;
@@ -216,7 +185,7 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 			// Fill polygon between this and next slot with black.
 			if( slot > 0 )
 			{
-				float* wavedata2 = waveTable->GetSlotPtr( pinWaveTableDisplay, slot - 1 );
+				float* wavedata2 = waveTable->GetSlotPtr(slot - 1 );
 				float yOffset2 = frontYaxis - (frontYaxis-backYaxis) * ((float) (slot-1) / (float) waveTable->slotCount);
 				float xOffset2 = ((slot-1) * horizontalDelta) / waveTable->slotCount;
 
@@ -253,9 +222,9 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 	auto textFormat = g.getFactory().createTextFormat(12.0f);
 	auto whiteBrush = g.createSolidColorBrush(Colors::White);
 
-	std::string curWaveFile = getWaveFileName(pinWaveTableDisplay);
+	std::string curWaveFile = getWaveFileName();
 	char txt[100];
-	snprintf(txt, sizeof(txt), "WT%d: %s", pinWaveTableDisplay, curWaveFile.c_str());
+	snprintf(txt, sizeof(txt), "%s", curWaveFile.c_str());
 	g.drawTextU(txt, textFormat, Rect(1.0f, 1.0f, width, 20.0f), whiteBrush);
 
 	if( idleTimer < 0 )
@@ -393,15 +362,9 @@ string WavetableOscGui::getWaveFilePoolName( int idx )
 	return waveFilePoolNames[idx];
 }
 
-string WavetableOscGui::getWaveFileName( int idx )
+string WavetableOscGui::getWaveFileName()
 {
-	std::wstring wPinValue = JmUnicodeConversions::Utf8ToWstring(pinWaveFiles.value);
-	it_enum_list it( wPinValue );
-	it.FindIndex(idx);
-	if( ! it.IsDone() )
-		return JmUnicodeConversions::WStringToUtf8(it.CurrentItem()->text);
-
-	return "";
+	return pinWaveFiles.value;
 }
 
 void WavetableOscGui::setWaveFileName( int idx, string filename )

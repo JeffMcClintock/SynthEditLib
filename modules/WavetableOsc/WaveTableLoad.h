@@ -27,7 +27,7 @@ public:
 	static std::wstring UserWavetableFolder_;
 	static std::wstring FactoryWavetableFolder_;
 
-	std::wstring loadedWavetables[NUM_WAVETABLE_OSCS][WaveTable::MaximumTables];
+	std::wstring loadedWavetables[NUM_WAVETABLE_OSCS];
 
 private:
 	WavetableMipmapPolicy mipInfo;

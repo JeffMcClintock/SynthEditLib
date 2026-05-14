@@ -60,11 +60,10 @@ private:
 	float VoiceModulations[animateVoicesCount][3]; // 0-Voice, 1-Table, 2-Slot.
 	int selectedFromSlot;
 	int selectedToSlot;
-	int pinWaveTableDisplay;
 	std::vector< std::string > waveFilePoolNames;
 	void refreshWaveFilePoolNames();
 	std::string getWaveFilePoolName( int idx );
-	std::string getWaveFileName( int idx );
+	std::string getWaveFileName();
 	void setWaveFileName( int idx, std::string filename );
 };
 

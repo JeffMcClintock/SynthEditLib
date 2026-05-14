@@ -19,7 +19,7 @@ struct mipIndex
 		maximumIncrement = (float)oversampleRatio / (float) waveSize;
 	}
 	int SlotStorage;
-	int offset2; // when grouped by mip,wave,slot
+	int offset2; // when grouped by mip,slot
 	int waveSize;
 	float maximumIncrement; // helps decide when to shift down to a lower mip-level.
 };
@@ -35,7 +35,6 @@ public:
 private:
 	std::vector<mipIndex> mips;
 	int MasterWaveSize;
-	int waveTableCount;			// Total Wavetable slots.
 	int slotCount;				// Waveforms per wavetable.
 	int totalWaveMemorySize;
 	bool storeHalfCycles;
@@ -43,7 +42,6 @@ private:
 public:
 	WavetableMipmapPolicy(void) :
 		MasterWaveSize(0)
-		, waveTableCount(0)
 		, slotCount(0)
 		, storeHalfCycles(true)
 	{
@@ -85,14 +83,13 @@ public:
 #ifdef SE_WT_OSC_STORE_HALF_CYCLES // Assume symetrical wave.
 		storeHalfCycles = true;
 #endif
-		initialize(wavetable->waveTableCount, wavetable->waveSize, wavetable->slotCount, storeHalfCycles);
+		initialize(wavetable->waveSize, wavetable->slotCount, storeHalfCycles);
 	}
 
-	void initialize( int pWaveTableCount, int pWaveSize, int pSlotCount, bool pStoreHalfCycles )
+	void initialize(int pWaveSize, int pSlotCount, bool pStoreHalfCycles )
 	{
 		mips.clear();
 
-		waveTableCount = pWaveTableCount;
 		MasterWaveSize = pWaveSize;
 		slotCount = pSlotCount;
 		storeHalfCycles = pStoreHalfCycles;
@@ -118,7 +115,7 @@ public:
 
 			mips.push_back(mipIndex(SlotStorage, wavesize, MipOversampleRatio, MipStartIdx));
 
-			MipStartIdx += SlotStorage * waveTableCount * slotCount;
+			MipStartIdx += SlotStorage * slotCount;
 			totalWaveMemorySize += SlotStorage;
 
 			// next higher octave.
@@ -130,7 +127,7 @@ public:
 	// With PSOLA window, need exactly twice the storage per wave.
 	int TotalMemoryRequired() const
 	{
-		return sizeof(WaveTable) + (totalWaveMemorySize * waveTableCount * slotCount - 1) * sizeof(float);
+		return sizeof(WaveTable) + (totalWaveMemorySize * slotCount - 1) * sizeof(float);
 	}
 
 	int WaveMemoryRequiredSamples() const
@@ -138,10 +135,10 @@ public:
 		return sizeof(WaveTable) + (totalWaveMemorySize-1);
 	}
 
-	int getSlotOffset( int table, int slot, int mip ) const
+	int getSlotOffset( int slot, int mip ) const
 	{
 		// Wavetable Grouped by Mips.
-		return mips[mip].offset2 + mips[mip].SlotStorage * (slot + table * slotCount);
+		return mips[mip].offset2 + mips[mip].SlotStorage * slot;
 	}
 
 	int CalcMipLevel(float increment) const

@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="94852515" SelectedViewType="256" emulate_ignore_pc="true" vst_preset_count="64">
+    <master_container type="Container" handle="94852515" name="Main" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="256" skin="default3">
+        <plugs>
+            <plug idx="7"/>
+        </plugs>
+        <structRect l="0" r="0" t="0" b="0"/>
+        <PatchManager>
+            <ProgramNames/>
+            <Parameters>
+                <param type="10" handle="13007926" shortName="Capture Data A" ignorePC="true" private="true" stateful="false" isPolyphonic="true" module="732585325" moduleParamId="0"/>
+                <param type="6" handle="34702161" shortName="Slot Modulation" ignorePC="true" private="true" stateful="false" isPolyphonic="true" module="1412763883" moduleParamId="0"/>
+                <param type="12" handle="70768971" shortName="WaveTableFiles" ignorePC="true" private="true" module="1412763883" moduleParamId="1">
+                    <patch-list>
+                        <s>evolution.wavetable.wav</s>
+                    </patch-list>
+                </param>
+                <param type="10" handle="190616161" private="true" hostControl="49">
+                    <patch-list>
+                        <s repeat="128"></s>
+                    </patch-list>
+                </param>
+                <param type="10" handle="840371022" shortName="Capture Data B" ignorePC="true" private="true" stateful="false" isPolyphonic="true" module="732585325" moduleParamId="1"/>
+                <param type="6" handle="1311285963" shortName="Wavetable Osc Pitch" vstParameterNumber="0" module="185720371" moduleParamId="0">
+                    <patch-list>
+                        <s>5.53333</s>
+                        <s repeat="127">5</s>
+                    </patch-list>
+                </param>
+                <param type="10" handle="1590000411" shortName="WaveDisplay" ignorePC="true" private="true" stateful="false" module="1412763883" moduleParamId="2"/>
+                <param type="4" handle="1730994779" shortName="polyDetect" ignorePC="true" private="true" stateful="false" module="732585325" moduleParamId="2"/>
+                <param type="6" handle="2064520790" shortName="Wavetable Osc Pitch" vstParameterNumber="1" module="174695687" moduleParamId="0">
+                    <patch-list>
+                        <s>8.86668</s>
+                        <s repeat="127">5</s>
+                    </patch-list>
+                </param>
+            </Parameters>
+        </PatchManager>
+        <modules>
+            <module type="SE Scope3 XP" handle="732585325">
+                <structRect l="4272" r="4380" t="3744" b="3844"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="Sound Out" handle="1106310900">
+                <plugs>
+                    <plug name="Signal Out"/>
+                    <plug/>
+                </plugs>
+                <structRect l="4260" r="4332" t="3900" b="3924"/>
+            </module>
+            <module type="Slider" handle="174695687">
+                <plugs>
+                    <plug parameterId="-1" idx="13"/>
+                    <plug parameterId="-1"/>
+                </plugs>
+                <structRect l="3540" r="3612" t="3948" b="4030"/>
+                <panelRect l="3840" r="3840" t="3856" b="3856"/>
+            </module>
+            <module type="Slider" handle="185720371">
+                <plugs>
+                    <plug parameterId="-1" idx="13"/>
+                    <plug parameterId="-1"/>
+                </plugs>
+                <structRect l="3540" r="3612" t="3828" b="3910"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE Wavetable Osc" handle="1412763883">
+                <structRect l="3828" r="4128" t="3840" b="4200"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+        </modules>
+        <lines>
+            <line type="Line" handle="407755986" lineType="1" fMod="185720371" tMod="1412763883" fPlg="6" tPlg="3"/>
+            <line type="Line" handle="306011854" lineType="1" fMod="174695687" tMod="1412763883" fPlg="6" tPlg="4"/>
+            <line type="Line" handle="1105680368" lineType="1" fMod="1412763883" tMod="732585325" fPlg="7" tPlg="6"/>
+            <line type="Line" handle="885964837" lineType="1" fMod="1412763883" tMod="1106310900" fPlg="7"/>
+            <line type="Line" handle="1419300469" lineType="1" fMod="185720371" tMod="1412763883" fPlg="6" tPlg="12"/>
+        </lines>
+        <PanelLocationCenter x="3984" y="3984"/>
+        <StructLocationCenter x="3984" y="3984"/>
+        <PanelWndPosition l="0" r="0" t="0" b="0"/>
+        <PanelLocation l="0" r="500" t="0" b="500"/>
+        <StructLocation l="0" r="500" t="0" b="500"/>
+        <PanelScroll x="3734" y="3734"/>
+        <StructScroll x="3734" y="3734"/>
+        <PanelWndOffset cx="-99999" cy="-99999"/>
+        <panel_rect l="3732" r="4212" t="3732" b="4212"/>
+    </master_container>
+    <PluginList>
+        <Plugin id="Container" class="1" name="Container" flags="384" category="">
+            <Audio>
+                <Pin name="Spare" datatype="float" rate="audio" autoRename="true" autoDuplicate="true" isContainerIoPlug="true"/>
+                <Pin name="Polyphony" datatype="enum" default="6" private="true" isMinimised="true" metadata="range 1,128"/>
+                <Pin name="MIDI Automation" datatype="bool" private="true" isMinimised="true"/>
+                <Pin name="Show Controls" datatype="enum" private="true" isMinimised="true" metadata="Off,On Panel,On Module"/>
+            </Audio>
+            <GUI>
+                <Pin name="Controls on Parent" datatype="bool" direction="out" isMinimised="true"/>
+                <Pin name="Controls on Module" datatype="bool" noAutomation="true"/>
+                <Pin name="Visible" datatype="bool"/>
+                <Pin name="Ignore Program Change" datatype="bool" noAutomation="true"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE Scope3 XP" name="Scope3" flags="384" category="Controls">
+            <Parameters>
+                <Parameter id="0" datatype="blob" name="Capture Data A" private="true" ignorePatchChange="true" isPolyphonic="true" persistant="false"/>
+                <Parameter id="1" datatype="blob" name="Capture Data B" private="true" ignorePatchChange="true" isPolyphonic="true" persistant="false"/>
+                <Parameter id="2" datatype="bool" name="polyDetect" private="true" ignorePatchChange="true" persistant="false"/>
+            </Parameters>
+            <Audio>
+                <Pin name="Capture Data A" datatype="blob" direction="out" private="true" isPolyphonic="true" parameterId="0"/>
+                <Pin name="Capture Data B" datatype="blob" direction="out" private="true" isPolyphonic="true" parameterId="1"/>
+                <Pin name="Signal A" datatype="float" rate="audio"/>
+                <Pin name="Signal B" datatype="float" rate="audio"/>
+                <Pin name="VoiceActive" datatype="float" private="true" isPolyphonic="true" hostConnect="Voice/Active"/>
+                <Pin name="polydetect" datatype="bool" direction="out" private="true" parameterId="2"/>
+            </Audio>
+            <GUI graphicsApi="GmpiGui">
+                <Pin name="Capture Data A" datatype="blob" private="true" isPolyphonic="true" parameterId="0"/>
+                <Pin name="Capture Data B" datatype="blob" private="true" isPolyphonic="true" parameterId="1"/>
+                <Pin id="3" name="VoiceGate" datatype="float" private="true" isPolyphonic="true" hostConnect="Voice/Gate"/>
+                <Pin name="polydetect" datatype="bool" private="true" parameterId="2"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE Wavetable Osc" name="Wavetable Osc" flags="384" category="Waveform" helpUrl="WavetableOsc.htm">
+            <Parameters>
+                <Parameter id="0" datatype="float" name="Slot Modulation" private="true" ignorePatchChange="true" isPolyphonic="true" persistant="false"/>
+                <Parameter id="1" datatype="string_utf8" name="WaveTableFiles" private="true"/>
+                <Parameter id="2" datatype="blob" name="WaveDisplay" private="true" ignorePatchChange="true" persistant="false"/>
+            </Parameters>
+            <Audio>
+                <Pin name="Pitch" datatype="float" rate="audio" default="0.5"/>
+                <Pin name="Slot" datatype="float" rate="audio"/>
+                <Pin name="Effect" datatype="float" rate="audio" default="0.5"/>
+                <Pin name="Effect Mode" datatype="enum" default="4" metadata="Off=-1, PSOLA = 3, PSOLA.fast, PSOLA - Wide Window"/>
+                <Pin name="Signal Out" datatype="float" rate="audio" direction="out"/>
+                <Pin name="Slot Modulation to GUI" datatype="float" direction="out" private="true" isPolyphonic="true" parameterId="0"/>
+                <Pin name="VoiceActive" datatype="float" default="1" private="true" isPolyphonic="true" hostConnect="Voice/Active"/>
+                <Pin name="Sync to NoteOn (DCO)" datatype="bool" default="1"/>
+                <Pin name="Sync" datatype="float" rate="audio"/>
+                <Pin name="PSOLA root pitch" datatype="float" rate="audio" default="3.24"/>
+                <Pin name="WaveTableFiles" datatype="string_utf8" private="true" parameterId="1"/>
+                <Pin name="WaveDisplay" datatype="blob" direction="out" private="true" parameterId="2"/>
+            </Audio>
+            <GUI graphicsApi="composited">
+                <Pin name="Slot Modulation from DSP" datatype="float" private="true" isPolyphonic="true" parameterId="0"/>
+                <Pin name="WaveTableFiles" datatype="string_utf8" private="true" parameterId="1"/>
+                <Pin name="WaveDisplay" datatype="blob" private="true" parameterId="2"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="Slider" class="1" name="Slider" flags="4480" category="Old">
+            <Parameters>
+                <Parameter id="0" datatype="float" name="patchValue"/>
+            </Parameters>
+            <Audio>
+                <Pin name="Channel" datatype="enum" default="-1" private="true" ignorePatchChange="true"/>
+                <Pin name="MIDI In" datatype="midi" private="true"/>
+                <Pin name="MIDI Out" datatype="midi" direction="out" private="true"/>
+                <Pin name="MIDI Controller ID" datatype="enum" default="-1" private="true"/>
+                <Pin name="Ignore Program Change" datatype="bool" private="true"/>
+                <Pin name="MIDI NRPN" datatype="enum" private="true" metadata="range 0,16255"/>
+                <Pin name="Signal Out" datatype="float" rate="audio" direction="out" autoConfigureParameter="true"/>
+                <Pin name="Lo Value" datatype="float" private="true"/>
+                <Pin name="Hi Value" datatype="float" default="10" private="true"/>
+                <Pin name="Appearance" datatype="enum" default="1" isMinimised="true" metadata="None=-1,Plain Slider, Vert Slider, Horiz Slider, Knob, Button, Button (toggle),Plain Button, Small Knob, Small Button, Small Button (Toggle)"/>
+                <Pin name="Show Readout" datatype="bool" default="1" isMinimised="true"/>
+                <Pin name="Show Title On Panel" datatype="bool" default="1" isMinimised="true"/>
+                <Pin name="patchValue" datatype="float" private="true" parameterId="0"/>
+            </Audio>
+            <GUI>
+                <Pin id="13" name="patchValue" datatype="float" direction="out" private="true" parameterId="0"/>
+                <Pin name="Hint" datatype="string" direction="out" isMinimised="true"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="Sound Out" class="1" name="Sound Out" flags="4352" category="Input-Output">
+            <Audio>
+                <Pin name="Out" datatype="float" rate="audio" autoRename="true" linearInput="true" autoDuplicate="true"/>
+            </Audio>
+        </Plugin>
+    </PluginList>
+</Document>

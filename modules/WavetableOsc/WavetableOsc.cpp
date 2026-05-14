@@ -28,19 +28,18 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
 	  <Pin id="2" name="WaveDisplay" datatype="blob" parameterId="2" private="true" />
 	</GUI>
 	<Audio>
-	  <Pin id="0" name="Pitch" datatype="float" rate="audio" default="0.5"/>
-	  <Pin id="1" name="Table" datatype="float" rate="audio" />
-	  <Pin id="2" name="Slot" datatype="float" rate="audio" />
-	  <Pin id="3" name="Effect" datatype="float" rate="audio" default="0.5" />
-	  <Pin id="4" name="Effect Mode" datatype="enum" metadata="Off=-1, PSOLA = 3, PSOLA.fast, PSOLA - Wide Window" default="4"/>
-	  <Pin id="5" name="Signal Out" direction="out" datatype="float" rate="audio"/>
-	  <Pin id="6" name="Slot Modulation to GUI" direction="out" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
-	  <Pin id="7" name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" default="1" />
-	  <Pin id="8" name="Sync to NoteOn (DCO)" datatype="bool" default="1"/>
-	  <Pin id="9" name="Sync" datatype="float" rate="audio"/>
-	  <Pin id="10" name="PSOLA root pitch" datatype="float" rate="audio" default="3.24"/>
-	  <Pin id="11" name="WaveTableFiles" datatype="string" parameterId="1" private="true" />
-	  <Pin id="12" name="WaveDisplay" direction="out" datatype="blob" parameterId="2" private="true" />
+	  <Pin name="Pitch" datatype="float" rate="audio" default="0.5"/>
+	  <Pin name="Slot" datatype="float" rate="audio" />
+	  <Pin name="Effect" datatype="float" rate="audio" default="0.5" />
+	  <Pin name="Effect Mode" datatype="enum" metadata="Off=-1, PSOLA = 3, PSOLA.fast, PSOLA - Wide Window" default="4"/>
+	  <Pin name="Signal Out" direction="out" datatype="float" rate="audio"/>
+	  <Pin name="Slot Modulation to GUI" direction="out" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
+	  <Pin name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" default="1" />
+	  <Pin name="Sync to NoteOn (DCO)" datatype="bool" default="1"/>
+	  <Pin name="Sync" datatype="float" rate="audio"/>
+	  <Pin name="PSOLA root pitch" datatype="float" rate="audio" default="3.24"/>
+	  <Pin name="WaveTableFiles" datatype="string" parameterId="1" private="true" />
+	  <Pin name="WaveDisplay" direction="out" datatype="blob" parameterId="2" private="true" />
 	</Audio>
   </Plugin>
 </PluginList>
@@ -58,7 +57,6 @@ WavetableOsc::WavetableOsc()
 	,slotCount(0)
 	,count(0.99999999f) // force calculation of miplevel on first sample.
 	,currentGrain_mipLevel( -1 )
-	,currentGrain_table( -1 )
 	,currentGrain_slot( -1 )
 	,guiUpdateCount_(0)
 {
@@ -112,7 +110,7 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 	pitchTable = pitchTableShared_->data.data() + extraEntriesAtStart;
 
 	// Hanning window - mip-mapped, shared across all instances.
-	mipMapPolicyHanning.initialize(1, 512, 1, false);
+	mipMapPolicyHanning.initialize(512, 1, false);
 
 	hanningShared_ = SharedObjectManager<HanningData>::getOrCreateSharedMemory(
 		-1.0f, 0,
@@ -122,7 +120,7 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 			for (int mip = 0; mip < mipMapPolicyHanning.getMipCount(); ++mip)
 			{
 				int hanningSize = mipMapPolicyHanning.GetWaveSize(mip);
-				float* pHanning = h->data.data() + mipMapPolicyHanning.getSlotOffset(0, 0, mip);
+				float* pHanning = h->data.data() + mipMapPolicyHanning.getSlotOffset(0, mip);
 				for (int i = 0; i < hanningSize; ++i)
 				{
 					pHanning[i] = 0.5f - 0.5f * cosf(1.0f * (float)M_PI * i / (float)hanningSize);
@@ -148,7 +146,7 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 		[&](float) {
 			auto wt = std::make_shared<WavetableData>();
 			wt->data.resize(waveLoader_.WavebankMemoryRequired() / sizeof(float));
-			wt->header.SetSize(WaveTable::MaximumTables, waveLoader_.getMipInfo().getSlotCount(), WaveTable::WavetableFileSampleCount);
+			wt->header.SetSize(waveLoader_.getMipInfo().getSlotCount(), WaveTable::WavetableFileSampleCount);
 			return wt;
 		});
 	waveData_ = wavetableDataShared_[oscNumber]->data.data();
@@ -158,42 +156,26 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 
 typedef void (WavetableOsc::* WavetableOscProcess_ptr)(int sampleFrames);
 
-#define TPA( pitch, table, slot, synct, root) (&WavetableOsc::sub_process_PSOLA_template_fast< pitch, table, slot, synct, root > )
+#define TPA( pitch, slot, synct, root) (&WavetableOsc::sub_process_PSOLA_template_fast<pitch, slot, synct, root> )
 
-const WavetableOscProcess_ptr ProcessSelection[2][2][2][2][2] =
+const WavetableOscProcess_ptr ProcessSelection[2][2][2][2] =
 {
-	TPA( PitchFixed,    TableFixed,    SlotFixed,    PolicySyncOff, RootPitchFixed),
-	TPA( PitchFixed,    TableFixed,    SlotFixed,    PolicySyncOff, RootPitchChanging),
-	TPA( PitchFixed,    TableFixed,    SlotFixed,    PolicySyncOn , RootPitchFixed),
-	TPA( PitchFixed,    TableFixed,    SlotFixed,    PolicySyncOn , RootPitchChanging),
-	TPA( PitchFixed,    TableFixed,    SlotChanging, PolicySyncOff, RootPitchFixed),
-	TPA( PitchFixed,    TableFixed,    SlotChanging, PolicySyncOff, RootPitchChanging),
-	TPA( PitchFixed,    TableFixed,    SlotChanging, PolicySyncOn , RootPitchFixed),
-	TPA( PitchFixed,    TableFixed,    SlotChanging, PolicySyncOn , RootPitchChanging),
-	TPA( PitchFixed,    TableChanging, SlotFixed,    PolicySyncOff, RootPitchFixed),
-	TPA( PitchFixed,    TableChanging, SlotFixed,    PolicySyncOff, RootPitchChanging),
-	TPA( PitchFixed,    TableChanging, SlotFixed,    PolicySyncOn , RootPitchFixed),
-	TPA( PitchFixed,    TableChanging, SlotFixed,    PolicySyncOn , RootPitchChanging),
-	TPA( PitchFixed,    TableChanging, SlotChanging, PolicySyncOff, RootPitchFixed),
-	TPA( PitchFixed,    TableChanging, SlotChanging, PolicySyncOff, RootPitchChanging),
-	TPA( PitchFixed,    TableChanging, SlotChanging, PolicySyncOn , RootPitchFixed),
-	TPA( PitchFixed,    TableChanging, SlotChanging, PolicySyncOn , RootPitchChanging),
-	TPA( PitchChanging, TableFixed,    SlotFixed,    PolicySyncOff, RootPitchFixed),
-	TPA( PitchChanging, TableFixed,    SlotFixed,    PolicySyncOff, RootPitchChanging),
-	TPA( PitchChanging, TableFixed,    SlotFixed,    PolicySyncOn , RootPitchFixed),
-	TPA( PitchChanging, TableFixed,    SlotFixed,    PolicySyncOn , RootPitchChanging),
-	TPA( PitchChanging, TableFixed,    SlotChanging, PolicySyncOff, RootPitchFixed),
-	TPA( PitchChanging, TableFixed,    SlotChanging, PolicySyncOff, RootPitchChanging),
-	TPA( PitchChanging, TableFixed,    SlotChanging, PolicySyncOn , RootPitchFixed),
-	TPA( PitchChanging, TableFixed,    SlotChanging, PolicySyncOn , RootPitchChanging),
-	TPA( PitchChanging, TableChanging, SlotFixed,    PolicySyncOff, RootPitchFixed),
-	TPA( PitchChanging, TableChanging, SlotFixed,    PolicySyncOff, RootPitchChanging),
-	TPA( PitchChanging, TableChanging, SlotFixed,    PolicySyncOn , RootPitchFixed),
-	TPA( PitchChanging, TableChanging, SlotFixed,    PolicySyncOn , RootPitchChanging),
-	TPA( PitchChanging, TableChanging, SlotChanging, PolicySyncOff, RootPitchFixed),
-	TPA( PitchChanging, TableChanging, SlotChanging, PolicySyncOff, RootPitchChanging),
-	TPA( PitchChanging, TableChanging, SlotChanging, PolicySyncOn , RootPitchFixed),
-	TPA( PitchChanging, TableChanging, SlotChanging, PolicySyncOn , RootPitchChanging),
+	TPA( PitchFixed,    SlotFixed,    PolicySyncOff, RootPitchFixed),
+	TPA( PitchFixed,    SlotFixed,    PolicySyncOff, RootPitchChanging),
+	TPA( PitchFixed,    SlotFixed,    PolicySyncOn , RootPitchFixed),
+	TPA( PitchFixed,    SlotFixed,    PolicySyncOn , RootPitchChanging),
+	TPA( PitchFixed,    SlotChanging, PolicySyncOff, RootPitchFixed),
+	TPA( PitchFixed,    SlotChanging, PolicySyncOff, RootPitchChanging),
+	TPA( PitchFixed,    SlotChanging, PolicySyncOn , RootPitchFixed),
+	TPA( PitchFixed,    SlotChanging, PolicySyncOn , RootPitchChanging),
+	TPA( PitchChanging, SlotFixed,    PolicySyncOff, RootPitchFixed),
+	TPA( PitchChanging, SlotFixed,    PolicySyncOff, RootPitchChanging),
+	TPA( PitchChanging, SlotFixed,    PolicySyncOn , RootPitchFixed),
+	TPA( PitchChanging, SlotFixed,    PolicySyncOn , RootPitchChanging),
+	TPA( PitchChanging, SlotChanging, PolicySyncOff, RootPitchFixed),
+	TPA( PitchChanging, SlotChanging, PolicySyncOff, RootPitchChanging),
+	TPA( PitchChanging, SlotChanging, PolicySyncOn , RootPitchFixed),
+	TPA( PitchChanging, SlotChanging, PolicySyncOn , RootPitchChanging),
 };
 
 void WavetableOsc::onSetPins(void)
@@ -221,7 +203,7 @@ void WavetableOsc::onSetPins(void)
 			}
 		}
 
-		mipMapPolicy.initialize( WaveTable::FactoryWavetableCount, WaveTable::WavetableFileSampleCount, slotCount, true );
+		mipMapPolicy.initialize(WaveTable::WavetableFileSampleCount, slotCount, true );
 
 		float increment = ComputeIncrement2( pitchTable, pinPitch );
 		calcMipLevel( mipMapPolicy, increment, mipLevelA, countMaskA);
@@ -275,7 +257,7 @@ void WavetableOsc::onSetPins(void)
 	{
 		// If Pitch streaming, root-pitch also needs updating.
 		bool rootPitchStreaming = pinPitch.isStreaming() || pinEffect.isStreaming();
-		setSubProcess(static_cast <SubProcessPtr> ( ProcessSelection[ pinPitch.isStreaming() ][ pinTable.isStreaming() ][ pinSlot.isStreaming() ][ pinSync.isStreaming() ][rootPitchStreaming] ));
+		setSubProcess(static_cast <SubProcessPtr> ( ProcessSelection[ pinPitch.isStreaming() ][ pinSlot.isStreaming() ][ pinSync.isStreaming() ][rootPitchStreaming] ));
 
 		if( pinMode == 0 )  // Auto-Sync
 		{
@@ -301,22 +283,18 @@ void WavetableOsc::updateGuiWaveform(void)
 		int mipwavesize = mipMapPolicy.GetWaveSize(mipLevel);
 		assert( GuiWaveSize == mipwavesize / 2 );
 		float wave[GuiWaveSize];
-        float modulationTable;
         float modulationSlot;
 
-        modulationTable = currentGrain_table;
-
-		int table_floor, slot1_floor;
-		float slot_frac,table_frac;
-		TableChanging::Calculate( currentGrain_table, TableCount, table_floor, table_frac );
+		int slot1_floor;
+		float slot_frac;
 
 		modulationSlot = currentGrain_slot;
     	SlotChanging::Calculate( currentGrain_slot, slotCount, slot1_floor, slot_frac );
 
-		float* wave1a = waveData_ + mipMapPolicy.getSlotOffset(table_floor, slot1_floor, mipLevel);
-		float* wave1b = waveData_ + mipMapPolicy.getSlotOffset(table_floor, slot1_floor + 1, mipLevel);
-		float* wave2a = waveData_ + mipMapPolicy.getSlotOffset(table_floor + 1, slot1_floor, mipLevel);
-		float* wave2b = waveData_ + mipMapPolicy.getSlotOffset(table_floor + 1, slot1_floor + 1, mipLevel);
+		float* wave1a = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor, mipLevel);
+		float* wave1b = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor + 1, mipLevel);
+		float* wave2a = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor, mipLevel);
+		float* wave2b = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor + 1, mipLevel);
 
 		wave[0] = 0.0f; // due to phase alignment.
 
@@ -331,9 +309,8 @@ void WavetableOsc::updateGuiWaveform(void)
 			// Calc sample interpolating between slots. Wave2
 			float p3 = wave2a[c];
 			float p4 = wave2b[c];
-			float output2 = p3 + slot_frac * (p4 - p3);
+			float grainSample = p3 + slot_frac * (p4 - p3);
 
-			float grainSample = output1 + table_frac * (output2 - output1);
 			wave[c] = grainSample;
 		}
 #endif
