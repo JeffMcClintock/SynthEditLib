@@ -60,3 +60,19 @@ add_subdirectory(Waveshapers)
 
 # GMPI plugins
 add_subdirectory(SubControls4)
+
+# Aggregate target so app bundles can depend on "all factory modules built"
+# before their POST_BUILD copy fires. Without this, parallel generators (Xcode)
+# race the copy against module link jobs, leaving empty bundles that fail
+# codesign with "bundle format unrecognized, invalid, or unsuitable".
+add_custom_target(factory_modules)
+get_property(_modules_subdirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY SUBDIRECTORIES)
+foreach(_subdir IN LISTS _modules_subdirs)
+    get_property(_targets DIRECTORY ${_subdir} PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(_t IN LISTS _targets)
+        get_target_property(_type ${_t} TYPE)
+        if(_type STREQUAL "MODULE_LIBRARY")
+            add_dependencies(factory_modules ${_t})
+        endif()
+    endforeach()
+endforeach()
