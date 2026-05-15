@@ -735,12 +735,12 @@ void DspPatchManager::ConnectHostControl2(HostControls hostConnect, UPlug* toPlu
 	// Note: This will also catch HC_OVERSAMPLING_RATE and HC_OVERSAMPLING_FILTER. Which is hopefully harmless.
 	dsp_patch_parameter_base* parameter{};
 	ug_container* container{};
-	if (AttachesToVoiceContainer(hostConnect)) // poly host controls
+	if (AttachesToVoiceContainer(hostConnect)) // performance host controls
 	{
 		container = toPlug->UG->parent_container->getVoiceControlContainer();
 		parameter = GetParameter(container, hostConnect);
 	}
-	else if (AttachesToParentContainer((HostControls)hostConnect)) // oversampling only
+	else if (AttachesToParentContainer(hostConnect)) // oversampling only
 	{
 		// for oversampling, we can't use the modules parent-container handle to identify the parameter, this only works when oversampling is 'on'
 		// otherwise the 'toPlug->UG->parent_container' is some parent OF the oversampler container. i.e. the container was simply expanded into it's parent/s
