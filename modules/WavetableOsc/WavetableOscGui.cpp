@@ -82,13 +82,30 @@ void WavetableOscGui::updateCurrentWavetable()
 
 		std::wstring wCurWaveFile = JmUnicodeConversions::Utf8ToWstring(curWaveFile_);
 
-		bool success = false;
-		for( int s = 0 ; s < 3 ; ++s )
+		auto isAbsolutePath = [](const std::wstring& p) -> bool
 		{
-			std::wstring filePath = searchPaths[s] + wCurWaveFile;
-			if( true == (success = currentWavetable()->LoadFile3( filePath.c_str(), true )) )
+			if (p.empty()) return false;
+			if (p[0] == L'/' || p[0] == L'\\') return true;
+			if (p.size() >= 2 && p[1] == L':') return true; // Windows drive letter.
+			return false;
+		};
+
+		bool success = false;
+
+		if (isAbsolutePath(wCurWaveFile))
+		{
+			success = currentWavetable()->LoadFile3(wCurWaveFile.c_str(), true);
+		}
+
+		if (!success)
+		{
+			for( int s = 0 ; s < 3 ; ++s )
 			{
-				break;
+				std::wstring filePath = searchPaths[s] + wCurWaveFile;
+				if( true == (success = currentWavetable()->LoadFile3( filePath.c_str(), true )) )
+				{
+					break;
+				}
 			}
 		}
 
@@ -143,8 +160,7 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 	if(!waveTable)
 		return ReturnCode::Ok;
 
-	// Wavetable 3D display (when not animating).
-	if( idleTimer < 0 )
+	// Wavetable 3D display - always visible so the user can see the loaded shape even with no audio running.
 	{
 		auto penLines = g.createSolidColorBrush(Color(0.0f, 155.0f/255.0f, 0.0f));
 		auto penHighlightedFirst = g.createSolidColorBrush(Color(1.0f, 50.0f/255.0f, 50.0f/255.0f));

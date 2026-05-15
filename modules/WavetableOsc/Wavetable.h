@@ -134,7 +134,13 @@ struct WaveTable
         waveSize = numWaveSamples;
     }
 
-	static bool LoadWaveFile( const _TCHAR* filename, std::vector<float> &returnSamples, int& returnSampleRate );
+	struct SerumMetadata
+	{
+		int frameSize = 0;           // 0 = no clm chunk found; otherwise cycle size declared by the file (Serum/Vital convention).
+		int interpolationMode = 0;   // 0 none, 1 linear crossfade, 2-4 spectral.
+	};
+
+	static bool LoadWaveFile( const _TCHAR* filename, std::vector<float> &returnSamples, int& returnSampleRate, SerumMetadata* returnSerumMeta = nullptr );
 	static void NormalizeWave( std::vector<float>& wave );
 	static float ExtractPeriod( const std::vector<float>& sample, int autocorrelateto, int slot );
 	static void SliceAndDiceGetSlicePositions( const std::vector<float>& Wavefile, int slices, std::vector<int>& returnSlicePositions );

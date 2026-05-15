@@ -77,21 +77,39 @@ void WavetableLoader::setWaveFileName(float* waveData, int osc, int wavetable, s
 		WaveTable* waveTableFile = (WaveTable*)&WavetableStorage;
 		waveTableFile->SetSize(WaveTable::WavetableFileSlotCount, WaveTable::WavetableFileSampleCount);
 
+		// If the pin holds an absolute path, try it directly first - don't prepend search folders.
+		auto isAbsolutePath = [](const std::wstring& p) -> bool
+		{
+			if (p.empty()) return false;
+			if (p[0] == L'/' || p[0] == L'\\') return true;
+			if (p.size() >= 2 && p[1] == L':') return true; // Windows drive letter, e.g. "C:".
+			return false;
+		};
+
 		const wchar_t* searchPaths[] = { FactoryWavetableFolder_.c_str(), UserWavetableFolder_.c_str(), L"/Codex/" };
 
 		// Load Wavetable off disk. Factory samples begin like "F99 whatever.wav".
 		bool success = false;
-		for(int s = 0; s < 3; ++s)
-		{
-			std::wstring filePath = searchPaths[s];
-			if(s == 0)
-				filePath += resourceWaveFilename;
-			else
-				filePath += filename;
 
-			if(true == (success = waveTableFile->LoadFile3(ToPlatformString(filePath).c_str(), true)))
+		if (isAbsolutePath(filename))
+		{
+			success = waveTableFile->LoadFile3(ToPlatformString(filename).c_str(), true);
+		}
+
+		if (!success)
+		{
+			for(int s = 0; s < 3; ++s)
 			{
-				break;
+				std::wstring filePath = searchPaths[s];
+				if(s == 0)
+					filePath += resourceWaveFilename;
+				else
+					filePath += filename;
+
+				if(true == (success = waveTableFile->LoadFile3(ToPlatformString(filePath).c_str(), true)))
+				{
+					break;
+				}
 			}
 		}
 

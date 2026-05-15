@@ -1389,7 +1389,45 @@ bool WaveTable::LoadFile3( const _TCHAR* filename, bool fileIsWavetable, int wav
     return LoadFile2(0, filename, fileIsWavetable, wavetableNumber, true );
 }
 
-bool WaveTable::LoadWaveFile( const _TCHAR* filename, std::vector<float> &returnSamples, int& returnSampleRate )
+// Anti-aliased downsample from srcSize → destSize via real-FFT.
+// Both sizes must be powers of two; destSize must divide srcSize (i.e. integer ratio).
+// Strategy: forward FFT N samples → discard bins above destSize/2 → inverse FFT M samples,
+// then rescale so an input sinusoid of amplitude A becomes an output of the same amplitude A.
+static void downsampleFrameFFT( const float* src, int srcSize, float* dest, int destSize )
+{
+    if( destSize == srcSize )
+    {
+        memcpy( dest, src, sizeof(float) * destSize );
+        return;
+    }
+
+    std::vector<float> work( srcSize );
+    memcpy( work.data(), src, sizeof(float) * srcSize );
+    realft( work.data() - 1, srcSize, 1 );
+
+    // realft packing after forward transform (1-indexed convention adjusted):
+    //   work[0] = DC (real), work[1] = source Nyquist (real, packed in imag-of-DC slot),
+    //   for k = 1 .. srcSize/2 - 1 :  work[2k] = Re(bin_k), work[2k+1] = Im(bin_k).
+    std::vector<float> destFreq( destSize, 0.0f );
+    destFreq[0] = work[0];                              // DC.
+    destFreq[1] = work[ destSize ];                     // destination Nyquist = real part of source bin destSize/2.
+    for( int k = 1; k < destSize / 2; ++k )
+    {
+        destFreq[2 * k]     = work[2 * k];
+        destFreq[2 * k + 1] = work[2 * k + 1];
+    }
+
+    realft( destFreq.data() - 1, destSize, -1 );
+
+    // realft inverse output is (M/2) * x. Bins copied verbatim came from an N-sample forward FFT
+    // (where amplitude A → bin value A*N/2), so an M-sample interpretation gives x * N/M.
+    // Net: result = (N/2) * x. Compensate by 2/N.
+    const float scale = 2.0f / (float) srcSize;
+    for( int i = 0; i < destSize; ++i )
+        dest[i] = destFreq[i] * scale;
+}
+
+bool WaveTable::LoadWaveFile( const _TCHAR* filename, std::vector<float> &returnSamples, int& returnSampleRate, SerumMetadata* returnSerumMeta )
 {
 	ifstream myfile;
 	myfile.open( filename, ios_base::in | ios_base::binary );
@@ -1419,29 +1457,65 @@ bool WaveTable::LoadWaveFile( const _TCHAR* filename, std::vector<float> &return
 
             while(!myfile.eof())
             {
+                int consumed = 0; // bytes of chunk payload we've taken from the stream.
+
    			    if( chunkName[0] == 'f' && chunkName[1] == 'm' && chunkName[2] == 't' && chunkName[3] == ' ' ) //  "fmt "
                 {
-			        myfile.read( (char*) &waveheader, ( std::min )( (size_t) chunkLength, sizeof( waveheader ) ) );
+                    size_t toRead = ( std::min )( (size_t) chunkLength, sizeof( waveheader ) );
+                    myfile.read( (char*) &waveheader, toRead );
+                    consumed = (int) toRead;
 
-			        if( chunkLength > sizeof( waveheader ) )
+			        if( chunkLength > (int) sizeof( waveheader ) )
 			        {
 				        myfile.ignore( chunkLength - sizeof( waveheader ) );
+                        consumed = chunkLength;
 			        }
+                }
+                else if( chunkName[0] == 'd' && chunkName[1] == 'a' && chunkName[2] == 't' && chunkName[3] == 'a' ) //  "data"
+                {
+                    wave_data_bytes = chunkLength;
+                    wave_data = new char[wave_data_bytes];
+                    myfile.read( wave_data, wave_data_bytes );
+                    consumed = chunkLength;
+                }
+                else if( returnSerumMeta != nullptr
+                         && chunkName[0] == 'c' && chunkName[1] == 'l' && chunkName[2] == 'm' && chunkName[3] == ' ' ) // "clm " - Serum wavetable metadata.
+                {
+                    // Payload is ASCII: "<!>AAAA BC000000 <vendor>". AAAA = 4-digit frame size, B = interp mode, C = factory flag.
+                    std::vector<char> clmText( chunkLength );
+                    if( chunkLength > 0 )
+                        myfile.read( clmText.data(), chunkLength );
+                    consumed = chunkLength;
+
+                    if( chunkLength >= 7 && clmText[0] == '<' && clmText[1] == '!' && clmText[2] == '>' )
+                    {
+                        int frameSize = 0;
+                        for( int i = 0; i < 4; ++i )
+                        {
+                            char c = clmText[3 + i];
+                            if( c >= '0' && c <= '9' )
+                                frameSize = frameSize * 10 + ( c - '0' );
+                        }
+                        returnSerumMeta->frameSize = frameSize;
+
+                        if( chunkLength >= 9 )
+                        {
+                            char interp = clmText[8];
+                            if( interp >= '0' && interp <= '9' )
+                                returnSerumMeta->interpolationMode = interp - '0';
+                        }
+                    }
                 }
                 else
                 {
-   			        if( chunkName[0] == 'd' && chunkName[1] == 'a' && chunkName[2] == 't' && chunkName[3] == 'a' ) //  "data"
-                    {
-			            wave_data_bytes = chunkLength;
-			            wave_data = new char[wave_data_bytes];
-			            myfile.read( wave_data, wave_data_bytes );
-                    }
-                    else
-                    {
-			            // Next chunk.
-				        myfile.ignore( chunkLength );
-                    }
+                    // Next chunk.
+                    myfile.ignore( chunkLength );
+                    consumed = chunkLength;
                 }
+
+                // RIFF: chunks are word-aligned. If the payload length was odd, skip one pad byte.
+                if( consumed & 1 )
+                    myfile.ignore( 1 );
 
 		        myfile.read( (char*) &chunkName, 4 );
 		        myfile.read( (char*) &chunkLength, 4 );
@@ -1583,19 +1657,75 @@ bool WaveTable::LoadFile2(int selectedFromSlot, const _TCHAR* filename, bool fil
 
 	int sampleRate;
 	vector<float> wave;
+	SerumMetadata serumMeta;
 
-	if( false == LoadWaveFile( filename, wave, sampleRate ) || wave.empty() )
+	if( false == LoadWaveFile( filename, wave, sampleRate, &serumMeta ) || wave.empty() )
     {
         return false;
     }
 
-	int SampleCount = wave.size();
+	int SampleCount = (int)wave.size();
 
 	if( entireTable )
 	{
 		// If imported file happens to be exactly the right size to fill the table. We'll assume it's already sliced and diced.
 		int FullTableSamples = slotCount * waveSize;
-		if( SampleCount == FullTableSamples && fileIsWavetable )
+
+		// Serum/Vital format: file declares its own cycle size in a 'clm ' chunk. Slice deterministically rather than pitch-detecting.
+		if( fileIsWavetable && serumMeta.frameSize > 0 && serumMeta.frameSize <= SampleCount )
+		{
+			const int srcFrameSize = serumMeta.frameSize;
+			int framesInFile = SampleCount / srcFrameSize;
+			if( framesInFile < 1 ) framesInFile = 1;
+
+			float* slotsBase = Wavedata + waveTablenumber * waveSize * slotCount;
+
+			for( int destSlot = 0; destSlot < slotCount; ++destSlot )
+			{
+				// Map destination slot index → source frame. Even distribution if file has >= slotCount frames; clamp otherwise.
+				int srcFrame;
+				if( framesInFile >= slotCount )
+				{
+					srcFrame = ( destSlot * ( framesInFile - 1 ) ) / ( slotCount - 1 );
+				}
+				else if( framesInFile == 1 )
+				{
+					srcFrame = 0;
+				}
+				else
+				{
+					srcFrame = ( destSlot * ( framesInFile - 1 ) + ( slotCount - 1 ) / 2 ) / ( slotCount - 1 );
+					if( srcFrame > framesInFile - 1 ) srcFrame = framesInFile - 1;
+				}
+
+				const float* srcFrameStart = wave.data() + srcFrame * srcFrameSize;
+				float* destSlotStart = slotsBase + destSlot * waveSize;
+
+				if( srcFrameSize == waveSize )
+				{
+					memcpy( destSlotStart, srcFrameStart, sizeof(float) * waveSize );
+				}
+				else if( srcFrameSize > waveSize
+				         && ( srcFrameSize & ( srcFrameSize - 1 ) ) == 0
+				         && ( waveSize     & ( waveSize     - 1 ) ) == 0 )
+				{
+					downsampleFrameFFT( srcFrameStart, srcFrameSize, destSlotStart, waveSize );
+				}
+				else
+				{
+					// Linear resample fallback (small frame sizes or non-power-of-two ratios).
+					for( int i = 0; i < waveSize; ++i )
+					{
+						float pos = (float) i * (float) srcFrameSize / (float) waveSize;
+						int i0 = (int) pos;
+						float frac = pos - (float) i0;
+						int i1 = ( i0 + 1 < srcFrameSize ) ? i0 + 1 : 0;
+						destSlotStart[i] = srcFrameStart[i0] + frac * ( srcFrameStart[i1] - srcFrameStart[i0] );
+					}
+				}
+			}
+		}
+		else if( SampleCount == FullTableSamples && fileIsWavetable )
 		{
 			float* dest = Wavedata + waveTablenumber * waveSize * slotCount;
 			for( int i = 0 ; i < SampleCount ; ++i )
