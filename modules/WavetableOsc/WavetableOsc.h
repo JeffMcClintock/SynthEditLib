@@ -91,7 +91,7 @@ public:
 };
 
 
-class RootPitchChanging
+class PsolaChanging
 {
 public:
 	inline static void CalcInitialPsola(const float* pitchTable, float Increment, float PsolaAmmount, float& grainIncrement)
@@ -123,12 +123,12 @@ public:
 	enum { Active = false };
 };
 
-class RootPitchFixed
+class PsolaFixed
 {
 public:
 	inline static void CalcInitialPsola( const float* pitchTable, float Increment,  float PsolaRootPitch, float& grainIncrement )
 	{
-		return RootPitchChanging::CalculatePsola(pitchTable, Increment, PsolaRootPitch, grainIncrement);
+		return PsolaChanging::CalculatePsola(pitchTable, Increment, PsolaRootPitch, grainIncrement);
 	};
 	inline static void CalculatePsola( const float* pitchTable, float Increment,  float PsolaRootPitch, float& grainIncrement )
 	{

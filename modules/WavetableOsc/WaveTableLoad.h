@@ -12,8 +12,8 @@ public:
 	WavetableLoader();
 
 	void InitBuffer(WaveTable* waveTableHeader);
-	void setWaveFileName(float* dest, int osc, int wavetable, std::wstring& waveFilename);
-    void setWaveFileName2(float* waveData, int osc, int wavetable, std::wstring& filename, WaveTable* sourceWaveTable);
+	void setWaveFileName(float* dest, int osc, std::wstring& waveFilename);
+    void setWaveFileName2(float* waveData, int osc, std::wstring& filename, WaveTable* sourceWaveTable);
 	int WavebankMemoryRequired()
 	{
 		return mipInfo.TotalMemoryRequired();

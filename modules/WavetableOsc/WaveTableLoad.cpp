@@ -58,7 +58,7 @@ void WavetableLoader::InitBuffer(WaveTable* waveTableHeader)
 }
 
 // Load wavetable off disk.
-void WavetableLoader::setWaveFileName(float* waveData, int osc, int wavetable, std::wstring& filename)
+void WavetableLoader::setWaveFileName(float* waveData, int osc, std::wstring& filename)
 {
 	if(loadedWavetables[osc] != filename)
 	{
@@ -125,7 +125,7 @@ void WavetableLoader::setWaveFileName(float* waveData, int osc, int wavetable, s
 }
 
 // Load wavetable from memory.
-void WavetableLoader::setWaveFileName2(float* waveData, int osc, int wavetable, std::wstring& filename, WaveTable* sourceWaveTable)
+void WavetableLoader::setWaveFileName2(float* waveData, int osc, std::wstring& filename, WaveTable* sourceWaveTable)
 {
 	if(loadedWavetables[osc] != filename)
 	{

@@ -1,6 +1,5 @@
 #include "./WavetableOsc.h"
 #include <sstream>
-#include "../shared/it_enum_list.h"
 #include "../shared/unicode_conversion.h"
 #include "../shared/platform_string.h"
 #include "Extensions/EmbeddedFile.h"
@@ -135,14 +134,14 @@ typedef void (WavetableOsc::* WavetableOscProcess_ptr)(int sampleFrames);
 
 const WavetableOscProcess_ptr ProcessSelection[2][2][2] =
 {
-	TPA( PitchFixed,    SlotFixed,    RootPitchFixed),
-	TPA( PitchFixed,    SlotFixed,    RootPitchChanging),
-	TPA( PitchFixed,    SlotChanging, RootPitchFixed),
-	TPA( PitchFixed,    SlotChanging, RootPitchChanging),
-	TPA( PitchChanging, SlotFixed,    RootPitchFixed),
-	TPA( PitchChanging, SlotFixed,    RootPitchChanging),
-	TPA( PitchChanging, SlotChanging, RootPitchFixed),
-	TPA( PitchChanging, SlotChanging, RootPitchChanging),
+	TPA( PitchFixed,    SlotFixed,    PsolaFixed),
+	TPA( PitchFixed,    SlotFixed,    PsolaChanging),
+	TPA( PitchFixed,    SlotChanging, PsolaFixed),
+	TPA( PitchFixed,    SlotChanging, PsolaChanging),
+	TPA( PitchChanging, SlotFixed,    PsolaFixed),
+	TPA( PitchChanging, SlotFixed,    PsolaChanging),
+	TPA( PitchChanging, SlotChanging, PsolaFixed),
+	TPA( PitchChanging, SlotChanging, PsolaChanging),
 };
 
 void WavetableOsc::onSetPins(void)
@@ -162,26 +161,16 @@ void WavetableOsc::onSetPins(void)
 			// search paths (skin/project folder etc.) and gets a chance to register each file
 			// for automatic inclusion in VST export.
 			auto synthEditHost = host.as<synthedit::IEmbeddedFileSupport>();
-
-			std::wstring wPinValue = JmUnicodeConversions::Utf8ToWstring(pinWaveTableFile.getValue());
-			it_enum_list it(wPinValue);
-			int tableNumber = 0;
-			for(it.First(); !it.IsDone() && tableNumber < TableCount; ++it, ++tableNumber)
+			if (synthEditHost)
 			{
-				std::wstring waveFilename = it.CurrentItem()->text;
-
-				if (synthEditHost)
+				const auto utf8Filename = pinWaveTableFile.getValue();
+				ReturnString fullFilename;
+				if (synthEditHost->findResourceUri(utf8Filename.c_str(), &fullFilename) == ReturnCode::Ok)
 				{
-					const auto utf8Filename = JmUnicodeConversions::WStringToUtf8(waveFilename);
-					ReturnString fullFilename;
-					if (synthEditHost->findResourceUri(utf8Filename.c_str(), &fullFilename) == ReturnCode::Ok)
-					{
-						synthEditHost->registerResourceUri(fullFilename.c_str());
-						waveFilename = JmUnicodeConversions::Utf8ToWstring(fullFilename.c_str());
-					}
+					synthEditHost->registerResourceUri(fullFilename.c_str());
+					auto fullFilenameW = JmUnicodeConversions::Utf8ToWstring(fullFilename.c_str());
+					waveLoader_.setWaveFileName( waveData_, oscNumber, fullFilenameW);
 				}
-
-				waveLoader_.setWaveFileName( waveData_, oscNumber, tableNumber, waveFilename);
 			}
 		}
 
