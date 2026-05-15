@@ -1,52 +1,12 @@
 #include "WaveTableLoad.h"
-#include "../shared/unicode_conversion.h"
-
-#ifdef _WIN32
-#include "windows.h"
-#include "Shlobj.h"
-#else
-#include <pwd.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#endif
+#include "../shared/platform_string.h"
 
 #define FIX_ZERO_CROSSINGS
 #undef min
 #undef max
 
-std::wstring WavetableLoader::UserWavetableFolder_;
-std::wstring WavetableLoader::FactoryWavetableFolder_;
-
 WavetableLoader::WavetableLoader()
 {
-#ifdef _WIN32
-	wchar_t myDocumentsPath[MAX_PATH];
-	SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, myDocumentsPath);
-	std::wstring fn(myDocumentsPath);
-	fn += L"\\Codex\\";
-	UserWavetableFolder_ = fn;
-	FactoryWavetableFolder_ = fn;
-#else
-	// macOS/Linux: Use home directory
-	const char* homeDir = getenv("HOME");
-	if (!homeDir) {
-		struct passwd* pwd = getpwuid(getuid());
-		if (pwd) {
-			homeDir = pwd->pw_dir;
-		}
-	}
-
-	if (homeDir) {
-		std::wstring fn = JmUnicodeConversions::Utf8ToWstring(homeDir);
-		fn += L"/Documents/Codex/";
-		UserWavetableFolder_ = fn;
-		FactoryWavetableFolder_ = fn;
-	} else {
-		UserWavetableFolder_ = L"/tmp/Codex/";
-		FactoryWavetableFolder_ = L"/tmp/Codex/";
-	}
-#endif
-
 	// Mip-maps require extra memory. Calculate.
 	int newSlotCount = WaveTable::MorphedSlotRatio * (WaveTable::WavetableFileSlotCount - 1) + 1; // add extra slots in-between.
 	mipInfo.initialize(WaveTable::WavetableFileSampleCount, newSlotCount, true);
@@ -57,7 +17,8 @@ void WavetableLoader::InitBuffer(WaveTable* waveTableHeader)
 	waveTableHeader->SetSize(mipInfo.getSlotCount(), WaveTable::WavetableFileSampleCount);
 }
 
-// Load wavetable off disk.
+// Load wavetable off disk. The caller is expected to have already resolved 'filename' to a full
+// path via synthedit::IEmbeddedFileSupport::findResourceUri.
 void WavetableLoader::setWaveFileName(float* waveData, int osc, std::wstring& filename)
 {
 	if(loadedWavetables[osc] != filename)
@@ -68,50 +29,14 @@ void WavetableLoader::setWaveFileName(float* waveData, int osc, std::wstring& fi
 		mipInfo2.initialize(WaveTable::WavetableFileSampleCount, newSlotCount, true);
 
 		loadedWavetables[osc] = filename;
-		std::wstring resourceWaveFilename = filename;
 
-		// Copy Wavetable file into buffer.
 		// Create temporary storage for wavetable file to load into.
 		char WavetableStorage[sizeof(WaveTable)+(WaveTable::WavetableFileSampleCount * WaveTable::WavetableFileSlotCount - 1) * sizeof(float)];
 
 		WaveTable* waveTableFile = (WaveTable*)&WavetableStorage;
 		waveTableFile->SetSize(WaveTable::WavetableFileSlotCount, WaveTable::WavetableFileSampleCount);
 
-		// If the pin holds an absolute path, try it directly first - don't prepend search folders.
-		auto isAbsolutePath = [](const std::wstring& p) -> bool
-		{
-			if (p.empty()) return false;
-			if (p[0] == L'/' || p[0] == L'\\') return true;
-			if (p.size() >= 2 && p[1] == L':') return true; // Windows drive letter, e.g. "C:".
-			return false;
-		};
-
-		const wchar_t* searchPaths[] = { FactoryWavetableFolder_.c_str(), UserWavetableFolder_.c_str(), L"/Codex/" };
-
-		// Load Wavetable off disk. Factory samples begin like "F99 whatever.wav".
-		bool success = false;
-
-		if (isAbsolutePath(filename))
-		{
-			success = waveTableFile->LoadFile3(ToPlatformString(filename).c_str(), true);
-		}
-
-		if (!success)
-		{
-			for(int s = 0; s < 3; ++s)
-			{
-				std::wstring filePath = searchPaths[s];
-				if(s == 0)
-					filePath += resourceWaveFilename;
-				else
-					filePath += filename;
-
-				if(true == (success = waveTableFile->LoadFile3(ToPlatformString(filePath).c_str(), true)))
-				{
-					break;
-				}
-			}
-		}
+		const bool success = waveTableFile->LoadFile3(ToPlatformString(filename).c_str(), true);
 
 		if(!success)
 		{
