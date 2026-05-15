@@ -22,19 +22,13 @@ bool registeredGui = gmpi::Register<WavetableOscGui>::withId("SE Wavetable Displ
 }
 
 WavetableOscGui::WavetableOscGui()
+	: currentWavetableMem_(WaveTable::CalcMemoryRequired(WaveTable::WavetableFileSlotCount, WaveTable::WavetableFileSampleCount) / sizeof(float))
 {
 	pinWaveFiles.onUpdate = [this](editor::PinBase*) { updateCurrentWavetable(); };
 	pinSlot.onUpdate      = [this](editor::PinBase*) { redraw(); };
 
-	currentWavetableMem_ = new char[WaveTable::CalcMemoryRequired(WaveTable::WavetableFileSlotCount,WaveTable::WavetableFileSampleCount)];
-
 	currentWavetable()->slotCount = 0;
 	currentWavetable()->waveSize = 0;
-}
-
-WavetableOscGui::~WavetableOscGui()
-{
-	delete [] currentWavetableMem_;
 }
 
 // Load the current wavetable to the GUI, for display purposes only.
