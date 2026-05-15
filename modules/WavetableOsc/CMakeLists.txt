@@ -19,8 +19,8 @@ synthedit_plugin(
 	  WavetableOscGui.cpp
 	  Wavetable.h
 	  Wavetable.cpp
-	  WaveTableLoad.h
-	  WaveTableLoad.cpp
+	  WavetableCache.h
+	  WavetableCache.cpp
 	  WavetableMipmapPolicy.h
 	  ${SDK_FILES}
 )

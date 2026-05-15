@@ -2,7 +2,6 @@
 #include "WavetableOsc.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include "../shared/platform_string.h"
 #include "Extensions/EmbeddedFile.h"
 
 using namespace gmpi;
@@ -14,46 +13,28 @@ bool registeredGui = gmpi::Register<WavetableOscGui>::withId("SE Wavetable Displ
 }
 
 WavetableOscGui::WavetableOscGui()
-	: currentWavetableMem_(WaveTable::CalcMemoryRequired(WaveTable::WavetableFileSlotCount, WaveTable::WavetableFileSampleCount) / sizeof(float))
 {
 	pinWaveFiles.onUpdate = [this](editor::PinBase*) { updateCurrentWavetable(); };
 	pinSlot.onUpdate      = [this](editor::PinBase*) { redraw(); };
-
-	currentWavetable()->slotCount = 0;
-	currentWavetable()->waveSize = 0;
 }
 
-// Load the current wavetable to the GUI, for display purposes only.
+// Resolve the filename and pull a shared baked wavetable from the process-wide cache.
 void WavetableOscGui::updateCurrentWavetable()
 {
 	string curWaveFile = pinWaveFiles.value;
 	if( curWaveFile_ != curWaveFile )
 	{
 		curWaveFile_ = curWaveFile;
+		currentWavetable_.reset();
 
-		currentWavetable()->slotCount = WaveTable::WavetableFileSlotCount;
-		currentWavetable()->waveSize = WaveTable::WavetableFileSampleCount;
-
-		// Resolve the filename via SynthEdit's embedded-file support: the host applies its own
-		// search path (skin folder, project folder, etc.) and gets a chance to register the file
-		// for automatic inclusion when the patch is exported as a VST.
-		bool success = false;
 		if (auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>())
 		{
 			ReturnString fullFilename;
 			if (synthEdit->findResourceUri(curWaveFile_.c_str(), &fullFilename) == ReturnCode::Ok)
 			{
 				synthEdit->registerResourceUri(fullFilename.c_str());
-
-				const auto platformPath = ToPlatformString(fullFilename.c_str());
-				success = currentWavetable()->LoadFile3(platformPath.c_str(), true);
+				currentWavetable_ = wavetableCache().getOrLoad(fullFilename.c_str());
 			}
-		}
-
-		if (!success)
-		{
-			currentWavetable()->slotCount = 0;
-			currentWavetable()->waveSize = 0;
 		}
 
 		redraw();

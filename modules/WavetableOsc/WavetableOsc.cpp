@@ -1,13 +1,8 @@
 #include "./WavetableOsc.h"
-#include <sstream>
-#include "../shared/unicode_conversion.h"
-#include "../shared/platform_string.h"
 #include "Extensions/EmbeddedFile.h"
 
 #undef min
 #undef max
-
-#define OSC1_HANDLE 295518659
 
 SE_DECLARE_INIT_STATIC_FILE(WavetableOsc);
 
@@ -111,19 +106,8 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 
 	mostRecentVoice_ = this;
 
-	// Wavetable memory - shared across instances, one per oscillator.
-	int32_t handle = host->getHandle();
-	int oscNumber = handle != OSC1_HANDLE;
-
-	wavetableDataShared_[oscNumber] = SharedObjectManager<WavetableData>::getOrCreateSharedMemory(
-		-1.0f, oscNumber,
-		[&](float) {
-			auto wt = std::make_shared<WavetableData>();
-			wt->data.resize(waveLoader_.WavebankMemoryRequired() / sizeof(float));
-			wt->header.SetSize(waveLoader_.getMipInfo().getSlotCount(), WaveTable::WavetableFileSampleCount);
-			return wt;
-		});
-	waveData_ = wavetableDataShared_[oscNumber]->data.data();
+	// Wavetable buffer allocation happens lazily in onSetPins, via the
+	// process-wide WavetableCache keyed on the resolved file URI.
 
 	return r;
 }
@@ -149,32 +133,28 @@ void WavetableOsc::onSetPins(void)
 	// Check which pins are updated.
 	if( pinWaveTableFile.isUpdated() )
 	{
-		int32_t h = host->getHandle();
-		int oscNumber = h != OSC1_HANDLE;
-		waveData_ = wavetableDataShared_[oscNumber]->data.data();
+		// Resolve the filename via SynthEdit's embedded-file support, then pull a
+		// shared baked wavetable from the process-wide cache. Two instances loading
+		// the same file share one bake.
+		waveTable_.reset();
+		waveData_ = nullptr;
 
-		// Mip-maps require extra memory. Calculate.
-		slotCount = WaveTable::MorphedSlotRatio * (WaveTable::WavetableFileSlotCount - 1) + 1; // add extra slots in-between.
-
+		if (auto synthEditHost = host.as<synthedit::IEmbeddedFileSupport>())
 		{
-			// Resolve each filename via SynthEdit's embedded-file support: the host handles
-			// search paths (skin/project folder etc.) and gets a chance to register each file
-			// for automatic inclusion in VST export.
-			auto synthEditHost = host.as<synthedit::IEmbeddedFileSupport>();
-			if (synthEditHost)
+			ReturnString fullFilename;
+			if (synthEditHost->findResourceUri(pinWaveTableFile.getValue().c_str(), &fullFilename) == ReturnCode::Ok)
 			{
-				const auto utf8Filename = pinWaveTableFile.getValue();
-				ReturnString fullFilename;
-				if (synthEditHost->findResourceUri(utf8Filename.c_str(), &fullFilename) == ReturnCode::Ok)
-				{
-					synthEditHost->registerResourceUri(fullFilename.c_str());
-					auto fullFilenameW = JmUnicodeConversions::Utf8ToWstring(fullFilename.c_str());
-					waveLoader_.setWaveFileName( waveData_, oscNumber, fullFilenameW);
-				}
+				synthEditHost->registerResourceUri(fullFilename.c_str());
+				waveTable_ = wavetableCache().getOrLoad(fullFilename.c_str());
 			}
 		}
 
-		mipMapPolicy.initialize(WaveTable::WavetableFileSampleCount, slotCount, true );
+		if (waveTable_)
+		{
+			waveData_  = waveTable_->baked();
+			mipMapPolicy = waveTable_->mipInfo;
+			slotCount  = mipMapPolicy.getSlotCount();
+		}
 
 		float increment = ComputeIncrement2( pitchTable, pinPitch );
 		calcMipLevel( mipMapPolicy, increment, mipLevelA, countMaskA);

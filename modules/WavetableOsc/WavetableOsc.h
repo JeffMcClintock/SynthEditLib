@@ -7,7 +7,7 @@
 #include <vector>
 #include <math.h>
 #include <memory>
-#include "WaveTableLoad.h"
+#include "WavetableCache.h"
 #include "../shared/SharedObject.h"
 
 #undef min
@@ -263,17 +263,18 @@ private:
 	float *hanning{};
 	static const int HanningSize = 256;
 	static const int TableCount = 64;
+
+	// Shared baked wavetable - process-wide cache keyed by full file URI.
+	// `waveData_` is the raw float* into bakedStorage, cached for the audio loop.
+	std::shared_ptr<CachedWavetable> waveTable_;
 	float* waveData_{};
 
-	// Shared memory (replaces allocateSharedMemory)
+	// Shared per-sample-rate / per-format scratch tables.
 	struct PitchTableData { std::vector<float> data; };
 	struct HanningData { std::vector<float> data; };
-	struct WavetableData { std::vector<float> data; WaveTable header; };
-	struct CurrentVoiceData { WavetableOsc* voice{}; };
 
 	std::shared_ptr<PitchTableData> pitchTableShared_;
 	std::shared_ptr<HanningData> hanningShared_;
-	std::shared_ptr<WavetableData> wavetableDataShared_[NUM_WAVETABLE_OSCS];
 	inline static WavetableOsc* mostRecentVoice_{};
 
 public:
@@ -481,8 +482,6 @@ private:
 	unsigned int countMaskA = 0;
 	unsigned int countMaskB;
 	bool previousActiveState = false;
-
-	WavetableLoader waveLoader_;
 };
 
 #endif

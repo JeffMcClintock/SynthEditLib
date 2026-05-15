@@ -2,14 +2,13 @@
 #define WAVETABLEOSCGUI_H_INCLUDED
 
 #include "helpers/GmpiPluginEditor.h"
-#include "Wavetable.h"
+#include "WavetableCache.h"
 
 class WavetableOscGui : public gmpi::editor::PluginEditor
 {
-	// Backing storage for currentWavetable() - sized to hold a full WaveTable header
-	// plus its trailing flexible-array float Wavedata[]. float alignment is sufficient
-	// since WaveTable's leading int32_t members and the float[] payload are all 4-byte aligned.
-	std::vector<float> currentWavetableMem_;
+	// Shared baked wavetable from the process-wide cache (the DSP holds an identical
+	// shared_ptr; the bake is freed when the last instance lets go).
+	std::shared_ptr<CachedWavetable> currentWavetable_;
 	std::string curWaveFile_;
 
 public:
@@ -20,7 +19,7 @@ public:
 
 	WaveTable* currentWavetable()
 	{
-		return reinterpret_cast<WaveTable*>(currentWavetableMem_.data());
+		return currentWavetable_ ? currentWavetable_->raw() : nullptr;
 	}
 	void updateCurrentWavetable();
 
