@@ -366,7 +366,7 @@ bool isDirectPathHostControl(HostControls hostControlId)
 	case HC_PITCH_BENDER:
 	case HC_HOLD_PEDAL:
 	case HC_CHANNEL_PRESSURE:
-	case HC_PORTAMENTO:
+//	case HC_PORTAMENTO:
 	// BenderRange is the RPN-0 performance value that pairs with the live pitch-bend — how many
 	// semitones a full ±bend spans. Like pitch-bend itself, it needs to reach voice modules
 	// synchronously via the fanout (not through patch_manager) so the user's MIDI stream of
