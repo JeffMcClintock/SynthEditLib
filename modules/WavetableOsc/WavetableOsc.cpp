@@ -16,10 +16,7 @@ namespace {
 bool registered = Register<WavetableOsc>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 <PluginList>
-  <Plugin id="SE Wavetable Osc" name="Wavetable Osc" category="Waveform" graphicsApi="composited" helpUrl="WavetableOsc.htm">
-	<GUI>
-	  <Pin name="WaveTableFile" datatype="string" isFilename="true" metadata="wav" />
-	</GUI>
+  <Plugin id="SE Wavetable Osc" name="Wavetable Osc" category="Waveform" helpUrl="WavetableOsc.htm">
 	<Audio>
 	  <Pin name="Pitch" datatype="float" rate="audio" default="0.5"/>
 	  <Pin name="Slot" datatype="float" rate="audio" />
@@ -28,6 +25,12 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
 	  <Pin name="Formant" datatype="float" rate="audio" metadata="-10,10"/>
 	  <Pin name="WaveTableFile" datatype="string" isFilename="true" metadata="wav" />
 	</Audio>
+  </Plugin>
+  <Plugin id="SE Wavetable Display" name="Wavetable Display" category="Waveform">
+	<GUI>
+	  <Pin name="WaveTableFile" datatype="string" isFilename="true" metadata="wav" />
+	  <Pin name="Slot" datatype="float" />
+	</GUI>
   </Plugin>
 </PluginList>
 )XML");

@@ -18,12 +18,13 @@ using namespace gmpi::drawing;
 using namespace std;
 
 namespace {
-bool registeredGui = gmpi::Register<WavetableOscGui>::withId("SE Wavetable Osc");
+bool registeredGui = gmpi::Register<WavetableOscGui>::withId("SE Wavetable Display");
 }
 
 WavetableOscGui::WavetableOscGui()
 {
 	pinWaveFiles.onUpdate = [this](editor::PinBase*) { updateCurrentWavetable(); };
+	pinSlot.onUpdate      = [this](editor::PinBase*) { redraw(); };
 
 	currentWavetableMem_ = new char[WaveTable::CalcMemoryRequired(WaveTable::WavetableFileSlotCount,WaveTable::WavetableFileSampleCount)];
 
@@ -131,8 +132,9 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 		float backYaxis = vscale * 0.5f;
 		float frontYaxis = height - backYaxis;
 
-		// Slot-highlight pin removed - external animation signal will be wired up in a later step.
-		const int highlightedSlot = -1;
+		// Slot pin (0..1) maps to one of the slotCount file slots; that slot's waveform draws in highlight color.
+		const float slotPos = std::min( 1.0f, std::max( 0.0f, pinSlot.value ) );
+		const int highlightedSlot = (int)( slotPos * (float)( waveTable->slotCount - 1 ) + 0.5f );
 
 		for( int slot = waveTable->slotCount - 1 ; slot >= 0 ; --slot )
 		{
