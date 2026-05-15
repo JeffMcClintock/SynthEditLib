@@ -34,12 +34,6 @@ private:
 	// GUI pins (matching XML GUI pin order for "SE Wavetable Display")
 	gmpi::editor::Pin<std::string> pinWaveFiles;  // pin 0 - WaveTableFile
 	gmpi::editor::Pin<float>       pinSlot;       // pin 1 - Slot (0..1, drives the red-highlight slot)
-
-	std::vector< std::string > waveFilePoolNames;
-	void refreshWaveFilePoolNames();
-	std::string getWaveFilePoolName( int idx );
-	std::string getWaveFileName();
-	void setWaveFileName( int idx, std::string filename );
 };
 
 #endif

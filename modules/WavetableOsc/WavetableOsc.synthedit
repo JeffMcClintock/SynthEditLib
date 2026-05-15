@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="94852515" SelectedViewType="256" emulate_ignore_pc="true" vst_preset_count="64">
+<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="94852515" SelectedViewType="128" emulate_ignore_pc="true" vst_preset_count="64">
     <master_container type="Container" handle="94852515" name="Main" PanelLocationZoom="1.1641532" StructLocationZoom="1" ViewOpenFlags="384" skin="default3">
         <plugs>
             <plug idx="7"/>
@@ -81,7 +81,7 @@
             </module>
             <module type="SE Wavetable Display" handle="34702161">
                 <structRect l="3648" r="3972" t="3600" b="3804"/>
-                <panelRect l="0" r="0" t="0" b="0"/>
+                <panelRect l="3952" r="4186" t="3752" b="3922"/>
             </module>
             <module type="SE Wavetable Osc" handle="1412763883">
                 <structRect l="3792" r="3876" t="3864" b="3924"/>
@@ -218,7 +218,7 @@
             </GUI>
         </Plugin>
         <Plugin id="SE Wavetable Display" name="Wavetable Display" flags="384" category="Waveform">
-            <GUI graphicsApi="composited">
+            <GUI>
                 <Pin name="WaveTableFile" datatype="string_utf8" isFilename="true" metadata="wav"/>
                 <Pin name="Slot" datatype="float"/>
             </GUI>
