@@ -171,6 +171,10 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 		float backYaxis = vscale * 0.5f;
 		float frontYaxis = height - backYaxis;
 
+		// Pick the slot nearest the current modulation position - drawn in highlight color so the user can see which slot the DSP is playing.
+		const float slotPos = std::min( 1.0f, std::max( 0.0f, pinSlotModulation.value ) );
+		const int highlightedSlot = (int)( slotPos * (float)( waveTable->slotCount - 1 ) + 0.5f );
+
 		for( int slot = waveTable->slotCount - 1 ; slot >= 0 ; --slot )
 		{
 			float* wavedata = waveTable->GetSlotPtr(slot);
@@ -178,7 +182,7 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 			float yOffset = frontYaxis - (frontYaxis-backYaxis) * ((float) slot / (float) waveTable->slotCount);
 			float xOffset = (slot * horizontalDelta) / waveTable->slotCount;
 
-			auto& pen = ( selectedFromSlot <= slot && selectedToSlot >= slot ) ? penHighlightedFirst : penLines;
+			auto& pen = ( slot == highlightedSlot ) ? penHighlightedFirst : penLines;
 
 			// Draw waveform as polyline using path geometry.
 			auto geometry = g.getFactory().createPathGeometry();
