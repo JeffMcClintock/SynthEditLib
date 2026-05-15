@@ -22,38 +22,17 @@ bool registeredGui = gmpi::Register<WavetableOscGui>::withId("SE Wavetable Osc")
 }
 
 WavetableOscGui::WavetableOscGui()
-	: selectedFromSlot(0)
-	, selectedToSlot(0)
-	, idleTimer(-1)
-	, x(0)
-	, phase(0)
-	, animationFine(0)
 {
-	// Set up pin callbacks.
-	pinSlotModulation.onUpdate = [this](editor::PinBase*) { onModulationChanged(nullptr); };
 	pinWaveFiles.onUpdate = [this](editor::PinBase*) { updateCurrentWavetable(); };
-	pinWaveDisplay.onUpdate = [this](editor::PinBase*) { updateWaveDisplay(); };
 
 	currentWavetableMem_ = new char[WaveTable::CalcMemoryRequired(WaveTable::WavetableFileSlotCount,WaveTable::WavetableFileSampleCount)];
 
 	currentWavetable()->slotCount = 0;
 	currentWavetable()->waveSize = 0;
-
-	memset( trace, 0, sizeof(trace) );
-	memset( slotAnimation, 0, sizeof(slotAnimation) );
-	memset( VoiceModulations, 0, sizeof(VoiceModulations) );
-
-	startTimer(25); // 25ms animation timer
-}
-
-void WavetableOscGui::updateWaveDisplay()
-{
-	redraw();
 }
 
 WavetableOscGui::~WavetableOscGui()
 {
-	stopTimer();
 	delete [] currentWavetableMem_;
 }
 
@@ -120,25 +99,6 @@ void WavetableOscGui::updateCurrentWavetable()
 	}
 }
 
-void WavetableOscGui::onModulationChanged(editor::PinBase* /*pin*/)
-{
-	float tableVal = 0.0f;
-	float slotVal = std::min( 1.0f, std::max(pinSlotModulation.value, 0.0f ));
-
-	// Push current to front of modulation stack.
-	for( int i = animateVoicesCount - 2 ; i >= 0 ; --i )
-	{
-		VoiceModulations[i+1][0] = VoiceModulations[i][0];
-		VoiceModulations[i+1][1] = VoiceModulations[i][1];
-		VoiceModulations[i+1][2] = VoiceModulations[i][2];
-	}
-	VoiceModulations[0][0] = 0.0f; // voice id (not tracked in new API)
-	VoiceModulations[0][1] = tableVal;
-	VoiceModulations[0][2] = slotVal;
-
-	idleTimer = 50;
-}
-
 ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 {
 	Graphics g(dc);
@@ -149,7 +109,7 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 	float width = getWidth(r);
 	float height = getHeight(r);
 
-	float vscale = height * 0.5f;
+	float vscale = height * 0.25f;
 
 	// Fill background.
 	auto backgroundBrush = g.createSolidColorBrush(Color(50.0f/255.0f, 50.0f/255.0f, 50.0f/255.0f));
@@ -171,9 +131,8 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 		float backYaxis = vscale * 0.5f;
 		float frontYaxis = height - backYaxis;
 
-		// Pick the slot nearest the current modulation position - drawn in highlight color so the user can see which slot the DSP is playing.
-		const float slotPos = std::min( 1.0f, std::max( 0.0f, pinSlotModulation.value ) );
-		const int highlightedSlot = (int)( slotPos * (float)( waveTable->slotCount - 1 ) + 0.5f );
+		// Slot-highlight pin removed - external animation signal will be wired up in a later step.
+		const int highlightedSlot = -1;
 
 		for( int slot = waveTable->slotCount - 1 ; slot >= 0 ; --slot )
 		{
@@ -247,107 +206,7 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 	snprintf(txt, sizeof(txt), "%s", curWaveFile.c_str());
 	g.drawTextU(txt, textFormat, Rect(1.0f, 1.0f, width, 20.0f), whiteBrush);
 
-	if( idleTimer < 0 )
-		return ReturnCode::Ok;
-
-	// Animated wave display from DSP.
-	{
-		int numPoints = (int)pinWaveDisplay.value.size() / sizeof(float);
-		if(numPoints > 0)
-		{
-			float* wave = (float*) pinWaveDisplay.value.data();
-
-			auto penBright = g.createSolidColorBrush(Color(175.0f/255.0f, 50.0f/255.0f, 175.0f/255.0f));
-
-			float left = (width - numPoints * 2.0f) / 2.0f;
-
-			auto waveGeometry = g.getFactory().createPathGeometry();
-			auto waveSink = waveGeometry.open();
-
-			waveSink.beginFigure(Point(left, height/2.0f - wave[0] * height/2.0f), FigureBegin::Hollow);
-			for( int s = 1 ; s < numPoints ;++s )
-			{
-				waveSink.addLine(Point(left + (float)s, height/2.0f - wave[s] * height/2.0f));
-			}
-			// Mirror bottom half.
-			for( int s = numPoints - 1 ; s >= 0 ; --s )
-			{
-				float s2 = (float)(numPoints * 2 - s);
-				waveSink.addLine(Point(left + s2, height/2.0f + wave[s] * height/2.0f));
-			}
-			waveSink.endFigure(FigureEnd::Open);
-			waveSink.close();
-
-			g.drawGeometry(waveGeometry, penBright, 1.0f);
-		}
-	}
-
-	// Slot/Table indicator dot.
-	float border = 4.0f;
-	float scale = std::min(width, height) - border * 2.0f;
-
-	// Grid.
-	auto gridPen = g.createSolidColorBrush(Color(0.0f, 100.0f/255.0f, 0.0f));
-	for( float grid = 0.0f ; grid <= 1.001f ; grid += 0.2f )
-	{
-		float pos = border + grid * scale;
-		g.drawLine(Point(pos, border), Point(pos, border + scale), gridPen, 1.0f);
-		g.drawLine(Point(border, pos), Point(border + scale, pos), gridPen, 1.0f);
-	}
-
-	// Dots.
-	auto dotBrush = g.createSolidColorBrush(Colors::White);
-	for( int i = 0 ; i < 4 ; ++i )
-	{
-		if( slotAnimation[i].counter > 0 )
-		{
-			float dx = border + slotAnimation[i].slot * scale;
-			float dy = border + (1.0f - slotAnimation[i].table) * scale;
-
-			g.fillRectangle(Rect(dx - 2.0f, dy - 2.0f, dx + 2.0f, dy + 2.0f), dotBrush);
-		}
-	}
-
 	return ReturnCode::Ok;
-}
-
-bool WavetableOscGui::onTimer()
-{
-	if( idleTimer < 0 )
-	{
-		return true;
-	}
-
-	--idleTimer;
-
-	float* highlightedSlots = VoiceModulations[0];
-
-	for( int i = 0 ; i < 4 ; ++i )
-	{
-		if( i * 3 + 2 < animateVoicesCount * 3 )
-		{
-			if( slotAnimation[i].voice != (int) highlightedSlots[i*3] || slotAnimation[i].table != highlightedSlots[i*3 + 1] || slotAnimation[i].slot != highlightedSlots[i*3 + 2] )
-			{
-				slotAnimation[i].voice = (int) highlightedSlots[i*3];
-				slotAnimation[i].table = highlightedSlots[i*3 + 1];
-				slotAnimation[i].slot = highlightedSlots[i*3 + 2];
-				slotAnimation[i].counter = 10;
-			}
-		}
-	}
-
-	// Rolling wave...
-	animationFine = (animationFine + 2) & 0x06;
-
-	if(animationFine != 0)
-	{
-		redraw();
-		return true;
-	}
-
-	redraw();
-
-	return true; // more timer calls please.
 }
 
 void WavetableOscGui::refreshWaveFilePoolNames()

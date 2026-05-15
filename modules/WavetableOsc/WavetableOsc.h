@@ -113,7 +113,7 @@ public:
         grainIncrement = 0.5f * i;
 #else
 		// calc PSOLA pitch as a ratio of normal pitch. e.g. 10V = +1 octave
-		grainIncrement = Increment * exp2f(PsolaAmmount);
+		grainIncrement = Increment * exp2f(std::clamp(PsolaAmmount, -2.0f, 2.0f));
 #endif
 	};
 	inline static void IncrementPointer(const float* ptr)
@@ -264,8 +264,6 @@ private:
 	static const int HanningSize = 256;
 	static const int TableCount = 64;
 	float* waveData_{};
-	int guiUpdateCount_ = 0;
-    int guiUpdateRate_{};
 
 	// Shared memory (replaces allocateSharedMemory)
 	struct PitchTableData { std::vector<float> data; };
@@ -283,7 +281,6 @@ public:
 	WavetableOsc();
 	gmpi::ReturnCode open(gmpi::api::IUnknown* phost) override;
 	void onSetPins() override;
-	void updateGuiWaveform(void);
 
 	// Interpolate between slots. float counter.
 	inline float get_sample3b( const float* wavedata, int table_floor, float fraction ) const
@@ -326,7 +323,7 @@ public:
 		const float* pslot = getBuffer(pinSlot);
 		float* signalOut = getBuffer(pinSignalOut);
 		const float* pitch = getBuffer(pinPitch);
-		const float* rootPitch = getBuffer(pinPsolaRootPitch);
+		const float* rootPitch = getBuffer(pinPsolaOffset);
 
 		const float* sync = nullptr;
 
@@ -463,13 +460,6 @@ public:
 		}
 
 		GrainformCounter -= sampleFrames;
-		pinSlotModulationToGui.setValue( *getBuffer(pinSlot) , blockPos_ );
-
-        guiUpdateCount_ -= sampleFrames;
-		if( guiUpdateCount_ < 0 )
-		{
-			updateGuiWaveform();
-		}
 	};
 private:
 
@@ -478,11 +468,9 @@ private:
 	gmpi::AudioInPin pinPitch;
 	gmpi::AudioInPin pinSlot;
 	gmpi::AudioOutPin pinSignalOut;
-	gmpi::FloatOutPin pinSlotModulationToGui;
 	gmpi::FloatInPin pinVoiceActive;
-	gmpi::AudioInPin pinPsolaRootPitch;
-	gmpi::StringInPin pinWaveTableFiles;
-	gmpi::BlobOutPin pinGuiWaveDisplay;
+	gmpi::AudioInPin pinPsolaOffset;
+	gmpi::StringInPin pinWaveTableFile;
 
 	float *pitchTable{};
 	WavetableMipmapPolicy mipMapPolicy;

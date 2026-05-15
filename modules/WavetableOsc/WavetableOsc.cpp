@@ -17,25 +17,16 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 <PluginList>
   <Plugin id="SE Wavetable Osc" name="Wavetable Osc" category="Waveform" graphicsApi="composited" helpUrl="WavetableOsc.htm">
-	<Parameters>
-	  <Parameter id="0" name="Slot Modulation" datatype="float" private="true" ignorePatchChange="true" isPolyphonic="true" persistant="false"/>
-	  <Parameter id="1" name="WaveTableFiles" datatype="string" private="true" />
-	  <Parameter id="2" name="WaveDisplay" datatype="blob" private="true" ignorePatchChange="true" persistant="false"/>
-	</Parameters>
 	<GUI>
-	  <Pin id="0" name="Slot Modulation from DSP" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
-	  <Pin id="1" name="WaveTableFiles" datatype="string" parameterId="1" private="true" />
-	  <Pin id="2" name="WaveDisplay" datatype="blob" parameterId="2" private="true" />
+	  <Pin name="WaveTableFile" datatype="string" isFilename="true" metadata="wav" />
 	</GUI>
 	<Audio>
 	  <Pin name="Pitch" datatype="float" rate="audio" default="0.5"/>
 	  <Pin name="Slot" datatype="float" rate="audio" />
 	  <Pin name="Signal Out" direction="out" datatype="float" rate="audio"/>
-	  <Pin name="Slot Modulation to GUI" direction="out" datatype="float" parameterId="0" private="true" isPolyphonic="true"/>
 	  <Pin name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" default="1" />
 	  <Pin name="Formant" datatype="float" rate="audio" metadata="-10,10"/>
-	  <Pin name="WaveTableFiles" datatype="string" parameterId="1" private="true" />
-	  <Pin name="WaveDisplay" direction="out" datatype="blob" parameterId="2" private="true" />
+	  <Pin name="WaveTableFile" datatype="string" isFilename="true" metadata="wav" />
 	</Audio>
   </Plugin>
 </PluginList>
@@ -114,10 +105,7 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 
 	GrainformDuration_ = (int)(sampleRate / 440.0f); // Update grainform about 440Hz.
 
-	// Track most recent voice for GUI waveform display.
 	mostRecentVoice_ = this;
-
-	guiUpdateRate_ = (int)(sampleRate / 25.f); // gui updates around 20Hz.
 
 	// Wavetable memory - shared across instances, one per oscillator.
 	int32_t handle = host->getHandle();
@@ -155,7 +143,7 @@ const WavetableOscProcess_ptr ProcessSelection[2][2][2] =
 void WavetableOsc::onSetPins(void)
 {
 	// Check which pins are updated.
-	if( pinWaveTableFiles.isUpdated() )
+	if( pinWaveTableFile.isUpdated() )
 	{
 		int32_t h = host->getHandle();
 		int oscNumber = h != OSC1_HANDLE;
@@ -167,7 +155,7 @@ void WavetableOsc::onSetPins(void)
 		{
 			// Load wave files into buffer.
 			// Convert std::string pin value to wstring for legacy loader API.
-			std::wstring wPinValue = JmUnicodeConversions::Utf8ToWstring(pinWaveTableFiles.getValue());
+			std::wstring wPinValue = JmUnicodeConversions::Utf8ToWstring(pinWaveTableFile.getValue());
 			it_enum_list it(wPinValue);
 			int tableNumber = 0;
 			for(it.First(); !it.IsDone() && tableNumber < TableCount; ++it, ++tableNumber)
@@ -248,43 +236,3 @@ void WavetableOsc::onSetPins(void)
 	}
 }
 
-void WavetableOsc::updateGuiWaveform(void)
-{
-	if( mostRecentVoice_ == this )
-	{
-		int mipLevel = 4;
-		const int GuiWaveSize = 32;
-		int mipwavesize = mipMapPolicy.GetWaveSize(mipLevel);
-		assert( GuiWaveSize == mipwavesize / 2 );
-		float wave[GuiWaveSize];
-        float modulationSlot;
-
-		int slot1_floor;
-		float slot_frac;
-
-		modulationSlot = currentGrain_slot;
-    	SlotChanging::Calculate( currentGrain_slot, slotCount, slot1_floor, slot_frac );
-
-		float* wave1a = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor, mipLevel);
-		float* wave1b = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor + 1, mipLevel);
-
-		wave[0] = 0.0f; // due to phase alignment.
-
-#ifdef SE_WT_OSC_STORE_HALF_CYCLES // Assume symetrical wave.
-		for(int c = 1; c < (mipwavesize >> 1); ++c)
-		{
-			// Calc sample interpolating between slots. Wave1
-			float p1 = wave1a[c];
-			float p2 = wave1b[c];
-			float grainSample = p1 + slot_frac * (p2 - p1);
-
-			wave[c] = grainSample;
-		}
-#endif
-
-		gmpi::Blob waveBlob(reinterpret_cast<const uint8_t*>(wave), reinterpret_cast<const uint8_t*>(wave) + sizeof(wave));
-		pinGuiWaveDisplay.setValue(waveBlob, 0);
-	}
-
-    guiUpdateCount_ = guiUpdateRate_;
-}
