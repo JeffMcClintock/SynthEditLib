@@ -2,6 +2,8 @@
 #include <sstream>
 #include "../shared/it_enum_list.h"
 #include "../shared/unicode_conversion.h"
+#include "../shared/platform_string.h"
+#include "Extensions/EmbeddedFile.h"
 
 #undef min
 #undef max
@@ -156,14 +158,29 @@ void WavetableOsc::onSetPins(void)
 		slotCount = WaveTable::MorphedSlotRatio * (WaveTable::WavetableFileSlotCount - 1) + 1; // add extra slots in-between.
 
 		{
-			// Load wave files into buffer.
-			// Convert std::string pin value to wstring for legacy loader API.
+			// Resolve each filename via SynthEdit's embedded-file support: the host handles
+			// search paths (skin/project folder etc.) and gets a chance to register each file
+			// for automatic inclusion in VST export.
+			auto synthEditHost = host.as<synthedit::IEmbeddedFileSupport>();
+
 			std::wstring wPinValue = JmUnicodeConversions::Utf8ToWstring(pinWaveTableFile.getValue());
 			it_enum_list it(wPinValue);
 			int tableNumber = 0;
 			for(it.First(); !it.IsDone() && tableNumber < TableCount; ++it, ++tableNumber)
 			{
 				std::wstring waveFilename = it.CurrentItem()->text;
+
+				if (synthEditHost)
+				{
+					const auto utf8Filename = JmUnicodeConversions::WStringToUtf8(waveFilename);
+					ReturnString fullFilename;
+					if (synthEditHost->findResourceUri(utf8Filename.c_str(), &fullFilename) == ReturnCode::Ok)
+					{
+						synthEditHost->registerResourceUri(fullFilename.c_str());
+						waveFilename = JmUnicodeConversions::Utf8ToWstring(fullFilename.c_str());
+					}
+				}
+
 				waveLoader_.setWaveFileName( waveData_, oscNumber, tableNumber, waveFilename);
 			}
 		}
