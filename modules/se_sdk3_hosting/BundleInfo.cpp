@@ -366,8 +366,8 @@ std::wstring BundleInfo::getPresetFolder()
 
     vst3PresetFolder =
         vst3PresetFolder +
-        Utf8ToWstring(factory->getVendorName()) + L"\\" +       // Vendor
-        Utf8ToWstring(factory->getProductName()) + L"\\";       // Product.
+        Utf8ToWstring(factory->getVendorName()) + L"\ \" +       // Vendor
+        Utf8ToWstring(factory->getProductName()) + L"\ \";       // Product.
 
     return vst3PresetFolder;
 #else
