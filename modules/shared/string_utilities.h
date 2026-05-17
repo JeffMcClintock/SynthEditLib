@@ -165,7 +165,7 @@ T1 combinePathAndFile(const T1 p_path, const T1 p_file) // Leaving path.
 	// ensure path ends in slash
 	auto first_bit = p_path;
 
-	//	if( Right(first_bit,1) != (L"\\") && !first_bit.empty() )
+	//	if( Right(first_bit,1) != (L"\ \") && !first_bit.empty() )
 	if (!first_bit.empty() )
 	{
         auto last = first_bit[first_bit.size() -1];

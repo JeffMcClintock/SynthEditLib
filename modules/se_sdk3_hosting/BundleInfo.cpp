@@ -277,7 +277,7 @@ std::wstring BundleInfo::getImbeddedFileFolder()
 	/*
 	// VST VERSION STORE IMBEDDED FILES IN A SUB-FOLDER WITH SAME NAME AS DLL
 	std::wstring sub_folder = StripExtension(StripPath(std::wstring(full_path)));
-	default_path = default_path + sub_folder + (L"\\");
+	default_path = default_path + sub_folder + (L"\ \");
 	*/
 
 	result = gmpi_dynamic_linking::MP_GetDllFilename();

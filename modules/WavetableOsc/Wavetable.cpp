@@ -1871,7 +1871,7 @@ void WaveTable::LoadFile( const platform_string& filename, int wavetableNumber, 
 			{
 				platform_string foldername( ofn.lpstrFile );
 
-				foldername += _T("\\");
+				foldername += _T("\ \");
 				while( *p != 0 && wavetableNumber < waveTable->waveTableCount )
 				{
 					platform_string fullfilename = foldername + p;
