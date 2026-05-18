@@ -2206,24 +2206,36 @@ return gmpi::MP_FAIL;
             CGContextRef ctx = context->getCGContext();
             CGContextSaveGState(ctx);
 
-            auto view = context->getNativeView();
+            // Clip to the path so we can manually tile inside it.
+            CGMutablePathRef cgPath = gmpi::cocoa::NsToCGPath(nsPath);
+            CGContextAddPath(ctx, cgPath);
+            CGContextClip(ctx);
+            CGPathRelease(cgPath);
 
-#if USE_BACKING_BUFFER
-            // Adjust offset to be relative to the top (Windows) not bottom (mac)
-            CGFloat yOffset = view.bounds.size.height - const_cast<Bitmap&>(bitmap_).GetSizeF().height;
-#else
-            // convert to Core Graphics co-ords
-            CGFloat yOffset = NSMaxY([view convertRect:view.bounds toView:nil]);
-#endif
-            GmpiDrawing::Matrix3x2 moduleTransform;
-            context->GetTransform(&moduleTransform);
-            auto offset = GmpiDrawing::TransformPoint(moduleTransform, {0.0f, 0.0f});
-            // apply brushes transfer. we support only translation on mac
-            offset = GmpiDrawing::TransformPoint(brushProperties_.transform, offset);
+            // Anchor the tile lattice to the brush's own origin in the current
+            // (per-module) coordinate space — matches Direct2D's behavior so a tile
+            // boundary lands at the module's local (0,0) regardless of where the
+            // module sits on the panel.
+            auto offset = GmpiDrawing::TransformPoint(brushProperties_.transform, {0.0f, 0.0f});
 
-            CGContextSetPatternPhase(ctx, CGSizeMake(offset.x, yOffset - offset.y));
-            [[NSColor colorWithPatternImage:bitmap_.nativeBitmap_] set];
-            [nsPath fill];
+            NSImage* nsImage = bitmap_.nativeBitmap_;
+            CGImageRef cgImage = [nsImage CGImageForProposedRect:NULL context:nil hints:nil];
+            const CGFloat tileW = CGImageGetWidth(cgImage);
+            const CGFloat tileH = CGImageGetHeight(cgImage);
+            const CGRect bounds = NSRectToCGRect([nsPath bounds]);
+
+            const CGFloat startX = offset.x + floor((CGRectGetMinX(bounds) - offset.x) / tileW) * tileW;
+            const CGFloat startY = offset.y + floor((CGRectGetMinY(bounds) - offset.y) / tileH) * tileH;
+
+            for (CGFloat y = startY; y < CGRectGetMaxY(bounds); y += tileH) {
+                for (CGFloat x = startX; x < CGRectGetMaxX(bounds); x += tileW) {
+                    CGContextSaveGState(ctx);
+                    CGContextTranslateCTM(ctx, x, y + tileH);
+                    CGContextScaleCTM(ctx, 1.0, -1.0);
+                    CGContextDrawImage(ctx, CGRectMake(0, 0, tileW, tileH), cgImage);
+                    CGContextRestoreGState(ctx);
+                }
+            }
 
             CGContextRestoreGState(ctx);
         }
