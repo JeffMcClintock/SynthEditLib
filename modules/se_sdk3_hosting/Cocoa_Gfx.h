@@ -2222,20 +2222,16 @@ return gmpi::MP_FAIL;
             CGImageRef cgImage = [nsImage CGImageForProposedRect:NULL context:nil hints:nil];
             const CGFloat tileW = CGImageGetWidth(cgImage);
             const CGFloat tileH = CGImageGetHeight(cgImage);
-            const CGRect bounds = NSRectToCGRect([nsPath bounds]);
 
-            const CGFloat startX = offset.x + floor((CGRectGetMinX(bounds) - offset.x) / tileW) * tileW;
-            const CGFloat startY = offset.y + floor((CGRectGetMinY(bounds) - offset.y) / tileH) * tileH;
-
-            for (CGFloat y = startY; y < CGRectGetMaxY(bounds); y += tileH) {
-                for (CGFloat x = startX; x < CGRectGetMaxX(bounds); x += tileW) {
-                    CGContextSaveGState(ctx);
-                    CGContextTranslateCTM(ctx, x, y + tileH);
-                    CGContextScaleCTM(ctx, 1.0, -1.0);
-                    CGContextDrawImage(ctx, CGRectMake(0, 0, tileW, tileH), cgImage);
-                    CGContextRestoreGState(ctx);
-                }
-            }
+            // Use CGContextDrawTiledImage so CG samples ACROSS tile boundaries
+            // (rather than clamping at each tile's edge). Per-tile CGContextDrawImage
+            // calls produce visible 1-px seams at fractional zoom because each tile
+            // blends its clamped edge with the next tile's clamped edge instead of
+            // seeing them as a single continuous pattern. Flip Y around the tile
+            // anchor so the image draws upright under the Y-flipped (Windows-style) CTM.
+            CGContextTranslateCTM(ctx, 0, offset.y + tileH);
+            CGContextScaleCTM(ctx, 1.0, -1.0);
+            CGContextDrawTiledImage(ctx, CGRectMake(offset.x, 0, tileW, tileH), cgImage);
 
             CGContextRestoreGState(ctx);
         }
