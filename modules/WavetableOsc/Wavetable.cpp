@@ -2440,35 +2440,26 @@ void WaveTable::MorphSlots( int wavetableNumber, int selectedFromSlot, int selec
 	}
 }
 
-void CalcMagnitudePhaseSpectrum( float* dest, float* src, int sourceSize )
+// Forward-FFT a single wavetable slot into the realft-packed complex spectrum:
+// dest[0] = DC, dest[1] = Nyquist (both real-only), dest[2k]/dest[2k+1] = Re/Im of bin k.
+// Preserving phase here is what makes asymmetric waveforms (15%/85% pulse,
+// arbitrary file-loaded shapes) reconstruct correctly through the morph + IFFT.
+void CalcComplexSpectrum( float* dest, float* src, int sourceSize )
 {
 	memcpy( dest, src, sizeof(float) * sourceSize );
 	realft( dest - 1, sourceSize, 1 );
 
-	/* no, leave DC-removal to import. For diagnostics, it's useful to be able to play DC through the PSOLA effect.
-	// zero-out DC, nyquist values.
-	spectrum2[0] = 0.0f;
-	spectrum2[1] = 0.0f;
-	*/
-
-	// normalise spectrum.
-    float scale = 2.0f / (float)sourceSize;
+	// normalise spectrum so that a unit-amplitude harmonic reads back as magnitude 1.
+	float scale = 2.0f / (float)sourceSize;
 	for( int i = 0 ; i < sourceSize; ++i )
 	{
-		dest[i] *=  scale;
+		dest[i] *= scale;
 	}
 
-	// convert to magnitude/phase format.
-	for( int s = 2 ; s < sourceSize ; s += 2 )
-	{
-		float phase = atan2( dest[s], dest[s+1] );
-		float magnitude = sqrtf(dest[s] * dest[s] + dest[s+1] * dest[s+1] );
-		dest[s] = magnitude;
-		dest[s + 1] = phase;
-	}
-
-	dest[0] *= 0.5f;	// normalise DC.
-	dest[1] = (float) M_PI_2;	// allows DC to be treated correctly.
+	// DC and Nyquist are real-only (no conjugate pair) so the * 2/N over-doubles them; halve back.
+	// The reverse path in the bake re-doubles them before the inverse FFT.
+	dest[0] *= 0.5f;
+	dest[1] *= 0.5f;
 }
 
 // PLease use CopyAndMipmap2 instead.
@@ -2507,7 +2498,7 @@ void WaveTable::CopyAndMipmap( WaveTable* sourceWavetable, WavetableMipmapPolicy
 	// Preload slot zero.
 	float* src = sourceWavetable->Wavedata + sourceWavetable->waveSize * ( table * sourceWavetable->slotCount );
 
-	CalcMagnitudePhaseSpectrum( spectrum2, src, sourceSize );
+	CalcComplexSpectrum( spectrum2, src, sourceSize );
 
 	// Generate in-between 'ghost' slots.
 	for( int slot = 0 ; slot < sourceWavetable->slotCount - 1 ; ++slot )
@@ -2516,7 +2507,7 @@ void WaveTable::CopyAndMipmap( WaveTable* sourceWavetable, WavetableMipmapPolicy
 
 		// load the upper slot.
 		float* src = sourceWavetable->Wavedata + sourceWavetable->waveSize * ( slot + 1 + table * sourceWavetable->slotCount );
-		CalcMagnitudePhaseSpectrum( spectrum2, src, sourceSize );
+		CalcComplexSpectrum( spectrum2, src, sourceSize );
 
 		int morphTo = WaveTable::MorphedSlotRatio;
 		if( slot == sourceWavetable->slotCount - 2 ) // on very last slot, do the extra one.
@@ -2590,17 +2581,10 @@ void WaveTable::CopyAndMipmap( WaveTable* sourceWavetable, WavetableMipmapPolicy
 
 				float* dest = Wavedata + mipInfo.getSlotOffset( destSlot, mip );
 
-				#ifdef SE_WT_OSC_STORE_HALF_CYCLES // Assume symetrical wave.
-					for( int count = 0 ; count < mipWaveSize / 2 ; ++count )
-					{
-						*dest++ = waveDownsampled[count] * scale;
-					}
-				#else
-					for( int count = 0 ; count < mipWaveSize ; ++count )
-					{
-						*dest++ = waveDownsampled[count] * scale;
-					}
-				#endif
+				for( int count = 0 ; count < mipWaveSize ; ++count )
+				{
+					*dest++ = waveDownsampled[count] * scale;
+				}
 			}
 		}
 	}
@@ -2626,7 +2610,7 @@ void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, float* destSa
 			// load next slot.
 			int loadSlot = std::min( std::max( slot + 2, 0 ), slotCount - 1);
 			float* src = GetSlotPtr( loadSlot );
-			CalcMagnitudePhaseSpectrum( spectrumSource[interpolationSamples - 1], src, WaveTable::WavetableFileSampleCount );
+			CalcComplexSpectrum( spectrumSource[interpolationSamples - 1], src, WaveTable::WavetableFileSampleCount );
 
 			if( slot >= 0 && slot < slotCount - 1 )
 			{
@@ -2642,30 +2626,24 @@ void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, float* destSa
 
 					int destSlot = slot * WaveTable::MorphedSlotRatio + morphSlot;
 
-					// morph spectrum smoothly. ignore phase.
+					// Cubic-interpolate the complex spectrum (real and imaginary parts treated
+					// uniformly). At fraction=0 this recovers the source slot exactly, so
+					// asymmetric shapes survive intact; in between it's a linear crossfade
+					// equivalent to crossfading the time-domain wavetables directly.
 					float spectrum[WaveTable::WavetableFileSampleCount];
-					for( int s = 0; s < WaveTable::WavetableFileSampleCount; s += 2 )
+					for( int s = 0; s < WaveTable::WavetableFileSampleCount; ++s )
 					{
-						/*
-						// linear.
-						float magnitude1 = spectrumSource[1][s];
-						float magnitude2 = spectrumSource[2][s];
-						float magnitude = magnitude1 + fraction * ( magnitude2 - magnitude1 );
-						*/
-
-						// cubic.
 						float y0 = spectrumSource[0][s];
 						float y1 = spectrumSource[1][s];
 						float y2 = spectrumSource[2][s];
 						float y3 = spectrumSource[3][s];
-						float magnitude = y1 + 0.5f * fraction*( y2 - y0 + fraction*( 2.0f*y0 - 5.0f*y1 + 4.0f*y2 - y3 + fraction*( 3.0f*( y1 - y2 ) + y3 - y0 ) ) );
-
-						spectrum[s] = 0.0f;
-						spectrum[s + 1] = magnitude;
+						spectrum[s] = y1 + 0.5f * fraction*( y2 - y0 + fraction*( 2.0f*y0 - 5.0f*y1 + 4.0f*y2 - y3 + fraction*( 3.0f*( y1 - y2 ) + y3 - y0 ) ) );
 					}
 
-					spectrum[0] *= 2.0f; // DC Level needs to be twice other partials.
-					spectrum[1] = 0.0f; // remove 'phase' of DC componenet, else ends up as a false nyquist level.
+					// Undo the DC/Nyquist halving done in CalcComplexSpectrum, so the inverse-FFT
+					// pre-scaling (* mipWaveSize/2) lands every bin at the right magnitude.
+					spectrum[0] *= 2.0f;
+					spectrum[1] *= 2.0f;
 
 					// for each mip level.
 					for( int mip = 0; mip < destMipInfo.getMipCount( ); ++mip )
@@ -2698,7 +2676,7 @@ void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, float* destSa
 						float* dest = destSamples + destMipInfo.getSlotOffset( destSlot, mip );
 						//				_RPT4(_CRT_WARN, "CopyAndMipmap(). WT:%d SL:%d MIP:%d offset:%d\n", wavetable, destSlot, mip, destMipInfo.getSlotOffset(wavetable, destSlot, mip));
 
-						for( int count = 0; count < mipWaveSize / 2; ++count )
+						for( int count = 0; count < mipWaveSize; ++count )
 						{
 							*dest++ = waveDownsampled[count] * scale;
 						}
@@ -2745,7 +2723,7 @@ void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, float* destSa
 	// Preload slot zero.
 	float* src = sourceWavetable->Wavedata + sourceWavetable->waveSize * (table * sourceWavetable->slotCount);
 
-	CalcMagnitudePhaseSpectrum( spectrum2, src, sourceSize );
+	CalcComplexSpectrum( spectrum2, src, sourceSize );
 
 	// Generate in-between 'ghost' slots.
 	for( int slot = 0 ; slot < sourceWavetable->slotCount - 1 ; ++slot )
@@ -2754,7 +2732,7 @@ void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, float* destSa
 
 		// load the upper slot.
 		float* src = sourceWavetable->Wavedata + sourceWavetable->waveSize * ( slot + 1 + table * sourceWavetable->slotCount );
-		CalcMagnitudePhaseSpectrum( spectrum2, src, sourceSize );
+		CalcComplexSpectrum( spectrum2, src, sourceSize );
 
 		int morphTo = WaveTable::MorphedSlotRatio;
 		if( slot == sourceWavetable->slotCount - 2 ) // on very last slot, do the extra one.
@@ -2844,17 +2822,10 @@ void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, float* destSa
 				float* dest = destSamples + destMipInfo.getSlotOffset(wavetable, destSlot, mip);
 //				_RPT4(_CRT_WARN, "CopyAndMipmap(). WT:%d SL:%d MIP:%d offset:%d\n", wavetable, destSlot, mip, destMipInfo.getSlotOffset(wavetable, destSlot, mip));
 
-				#ifdef SE_WT_OSC_STORE_HALF_CYCLES // Assume symetrical wave.
-					for( int count = 0 ; count < mipWaveSize / 2 ; ++count )
-					{
-						*dest++ = waveDownsampled[count] * scale;
-					}
-				#else
-					for( int count = 0 ; count < mipWaveSize ; ++count )
-					{
-						*dest++ = waveDownsampled[count] * scale;
-					}
-				#endif
+				for( int count = 0 ; count < mipWaveSize ; ++count )
+				{
+					*dest++ = waveDownsampled[count] * scale;
+				}
 			}
 
 		}

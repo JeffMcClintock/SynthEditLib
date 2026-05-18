@@ -12,7 +12,6 @@
 #include "../shared/platform_string.h"
 
 #define NUM_WAVETABLE_OSCS 2
-#define SE_WT_OSC_STORE_HALF_CYCLES
 
 
 struct Genes

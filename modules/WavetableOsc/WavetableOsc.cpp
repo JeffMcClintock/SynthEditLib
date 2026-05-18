@@ -38,18 +38,24 @@ WavetableOsc::WavetableOsc()
 		g.wave = grainform[0];
 }
 
-#define MAX_VOLTS ( 10.f )
-#define FSampleToVoltage(s) ( (float) (s) * (float) MAX_VOLTS)
-#define FSampleToFrequency(volts) ( 440.f * powf(2.f, FSampleToVoltage(volts) - (float) MAX_VOLTS / 2.f ) )
-inline static unsigned int FrequencyToIntIncrement( float sampleRate, double freq_hz )
-{
-	double temp_float = (UINT_MAX+1.f) * freq_hz / sampleRate + 0.5f;
-	return (unsigned int) temp_float;
-};
+namespace {
+// Pitch pin is normalised 0..1 across a 10 V range; A4 (440 Hz) sits at the midpoint.
+constexpr double kMaxVolts = 10.0;
 
-void WavetableOsc::calcMipLevel( WavetableMipmapPolicy& mipMapPolicy, float increment, int& returnMipLevelA, unsigned int& returnCountMaskA )
+constexpr double sampleToVoltage(double s)
 {
-	returnMipLevelA = mipMapPolicy.CalcMipLevel(increment);
+	return s * kMaxVolts;
+}
+
+inline double sampleToFrequency(double s)
+{
+	return 440.0 * exp2(sampleToVoltage(s) - kMaxVolts * 0.5);
+}
+} // namespace
+
+void WavetableOsc::calcMipLevel( WavetableMipmapPolicy& mipMapPolicy, double increment, int& returnMipLevelA, unsigned int& returnCountMaskA )
+{
+	returnMipLevelA = mipMapPolicy.CalcMipLevel(static_cast<float>(increment));
 	int	MipwavesizeA = mipMapPolicy.GetWaveSize(returnMipLevelA);
 	returnCountMaskA = MipwavesizeA - 1;
 }
@@ -64,7 +70,7 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 	const int extraEntriesAtStart = 1; // for interpolator.
 	const int extraEntriesAtEnd = 3; // for interpolator.
 	const int pitchTableSize = extraEntriesAtStart + extraEntriesAtEnd + (pitchTableHiVolts - pitchTableLowVolts) * 12;
-	const float oneSemitone = 1.0f/12.0f;
+	constexpr double oneSemitone = 1.0/12.0;
 
 	pitchTableShared_ = SharedObjectManager<PitchTableData>::getOrCreateSharedMemory(
 		sampleRate, 0,
@@ -73,16 +79,16 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 			p->data.resize(pitchTableSize);
 			for (int i = 0; i < pitchTableSize; ++i)
 			{
-				float pitch = (pitchTableLowVolts + (i - extraEntriesAtStart) * oneSemitone) * 0.1f;
-				float hz = FSampleToFrequency(pitch);
-				p->data[i] = hz / sr;
+				double pitch = (pitchTableLowVolts + (i - extraEntriesAtStart) * oneSemitone) * 0.1;
+				double hz = sampleToFrequency(pitch);
+				p->data[i] = hz / (double)sr;
 			}
 			return p;
 		});
 	pitchTable = pitchTableShared_->data.data() + extraEntriesAtStart;
 
 	// Hanning window - mip-mapped, shared across all instances.
-	mipMapPolicyHanning.initialize(512, 1, false);
+	mipMapPolicyHanning.initialize(512, 1);
 
 	hanningShared_ = SharedObjectManager<HanningData>::getOrCreateSharedMemory(
 		-1.0f, 0,
@@ -104,28 +110,24 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 
 	GrainformDuration_ = (int)(sampleRate / 440.0f); // Update grainform about 440Hz.
 
-	mostRecentVoice_ = this;
-
 	// Wavetable buffer allocation happens lazily in onSetPins, via the
 	// process-wide WavetableCache keyed on the resolved file URI.
 
 	return r;
 }
 
-typedef void (WavetableOsc::* WavetableOscProcess_ptr)(int sampleFrames);
+using WavetableOscProcess_ptr = void (WavetableOsc::*)(int sampleFrames);
 
-#define TPA( pitch, slot, root) (&WavetableOsc::subProcess<pitch, slot, root> )
-
-const WavetableOscProcess_ptr ProcessSelection[2][2][2] =
+constexpr WavetableOscProcess_ptr ProcessSelection[2][2][2] =
 {
-	TPA( PitchFixed,    SlotFixed,    PsolaFixed),
-	TPA( PitchFixed,    SlotFixed,    PsolaChanging),
-	TPA( PitchFixed,    SlotChanging, PsolaFixed),
-	TPA( PitchFixed,    SlotChanging, PsolaChanging),
-	TPA( PitchChanging, SlotFixed,    PsolaFixed),
-	TPA( PitchChanging, SlotFixed,    PsolaChanging),
-	TPA( PitchChanging, SlotChanging, PsolaFixed),
-	TPA( PitchChanging, SlotChanging, PsolaChanging),
+	&WavetableOsc::subProcess<PitchFixed,    SlotFixed,    PsolaFixed>,
+	&WavetableOsc::subProcess<PitchFixed,    SlotFixed,    PsolaChanging>,
+	&WavetableOsc::subProcess<PitchFixed,    SlotChanging, PsolaFixed>,
+	&WavetableOsc::subProcess<PitchFixed,    SlotChanging, PsolaChanging>,
+	&WavetableOsc::subProcess<PitchChanging, SlotFixed,    PsolaFixed>,
+	&WavetableOsc::subProcess<PitchChanging, SlotFixed,    PsolaChanging>,
+	&WavetableOsc::subProcess<PitchChanging, SlotChanging, PsolaFixed>,
+	&WavetableOsc::subProcess<PitchChanging, SlotChanging, PsolaChanging>,
 };
 
 void WavetableOsc::onSetPins(void)
@@ -162,7 +164,7 @@ void WavetableOsc::onSetPins(void)
 			slotCount  = mipMapPolicy.getSlotCount();
 		}
 
-		float increment = ComputeIncrement2( pitchTable, pinPitch );
+		double increment = ComputeIncrement2( pitchTable, pinPitch );
 		calcMipLevel( mipMapPolicy, increment, mipLevelA, countMaskA);
 
 		currentGrain_mipLevel = -1; // force calculation of fresh graincycle.
@@ -179,22 +181,19 @@ void WavetableOsc::onSetPins(void)
 			{
 				currentGrain_mipLevel = -1; // force calculation of fresh graincycle. Fix for voices retaining old sample on import.
 
-				mostRecentVoice_ = this;
-
-				syncCrossFadeLevel = 0.0f;
 				count = 0.0;
 
 				GrainformCounter = -1; // force re-calc of waveshape.
 				if( waveData_ != 0 )
 				{
 					// calc the mip level etc. Else first cycle too dull/bright.
-					float increment = ComputeIncrement2(pitchTable, pinPitch);
+					double increment = ComputeIncrement2(pitchTable, pinPitch);
 					calcMipLevel(mipMapPolicy, increment, mipLevelA, countMaskA);
 
 	//				if( pinMode >= 3 )  // PSOLA
 					{
 						// Don't trigger new grain instantly becuase after a patch change, might need to wait a few samples for slot pin to settle.
-						count = 1.0f - increment * 4.0; // 4-5 samples till next grain.
+						count = 1.0 - increment * 4.0; // 4-5 samples till next grain.
 
 						for( int g = 0; g < MaxGrains; ++g )
 						{
@@ -215,15 +214,6 @@ void WavetableOsc::onSetPins(void)
 		// If Pitch streaming, root-pitch also needs updating.
 		bool rootPitchStreaming = pinPitch.isStreaming();
 		setSubProcess(static_cast <SubProcessPtr> ( ProcessSelection[ pinPitch.isStreaming() ][ pinSlot.isStreaming() ][rootPitchStreaming] ));
-
-		//if( pinMode == 0 )  // Auto-Sync
-		//{
-		//	crossfadeincrement = 1.0f / syncCrossFadeSamples;
-		//}
-		//else
-		{
-			crossfadeincrement = 1.0f / CrossFadeSamples;
-		}
 	}
 	else
 	{

@@ -60,7 +60,7 @@ std::shared_ptr<CachedWavetable> WavetableCache::getOrLoad(const std::string& fu
 
 	// Bake mip-mapped form with morph-interpolated 'ghost' slots between file slots.
 	const int morphedSlotCount = WaveTable::MorphedSlotRatio * (WaveTable::WavetableFileSlotCount - 1) + 1;
-	entry->mipInfo.initialize(WaveTable::WavetableFileSampleCount, morphedSlotCount, true);
+	entry->mipInfo.initialize(WaveTable::WavetableFileSampleCount, morphedSlotCount);
 	entry->bakedStorage.resize(static_cast<std::size_t>(entry->mipInfo.TotalMemoryRequired()) / sizeof(float));
 	entry->raw()->CopyAndMipmap2(entry->mipInfo, entry->bakedStorage.data());
 

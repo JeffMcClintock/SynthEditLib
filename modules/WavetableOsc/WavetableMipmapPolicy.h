@@ -7,8 +7,6 @@
 #include "Wavetable.h"
 #include <vector>
 
-#define USE_FLOAT_COUNTER
-
 struct mipIndex
 {
 	mipIndex(int ss,int ws, int oversampleRatio, int off2) :
@@ -37,13 +35,11 @@ private:
 	int MasterWaveSize;
 	int slotCount;				// Waveforms per wavetable.
 	int totalWaveMemorySize;
-	bool storeHalfCycles;
 
 public:
 	WavetableMipmapPolicy(void) :
 		MasterWaveSize(0)
 		, slotCount(0)
-		, storeHalfCycles(true)
 	{
 	}
 
@@ -60,18 +56,10 @@ public:
 		int mostPartials = (std::min)( MasterWaveSize, maximumWaveSize ) / 2; // Number of partials in MIP zero (most harmonics).
 		return 1 + ( mostPartials >> mip ); // add one for DC component.
 	}
-#ifdef USE_FLOAT_COUNTER
 	float GetMaximumIncrement( int mip ) const
 	{
 		return mips[mip].maximumIncrement;
 	}
-#else
-	int GetMaximumIncrement( int mip )
-	{
-		return mips[mip].maximumIncrement;
-	}
-	int CalcMipLevel(int increment);
-#endif
 	int GetTotalMipMapSize() const
 	{
 		return totalWaveMemorySize;
@@ -79,20 +67,15 @@ public:
 
 	void initialize( const WaveTable* wavetable )
 	{
-		storeHalfCycles = false;
-#ifdef SE_WT_OSC_STORE_HALF_CYCLES // Assume symetrical wave.
-		storeHalfCycles = true;
-#endif
-		initialize(wavetable->waveSize, wavetable->slotCount, storeHalfCycles);
+		initialize(wavetable->waveSize, wavetable->slotCount);
 	}
 
-	void initialize(int pWaveSize, int pSlotCount, bool pStoreHalfCycles )
+	void initialize(int pWaveSize, int pSlotCount)
 	{
 		mips.clear();
 
 		MasterWaveSize = pWaveSize;
 		slotCount = pSlotCount;
-		storeHalfCycles = pStoreHalfCycles;
 
 		int wavesize = (std::min)( MasterWaveSize, maximumWaveSize );
 
@@ -108,10 +91,6 @@ public:
 			int MipOversampleRatio = wavesize / (MasterWaveSize >> octave ); // large waves are not oversampled.
 
 			int SlotStorage = wavesize;
-			if(storeHalfCycles)
-			{
-				SlotStorage /= 2;
-			}
 
 			mips.push_back(mipIndex(SlotStorage, wavesize, MipOversampleRatio, MipStartIdx));
 
