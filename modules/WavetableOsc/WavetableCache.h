@@ -46,7 +46,15 @@ public:
 	// subsequent callers get the cached result immediately.
 	// Returns a non-null pointer even on file-read failure - the bake will
 	// contain a fallback sine wave so audio doesn't go silent.
+	// Builtin test-wavetable names (e.g. "{Sine}", "{Square}", "{Saw}") are
+	// synthesised via WaveTable::GenerateWavetable instead of loaded from disk.
 	std::shared_ptr<CachedWavetable> getOrLoad(const std::string& fullUri);
 };
 
 WavetableCache& wavetableCache();
+
+// If `name` is a builtin test-wavetable identifier like "{Sine}", returns the
+// corresponding WaveTable::GenerateWavetable shape index. Otherwise returns -1.
+// Callers should bypass the host's resource-URI resolver for builtins (those
+// names don't exist on disk) and pass the name straight to getOrLoad.
+int builtinWavetableShape(const std::string& name);

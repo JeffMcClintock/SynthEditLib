@@ -139,10 +139,16 @@ void WavetableOsc::onSetPins(void)
 		waveTable_.reset();
 		waveData_ = nullptr;
 
-		if (auto synthEditHost = host.as<synthedit::IEmbeddedFileSupport>())
+		const std::string& curWaveFile = pinWaveTableFile.getValue();
+		if (builtinWavetableShape(curWaveFile) >= 0)
+		{
+			// Builtin test wavetable - skip host resource resolution, the name is the cache key.
+			waveTable_ = wavetableCache().getOrLoad(curWaveFile);
+		}
+		else if (auto synthEditHost = host.as<synthedit::IEmbeddedFileSupport>())
 		{
 			ReturnString fullFilename;
-			if (synthEditHost->findResourceUri(pinWaveTableFile.getValue().c_str(), &fullFilename) == ReturnCode::Ok)
+			if (synthEditHost->findResourceUri(curWaveFile.c_str(), &fullFilename) == ReturnCode::Ok)
 			{
 				synthEditHost->registerResourceUri(fullFilename.c_str());
 				waveTable_ = wavetableCache().getOrLoad(fullFilename.c_str());

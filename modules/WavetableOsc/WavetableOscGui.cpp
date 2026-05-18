@@ -27,7 +27,12 @@ void WavetableOscGui::updateCurrentWavetable()
 		curWaveFile_ = curWaveFile;
 		currentWavetable_.reset();
 
-		if (auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>())
+		if (builtinWavetableShape(curWaveFile_) >= 0)
+		{
+			// Builtin test wavetable - skip host resource resolution, the name is the cache key.
+			currentWavetable_ = wavetableCache().getOrLoad(curWaveFile_);
+		}
+		else if (auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>())
 		{
 			ReturnString fullFilename;
 			if (synthEdit->findResourceUri(curWaveFile_.c_str(), &fullFilename) == ReturnCode::Ok)

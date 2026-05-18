@@ -7,6 +7,22 @@ WavetableCache& wavetableCache()
 	return instance;
 }
 
+// Shape indices match the switch in WaveTable::GenerateWavetable.
+int builtinWavetableShape(const std::string& name)
+{
+	if (name == "{Saw}")      return 0;
+	if (name == "{Ramp}")     return 1;
+	if (name == "{Sine}")     return 2;
+	if (name == "{Triangle}") return 3;
+	if (name == "{Pulse15}")  return 4;
+	if (name == "{Square}")   return 5; // Pulse 50%.
+	if (name == "{Pulse85}")  return 6;
+	if (name == "{Noise}")    return 7;
+	if (name == "{Silence}")  return 9;
+	if (name == "{DC}")       return 10;
+	return -1;
+}
+
 std::shared_ptr<CachedWavetable> WavetableCache::getOrLoad(const std::string& fullUri)
 {
 	std::scoped_lock lock{mtx_};
@@ -27,11 +43,19 @@ std::shared_ptr<CachedWavetable> WavetableCache::getOrLoad(const std::string& fu
 	entry->rawStorage.resize((rawBytes + sizeof(float) - 1) / sizeof(float));
 	entry->raw()->SetSize(WaveTable::WavetableFileSlotCount, WaveTable::WavetableFileSampleCount);
 
-	const bool loaded = entry->raw()->LoadFile3(ToPlatformString(fullUri).c_str(), true);
-	if (!loaded)
+	const int builtinShape = builtinWavetableShape(fullUri);
+	if (builtinShape >= 0)
 	{
-		// Fallback sine - keeps audio sane rather than silent or harsh.
-		entry->raw()->GenerateWavetable(0, 0, WaveTable::WavetableFileSlotCount - 1, 2);
+		entry->raw()->GenerateWavetable(0, 0, WaveTable::WavetableFileSlotCount - 1, builtinShape);
+	}
+	else
+	{
+		const bool loaded = entry->raw()->LoadFile3(ToPlatformString(fullUri).c_str(), true);
+		if (!loaded)
+		{
+			// Fallback sine - keeps audio sane rather than silent or harsh.
+			entry->raw()->GenerateWavetable(0, 0, WaveTable::WavetableFileSlotCount - 1, 2);
+		}
 	}
 
 	// Bake mip-mapped form with morph-interpolated 'ghost' slots between file slots.
