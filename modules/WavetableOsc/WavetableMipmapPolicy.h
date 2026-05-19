@@ -156,11 +156,17 @@ public:
 			totalWaveMemorySize += slotStorage;
 		}
 
-		// Always have at least one mip (degenerate case).
-		if (mips.empty())
+		// Silent mip for pitches above the highest audible fundamental. Without this,
+		// pushing the pitch past the last real mip's max would just keep replaying its
+		// (single-harmonic) wavetable, producing an aliased tone instead of silence.
+		// maxIncrement = 1.0 absorbs anything past the previous mip; wavetable bakes to
+		// zeros (maxHarmonic = 0 means only DC is copied, and DC for any centred wave is 0).
 		{
-			mips.emplace_back(minimumWaveSize, 0, 0.0f, 1.0f, interpolationSamples);
-			totalWaveMemorySize = minimumWaveSize + 2 * interpolationSamples;
+			const int slotStorage = minimumWaveSize + 2 * interpolationSamples;
+			const int slotZeroOffset = currentOffset + interpolationSamples;
+			mips.emplace_back(minimumWaveSize, 0, previousMaxIncrement, 1.0f, slotZeroOffset);
+			currentOffset += slotStorage * slotCount;
+			totalWaveMemorySize += slotStorage;
 		}
 	}
 
