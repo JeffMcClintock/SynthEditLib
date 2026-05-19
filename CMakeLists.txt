@@ -107,7 +107,6 @@ modules_internal/CpuMeter/CpuMeterGui.cpp
 modules_internal/PatchPointsGui.h
 modules_internal/PatchPointsGui.cpp
 modules_internal/PrefabBrowser/PrefabBrowserGui.cpp
-modules/SubControls4/GmpiUiTest.cpp
 modules/SubControls4/half.hpp
 modules/SubControls4/NumberEditClient.h
 )
