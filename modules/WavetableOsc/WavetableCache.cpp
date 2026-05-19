@@ -23,11 +23,12 @@ int builtinWavetableShape(const std::string& name)
 	return -1;
 }
 
-std::shared_ptr<CachedWavetable> WavetableCache::getOrLoad(const std::string& fullUri)
+std::shared_ptr<CachedWavetable> WavetableCache::getOrLoad(const std::string& fullUri, float sampleRate)
 {
 	std::scoped_lock lock{mtx_};
 
-	if (auto it = entries_.find(fullUri); it != entries_.end())
+	const CacheKey key{fullUri, sampleRate};
+	if (auto it = entries_.find(key); it != entries_.end())
 	{
 		if (auto alive = it->second.lock())
 			return alive;
@@ -58,12 +59,12 @@ std::shared_ptr<CachedWavetable> WavetableCache::getOrLoad(const std::string& fu
 		}
 	}
 
-	// Bake mip-mapped form with morph-interpolated 'ghost' slots between file slots.
-	const int morphedSlotCount = WaveTable::MorphedSlotRatio * (WaveTable::WavetableFileSlotCount - 1) + 1;
-	entry->mipInfo.initialize(WaveTable::WavetableFileSampleCount, morphedSlotCount);
+	// Bake per-note mip-mapped form. No more morphed in-between slots - the audio loop
+	// linearly crossfades adjacent file slots at playback. Mip count is sample-rate-dependent.
+	entry->mipInfo.initialize(WaveTable::WavetableFileSampleCount, WaveTable::WavetableFileSlotCount, sampleRate);
 	entry->bakedStorage.resize(static_cast<std::size_t>(entry->mipInfo.TotalMemoryRequired()) / sizeof(float));
 	entry->raw()->CopyAndMipmap2(entry->mipInfo, entry->bakedStorage.data());
 
-	entries_[fullUri] = entry;
+	entries_[key] = entry;
 	return entry;
 }

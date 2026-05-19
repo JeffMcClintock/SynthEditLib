@@ -256,6 +256,7 @@ private:
 	Grain grains[MaxGrains];
 
 	float *hanning{};
+	float sampleRate_ = 44100.0f;
 
 	// Shared baked wavetable - process-wide cache keyed by full file URI.
 	// `waveData_` is the raw float* into bakedStorage, cached for the audio loop.

@@ -65,6 +65,7 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 	auto r = Processor::open(phost);
 
 	const float sampleRate = host->getSampleRate();
+	sampleRate_ = sampleRate;
 
 	// Pitch lookup table - shared across instances at same sample rate.
 	const int extraEntriesAtStart = 1; // for interpolator.
@@ -87,8 +88,8 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 		});
 	pitchTable = pitchTableShared_->data.data() + extraEntriesAtStart;
 
-	// Hanning window - mip-mapped, shared across all instances.
-	mipMapPolicyHanning.initialize(512, 1);
+	// Hanning window - mip-mapped, shared across all instances at the same sample rate.
+	mipMapPolicyHanning.initialize(512, 1, sampleRate);
 
 	hanningShared_ = SharedObjectManager<HanningData>::getOrCreateSharedMemory(
 		-1.0f, 0,
@@ -145,7 +146,7 @@ void WavetableOsc::onSetPins(void)
 		if (builtinWavetableShape(curWaveFile) >= 0)
 		{
 			// Builtin test wavetable - skip host resource resolution, the name is the cache key.
-			waveTable_ = wavetableCache().getOrLoad(curWaveFile);
+			waveTable_ = wavetableCache().getOrLoad(curWaveFile, sampleRate_);
 		}
 		else if (auto synthEditHost = host.as<synthedit::IEmbeddedFileSupport>())
 		{
@@ -153,7 +154,7 @@ void WavetableOsc::onSetPins(void)
 			if (synthEditHost->findResourceUri(curWaveFile.c_str(), &fullFilename) == ReturnCode::Ok)
 			{
 				synthEditHost->registerResourceUri(fullFilename.c_str());
-				waveTable_ = wavetableCache().getOrLoad(fullFilename.c_str());
+				waveTable_ = wavetableCache().getOrLoad(fullFilename.c_str(), sampleRate_);
 			}
 		}
 

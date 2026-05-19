@@ -27,10 +27,13 @@ void WavetableOscGui::updateCurrentWavetable()
 		curWaveFile_ = curWaveFile;
 		currentWavetable_.reset();
 
+		// GUI only renders the raw (un-baked) wavetable, so the sample rate doesn't matter
+		// for what's drawn - we just pick a default to satisfy the cache key.
+		constexpr float guiCacheSampleRate = 44100.0f;
 		if (builtinWavetableShape(curWaveFile_) >= 0)
 		{
 			// Builtin test wavetable - skip host resource resolution, the name is the cache key.
-			currentWavetable_ = wavetableCache().getOrLoad(curWaveFile_);
+			currentWavetable_ = wavetableCache().getOrLoad(curWaveFile_, guiCacheSampleRate);
 		}
 		else if (auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>())
 		{
@@ -38,7 +41,7 @@ void WavetableOscGui::updateCurrentWavetable()
 			if (synthEdit->findResourceUri(curWaveFile_.c_str(), &fullFilename) == ReturnCode::Ok)
 			{
 				synthEdit->registerResourceUri(fullFilename.c_str());
-				currentWavetable_ = wavetableCache().getOrLoad(fullFilename.c_str());
+				currentWavetable_ = wavetableCache().getOrLoad(fullFilename.c_str(), guiCacheSampleRate);
 			}
 		}
 

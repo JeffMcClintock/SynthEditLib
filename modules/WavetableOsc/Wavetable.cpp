@@ -2593,96 +2593,48 @@ void WaveTable::CopyAndMipmap( WaveTable* sourceWavetable, WavetableMipmapPolicy
 
 void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, float* destSamples)
 {
-	// New
+	// Per-file-slot bake: each source slot's spectrum is FFT'd once and then
+	// inverse-FFT'd at each mip's wavesize (with harmonics above the mip's audible
+	// cap zeroed). The audio loop does the slot-to-slot crossfade at playback, so
+	// no precomputed in-between (morphed) slots are needed.
+	std::vector<float> waveDownsampled(maximumWaveSize);
+	const int sourceSize = WaveTable::WavetableFileSampleCount;
+	const int spectrumCapacity = std::max(sourceSize, maximumWaveSize);
+	std::vector<float> spectrum(spectrumCapacity);
+
+	for (int slot = 0; slot < slotCount; ++slot)
 	{
-		const int interpolationSamples = 4;
-		float spectrumSource[interpolationSamples][WaveTable::WavetableFileSampleCount];
+		// Forward FFT of this slot once; reused for every mip level.
+		// CalcComplexSpectrum halves DC and Nyquist (real-only bins); the per-mip
+		// loop restores the doubling so the inverse-FFT pre-scaling balances.
+		CalcComplexSpectrum(spectrum.data(), GetSlotPtr(slot), sourceSize);
 
-		// prepare spectrum interpolation array. need prev, current and 2 future.
-		for( int slot = -3; slot < slotCount; ++slot )
+		for (int mip = 0; mip < destMipInfo.getMipCount(); ++mip)
 		{
-			// shuffle spectrum.
-			for( int i = 0; i < interpolationSamples - 1; ++i )
-			{
-				memcpy( spectrumSource[i], spectrumSource[i + 1], sizeof( spectrumSource[0] ) );
-			}
+			const int mipWaveSize = destMipInfo.GetWaveSize(mip);
+			const int binCount = destMipInfo.GetFftBinCount(mip); // DC + harmonics 1..maxHarmonic
+			const float scale2 = (float)mipWaveSize * 0.5f;
 
-			// load next slot.
-			int loadSlot = std::min( std::max( slot + 2, 0 ), slotCount - 1);
-			float* src = GetSlotPtr( loadSlot );
-			CalcComplexSpectrum( spectrumSource[interpolationSamples - 1], src, WaveTable::WavetableFileSampleCount );
+			// Copy harmonics from source spectrum, clamped to what the source actually has.
+			// (binCount * 2 might exceed sourceSize for small source / large mip - read clamped.)
+			const int copyFloats = std::min(binCount * 2, sourceSize);
+			for (int i = 0; i < copyFloats; ++i)
+				waveDownsampled[i] = spectrum[i] * scale2;
 
-			if( slot >= 0 && slot < slotCount - 1 )
-			{
-				int morphs = WaveTable::MorphedSlotRatio;
-				if( slot == slotCount - 2 ) // on very last slot, do the extra one.
-				{
-					++morphs;
-				}
+			// Zero everything above what we copied so the IFFT sees a band-limited spectrum.
+			for (int i = copyFloats; i < mipWaveSize; ++i)
+				waveDownsampled[i] = 0.0f;
 
-				for( int morphSlot = 0; morphSlot < morphs; ++morphSlot )
-				{
-					float fraction = (float) morphSlot / (float) WaveTable::MorphedSlotRatio;
+			// Undo CalcComplexSpectrum's DC/Nyquist halve so the IFFT lands at the right scale.
+			waveDownsampled[0] *= 2.0f;
+			waveDownsampled[1] *= 2.0f;
 
-					int destSlot = slot * WaveTable::MorphedSlotRatio + morphSlot;
+			realft(waveDownsampled.data() - 1, (unsigned int)mipWaveSize, -1);
 
-					// Cubic-interpolate the complex spectrum (real and imaginary parts treated
-					// uniformly). At fraction=0 this recovers the source slot exactly, so
-					// asymmetric shapes survive intact; in between it's a linear crossfade
-					// equivalent to crossfading the time-domain wavetables directly.
-					float spectrum[WaveTable::WavetableFileSampleCount];
-					for( int s = 0; s < WaveTable::WavetableFileSampleCount; ++s )
-					{
-						float y0 = spectrumSource[0][s];
-						float y1 = spectrumSource[1][s];
-						float y2 = spectrumSource[2][s];
-						float y3 = spectrumSource[3][s];
-						spectrum[s] = y1 + 0.5f * fraction*( y2 - y0 + fraction*( 2.0f*y0 - 5.0f*y1 + 4.0f*y2 - y3 + fraction*( 3.0f*( y1 - y2 ) + y3 - y0 ) ) );
-					}
-
-					// Undo the DC/Nyquist halving done in CalcComplexSpectrum, so the inverse-FFT
-					// pre-scaling (* mipWaveSize/2) lands every bin at the right magnitude.
-					spectrum[0] *= 2.0f;
-					spectrum[1] *= 2.0f;
-
-					// for each mip level.
-					for( int mip = 0; mip < destMipInfo.getMipCount( ); ++mip )
-					{
-						//				_RPT1(_CRT_WARN, "%x\n", ( dest- waveTableMipMapped->Wavedata ) / 4 );
-						// halve the size of the FFT, removing upper octave.
-						// Perform inverse FFT.
-						// Copy to dest.
-						float waveDownsampled[1024];
-						int mipWaveSize = destMipInfo.GetWaveSize( mip );
-						int binCount = destMipInfo.GetFftBinCount( mip ); // number of harmonics plus 1 (DC component).
-						float scale2 = (float) mipWaveSize * 0.5f;
-
-						// Copy required number of harmonics.
-						for( int i = 0; i < binCount * 2; ++i )
-						{
-							waveDownsampled[i] = spectrum[i] * scale2;
-						}
-
-						// zero-out unwanted high harmonics.
-						for( int i = binCount * 2; i < mipWaveSize; ++i )
-						{
-							waveDownsampled[i] = 0.0f;
-						}
-
-						realft( waveDownsampled - 1, (unsigned int) mipWaveSize, -1 );
-
-						float scale = 2.0f / mipWaveSize;
-
-						float* dest = destSamples + destMipInfo.getSlotOffset( destSlot, mip );
-						//				_RPT4(_CRT_WARN, "CopyAndMipmap(). WT:%d SL:%d MIP:%d offset:%d\n", wavetable, destSlot, mip, destMipInfo.getSlotOffset(wavetable, destSlot, mip));
-
-						for( int count = 0; count < mipWaveSize; ++count )
-						{
-							*dest++ = waveDownsampled[count] * scale;
-						}
-					}
-				}
-			}
+			const float scale = 2.0f / mipWaveSize;
+			float* dest = destSamples + destMipInfo.getSlotOffset(slot, mip);
+			for (int count = 0; count < mipWaveSize; ++count)
+				*dest++ = waveDownsampled[count] * scale;
 		}
 	}
 
