@@ -24,7 +24,7 @@ struct mipIndex
 
 #define maximumWaveSize 512 // 1024	//
 #define minimumWaveSize 32 //64		// Maintain clarity due to imperfections in interpolator.
-#define oversampleRatio 2		// Improves quality of interpolator.
+#define oversampleRatio 4		// Improves quality of interpolator (more samples per harmonic = flatter cubic-interp passband).
 
 class WavetableMipmapPolicy
 {
