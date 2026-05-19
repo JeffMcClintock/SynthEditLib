@@ -450,35 +450,17 @@ conversion.h
 conversion.cpp
 )
 
-if(SE_GRAPHICS_SUPPORT)
+# Core controller/hosting sources — required by both DSP-only and graphics builds.
+# Controller.cpp defines MpController, BundleInfo.cpp defines BundleInfo, etc. — these
+# are referenced from non-graphics objects (SynthRuntime.cpp, UgDatabase.cpp, ...) so
+# they must be unconditionally compiled even when SE_GRAPHICS_SUPPORT is OFF.
 set(srcs ${srcs}
-modules/se_sdk3_hosting/IGuiHost2.h
-
-${se_sdk_hosting_folder}/gmpi_gui_hosting.h
-${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp
-${se_sdk_hosting_folder}/DirectXGfx.h
-${se_sdk_hosting_folder}/DirectXGfx.cpp
 ${se_sdk_hosting_folder}/Controller.h
 ${se_sdk_hosting_folder}/Controller.cpp
-${se_sdk_hosting_folder}/ViewBase.h
-${se_sdk_hosting_folder}/ViewBase.cpp
-${se_sdk_hosting_folder}/ContainerView.h
-${se_sdk_hosting_folder}/ContainerView.cpp
-${se_sdk_hosting_folder}/SubViewPanel.h
-${se_sdk_hosting_folder}/SubViewPanel.cpp
 ${se_sdk_hosting_folder}/MpParameter.h
 ${se_sdk_hosting_folder}/MpParameter.cpp
-${se_sdk_hosting_folder}/ConnectorView.h
-${se_sdk_hosting_folder}/ConnectorView.cpp
-${se_sdk_hosting_folder}/ModuleView.h
-${se_sdk_hosting_folder}/ModuleView.cpp
 ${se_sdk_hosting_folder}/GmpiResourceManager.h
 ${se_sdk_hosting_folder}/GmpiResourceManager.cpp
-${se_sdk_hosting_folder}/GuiPatchAutomator3.h
-${se_sdk_hosting_folder}/GuiPatchAutomator3.cpp
-${se_sdk_hosting_folder}/IViewChild.h
-${se_sdk_hosting_folder}/IViewChild.cpp
-${se_sdk_hosting_folder}/JsonDocPresenter.h
 ${se_sdk_hosting_folder}/BundleInfo.cpp
 ${se_sdk_hosting_folder}/BundleInfo.h
 ${se_sdk_hosting_folder}/IGuiHost2.h
@@ -487,6 +469,31 @@ ${se_sdk_hosting_folder}/PresetReader.h
 interThreadQue.cpp
 interThreadQue.h
 QueClient.h
+)
+
+if(SE_GRAPHICS_SUPPORT)
+set(srcs ${srcs}
+modules/se_sdk3_hosting/IGuiHost2.h
+
+${se_sdk_hosting_folder}/gmpi_gui_hosting.h
+${se_sdk_hosting_folder}/gmpi_gui_hosting.cpp
+${se_sdk_hosting_folder}/DirectXGfx.h
+${se_sdk_hosting_folder}/DirectXGfx.cpp
+${se_sdk_hosting_folder}/ViewBase.h
+${se_sdk_hosting_folder}/ViewBase.cpp
+${se_sdk_hosting_folder}/ContainerView.h
+${se_sdk_hosting_folder}/ContainerView.cpp
+${se_sdk_hosting_folder}/SubViewPanel.h
+${se_sdk_hosting_folder}/SubViewPanel.cpp
+${se_sdk_hosting_folder}/ConnectorView.h
+${se_sdk_hosting_folder}/ConnectorView.cpp
+${se_sdk_hosting_folder}/ModuleView.h
+${se_sdk_hosting_folder}/ModuleView.cpp
+${se_sdk_hosting_folder}/GuiPatchAutomator3.h
+${se_sdk_hosting_folder}/GuiPatchAutomator3.cpp
+${se_sdk_hosting_folder}/IViewChild.h
+${se_sdk_hosting_folder}/IViewChild.cpp
+${se_sdk_hosting_folder}/JsonDocPresenter.h
 )
 endif()
 
