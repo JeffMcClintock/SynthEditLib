@@ -18,7 +18,6 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
 	  <Pin name="Slot" datatype="float" rate="audio" />
 	  <Pin name="Signal Out" direction="out" datatype="float" rate="audio"/>
 	  <Pin name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" default="1" />
-	  <Pin name="Formant" datatype="float" rate="audio" metadata="-10,10"/>
 	  <Pin name="WaveTableFile" datatype="string" isFilename="true" metadata="wav" />
 	</Audio>
   </Plugin>
@@ -34,8 +33,14 @@ bool registered = Register<WavetableOsc>::withXml(R"XML(
 
 WavetableOsc::WavetableOsc()
 {
-	for( auto& g : grains)
-		g.wave = grainform[0];
+	// Equal-amplitude crossfade table: curve[i] + curve[N - i] = 1 exactly, so a
+	// fade-in + fade-out pair always sums to unity gain. Without this property the
+	// crossfade midpoint boosts the signal by ~17% and shows up as a visible blip
+	// on the output, especially for harmonically-rich waveforms (ramp, saw).
+	for (int i = 0; i < (int)syncFadeCurve_.size(); ++i)
+	{
+		syncFadeCurve_[i] = 0.5f - 0.5f * cosf((float)M_PI * (float)i / (float)syncCrossFadeSamples);
+	}
 }
 
 namespace {
@@ -52,13 +57,6 @@ inline double sampleToFrequency(double s)
 	return 440.0 * exp2(sampleToVoltage(s) - kMaxVolts * 0.5);
 }
 } // namespace
-
-void WavetableOsc::calcMipLevel( WavetableMipmapPolicy& mipMapPolicy, double increment, int& returnMipLevelA, unsigned int& returnCountMaskA )
-{
-	returnMipLevelA = mipMapPolicy.CalcMipLevel(static_cast<float>(increment));
-	int	MipwavesizeA = mipMapPolicy.GetWaveSize(returnMipLevelA);
-	returnCountMaskA = MipwavesizeA - 1;
-}
 
 ReturnCode WavetableOsc::open(api::IUnknown* phost)
 {
@@ -88,57 +86,28 @@ ReturnCode WavetableOsc::open(api::IUnknown* phost)
 		});
 	pitchTable = pitchTableShared_->data.data() + extraEntriesAtStart;
 
-	// Hanning window - mip-mapped, shared across all instances at the same sample rate.
-	mipMapPolicyHanning.initialize(512, 1, sampleRate);
-
-	hanningShared_ = SharedObjectManager<HanningData>::getOrCreateSharedMemory(
-		-1.0f, 0,
-		[&](float) {
-			auto h = std::make_shared<HanningData>();
-			h->data.resize(mipMapPolicyHanning.GetTotalMipMapSize());
-			for (int mip = 0; mip < mipMapPolicyHanning.getMipCount(); ++mip)
-			{
-				int hanningSize = mipMapPolicyHanning.GetWaveSize(mip);
-				float* pHanning = h->data.data() + mipMapPolicyHanning.getSlotOffset(0, mip);
-				for (int i = 0; i < hanningSize; ++i)
-				{
-					pHanning[i] = 0.5f - 0.5f * cosf(1.0f * (float)M_PI * i / (float)hanningSize);
-				}
-			}
-			return h;
-		});
-	hanning = hanningShared_->data.data();
-
-	GrainformDuration_ = (int)(sampleRate / 440.0f); // Update grainform about 440Hz.
-
 	// Wavetable buffer allocation happens lazily in onSetPins, via the
-	// process-wide WavetableCache keyed on the resolved file URI.
+	// process-wide WavetableCache keyed on (URI, sample rate).
 
 	return r;
 }
 
 using WavetableOscProcess_ptr = void (WavetableOsc::*)(int sampleFrames);
 
-constexpr WavetableOscProcess_ptr ProcessSelection[2][2][2] =
+constexpr WavetableOscProcess_ptr ProcessSelection[2][2] =
 {
-	&WavetableOsc::subProcess<PitchFixed,    SlotFixed,    PsolaFixed>,
-	&WavetableOsc::subProcess<PitchFixed,    SlotFixed,    PsolaChanging>,
-	&WavetableOsc::subProcess<PitchFixed,    SlotChanging, PsolaFixed>,
-	&WavetableOsc::subProcess<PitchFixed,    SlotChanging, PsolaChanging>,
-	&WavetableOsc::subProcess<PitchChanging, SlotFixed,    PsolaFixed>,
-	&WavetableOsc::subProcess<PitchChanging, SlotFixed,    PsolaChanging>,
-	&WavetableOsc::subProcess<PitchChanging, SlotChanging, PsolaFixed>,
-	&WavetableOsc::subProcess<PitchChanging, SlotChanging, PsolaChanging>,
+	&WavetableOsc::subProcess<PitchFixed,    SlotFixed>,
+	&WavetableOsc::subProcess<PitchFixed,    SlotChanging>,
+	&WavetableOsc::subProcess<PitchChanging, SlotFixed>,
+	&WavetableOsc::subProcess<PitchChanging, SlotChanging>,
 };
 
 void WavetableOsc::onSetPins(void)
 {
-	// Check which pins are updated.
-	if( pinWaveTableFile.isUpdated() )
+	if (pinWaveTableFile.isUpdated())
 	{
 		// Resolve the filename via SynthEdit's embedded-file support, then pull a
-		// shared baked wavetable from the process-wide cache. Two instances loading
-		// the same file share one bake.
+		// shared baked wavetable from the process-wide cache.
 		waveTable_.reset();
 		waveData_ = nullptr;
 
@@ -165,60 +134,31 @@ void WavetableOsc::onSetPins(void)
 			slotCount  = mipMapPolicy.getSlotCount();
 		}
 
-		double increment = ComputeIncrement2( pitchTable, pinPitch );
-		calcMipLevel( mipMapPolicy, increment, mipLevelA, countMaskA);
-
-		currentGrain_mipLevel = -1; // force calculation of fresh graincycle.
+		// Reset grains so subProcess lazily re-inits at the new wavetable.
+		for (auto& g : grains) g.waveSize = 0;
 	}
 
-	// DCO (Sync to note-on) mode.
-	if( pinVoiceActive.isUpdated() )
+	// DCO (Sync to note-on) mode - reset grain phase on voice activation.
+	if (pinVoiceActive.isUpdated())
 	{
-		bool newActiveState = pinVoiceActive > 0.0f;
+		const bool newActiveState = pinVoiceActive > 0.0f;
 
-		if( newActiveState != previousActiveState )
+		if (newActiveState != previousActiveState && newActiveState)
 		{
-			if( newActiveState )
-			{
-				currentGrain_mipLevel = -1; // force calculation of fresh graincycle. Fix for voices retaining old sample on import.
-
-				count = 0.0;
-
-				GrainformCounter = -1; // force re-calc of waveshape.
-				if( waveData_ != 0 )
-				{
-					// calc the mip level etc. Else first cycle too dull/bright.
-					double increment = ComputeIncrement2(pitchTable, pinPitch);
-					calcMipLevel(mipMapPolicy, increment, mipLevelA, countMaskA);
-
-	//				if( pinMode >= 3 )  // PSOLA
-					{
-						// Don't trigger new grain instantly becuase after a patch change, might need to wait a few samples for slot pin to settle.
-						count = 1.0 - increment * 4.0; // 4-5 samples till next grain.
-
-						for( int g = 0; g < MaxGrains; ++g )
-						{
-							grains[g].waveSize = 0; // indicates inactive grain.
-						}
-					}
-				}
-			}
+			for (auto& g : grains) g.waveSize = 0; // next subProcess will spawn a fresh grain at phase 0.
 		}
 		previousActiveState = newActiveState;
 	}
 
-	// Set state of output audio pins.
 	pinSignalOut.setStreaming(true);
 
-	if(waveData_)
+	if (waveData_)
 	{
-		// If Pitch streaming, root-pitch also needs updating.
-		bool rootPitchStreaming = pinPitch.isStreaming();
-		setSubProcess(static_cast <SubProcessPtr> ( ProcessSelection[ pinPitch.isStreaming() ][ pinSlot.isStreaming() ][rootPitchStreaming] ));
+		setSubProcess(static_cast<SubProcessPtr>(
+			ProcessSelection[pinPitch.isStreaming()][pinSlot.isStreaming()]));
 	}
 	else
 	{
 		setSubProcess(&WavetableOsc::subProcessNothing);
 	}
 }
-

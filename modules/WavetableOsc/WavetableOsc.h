@@ -4,6 +4,7 @@
 #include "Processor.h"
 #include "WavetableMipmapPolicy.h"
 #define _USE_MATH_DEFINES
+#include <array>
 #include <vector>
 #include <math.h>
 #include <memory>
@@ -91,59 +92,6 @@ public:
 	enum { Active = true };
 };
 
-
-class PsolaChanging
-{
-public:
-	inline static void CalcInitialPsola(const double* pitchTable, double Increment, float PsolaAmmount, double& grainIncrement)
-	{
-	};
-	inline static void CalculatePsola(const double* pitchTable, double Increment, float PsolaAmmount, double& grainIncrement)
-	{
-#if 0
-		// was calc psola root pitch then interpolating between that and normal inc.
-		// not intuitive to use.
-		double psolaIncrement = ComputeIncrement2(pitchTable, PsolaRootPitch);
-        double i = Increment + (psolaIncrement - Increment);
-        const double psolaLimit = 0.25; // prevent PSOLA going sub-sonic. two octave down anyhow.
-        double minInc = Increment * psolaLimit;
-        if( i < minInc )
-        {
-            i = minInc;
-        }
-        grainIncrement = 0.5 * i;
-#else
-		// calc PSOLA pitch as a ratio of normal pitch. e.g. 10V = +1 octave.
-		// 0.5x because each PSOLA grain spans two mirrored wavetable cycles,
-		// so unity formant rate needs the grain to take two fundamental periods.
-		grainIncrement = 0.5 * Increment * exp2((double)std::clamp(PsolaAmmount, -2.0f, 2.0f));
-#endif
-	};
-	inline static void IncrementPointer(const float* ptr)
-	{
-		++ptr;
-	};
-	enum { Active = false };
-};
-
-class PsolaFixed
-{
-public:
-	inline static void CalcInitialPsola( const double* pitchTable, double Increment, float PsolaRootPitch, double& grainIncrement )
-	{
-		return PsolaChanging::CalculatePsola(pitchTable, Increment, PsolaRootPitch, grainIncrement);
-	};
-	inline static void CalculatePsola( const double* pitchTable, double Increment, float PsolaRootPitch, double& grainIncrement )
-	{
-	};
-	inline static void IncrementPointer( const float* ptr )
-	{
-		// do nothing. Hopefully optimizes away to nothing.
-	};
-	enum { Active = false };
-};
-
-
 class SlotChanging
 {
 public:
@@ -199,45 +147,18 @@ public:
 	};
 };
 
-class SlotChangingRev
-{
-public:
-	inline static void CalcInitial(const float slot, int slotCount, int& returnSlotFloor, float& returnSlotFraction)
-	{
-		// do nothing. Hopefully optimizes away to nothing.
-	};
-	inline static void Calculate(const float slot, int slotCount, int& returnSlotFloor, float& returnSlotFraction)
-	{
-		SlotChanging::Calculate(1.0f - slot, slotCount, returnSlotFloor, returnSlotFraction);
-	};
-	inline static void IncrementPointer(const float*& ptr)
-	{
-		++ptr;
-	};
-};
-
-class SlotFixedRev
-{
-public:
-	inline static void CalcInitial( const float slot, int slotCount, int& returnSlotFloor, float& returnSlotFraction )
-	{
-		SlotChanging::Calculate(1.0f - slot, slotCount, returnSlotFloor, returnSlotFraction);
-	};
-	inline static void Calculate( const float slot, int slotCount, int& returnSlotFloor, float& returnSlotFraction )
-	{
-		// do nothing. Hopefully optimizes away to nothing.
-	};
-	inline static void IncrementPointer( const float* ptr )
-	{
-		// do nothing. Hopefully optimizes away to nothing.
-	};
-};
-
+// HD-style grain: a direct wavetable reader (no Hann envelope, no PSOLA). One
+// grain is alive in steady state; a second is spawned during mip transitions
+// for a short crossfade, then the old one fades out and stops.
 struct Grain
 {
-	double count = 0.0;
-	int waveSize = 0;
-	float* wave = nullptr;
+	int waveSize = 0;          // 0 = inactive; otherwise the mip's cycle length.
+	double count = 0.0;        // phase 0..1 within the cycle.
+	int mipLevel = 0;          // index into mipMapPolicy for this grain.
+	int fadeIndex = 0;         // current position in the crossfade table.
+	int fadeIncrement = 0;     // -1 fading out, 0 steady (full gain), +1 fading in.
+	float minIncrement = 0.0f; // lower bound of pitch this mip serves.
+	float maxIncrement = 0.0f; // upper bound (above this, switch to a smaller-wavesize mip).
 };
 
 // SE_DECLARE_INIT_STATIC_FILE equivalent for static library linking
@@ -248,27 +169,24 @@ struct Grain
 class WavetableOsc : public gmpi::Processor
 {
 private:
-	const static int MaxGrains = 32; // power-of-2 please.
-	const static int extraInterpolationPreSamples = 1;
-	const static int extraInterpolationPostSamples = 3;
+	// At most 2 grains are active at once (one steady + one mid-transition); 4 leaves
+	// headroom for back-to-back rapid mip changes during pitch sweeps.
+	static constexpr int MaxGrains = 4;
+	static constexpr int syncCrossFadeSamples = 8;
 
-	double count = 0.99999999;
 	Grain grains[MaxGrains];
+	std::array<float, syncCrossFadeSamples + 1> syncFadeCurve_; // sin-shaped 0..1 crossfade.
 
-	float *hanning{};
 	float sampleRate_ = 44100.0f;
 
-	// Shared baked wavetable - process-wide cache keyed by full file URI.
+	// Shared baked wavetable - process-wide cache keyed by (URI, sample rate).
 	// `waveData_` is the raw float* into bakedStorage, cached for the audio loop.
 	std::shared_ptr<CachedWavetable> waveTable_;
 	float* waveData_{};
 
-	// Shared per-sample-rate / per-format scratch tables.
+	// Shared per-sample-rate pitch lookup table.
 	struct PitchTableData { std::vector<double> data; };
-	struct HanningData { std::vector<float> data; };
-
 	std::shared_ptr<PitchTableData> pitchTableShared_;
-	std::shared_ptr<HanningData> hanningShared_;
 
 public:
 
@@ -276,172 +194,165 @@ public:
 	gmpi::ReturnCode open(gmpi::api::IUnknown* phost) override;
 	void onSetPins() override;
 
-	// Interpolate between slots. float counter.
-	inline float get_sample3b( const float* wavedata, int table_floor, float fraction ) const
+	// Cubic Hermite interpolation. Caller guarantees [table_floor-1, table_floor+2]
+	// are valid - the bake adds wraparound samples on each side of every slot so any
+	// table_floor in [0, waveSize) is safe.
+	inline float cubic( const float* wavedata, int table_floor, float fraction ) const
 	{
-		assert(table_floor >= 0);
-
-		// Cubic.
-		const auto y0 = wavedata[(table_floor-1)];
-		const auto y1 = wavedata[(table_floor+0)];
-		const auto y2 = wavedata[(table_floor+1)];
-		const auto y3 = wavedata[(table_floor+2)];
-
+		const float y0 = wavedata[table_floor - 1];
+		const float y1 = wavedata[table_floor + 0];
+		const float y2 = wavedata[table_floor + 1];
+		const float y3 = wavedata[table_floor + 2];
 		return y1 + 0.5f * fraction*(y2 - y0 + fraction*(2.0f*y0 - 5.0f*y1 + 4.0f*y2 - y3 + fraction*(3.0f*(y1 - y2) + y3 - y0)));
 	}
 
 	int slotCount = 0;
-	static const int grainformCount = 4;
-	int currentGrainform;
-	int GrainformCounter = -1;
-	int currentGrainformMipwavesize;
-	int currentGrain_mipLevel = -1;
-	float currentGrain_slot = -1;
-	float grainform[grainformCount][maximumWaveSize * 2 + extraInterpolationPreSamples + extraInterpolationPostSamples]; // pre-calculated windowed cycles.
-	int GrainformDuration_;
+	WavetableMipmapPolicy mipMapPolicy;
 
-	template< class PitchModulationPolicy, class SlotModulationPolicy, class PsolaModulationPolicy >
+	// Start a fresh grain in the first empty slot. If `fadeIn` is true the grain begins
+	// with its fade gain near 0 and ramps to full over syncCrossFadeSamples audio samples.
+	void startGrain(int mipLevel, double initialPhase, bool fadeIn)
+	{
+		for (int g = 0; g < MaxGrains; ++g)
+		{
+			if (grains[g].waveSize == 0)
+			{
+				grains[g].waveSize = mipMapPolicy.GetWaveSize(mipLevel);
+				grains[g].mipLevel = mipLevel;
+				grains[g].count = initialPhase;
+				grains[g].minIncrement = mipMapPolicy.GetMinimumIncrement(mipLevel);
+				grains[g].maxIncrement = mipMapPolicy.GetMaximumIncrement(mipLevel);
+				if (fadeIn)
+				{
+					grains[g].fadeIncrement = 1;
+					grains[g].fadeIndex = 0;
+				}
+				else
+				{
+					grains[g].fadeIncrement = 0;
+					grains[g].fadeIndex = syncCrossFadeSamples;
+				}
+				return;
+			}
+		}
+	}
+
+	template< class PitchModulationPolicy, class SlotModulationPolicy >
 	void subProcess( int sampleFrames )
 	{
-		// get pointers to in/output buffers.
 		const float* pslot = getBuffer(pinSlot);
 		float* signalOut = getBuffer(pinSignalOut);
 		const float* pitch = getBuffer(pinPitch);
-		const float* rootPitch = getBuffer(pinPsolaOffset);
 
-		double increment, grainIncrementFast;
+		double increment;
 		float slot_frac;
 		int slot1_floor;
-		PitchModulationPolicy::CalcInitial( pitchTable, *pitch, increment );
-		PsolaModulationPolicy::CalcInitialPsola( pitchTable, increment, *rootPitch, grainIncrementFast );
-		SlotModulationPolicy::CalcInitial( *pslot, slotCount, slot1_floor, slot_frac );
+		PitchModulationPolicy::CalcInitial(pitchTable, *pitch, increment);
+		SlotModulationPolicy::CalcInitial(*pslot, slotCount, slot1_floor, slot_frac);
+
+		// Lazy-init: spawn the first grain at the current pitch only if NO grain is
+		// alive (after a wavetable change or fresh voice activation). The active grain
+		// rotates between slots as mip transitions happen, so checking only slot 0
+		// would spuriously spawn a phase-zero second grain alongside the real one.
+		bool anyAlive = false;
+		for (const auto& g : grains)
+		{
+			if (g.waveSize) { anyAlive = true; break; }
+		}
+		if (!anyAlive)
+		{
+			const int initMip = mipMapPolicy.CalcMipLevel(static_cast<float>(increment));
+			startGrain(initMip, 0.0, false);
+		}
 
 		for( int s = sampleFrames; s > 0; --s )
 		{
-			PitchModulationPolicy::Calculate( pitchTable, *pitch, increment );
-			PsolaModulationPolicy::CalculatePsola( pitchTable, increment, *rootPitch, grainIncrementFast );
+			PitchModulationPolicy::Calculate(pitchTable, *pitch, increment);
+			SlotModulationPolicy::Calculate(*pslot, slotCount, slot1_floor, slot_frac);
 
 			float samp = 0.0f;
-			for( int g = 0 ; g < MaxGrains ; ++g )
+			for (int g = 0; g < MaxGrains; ++g)
 			{
-				if( grains[g].waveSize )
+				if (grains[g].waveSize == 0) continue;
+
+				const int ws = grains[g].waveSize;
+				const double index = grains[g].count * (double)ws;
+				int table_floor = static_cast<int>(index);
+				const float fraction = static_cast<float>(index - (double)table_floor);
+				table_floor &= ws - 1; // cycle wrap; wraparound samples in the bake handle the cubic stencil.
+
+				const float* waveA = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor,     grains[g].mipLevel);
+				const float* waveB = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor + 1, grains[g].mipLevel);
+				const float sA = cubic(waveA, table_floor, fraction);
+				const float sB = cubic(waveB, table_floor, fraction);
+				float grainSample = sA + slot_frac * (sB - sA);
+
+				// Fade gain during mip-switch crossfade. Steady grains have fadeIncrement=0
+				// and use full gain (1.0) implicitly.
+				if (grains[g].fadeIncrement != 0)
 				{
-					double index = grains[g].count * (double) grains[g].waveSize;
-					int table_floor = static_cast<int>(index);
-					float fraction = static_cast<float>(index - (double) table_floor);
-					float grainSample = get_sample3b( grains[g].wave, table_floor, fraction );
-
-					samp += grainSample;
-
-					grains[g].count += grainIncrementFast;
-					if( grains[g].count > 1.0 ) // 1 grain? done.
-						grains[g].waveSize = 0; // indicates inactive grain.
+					grainSample *= syncFadeCurve_[grains[g].fadeIndex];
+					if (grains[g].fadeIncrement > 0)
+					{
+						if (grains[g].fadeIndex == syncCrossFadeSamples)
+							grains[g].fadeIncrement = 0;
+						else
+							++grains[g].fadeIndex;
+					}
+					else
+					{
+						if (grains[g].fadeIndex == 0)
+							grains[g].waveSize = 0;
+						else
+							--grains[g].fadeIndex;
+					}
 				}
+
+				samp += grainSample;
+				grains[g].count += increment;
 			}
+
 			*signalOut = samp;
 
-			count += increment;
-			if( count > 1.0 ) // is count wrapping? (pretty intensive on high frequencies )
+			// On cycle wrap, check whether the active steady grain still has the right mip.
+			// If pitch has moved outside this mip's range, kick off a crossfade to the new mip.
+			for (int g = 0; g < MaxGrains; ++g)
 			{
-				// count wraps at 1.0
-				int count_floor = static_cast<int>(count);
-				count -= (double) count_floor;
-
-				// start a fresh grain.
-				for( int g = 0 ; g < MaxGrains ; ++g )
+				if (grains[g].waveSize && grains[g].count >= 1.0)
 				{
-					if( grains[g].waveSize == 0 )
+					const int wraps = static_cast<int>(grains[g].count);
+					grains[g].count -= (double)wraps;
+
+					if (grains[g].fadeIncrement == 0)
 					{
-						// Back-date the grain by the wrap residual so its wavetable phase tracks
-						// the ideal (fractional) trigger time exactly. 0.5 = grainIncrement/increment;
-						// without this the two-grain overlap-add doesn't quite cancel the Hann
-						// envelope at the cubic-interp level, leaving ~-40 dB sidebands at the
-						// residual super-period (e.g. ~100 Hz around a 440 Hz fundamental).
-						grains[g].count = count * 0.5;
-						float* wave = &( grainform[currentGrainform][1] ); // create one virtual negative table value to aid interpolation.
-
-						// if time since last grain calc.
-						if( GrainformCounter < 0 )
+						const float incF = static_cast<float>(increment);
+						if (incF > grains[g].maxIncrement || incF < grains[g].minIncrement)
 						{
-							int mipLevel = mipMapPolicy.CalcMipLevel( static_cast<float>(grainIncrementFast * 2.0) );
-							int mipwavesize = currentGrainformMipwavesize = mipMapPolicy.GetWaveSize(mipLevel);
+							grains[g].fadeIncrement = -1;
+							grains[g].fadeIndex = syncCrossFadeSamples;
 
-							SlotModulationPolicy::Calculate( *pslot, slotCount, slot1_floor, slot_frac );
-
-							GrainformCounter = GrainformDuration_; // restart counter.
-							// If parameters the same, just re-use previous grain.
-							if( mipLevel != currentGrain_mipLevel || *pslot != currentGrain_slot )
-							{
-								currentGrain_mipLevel = mipLevel;
-								currentGrain_slot = *pslot;
-
-								// increment/wrap current grainform.
-								currentGrainform = (currentGrainform + 1) & (grainformCount - 1);
-								wave = &( grainform[currentGrainform][1] ); // create one virtual negative table value to aid interpolation.
-
-								// re-fill grainform.
-
-								float* wave1a = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor, mipLevel);
-								float* wave1b = waveData_ + mipMapPolicy.getSlotOffset(slot1_floor + 1, mipLevel);
-
-								float* pHanning = hanning + mipMapPolicyHanning.getSlotOffset(0,mipLevel);
-
-								// Sample 'off-front' to aid cubic interpolation.
-								wave[-1] = 0.0f;
-								// Wrap a few samples 'off-end' to simplify interpolation. Hanning window decays to ~0 there.
-								for( int e = 0 ; e < extraInterpolationPostSamples ; ++e )
-								{
-									wave[mipwavesize * 2 + e] = 0.0f;
-								}
-
-								// Build a 2-cycle PSOLA grain: each cycle is the full wavetable cycle
-								// (interpolated between slots), multiplied by a full Hann envelope of
-								// length 2*mipwavesize that peaks at the grain centre. pHanning stores
-								// the rising half (0 -> 1) over [0, mipwavesize]; the falling half is
-								// the mirror of that, indexed as pHanning[mipwavesize - c].
-								for( int c = 0 ; c < mipwavesize ; ++c )
-								{
-									float p1 = wave1a[c];
-									float p2 = wave1b[c];
-									float grainSample = p1 + slot_frac * (p2 - p1); // interpolate between slots.
-
-									wave[c]               = grainSample * pHanning[c];
-									wave[mipwavesize + c] = grainSample * pHanning[mipwavesize - c];
-								}
-							}
+							const int newMip = mipMapPolicy.CalcMipLevel(incF);
+							startGrain(newMip, grains[g].count, true);
 						}
-						grains[g].waveSize = (currentGrainformMipwavesize * 2);
-						grains[g].wave = wave;
-						break;
 					}
 				}
 			}
 
-			// Increment buffer pointers.
 			++signalOut;
-			PitchModulationPolicy::IncrementPointer( pitch );
-			SlotModulationPolicy::IncrementPointer( pslot );
-			PsolaModulationPolicy::IncrementPointer( rootPitch );
+			PitchModulationPolicy::IncrementPointer(pitch);
+			SlotModulationPolicy::IncrementPointer(pslot);
 		}
+	}
 
-		GrainformCounter -= sampleFrames;
-	};
 private:
-
-	inline void calcMipLevel( WavetableMipmapPolicy& mipMapPolicy, double increment, int& returnMipLevelA, unsigned int& returnCountMaskA );
 
 	gmpi::AudioInPin pinPitch;
 	gmpi::AudioInPin pinSlot;
 	gmpi::AudioOutPin pinSignalOut;
 	gmpi::FloatInPin pinVoiceActive;
-	gmpi::AudioInPin pinPsolaOffset;
 	gmpi::StringInPin pinWaveTableFile;
 
 	double *pitchTable{};
-	WavetableMipmapPolicy mipMapPolicy;
-	WavetableMipmapPolicy mipMapPolicyHanning;
-	int mipLevelA = 0;
-	unsigned int countMaskA = 0;
 	bool previousActiveState = false;
 };
 

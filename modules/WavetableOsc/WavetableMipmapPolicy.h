@@ -13,21 +13,30 @@
 // Per-mip storage layout. waveSize is the cycle length in samples; maxHarmonic
 // is the highest harmonic stored (anything above this is zeroed in the bake so
 // playback at the mip's max fundamental doesn't alias).
+//
+// Each slot is stored with `interpolationSamples` wraparound samples on each side
+// so the cubic interpolator can run without modulo arithmetic. The slot pointer
+// returned by getSlotOffset points at the actual sample 0; positions [-interpolationSamples,
+// waveSize + interpolationSamples) are all valid reads.
+constexpr int interpolationSamples = 4;
+
 struct mipIndex
 {
-	mipIndex(int waveSize_, int maxHarmonic_, float maximumIncrement_, int offset_) :
+	mipIndex(int waveSize_, int maxHarmonic_, float minIncrement_, float maximumIncrement_, int offset_) :
 		waveSize(waveSize_)
-		, SlotStorage(waveSize_)
+		, SlotStorage(waveSize_ + 2 * interpolationSamples)
 		, offset2(offset_)
 		, maxHarmonic(maxHarmonic_)
+		, minIncrement(minIncrement_)
 		, maximumIncrement(maximumIncrement_)
 	{
 	}
-	int SlotStorage;       // bytes per slot in this mip (= waveSize for non-half-cycle storage).
-	int offset2;           // byte-offset of slot 0 within the baked storage.
+	int SlotStorage;       // floats per slot in this mip, including wraparound.
+	int offset2;           // float-offset of slot 0's actual sample 0 within the baked storage.
 	int waveSize;
 	int maxHarmonic;       // highest harmonic stored (after audible-Nyquist cap).
-	float maximumIncrement; // helps decide when to shift down to a lower mip-level.
+	float minIncrement;    // lower bound this mip is valid for; below this the previous mip should be used.
+	float maximumIncrement; // upper bound; above this the next mip should be used.
 };
 
 #define maximumWaveSize 2048
@@ -61,6 +70,10 @@ public:
 	int GetFftBinCount( int mip ) const // number of components needed in reverse FFT (including DC Componenet)
 	{
 		return 1 + mips[mip].maxHarmonic; // DC + harmonics 1..maxHarmonic.
+	}
+	float GetMinimumIncrement( int mip ) const
+	{
+		return mips[mip].minIncrement;
 	}
 	float GetMaximumIncrement( int mip ) const
 	{
@@ -102,6 +115,7 @@ public:
 
 		int currentMaxHarmonic = INT_MAX;
 		int currentOffset = 0;
+		float previousMaxIncrement = 0.0f; // becomes the next mip's minIncrement.
 
 		for (int key = 0; key < 128; ++key)
 		{
@@ -133,16 +147,20 @@ public:
 			float maxInc = (newMaxH > 0) ? (maxAudibleFreq / (float)newMaxH / sampleRate)
 			                             : 1.0f; // a "silent" mip for very high pitches plays anything.
 
-			mips.emplace_back(ws, newMaxH, maxInc, currentOffset);
-			currentOffset += ws * slotCount;
-			totalWaveMemorySize += ws;
+			const int slotStorage = ws + 2 * interpolationSamples;
+			// Stored offset is to the slot's actual sample 0 (past the wraparound prefix).
+			const int slotZeroOffset = currentOffset + interpolationSamples;
+			mips.emplace_back(ws, newMaxH, previousMaxIncrement, maxInc, slotZeroOffset);
+			previousMaxIncrement = maxInc;
+			currentOffset += slotStorage * slotCount;
+			totalWaveMemorySize += slotStorage;
 		}
 
 		// Always have at least one mip (degenerate case).
 		if (mips.empty())
 		{
-			mips.emplace_back(minimumWaveSize, 0, 1.0f, 0);
-			totalWaveMemorySize = minimumWaveSize;
+			mips.emplace_back(minimumWaveSize, 0, 0.0f, 1.0f, interpolationSamples);
+			totalWaveMemorySize = minimumWaveSize + 2 * interpolationSamples;
 		}
 	}
 
@@ -158,7 +176,8 @@ public:
 
 	int getSlotOffset( int slot, int mip ) const
 	{
-		// Wavetable Grouped by Mips.
+		// Returns offset to the slot's actual sample 0; positions [-interpolationSamples,
+		// waveSize + interpolationSamples) are valid wraparound reads.
 		return mips[mip].offset2 + mips[mip].SlotStorage * slot;
 	}
 

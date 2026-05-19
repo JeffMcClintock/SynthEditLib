@@ -2634,7 +2634,15 @@ void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, float* destSa
 			const float scale = 2.0f / mipWaveSize;
 			float* dest = destSamples + destMipInfo.getSlotOffset(slot, mip);
 			for (int count = 0; count < mipWaveSize; ++count)
-				*dest++ = waveDownsampled[count] * scale;
+				dest[count] = waveDownsampled[count] * scale;
+
+			// Wraparound samples so the cubic interpolator can read [-interpolationSamples,
+			// mipWaveSize + interpolationSamples) without modulo arithmetic at runtime.
+			for (int e = 0; e < interpolationSamples; ++e)
+			{
+				dest[-1 - e] = dest[mipWaveSize - 1 - e];
+				dest[mipWaveSize + e] = dest[e];
+			}
 		}
 	}
 
