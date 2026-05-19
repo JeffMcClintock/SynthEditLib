@@ -497,7 +497,7 @@ ${se_sdk_hosting_folder}/JsonDocPresenter.h
 )
 endif()
 
-IF(APPLE)
+IF(APPLE AND SE_GRAPHICS_SUPPORT)
 set(srcs ${srcs}
 modules/se_sdk3_hosting/Cocoa_Gfx.h
 modules/se_sdk3_hosting/EventHelper.h
