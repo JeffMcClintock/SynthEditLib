@@ -1784,19 +1784,19 @@ void ug_base::connect( UPlug* from_plug, UPlug* to_plug )
 			break;
 
 		case DT_INT:
-						switch (to_plug->DataType)
-						{
+			switch(to_plug->DataType)
+			{
 			case DT_ENUM:
-			/* don't work when created on the fly, because it can't access it's enum list.
-				converter_id = L"SE Int To List";
-			*/
+				/* don't work when created on the fly, because it can't access it's enum list.
+					converter_id = L"SE Int To List";
+				*/
 				return; // some old projects may attempt this.
-							break;
-              		default:
-                break;
-                     
-						};
-						break;
+				break;
+			default:
+				break;
+
+			};
+			break;
 
 		case DT_FLOAT:
 			switch (to_plug->DataType)
