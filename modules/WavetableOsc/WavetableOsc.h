@@ -351,7 +351,12 @@ public:
 				{
 					if( grains[g].waveSize == 0 )
 					{
-						grains[g].count = count;// *0.5; // Make grain phase fractionally correct.
+						// Back-date the grain by the wrap residual so its wavetable phase tracks
+						// the ideal (fractional) trigger time exactly. 0.5 = grainIncrement/increment;
+						// without this the two-grain overlap-add doesn't quite cancel the Hann
+						// envelope at the cubic-interp level, leaving ~-40 dB sidebands at the
+						// residual super-period (e.g. ~100 Hz around a 440 Hz fundamental).
+						grains[g].count = count * 0.5;
 						float* wave = &( grainform[currentGrainform][1] ); // create one virtual negative table value to aid interpolation.
 
 						// if time since last grain calc.
