@@ -226,7 +226,7 @@ namespace
 {
 auto r = gmpi::Register<PathRenderGui>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
-<Plugin id="SE Path Render" name="Path Render" category="Sub-Controls">
+<Plugin id="SE Path Render" name="Path Render" category="Experimental">
     <GUI graphicsApi="GmpiGui">
         <Pin name="Path" datatype="string"/>
         <Pin name="Fill Color" datatype="string" default="EEEEEE"/>

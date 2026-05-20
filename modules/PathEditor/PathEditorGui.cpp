@@ -965,7 +965,7 @@ namespace
 {
 auto r = gmpi::Register<PathEditorGui>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
-<Plugin id="SE Path Editor" name="Path Editor" category="Sub-Controls">
+<Plugin id="SE Path Editor" name="Path Editor" category="Experimental">
     <GUI graphicsApi="GmpiGui">
         <Pin name="Path" datatype="string"/>
     </GUI>
