@@ -261,7 +261,7 @@ auto r = gmpi::Register<PathRenderGui>::withXml(R"XML(
         <Pin name="Fill Color" datatype="string" default="EEEEEE"/>
         <Pin name="Stroke Color" datatype="string" default="000000"/>
         <Pin name="Stroke Width" datatype="float" default="1.0"/>
-        <Pin name="Snap to Pixels" datatype="bool" default="false"/>
+        <Pin name="Snap to Pixels" datatype="bool"/>
     </GUI>
 </Plugin>
 )XML");
