@@ -215,51 +215,42 @@ public:
 		if(pinPath.value.empty())
 			return ReturnCode::Ok;
 
-		const bool snap = pinSnapPixels.value;
-		const float rs = drawingHost.get() ? drawingHost->getRasterizationScale() : 1.0f;
-
-		// Refresh the snapper from the live transform & DPI. Returns true iff
-		// anything changed since the previous frame; we use that to know when
-		// any snap-dependent cache (here: the geometry) needs rebuilding.
-		const bool transformChanged = snapper.update(g.getTransform(), rs);
-
 		const bool wantStroke = !pinStrokeColor.value.empty() && pinStrokeWidth.value > 0.0f;
+		float strokeWidth = pinStrokeWidth.value;
 
-		// Snap the stroke width (and learn whether it landed on an odd pixel
-		// count, which means the geometry needs pixel-centre alignment for a
-		// crisp render). snapForStroke() picks centre vs origin from the
-		// lineSnap, so the caller doesn't have to.
-		float snappedWidth = (std::max)(0.0f, pinStrokeWidth.value);
-		pixelSnapper2::lineSnap ls{ snappedWidth, 0.0f };
-		if(snap && wantStroke)
+		if(pinSnapPixels.value)
 		{
-			ls = snapper.thickness(snappedWidth);
-			snappedWidth = ls.width;
-		}
-		const bool centreSnap = ls.center_offset != 0.0f;
+			// Refresh the snapper from the live transform & DPI. update()
+			// returns true iff anything changed since the previous frame.
+			const float rs = drawingHost->getRasterizationScale();
+			const bool transformChanged = snapper.update(g.getTransform(), rs);
 
-		auto snapFn = [&](Point p) { return snapper.snapForStroke(p, ls); };
-
-		// Cache check. pinPath / pinSnapPixels invalidate via onUpdate; what's
-		// left to detect here is "the transform changed" (zoom, pan, DPI) and
-		// "the snapped stroke parity flipped" — both possible without any pin
-		// notification.
-		const bool needRebuild =
-			!cachedGeometry
-			|| (snap && (cachedCentreSnap != centreSnap || transformChanged));
-
-		if(needRebuild)
-		{
-			if(snap)
+			// Snap the stroke width. The resulting lineSnap tells us whether
+			// the snapped width is an odd pixel count — if so, the geometry
+			// needs pixel-centre alignment for a crisp render.
+			pixelSnapper2::lineSnap ls{ strokeWidth, 0.0f };
+			if(wantStroke)
 			{
+				ls = snapper.thickness(strokeWidth);
+				strokeWidth = ls.width;
+			}
+			const bool centreSnap = ls.center_offset != 0.0f;
+
+			// pinPath / pinSnapPixels invalidate via onUpdate. Here we only
+			// have to detect changes that don't generate a pin notification:
+			// transform (zoom / pan / DPI) and snapped-stroke parity.
+			if(!cachedGeometry || transformChanged || cachedCentreSnap != centreSnap)
+			{
+				auto snapFn = [&](Point p) { return snapper.snapForStroke(p, ls); };
 				cachedGeometry = parsePathToGeometry(g, pinPath.value, snapFn);
+				cachedCentreSnap = centreSnap;
 			}
-			else
-			{
-				auto identity = [](Point p) { return p; };
-				cachedGeometry = parsePathToGeometry(g, pinPath.value, identity);
-			}
-			cachedCentreSnap = centreSnap;
+		}
+		else if(!cachedGeometry)
+		{
+			// No snapping. None of the snapper / DPI machinery is needed.
+			auto identity = [](Point p) { return p; };
+			cachedGeometry = parsePathToGeometry(g, pinPath.value, identity);
 		}
 
 		if(!pinFillColor.value.empty())
@@ -271,7 +262,7 @@ public:
 		if(wantStroke)
 		{
 			auto strokeBrush = g.createSolidColorBrush(colorFromHexString(pinStrokeColor.value));
-			g.drawGeometry(cachedGeometry, strokeBrush, snappedWidth);
+			g.drawGeometry(cachedGeometry, strokeBrush, strokeWidth);
 		}
 
 		return ReturnCode::Ok;
