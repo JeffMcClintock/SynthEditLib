@@ -1,5 +1,7 @@
 #include "SE2JUCE_Processor.h"
+#if SE_GRAPHICS_SUPPORT
 #include "SE2JUCE_Editor.h"
+#endif
 
 #include "unicode_conversion.h"
 #include "RawConversions.h"
@@ -12,7 +14,9 @@ SE2JUCE_Processor::SE2JUCE_Processor(
     std::function<juce::AudioParameterFloatAttributes(int32_t)> customizeParameter
 ) :
     controller(std::move(pController))
+#if SE_GRAPHICS_SUPPORT
     , createEditorFunction([this]() { return new SynthEditEditor(*this, *controller.get()); })
+#endif
 
     // init the midi converter
     ,midiConverter(
