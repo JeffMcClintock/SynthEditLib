@@ -28,8 +28,25 @@ class PathRenderGui final : public ControlsBase
 	Pin<float>       pinStrokeWidth;
 	Pin<bool>        pinSnapPixels;
 
+	// Geometry cache. We rebuild only when one of the inputs that actually
+	// affects the geometry has changed since the last frame — for the snap-off
+	// case that's just the path string, for snap-on it's also the transform
+	// (zoom + DPI + module position) and the stroke-parity flag.
 	PathGeometry cachedGeometry;
-	std::string  cachedGeometrySource;  // the d-string that built `cachedGeometry`
+	struct CacheKey
+	{
+		std::string path;
+		bool snap       = false;
+		bool centreSnap = false;
+		Matrix3x2 transform{};   // only consulted when snap == true
+	} cachedKey;
+
+	static bool matrixEq(const Matrix3x2& a, const Matrix3x2& b)
+	{
+		return a._11 == b._11 && a._12 == b._12
+		    && a._21 == b._21 && a._22 == b._22
+		    && a._31 == b._31 && a._32 == b._32;
+	}
 
 	// Build a PathGeometry directly from the d-string. Supports M/L/H/V/C/Z and
 	// their lowercase (relative) variants. `snap` is applied to every point
@@ -189,11 +206,14 @@ class PathRenderGui final : public ControlsBase
 public:
 	PathRenderGui()
 	{
-		pinPath.onUpdate        = [this](PinBase*) { cachedGeometry = {}; redraw(); };
-		pinFillColor.onUpdate   = [this](PinBase*) { redraw(); };
-		pinStrokeColor.onUpdate = [this](PinBase*) { redraw(); };
-		pinStrokeWidth.onUpdate = [this](PinBase*) { redraw(); };
-		pinSnapPixels.onUpdate  = [this](PinBase*) { cachedGeometry = {}; cachedGeometrySource.clear(); redraw(); };
+		// Every pin just kicks a redraw; the geometry-cache key in render()
+		// notices what actually changed and rebuilds only if it has to.
+		auto redrawCallback = [this](PinBase*) { redraw(); };
+		pinPath.onUpdate        = redrawCallback;
+		pinFillColor.onUpdate   = redrawCallback;
+		pinStrokeColor.onUpdate = redrawCallback;
+		pinStrokeWidth.onUpdate = redrawCallback;
+		pinSnapPixels.onUpdate  = redrawCallback;
 	}
 
 	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
@@ -238,18 +258,33 @@ public:
 			return snapper.snapPixelOrigin(p);
 		};
 
-		if(snap)
+		// Cache check. Snap-off depends only on the path string; snap-on also
+		// depends on the transform (zoom + DPI + module position) and the
+		// odd/even parity of the snapped stroke. Editing happens at typing
+		// speed but rendering happens at frame rate, so on a steady state this
+		// hits every frame and parsePathToGeometry never runs.
+		const bool needRebuild =
+			!cachedGeometry
+			|| cachedKey.snap != snap
+			|| cachedKey.path != pinPath.value
+			|| (snap && (cachedKey.centreSnap != centreSnap
+			             || !matrixEq(cachedKey.transform, snapper.transform)));
+
+		if(needRebuild)
 		{
-			// Snapped geometry depends on the current transform, DPI, AND the
-			// stroke width's parity, so rebuild every frame.
-			cachedGeometry = parsePathToGeometry(g, pinPath.value, snapFn);
-			cachedGeometrySource.clear(); // force a non-snap rebuild later
-		}
-		else if(!cachedGeometry || cachedGeometrySource != pinPath.value)
-		{
-			auto identity = [](Point p) { return p; };
-			cachedGeometry = parsePathToGeometry(g, pinPath.value, identity);
-			cachedGeometrySource = pinPath.value;
+			if(snap)
+			{
+				cachedGeometry = parsePathToGeometry(g, pinPath.value, snapFn);
+			}
+			else
+			{
+				auto identity = [](Point p) { return p; };
+				cachedGeometry = parsePathToGeometry(g, pinPath.value, identity);
+			}
+			cachedKey.path       = pinPath.value;
+			cachedKey.snap       = snap;
+			cachedKey.centreSnap = centreSnap;
+			cachedKey.transform  = snapper.transform;
 		}
 
 		if(!pinFillColor.value.empty())
