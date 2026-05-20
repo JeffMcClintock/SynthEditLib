@@ -225,24 +225,20 @@ public:
 
 		const bool wantStroke = !pinStrokeColor.value.empty() && pinStrokeWidth.value > 0.0f;
 
-		// Compute the snapped stroke width and whether the snapped width is an
-		// odd number of physical pixels. An odd width must straddle a pixel
-		// centre to render crisply, so we have to snap the path's points to
-		// pixel *centres* (integer + 0.5) instead of pixel origins. Even widths
-		// (and the fill-only case) snap to origins.
+		// Snap the stroke width (and learn whether it landed on an odd pixel
+		// count, which means the geometry needs pixel-centre alignment for a
+		// crisp render). snapForStroke() picks centre vs origin from the
+		// lineSnap, so the caller doesn't have to.
 		float snappedWidth = (std::max)(0.0f, pinStrokeWidth.value);
-		bool centreSnap = false;
+		pixelSnapper2::lineSnap ls{ snappedWidth, 0.0f };
 		if(snap && wantStroke)
 		{
-			const auto ls = snapper.thickness(snappedWidth);
+			ls = snapper.thickness(snappedWidth);
 			snappedWidth = ls.width;
-			centreSnap = ls.center_offset != 0.0f;
 		}
+		const bool centreSnap = ls.center_offset != 0.0f;
 
-		auto snapFn = [&](Point p) -> Point
-		{
-			return centreSnap ? snapper.snapPixelCenter(p) : snapper.snapPixelOrigin(p);
-		};
+		auto snapFn = [&](Point p) { return snapper.snapForStroke(p, ls); };
 
 		// Cache check. pinPath / pinSnapPixels invalidate via onUpdate; what's
 		// left to detect here is "the transform changed" (zoom, pan, DPI) and
