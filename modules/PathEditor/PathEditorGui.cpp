@@ -45,6 +45,13 @@ class PathEditorGui final : public ControlsBase
 	static constexpr float kHitTolHandle    = 5.0f;
 	static constexpr float kHitTolSegment   = 4.0f;
 	static constexpr float kHandleSeed      = 20.0f;
+	static constexpr float kGridQuantum     = 0.25f; // snap to 1/4 DIP
+
+	static Point quantize(Point p)
+	{
+		return { std::round(p.x / kGridQuantum) * kGridQuantum,
+		         std::round(p.y / kGridQuantum) * kGridQuantum };
+	}
 
 	// ── Geometry helpers ─────────────────────────────────────────────────────
 	static Point lerp(Point a, Point b, float t)
@@ -436,7 +443,7 @@ class PathEditorGui final : public ControlsBase
 		const bool tailClosed = !nodes.empty() && nodes.back().closesSubpath;
 
 		Node n;
-		n.pos = p;
+		n.pos = quantize(p);
 		n.kind = NodeKind::Line;
 		n.startsSubpath = startNewSubpath || nodes.empty() || tailClosed;
 		nodes.push_back(n);
@@ -463,16 +470,16 @@ class PathEditorGui final : public ControlsBase
 			const Point r1 = lerp(q1, q2, t);
 			const Point s  = lerp(r0, r1, t);
 
-			a.ctrlOut = q0;
-			n.pos = s;
-			n.ctrlIn = r0;
-			n.ctrlOut = r1;
+			a.ctrlOut = quantize(q0);
+			n.pos     = quantize(s);
+			n.ctrlIn  = quantize(r0);
+			n.ctrlOut = quantize(r1);
 			n.kind = NodeKind::Cubic;
-			b.ctrlIn = q2;  // b.kind stays Cubic
+			b.ctrlIn  = quantize(q2);  // b.kind stays Cubic
 		}
 		else
 		{
-			n.pos = lerp(a.pos, b.pos, t);
+			n.pos = quantize(lerp(a.pos, b.pos, t));
 			n.kind = NodeKind::Line;
 		}
 
@@ -533,8 +540,8 @@ class PathEditorGui final : public ControlsBase
 			const float ux = (len > 1e-3f) ? dx / len : 1.0f;
 			const float uy = (len > 1e-3f) ? dy / len : 0.0f;
 			const float off = (std::min)(kHandleSeed, len * 0.33f);
-			prev.ctrlOut = { prev.pos.x + ux * off, prev.pos.y + uy * off };
-			n.ctrlIn     = { n.pos.x    - ux * off, n.pos.y    - uy * off };
+			prev.ctrlOut = quantize({ prev.pos.x + ux * off, prev.pos.y + uy * off });
+			n.ctrlIn     = quantize({ n.pos.x    - ux * off, n.pos.y    - uy * off });
 			n.kind = NodeKind::Cubic;
 		}
 		else
@@ -575,8 +582,8 @@ class PathEditorGui final : public ControlsBase
 			const float ux = (len > 1e-3f) ? dx / len : 1.0f;
 			const float uy = (len > 1e-3f) ? dy / len : 0.0f;
 			const float off = (std::min)(kHandleSeed, len * 0.33f);
-			lastNode.ctrlOut = { lastNode.pos.x + ux * off, lastNode.pos.y + uy * off };
-			mNode.ctrlIn     = { mNode.pos.x    - ux * off, mNode.pos.y    - uy * off };
+			lastNode.ctrlOut = quantize({ lastNode.pos.x + ux * off, lastNode.pos.y + uy * off });
+			mNode.ctrlIn     = quantize({ mNode.pos.x    - ux * off, mNode.pos.y    - uy * off });
 			mNode.kind = NodeKind::Cubic;
 		}
 		else
@@ -826,8 +833,9 @@ public:
 		// The incoming segment (if any) becomes cubic.
 		if(drag == Drag::SmoothCreate)
 		{
-			n.ctrlOut = point;
-			n.ctrlIn  = { 2.0f * n.pos.x - point.x, 2.0f * n.pos.y - point.y };
+			const Point qp = quantize(point);
+			n.ctrlOut = qp;
+			n.ctrlIn  = quantize({ 2.0f * n.pos.x - qp.x, 2.0f * n.pos.y - qp.y });
 
 			if(!n.startsSubpath && selectedIdx > 0)
 			{
@@ -836,7 +844,7 @@ public:
 				// Seed prev.ctrlOut with a sensible default if it's never been set.
 				// Treat (0,0) as unset — a reasonable assumption for our coord space.
 				if(prev.ctrlOut.x == 0.0f && prev.ctrlOut.y == 0.0f)
-					prev.ctrlOut = lerp(prev.pos, n.pos, 0.33f);
+					prev.ctrlOut = quantize(lerp(prev.pos, n.pos, 0.33f));
 			}
 
 			commit();
@@ -854,12 +862,17 @@ public:
 			n.pos.x     += dx; n.pos.y     += dy;
 			n.ctrlIn.x  += dx; n.ctrlIn.y  += dy;
 			n.ctrlOut.x += dx; n.ctrlOut.y += dy;
+			n.pos     = quantize(n.pos);
+			n.ctrlIn  = quantize(n.ctrlIn);
+			n.ctrlOut = quantize(n.ctrlOut);
 			break;
 		case Drag::CtrlIn:
 			n.ctrlIn.x  += dx; n.ctrlIn.y  += dy;
+			n.ctrlIn = quantize(n.ctrlIn);
 			break;
 		case Drag::CtrlOut:
 			n.ctrlOut.x += dx; n.ctrlOut.y += dy;
+			n.ctrlOut = quantize(n.ctrlOut);
 			break;
 		default: break;
 		}
