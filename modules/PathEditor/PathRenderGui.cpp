@@ -2,6 +2,7 @@
 // Copyright 2026 Jeff McClintock.
 
 #include "../Controls/ControlsBase.h"
+#include "helpers/PixelSnapper.h"
 #include <cctype>
 #include <cstdlib>
 
@@ -14,6 +15,10 @@
 //   Fill Color    — "RRGGBB" or "AARRGGBB". Empty string = don't fill
 //   Stroke Color  — same. Empty string = don't stroke
 //   Stroke Width  — pixels
+//   Snap to Pixels — when true, every point in the geometry is snapped to the
+//                    nearest hardware pixel (crisper rendering for axis-aligned
+//                    shapes; geometry rebuilt each frame since it depends on
+//                    the current transform and DPI)
 
 class PathRenderGui final : public ControlsBase
 {
@@ -21,13 +26,16 @@ class PathRenderGui final : public ControlsBase
 	Pin<std::string> pinFillColor;
 	Pin<std::string> pinStrokeColor;
 	Pin<float>       pinStrokeWidth;
+	Pin<bool>        pinSnapPixels;
 
 	PathGeometry cachedGeometry;
 	std::string  cachedGeometrySource;  // the d-string that built `cachedGeometry`
 
 	// Build a PathGeometry directly from the d-string. Supports M/L/H/V/C/Z and
-	// their lowercase (relative) variants.
-	static PathGeometry parsePathToGeometry(Graphics& g, const std::string& d)
+	// their lowercase (relative) variants. `snap` is applied to every point
+	// before it hits the sink — pass an identity lambda to disable snapping.
+	template<typename SnapFn>
+	static PathGeometry parsePathToGeometry(Graphics& g, const std::string& d, SnapFn snap)
 	{
 		auto geom = g.getFactory().createPathGeometry();
 		auto sink = geom.open();
@@ -72,7 +80,7 @@ class PathRenderGui final : public ControlsBase
 		{
 			if(!inFigure)
 			{
-				sink.beginFigure(last, FigureBegin::Filled);
+				sink.beginFigure(snap(last), FigureBegin::Filled);
 				inFigure = true;
 				first = last;
 			}
@@ -89,7 +97,7 @@ class PathRenderGui final : public ControlsBase
 				endFig();
 				Point p{ t.args[0], t.args[1] };
 				if(rel && (last.x != 0.0f || last.y != 0.0f)) { p.x += last.x; p.y += last.y; }
-				sink.beginFigure(p, FigureBegin::Filled);
+				sink.beginFigure(snap(p), FigureBegin::Filled);
 				inFigure = true;
 				last = first = p;
 				// Subsequent coord pairs after M are implicit Line-to.
@@ -97,7 +105,7 @@ class PathRenderGui final : public ControlsBase
 				{
 					Point q{ t.args[i], t.args[i + 1] };
 					if(rel) { q.x += last.x; q.y += last.y; }
-					sink.addLine(q);
+					sink.addLine(snap(q));
 					last = q;
 				}
 			}
@@ -111,7 +119,7 @@ class PathRenderGui final : public ControlsBase
 					Point q{ t.args[i], t.args[i + 1] };
 					if(rel) { q.x += last.x; q.y += last.y; }
 					ensureFigure();
-					sink.addLine(q);
+					sink.addLine(snap(q));
 					last = q;
 				}
 			}
@@ -124,7 +132,7 @@ class PathRenderGui final : public ControlsBase
 				{
 					last.x = rel ? last.x + x : x;
 					ensureFigure();
-					sink.addLine(last);
+					sink.addLine(snap(last));
 				}
 			}
 			break;
@@ -136,7 +144,7 @@ class PathRenderGui final : public ControlsBase
 				{
 					last.y = rel ? last.y + y : y;
 					ensureFigure();
-					sink.addLine(last);
+					sink.addLine(snap(last));
 				}
 			}
 			break;
@@ -156,7 +164,7 @@ class PathRenderGui final : public ControlsBase
 						pe.x += last.x; pe.y += last.y;
 					}
 					ensureFigure();
-					sink.addBezier({ c1, c2, pe });
+					sink.addBezier({ snap(c1), snap(c2), snap(pe) });
 					last = pe;
 				}
 			}
@@ -185,6 +193,7 @@ public:
 		pinFillColor.onUpdate   = [this](PinBase*) { redraw(); };
 		pinStrokeColor.onUpdate = [this](PinBase*) { redraw(); };
 		pinStrokeWidth.onUpdate = [this](PinBase*) { redraw(); };
+		pinSnapPixels.onUpdate  = [this](PinBase*) { cachedGeometry = {}; cachedGeometrySource.clear(); redraw(); };
 	}
 
 	ReturnCode render(drawing::api::IDeviceContext* drawingContext) override
@@ -195,10 +204,20 @@ public:
 		if(pinPath.value.empty())
 			return ReturnCode::Ok;
 
-		// (Re)build cached geometry on first use / when the path string changes.
-		if(!cachedGeometry || cachedGeometrySource != pinPath.value)
+		if(pinSnapPixels.value)
 		{
-			cachedGeometry = parsePathToGeometry(g, pinPath.value);
+			// Snapped geometry depends on the current transform and DPI, so
+			// rebuild every frame (skip the cache).
+			const float rs = drawingHost.get() ? drawingHost->getRasterizationScale() : 1.0f;
+			pixelSnapper2 snapper(g.getTransform(), rs);
+			auto snapFn = [&](Point p) { return snapper.snapPixelOrigin(p); };
+			cachedGeometry = parsePathToGeometry(g, pinPath.value, snapFn);
+			cachedGeometrySource.clear(); // force a non-snap rebuild later
+		}
+		else if(!cachedGeometry || cachedGeometrySource != pinPath.value)
+		{
+			auto identity = [](Point p) { return p; };
+			cachedGeometry = parsePathToGeometry(g, pinPath.value, identity);
 			cachedGeometrySource = pinPath.value;
 		}
 
@@ -232,6 +251,7 @@ auto r = gmpi::Register<PathRenderGui>::withXml(R"XML(
         <Pin name="Fill Color" datatype="string" default="EEEEEE"/>
         <Pin name="Stroke Color" datatype="string" default="000000"/>
         <Pin name="Stroke Width" datatype="float" default="1.0"/>
+        <Pin name="Snap to Pixels" datatype="bool" default="false"/>
     </GUI>
 </Plugin>
 )XML");
