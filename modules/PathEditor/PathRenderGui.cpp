@@ -210,11 +210,38 @@ public:
 		// below and stroke-width snapping further down.
 		pixelSnapper2 snapper(g.getTransform(), rs);
 
+		const bool wantStroke = !pinStrokeColor.value.empty() && pinStrokeWidth.value > 0.0f;
+
+		// Compute the snapped stroke width and whether the snapped width is an
+		// odd number of physical pixels. An odd width must straddle a pixel
+		// centre to render crisply, so we have to snap the path's points to
+		// pixel *centres* (integer + 0.5) instead of pixel origins. Even widths
+		// (and the fill-only case) snap to origins.
+		float snappedWidth = (std::max)(0.0f, pinStrokeWidth.value);
+		bool centreSnap = false;
+		if(snap && wantStroke)
+		{
+			const auto ls = snapper.thickness(snappedWidth);
+			snappedWidth = ls.width;
+			centreSnap = ls.center_offset != 0.0f;
+		}
+
+		auto snapFn = [&](Point p) -> Point
+		{
+			if(centreSnap)
+			{
+				Point pp = transformPoint(snapper.transform, p);
+				pp.x = std::floor(pp.x) + 0.5f;
+				pp.y = std::floor(pp.y) + 0.5f;
+				return transformPoint(snapper.inverted, pp);
+			}
+			return snapper.snapPixelOrigin(p);
+		};
+
 		if(snap)
 		{
-			// Snapped geometry depends on the current transform and DPI, so
-			// rebuild every frame (skip the cache).
-			auto snapFn = [&](Point p) { return snapper.snapPixelOrigin(p); };
+			// Snapped geometry depends on the current transform, DPI, AND the
+			// stroke width's parity, so rebuild every frame.
 			cachedGeometry = parsePathToGeometry(g, pinPath.value, snapFn);
 			cachedGeometrySource.clear(); // force a non-snap rebuild later
 		}
@@ -231,20 +258,10 @@ public:
 			g.fillGeometry(cachedGeometry, fillBrush);
 		}
 
-		if(!pinStrokeColor.value.empty())
+		if(wantStroke)
 		{
-			float width = (std::max)(0.0f, pinStrokeWidth.value);
-			if(width > 0.0f)
-			{
-				// Width 0 means "no stroke" (handled above). Any non-zero width
-				// snaps to the nearest integer hardware-pixel count, with a
-				// floor of 1 pixel so sub-pixel lines don't disappear.
-				if(snap)
-					width = snapper.thickness(width).width;
-
-				auto strokeBrush = g.createSolidColorBrush(colorFromHexString(pinStrokeColor.value));
-				g.drawGeometry(cachedGeometry, strokeBrush, width);
-			}
+			auto strokeBrush = g.createSolidColorBrush(colorFromHexString(pinStrokeColor.value));
+			g.drawGeometry(cachedGeometry, strokeBrush, snappedWidth);
 		}
 
 		return ReturnCode::Ok;
@@ -261,7 +278,7 @@ auto r = gmpi::Register<PathRenderGui>::withXml(R"XML(
         <Pin name="Fill Color" datatype="string" default="EEEEEE"/>
         <Pin name="Stroke Color" datatype="string" default="000000"/>
         <Pin name="Stroke Width" datatype="float" default="1.0"/>
-        <Pin name="Snap to Pixels" datatype="bool"/>
+        <Pin name="Snap to Pixels" datatype="bool" private="true"/>
     </GUI>
 </Plugin>
 )XML");
