@@ -852,30 +852,47 @@ public:
 			return ReturnCode::Ok;
 		}
 
-		const float dx = point.x - pointPrevious.x;
-		const float dy = point.y - pointPrevious.y;
-		pointPrevious = point;
+		// Raw mouse delta since last move. Don't advance pointPrevious by the
+		// raw delta — advance it only by the snapped step. That way sub-quantum
+		// mouse movements accumulate until they cross a grid boundary, instead
+		// of being rounded away every frame. (Same pattern as ViewBase.cpp's
+		// module-drag snap.)
+		const float rawDx = point.x - pointPrevious.x;
+		const float rawDy = point.y - pointPrevious.y;
 
+		// Snap the drag target (relative to its anchor field's current pos) and
+		// return the snapped delta actually applied this frame.
+		auto snapDelta = [&](Point anchor) -> Point
+		{
+			const Point target  { anchor.x + rawDx, anchor.y + rawDy };
+			const Point snapped = quantize(target);
+			return { snapped.x - anchor.x, snapped.y - anchor.y };
+		};
+
+		Point step{};
 		switch(drag)
 		{
 		case Drag::Anchor:
-			n.pos.x     += dx; n.pos.y     += dy;
-			n.ctrlIn.x  += dx; n.ctrlIn.y  += dy;
-			n.ctrlOut.x += dx; n.ctrlOut.y += dy;
-			n.pos     = quantize(n.pos);
-			n.ctrlIn  = quantize(n.ctrlIn);
-			n.ctrlOut = quantize(n.ctrlOut);
+			step = snapDelta(n.pos);
+			n.pos.x     += step.x; n.pos.y     += step.y;
+			n.ctrlIn.x  += step.x; n.ctrlIn.y  += step.y;
+			n.ctrlOut.x += step.x; n.ctrlOut.y += step.y;
 			break;
 		case Drag::CtrlIn:
-			n.ctrlIn.x  += dx; n.ctrlIn.y  += dy;
-			n.ctrlIn = quantize(n.ctrlIn);
+			step = snapDelta(n.ctrlIn);
+			n.ctrlIn.x += step.x; n.ctrlIn.y += step.y;
 			break;
 		case Drag::CtrlOut:
-			n.ctrlOut.x += dx; n.ctrlOut.y += dy;
-			n.ctrlOut = quantize(n.ctrlOut);
+			step = snapDelta(n.ctrlOut);
+			n.ctrlOut.x += step.x; n.ctrlOut.y += step.y;
 			break;
 		default: break;
 		}
+
+		// Advance pointPrevious only by the step we actually took, so any
+		// leftover sub-quantum motion contributes to the next move's delta.
+		pointPrevious.x += step.x;
+		pointPrevious.y += step.y;
 
 		commit();
 		redraw();
