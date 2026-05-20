@@ -85,6 +85,8 @@ namespace SE2
 
 	float GmpiHelper::getRasterizationScale()
 	{
+		if (moduleview.parent && moduleview.parent->drawingHost)
+			return moduleview.parent->drawingHost->getRasterizationScale();
 		return 1.0f;
 	}
 
