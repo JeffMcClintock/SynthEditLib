@@ -1179,12 +1179,13 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(MidiToCv2);
 	INIT_STATIC_FILE(RegistrationCheck) // has DSP also,but too bad.
 
+#if SE_GRAPHICS_SUPPORT
 #if !defined(SE_USE_JUCE_UI)
 	INIT_STATIC_FILE(PatchPointsGui)
 #endif
-
 	INIT_STATIC_FILE(CpuMeterGui);
 	INIT_STATIC_FILE(PatchPoints);
+#endif
 	//	INIT_STATIC_FILE(Scope3);
 	INIT_STATIC_FILE(VoiceMute);
 	INIT_STATIC_FILE(ug_adsr);
