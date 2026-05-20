@@ -204,12 +204,16 @@ public:
 		if(pinPath.value.empty())
 			return ReturnCode::Ok;
 
-		if(pinSnapPixels.value)
+		const bool snap = pinSnapPixels.value;
+		const float rs = drawingHost.get() ? drawingHost->getRasterizationScale() : 1.0f;
+		// Cheap to construct (one matrix invert); shared by geometry snapping
+		// below and stroke-width snapping further down.
+		pixelSnapper2 snapper(g.getTransform(), rs);
+
+		if(snap)
 		{
 			// Snapped geometry depends on the current transform and DPI, so
 			// rebuild every frame (skip the cache).
-			const float rs = drawingHost.get() ? drawingHost->getRasterizationScale() : 1.0f;
-			pixelSnapper2 snapper(g.getTransform(), rs);
 			auto snapFn = [&](Point p) { return snapper.snapPixelOrigin(p); };
 			cachedGeometry = parsePathToGeometry(g, pinPath.value, snapFn);
 			cachedGeometrySource.clear(); // force a non-snap rebuild later
@@ -229,9 +233,15 @@ public:
 
 		if(!pinStrokeColor.value.empty())
 		{
-			const float width = (std::max)(0.0f, pinStrokeWidth.value);
+			float width = (std::max)(0.0f, pinStrokeWidth.value);
 			if(width > 0.0f)
 			{
+				// Width 0 means "no stroke" (handled above). Any non-zero width
+				// snaps to the nearest integer hardware-pixel count, with a
+				// floor of 1 pixel so sub-pixel lines don't disappear.
+				if(snap)
+					width = snapper.thickness(width).width;
+
 				auto strokeBrush = g.createSolidColorBrush(colorFromHexString(pinStrokeColor.value));
 				g.drawGeometry(cachedGeometry, strokeBrush, width);
 			}
