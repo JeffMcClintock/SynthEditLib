@@ -252,6 +252,32 @@ class PathEditorGui final : public ControlsBase
 				break;
 			}
 		}
+
+		// Detect cubic-close patterns: a subpath whose Z is preceded by a Cubic
+		// whose endpoint coincides with the M point. Collapse the extra node
+		// into M itself, encoding the close as "M.kind == Cubic" with the
+		// cubic's second control stashed on M.ctrlIn.
+		for(int i = static_cast<int>(nodes.size()) - 1; i > 0; --i)
+		{
+			auto& n = nodes[i];
+			if(!n.closesSubpath || n.kind != NodeKind::Cubic || n.startsSubpath)
+				continue;
+
+			const int subStart = subpathStartOf(i);
+			if(subStart == i) continue;
+			auto& mNode = nodes[subStart];
+
+			const float dx = n.pos.x - mNode.pos.x;
+			const float dy = n.pos.y - mNode.pos.y;
+			if(dx * dx + dy * dy > 0.01f) continue; // not coincident with M
+
+			// Collapse: M absorbs the closing cubic's "second control" and the close flag.
+			// nodes[i-1].ctrlOut already holds the first control point from the C parse.
+			mNode.kind = NodeKind::Cubic;
+			mNode.ctrlIn = n.ctrlIn;
+			mNode.closesSubpath = true;
+			nodes.erase(nodes.begin() + i);
+		}
 	}
 
 	// ── Serialize nodes[] to SVG d-string ────────────────────────────────────
@@ -288,7 +314,21 @@ class PathEditorGui final : public ControlsBase
 				out += "L " + fmtCoord(n.pos.x) + ' ' + fmtCoord(n.pos.y);
 			}
 
-			if(n.closesSubpath) out += " Z";
+			if(n.closesSubpath)
+			{
+				// Cubic close: M's `kind == Cubic` means the closing segment is a
+				// Bezier. Emit it explicitly before Z, controls: (last.ctrlOut, M.ctrlIn).
+				const int subStart = subpathStartOf(static_cast<int>(i));
+				const auto& mNode = nodes[subStart];
+				if(subStart != static_cast<int>(i) && mNode.kind == NodeKind::Cubic)
+				{
+					out += " C "
+						+ fmtCoord(n.ctrlOut.x)    + ' ' + fmtCoord(n.ctrlOut.y)    + ' '
+						+ fmtCoord(mNode.ctrlIn.x) + ' ' + fmtCoord(mNode.ctrlIn.y) + ' '
+						+ fmtCoord(mNode.pos.x)    + ' ' + fmtCoord(mNode.pos.y);
+				}
+				out += " Z";
+			}
 		}
 		return out;
 	}
@@ -311,19 +351,48 @@ class PathEditorGui final : public ControlsBase
 		return -1;
 	}
 
+	// Which of a node's two control handles should be visible / hit-testable.
+	// Accounts for the "cubic close" case where M itself has an incoming cubic
+	// (back from the last node in a closed subpath) and the last node has an
+	// outgoing cubic forward to M.
+	struct HandleVisibility { bool hasIn, hasOut; };
+	HandleVisibility computeHandles(int idx) const
+	{
+		HandleVisibility v{ false, false };
+		if(idx < 0 || idx >= static_cast<int>(nodes.size())) return v;
+
+		const auto& n      = nodes[idx];
+		const int subStart = subpathStartOf(idx);
+		const int subEnd   = subpathEndOf(idx);
+		const bool closed  = nodes[subEnd].closesSubpath;
+		const bool cubicClose = closed && (subStart != subEnd)
+		                       && nodes[subStart].kind == NodeKind::Cubic;
+
+		// Incoming side: regular cubic-into-node OR M with cubic-close.
+		if(n.startsSubpath)
+			v.hasIn = cubicClose;
+		else
+			v.hasIn = (n.kind == NodeKind::Cubic);
+
+		// Outgoing side: cubic-into-next OR last-node with cubic-close.
+		if(idx < subEnd)
+			v.hasOut = (nodes[idx + 1].kind == NodeKind::Cubic);
+		else
+			v.hasOut = cubicClose;  // idx == subEnd
+
+		return v;
+	}
+
 	// Check selected node's visible handles.
 	bool hitSelectedHandle(Point p, Drag& which) const
 	{
 		if(selectedIdx < 0) return false;
 		const float tolSq = kHitTolHandle * kHitTolHandle;
 		const auto& n = nodes[selectedIdx];
+		const auto vis = computeHandles(selectedIdx);
 
-		const bool hasIn  = !n.startsSubpath && n.kind == NodeKind::Cubic;
-		const int  endIdx = subpathEndOf(selectedIdx);
-		const bool hasOut = (selectedIdx < endIdx) && nodes[selectedIdx + 1].kind == NodeKind::Cubic;
-
-		if(hasIn  && distSq(p, n.ctrlIn ) <= tolSq) { which = Drag::CtrlIn;  return true; }
-		if(hasOut && distSq(p, n.ctrlOut) <= tolSq) { which = Drag::CtrlOut; return true; }
+		if(vis.hasIn  && distSq(p, n.ctrlIn ) <= tolSq) { which = Drag::CtrlIn;  return true; }
+		if(vis.hasOut && distSq(p, n.ctrlOut) <= tolSq) { which = Drag::CtrlOut; return true; }
 		return false;
 	}
 
@@ -483,24 +552,75 @@ class PathEditorGui final : public ControlsBase
 		last.closesSubpath = !last.closesSubpath;
 	}
 
+	// Toggle the closing segment between Line and Cubic. The closing-segment
+	// kind is stored on the subpath's M node (M.kind, normally ignored). When
+	// promoting to Cubic we seed M.ctrlIn and lastNode.ctrlOut along the segment.
+	void toggleCloseKind(int idx)
+	{
+		if(idx < 0 || idx >= static_cast<int>(nodes.size())) return;
+		const int subStart = subpathStartOf(idx);
+		const int subEnd   = subpathEndOf(idx);
+		if(subStart == subEnd) return;             // lone M, no closing segment
+		if(!nodes[subEnd].closesSubpath) return;   // not closed
+
+		auto& mNode    = nodes[subStart];
+		auto& lastNode = nodes[subEnd];
+
+		if(mNode.kind == NodeKind::Line)
+		{
+			// Seed handles along the line from last → M.
+			const float dx = mNode.pos.x - lastNode.pos.x;
+			const float dy = mNode.pos.y - lastNode.pos.y;
+			const float len = std::sqrt(dx * dx + dy * dy);
+			const float ux = (len > 1e-3f) ? dx / len : 1.0f;
+			const float uy = (len > 1e-3f) ? dy / len : 0.0f;
+			const float off = (std::min)(kHandleSeed, len * 0.33f);
+			lastNode.ctrlOut = { lastNode.pos.x + ux * off, lastNode.pos.y + uy * off };
+			mNode.ctrlIn     = { mNode.pos.x    - ux * off, mNode.pos.y    - uy * off };
+			mNode.kind = NodeKind::Cubic;
+		}
+		else
+		{
+			mNode.kind = NodeKind::Line;
+		}
+	}
+
 	// ── Rendering ────────────────────────────────────────────────────────────
 	PathGeometry buildPath(Graphics& g) const
 	{
 		auto geom = g.getFactory().createPathGeometry();
 		auto sink = geom.open();
 
+		int subpathStart = -1;
 		bool inFigure = false;
 		bool closeOnEnd = false;
+
+		// Close current figure, emitting a closing cubic first when the
+		// subpath's M is marked Cubic (cubic close).
+		auto endCurrentFigure = [&](int onePastLast)
+		{
+			if(!inFigure) return;
+			if(closeOnEnd && subpathStart >= 0 && subpathStart < onePastLast - 1
+			   && nodes[subpathStart].kind == NodeKind::Cubic)
+			{
+				const auto& mNode    = nodes[subpathStart];
+				const auto& lastNode = nodes[onePastLast - 1];
+				sink.addBezier({ lastNode.ctrlOut, mNode.ctrlIn, mNode.pos });
+			}
+			sink.endFigure(closeOnEnd ? FigureEnd::Closed : FigureEnd::Open);
+			inFigure = false;
+			closeOnEnd = false;
+		};
+
 		for(size_t i = 0; i < nodes.size(); ++i)
 		{
 			const auto& n = nodes[i];
 			if(n.startsSubpath)
 			{
-				if(inFigure)
-					sink.endFigure(closeOnEnd ? FigureEnd::Closed : FigureEnd::Open);
+				endCurrentFigure(static_cast<int>(i));
 				sink.beginFigure(n.pos, FigureBegin::Hollow);
 				inFigure = true;
-				closeOnEnd = false;
+				subpathStart = static_cast<int>(i);
 			}
 			else if(n.kind == NodeKind::Cubic)
 			{
@@ -514,8 +634,7 @@ class PathEditorGui final : public ControlsBase
 			if(n.closesSubpath)
 				closeOnEnd = true;
 		}
-		if(inFigure)
-			sink.endFigure(closeOnEnd ? FigureEnd::Closed : FigureEnd::Open);
+		endCurrentFigure(static_cast<int>(nodes.size()));
 		sink.close();
 		return geom;
 	}
@@ -595,17 +714,14 @@ public:
 		{
 			const auto& n = nodes[selectedIdx];
 			auto handleBrush = g.createSolidColorBrush(Color{ 0.55f, 0.55f, 0.55f, 1.0f });
+			const auto vis = computeHandles(selectedIdx);
 
-			const bool hasIn  = !n.startsSubpath && n.kind == NodeKind::Cubic;
-			const int  endIdx = subpathEndOf(selectedIdx);
-			const bool hasOut = (selectedIdx < endIdx) && nodes[selectedIdx + 1].kind == NodeKind::Cubic;
-
-			if(hasIn)
+			if(vis.hasIn)
 			{
 				g.drawLine(n.pos, n.ctrlIn, handleBrush, 1.0f);
 				g.fillCircle(n.ctrlIn, kHandleRadius, handleBrush);
 			}
-			if(hasOut)
+			if(vis.hasOut)
 			{
 				g.drawLine(n.pos, n.ctrlOut, handleBrush, 1.0f);
 				g.fillCircle(n.ctrlOut, kHandleRadius, handleBrush);
@@ -798,6 +914,16 @@ public:
 			const bool isClosed = nodes[endIdx].closesSubpath;
 			menu.addItem(isClosed ? "Open Subpath" : "Close Subpath", 0,
 				[this, idx](int32_t) { toggleClose(idx); commit(); redraw(); });
+
+			// Cubic-close: kind is stored on the subpath's M node.
+			if(isClosed && subpathStartOf(idx) != endIdx)
+			{
+				const auto& mNode = nodes[subpathStartOf(idx)];
+				const char* label = (mNode.kind == NodeKind::Line)
+					? "Convert Closing Segment to Cubic"
+					: "Convert Closing Segment to Line";
+				menu.addItem(label, 0, [this, idx](int32_t) { toggleCloseKind(idx); commit(); redraw(); });
+			}
 
 			return ReturnCode::Ok;
 		}
