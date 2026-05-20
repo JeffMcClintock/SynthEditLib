@@ -29,20 +29,12 @@ class PathRenderGui final : public ControlsBase
 	Pin<bool>        pinSnapPixels;
 
 	// Geometry cache. Pin changes (Path, Snap to Pixels) clear cachedGeometry
-	// via onUpdate, so the cache miss for those is handled before render() even
-	// runs. The remaining inputs that can change without a pin notification —
-	// device-context transform (zoom / pan / DPI) and the snapped-stroke parity
-	// — are checked at the top of render().
-	PathGeometry cachedGeometry;
-	Matrix3x2    cachedTransform{};  // only meaningful when snap was on
-	bool         cachedCentreSnap = false;
-
-	static bool matrixEq(const Matrix3x2& a, const Matrix3x2& b)
-	{
-		return a._11 == b._11 && a._12 == b._12
-		    && a._21 == b._21 && a._22 == b._22
-		    && a._31 == b._31 && a._32 == b._32;
-	}
+	// via onUpdate. The transform / DPI / parity invalidation is handled by
+	// keeping a stateful pixelSnapper2 as a member: its update() returns true
+	// iff anything changed since the previous frame.
+	PathGeometry  cachedGeometry;
+	bool          cachedCentreSnap = false;
+	pixelSnapper2 snapper;
 
 	// Build a PathGeometry directly from the d-string. Supports M/L/H/V/C/Z and
 	// their lowercase (relative) variants. `snap` is applied to every point
@@ -225,9 +217,11 @@ public:
 
 		const bool snap = pinSnapPixels.value;
 		const float rs = drawingHost.get() ? drawingHost->getRasterizationScale() : 1.0f;
-		// Cheap to construct (one matrix invert); shared by geometry snapping
-		// below and stroke-width snapping further down.
-		pixelSnapper2 snapper(g.getTransform(), rs);
+
+		// Refresh the snapper from the live transform & DPI. Returns true iff
+		// anything changed since the previous frame; we use that to know when
+		// any snap-dependent cache (here: the geometry) needs rebuilding.
+		const bool transformChanged = snapper.update(g.getTransform(), rs);
 
 		const bool wantStroke = !pinStrokeColor.value.empty() && pinStrokeWidth.value > 0.0f;
 
@@ -247,14 +241,7 @@ public:
 
 		auto snapFn = [&](Point p) -> Point
 		{
-			if(centreSnap)
-			{
-				Point pp = transformPoint(snapper.transform, p);
-				pp.x = std::floor(pp.x) + 0.5f;
-				pp.y = std::floor(pp.y) + 0.5f;
-				return transformPoint(snapper.inverted, pp);
-			}
-			return snapper.snapPixelOrigin(p);
+			return centreSnap ? snapper.snapPixelCenter(p) : snapper.snapPixelOrigin(p);
 		};
 
 		// Cache check. pinPath / pinSnapPixels invalidate via onUpdate; what's
@@ -263,8 +250,7 @@ public:
 		// notification.
 		const bool needRebuild =
 			!cachedGeometry
-			|| (snap && (cachedCentreSnap != centreSnap
-			             || !matrixEq(cachedTransform, snapper.transform)));
+			|| (snap && (cachedCentreSnap != centreSnap || transformChanged));
 
 		if(needRebuild)
 		{
@@ -278,7 +264,6 @@ public:
 				cachedGeometry = parsePathToGeometry(g, pinPath.value, identity);
 			}
 			cachedCentreSnap = centreSnap;
-			cachedTransform  = snapper.transform;
 		}
 
 		if(!pinFillColor.value.empty())
