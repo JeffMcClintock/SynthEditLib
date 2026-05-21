@@ -69,6 +69,54 @@ auto r = Register<FirstNonEmpty>::withXml(R"XML(
 }
 
 
+struct StringConcat final : public Processor
+{
+	StringOutPin pintextOut;
+	std::vector< std::unique_ptr<StringInPin> > inputPins;
+
+	StringConcat() = default;
+
+	gmpi::ReturnCode open(api::IUnknown* phost) override
+	{
+		synthedit::PinInformation info(phost);
+
+		for (auto& pin : info.pins)
+		{
+			if (pin.direction == PinDirection::In && pin.datatype == PinDatatype::String)
+			{
+				inputPins.push_back(std::make_unique<StringInPin>());
+				init(*inputPins.back().get());
+			}
+		}
+
+		return Processor::open(phost);
+	}
+
+	void onSetPins() override
+	{
+		std::string result;
+		for (auto& pin : inputPins)
+		{
+			result += pin->getValue();
+		}
+		pintextOut = result;
+	}
+};
+
+namespace
+{
+auto r3 = Register<StringConcat>::withXml(R"XML(
+<?xml version="1.0" encoding="UTF-8"?>
+<Plugin id="SE String Concat" name="String Concat" category="Conversion/String">
+    <Audio>
+        <Pin name="text" datatype="string" direction="out"/>
+        <Pin name="text" datatype="string" autoDuplicate="true"/>
+    </Audio>
+</Plugin>
+)XML");
+}
+
+
 struct OsDetect final : public Processor
 {
 	BoolOutPin pinIsWindows;
