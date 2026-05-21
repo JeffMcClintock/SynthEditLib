@@ -1100,10 +1100,11 @@ namespace SE2
 		}
 		else
 		{
-			// shift+wheel = horizontal scroll, plain wheel = vertical scroll.
+			// shift+wheel or trackpad horizontal swipe = horizontal scroll, plain wheel = vertical scroll.
 			// delta is in pixels; convert to doc coords.
 			constexpr float pixelsPerDetent = 0.25f; // 120 delta per wheel detent
-			if (flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT)
+			const bool horizontal = (flags & (gmpi_gui_api::GG_POINTER_KEY_SHIFT | gmpi_gui_api::GG_POINTER_SCROLL_HORIZ)) != 0;
+			if (horizontal)
 				centerPos.x -= static_cast<float>(delta) * pixelsPerDetent / zoomFactor;
 			else
 				centerPos.y -= static_cast<float>(delta) * pixelsPerDetent / zoomFactor;
