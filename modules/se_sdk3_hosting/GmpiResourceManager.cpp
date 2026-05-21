@@ -105,8 +105,9 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 	}
 
 
-	// Full filenames.
-	if (resourceNameL.find(L':') != string::npos)
+	// Full filenames. Windows: drive-letter colon. POSIX: leading slash.
+	if (resourceNameL.find(L':') != string::npos
+		|| (!resourceNameL.empty() && (resourceNameL[0] == L'/' || resourceNameL[0] == L'\\')))
 	{
 		std::vector<wstring> searchPaths;
 
