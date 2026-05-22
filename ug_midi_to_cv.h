@@ -69,8 +69,9 @@ private:
 	float m_bender;
 	float m_portamento_enable;
 	float m_hold_pedal;
+	float m_sostenuto_pedal; // CC 66 — per-voice. Container only pushes 10V to voices captured at pedal-down.
 //	float GlideStartPitch_;
 	bool noteKeyDown_; // Is key on/off. Used for glide retrigger.
 	bool ignoreNoteOnPitch_;
-	bool m_held;
+	bool m_held; // true if held by either CC 64 (hold) or CC 66 (sostenuto) — see onSetPin handler.
 };

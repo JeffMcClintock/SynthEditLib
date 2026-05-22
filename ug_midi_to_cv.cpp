@@ -152,6 +152,7 @@ namespace
 #define PLG_BENDER				24
 #define PLG_PORATAMENTO_ENABLE	25
 #define PLG_HOLD_PEDAL			26
+#define PLG_SOSTENUTO_PEDAL		27
 
 // Fill an array of InterfaceObjects with plugs and parameters
 void ug_midi_to_cv::ListInterface2(std::vector<class InterfaceObject*>& PList)
@@ -190,6 +191,9 @@ void ug_midi_to_cv::ListInterface2(std::vector<class InterfaceObject*>& PList)
 	LIST_VAR3(L"Bender", m_bender, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN, L"");
 	LIST_VAR3(L"Voice/PortamentoEnable", m_portamento_enable, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN | IO_PAR_POLYPHONIC, L"");
 	LIST_VAR3(L"HoldPedal", m_hold_pedal, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN, L"");
+	// Sostenuto pedal (CC 66). Poly because the container only pushes 10 V to voices captured
+	// at the moment of pedal-down — held voices vs. newly-played voices see different values.
+	LIST_VAR3(L"SostenutoPedal", m_sostenuto_pedal, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN | IO_PAR_POLYPHONIC, L"");
 	// can't do yet.	LIST_VAR3(L"RPN-Raw/0", m_bend_amount, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN, L""); // Bend amount
 //	LIST_VAR3(L"GlideStartPitch", GlideStartPitch_, DR_IN, DT_FLOAT, L"", L"", IO_HOST_CONTROL | IO_HIDE_PIN, L"");
 }
@@ -276,6 +280,7 @@ ug_midi_to_cv::ug_midi_to_cv() :
 	, m_portamento_enable(false)
 	,ignoreNoteOnPitch_(false)
 	, m_held(false)
+	, m_sostenuto_pedal(0.0f)
 {
 	SET_PROCESS_FUNC( &ug_midi_to_cv::sub_process );
 	SetFlag(UGF_POLYPHONIC_GENERATOR_CLONED| UGF_HAS_HELPER_MODULE |UGF_DELAYED_GATE_NOTESOURCE);
@@ -868,9 +873,11 @@ void ug_midi_to_cv::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p
 		}
 	}
 
-	if (p_to_plug == GetPlug(PLG_HOLD_PEDAL) || p_to_plug == GetPlug(PLG_VOICE_ACTIVE))
+	if (p_to_plug == GetPlug(PLG_HOLD_PEDAL) || p_to_plug == GetPlug(PLG_SOSTENUTO_PEDAL) || p_to_plug == GetPlug(PLG_VOICE_ACTIVE))
 	{
-		bool held = m_hold_pedal >= 5.f && m_voice_active == 1.0f;
+		// Held by either CC 64 (hold, mono) or CC 66 (sostenuto, per-voice). voiceActive 0.5 means
+		// overlap voice — ignore pedals so the overlap fades out normally rather than getting stuck.
+		bool held = (m_hold_pedal >= 5.f || m_sostenuto_pedal >= 5.f) && m_voice_active == 1.0f;
 
 		if (held != m_held)
 		{
