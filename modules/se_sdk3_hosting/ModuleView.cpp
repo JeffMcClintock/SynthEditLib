@@ -828,9 +828,11 @@ if(pluginGraphics)
 
 	void ModuleView::initialize()
 	{
+		/* moved to 'ViewBase::ConnectModules' to facilitate auto-duplicating pins. So they be be created before first update comes in. otherwise they don't know thier initial values.
 		if (pluginParameters_GMPI)
 			pluginParameters_GMPI->initialize();
-		else if (pluginParameters)
+		*/
+		if (pluginParameters)
 			pluginParameters->initialize();
 		else if (pluginParametersLegacy)
 			pluginParametersLegacy->initialize();

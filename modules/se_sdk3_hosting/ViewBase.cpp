@@ -828,9 +828,14 @@ namespace SE2
 							wrapper->inputPinIds.push_back(pinId);
 						*/
 					}
+
+					// module now knows its pin count. Support GMPI-GUI modules with auto-duplicating pins.
+					if(wrapper->pluginParameters_GMPI)
+						wrapper->pluginParameters_GMPI->initialize();
 				}
 			}
 		}
+
 
 		auto containerXmoduleInfo = CModuleFactory::Instance()->GetById(L"ContainerX"); // so GUI pin defaults handled correctly.
 		const int64_t defaultPinValue = 0;
