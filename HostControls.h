@@ -75,6 +75,8 @@ enum HostControls { HC_NONE=-1, HC_PATCH_COMMANDS, HC_MIDI_CHANNEL, HC_PROGRAM_N
 
 					HC_PLUGIN_UI_SCALE,
 
+					HC_SOSTENUTO_PEDAL, // CC 66 — per-voice pedal that sustains only the voices held at pedal-down time
+
 					// leave last
 					HC_NUM_HOST_CONTROLS,
 };

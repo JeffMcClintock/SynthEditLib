@@ -99,6 +99,9 @@ void Voice::activate( timestamp_t p_clock/*, int channel*/, int voiceId )
 	NoteNum		= static_cast<short>(voiceId);
 	NoteOnTime = p_clock;
 	NoteOffTime	= SE_TIMESTAMP_MAX; // very important. Lets voicemonitor know note is active
+	// Sostenuto capture is selective to whatever notes were held at the moment of pedal-down.
+	// A new note-on is a fresh voice usage — clear any stale capture flag from a prior life.
+	sostenutoCaptured_ = false;
 	//	Channel		= channel;
 	//last_note_held = false;
 	assert( open ); // should now always be opened when created
@@ -436,8 +439,9 @@ void Voice::DoneCheck(timestamp_t timeStamp)
 	if (NoteOffTime >= timeStamp - container_->AudioMaster()->BlockSize()) // 2 blocks ago to account for PF_PARAMETER_1_BLOCK_LATENCY (a MIDI-CV upstream of a MIDI-CV which has signals delayed by 1 block)
 		return;
 
-	// is key held by sustain? don't shut off voice.
-	if (voiceActive_ == 1.0f && container_->HoldPedalState())
+	// is key held by sustain (CC 64) or sostenuto (CC 66)? don't shut off voice.
+	// Sustain is a container-wide state; sostenuto is per-voice (only voices captured at pedal-down qualify).
+	if (voiceActive_ == 1.0f && (container_->HoldPedalState() || sostenutoCaptured_))
 	{
 		return;
 	}
@@ -1001,6 +1005,48 @@ void VoiceList::sendDirectPathValue(HostControls hc, timestamp_t clock, ug_conta
 	else
 	{
 		directPathHostControls_[hc].sendMonoValue(clock, container, size, data);
+	}
+}
+
+// CC 66 (Sostenuto): selective sustain. On press, capture only the voices whose keys are still
+// physically down (isHeld() == true) and voiceActive_ == 1.0f (i.e. not overlap/stolen). Those
+// voices will ignore note-off until the pedal releases. Notes played after the pedal is down do
+// NOT become captured — that is the only behavioural difference from the regular hold pedal.
+void VoiceList::OnSostenutoPedalChange(bool on, timestamp_t timestamp, ug_container* container)
+{
+	if (on == sostenutoPedalState_)
+		return;
+
+	sostenutoPedalState_ = on;
+
+	const float pedalVoltsOn = 10.0f;
+	const float pedalVoltsOff = 0.0f;
+
+	if (on)
+	{
+		for (auto* v : *this)
+		{
+			if (v->isHeld() && v->voiceActive_ == 1.0f)
+			{
+				v->sostenutoCaptured_ = true;
+				float volts = pedalVoltsOn;
+				sendDirectPathValue(HC_SOSTENUTO_PEDAL, timestamp, container, v->m_voice_number,
+					sizeof(volts), &volts);
+			}
+		}
+	}
+	else
+	{
+		for (auto* v : *this)
+		{
+			if (v->sostenutoCaptured_)
+			{
+				v->sostenutoCaptured_ = false;
+				float volts = pedalVoltsOff;
+				sendDirectPathValue(HC_SOSTENUTO_PEDAL, timestamp, container, v->m_voice_number,
+					sizeof(volts), &volts);
+			}
+		}
 	}
 }
 

@@ -105,6 +105,12 @@ public:
 	timestamp_t outputSilentSince = (std::numeric_limits<timestamp_t>::max)();
 	float voiceActive_;
 
+	// Sostenuto (CC 66) capture flag. Set when CC 66 transitions to 'down' if this voice is currently
+	// key-held (isHeld() == true). Cleared on pedal-up or when the voice is reallocated to a new note.
+	// While true, the voice ignores note-off (gate stays high, allocator refuses to suspend) — same
+	// semantics as holdPedalState_ but selective per voice.
+	bool sostenutoCaptured_ = false;
+
 private:
 #if defined( _DEBUG )
 	bool suspend_flag;
@@ -209,6 +215,14 @@ public:
 	{
 		holdPedalState_ = hold;
 	}
+	bool SostenutoPedalState()
+	{
+		return sostenutoPedalState_;
+	}
+	// CC 66 transition handler. On press, snapshots currently-held voices (isHeld() == true and
+	// voiceActive_ == 1.0f) and fires HC_SOSTENUTO_PEDAL = 10V to each. On release, clears the
+	// captured flags and fires 0V to the previously-captured voices.
+	void OnSostenutoPedalChange(bool on, timestamp_t timestamp, class ug_container* container);
 	void DoNoteOn(timestamp_t timestamp, Voice* voice, int voiceId, bool sendTrigger, bool autoGlide);
 	void DoNoteOff(timestamp_t timestamp, Voice* voice, float voiceActive = -10.0f);
 	void NoteOff(timestamp_t p_clock, /*short chan,*/ short note_num);
@@ -306,6 +320,7 @@ protected:
 	bool is_polyphonic_cloned;
 	bool is_polyphonic_delayed_gate;
 	bool holdPedalState_;
+	bool sostenutoPedalState_ = false;
 	int keysHeldCount;
 	float mrnPitch;
 	float portamentoIncrement;

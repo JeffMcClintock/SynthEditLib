@@ -36,6 +36,7 @@ private:
 	FloatInPin pinBender;
 	FloatInPin pinBenderRange;
 	FloatInPin pinHoldPedal;
+	FloatInPin pinSostenutoPedal;
 	FloatInPin pinGlideStartPitch;
 	IntInPin pinVoiceAllocationMode;
 	FloatInPin pinPortamento;

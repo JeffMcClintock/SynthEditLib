@@ -32,6 +32,7 @@ R"XML(
 			<Pin name="Voice/VirtualVoiceId" datatype="int" private="true" isPolyphonic="true" hostConnect="Voice/VirtualVoiceId"/>
 			<Pin name="Bender" datatype="float" private="true" hostConnect="Bender"/>
 			<Pin name="HoldPedal" datatype="float" private="true" hostConnect="HoldPedal"/>
+			<Pin name="SostenutoPedal" datatype="float" private="true" isPolyphonic="true" hostConnect="SostenutoPedal"/>
 			<Pin name="GlideStartPitch" datatype="float" private="true" isPolyphonic="true" hostConnect="Voice/GlideStartPitch"/>
 			<Pin name="VoiceAllocationMode" datatype="int" private="true" hostConnect="VoiceAllocationMode"/>
 			<Pin name="Portamento" datatype="float" private="true" hostConnect="Portamento"/>
@@ -64,6 +65,7 @@ R"XML(
 		      "<Pin name=\"Voice/VirtualVoiceId\" datatype=\"int\" private=\"true\" isPolyphonic=\"true\" hostConnect=\"Voice/VirtualVoiceId\" />"
 		      "<Pin name=\"Bender\" datatype=\"float\" private=\"true\" hostConnect=\"Bender\" />"
 		      "<Pin name=\"HoldPedal\" datatype=\"float\" private=\"true\" hostConnect=\"HoldPedal\" />"
+		      "<Pin name=\"SostenutoPedal\" datatype=\"float\" private=\"true\" isPolyphonic=\"true\" hostConnect=\"SostenutoPedal\" />"
 			  "<Pin name=\"GlideStartPitch\" datatype=\"float\" private=\"true\" isPolyphonic=\"true\" hostConnect=\"Voice/GlideStartPitch\" />"
 			  "<Pin name=\"VoiceAllocationMode\" datatype=\"int\" private=\"true\" hostConnect=\"VoiceAllocationMode\" />"
 			  "<Pin name=\"Portamento\" datatype=\"float\" private=\"true\" hostConnect=\"Portamento\" />"
@@ -98,6 +100,7 @@ previousGate_(0.0f)
 	initializePin(pinVoiceVirtualVoiceId);
 	initializePin(pinBender);
 	initializePin(pinHoldPedal);
+	initializePin(pinSostenutoPedal);
 	initializePin(pinGlideStartPitch);
 	initializePin(pinVoiceAllocationMode);
 	initializePin(pinPortamento);
@@ -220,10 +223,12 @@ void MidiToCv2::onSetPins()
 	}
 	*/
 
-	if( pinHoldPedal.isUpdated() )
+	// CC 64 (HoldPedal, mono) or CC 66 (Sostenuto, per-voice): a transition on either may finally
+	// allow a deferred gate-off to take effect. Held = either pedal still pressed for this voice.
+	if( pinHoldPedal.isUpdated() || pinSostenutoPedal.isUpdated() )
 	{
-		//		_RPT1(_CRT_WARN, "MidiToCv2::onSetPins pinHoldPedal=%f\n", (double) pinHoldPedal );
-		if (currentGate_ != 0.0f && pinVoiceGate == 0.0f && (pinHoldPedal < 5.0f || pinVoiceActive < 1.0f))
+		const bool held = pinHoldPedal >= 5.0f || pinSostenutoPedal >= 5.0f;
+		if (currentGate_ != 0.0f && pinVoiceGate == 0.0f && (!held || pinVoiceActive < 1.0f))
 		{
 			currentGate_ = 0.0f;
 			pinGate.setUpdated();
@@ -346,7 +351,9 @@ void MidiToCv2::onSetPins()
 		}
 		else
 		{
-			if (pinHoldPedal < 5.0f || pinVoiceActive < 1.0f) // voiceActive of 0.5 indicates overlap voice, don't sustain.
+			// Don't drop gate while either pedal holds this voice. voiceActive 0.5 = overlap voice — ignore pedals.
+			const bool held = pinHoldPedal >= 5.0f || pinSostenutoPedal >= 5.0f;
+			if (!held || pinVoiceActive < 1.0f)
 			{
 				currentGate_ = 0.0f;
 			}

@@ -1340,6 +1340,12 @@ void ug_container::dispatchMidi2(timestamp_t timestamp, gmpi::midi::message_view
 			}
 				break;
 
+			case 66: // Sostenuto. Unlike CC 64, this captures only the keys held at the moment of
+			         // pedal-down. New notes played while the pedal is down are NOT sustained.
+			         // VoiceList::OnSostenutoPedalChange handles the snapshot and per-voice fanout.
+				OnSostenutoPedalChange(c.value >= 0.5f, timestamp, this);
+				break;
+
 			case MIDI_CC_ALL_SOUND_OFF: // CC 120
 				for (int key = 0; key < 128; ++key)
 				{

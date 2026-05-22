@@ -133,6 +133,8 @@ static const HostControlStruct lookup[] =
 	{L"Process/Bypass"			, HC_PROCESS_BYPASS  			, DT_BOOL, ControllerType::None },
 	{L"Plugin/UIScale"			, HC_PLUGIN_UI_SCALE			, DT_FLOAT, ControllerType::None },
 
+	{(L"SostenutoPedal")		,HC_SOSTENUTO_PEDAL				, DT_FLOAT, (ControllerType::CC << 24) | 66}, // CC 66 = Sostenuto. Per-voice: only voices held at pedal-down time see this go high.
+
 	// MAINTAIN ORDER TO PRESERVE OLDER WAVES EXPORTS DSP.XML consistency
 };
 
@@ -263,6 +265,7 @@ bool AttachesToVoiceContainer( HostControls hostControlId )
 		case HC_VOICE_ALLOCATION_MODE:
 		case HC_PITCH_BENDER:
 		case HC_HOLD_PEDAL:
+		case HC_SOSTENUTO_PEDAL:
 		case HC_CHANNEL_PRESSURE :
         case HC_POLYPHONY:
         case HC_POLYPHONY_VOICE_RESERVE:
@@ -313,6 +316,7 @@ bool HostControlisPolyphonic(HostControls hostControlId)
 	case HC_VOICE_USER_CONTROL1:
 	case HC_VOICE_USER_CONTROL2:
 	case HC_GLIDE_START_PITCH:
+	case HC_SOSTENUTO_PEDAL:
 
 		return true;
 		break;
@@ -366,6 +370,10 @@ bool isDirectPathHostControl(HostControls hostControlId)
 	case HC_PITCH_BENDER:
 	case HC_HOLD_PEDAL:
 	case HC_CHANNEL_PRESSURE:
+
+	// Sostenuto is poly (each voice gets its own value: 10V if captured at pedal-down, else 0V).
+	// Container fans out via VoiceList::sendDirectPathValue with per-voice values.
+	case HC_SOSTENUTO_PEDAL:
 //	case HC_PORTAMENTO:
 	// BenderRange is the RPN-0 performance value that pairs with the live pitch-bend — how many
 	// semitones a full ±bend spans. Like pitch-bend itself, it needs to reach voice modules
