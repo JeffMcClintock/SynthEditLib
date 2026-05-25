@@ -174,6 +174,7 @@
       <Pin name="Heading" datatype="string" default="Menu" />
       <Pin name="Momentary" datatype="bool" />
       <Pin name="Enable Special Strings" datatype="bool" private="true" default="1"/>
+      <Pin name="Mouse Down" datatype="bool" />
     </GUI>
   </Plugin>
   

@@ -24,6 +24,7 @@ private:
  	StringGuiPin pinHeading;
 	BoolGuiPin pinMomentary;
 	BoolGuiPin pinEnableSpecialStrings;
+	BoolGuiPin pinMouseDown;
 };
 
 #endif

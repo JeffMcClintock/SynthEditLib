@@ -24,6 +24,7 @@ PopupMenuGui::PopupMenuGui()
 	initializePin( pinHeading, static_cast<MpGuiBaseMemberPtr2>(&PopupMenuGui::redraw) );
 	initializePin(pinMomentary);
 	initializePin(pinEnableSpecialStrings);
+	initializePin(pinMouseDown);
 }
 
 int32_t PopupMenuGui::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT point)
@@ -39,6 +40,8 @@ int32_t PopupMenuGui::onPointerDown(int32_t flags, GmpiDrawing_API::MP1_POINT po
 
 	setCapture(); // prevent mouse-up going to menu (and dismissing it).
 
+	pinMouseDown = true;
+
 	return gmpi::MP_OK;
 }
 
@@ -47,6 +50,7 @@ int32_t PopupMenuGui::onPointerUp(int32_t flags, GmpiDrawing_API::MP1_POINT poin
 	if (getCapture())
 	{
 		releaseCapture();
+		pinMouseDown = false;
 
 		GmpiGui::GraphicsHost host(getGuiHost());
 		nativeMenu = host.createPlatformMenu(Point(0, 0));
