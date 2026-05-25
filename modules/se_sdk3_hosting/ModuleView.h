@@ -46,6 +46,8 @@ public:
 
 namespace SE2
 {
+	constexpr float minimalDimension = 1.0f;
+
 	class ResizeAdorner;
 	class ResizeAdornerStructure;
 

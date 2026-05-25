@@ -1037,7 +1037,6 @@ if(pluginGraphics)
 
 	void ModuleViewPanel::measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize)
 	{
-		constexpr float minimalDimension = 12.0f;
 		gmpi::drawing::Size remainingSize = { (std::max)(availableSize.width, minimalDimension), (std::max)(availableSize.height, minimalDimension) };
 
 		if (pluginGraphics_GMPI)
