@@ -303,9 +303,12 @@ namespace SE2
 		Size graphicsSectionDesiredSize(0, 0);
 		if (pluginGraphics_GMPI || pluginGraphics)
 		{
+			constexpr float minimalDimension = 12.0f;
 			float widthPadding = plugDiameter + clientPadding * 2.0f;
 			float heightPadding = clientPadding * 2.0f;
 			gmpi::drawing::Size remainingSize{ availableSize.width - widthPadding, availableSize.height - totalPlugHeight - heightPadding };
+			remainingSize.width = (std::max)(remainingSize.width, minimalDimension);
+			remainingSize.height = (std::max)(remainingSize.height, minimalDimension);
 
 			gmpi::drawing::Size desiredSize{};
 			if (pluginGraphics_GMPI)

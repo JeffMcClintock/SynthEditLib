@@ -71,8 +71,8 @@ namespace SE2
 
 	void ResizeAdorner::measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize)
 	{
-		gmpi::drawing::Size desiredMax(0, 0);
-		gmpi::drawing::Size desiredMin(0, 0);
+		gmpi::drawing::Size desiredMin{};
+		gmpi::drawing::Size desiredMax{};
 		module->measure(gmpi::drawing::Size(0, 0), &desiredMin);
 		module->measure(gmpi::drawing::Size(10000, 10000), &desiredMax);
 
@@ -431,13 +431,38 @@ namespace SE2
 		newPoint.y = floorf((snapGridSize / 2 + newPoint.y) / snapGridSize) * snapGridSize;
 		gmpi::drawing::Size snapDelta{ newPoint.x - snapReference.x, newPoint.y - snapReference.y };
 
+		if(snapDelta.width == 0.0 && snapDelta.height == 0.0)
+			return gmpi::ReturnCode::Ok;
+
+		// Clamp to the module's size constraints (queried fresh from measure()).
+		gmpi::drawing::Size moduleMinSize{};
+		gmpi::drawing::Size moduleMaxSize{};
+		module->measure(gmpi::drawing::Size(0, 0), &moduleMinSize);
+		module->measure(gmpi::drawing::Size(10000, 10000), &moduleMaxSize);
+
+		const auto layoutRect = module->getLayoutRect();
+		const float currentWidth = layoutRect.right - layoutRect.left;
+		const float currentHeight = layoutRect.bottom - layoutRect.top;
+
+		if (currentNodeX == 0) // left edge: +delta shrinks width
+			snapDelta.width = std::clamp(snapDelta.width, currentWidth - moduleMaxSize.width, currentWidth - moduleMinSize.width);
+		else if (currentNodeX == 2) // right edge: +delta grows width
+			snapDelta.width = std::clamp(snapDelta.width, moduleMinSize.width - currentWidth, moduleMaxSize.width - currentWidth);
+
+		if (currentNodeY == 0) // top edge: +delta shrinks height
+			snapDelta.height = std::clamp(snapDelta.height, currentHeight - moduleMaxSize.height, currentHeight - moduleMinSize.height);
+		else if (currentNodeY == 2) // bottom edge: +delta grows height
+			snapDelta.height = std::clamp(snapDelta.height, moduleMinSize.height - currentHeight, moduleMaxSize.height - currentHeight);
+
+		if(snapDelta.width == 0.0 && snapDelta.height == 0.0)
+			return gmpi::ReturnCode::Ok;
+
 		pointPrev.x += snapDelta.width;
 		pointPrev.y += snapDelta.height;
 
-		if (snapDelta.width != 0.0 || snapDelta.height != 0.0)
-			parent->Presenter()->ResizeModule(getModuleHandle(), currentNodeX, currentNodeY, snapDelta);
+		parent->Presenter()->ResizeModule(getModuleHandle(), currentNodeX, currentNodeY, snapDelta);
 
-		return gmpi::ReturnCode::Unhandled;
+		return gmpi::ReturnCode::Ok;
 	}
 
 	gmpi::ReturnCode ResizeAdorner::onPointerUp(gmpi::drawing::Point, int32_t)

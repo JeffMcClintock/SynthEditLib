@@ -1037,23 +1037,15 @@ if(pluginGraphics)
 
 	void ModuleViewPanel::measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize)
 	{
-		if (pluginGraphics_GMPI)
-		{
-			gmpi::drawing::Size remainingSizeU{ availableSize.width, availableSize.height };
-			gmpi::drawing::Size desiredSizeU{};
-			pluginGraphics_GMPI->measure(&remainingSizeU, &desiredSizeU);
+		constexpr float minimalDimension = 12.0f;
+		gmpi::drawing::Size remainingSize = { (std::max)(availableSize.width, minimalDimension), (std::max)(availableSize.height, minimalDimension) };
 
-			returnDesiredSize->width = static_cast<float>(desiredSizeU.width);
-			returnDesiredSize->height = static_cast<float>(desiredSizeU.height);
-		}
+		if (pluginGraphics_GMPI)
+			pluginGraphics_GMPI->measure(&remainingSize, returnDesiredSize);
 		else if (pluginGraphics)
-		{
-			pluginGraphics->measure(*reinterpret_cast<GmpiDrawing_API::MP1_SIZE*>(&availableSize), reinterpret_cast<GmpiDrawing_API::MP1_SIZE*>(returnDesiredSize));
-		}
+			pluginGraphics->measure(*reinterpret_cast<GmpiDrawing_API::MP1_SIZE*>(&remainingSize), reinterpret_cast<GmpiDrawing_API::MP1_SIZE*>(returnDesiredSize));
 		else
-		{
-			*returnDesiredSize = availableSize;
-		}
+			*returnDesiredSize = remainingSize;
 	}
 
 	gmpi::drawing::Rect ModuleViewPanel::getClipArea()
