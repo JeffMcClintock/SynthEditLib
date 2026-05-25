@@ -282,7 +282,7 @@ namespace SE2
 			gmpi::drawing::Rect dragArea(nodeRect);
 			dragArea.bottom = dragArea.top + DragAreaheight;
 
-			if(pointInRect(point, dragArea))
+			if(pointInRect(point, dragArea) && best > 1.0f) // slightly lower priority than direct hit on node.
 				return { 0.0f, -1, -1 };
 		}
 
