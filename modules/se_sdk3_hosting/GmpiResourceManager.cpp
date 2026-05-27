@@ -177,6 +177,13 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 			}
 			else
 			{
+				// Project-specific resources folder first if the project defines one (editor only;
+				// plugin builds have resources baked in and no access to the original .se1).
+				if (isEditor())
+				{
+					if (auto prf = projectResourcesFolder(); !prf.empty())
+						searchFolders.push_back(prf / bareName);
+				}
 				searchFolders.push_back(stdFolder / bareName);
 			}
 

@@ -19,12 +19,20 @@ public:
 
 	std::filesystem::path projectFile; // path up to first period. e.g. "C:\mydocument.version23.synthedit" => "C:\mydocument"
 
-	// Returns the project-specific skin folder (e.g. "C:\mysynth.skin"), or empty if no project is set.
+	// Returns the per-project, project-specific skin folder (e.g. "C:\mysynth.skin"), or empty if no project is set.
 	std::filesystem::path projectSkinFolder() const
 	{
 		if (projectFile.empty())
 			return {};
 		return projectFile.parent_path() / (projectFile.stem().wstring() + L".skin");
+	}
+
+	// Returns the per-project, project-specific resources folder (e.g. "C:\mysynth.resources"), or empty if no project is set.
+	std::filesystem::path projectResourcesFolder() const
+	{
+		if (projectFile.empty())
+			return {};
+		return projectFile.parent_path() / (projectFile.stem().wstring() + L".resources");
 	}
 
 	void setProjectFile(const std::filesystem::path& fullPath)
