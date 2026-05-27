@@ -138,6 +138,13 @@ void soundfontUser::GetZone(short p_chan, short p_note, short p_vel)
 		if (partial.right.s_end_section > partial.right.s_loop_end)
 			partial.right.s_end_section = partial.right.s_loop_end;
 
+		// Pre-build a stitched buffer covering the loop boundary, so interpolator
+		// taps near the loop edges read seamlessly wrapped values instead of
+		// whatever sits next to the sample in the smpl chunk.
+		partial.right.SetupWrapBuffer();
+		if (partial.left.cur_sample)
+			partial.left.SetupWrapBuffer();
+
 		// Panning.
 		partial.SetPan( 0.001f * (float) z.Get( ZoneGenerator::PAN ).shAmount );  // 500 = hard right. -500=hard left.
 

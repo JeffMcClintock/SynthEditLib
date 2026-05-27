@@ -23,6 +23,16 @@ struct sampleChannel
 
 	static short silence[8];
 
+	// Loop boundary stitching for the interpolators.
+	// wrapBuffer holds [last wrapHalf samples of loop][first wrapHalf samples of loop],
+	// so when s_ptr is within the interpolator's tap reach of either loop boundary,
+	// IncrementPointer redirects to wrapBuffer and the interpolator's [-3..+4]
+	// taps read seamlessly across the wrap instead of the surrounding chunk data.
+	static constexpr int wrapHalf = 8; // covers Sinc's worst case (3 back, 4 forward) with slack
+	short wrapBuffer[wrapHalf * 2] = {};
+	short* dangerNearEnd = {};   // = s_loop_end - 4 when looping, else s_loop_end (check disabled)
+	short* dangerNearStart = {}; // = s_loop_st + 3 when looping, else s_loop_st (check disabled)
+
 #if defined( _DEBUG )
 	short* sampleStartAddress = {};
 #endif
@@ -46,15 +56,51 @@ struct sampleChannel
 			|| (s_ptr >= silence + 3 && s_ptr <= silence + 7)
 		);
 
-#if 0
-		// near loop point?
-		const auto distToLoop = s_loop_end - s_ptr_r;
-		if (distToLoop <= 4)
+		// Loop boundary? Redirect to stitched wrap buffer so interpolator taps
+		// don't read the chunk bytes outside the loop.
+		if (s_ptr >= dangerNearEnd)
 		{
-			return { clickBufferL + 8 - distToLoop , clickBufferR + 8 - distToLoop };
+			if (s_ptr < s_loop_end) // ignore mode-3 release tail past the loop
+				return wrapBuffer + wrapHalf + (s_ptr - s_loop_end);
 		}
-#endif
+		else if (s_ptr < dangerNearStart)
+		{
+			if (s_ptr >= s_loop_st)  // ignore attack phase before the loop
+				return wrapBuffer + wrapHalf + (s_ptr - s_loop_st);
+		}
 		return s_ptr;
+	}
+
+	// Pre-fill wrapBuffer with the loop's tail and head stitched together.
+	// Call once after loop pointers/loop_mode are finalized. Safe to call for
+	// non-looping samples - it just disables the wrap-buffer redirect.
+	void SetupWrapBuffer()
+	{
+		if (loop_mode == 0)
+		{
+			// disabled: comparisons in IncrementPointer will always fall through.
+			dangerNearEnd = s_loop_end;
+			dangerNearStart = s_loop_st;
+			return;
+		}
+
+		const ptrdiff_t loopLen = s_loop_end - s_loop_st;
+		for (int i = 0; i < wrapHalf; i++)
+		{
+			// left half = last wrapHalf samples of loop (with modular wrap for short loops).
+			ptrdiff_t off = (loopLen - wrapHalf + i) % loopLen;
+			if (off < 0) off += loopLen;
+			wrapBuffer[i] = s_loop_st[off];
+		}
+		for (int i = 0; i < wrapHalf; i++)
+		{
+			// right half = first wrapHalf samples of loop.
+			ptrdiff_t off = i % loopLen;
+			wrapBuffer[wrapHalf + i] = s_loop_st[off];
+		}
+		// Trigger thresholds cover Sinc's worst case (3 back, 4 forward).
+		dangerNearEnd = s_loop_end - 4;
+		dangerNearStart = s_loop_st + 3;
 	}
 
 	void DoLoop(bool gateState)
@@ -72,6 +118,10 @@ struct sampleChannel
 				s_ptr = /*s_ptr_l =*/ s_loop_st = &(silence[3]);
 				s_loop_end = &(silence[7]);
 				s_increment = 0;
+				// Keep danger pointers inside the silence array so the wrap-buffer
+				// checks remain valid pointer comparisons (and stay disabled).
+				dangerNearEnd = s_loop_end;
+				dangerNearStart = s_loop_st;
 
 #if defined( _DEBUG )
 				sampleStartAddress = silence;
