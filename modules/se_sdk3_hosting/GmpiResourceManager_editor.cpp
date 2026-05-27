@@ -24,11 +24,11 @@ int32_t GmpiResourceManager_editor::OpenUri(const char* fullUri, gmpi::IProtecte
 		return gmpi::MP_NOSUPPORT;
 	}
 
-	
-	if (auto sp = strstr(fullUri, "global.txt");sp) // special magic 'file'.
+	std::filesystem::path fullpath(fullUri);
+	if (fullpath.filename() == "global.txt") // special magic 'file'.
 	{
-		std::string skinName(fullUri, sp - fullUri - 1);
-		std::string temp = SkinMgr::Instance()->getEffectiveFontInfo(Utf8ToWstring(skinName).c_str());
+		const auto skinName = fullpath.parent_path().filename().wstring();
+		const auto temp = SkinMgr::Instance()->getEffectiveFontInfo(skinName.c_str());
 		*returnStream = new ProtectedMemFile2(temp.data(), temp.size());
 		return gmpi::MP_OK;
 	}
