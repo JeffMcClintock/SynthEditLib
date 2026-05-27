@@ -111,8 +111,21 @@ void soundfontUser::GetZone(short p_chan, short p_note, short p_vel)
 		partial.left.loop_mode = partial.right.loop_mode = z.Get( ZoneGenerator::SAMPLE_MODES /*54*/).wAmount & 3; // low 2 bits
 		// loop mode 0 - None, 1 - continuous loop, 3 loop while key on
 //			_RPT1(_CRT_WARN,"Sample Play:Loop Mode %d\n",partial.loop_mode);
-		if ((partial.right.loop_mode & 1) == 0)
+
+		// Treat malformed loops (zero/negative length, or endpoints outside the sample) as not-looped.
+		// Avoids modulo-by-zero in DoLoop and out-of-bounds reads from corrupt zone offsets.
+		const bool loopInvalid =
+			   partial.right.s_loop_end <= partial.right.s_loop_st
+			|| partial.right.s_loop_st  <  partial.right.s_ptr
+			|| partial.right.s_loop_end >  partial.right.s_end
+			|| (partial.left.cur_sample
+				&& (   partial.left.s_loop_end <= partial.left.s_loop_st
+					|| partial.left.s_loop_st  <  partial.left.s_ptr
+					|| partial.left.s_loop_end >  partial.left.s_end));
+
+		if ((partial.right.loop_mode & 1) == 0 || loopInvalid)
 		{
+			partial.left.loop_mode = partial.right.loop_mode = 0;
 			partial.left.s_loop_end  = partial.left.s_end; // just in case
 			partial.right.s_loop_end = partial.right.s_end;
 		}
