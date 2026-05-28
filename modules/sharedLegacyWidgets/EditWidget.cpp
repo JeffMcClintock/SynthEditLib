@@ -112,7 +112,7 @@ void EditWidget::Init(const char* style, bool digitsOnly)
 		// This is here only for calculating the widget size for backwards compatibility.
 		FontMetadata* fontData{};
 		GetTextFormat(getHost(), getGuiHost(), "Custom:EditWidget", &fontData);
-		default_text_size = Size(8, (float)fontData->size_);
+		default_text_size = Size((float)fontData->pixelWidth_, (float)fontData->pixelHeight_);
 	}
 
 	const auto outlineHeight = default_text_size.height - 1.0f; // when drawing we shrink outline 1/2 pixel each side.
@@ -149,7 +149,7 @@ GmpiDrawing::Size EditWidget::getSize()
 	{
 		// With new sizing, retain width from legacy version, to preserve peoples layout as much as practical.
 		// Use corrected cell height though to ensure text centered vertically.
-		text_size.height = (float)typeface_->size_;
+		text_size.height = (float)typeface_->pixelHeight_;
 	}
 
 //	float minWidth = 4;

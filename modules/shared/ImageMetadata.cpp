@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include "ImageMetadata.h"
+#include "LegacyGdiMetrics.h"
 
 using namespace std;
 using namespace gmpi_sdk;
@@ -353,6 +354,23 @@ void SkinMetadata::Serialise(mp_shared_ptr<gmpi::IProtectedFile2> stream)
 					{
 						current->verticalSnapBackwardCompatibilityMode = (0 != StringToInt(words[1]));
 					}
+					if (words[0] == "GDI_pixelHeight")
+					{
+						current->pixelHeight_ = StringToInt(words[1]);
+					}
+					if (words[0] == "GDI_pixelWidth")
+					{
+						current->pixelWidth_ = StringToInt(words[1]);
+					}
+					if (words[0] == "cell-height")
+					{
+						// Modern, cross-platform layout directive. Drives both the widget
+						// box height (TextWidget::getSize) and the DirectWrite/CoreText
+						// bodyHeight (Widget::InitTextFormat) without any GDI involvement.
+						// Implies modern rendering — overrides any legacy-vertical-offset.
+						current->pixelHeight_ = StringToInt(words[1]);
+						current->verticalSnapBackwardCompatibilityMode = false;
+					}
 
 					if( words[0] == "font-color" )
 					{
@@ -461,6 +479,22 @@ void SkinMetadata::Serialise(mp_shared_ptr<gmpi::IProtectedFile2> stream)
 		{
 			f->faceFamilies_.push_back("Verdana");
 		}
+
+		// If the skin did not provide an explicit cell height (via cell-height,
+		// GDI_pixelHeight, or a SE 1.5 plugin-bundled value), fall back to the
+		// hardcoded SE 1.5 GDI metrics table. Same table on Windows and macOS.
+		// pixelWidth_ feeds EditWidget::default_text_size (and SE 1.5
+		// EditWidget::getSize minWidth, still commented out). A skin that uses
+		// cell-height fully bypasses the table for the height; pixelWidth_
+		// remains 0 in that path, which EditWidget treats as no-minimum.
+		if (f->pixelHeight_ == 0)
+		{
+			const bool bold = (f->flags_ & TTL_BOLD) != 0;
+			const bool italic = (f->flags_ & TTL_ITALIC) != 0;
+			const auto gdi = LegacyGdiMetrics::lookup(f->faceFamilies_[0], f->size_, bold, italic);
+			f->pixelHeight_ = gdi.height;
+			if (f->pixelWidth_ == 0) f->pixelWidth_ = gdi.width;
+		}
 	}
 }
 
@@ -482,5 +516,11 @@ SkinMetadata::SkinMetadata()
 {
 	defaultFont_ = std::make_unique<FontMetadata>("default");
 	defaultFont_->faceFamilies_.push_back("Arial");
+	// Populate GDI metrics for the default font from the legacy table.
+	{
+		const auto gdi = LegacyGdiMetrics::lookup("Arial", defaultFont_->size_, false, false);
+		defaultFont_->pixelWidth_ = gdi.width;
+		defaultFont_->pixelHeight_ = gdi.height;
+	}
 	defaultFont_->color_ = 0xff000000 | GmpiDrawing::Color::Black; // From SE.
 }

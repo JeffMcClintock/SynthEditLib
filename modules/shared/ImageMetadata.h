@@ -90,6 +90,8 @@ struct FontMetadata
 	int size_;					// Classic font-size. Produces varying results on different platforms.
 	float bodyHeight_ = -1.0f;	// NEW: Produces text of consistant size (ascent+descent) on all platforms. -1 = ignore. Not supported on legacy SE pre May-2020.
 	bool bodyHeightDigitsOnly_ = false;
+	int pixelWidth_;			// SE 1.5 GDI-measured (width('8')+width('M'))/2. Populated from LegacyGdiMetrics table at load time.
+	int pixelHeight_;			// SE 1.5 GDI-measured (height('8')+height('M'))/2. Drives widget layout for legacy backward-compat fonts.
 	uint32_t color_;
 	uint32_t backgroundColor_;
 	int32_t vst3_vertical_offset_;
@@ -102,6 +104,8 @@ struct FontMetadata
 		category_(category)
 		,flags_(0)
 		, size_(12)
+		, pixelWidth_(0)   // 0 = "not set, look up at end of parse"
+		, pixelHeight_(0)  // 0 = "not set, look up at end of parse"
 		, color_(0xffffffff) // white is default for specified fonts (that exist in global.txt). Black is default for styles not found in global.txt
 		, backgroundColor_(0) // transparent.
 		, vst3_vertical_offset_(0)
@@ -115,11 +119,15 @@ struct FontMetadata
 		uint32_t backgroundColor,
 		int flags,
 		uint32_t vst3_vertical_offset,
-		bool pverticalSnapBackwardCompatibilityMode
+		bool pverticalSnapBackwardCompatibilityMode,
+		int pixelWidth = 0,    // 0 = look up in LegacyGdiMetrics table at parse end.
+		int pixelHeight = 0    // 0 = look up in LegacyGdiMetrics table at parse end.
 		) :
 		category_(category)
 		, flags_(flags)
 		, size_(size)
+		, pixelWidth_(pixelWidth)
+		, pixelHeight_(pixelHeight)
 		, color_(color)
 		, backgroundColor_(backgroundColor)
 		, vst3_vertical_offset_(vst3_vertical_offset)
@@ -223,13 +231,13 @@ struct FontMetadata
 
 		if ( faceFamilies_[0] == "Arial")
 		{
-			verticalAdjustmentHack = -size_ / 20;
+			verticalAdjustmentHack = -pixelHeight_ / 20;
 		}
 		else
 		{
 			if (faceFamilies_[0] == "MS Sans Serif")
 			{
-				verticalAdjustmentHack = -size_ / 7;
+				verticalAdjustmentHack = -pixelHeight_ / 7;
 			}
 			else
 			{

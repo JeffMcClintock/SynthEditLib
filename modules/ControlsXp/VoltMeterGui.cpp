@@ -66,7 +66,7 @@ int32_t VoltMeterGui::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawi
 
 	FontMetadata* returnMetadata{};
 	FontCache::instance()->GetTextFormat(getHost(), getGuiHost(), "control_label", &returnMetadata);
-	returnDesiredSize->height += returnMetadata->size_;
+	returnDesiredSize->height += returnMetadata->pixelHeight_;
 
 	return gmpi::MP_OK;
 }
