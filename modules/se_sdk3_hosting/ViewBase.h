@@ -133,6 +133,17 @@ bool isIteratingChildren = false;
 		virtual void autoScrollStart() {}
 		virtual void autoScrollStop() {}
 
+		// Document-coords center of what the user is currently looking at. TopView
+		// overrides to return its pan center (centerPos); plain ViewBase has no
+		// pan/zoom so falls back to the absolute canvas midpoint. Used by arrange()
+		// to place new modules whose persisted rect is null at the visible center
+		// rather than always at the canvas midpoint.
+		virtual gmpi::drawing::Point getCenter() const
+		{
+			constexpr float canvasMidpoint = viewDimensions / 2.0f;
+			return { canvasMidpoint, canvasMidpoint };
+		}
+
 		void calcMouseOverObject(int32_t flags);
 		void OnChildDeleted(IViewChild* childObject);
 		void onSubPanelMadeVisible();
@@ -278,7 +289,7 @@ bool isIteratingChildren = false;
 			zoomFactor = newZoomFactor;
 			calcViewTransform();
 		}
-		gmpi::drawing::Point getCenter() const
+		gmpi::drawing::Point getCenter() const override
 		{
 			return centerPos;
 		}

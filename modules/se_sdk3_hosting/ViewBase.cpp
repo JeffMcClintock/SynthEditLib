@@ -2075,9 +2075,6 @@ namespace SE2
 					actualSize.height = ceilf(actualSize.height);
 					actualSize.width = ceilf(actualSize.width);
 
-					// place layoutRect centered on current view visible center
-					constexpr int canvasMidpoint = viewDimensions / 2;
-
 					// when Containerizing object on the struct view, the panel view will default to top-left, center it on canvas instead.
 					if(isNull(layoutRect))
 					{
@@ -2089,8 +2086,13 @@ namespace SE2
 						const auto persistedRect = Presenter()->GetModuleRect(m->getModuleHandle());
 						if (isNull(persistedRect))
 						{
-							layoutRect.left = canvasMidpoint - actualSize.width / 2;
-							layoutRect.top = canvasMidpoint - actualSize.height / 2;
+							// Use this view's current visible center (TopView pan position)
+							// so an insert on Structure shows up at the visible center of
+							// Panel when Panel later opens — and vice versa. Falls back to
+							// the absolute canvas midpoint for plain ViewBase (no pan/zoom).
+							const auto insertCenter = getCenter();
+							layoutRect.left = insertCenter.x - actualSize.width / 2;
+							layoutRect.top = insertCenter.y - actualSize.height / 2;
 							centeredFromIsNull = true;
 						}
 						else
