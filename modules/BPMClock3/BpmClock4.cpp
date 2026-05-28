@@ -2,6 +2,7 @@
 #include "math.h"
 #include "./BpmClock4.h"
 
+SE_DECLARE_INIT_STATIC_FILE(BpmClock4);
 
 REGISTER_PLUGIN2(BpmClock4, L"SE BPM Clock4");
 

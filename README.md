@@ -105,6 +105,26 @@ Finally, add the *SE_DECLARE_INIT_STATIC_FILE* macro line to each module file (i
 Build and run the Standalone app. The Keyboard module now works in the JUCE plugin.
 <img src="Docs/Images/SE2JUCE_AddModule4.png"/>
 
+## Tips and gotchas
+
+- **Re-run CMake after editing CMakeLists.txt.** Either re-Configure in CMake GUI, or run `cmake -B build` from the project folder, before building. Otherwise the new sources won't be picked up.
+
+- **Quote paths with spaces in CMakeLists.txt.** For a module folder like `modules_3rdparty/One Shot/`, the entry must be quoted:
+  ```cmake
+  "${CMAKE_CURRENT_SOURCE_DIR}/../modules_3rdparty/One Shot/OneShot.cpp"
+  ```
+  Without quotes, CMake splits at the space and reports a misleading `Cannot find source file: .../One` error.
+
+- **The missing-modules list groups by SE plugin ID, not by .cpp file.** A single source file can register several SE plugin types via separate `REGISTER_PLUGIN2(...)` (or `Register<...>::withId(...)`) lines. For example, `OneShot.cpp` registers both `SSG One Shot` and `SE SSG Unit Converter` — one `INIT_STATIC_FILE(OneShot)` covers both. Add one `INIT_STATIC_FILE` entry per **.cpp file**, not per missing-module name.
+
+- **The macro identifier is a C++ symbol, not the SE plugin name.** `SE_DECLARE_INIT_STATIC_FILE(X)` in the module source and `INIT_STATIC_FILE(X)` in ExtraModules.cpp must use the same `X` (they refer to the same generated `se_static_library_init_X` function). `X` is unrelated to the wide-string SE plugin ID like `L"SE BPM Clock4"` — by convention it matches the class or the .cpp filename stem.
+
+- **Check first whether a module already has the macro.** Grep the module's source files:
+  ```
+  grep SE_DECLARE_INIT_STATIC_FILE path/to/Module.cpp
+  ```
+  Some SDK-bundled modules ship without it (e.g. `BpmClock4.cpp`) and need it added — this is not as rare as it sounds.
+
 # Presets
 The plugin you build with SE2JUCE will save presets in xmlformat. Any preset the user saves will go to the folder:
 
