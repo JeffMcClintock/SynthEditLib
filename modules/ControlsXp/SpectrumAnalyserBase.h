@@ -37,5 +37,5 @@ struct SpectrumAnalyserBase
 	void decayGraph(float dbDecay);
 	void clearPeaks();
 	virtual void updatePaths(const std::vector<GmpiDrawing::Point>& graphValuesOptimized, const std::vector<GmpiDrawing::Point>& peakHoldValuesOptimized) = 0;
-	virtual void InixPixelToBin(std::vector<SpectrumAnalyserBase::binData>& pixelToBin, int graphWidth, int numValues, float sampleRate) = 0;
+	virtual void InitPixelToBin(std::vector<SpectrumAnalyserBase::binData>& pixelToBin, int graphWidth, int numValues, float sampleRate) = 0;
 };

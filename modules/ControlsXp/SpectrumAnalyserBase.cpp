@@ -1,5 +1,10 @@
 #include "./SpectrumAnalyserBase.h"
 
+int nearestEven(int value)
+{
+	return (value + 1) & ~1;
+}
+
 void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height, float displayDbTop, float displayDbBot)
 {
 	if (rawSpectrum.size() < 10 || sampleRateFft < 1.0f)
@@ -9,12 +14,12 @@ void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height, float disp
 
 	if (pixelToBin.empty())
 	{
-		InixPixelToBin(pixelToBin, width, spectrumCount2, sampleRateFft);
+		InitPixelToBin(pixelToBin, width, spectrumCount2, sampleRateFft);
 
 		// calc the zones of the graph that need cubic/linear/none interpolation
 		smoothedZoneHigh = linearZoneHigh = static_cast<int>(pixelToBin.size()) - 1;
 
-		float bin_per_pixel = 0.8f;
+		// Find the zone where bins are much sparser than pixels, we need to cubic interpolate.
 		for (int i = 10; i < pixelToBin.size(); i++)
 		{
 			const auto& e1 = pixelToBin[i - 1];
@@ -23,20 +28,28 @@ void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height, float disp
 			const float b2 = e2.index + e2.fraction;
 			const float distance = b2 - b1;
 
-			if (distance >= bin_per_pixel)
+			if (distance >= 0.25f)
 			{
 				// _RPTN(0, "bin_per_pixel %d: %d\n", (int)bin_per_pixel, i);
-				if (bin_per_pixel <= 1.0f)
-				{
-					smoothedZoneHigh = i;
-				}
-				else
-				{
-					linearZoneHigh = i;
-					break;
-				}
+				smoothedZoneHigh = nearestEven(i);
+				break;
+			}
+		}
 
-				++bin_per_pixel;
+		// when bins are more tighly packed than pixels, we need to group bins together.
+		linearZoneHigh = (pixelToBin.size() - 1) & ~1; // last even-numbered pixel.
+		for (int i = linearZoneHigh; i > 10; i -= 2) // we draw only every 2nd point.
+		{
+			const auto& e1 = pixelToBin[i - 1];
+			const auto& e2 = pixelToBin[i];
+			const float b1 = e1.index + e1.fraction;
+			const float b2 = e2.index + e2.fraction;
+			const float distance = b2 - b1;
+
+			if (distance < 1.1f)
+			{
+				linearZoneHigh = i;
+				break;
 			}
 		}
 
@@ -66,8 +79,7 @@ void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height, float disp
 				}
 
 				// quantize to 2 pixels in x direction.
-				const auto closestXQuantized = ((closestX - linearZoneHigh) & ~1) + linearZoneHigh;
-				closestPixelToBin[bin] = closestXQuantized;
+				closestPixelToBin[bin] = nearestEven(closestX);
 			}
 		}
 
@@ -91,8 +103,6 @@ void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height, float disp
 		}
 	}
 
-	//const float displayDbTop = this->pin 6.0f;
-	//const float displayDbBot = -120.0f;
 	const float clipDbAtBottom = displayDbBot - 5.0f; // -5 to have flat graph just off the bottom
 	const float inverseN = 2.0f / spectrumCount2;
 	const float dbc = 20.0f * log10f(inverseN);
@@ -110,13 +120,13 @@ void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height, float disp
 			dbs_disp.assign(spectrumCount2 + 2, -300.0f);
 		}
 
-		for (int i = 0; i < pixelToBin[linearZoneHigh].index; ++i)
+		for (int bin = 0; bin < pixelToBin[linearZoneHigh].index; ++bin)
 		{
-			if (!dbUsed[i])
+			if (!dbUsed[bin])
 				continue;
 
 			float db;
-			if (capturedata[i] <= safeMinAmp)
+			if (capturedata[bin] <= safeMinAmp)
 			{
 				// save on expensive log10 call if signal is so quiet that it's off the bottom of the graph anyhow.
 				db = clipDbAtBottom;
@@ -124,17 +134,17 @@ void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height, float disp
 			else
 			{
 				// 10 is wrong? should be 20????
-				db = 10.f * log10(capturedata[i]) + dbc;
+				db = 10.f * log10(capturedata[bin]) + dbc;
 				assert(!isnan(db));
 			}
 
-			dbs_in[i] = db;
-			dbs_disp[i] = (std::max)(db, dbs_disp[i]);
+			dbs_in[bin] = db;
+			dbs_disp[bin] = (std::max)(db, dbs_disp[bin]);
 		}
 
 		// for the dense part of the graph at right, just find local maxima of small groups. Then do the expensive conversion to dB.
 		{
-//			int dx = 4;
+			//_RPT0(0, "\n---------- update high zone --------------\n");
 			float maxAmp = 0.0f;
 			int currentX = -1;
 			for (int bin = 0 ; bin < closestPixelToBin.size() ; ++bin)
@@ -159,6 +169,8 @@ void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height, float disp
 
 						dbs_in[sumaryBin] = db;
 						dbs_disp[sumaryBin] = (std::max)(db, dbs_disp[sumaryBin]);
+
+						//_RPTN(0, "x %d: bin %d db %f\n", x, sumaryBin, db);
 					}
 					currentX = x;
 					maxAmp = 0.0f;
@@ -224,12 +236,17 @@ void SpectrumAnalyserBase::updateSpectrumGraph(int width, int height, float disp
 	}
 
 	// plot the 'max' section where we just take the maximum value of several bins.
+	// we assume that results have already been clumped into sparse bins.
+	// and we assume that pixelToBin[n] returns one of those bins.
+	//_RPT0(0, "\n---------- high zone --------------\n");
 	for (int x = linearZoneHigh; x < width; x += 2) // see also closestXQuantized
 	{
 		const auto dbBin = pixelToBin[x].index;
 
 		const auto db = dbs_disp[dbBin];
 		const auto y = (db - displayDbTop) * dbToPixel;
+
+		//_RPTN(0, "x %d: dbBin %d db %f\n", x, dbBin, db);
 
 		graphValues.push_back({ static_cast<float>(x), y });
 	}

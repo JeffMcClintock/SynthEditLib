@@ -53,7 +53,7 @@ public:
 		invalidateRect();
 	}
 
-	void InixPixelToBin(std::vector<SpectrumAnalyserBase::binData>& pixelToBin, int graphWidth, int numValues, float sampleRate) override
+	void InitPixelToBin(std::vector<SpectrumAnalyserBase::binData>& pixelToBin, int graphWidth, int numValues, float sampleRate) override
 	{
 		pixelToBin.clear();
 
