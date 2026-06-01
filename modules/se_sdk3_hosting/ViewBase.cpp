@@ -600,10 +600,8 @@ namespace SE2
 					&& fromModuleInfo->GuiPlugCount() > 0
 					&& toModuleInfo->GuiPlugCount() > 0)
 				{
-					auto fromPinDesc = fromModuleInfo->getGuiPinDescriptionByPosition(
-						(std::min)(fromPinIndex, fromModuleInfo->GuiPlugCount() - 1));
-					auto toPinDesc = toModuleInfo->getGuiPinDescriptionByPosition(
-						(std::min)(toPinIndex, toModuleInfo->GuiPlugCount() - 1));
+					auto fromPinDesc = fromModuleInfo->getGuiPinDescriptionById(fromPinIndex);
+					auto toPinDesc = toModuleInfo->getGuiPinDescriptionById(toPinIndex);
 
 					if (fromPinDesc && toPinDesc)
 					{

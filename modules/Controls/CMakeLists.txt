@@ -7,7 +7,6 @@ gmpi_plugin(
 	HAS_DSP
 	HAS_GUI
 	IS_OFFICIAL_MODULE
-	USE_STAGING
 	SOURCE_FILES
 	  KnobGui.cpp
 	  ButtonGui.cpp
