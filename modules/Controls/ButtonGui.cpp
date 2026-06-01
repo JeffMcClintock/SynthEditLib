@@ -71,7 +71,6 @@ class ButtonGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 	Pin<std::string> pinHint;
 	Pin<bool> pinToggle;
 	Pin<std::string> pinColor1;
-	Pin<std::string> pinColor2;
 	Pin<float> pinRadius;
 	cachedBlur shadowBlur;
 	SizeU shadowSize{};
@@ -94,11 +93,6 @@ class ButtonGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 	Color getFillColor() const
 	{
 		return pinColor1.value.empty() ? colorFromHex(0x2E79C7u) : colorFromHexString(pinColor1.value);
-	}
-
-	Color getHighlightColor() const
-	{
-		return pinColor2.value.empty() ? Color{ 1.0f, 1.0f, 1.0f, 0.94f } : colorFromHexString(pinColor2.value);
 	}
 
 	bool hasCapture() const
@@ -138,7 +132,6 @@ public:
 	{
 		pinValue.onUpdate = [this](PinBase*) { redraw(); };
 		pinColor1.onUpdate = [this](PinBase*) { redraw(); };
-		pinColor2.onUpdate = [this](PinBase*) { redraw(); };
 		pinRadius.onUpdate = [this](PinBase*) { redraw(); };
 	}
 
@@ -355,7 +348,6 @@ auto r = gmpi::Register<ButtonGui>::withXml(R"XML(
 		<Pin name="Hint" datatype="string"/>
 		<Pin name="Toggle" datatype="bool"/>
 		<Pin name="Base Color" datatype="string" default="2E79C7"/>
-		<Pin name="Line Color" datatype="string" default="EEEEEE"/>
 		<Pin name="Radius" datatype="float" default="0.24"/>
 	</GUI>
 </Plugin>
