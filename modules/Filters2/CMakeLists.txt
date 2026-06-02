@@ -7,5 +7,6 @@ gmpi_plugin(
 	HAS_DSP
 	SOURCE_FILES
 	  LowPass6dB.cpp
+	  LowPass6dB_stereo.cpp
 	  ${GMPI_SDK}/Helpers/FilterBase.h
 )

@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: ISC
 // Copyright 2007-2026 Jeff McClintock.
 //
-// One-pole (6 dB/octave) low-pass filter - i.e. a first-order IIR low-pass, a.k.a.
-// a 'leaky integrator'. One real pole (plus a trivial zero at the origin).
-// Modernised port of the legacy 'ug_filter_1pole' (ug_filter_1pole_lp.cpp) to the GMPI SDK.
+// Stereo one-pole (6 dB/octave) low-pass filter.
+// Two independent first-order low-passes (Left and Right) sharing one cutoff.
 //
-// Difference equation:  y[n] = x[n] + l * ( y[n-1] - x[n] )
-//   where the pole coefficient  l = exp( -2*pi * Fc / Fs ).
-//
-// gmpi::FilterBase provides the power-saving 'settling' behaviour: once the
-// input goes quiet the output is watched until it stops changing, then the
-// output is flagged non-streaming so the host can sleep this module.
+// This is the stereo companion to LowPass6dB.cpp, and an example of using
+// gmpi::FilterBase with more than one audio output: both outputs are registered
+// with addOutputPin(), so the base class only sleeps the module once BOTH
+// channels have decayed to silence.
 
 #include <algorithm>
 #include <cmath>
@@ -20,20 +17,25 @@
 
 using namespace gmpi;
 
-struct LowPass6dB final : public FilterBase
+struct LowPass6dBStereo final : public FilterBase
 {
-	AudioInPin pinSignal;
+	AudioInPin pinSignalL;
+	AudioInPin pinSignalR;
 	AudioInPin pinPitch;
-	AudioOutPin pinOutput;
+	AudioOutPin pinOutputL;
+	AudioOutPin pinOutputR;
 
-	// filter state
-	float y1n = 0.0f;             // previous output (filter memory)
+	// filter state (one memory per channel; the coefficient is shared)
+	float y1nL = 0.0f;
+	float y1nR = 0.0f;
 	float l = 0.0f;               // pole coefficient
 	float sampleRate = 44100.0f;  // cached (avoids per-sample host calls)
 
-	LowPass6dB()
+	LowPass6dBStereo()
 	{
-		addOutputPin(pinOutput); // FilterBase watches this output for silence.
+		// FilterBase watches both outputs; it sleeps us only when both are silent.
+		addOutputPin(pinOutputL);
+		addOutputPin(pinOutputR);
 	}
 
 	ReturnCode open(api::IUnknown* phost) override
@@ -65,47 +67,53 @@ struct LowPass6dB final : public FilterBase
 	{
 		doStabilityCheck();
 
-		auto in = getBuffer(pinSignal);
-		auto out = getBuffer(pinOutput);
+		auto inL = getBuffer(pinSignalL);
+		auto inR = getBuffer(pinSignalR);
+		auto outL = getBuffer(pinOutputL);
+		auto outR = getBuffer(pinOutputR);
 		[[maybe_unused]] auto pitch = getBuffer(pinPitch);
 
 		float lc = l; // fixed cutoff (overwritten each sample when modulated)
-		float y = y1n;
+		float yL = y1nL;
+		float yR = y1nR;
 		for (int s = sampleFrames; s > 0; --s)
 		{
 			if constexpr (pitchModulated)
 				lc = computeCoeff(*pitch++);
 
-			const float xn = *in++;
-			y = xn + lc * (y - xn);
-			*out++ = y;
+			const float xL = *inL++;
+			const float xR = *inR++;
+			yL = xL + lc * (yL - xL);
+			yR = xR + lc * (yR - xR);
+			*outL++ = yL;
+			*outR++ = yR;
 		}
-		y1n = y;
+		y1nL = yL;
+		y1nR = yR;
 	}
 
 	// --- FilterBase hooks -------------------------------------------------
 
 	bool isFilterSettling() override
 	{
-		// Only the inputs feed energy into the filter. Once they are quiet the
-		// output decays to a constant and we can eventually sleep.
-		return !pinSignal.isStreaming() && !pinPitch.isStreaming();
+		// Settling only once every input is quiet (neither channel nor the cutoff).
+		return !pinSignalL.isStreaming() && !pinSignalR.isStreaming() && !pinPitch.isStreaming();
 	}
 
 	void StabilityCheck() override
 	{
-		if (!std::isfinite(y1n)) // self-oscillation can blow up
-			y1n = 0.0f;
+		if (!std::isfinite(y1nL)) y1nL = 0.0f;
+		if (!std::isfinite(y1nR)) y1nR = 0.0f;
 	}
 
 	// --- host callbacks ---------------------------------------------------
 
 	void onGraphStart() override
 	{
-		// If the input is a steady (non-streaming) level, pre-seed the filter to
-		// its steady state so it settles immediately instead of ramping up.
-		if (!pinSignal.isStreaming())
-			y1n = pinSignal.getValue();
+		// Pre-seed each channel to a steady (non-streaming) input so it settles
+		// immediately instead of ramping up.
+		if (!pinSignalL.isStreaming()) y1nL = pinSignalL.getValue();
+		if (!pinSignalR.isStreaming()) y1nR = pinSignalR.getValue();
 
 		FilterBase::onGraphStart();
 	}
@@ -116,14 +124,15 @@ struct LowPass6dB final : public FilterBase
 		if (pinPitch.isUpdated() && !pinPitch.isStreaming())
 			l = computeCoeff(pinPitch.getValue());
 
-		// Any active input keeps the output active.
-		pinOutput.setStreaming(true);
+		// Any active input keeps the outputs active.
+		pinOutputL.setStreaming(true);
+		pinOutputR.setStreaming(true);
 
 		// Pick the cheapest specialisation for the current pitch mode.
 		if (pinPitch.isStreaming())
-			setSubProcess(&LowPass6dB::subProcess<true>);
+			setSubProcess(&LowPass6dBStereo::subProcess<true>);
 		else
-			setSubProcess(&LowPass6dB::subProcess<false>);
+			setSubProcess(&LowPass6dBStereo::subProcess<false>);
 
 		initSettling(); // must be last (FilterBase).
 	}
@@ -131,13 +140,15 @@ struct LowPass6dB final : public FilterBase
 
 namespace
 {
-auto r = Register<LowPass6dB>::withXml(R"XML(
+auto r = Register<LowPass6dBStereo>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
-<Plugin id="SE Low Pass (6dB)" name="Low Pass (6dB)" category="SDK Examples">
+<Plugin id="SE Low Pass (6dB) Stereo" name="Low Pass (6dB) Stereo" category="SDK Examples">
     <Audio>
-        <Pin name="Signal" datatype="float" rate="audio" linearInput="true"/>
+        <Pin name="Signal L" datatype="float" rate="audio" linearInput="true"/>
+        <Pin name="Signal R" datatype="float" rate="audio" linearInput="true"/>
         <Pin name="Pitch" datatype="float" rate="audio" default="0.5"/>
-        <Pin name="Output" datatype="float" rate="audio" direction="out"/>
+        <Pin name="Output L" datatype="float" rate="audio" direction="out"/>
+        <Pin name="Output R" datatype="float" rate="audio" direction="out"/>
     </Audio>
 </Plugin>
 )XML");
