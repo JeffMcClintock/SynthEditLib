@@ -437,13 +437,13 @@ gmpi::ReturnCode SubView::render(gmpi::drawing::api::IDeviceContext* drawingCont
 		return gmpi::ReturnCode::Unhandled;
 }
 
-#if 0 // todo
-int32_t SubView::getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString)
+gmpi::ReturnCode SubView::getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString)
 {
-	const auto localPoint = point * inv_viewTransform;
-	return ViewBase::getToolTip(localPoint, returnString);
+	// Follows the same pattern as onPointerDown/onPointerMove: ViewBase's
+	// base version applies inv_viewTransform (which holds SubView's pan), so
+	// no manual transform here would double-apply.
+	return ViewBase::getToolTip(point, returnString);
 }
-#endif
 
 void SubView::process()
 {

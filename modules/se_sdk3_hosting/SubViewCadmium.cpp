@@ -290,7 +290,7 @@ int32_t SubViewCadmium::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingConte
 	return gmpi::MP_OK;
 }
 
-int32_t SubViewCadmium::getToolTip(MP1_POINT point, gmpi::IString* returnString)
+gmpi::ReturnCode SubViewCadmium::getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString)
 {
 	return ViewBase::getToolTip(point, returnString);
 }

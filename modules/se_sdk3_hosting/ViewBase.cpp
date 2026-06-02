@@ -897,30 +897,32 @@ namespace SE2
 		return r;
 	}
 
-#if 0 // TODO support this
-	int32_t ViewBase::getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString)
+	gmpi::ReturnCode ViewBase::getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString)
 	{
+		// Convert from view-space (incoming, the same coords HostedView/onPointer*
+		// receive) to document-space, where children's hit-test rects live.
+		// Every other ViewBase input handler does this transform too — see
+		// onPointerDown/onPointerMove/onPointerUp.
+		point = point * inv_viewTransform;
+
 		std::string returnToolTip;
 
 		for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 		{
 			auto& m = *it;
-			if(m->hitTest(0, point) == gmpi::ReturnCode::Ok)
+			if(m->hitTest(point, 0) == gmpi::ReturnCode::Ok)
 			{
 				returnToolTip = m->getToolTip(point);
 				break;
 			}
 		}
 
-		if (returnToolTip.empty() ) // || MP_OK != returnString->queryInterface(gmpi::MP_IID_RETURNSTRING, reinterpret_cast<void**>(&returnValue)))
-		{
-			return gmpi::MP_NOSUPPORT;
-		}
+		if (returnToolTip.empty())
+			return gmpi::ReturnCode::Unhandled;
 
 		returnString->setData(returnToolTip.data(), (int32_t)returnToolTip.size());
 		return gmpi::ReturnCode::Ok;
 	}
-#endif
 
 	void ViewBase::RemoveChild(IViewChild* child)
 	{

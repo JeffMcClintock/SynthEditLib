@@ -157,7 +157,7 @@ bool isIteratingChildren = false;
 		}
 		gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory);
 
-// TODO		int32_t getToolTip(gmpi::drawing::Point point, gmpi::IString* returnString) override;
+		gmpi::ReturnCode getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString) override;
 
 		virtual std::string getSkinName() = 0;
 

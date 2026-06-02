@@ -217,6 +217,24 @@ struct GmpiUiLayer :
 		return gmpi::ReturnCode::Unhandled;
 	}
 
+	gmpi::ReturnCode getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString) override
+	{
+		for (auto& it : children)
+		{
+			if (!pointInRect(point, (*it).bounds))
+				continue;
+
+			auto child = (*it).editor.get();
+			if (!child)
+				continue;
+
+			gmpi::drawing::Point childPoint{ point.x - (*it).bounds.left, point.y - (*it).bounds.top };
+			return child->getToolTip(childPoint, returnString);
+		}
+
+		return gmpi::ReturnCode::Unhandled;
+	}
+
 	gmpi::ReturnCode onKeyPress(wchar_t c) override
 	{
 		if(keyHandler)
@@ -774,6 +792,21 @@ struct Pile :
 	{
 		if (auto editor = getEditor(); editor)
 			return editor->populateContextMenu(point, contextMenuItemsSink);
+		return gmpi::ReturnCode::Unhandled;
+	}
+
+	gmpi::ReturnCode getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString) override
+	{
+		// hit test each layer, topmost first.
+		for (int i = static_cast<int>(editors_gmpi.size()) - 1; i >= 0; --i)
+		{
+			auto& child = editors_gmpi[i];
+			if (!child)
+				continue;
+
+			if (child->hitTest(point, 0) == gmpi::ReturnCode::Ok)
+				return child->getToolTip(point, returnString);
+		}
 		return gmpi::ReturnCode::Unhandled;
 	}
 

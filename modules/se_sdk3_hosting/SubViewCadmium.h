@@ -53,8 +53,7 @@ public:
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override;
-	int32_t getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString);
-//	int32_t MP_STDCALL getToolTip(float x, float y, gmpi::IMpUnknown* returnToolTipString) override;
+	gmpi::ReturnCode getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString) override;
 
 	void ChildInvalidateRect(const gmpi::drawing::Rect& invalidRect) override
 	{
