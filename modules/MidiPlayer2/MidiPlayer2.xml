@@ -63,6 +63,16 @@
       <Pin id="4" name="Loop Mode" direction="in" datatype="bool" default="0"/>
     </Audio>
   </Plugin>
+    <Plugin id="SE Trigger To MIDI2" name="Trigger To MIDI2" category="Experimental">
+        <Audio>
+            <Pin name="Trigger" datatype="bool"/>
+            <Pin name="Gate" datatype="bool"/>
+            <Pin name="Pitch" datatype="float" rate="audio" default="0.5"/>
+            <Pin name="Velocity" datatype="float" rate="audio" default="0.5"/>
+            <Pin name="Channel" datatype="enum" ignorePatchChange="true" metadata="All=-1,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16"/>
+            <Pin name="MIDI Out" datatype="midi" direction="out"/>
+        </Audio>
+    </Plugin>
 </PluginList>
 
 

@@ -14,6 +14,7 @@ build_gmpi_plugin(
         MIDIRecorder.cpp
         MidiToGate.cpp
         MidiMessage.cpp
+		TriggerToMIDI2.cpp
         smf.h
         smf.cpp
 )
