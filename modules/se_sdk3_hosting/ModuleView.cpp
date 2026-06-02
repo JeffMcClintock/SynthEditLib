@@ -1369,13 +1369,10 @@ if(pluginGraphics)
 
 			gmpi_sdk::MpString s;
 			if( MP_OK == pluginGraphics2->getToolTip(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local), &s) )
-			{
 				return s.str();
-			}
-			return string();
 		}
 
-		return string();
+		return {};
 	}
 
 	void ModuleView::receiveMessageFromAudio(void* msg)
