@@ -30,6 +30,7 @@ struct LowPass6dB final : public FilterBase
 	float y1n = 0.0f;             // previous output (filter memory)
 	float l = 0.0f;               // pole coefficient
 	float sampleRate = 44100.0f;  // cached (avoids per-sample host calls)
+	float expScale = 0.0f;        // = -2*pi / sampleRate  (pole coeff = exp(expScale * freqHz))
 
 	LowPass6dB()
 	{
@@ -40,6 +41,7 @@ struct LowPass6dB final : public FilterBase
 	{
 		auto r = FilterBase::open(phost); // randomises the stability-check phase
 		sampleRate = getSampleRate();
+		expScale = -2.0f * static_cast<float>(M_PI) / sampleRate;
 		return r;
 	}
 
@@ -53,7 +55,7 @@ struct LowPass6dB final : public FilterBase
 		// Limit the cutoff to just under Nyquist.
 		freqHz = (std::min)(freqHz, sampleRate * 0.495f);
 
-		return std::exp(-2.0f * static_cast<float>(M_PI) * freqHz / sampleRate);
+		return std::exp(freqHz * expScale);
 	}
 
 	// --- audio processing -------------------------------------------------
