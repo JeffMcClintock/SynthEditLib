@@ -63,7 +63,7 @@
       <Pin id="4" name="Loop Mode" direction="in" datatype="bool" default="0"/>
     </Audio>
   </Plugin>
-    <Plugin id="SE Trigger To MIDI2" name="Trigger To MIDI2" category="Experimental">
+    <Plugin id="SE Trigger To MIDI2" name="Trigger To MIDI2" category="MIDI">
         <Audio>
             <Pin name="Trigger" datatype="bool"/>
             <Pin name="Gate" datatype="bool"/>
