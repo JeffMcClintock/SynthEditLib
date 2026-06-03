@@ -26,7 +26,14 @@ class Module_Info
 protected:
 	void ScanPinXml(tinyxml2::XMLElement* xmlObjects, module_info_pins_t * pinlist, int32_t plugin_sub_type);
 	void RegisterPin(tinyxml2::XMLElement * pin, module_info_pins_t * pinlist, int32_t plugin_sub_type, int & pin_id);
-	
+
+	// Validation messages collected while parsing a module's pin XML, reported in one
+	// batch by flushPinXmlDiagnostics() rather than one popup per problem. 'line' is the
+	// source line in the module XML (0 if unknown); pass tinyxml2's GetLineNum().
+	enum PinXmlSeverity { PINXML_ERROR, PINXML_WARNING, PINXML_INFO };
+	void addPinXmlDiagnostic(PinXmlSeverity severity, int line, std::wstring message);
+	void flushPinXmlDiagnostics();
+
 public:
 	void RegisterParameters(tinyxml2::XMLElement* parameters);
 	void RegisterPins(tinyxml2::XMLElement* plugin_data, int32_t plugin_sub_type);
@@ -211,4 +218,7 @@ protected:
 private:
 	bool m_serialise_me = false; // flags if this info needs storing in project file (because this module used in patch)
 	bool m_loaded_into_database = true;
+
+	struct PinXmlDiagnostic { PinXmlSeverity severity; int line; std::wstring message; };
+	std::vector<PinXmlDiagnostic> pinXmlDiagnostics_; // transient: filled during ScanXml, drained by flushPinXmlDiagnostics()
 };

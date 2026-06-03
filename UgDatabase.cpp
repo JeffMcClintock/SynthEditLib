@@ -76,9 +76,7 @@ int32_t CModuleFactory::PinFlagsFromXml(const char* name, const char* value)
 	for (auto& pf : IO_flagNames)
 	{
 		if (name && strcmp(pf.name, name) == 0)
-		{
 			return pf.flag;
-		}
 	}
 	
 	return 0;

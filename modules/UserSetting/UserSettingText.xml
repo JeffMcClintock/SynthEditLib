@@ -6,9 +6,9 @@
        <Parameter id="0" name="val" datatype="string" private="true" ignorePatchChange="true" persistant="false"/>
     </Parameters>
     <GUI>
-      <Pin name="Product" datatype="string" default="My Plugin Name" minimised="true"/>
-      <Pin name="Key" datatype="string" default="My Setting Name" minimised="true"/>
-      <Pin name="Default" datatype="string" default="Some Default Value" minimised="true"/>
+      <Pin name="Product" datatype="string" default="My Plugin Name" isMinimised="true"/>
+      <Pin name="Key" datatype="string" default="My Setting Name" isMinimised="true"/>
+      <Pin name="Default" datatype="string" default="Some Default Value" isMinimised="true"/>
       <Pin name="value in" datatype="string" parameterId="0"/>
       <Pin name="Value" direction="out" datatype="string"/>
     </GUI>

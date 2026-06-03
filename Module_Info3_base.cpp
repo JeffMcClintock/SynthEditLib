@@ -71,6 +71,86 @@ void SetPinFlag(const char* xml_name, int xml_flag, tinyxml2::XMLElement* pin, i
 	}
 }
 
+// Is 'name' a boolean pin-flag attribute? (one that maps to an IO_ flag via PinFlagsFromXml).
+// These are silently treated as false unless the value is exactly "true", so we validate them.
+static bool isBooleanPinFlag(const char* name)
+{
+	for (const auto& pf : IO_flagNames)
+	{
+		if (pf.name[0] != 0 && strcmp(pf.name, name) == 0) // skip the unnamed sentinel entry
+			return true;
+	}
+	return false;
+}
+
+// Is 'name' any attribute the pin XML parser understands? Used to warn about typos.
+static bool isKnownPinAttribute(const char* name)
+{
+	static const char* const known[] = {
+		"id", "name", "direction", "datatype", "rate", "default",
+		"parameterId", "parameterField", "hostConnect", "metadata", "notes",
+		"isParameter", "automation", // recognised here, but rejected by dedicated checks below
+	};
+	for (const char* k : known)
+	{
+		if (strcmp(k, name) == 0)
+			return true;
+	}
+	return isBooleanPinFlag(name);
+}
+
+void Module_Info::addPinXmlDiagnostic(PinXmlSeverity severity, int line, std::wstring message)
+{
+	pinXmlDiagnostics_.push_back({ severity, line, std::move(message) });
+}
+
+// Emit all diagnostics collected for this module in one go: always to the debug log,
+// and (when there's something actionable) one consolidated message box rather than
+// a separate popup per problem.
+void Module_Info::flushPinXmlDiagnostics()
+{
+	if (pinXmlDiagnostics_.empty())
+		return;
+
+	bool anyError = false;
+	bool anyWarning = false;
+
+	std::wostringstream oss;
+	oss << L"Module XML problems in '" << UniqueId() << L"'\n(" << Filename() << L")\n";
+
+	for (const auto& d : pinXmlDiagnostics_)
+	{
+		const wchar_t* sev = L"INFO";
+		switch (d.severity)
+		{
+		case PINXML_ERROR:   sev = L"ERROR";   anyError = true;   break;
+		case PINXML_WARNING: sev = L"WARNING"; anyWarning = true; break;
+		case PINXML_INFO:    sev = L"INFO";                       break;
+		}
+
+		oss << L"\n  " << sev;
+		if (d.line > 0)
+			oss << L" (line " << d.line << L")";
+		oss << L": " << d.message;
+	}
+
+	const auto text = oss.str();
+
+#ifdef _WIN32
+	_RPT1(_CRT_WARN, "%S\n", text.c_str()); // always visible in the debugger output window
+#endif
+
+	// Errors and warnings are likely authoring mistakes worth surfacing; info-only stays in the log.
+	// (SafeMessagebox diverts to non-blocking console output on CI.)
+	if (anyError || anyWarning)
+	{
+		const int icon = anyError ? MB_ICONSTOP : MB_ICONEXCLAMATION;
+		SafeMessagebox(0, text.c_str(), L"SynthEdit module XML", MB_OK | icon);
+	}
+
+	pinXmlDiagnostics_.clear();
+}
+
 struct GuiTech
 {
 	std::string name;
@@ -132,6 +212,8 @@ void Module_Info3_base::ScanXml(tinyxml2::XMLElement* pluginE)
 // see also Import() in ModuleFactory_Editor.cpp
 void Module_Info::ScanXml(tinyxml2::XMLElement* pluginData)
 {
+	pinXmlDiagnostics_.clear(); // fresh collection for this module; flushed at end of function
+
 	m_unique_id = Utf8ToWstring(pluginData->Attribute("id"));
 
 	if (m_unique_id.empty())
@@ -303,6 +385,8 @@ void Module_Info::ScanXml(tinyxml2::XMLElement* pluginData)
 	}
 
 #endif
+
+	flushPinXmlDiagnostics(); // report everything collected during this module's pin scan, in one batch
 }
 #if 0
 void Module_Info::RegisterParameters(TiXmlNode* parameters) // XML data passed in.
@@ -941,7 +1025,15 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 	pin_description2 pind;
 	pind.clear();
 
-	pin->QueryIntAttribute("id", &(pin_id));
+	const int pinLine = pin->GetLineNum(); // source line, for diagnostics
+
+	// id (optional - auto-numbered when absent). Warn if present but not an integer.
+	if (pin->QueryIntAttribute("id", &(pin_id)) == tinyxml2::XML_WRONG_ATTRIBUTE_TYPE)
+	{
+		std::wostringstream oss;
+		oss << L"pin 'id' is not a valid integer ('" << Utf8ToWstring(pin->Attribute("id")) << L"').";
+		addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
+	}
 
 	// name
 	pind.name = Utf8ToWstring(pin->Attribute("name"));
@@ -958,21 +1050,54 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 
 		if (!pind.default_value.empty())
 		{
-			SafeMessagebox(0, (L"module data: default not supported on output pin"));
+			std::wostringstream oss;
+			oss << L"pin id " << pin_id << L": 'default' not supported on output pin.";
+			addPinXmlDiagnostic(PINXML_WARNING, pinLine, oss.str());
 		}
 	}
 	else
 	{
 		pind.direction = DR_IN;
+
+		// anything that isn't "in"/"out" silently becomes an input - usually a typo.
+		if (!pin_direction.empty() && pin_direction.compare("in") != 0)
+		{
+			std::wostringstream oss;
+			oss << L"pin id " << pin_id << L": unrecognised direction '" << Utf8ToWstring(pin_direction)
+				<< L"' (expected \"in\" or \"out\"; treated as input).";
+			addPinXmlDiagnostic(PINXML_WARNING, pinLine, oss.str());
+		}
 	}
 
 	// flags
 	pind.flags = type_specific_flags;
 	for (auto attrib = pin->FirstAttribute(); attrib; attrib = attrib->Next())
 	{
-		pind.flags |= CModuleFactory::PinFlagsFromXml(attrib->Name(), attrib->Value());
+		const char* aname = attrib->Name();
+		const char* avalue = attrib->Value();
+
+		pind.flags |= CModuleFactory::PinFlagsFromXml(aname, avalue);
+
+		if (isBooleanPinFlag(aname))
+		{
+			// boolean flags are only honoured when the value is exactly "true" (else silently false).
+			if (!avalue || (strcmp(avalue, "true") != 0 && strcmp(avalue, "false") != 0))
+			{
+				std::wostringstream oss;
+				oss << L"pin id " << pin_id << L": attribute '" << Utf8ToWstring(aname)
+					<< L"' should be \"true\" or \"false\", got '" << Utf8ToWstring(FixNullCharPtr(avalue))
+					<< L"' (treated as false).";
+				addPinXmlDiagnostic(PINXML_WARNING, attrib->GetLineNum(), oss.str());
+			}
+		}
+		else if (!isKnownPinAttribute(aname))
+		{
+			std::wostringstream oss;
+			oss << L"pin id " << pin_id << L": unknown attribute '" << Utf8ToWstring(aname) << L"' (ignored).";
+			addPinXmlDiagnostic(PINXML_WARNING, attrib->GetLineNum(), oss.str());
+		}
 	}
-	
+
 #ifdef _DEBUG
 	{
 		// flags
@@ -999,9 +1124,9 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 	std::wstring pin_automation = Utf8ToWstring(pin->Attribute("automation"));
 
 	if (pin->Attribute("isParameter") != 0)
-		SafeMessagebox(0, (L"'isParameter' not allowed in pin XML"));
+		addPinXmlDiagnostic(PINXML_ERROR, pinLine, L"pin id " + std::to_wstring(pin_id) + L": 'isParameter' not allowed in pin XML.");
 	if (!pin_automation.empty())
-		SafeMessagebox(0, (L"'automation' not allowed in pin XML"));
+		addPinXmlDiagnostic(PINXML_ERROR, pinLine, L"pin id " + std::to_wstring(pin_id) + L": 'automation' not allowed in pin XML.");
 
 	// parameter ID. Defaults to ssame as pin ID, but can be overridden.
 	// Pins can be driven from patch-store.
@@ -1016,6 +1141,12 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 	}
 	else
 	{
+		// warn if present but not an integer (StringToInt would silently yield 0).
+		if (int tmp; pin->QueryIntAttribute("parameterId", &tmp) == tinyxml2::XML_WRONG_ATTRIBUTE_TYPE)
+		{
+			addPinXmlDiagnostic(PINXML_ERROR, pinLine, L"pin id " + std::to_wstring(pin_id) + L": 'parameterId' is not a valid integer ('" + parameterIdString + L"').");
+		}
+
 		parameterId = StringToInt(parameterIdString);
 		pind.flags |= (IO_PATCH_STORE | IO_HIDE_PIN);
 	}
@@ -1039,8 +1170,8 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 			if (!XmlStringToParameterField(parameterField, parameterFieldId))
 			{
 				std::wostringstream oss;
-				oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" unknown Parameter Field ID.";
-				Messagebox(oss);
+				oss << L"pin id " << pin_id << L": unknown parameterField '" << Utf8ToWstring(parameterField) << L"'.";
+				addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 			}
 		}
 
@@ -1068,14 +1199,14 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 			if (hostControlId == HC_NONE)
 			{
 				std::wostringstream oss;
-				oss << L"ERROR. module XML: '" << pind.hostConnect << L"' unknown HOST CONTROL.";
-				Messagebox(oss);
+				oss << L"pin id " << pin_id << L": unknown hostConnect '" << pind.hostConnect << L"'.";
+				addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 			}
 			if (pind.direction != DR_IN && (hostControlId < HC_USER_SHARED_PARAMETER_INT0 || hostControlId > HC_USER_SHARED_PARAMETER_INT4))
 			{
 				std::wostringstream oss;
-				oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" hostConnect pin wrong direction. Expected: direction=\"in\"";
-				Messagebox(oss);
+				oss << L"pin id " << pin_id << L": hostConnect pin wrong direction (expected direction=\"in\").";
+				addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 			}
 
 			expectedPinDatatype = GetHostControlDatatype(hostControlId);
@@ -1115,8 +1246,8 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 					if (const auto rate = pin->Attribute("rate"); rate && strcmp(rate, "audio") == 0)
 					{
 						std::wostringstream oss;
-						oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" audio-rate not supported.";
-						Messagebox(oss);
+						oss << L"pin id " << pin_id << L": rate=\"audio\" only supported on float datatype.";
+						addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 					}
 
 					if (pind.datatype == DT_CLASS) // e.g. "class:geometry"
@@ -1134,26 +1265,23 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 			else
 			{
 				std::wostringstream oss;
-				oss << L"err. module XML file (" << Filename() << L"): parameter id " << pin_id << L" unknown datatype '" << Utf8ToWstring(pin_datatype) << L"'. Valid [float, int ,string, blob, midi ,bool ,enum ,double]";
-
-				Messagebox(oss);
+				oss << L"pin id " << pin_id << L": unknown datatype '" << Utf8ToWstring(pin_datatype) << L"'. Valid [float, int, string, blob, midi, bool, enum, double].";
+				addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 			}
 
 			if (expectedPinDatatype != -1 && parameterFieldId == FT_VALUE && expectedPinDatatype != pind.datatype)
 			{
 				std::wostringstream oss;
-				oss << L"ERROR. module XML file '" << UniqueId() << "' (" << Filename() << L") : pin id " << pin_id << L" different datatype to parameter : " << pind.datatype << " Expected : " << expectedPinDatatype;
+				oss << L"pin id " << pin_id << L": datatype " << pind.datatype << L" differs from parameter/host-control (expected " << expectedPinDatatype << L").";
 
 				if (DT_FLOAT == expectedPinDatatype && DT_FSAMPLE == pind.datatype)
 				{
-#ifdef _WIN32
-					// Elena modules seem to have sample inputs on host-controls
-					_RPT1(0, "%S\n", oss.str().c_str());
-#endif
+					// Elena modules seem to have sample inputs on host-controls - tolerated, logged only.
+					addPinXmlDiagnostic(PINXML_INFO, pinLine, oss.str());
 				}
 				else
 				{
-					Messagebox(oss);
+					addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 				}
 			}
 		}
@@ -1170,9 +1298,8 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 				if (dt)
 				{
 					std::wostringstream oss;
-					oss << L"err. module XML file (" << Filename() << L"): pin " << pin_id << L": unknown datatype. Valid [float, int ,string, blob, midi ,bool ,enum ,double]";
-
-					Messagebox(oss);
+					oss << L"pin id " << pin_id << L": unknown datatype. Valid [float, int, string, blob, midi, bool, enum, double].";
+					addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 				}
 			}
 		}
@@ -1187,8 +1314,8 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 	if (pinlist->find(pin_id) != pinlist->end())
 	{
 		std::wostringstream oss;
-		oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" used twice.";
-		Messagebox(oss);
+		oss << L"pin id " << pin_id << L" used twice.";
+		addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 	}
 	else
 	{
@@ -1196,6 +1323,12 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 		// iob->setAutomation(controllerType);
 		iob->setParameterId(parameterId);
 		iob->setParameterFieldId(parameterFieldId);
+
+		// a visible pin with no name shows as a blank label - almost always a mistake.
+		if (pind.name.empty() && (iob->GetFlags() & IO_HIDE_PIN) == 0)
+		{
+			addPinXmlDiagnostic(PINXML_WARNING, pinLine, L"pin id " + std::to_wstring(pin_id) + L": missing 'name' attribute.");
+		}
 
 		// constraints
 		// Can't have isParameter on output Gui Pin.
@@ -1209,8 +1342,8 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 				)
 			{
 				std::wostringstream oss;
-				oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" Can't have isParameter on output Gui Pin";
-				Messagebox(oss);
+				oss << L"pin id " << pin_id << L": can't have isParameter (parameterId) on output GUI pin.";
+				addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 			}
 		}
 
@@ -1218,32 +1351,32 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 		if (iob->isParameterPlug() && !iob->DisableIfNotConnected())
 		{
 			std::wostringstream oss;
-			oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" Patch-store input pins must have private=true.";
-			Messagebox(oss);
+			oss << L"pin id " << pin_id << L": patch-store (parameterId) input pins must have private=\"true\".";
+			addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 		}
 
 		// DSP parameters only support FT_VALUE
 		if (iob->getParameterFieldId() != FT_VALUE && !iob->isUiPlug() && iob->isParameterPlug())
 		{
 			std::wostringstream oss;
-			oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" parameterField not supported on Audio (DSP) pins.";
-			Messagebox(oss);
+			oss << L"pin id " << pin_id << L": parameterField not supported on Audio (DSP) pins.";
+			addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 		}
 
 		// parameter used by pin but not declared in "Parameters" section.
 		if (iob->isParameterPlug() && m_parameters.find(iob->getParameterId()) == m_parameters.end())
 		{
 			std::wostringstream oss;
-			oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L" parameter: " << iob->getParameterId() << L" not defined";
-			Messagebox(oss);
+			oss << L"pin id " << pin_id << L": references parameter " << iob->getParameterId() << L" which is not defined in the <Parameters> section.";
+			addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 		}
 
 		// parameter used on autoduplicate pin.
 		if (iob->isParameterPlug() && iob->autoDuplicate())
 		{
 			std::wostringstream oss;
-			oss << L"ERROR. module XML file (" << Filename() << L"): pin id " << pin_id << L"  - can't have both 'autoDuplicate' and 'parameterId'";
-			Messagebox(oss);
+			oss << L"pin id " << pin_id << L": can't have both 'autoDuplicate' and 'parameterId'.";
+			addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 		}
 
 		auto res = pinlist->insert(std::pair<int, InterfaceObject*>(pin_id, iob));
