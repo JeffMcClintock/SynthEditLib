@@ -28,3 +28,14 @@ gmpi_plugin(
 	  OnePoleTpt.h
 	  ${GMPI_SDK}/Helpers/FilterBase.h
 )
+
+gmpi_plugin(
+	PROJECT_NAME SvfEq
+	HAS_DSP
+	SOURCE_FILES
+	  LowShelfTpt.cpp
+	  HighShelfTpt.cpp
+	  BellTpt.cpp
+	  SvfEq.h
+	  ${GMPI_SDK}/Helpers/FilterBase.h
+)
