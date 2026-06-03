@@ -18,3 +18,13 @@ gmpi_plugin(
 	  SvfTpt.cpp
 	  ${GMPI_SDK}/Helpers/FilterBase.h
 )
+
+gmpi_plugin(
+	PROJECT_NAME OnePoleTpt
+	HAS_DSP
+	SOURCE_FILES
+	  LowPassTpt.cpp
+	  HighPassTpt.cpp
+	  OnePoleTpt.h
+	  ${GMPI_SDK}/Helpers/FilterBase.h
+)
