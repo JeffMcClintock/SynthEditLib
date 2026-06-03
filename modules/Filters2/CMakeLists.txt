@@ -10,3 +10,11 @@ gmpi_plugin(
 	  LowPass6dB_stereo.cpp
 	  ${GMPI_SDK}/Helpers/FilterBase.h
 )
+
+gmpi_plugin(
+	PROJECT_NAME SvfTpt
+	HAS_DSP
+	SOURCE_FILES
+	  SvfTpt.cpp
+	  ${GMPI_SDK}/Helpers/FilterBase.h
+)
