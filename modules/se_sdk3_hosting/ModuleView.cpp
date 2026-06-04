@@ -8,6 +8,7 @@
 #include "ConnectorView.h"
 #include "UgDatabase.h"
 #include "legacy_sdk_gui2.h"
+#include "GmpiUiToSDK3.h" // se::GmpiToSDK3Factory — SDK3 fallback for plain GMPI-UI hosts
 #include "LegacyMenuAdapter.h"
 #include "LegacyFileDialogAdapter.h"
 #include "LegacyTextEditAdapter.h"
@@ -229,6 +230,9 @@ namespace SE2
 		moduleview.parent->OnPatchCablesUpdate(patchCablesRaw);
 	}
 
+	Sdk3Helper::Sdk3Helper(ModuleView& pmoduleview) : moduleview(pmoduleview) {}
+	Sdk3Helper::~Sdk3Helper() = default;
+
 	int32_t Sdk3Helper::GetDrawingFactory(GmpiDrawing_API::IMpFactory** returnFactory)
 	{
 		if (!returnFactory)
@@ -237,9 +241,31 @@ namespace SE2
 		gmpi::api::IUnknown* gmpiFactory{};
 		moduleview.parent->drawingHost->getDrawingFactory(&gmpiFactory);
 
-		// cast drawing host to SDK3
-		gmpi_sdk::mp_shared_ptr<gmpi_gui::IMpGraphicsHost> sdk3DrawingHost;
-		return (int32_t) gmpiFactory->queryInterface((const gmpi::api::Guid*)&GmpiDrawing_API::SE_IID_FACTORY_MPGUI, (void**) returnFactory);
+		if (!gmpiFactory)
+			return gmpi::MP_FAIL;
+
+		// SynthEdit.exe supplies a UniversalFactory that answers the legacy SDK3
+		// factory IID directly.
+		if (gmpiFactory->queryInterface((const gmpi::api::Guid*)&GmpiDrawing_API::SE_IID_FACTORY_MPGUI, (void**)returnFactory) == gmpi::ReturnCode::Ok)
+			return gmpi::MP_OK;
+
+		// Plain GMPI-UI hosts (the VST3/CLAP wrapper's DrawingFrame) return a
+		// factory with no SDK3 interface. Wrap it in a GmpiToSDK3Factory adaptor
+		// (cached) so legacy SDK3 modules still get a usable factory. Mirrors
+		// SDK3AdaptorClient::setFactory's fallback for the same situation.
+		gmpi::shared_ptr<gmpi::drawing::api::IFactory> gmpiUiFactory;
+		gmpiFactory->queryInterface(&gmpi::drawing::api::IFactory::guid, gmpiUiFactory.put_void());
+
+		if (!gmpiUiFactory)
+			return gmpi::MP_FAIL;
+
+		if (!sdk3FactoryAdaptor_ || wrappedGmpiFactory_ != gmpiUiFactory.get())
+		{
+			sdk3FactoryAdaptor_ = std::make_unique<se::GmpiToSDK3Factory>(gmpiUiFactory.get());
+			wrappedGmpiFactory_ = gmpiUiFactory.get();
+		}
+
+		return sdk3FactoryAdaptor_->queryInterface(GmpiDrawing_API::SE_IID_FACTORY_MPGUI, (void**)returnFactory);
 	}
 
 	void Sdk3Helper::invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect)
@@ -1100,6 +1126,43 @@ if(pluginGraphics)
 	}
 #endif
 
+	// Render a legacy (SDK3) plugin into the GMPI-UI context wrapped by g.
+	//
+	// GmpiDrawing::Graphics's constructor QIs the supplied context for
+	// SE_IID_DEVICECONTEXT_MPGUI, so the legacy module needs a context that
+	// answers that IID. SynthEdit.exe's UniversalGraphicsContext does (fast path);
+	// a plain GMPI-UI host (VST3/CLAP wrapper) does not — there we bridge the
+	// context through a UniversalGraphicsContext2 (mirrors SDK3Adaptor::render).
+	void ModuleView::renderLegacyClient(Graphics& g)
+	{
+		if (!pluginGraphics)
+			return;
+
+		auto gmpiContext = AccessPtr::get(g);
+
+		// Native SDK3 context available? (SynthEdit.exe's UniversalGraphicsContext.)
+		GmpiDrawing_API::IMpDeviceContext* sdk3Context{};
+		((gmpi::IMpUnknown*)gmpiContext)->queryInterface(GmpiDrawing_API::SE_IID_DEVICECONTEXT_MPGUI, (void**)&sdk3Context);
+
+		if (sdk3Context)
+		{
+			pluginGraphics->OnRender(sdk3Context);
+			return;
+		}
+
+		// Plain GMPI-UI host: wrap the context so it speaks SDK3. The SDK3 factory
+		// comes from sdk3Helper (the GmpiToSDK3Factory adaptor it caches).
+		GmpiDrawing_API::IMpFactory* sdk3Factory{};
+		if (sdk3Helper)
+			sdk3Helper->GetDrawingFactory(&sdk3Factory);
+
+		if (!sdk3Factory)
+			return;
+
+		se::UniversalGraphicsContext2 universal(static_cast<GmpiDrawing_API::IMpFactory2*>(sdk3Factory), gmpiContext);
+		pluginGraphics->OnRender(static_cast<GmpiDrawing_API::IMpDeviceContext*>(&universal.sdk3Context));
+	}
+
 	void ModuleViewPanel::render(Graphics& g)
 	{
 		if (pluginGraphics_GMPI)
@@ -1133,7 +1196,7 @@ if(pluginGraphics)
 					g.setTransform(adjustedTransform);
 			*/
 			// Render.
-			pluginGraphics->OnRender(reinterpret_cast<GmpiDrawing_API::IMpDeviceContext*>(AccessPtr::get(g)));
+			renderLegacyClient(g);
 
 #if 0 //def _DEBUG
 			// Alignment marks.

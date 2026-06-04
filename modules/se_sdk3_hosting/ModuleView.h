@@ -25,6 +25,11 @@
 class Module_Info;
 class cpu_accumulator;
 
+namespace se
+{
+class GmpiToSDK3Factory;
+}
+
 namespace SE2
 {
 class IPresenter;
@@ -164,9 +169,20 @@ namespace SE2
 	protected:
 		class ModuleView& moduleview;
 
+		// Fallback SDK3 factory adaptor, lazily created in GetDrawingFactory when
+		// the host's drawing factory doesn't natively answer SE_IID_FACTORY_MPGUI
+		// (i.e. plain GMPI-UI hosts like the VST3/CLAP wrapper's DrawingFrame).
+		// wrappedGmpiFactory_ tracks which native factory it wraps so we recreate
+		// it if the host's factory changes (re-attach).
+		std::unique_ptr<se::GmpiToSDK3Factory> sdk3FactoryAdaptor_;
+		gmpi::drawing::api::IFactory* wrappedGmpiFactory_ = {};
+
 	public:
-		explicit Sdk3Helper(ModuleView& pmoduleview) : moduleview(pmoduleview) {}
-		virtual ~Sdk3Helper() = default;
+		// ctor/dtor are out-of-line so the std::unique_ptr<se::GmpiToSDK3Factory>
+		// member only needs the complete type in ModuleView.cpp, not every TU
+		// that includes this header.
+		explicit Sdk3Helper(ModuleView& pmoduleview);
+		virtual ~Sdk3Helper();
 
 		void OnPatchCablesUpdate(RawView patchCablesRaw); // from PatchCableChangeNotifier
 
@@ -339,6 +355,12 @@ namespace SE2
 		virtual void OnCpuUpdate(cpu_accumulator* cpuInfo) {}
 		virtual void SetHoverScopeText(const char* text) {}
 		virtual void SetHoverScopeWaveform(std::unique_ptr< std::vector<float> > data) {}
+
+		// Render a legacy (SDK3) plugin (pluginGraphics) into the GMPI-UI context
+		// wrapped by g. Bridges to the SDK3 IMpDeviceContext interface, handling
+		// both SynthEdit.exe (native UniversalGraphicsContext) and plain GMPI-UI
+		// hosts (VST3/CLAP wrapper — wrap in a UniversalGraphicsContext2).
+		void renderLegacyClient(gmpi::drawing::Graphics& g);
 
 		// SDK3
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface> pluginParametersLegacy;

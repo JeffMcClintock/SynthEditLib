@@ -620,8 +620,6 @@ namespace SE2
 		// Fancy outline.
 		if ( zoomFactor > 0.25f)
 		{
-			g.fillGeometry(outlineGeometry, backgroundBrush);
-
 			// snap the top corner to the pixel-grid. plus the stroke width, to get a crisp outline.
 			const auto OutlineSpec = snap.thickness(isHovered_ ? 2.0f : 1.0f);
 			const auto topLeftSnapped = snap.snapPixelOrigin({ 0.0f, 0.0f });
@@ -633,10 +631,10 @@ namespace SE2
 
 			auto& moduleOutlineBrush = isHovered_ ? resources->moduleOutlineBrushHovered : resources->moduleOutlineBrush;
 
+			g.fillGeometry(outlineGeometry, backgroundBrush);
 			g.drawGeometry(outlineGeometry, moduleOutlineBrush, OutlineSpec.width);
 
 			g.setTransform(orig);
-
 		}
 		else
 		{
@@ -766,7 +764,7 @@ namespace SE2
 			g.setTransform(adjustedTransform);
 
 			// Render.
-			pluginGraphics->OnRender(reinterpret_cast<GmpiDrawing_API::IMpDeviceContext*>(AccessPtr::get(g)));
+			renderLegacyClient(g);
 
 			g.setTransform(transform);
 		}
