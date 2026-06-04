@@ -336,7 +336,9 @@ int32_t PanelGroupGui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContex
 		dc.DrawBitmap(fixedBitmap, PointL(rnd_x, top), rleftEnd, mode);
 		start_x += end_length;
 
-		dc.DrawTextU(title_utf8, textFormat_, Rect(text_pos.x, text_pos.y, text_pos.x + text_size.width, text_pos.y + text_size.height), brush);
+		text_size.width = (std::min)(text_size.width, rnd_x - text_pos.x - end_length); // clip text if too long to fit.
+
+		dc.DrawTextU(title_utf8, textFormat_, Rect(text_pos.x, text_pos.y, text_pos.x + text_size.width, text_pos.y + text_size.height), brush, DrawTextOptions::Clip);
 	}
 
 	// top edge

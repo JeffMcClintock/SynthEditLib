@@ -219,7 +219,7 @@ public:
 				r.left + gapEnd   - hPad,
 				r.top + textExtent.height * 0.5f
 			};
-			g.drawTextU(pinText.value, textFormat, textRect, textBrush);
+			g.drawTextU(pinText.value, textFormat, textRect, textBrush, DrawTextOptions::Clip);
 		}
 
 		return ReturnCode::Ok;
