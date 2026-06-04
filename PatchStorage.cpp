@@ -103,7 +103,7 @@ bool PatchStorageVariableSize::SetValue(my_input_stream& p_stream, int patch )
 	}
 	else
 	{
-		// copy the current value (up to 8 bytes) in order to dertermin if the value changed.
+		// copy the current value (up to 8 bytes) in order to determin if the value changed.
 		if (originalSize == size && size <= (int)sizeof(temp))
 		{
 			memcpy(temp, dest, size);

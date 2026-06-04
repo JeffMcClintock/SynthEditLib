@@ -193,9 +193,6 @@ void dsp_patch_parameter_base::OnUiMsg(int p_msg_id, my_input_stream& p_stream)
 	{
 	case code_to_long('p','p','c',0): // "ppc" Patch parameter change. Either Output parameter or MIDI automation
 	{
-//		bool due_to_program_change;
-//		p_stream >> due_to_program_change;
-		
 		// Processor has only one patch, regardless of what patch the UI is using.
 		constexpr int processorPatch = 0;
 		bool changed{};
