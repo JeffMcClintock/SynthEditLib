@@ -86,6 +86,9 @@ public:
         return presetFolder;
     }
 	std::filesystem::path getUserDocumentFolder();
+	// Shared, all-users document folder for resources installed once per machine
+	// (skins, prefabs). Windows: C:\Users\Public\Documents (CSIDL_COMMON_DOCUMENTS).
+	std::filesystem::path getCommonDocumentFolder();
     std::filesystem::path getBundleContentsFolder();
 	std::wstring getImbeddedFileFolder();
     std::wstring getResourceFolder();

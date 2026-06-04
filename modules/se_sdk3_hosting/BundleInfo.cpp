@@ -333,6 +333,25 @@ std::filesystem::path BundleInfo::getUserDocumentFolder()
 #endif
 }
 
+// Shared, all-users document folder. Used for resources installed once per
+// machine and shared by every user (skins, prefabs), rather than the
+// per-user folder returned by getUserDocumentFolder().
+std::filesystem::path BundleInfo::getCommonDocumentFolder()
+{
+#if defined( _WIN32 )
+
+	// "All Users" / Public documents. e.g. C:\Users\Public\Documents
+	wchar_t commonDocumentsPath[MAX_PATH];
+	SHGetFolderPathW(NULL, CSIDL_COMMON_DOCUMENTS, NULL, SHGFP_TYPE_CURRENT, commonDocumentsPath);
+	return std::filesystem::path{ commonDocumentsPath } / L"";
+
+#else // Mac.
+	// No equivalent "All Users Documents" location, and a shared path risks
+	// sandbox-access surprises, so keep the existing per-user folder.
+	return getUserDocumentFolder();
+#endif
+}
+
 void BundleInfo::initPresetFolder(const char* manufacturer, const char* product)
 {
 #ifdef _WIN32
