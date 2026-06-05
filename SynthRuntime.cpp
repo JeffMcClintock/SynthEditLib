@@ -1,5 +1,6 @@
 #include <string>
 #include <fstream>
+#include <mutex>
 #include <math.h>
 #include "SynthRuntime.h"
 #include "./SeAudioMaster.h"

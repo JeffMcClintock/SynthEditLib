@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <fstream>
+#include <filesystem>
 #include "tinyXml2/tinyxml2.h"
 #include "BundleInfo.h"
 #include "xp_dynamic_linking.h"

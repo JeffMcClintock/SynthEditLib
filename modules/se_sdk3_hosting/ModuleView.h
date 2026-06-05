@@ -1,10 +1,5 @@
 #pragma once
 
-#ifdef _WIN32
-#include <dwrite.h>
-#include "modules/se_sdk3_hosting/DirectXGfx.h"
-#endif
-
 #include "./IViewChild.h"
 #include <array>
 #include <string>

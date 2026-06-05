@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <sstream>
+#include <mutex>
 #include "./modules/se_sdk3/mp_api.h"
 #include "UgDatabase.h"
 #include "ug_base.h"

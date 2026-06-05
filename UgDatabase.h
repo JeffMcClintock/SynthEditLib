@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <list>
-#include <mutex>
 #include "module_register.h"
 #include "module_info.h"
 #include "modules/se_sdk3/mp_sdk_common.h"

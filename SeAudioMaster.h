@@ -12,7 +12,6 @@
 #include <list>
 #include <vector>
 #include <fstream>
-#include <chrono>
 #include <atomic>
 #include <memory>
 #include "EventProcessor.h"

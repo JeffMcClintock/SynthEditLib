@@ -1,5 +1,6 @@
 
 #include "GmpiResourceManager_editor.h"
+#include <filesystem>
 #include "conversion.h"
 #include "ProtectedFile.h"
 #include "SkinMgr.h"

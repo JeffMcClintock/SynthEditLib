@@ -6,6 +6,7 @@
 #include <math.h>
 #include <algorithm>
 #include <sstream>
+#include <chrono>
 #include "SeAudioMaster.h"
 #include "ug_container.h"
 #include "UniqueSnowflake.h"
