@@ -108,7 +108,7 @@ LRESULT CALLBACK DrawingFrame2WindowProc(
 // notification into the gmpi_ui base, and fixed gmpi_ui's doContextMenu so
 // it no longer re-fires onPointerDown.
 
-void DrawingFrameHwndBase::open(void* pParentWnd, const GmpiDrawing_API::MP1_SIZE_L* overrideSize)
+void DrawingFrameHwndBase::open(void* pParentWnd, const gmpi::drawing::SizeL* overrideSize)
 {
     RECT r{};
     if (overrideSize)

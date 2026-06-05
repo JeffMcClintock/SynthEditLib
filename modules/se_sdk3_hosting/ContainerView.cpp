@@ -40,6 +40,7 @@ namespace SE2
 		g.setTransform(viewTransformL);
 
 		// Background
+		if(BundleInfo::instance()->isEditor)
 		{
 			// fill in the area arround the drawing area. avoiding overdraw.
 			gmpi::drawing::Rect editingBounds{ 0.0f, 0.0f, (float)viewDimensions, (float)viewDimensions };
@@ -67,10 +68,13 @@ namespace SE2
 			// fill the drawing area
 			backgroundBrush.setColor(Colors::LightGray);
 			g.fillRectangle(editingBounds, backgroundBrush);
-		}
 
-		if(BundleInfo::instance()->isEditor)
 			renderGrid(g, colorFromHex(0xDDDDDDu)); // slightly lighter than LightGray background
+		}
+		else
+		{
+			g.clear(gmpi::drawing::Colors::Black);
+		}
 
 		const auto r = ViewBase::render(drawingContext);
 
