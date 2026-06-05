@@ -19,6 +19,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "LegacyMenuAdapter.h"
 #include "LegacyFileDialogAdapter.h"
 #include "LegacyTextEditAdapter.h"
+#include "LegacyOkCancelDialogAdapter.h"
 
 using namespace gmpi;
 using namespace gmpi::editor;
@@ -201,10 +202,22 @@ int32_t MP_STDCALL SDK3AdaptorClient::createPlatformTextEdit(GmpiDrawing_API::MP
 }
 int32_t MP_STDCALL SDK3AdaptorClient::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog)
 {
-	gmpi::shared_ptr<gmpi::api::IUnknown> unk;
-	gmpiEditor.dialogHost->createStockDialog(0, "", "", unk.put());
-
-	return (int32_t)unk->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)returnDialog);
+	// new-API IStockDialog doesn't answer the legacy SE_IID_GRAPHICS_OK_CANCEL_DIALOG;
+	// wrap it in LegacyOkCancelDialogAdapter. Built lazily (at ShowAsync) so the module's
+	// SetTitle/SetText are honoured — IStockDialog has no setters. Mirrors createPlatformMenu /
+	// createPlatformTextEdit above.
+	auto* editor = &gmpiEditor;
+	auto builder = [editor](int32_t type, const char* title, const char* text) -> gmpi::api::IStockDialog* {
+		gmpi::shared_ptr<gmpi::api::IUnknown> unk;
+		editor->dialogHost->createStockDialog(type, title, text, unk.put());
+		if (!unk)
+			return nullptr;
+		gmpi::api::IStockDialog* dlg{};
+		unk->queryInterface(&gmpi::api::IStockDialog::guid, (void**)&dlg);
+		return dlg; // QI added a ref; adapter owns it
+	};
+	*returnDialog = reinterpret_cast<gmpi_gui::IMpOkCancelDialog*>(new LegacyOkCancelDialogAdapter(dialogType, std::move(builder)));
+	return gmpi::MP_OK;
 }
 
 int32_t MP_STDCALL SDK3AdaptorClient::createFileDialog(int32_t dialogType, gmpi_gui::IMpFileDialog** returnFileDialog)

@@ -20,7 +20,6 @@ struct LegacyOkCancelDialogAdapter : gmpi_gui::legacy::IMpOkCancelDialog
     using Builder = std::function<gmpi::api::IStockDialog*(int32_t type, const char* title, const char* text)>;
 
     Builder builder;
-    int32_t dialogType;
     std::string title;
     std::string text;
 
@@ -58,8 +57,11 @@ struct LegacyOkCancelDialogAdapter : gmpi_gui::legacy::IMpOkCancelDialog
         }
     };
 
-    LegacyOkCancelDialogAdapter(int32_t type, Builder b)
-        : builder(std::move(b)), dialogType(type) {}
+    // dialogType is intentionally ignored: the legacy IMpOkCancelDialog contract is
+    // always a two-button OK/Cancel dialog (enforced in ShowAsync). Kept in the
+    // signature so existing call sites need no change.
+    LegacyOkCancelDialogAdapter(int32_t /*dialogType*/, Builder b)
+        : builder(std::move(b)) {}
 
     int32_t MP_STDCALL SetTitle(const char* t) override
     {
@@ -77,7 +79,11 @@ struct LegacyOkCancelDialogAdapter : gmpi_gui::legacy::IMpOkCancelDialog
     {
         addRef(); // keep adapter alive until bridge fires onComplete
 
-        auto* inner = builder(dialogType, title.c_str(), text.c_str());
+        // Always request OK/Cancel: the original Gmpi_Win_OkCancelDialog hardcoded
+        // MB_OKCANCEL and ignored dialogType. Legacy callers pass dialogType=0, which in
+        // the new StockDialogType enum means Ok (a single button) — forcing OkCancel here
+        // restores the historical two-button behaviour. Other button sets use createStockDialog.
+        auto* inner = builder(static_cast<int32_t>(gmpi::api::StockDialogType::OkCancel), title.c_str(), text.c_str());
         auto* bridge = new CompletionBridge(this, cb); // refCount_ = 1
         inner->showAsync(static_cast<gmpi::api::IUnknown*>(bridge));
         bridge->release(); // release our creation ref; inner holds its QI ref

@@ -12,6 +12,7 @@
 #include "LegacyMenuAdapter.h"
 #include "LegacyFileDialogAdapter.h"
 #include "LegacyTextEditAdapter.h"
+#include "LegacyOkCancelDialogAdapter.h"
 #include "modules/shared/xplatform.h"
 #include "modules/shared/xplatform_modifier_keys.h"
 #include "BundleInfo.h"
@@ -322,14 +323,25 @@ namespace SE2
 
 	int32_t Sdk3Helper::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog)
 	{
-		gmpi::shared_ptr<gmpi::api::IUnknown> unk;
-		moduleview.parent->dialogHost->createStockDialog(dialogType, "", "", unk.put());
-		if (!unk)
-		{
-			if (returnDialog) *returnDialog = nullptr;
-			return gmpi::MP_FAIL;
-		}
-		return (int32_t)unk->queryInterface((const gmpi::api::Guid*)&gmpi_gui::SE_IID_GRAPHICS_OK_CANCEL_DIALOG, (void**)returnDialog);
+		// The host's dialogHost returns a new-API IStockDialog, which doesn't answer the
+		// legacy SE_IID_GRAPHICS_OK_CANCEL_DIALOG (e.g. in the VST3 wrapper). Wrap it in
+		// LegacyOkCancelDialogAdapter so legacy SDK3 modules still get the old
+		// IMpOkCancelDialog interface. Construction is deferred to ShowAsync (via the
+		// builder) so the module's SetTitle/SetText calls are honoured — IStockDialog
+		// takes its title/text at creation and has no setters. Mirrors
+		// DrawingFrameBase::createOkCancelDialog.
+		auto* mv = &moduleview;
+		auto builder = [mv](int32_t type, const char* title, const char* text) -> gmpi::api::IStockDialog* {
+			gmpi::shared_ptr<gmpi::api::IUnknown> unk;
+			mv->parent->dialogHost->createStockDialog(type, title, text, unk.put());
+			if (!unk)
+				return nullptr;
+			gmpi::api::IStockDialog* dlg{};
+			unk->queryInterface(&gmpi::api::IStockDialog::guid, (void**)&dlg);
+			return dlg; // QI added a ref; adapter owns it
+		};
+		*returnDialog = reinterpret_cast<gmpi_gui::IMpOkCancelDialog*>(new LegacyOkCancelDialogAdapter(dialogType, std::move(builder)));
+		return gmpi::MP_OK;
 	}
 
 	int32_t Sdk3Helper::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
