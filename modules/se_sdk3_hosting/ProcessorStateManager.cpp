@@ -224,13 +224,10 @@ void DawPreset::initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, 
 		{
 			const char* temp{};
 			if (tinyxml2::XML_SUCCESS == presetXmlElement->QueryStringAttribute("category", &temp))
-			{
 				category = temp;
-			}
+
 			if (tinyxml2::XML_SUCCESS == presetXmlElement->QueryStringAttribute("name", &temp))
-			{
 				name = temp;
-			}
 		}
 
 		// assuming we are passed "Preset.Parameters" node.
@@ -248,19 +245,8 @@ void DawPreset::initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, 
 
 			auto& info = (*it).second;
 
-			//??			if (info.ignoreProgramChange)
-			//				continue;
-
 			auto& values = params[paramHandle];
-			/* no stateful parameters in preset we assume
-						if (!parameter.stateful_) // For VST2 wrapper aeffect ptr. prevents it being inadvertently zeroed.
-							continue;
 
-						// possibly need to handle elsewhere
-						if (parameter.ignorePc_ && ignoreProgramChange) // a short time period after plugin loads, ignore-PC parameters will no longer overwrite existing value.
-							continue;
-
-			*/
 			const std::string v = ParamElement->Attribute("val"); // todo instead of constructing a pointless string, what about just passing the char* to ParseToRaw()?
 
 			values.dataType = info.dataType;
@@ -329,7 +315,7 @@ void DawPreset::initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, 
 	// except for preset name and category
 	for (auto& [paramHandle, info] : parametersInfo)
 	{
-		if (info.hostControl == HC_PROGRAM_NAME || HC_PROGRAM_CATEGORY == info.hostControl)
+		if (info.hostControl != HC_NONE)
 			continue;
 
 		assert(!info.defaultRaw.empty()); // these need to be populated.
@@ -341,9 +327,7 @@ void DawPreset::initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, 
 
 			values.dataType = info.dataType;
 			for (const auto& v : info.defaultRaw)
-			{
 				values.rawValues_.push_back(v);
-			}
 		}
 	}
 

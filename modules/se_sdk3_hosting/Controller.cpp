@@ -1666,11 +1666,11 @@ void MpController::OnFileDialogComplete(int patchCommand, int32_t result)
 			}
 			break;
 
-		case 4:
+		case 4: // Import Bank
 			ImportBankXml(fullpath.c_str());
 			break;
 
-		case 5:
+		case 5: // Export Bank
 			ExportBankXml(fullpath.c_str());
 			break;
 		}
@@ -2236,8 +2236,6 @@ void MpController::ImportBankXml(const char* xmlfilename)
 
 	CreateFolderRecursive(presetFolder);
 
-//	TiXmlDocument doc; // Don't use tinyXML2. XML must match *exactly* the current format, including indent, declaration, everything. Else Preset Browser won't correctly match presets.
-//	doc.LoadFile(xmlfilename);
 	tinyxml2::XMLDocument doc;
 	doc.LoadFile(xmlfilename);
 
@@ -2282,21 +2280,14 @@ void MpController::ImportBankXml(const char* xmlfilename)
 
 		// Create a new XML document, containing only one preset.
 		tinyxml2::XMLDocument doc2;
-		doc2.LinkEndChild(doc2.NewDeclaration());// new TiXmlDeclaration("1.0", "", "") );
+		doc2.LinkEndChild(doc2.NewDeclaration());
 		doc2.LinkEndChild(PresetE->DeepClone(&doc2));
 
 		tinyxml2::XMLPrinter printer;
-//		printer. .SetIndent(" ");
 		doc2.Accept(&printer);
 		const std::string presetXml{ printer.CStr() };
 
-		// dialog if file exists.
-//		auto result = gmpi::MP_OK;
-
-/* no mac support
-		fs::path fn(filename);
-		if (fs::exists(fn))
-*/
+		// 'overwrite?' dialog if file exists.
 #ifdef _WIN32
         auto file = _wfopen(filename.c_str(), L"r"); // fs::exists(filename)
 #else
