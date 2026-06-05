@@ -234,7 +234,8 @@ protected:
     // all inherited from DxDrawingFrameHwnd (single subobject via virtual base).
 
 public:
-    void open(void* pParentWnd, const gmpi::drawing::SizeL* overrideSize = {});
+	void open(void* pParentWnd, const gmpi::drawing::SizeL* overrideSize = {});
+	void close(); // mirrors open() — disconnects from the window proc and tears down resources
 	virtual void setWindowHandle(HWND hwnd) = 0; // provides the new hwnd to the derived class
 
     void ReSize(int left, int top, int right, int bottom);

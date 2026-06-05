@@ -32,6 +32,17 @@ void DrawingFrameBase2::attachClient(gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGr
     attachClient(adaptor.get());
 }
 
+void DrawingFrameHwndBase::close()
+{
+    // Mirror of open(): disconnect from the window proc before tearing down
+    // resources so any messages delivered during DestroyWindow (WM_DESTROY,
+    // WM_NCDESTROY, etc.) hit the nullptr guard in DrawingFrame2WindowProc
+    // rather than dispatching through a dangling this pointer.
+    gmpi::hosting::DetachHostingWindow(getWindowHandle());
+    setWindowHandle(nullptr);
+    Closed();
+}
+
 void DrawingFrameBase2::Closed()
 {
     /* TODO
