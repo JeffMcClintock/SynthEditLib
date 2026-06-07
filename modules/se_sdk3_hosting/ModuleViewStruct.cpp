@@ -1757,7 +1757,7 @@ namespace SE2
 
 					// start a new cable
 					auto dragStartPoint = getConnectionPoint(CableType::StructureCable, toPin.pinIndex);
-					parent->StartCableDrag(this, toPin.pinIndex, dragStartPoint, point);
+					parent->StartCableDrag(CableType::StructureCable, this, toPin.pinIndex, dragStartPoint, point);
 				}
 				else // hit text. wait and see if we dragged the module. before tracing wire.
 				{

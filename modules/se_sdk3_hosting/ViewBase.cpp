@@ -1368,11 +1368,11 @@ namespace SE2
 	}
 
 	// dragStartPoint is the center of the pin we are dragging from, mousePoint is where the mouse is (usually very near)
-	int32_t ViewBase::StartCableDrag(IViewChild* fromModule, int fromPin, Point dragStartPoint, gmpi::drawing::Point mousePoint)
+	int32_t ViewBase::StartCableDrag(CableType type, IViewChild* fromModule, int fromPin, Point dragStartPoint, gmpi::drawing::Point mousePoint)
 	{
 		auto fromPoint = dragStartPoint;
 
-		ConnectorViewBase* cable = createCable(CableType::StructureCable, fromModule->getModuleHandle(), fromPin);
+		auto cable = createCable(type, fromModule->getModuleHandle(), fromPin);
 
 		cable->from_ = dragStartPoint;
 		cable->to_ = mousePoint;
@@ -1914,6 +1914,7 @@ namespace SE2
 				auto mousePoint = toView->getConnectionPoint(CableType::StructureCable, draggingLineToPin);
 
 				StartCableDrag(
+					CableType::StructureCable,
 					fromView,
 					draggingLineFromPin,
 					dragStartPoint,

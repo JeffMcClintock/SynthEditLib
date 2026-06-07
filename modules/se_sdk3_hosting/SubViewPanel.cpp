@@ -38,7 +38,7 @@ R"XML(
 
 }
 
-int32_t SubView::StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint)
+int32_t SubView::StartCableDrag(SE2::CableType type, SE2::IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint)
 {
 	auto moduleview = parent;
 	// child-local -> Container plugin-local via SubView's pan,
@@ -49,7 +49,7 @@ int32_t SubView::StartCableDrag(SE2::IViewChild* fromModule, int fromPin, gmpi::
 	mousePoint = mousePoint * viewTransform;
 	mousePoint = transformPoint(moduleview->OffsetToClient(), mousePoint);
 
-	return moduleview->parent->StartCableDrag(fromModule, fromPin, dragStartPoint, mousePoint);
+	return moduleview->parent->StartCableDrag(type, fromModule, fromPin, dragStartPoint, mousePoint);
 }
 
 void SubView::OnCableDrag(SE2::ConnectorViewBase* dragline, gmpi::drawing::Point dragPoint, float& bestDistance, SE2::ModuleView*& bestModule, int& bestPinIndex)

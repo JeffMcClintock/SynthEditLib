@@ -168,7 +168,7 @@ bool isIteratingChildren = false;
 		}
 		int32_t releaseCapture();
 
-		virtual int32_t StartCableDrag(IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint);
+		virtual int32_t StartCableDrag(CableType type, IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint);
 		bool OnCableMove(ConnectorViewBase * dragline);
 		bool EndCableDrag(gmpi::drawing::Point point, ConnectorViewBase* dragline, int32_t keyFlags);
 		void OnPatchCablesUpdate(RawView patchCablesRaw);
