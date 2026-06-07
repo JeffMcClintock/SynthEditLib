@@ -48,6 +48,12 @@ namespace SE2
 		OnModuleMoved();
 	}
 
+	void ConnectorViewBase::invalidate()
+	{
+		const auto r = inflateRect(getClipArea(), 0.5f); // inflate to fix smears on patch-cables
+		parent->ChildInvalidateRect(r);
+	}
+
 	void ConnectorViewBase::setHighlightFlags(int flags)
 	{
 //		_RPTN(0, "ConnectorViewBase::setHighlightFlags %d\n", flags);
@@ -58,12 +64,12 @@ namespace SE2
 		else
 			parent->MoveToFront(this);
 
-		parent->ChildInvalidateRect(getClipArea());
+		invalidate();
 	}
 
 	void ConnectorViewBase::startDrag(int pdraggingFromEnd, gmpi::drawing::Point pMousePos)
 	{
-		parent->ChildInvalidateRect(getClipArea());
+		invalidate();
 
 		if (pdraggingFromEnd == 0)
 			from_ = pMousePos;
@@ -79,7 +85,7 @@ namespace SE2
 
 		parent->MoveToFront(this);
 
-		parent->ChildInvalidateRect(getClipArea());
+		invalidate();
 	}
 
 	void ConnectorViewBase::OnModuleMoved()
@@ -149,16 +155,25 @@ namespace SE2
 
 	void PatchCableView::CalcBounds()
 	{
+		const auto oldBounds = bounds_;
+		const auto oldClipRect = getClipArea();
+
 		OnVisibilityUpdate();
 		CreateGeometry();
 
-		auto oldBounds = bounds_;
 		bounds_ = geometry.getWidenedBounds((float)cableDiameter, strokeStyle);
 
 		if (oldBounds != bounds_)
 		{
-			oldBounds = unionRect(oldBounds, bounds_);
-			parent->ChildInvalidateRect(oldBounds);
+			if(isNull(oldClipRect))
+			{
+				parent->ChildInvalidateRect(getClipArea());
+			}
+			else
+			{
+				const auto r = inflateRect(unionRect(oldClipRect, getClipArea()), 0.5f);
+				parent->ChildInvalidateRect(r);
+			}
 		}
 	}
 
@@ -179,10 +194,7 @@ namespace SE2
 		bool changed = newIsShown != isShownCached;
 		isShownCached = newIsShown;
 		if (changed)
-		{
-			auto r = getClipArea();
-			parent->ChildInvalidateRect(r);
-		}
+			invalidate();
 	}
 
 	GraphicsResourceCache<sharedGraphicResources_patchcables> drawingResourcesCachePatchCables;
@@ -197,8 +209,7 @@ namespace SE2
 		return drawingResources.get();
 	}
 
-
-	void PatchCableView::render(gmpi::drawing::Graphics& g)
+		void PatchCableView::render(gmpi::drawing::Graphics& g)
 	{
 		if (!geometry || !isShownCached)
 			return;
@@ -237,9 +248,7 @@ namespace SE2
 		if(isHovered != mouseIsOverMe)
 		{
 			isHovered = mouseIsOverMe;
-
-			const auto r = getClipArea();
-			parent->ChildInvalidateRect(r);
+			invalidate();
 		}
 
 		return gmpi::ReturnCode::Ok;

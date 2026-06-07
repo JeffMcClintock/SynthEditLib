@@ -427,9 +427,10 @@ namespace SE2
 
 	void ConnectorView2::CalcBounds()
 	{
-		CreateGeometry();
+		const auto oldBounds = bounds_;
+		const auto oldClipRect = getClipArea();
 
-		auto oldBounds = bounds_;
+		CreateGeometry();
 
 		bounds_ = geometry.getWidenedBounds((float)cableDiameter, strokeStyle);
 
@@ -446,10 +447,18 @@ namespace SE2
 			}
 		}
 
-		if (oldBounds != bounds_)
+
+		if(oldBounds != bounds_)
 		{
-			oldBounds = unionRect(oldBounds, bounds_);
-			parent->ChildInvalidateRect(oldBounds);
+			if(isNull(oldClipRect))
+			{
+				parent->ChildInvalidateRect(getClipArea());
+			}
+			else
+			{
+				const auto r = inflateRect(unionRect(oldClipRect, getClipArea()), 0.5f);
+				parent->ChildInvalidateRect(r);
+			}
 		}
 	}
 
@@ -594,7 +603,7 @@ namespace SE2
 						nodes[draggingNode] = pointPrev;
 						CalcBounds();
 
-						parent->ChildInvalidateRect(bounds_);
+						invalidate();
 					}
 				}
 
@@ -785,23 +794,20 @@ namespace SE2
 		if (!mouseHover)
 			hoverNode = hoverSegment = -1;
 
-		const auto redrawRect = getClipArea();
-		parent->ChildInvalidateRect(redrawRect);
+		invalidate();
 
 		return gmpi::ReturnCode::Ok;
 	}
 
 	void ConnectorView2::OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes)
 	{
-		const auto redrawRect1 = getClipArea();
-		parent->ChildInvalidateRect(redrawRect1);
+		invalidate();
 
 		nodes = newNodes;
 		CalcBounds(); // rebuild geometry/segment cache so hitTest stays in sync with nodes
 		parent->markDirtyChild(this);
 
-		const auto redrawRect = getClipArea();
-		parent->ChildInvalidateRect(redrawRect);
+		invalidate();
 	}
 
 	// TODO: !!! hit-testing lines should be 'fuzzy' and return the closest line when more than 1 is hittable (same as plugs).
@@ -854,7 +860,7 @@ namespace SE2
 					parent->setCapture(this);
 					parent->autoScrollStart();
 					CalcBounds();
-					parent->ChildInvalidateRect(bounds_); // sometimes bounds don't change, but still need to draw new node.
+					invalidate();
 
 					hitTest(point, flags); // re-hit-test to get new hoverNode.
 

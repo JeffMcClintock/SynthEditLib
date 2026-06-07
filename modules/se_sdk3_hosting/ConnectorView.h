@@ -51,6 +51,8 @@ namespace SE2
 		{
 		}
 
+		void invalidate();
+
 		void setHighlightFlags(int flags);
 
 		virtual bool useDroop()
