@@ -783,12 +783,9 @@ namespace SE2
 		mouseHover = mouseIsOverMe;
 
 		if (!mouseHover)
-		{
 			hoverNode = hoverSegment = -1;
-		}
 
 		const auto redrawRect = getClipArea();
-//		parent->invalidateRect(&redrawRect);
 		parent->ChildInvalidateRect(redrawRect);
 
 		return gmpi::ReturnCode::Ok;
@@ -796,10 +793,15 @@ namespace SE2
 
 	void ConnectorView2::OnNodesMoved(std::vector<gmpi::drawing::Point>& newNodes)
 	{
+		const auto redrawRect1 = getClipArea();
+		parent->ChildInvalidateRect(redrawRect1);
+
 		nodes = newNodes;
 		CalcBounds(); // rebuild geometry/segment cache so hitTest stays in sync with nodes
 		parent->markDirtyChild(this);
-		parent->invalidateRect();
+
+		const auto redrawRect = getClipArea();
+		parent->ChildInvalidateRect(redrawRect);
 	}
 
 	// TODO: !!! hit-testing lines should be 'fuzzy' and return the closest line when more than 1 is hittable (same as plugs).

@@ -181,7 +181,7 @@ namespace SE2
 		if (changed)
 		{
 			auto r = getClipArea();
-			parent->invalidateRect(&r);
+			parent->ChildInvalidateRect(r);
 		}
 	}
 
@@ -239,7 +239,7 @@ namespace SE2
 			isHovered = mouseIsOverMe;
 
 			const auto r = getClipArea();
-			parent->invalidateRect(&r);
+			parent->ChildInvalidateRect(r);
 		}
 
 		return gmpi::ReturnCode::Ok;
