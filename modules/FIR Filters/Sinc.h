@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SINC_FILTER_H_INCLUDED
-#define SINC_FILTER_H_INCLUDED
+#ifndef FIR_SINC_H_INCLUDED
+#define FIR_SINC_H_INCLUDED
 
 /*
 #include "Sinc.h"
@@ -17,7 +17,10 @@
 #include <iomanip>
 #endif
 
-inline void calcWindowedSinc( double cutoff, bool isHighPass, int sincTapCount, float* returnSincTaps )
+// Legacy path (legacyMode): inverts high-pass output AND lacks unity-gain normalization (passband
+// droops at low cutoff / few taps). Preserved bit-for-bit so existing patches are unchanged - do NOT
+// "fix" this; the corrected version is calcWindowedSinc2().
+inline void calcWindowedSinc_old( double cutoff, bool isHighPass, int sincTapCount, float* returnSincTaps )
 {
 	double r_g,r_w,r_a,r_snc;	// some local variables
 	r_g = 2.f * cutoff;         // Calc gain correction factor
@@ -67,6 +70,52 @@ inline void calcWindowedSinc( double cutoff, bool isHighPass, int sincTapCount, 
 		returnSincTaps[centerTap] = (float)r_g; // correct divide-by-zero in loop.
 }
 
+inline void calcWindowedSinc2(double cutoff, bool isHighPass, int sincTapCount, float* returnSincTaps)
+{
+	const int centerTap = sincTapCount / 2;
+	const double minimumCutoff = 0.0000001;
+
+	if(cutoff < minimumCutoff)
+	{
+		for(int k = 0; k < sincTapCount; ++k)
+			returnSincTaps[k] = 0.0f;
+
+		if(isHighPass)
+			returnSincTaps[centerTap] = 1.0f; // zero-cutoff high-pass = all-pass.
+
+		return;
+	}
+
+	// Build a unity-DC-gain low-pass. Normalizing by the tap sum (rather than the analytic 2*cutoff
+	// gain) holds the passband at 0 dB even when the window truncates a wide sinc - i.e. at low cutoff
+	// and/or few taps, where the analytic factor droops badly (~ -0.5 dB at 1kHz/64tap, worse below).
+	double fir_sum = 0.0;
+	for(int k = 0; k < sincTapCount; ++k) // For 1 window width
+	{
+		const int i = sincTapCount / 2 - k; // Calc input sample index
+
+		const double r_w = 0.5 - 0.5 * cos(2.0 * M_PI * (0.5 + i / (double)sincTapCount)); // von Hann window
+		const double r_a = 2.0 * M_PI * cutoff * i;
+		const double r_snc = (i == 0) ? 1.0 : sin(r_a) / r_a; // sinc, sinc(0) = 1
+
+		const double tap = r_w * r_snc;
+		returnSincTaps[k] = (float)tap;
+		fir_sum += tap;
+	}
+
+	// Normalize to unity DC gain, then (for high-pass) spectrally invert: HP = delta - LP.
+	const double norm = 1.0 / fir_sum;
+	for(int k = 0; k < sincTapCount; ++k)
+	{
+		double tap = returnSincTaps[k] * norm;
+
+		if(isHighPass)
+			tap = (k == centerTap ? 1.0 : 0.0) - tap; // delta(at centre) - normalized low-pass
+
+		returnSincTaps[k] = (float)tap;
+	}
+}
+
 struct SincFilterCoefs
 {
 	int numCoefs_;
@@ -74,7 +123,7 @@ struct SincFilterCoefs
 
 	inline void InitCoefs( int oversampleFactor_ )
 	{
-		calcWindowedSinc( 0.5 / oversampleFactor_, false, numCoefs_, coefs_ );
+		calcWindowedSinc2( 0.5 / oversampleFactor_, false, numCoefs_, coefs_ );
 	}
 };
 

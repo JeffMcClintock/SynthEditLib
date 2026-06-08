@@ -1,5 +1,5 @@
-#ifndef SINC_FILTER_H_INCLUDED
-#define SINC_FILTER_H_INCLUDED
+#ifndef SINCLOWPASS_SINC_FILTER_H_INCLUDED
+#define SINCLOWPASS_SINC_FILTER_H_INCLUDED
 
 #include <string.h>
 #include <assert.h>

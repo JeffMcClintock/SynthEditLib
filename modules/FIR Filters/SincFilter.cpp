@@ -1,18 +1,14 @@
-#define _USE_MATH_DEFINES
-#include <math.h>
 #include <algorithm>
 #include <numeric>
 #include "Sinc.h"
-
 #include "./SincFilter.h"
-#include "mp_sdk_gui2.h"
 
 REGISTER_PLUGIN2(SincFilterLpHp, L"SE Sinc Lowpass Filter");
 REGISTER_PLUGIN2(SincFilterHp, L"SE Sinc Highpass Filter");
+REGISTER_PLUGIN2(SincFilterHp2, L"SE Sinc Highpass Filter2");
 
 SincFilterLpHp::SincFilterLpHp( )
 {
-	// Register pins.
 	initializePin(pinSignal);
 	initializePin(pinCuttoffkHz);
 	initializePin(pinTaps);
@@ -185,9 +181,14 @@ void SincFilterLpHp::onSetPins()
 	if (pinTaps.isUpdated() || pinCuttoffkHz.isUpdated() )
 	{
 		double cuttoff = 1000.0f * pinCuttoffkHz / getSampleRate();
+		cuttoff = (std::min)(cuttoff, 0.5); // clamp below Nyquist: above 0.5 cyc/sample the sinc kernel aliases.
 		const int alignedTaps = calcAlignedTaps(pinTaps.getValue());
 		coefs.resize(alignedTaps);
-		calcWindowedSinc(cuttoff, isHighPass(), alignedTaps, coefs.data());
+
+		if(legacyMode)
+			calcWindowedSinc_old(cuttoff, isHighPass(), alignedTaps, coefs.data());
+		else
+			calcWindowedSinc2(cuttoff, isHighPass(), alignedTaps, coefs.data());
 
 		const auto blockSize = host.getBlockSize();
 		const int numCoefs = static_cast<int>(coefs.size());

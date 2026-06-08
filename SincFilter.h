@@ -1,5 +1,5 @@
-#ifndef SINC_FILTER_H_INCLUDED
-#define SINC_FILTER_H_INCLUDED
+#ifndef OVERSAMPLER_SINC_FILTER_H_INCLUDED
+#define OVERSAMPLER_SINC_FILTER_H_INCLUDED
 
 #include <string.h>
 #include <assert.h>
@@ -27,6 +27,15 @@ inline void calcWindowedSinc( double cutoff, int sincTapCount, float* returnSinc
 {
 	double r_g,r_w,r_a,r_snc; // some local variables
 	r_g = 2 * cutoff;         // Calc gain correction factor
+
+	// Guard zero cutoff: every tap's sinc argument would be 0 (0/0 = NaN). A zero-width lowpass passes nothing.
+	// (calcWindowedSinc2() in "FIR Filters/Sinc.h" carries the same guard.)
+	if (cutoff < 1e-7)
+	{
+		for (int k = 0; k < sincTapCount; ++k)
+			returnSincTaps[k] = 0.0f;
+		return;
+	}
 
 	for( int k = 0; k < sincTapCount; ++k ) // For 1 window width
 	{

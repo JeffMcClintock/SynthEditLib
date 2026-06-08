@@ -16,6 +16,8 @@ public:
 protected:
 	virtual bool isHighPass() { return false; }
 
+	bool legacyMode = false;
+
 private:
 	AudioInPin pinSignal;
 	IntInPin pinTaps;
@@ -30,8 +32,18 @@ private:
 
 class SincFilterHp : public SincFilterLpHp
 {
-protected:
+public:
+	SincFilterHp()
+	{
+		legacyMode = true;
+	}
 	bool isHighPass() override{ return true; }
+};
+
+class SincFilterHp2 : public SincFilterLpHp
+{
+protected:
+	bool isHighPass() override { return true; }
 };
 
 #endif
