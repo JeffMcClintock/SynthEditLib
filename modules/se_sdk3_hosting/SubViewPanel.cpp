@@ -43,11 +43,12 @@ int32_t SubView::StartCableDrag(SE2::CableType type, SE2::IViewChild* fromModule
 	auto moduleview = parent;
 	// child-local -> Container plugin-local via SubView's pan,
 	// then Container plugin-local -> Container doc-local via OffsetToClient's inverse.
+	const auto clientToParent = gmpi::drawing::invert(moduleview->OffsetToClient());
 	dragStartPoint = dragStartPoint * viewTransform;
-	dragStartPoint = transformPoint(moduleview->OffsetToClient(), dragStartPoint);
+	dragStartPoint = transformPoint(clientToParent, dragStartPoint);
 
 	mousePoint = mousePoint * viewTransform;
-	mousePoint = transformPoint(moduleview->OffsetToClient(), mousePoint);
+	mousePoint = transformPoint(clientToParent, mousePoint);
 
 	return moduleview->parent->StartCableDrag(type, fromModule, fromPin, dragStartPoint, mousePoint);
 }
