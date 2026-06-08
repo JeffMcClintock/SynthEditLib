@@ -1,17 +1,9 @@
 #include "FileWatcher.h"
-#include "../shared/string_utilities.h"
-#include "../shared/it_enum_list.h"
-#include "../shared/string_utilities.h"
-#include "../se_sdk3/MpString.h"
 #include <thread>
 
 #if defined(__APPLE__)
 #include "CoreFoundation/CoreFoundation.h"
 #endif
-
-using namespace std;
-using namespace gmpi;
-using namespace gmpi_sdk;
 
 namespace file_watcher
 {
@@ -137,9 +129,6 @@ void fse_handle_events(
     // https://github.com/fsevents/fsevents/blob/master/src/rawfsevents.c
     void WatchDirectoryPrivate(int stopEvent_todo, platform_string fullPath, std::function<void()>& callback)
     {
-//        strncpy(watcher->path, path, PATH_MAX);
-//        watcher->handler = handler;
-//        watcher->context = context;
         auto loop = CFRunLoopGetCurrent();
         CFRunLoopPerformBlock(loop, kCFRunLoopDefaultMode, ^(){
                 
@@ -198,7 +187,6 @@ void fse_handle_events(
 	FileWatcher::~FileWatcher()
 	{
 #if defined(_WIN32)
-//		_RPT0(_CRT_WARN, "~FileWatcher()\n");
 		SetEvent(stopEvent);    // ask thread to stop
 
 		if (backgroundThread.joinable())
