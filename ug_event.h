@@ -29,6 +29,7 @@ struct AbsoluteTimeStamp
 	timestamp_t timeStamp;
 };
 
+// Elena is peeking at 'timeStamp', dont change layout if pos.
 struct SynthEditEvent : public intrusiveListItem, AbsoluteTimeStamp, gmpi::MpEvent
 {
 	void* Data()
