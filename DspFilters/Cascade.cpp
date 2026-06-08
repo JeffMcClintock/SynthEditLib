@@ -109,9 +109,17 @@ void Cascade::setLayout (const LayoutBase& proto)
   Biquad* stage = m_stageArray;
   for (int i = 0; i < m_numStages; ++i, ++stage)
     stage->setPoleZeroPair (proto[i]);
-  
-  applyScale (proto.getNormalGain() /
-              std::abs (response (proto.getNormalW() / (2 * doublePi))));
+
+  // Normalise the passband gain at the reference frequency. Use the *signed* response,
+  // not just its magnitude. At the normalisation frequency the response is purely real
+  // (DC for low-pass, Nyquist for high-pass), and for odd-order high-pass filters it is
+  // real-negative: the lone single-pole section contributes a zero at z=+1, which makes
+  // its response negative at Nyquist. std::abs() here discards that sign, leaving the
+  // whole filter inverted (only odd orders, because even orders have no single-pole
+  // section). Dividing by copysign(|r|, Re{r}) keeps the original magnitude scaling but
+  // also flips the sign back, so the passband always lands on +NormalGain.
+  const complex_t r = response (proto.getNormalW() / (2 * doublePi));
+  applyScale (proto.getNormalGain() / std::copysign (std::abs (r), r.real()));
 }
 
 }
