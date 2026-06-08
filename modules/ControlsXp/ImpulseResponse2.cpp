@@ -16,12 +16,15 @@ class ImpulseResponse2 : public MpBase2
 	FloatOutPin pinSampleRateToGui;
 
 	static const int FFT_SIZE = 4096;
+	static const int FFT_HALF = FFT_SIZE / 2;
 
 	float results[FFT_SIZE];
-	float buffer[FFT_SIZE];
+	float buffer[FFT_SIZE];   // linearised capture window: trigger spike centred at buffer[FFT_HALF]
+	float history[FFT_SIZE];  // circular record of recent input, supplies the pre-trigger half
 
-	float* input_ptr;
-	int m_idx = 0;
+	int writePos = 0;         // next write index into history[] (circular)
+	int triggerPos = -1;      // history index of the spike; -1 = armed, waiting for trigger
+	int postCount = 0;        // samples still needed after the spike to fill the second half
 
 public:
 	ImpulseResponse2()
@@ -34,49 +37,46 @@ public:
 		initializePin(4, pinSampleRateToGui);
 
 		memset(results, 0, sizeof(results));
+		memset(history, 0, sizeof(history));
 		// todo? SetFlag(UGF_POLYPHONIC_AGREGATOR|UGF_VOICE_MON_IGNORE);
-	}
-
-	// do nothing while UI updates
-	void subProcessIdle(int sampleFrames)
-	{
-		auto impulse = getBuffer(pinImpulsein);
-
-		// Time till next impulse
-		int to_pos = 0;
-		while (*impulse < 1.0f && to_pos < sampleFrames)
-		{
-			++to_pos;
-			++impulse;
-		}
-
-		if (to_pos != sampleFrames)
-		{
-			TempBlockPositionSetter x(this, getBlockPosition() + to_pos);
-
-			subProcess(sampleFrames - to_pos);
-			setSubProcess(&ImpulseResponse2::subProcess);
-		}
 	}
 
 	void subProcess(int sampleFrames)
 	{
-		// get pointers to in/output buffers.
 		auto signal = getBuffer(pinSignalin);
+		auto impulse = getBuffer(pinImpulsein);
 
-		int count = (std::min)(sampleFrames, FFT_SIZE - m_idx);
-
-		assert(m_idx >= 0 && m_idx < FFT_SIZE);
-
-		while (count-- > 0)
+		for (int s = 0; s < sampleFrames; ++s)
 		{
-			buffer[m_idx++] = *signal++;
-		}
+			// Continuously record the input so a captured window can include material
+			// from *before* the trigger. A delay-compensated linear-phase filter (e.g.
+			// SINC) has a symmetric impulse response centred on the trigger, so half of
+			// it arrives ahead of the spike.
+			history[writePos] = signal[s];
+			const int recordedPos = writePos;
+			if (++writePos >= FFT_SIZE)
+				writePos = 0;
 
-		if (m_idx >= FFT_SIZE)
-		{
-			printResult();
-			SET_PROCESS2(&ImpulseResponse2::subProcessIdle);
+			if (triggerPos < 0)
+			{
+				// Armed: wait for the impulse spike.
+				if (impulse[s] >= 1.0f)
+				{
+					triggerPos = recordedPos;
+					postCount = FFT_HALF; // gather the second half, centring the spike.
+				}
+			}
+			else if (--postCount <= 0)
+			{
+				// Second half captured. Linearise the circular buffer so the spike lands
+				// at buffer[FFT_HALF], with FFT_HALF samples either side of it.
+				const int start = (triggerPos - FFT_HALF) & (FFT_SIZE - 1);
+				for (int i = 0; i < FFT_SIZE; ++i)
+					buffer[i] = history[(start + i) & (FFT_SIZE - 1)];
+
+				printResult();
+				triggerPos = -1; // re-arm for the next impulse.
+			}
 		}
 	}
 
@@ -88,14 +88,13 @@ public:
 
 	void printResult()
 	{
-		m_idx = 0;
-
 		pinSampleRateToGui.setValue(getSampleRate(), 0);
 
 		if (pinFreqScale == 0) // Impulse Response
 		{
-			// send an odd number of samples to signal it's the raw impulse.
-			pinResults.setValueRaw(sizeof(buffer[0]) * FFT_SIZE / 2 - 1, &buffer);
+			// Odd byte-count flags 'raw impulse' to the GUI. Centre the displayed
+			// window on the spike (buffer[FFT_HALF]) so both halves are visible.
+			pinResults.setValueRaw(sizeof(buffer[0]) * FFT_SIZE / 2 - 1, &buffer[FFT_SIZE / 4]);
 			pinResults.sendPinUpdate(0);
 			return;
 		}
