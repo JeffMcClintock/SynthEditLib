@@ -27,8 +27,6 @@ public:
     {
         int32_t pluginId = -1;
         std::string manufacturerId;
-        std::string processorId; // VST3 component UUID (registry-string form). Needed to write .vstpreset files.
-        std::string macCategory; // Audio Unit type code e.g. "aumu"/"aufx". Needed to write .aupreset files.
         int32_t inputCount;
         int32_t outputCount;
         int32_t midiInputCount;
