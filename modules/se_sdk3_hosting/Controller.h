@@ -254,10 +254,9 @@ public:
 	presetInfo parsePreset(const std::wstring& filename, const std::string& xml);
 	std::vector< presetInfo > scanNativePresets();
 	virtual std::vector< presetInfo > scanFactoryPresets() = 0;
-//	virtual void loadFactoryPreset(int index, bool fromDaw) = 0;
 	virtual std::string getFactoryPresetXml(std::string filename) = 0;
 	std::vector<presetInfo> scanPresetFolder(platform_string PresetFolder, platform_string extension);
-
+	virtual std::wstring getCategoryOverride() { return {}; }
 	virtual void ParamToDsp(MpParameter* param, int32_t voice = 0);
 	void SerialiseParameterValueToDsp(gmpi::hosting::my_msg_que_output_stream& stream, MpParameter* param, int32_t voice = 0);
 	void UpdateProgramCategoriesHc(MpParameter * param);

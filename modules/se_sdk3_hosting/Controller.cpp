@@ -1630,10 +1630,15 @@ void MpController::OnFileDialogComplete(int patchCommand, int32_t result)
 					// Presets saved by user go into "User" category.
 					if (p->getHostControl() == HC_PROGRAM_CATEGORY)
 					{
-						std::wstring category{L"User"};
-						p->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, RawView(category));
-						p->updateProcessor(gmpi::FieldType::MP_FT_VALUE, 0);
-						updateGuis(p.get(), gmpi::FieldType::MP_FT_VALUE);
+						if(const auto category = getCategoryOverride(); !category.empty())
+						{
+//							std::wstring category{ L"User" };
+							if(p->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, RawView(category)))
+							{
+								p->updateProcessor(gmpi::FieldType::MP_FT_VALUE, 0);
+								updateGuis(p.get(), gmpi::FieldType::MP_FT_VALUE);
+							}
+						}
 					}
 				}
 

@@ -122,6 +122,8 @@ public:
 	{
 		return L"xmlpreset";
 	}
+	std::wstring getCategoryOverride() override { return L"User"; }
+
 	std::vector< MpController::presetInfo > scanFactoryPresets() override;
 //	void loadFactoryPreset(int index, bool fromDaw) override;
 	std::string getFactoryPresetXml(std::string filename) override;
