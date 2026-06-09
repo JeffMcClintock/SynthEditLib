@@ -18,6 +18,7 @@
 #include "ListBuilder.h"
 #include "Shared/se_logger.h"
 #include "Shared/NativePresetReader.h"
+#include "Shared/NativePresetWriter.h"
 
 #include "../../mfc_emulation.h"
 #if !defined(SE_USE_JUCE_UI)
@@ -1732,7 +1733,9 @@ void MpController::OnFileDialogComplete(int patchCommand, int32_t result)
 					}
 				}
 
-				saveNativePreset(fullpath.c_str(), WStringToUtf8(r_file), getPreset()->toString(BundleInfo::instance()->getPluginId()));
+				// Write BOTH native formats (.vstpreset + .aupreset) side-by-side, so a preset
+				// saved under one plugin format is discoverable by the DAW of the other format.
+				NativePresetUtil::WriteAllFormats(fullpath, WStringToUtf8(r_file), getPreset()->toString(BundleInfo::instance()->getPluginId()));
 
 				ScanPresets();
 				UpdatePresetBrowser();
@@ -2412,8 +2415,8 @@ void MpController::ImportBankXml(const char* xmlfilename)
 				okCancelDialog.ShowAsync([this, name, presetXml, filename] (int32_t result) -> void
 					{
 						if( result == gmpi::MP_OK )
-                            saveNativePreset(
-                                 WStringToUtf8(filename).c_str(),
+                            NativePresetUtil::WriteAllFormats(
+                                 WStringToUtf8(filename),
                                  name,
                                  presetXml
                             );
@@ -2423,7 +2426,7 @@ void MpController::ImportBankXml(const char* xmlfilename)
 		}
 		else
 		{
-			saveNativePreset(WStringToUtf8(filename).c_str(), name, presetXml);
+			NativePresetUtil::WriteAllFormats(WStringToUtf8(filename), name, presetXml);
 		}
 	}
 

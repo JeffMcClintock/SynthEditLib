@@ -243,6 +243,8 @@ Shared/Vst2Preset.h
 Shared/Vst2Preset.cpp
 Shared/NativePresetReader.h
 Shared/NativePresetReader.cpp
+Shared/NativePresetWriter.h
+Shared/NativePresetWriter.cpp
 Shared/se_logger.h
 Shared/se_logger.cpp
 

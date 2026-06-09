@@ -737,6 +737,17 @@ void BundleInfo::initPluginInfo()
                 info_.pluginId = static_cast<int32_t>(std::stoul(temp, nullptr, 10));
             }
 
+            // VST3 component UUID and AU type code. Both formats are exported from the same
+            // project, so these let either plugin write the *other* format's preset file.
+            if (tinyxml2::XML_SUCCESS == plugin->QueryStringAttribute("ProcessorId", &temp))
+            {
+                info_.processorId = temp;
+            }
+            if (tinyxml2::XML_SUCCESS == plugin->QueryStringAttribute("macCategory", &temp))
+            {
+                info_.macCategory = temp;
+            }
+
             plugin->QueryBoolAttribute("outputsAsStereoPairs", &info_.outputsAsStereoPairs);
             plugin->QueryBoolAttribute("monoUseOk", &info_.monoUseOk);
             plugin->QueryBoolAttribute("emulateIgnorePC", &info_.emulateIgnorePC);
