@@ -567,6 +567,14 @@ int32_t MpController::getController(int32_t moduleHandle, gmpi::IMpController** 
 
 std::string MpController::loadNativePresetAnyFormat(const std::wstring& sourceFilename)
 {
+	// xmlpreset holds the SynthEdit preset XML directly — read it verbatim.
+	if (sourceFilename.find(L".xmlpreset") != std::wstring::npos)
+	{
+		std::string xml;
+		FileToString(toPlatformString(sourceFilename), xml);
+		return xml;
+	}
+
 	// Decode .vstpreset/.aupreset by extension so either plugin format can load the
 	// other's presets. Fall back to the format-specific loader for anything else (.fxp).
 	auto xml = NativePresetUtil::ReadAnyFormat(sourceFilename);
@@ -580,12 +588,12 @@ std::vector< MpController::presetInfo > MpController::scanNativePresets()
 {
 	namespace fs = std::filesystem;
 
-	// Scan the plugin's own native format, plus both DAW-native formats, so a preset
-	// saved in another format is also found. De-duplicated when the native format is
-	// already one of them (VST3/AU); for the JUCE host this also keeps xmlpreset.
+	// Scan the plugin's own native format, plus the portable xmlpreset and both
+	// DAW-native formats, so a preset saved in any of them is found. (xmlpreset is
+	// what SavePreset/SavePresetAs write.) De-duplicated against the native format.
 	const std::wstring nativeExtension = getNativePresetExtension();
 	std::vector<std::wstring> formats{ nativeExtension };
-	for (const wchar_t* f : { L"vstpreset", L"aupreset" })
+	for (const wchar_t* f : { L"xmlpreset", L"vstpreset", L"aupreset" })
 		if (nativeExtension != f)
 			formats.push_back(f);
 
