@@ -3,6 +3,9 @@
 #include <thread>
 #include <fstream>
 #include <filesystem>
+#include <map>
+#include <algorithm>
+#include <cwctype>
 #include "Controller.h"
 #include "../tinyXml2/tinyxml2.h"
 #include "RawConversions.h"
@@ -14,6 +17,7 @@
 #include "midi_defs.h"
 #include "ListBuilder.h"
 #include "Shared/se_logger.h"
+#include "Shared/NativePresetReader.h"
 
 #include "../../mfc_emulation.h"
 #if !defined(SE_USE_JUCE_UI)
@@ -561,13 +565,88 @@ int32_t MpController::getController(int32_t moduleHandle, gmpi::IMpController** 
 	return gmpi::MP_OK;
 }
 
+std::string MpController::loadNativePresetAnyFormat(const std::wstring& sourceFilename)
+{
+	// Decode .vstpreset/.aupreset by extension so either plugin format can load the
+	// other's presets. Fall back to the format-specific loader for anything else (.fxp).
+	auto xml = NativePresetUtil::ReadAnyFormat(sourceFilename);
+	if (xml.empty())
+		xml = loadNativePreset(sourceFilename);
+
+	return xml;
+}
+
 std::vector< MpController::presetInfo > MpController::scanNativePresets()
 {
-	platform_string PresetFolder = toPlatformString(BundleInfo::instance()->getPresetFolder());
+	namespace fs = std::filesystem;
 
-	auto extension = ToPlatformString(getNativePresetExtension());
+	// Scan the plugin's own native format, plus both DAW-native formats, so a preset
+	// saved in another format is also found. De-duplicated when the native format is
+	// already one of them (VST3/AU); for the JUCE host this also keeps xmlpreset.
+	const std::wstring nativeExtension = getNativePresetExtension();
+	std::vector<std::wstring> formats{ nativeExtension };
+	for (const wchar_t* f : { L"vstpreset", L"aupreset" })
+		if (nativeExtension != f)
+			formats.push_back(f);
 
-	return scanPresetFolder(PresetFolder, extension);
+	// Folders to scan, with a rank used to resolve duplicates. Higher rank wins.
+	// Rule: a preset in the user folder beats the same preset in the global folder.
+	struct ScanRoot { std::wstring folder; int rank; };
+	std::vector<ScanRoot> roots;
+	{
+		const auto userFolder = BundleInfo::instance()->getPresetFolder();
+		const auto globalFolder = BundleInfo::instance()->getGlobalPresetFolder();
+
+		if (!userFolder.empty())
+			roots.push_back({ userFolder, 1 });        // user beats global
+		if (!globalFolder.empty() && globalFolder != userFolder)
+			roots.push_back({ globalFolder, 0 });
+	}
+
+	// Identify "the same preset" by its path relative to the scan root, minus the
+	// extension (lower-cased). So MyPreset.vstpreset / MyPreset.aupreset, and the
+	// user/global copies, collapse to one entry, while Bass/Lead subfolders stay distinct.
+	auto dedupeKey = [](const std::wstring& fullPath, const fs::path& root) -> std::wstring
+	{
+		auto rel = fs::path(fullPath).lexically_relative(root);
+		rel.replace_extension();
+		auto key = rel.generic_wstring();
+		std::transform(key.begin(), key.end(), key.begin(), [](wchar_t c) { return std::towlower(c); });
+		return key;
+	};
+
+	std::map<std::wstring, std::pair<int, presetInfo>> best; // dedupeKey -> (priority, preset)
+
+	for (const auto& root : roots)
+	{
+		fs::path rootPath(root.folder);
+		if (rootPath.filename().empty())            // drop trailing-separator empty element
+			rootPath = rootPath.parent_path();
+
+		for (const auto& format : formats)
+		{
+			// Within a folder, the plugin's own native format beats the other format.
+			const int formatRank = (nativeExtension == format) ? 1 : 0;
+			const int priority = root.rank * 2 + formatRank; // folder rank dominates format rank
+
+			auto found = scanPresetFolder(toPlatformString(root.folder), ToPlatformString(format));
+			for (auto& preset : found)
+			{
+				const auto key = dedupeKey(preset.filename, rootPath);
+
+				auto it = best.find(key);
+				if (it == best.end() || priority > it->second.first)
+					best[key] = { priority, std::move(preset) };
+			}
+		}
+	}
+
+	std::vector<presetInfo> result;
+	result.reserve(best.size());
+	for (auto& entry : best)
+		result.push_back(std::move(entry.second.second));
+
+	return result;
 }
 
 MpController::presetInfo MpController::parsePreset(const std::wstring& filename, const std::string& xml)
@@ -626,7 +705,8 @@ std::vector< MpController::presetInfo > MpController::scanPresetFolder(platform_
 	const auto extWithDot = targetExtension.empty() ? std::wstring{} : std::wstring(L".") + targetExtension;
 
 	std::error_code ec;
-	for (const auto& entry : std::filesystem::directory_iterator(presetDir, ec))
+	// Recursive: presets are also discovered inside category sub-folders.
+	for (const auto& entry : std::filesystem::recursive_directory_iterator(presetDir, std::filesystem::directory_options::skip_permission_denied, ec))
 	{
 		if (ec)
 			break;
@@ -646,7 +726,9 @@ std::vector< MpController::presetInfo > MpController::scanPresetFolder(platform_
 		}
 		else
 		{
-			xml = loadNativePreset(sourceFilename.wstring());
+			// Decode by extension (.vstpreset or .aupreset) so either plugin format
+			// can read the other's presets.
+			xml = NativePresetUtil::ReadAnyFormat(sourceFilename.wstring());
 		}
 
 		if (!xml.empty())
@@ -1036,7 +1118,7 @@ void MpController::OnSetHostControl(int hostControl, int32_t paramField, int32_t
 					}
 					else
 					{
-						xml = loadNativePreset(presets[preset].filename);
+						xml = loadNativePresetAnyFormat(presets[preset].filename);
 					}
 					if (!xml.empty()) // cope with tester deleting preset file.
 					{
@@ -1603,7 +1685,7 @@ void MpController::OnFileDialogComplete(int patchCommand, int32_t result)
 				ImportPresetXml(fullpath.c_str());
 			else
 			{
-				auto xml = loadNativePreset( Utf8ToWstring(fullpath) );
+				auto xml = loadNativePresetAnyFormat( Utf8ToWstring(fullpath) );
 				setPresetXmlFromSelf(xml);
 			}
 			break;
@@ -1983,7 +2065,7 @@ void MpController::syncPresetControls(DawPreset const* preset)
 				}
 				else
 				{
-					newXml = loadNativePreset(presets[presetIndex].filename);
+					newXml = loadNativePresetAnyFormat(presets[presetIndex].filename);
 				}
 			}
 			auto unmodifiedPreset = std::make_unique<DawPreset>(parametersInfo, newXml);
@@ -2143,7 +2225,10 @@ void MpController::DeletePreset(int presetIndex)
 		}
 	}
 #if defined(__cpp_lib_filesystem)
-	std::filesystem::remove(presets[presetIndex].filename);
+	// Non-throwing: a global preset lives in a read-only location (e.g. /Library) and
+	// can't be removed by a normal user — fail quietly rather than crash the host.
+	std::error_code removeEc;
+	std::filesystem::remove(presets[presetIndex].filename, removeEc);
 #else
     remove(WStringToUtf8(presets[presetIndex].filename).c_str());
 #endif
@@ -2210,7 +2295,7 @@ void MpController::ExportBankXml(const char* filename)
 		}
 		else
 		{
-			chunk = loadNativePreset(ToWstring(preset.filename));
+			chunk = loadNativePresetAnyFormat(ToWstring(preset.filename));
 		}
 
 		{

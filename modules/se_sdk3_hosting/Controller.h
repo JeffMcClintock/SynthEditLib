@@ -236,6 +236,10 @@ public:
 	virtual void setPresetXmlFromSelf(const std::string& xml) = 0;
 	virtual void setPresetFromSelf(DawPreset const* preset) = 0;
 	virtual std::string loadNativePreset(std::wstring sourceFilename) = 0;
+	// Reads a .vstpreset or .aupreset by extension (so either plugin format can load
+	// the other's presets), falling back to the format-specific loadNativePreset for
+	// anything else (e.g. .fxp).
+	std::string loadNativePresetAnyFormat(const std::wstring& sourceFilename);
 	virtual void saveNativePreset(const char* filename, const std::string& presetName, const std::string& xml) = 0;
 	virtual std::wstring getNativePresetExtension() = 0;
 	int getPresetCount()

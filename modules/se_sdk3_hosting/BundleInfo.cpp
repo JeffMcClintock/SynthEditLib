@@ -368,6 +368,32 @@ void BundleInfo::initPresetFolder(const char* manufacturer, const char* product)
     presetFolder = res;
 }
 
+std::wstring BundleInfo::getGlobalPresetFolder()
+{
+    // Derived from the per-user presetFolder by swapping its root, so it tracks
+    // whatever vendor/plugin layout getPresetFolder() uses for either format.
+    const std::wstring user = getPresetFolder();
+    if (user.empty())
+        return {};
+
+#if defined( _WIN32 )
+    // <MyDocuments>\VST3 Presets\... -> <PublicDocuments>\VST3 Presets\...
+    const std::wstring userRoot = getUserDocumentFolder().wstring();
+    const std::wstring commonRoot = getCommonDocumentFolder().wstring();
+    if (!userRoot.empty() && user.compare(0, userRoot.size(), userRoot) == 0)
+        return commonRoot + user.substr(userRoot.size());
+
+    return {};
+#else
+    // ~/Library/Audio/Presets/... -> /Library/Audio/Presets/... (strip the home prefix).
+    const std::wstring home = getUserDocumentFolder().wstring();
+    if (!home.empty() && user.compare(0, home.size(), home) == 0)
+        return user.substr(home.size());
+
+    return {};
+#endif
+}
+
 #if 0
 std::wstring BundleInfo::getPresetFolder()
 {

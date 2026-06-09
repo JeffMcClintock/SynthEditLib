@@ -241,6 +241,8 @@ Shared/VstPreset.h
 Shared/VstPreset.cpp
 Shared/Vst2Preset.h
 Shared/Vst2Preset.cpp
+Shared/NativePresetReader.h
+Shared/NativePresetReader.cpp
 Shared/se_logger.h
 Shared/se_logger.cpp
 

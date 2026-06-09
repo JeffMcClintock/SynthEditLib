@@ -85,6 +85,12 @@ public:
     {
         return presetFolder;
     }
+    // Machine-wide ("all users") preset folder — the counterpart to the per-user
+    // getPresetFolder(). macOS: /Library/Audio/Presets/<vendor>/<plugin>/.
+    // Windows: <PublicDocuments>/VST3 Presets/<vendor>/<plugin>/. Derived from
+    // getPresetFolder() by swapping the per-user root for the shared root.
+    // Returns empty if it can't be derived.
+    std::wstring getGlobalPresetFolder();
 	std::filesystem::path getUserDocumentFolder();
 	// Shared, all-users document folder for resources installed once per machine
 	// (skins, prefabs). Windows: C:\Users\Public\Documents (CSIDL_COMMON_DOCUMENTS).
