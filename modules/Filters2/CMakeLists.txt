@@ -53,11 +53,14 @@ set(IIR1_SRC
 )
 
 gmpi_plugin(
-	PROJECT_NAME Butterworth
+	PROJECT_NAME IirFilters
 	HAS_DSP
 	SOURCE_FILES
 	  Butterworth.cpp
-	  ButterworthIir.h
+	  Chebyshev1.cpp
+	  Chebyshev2.cpp
+	  Rbj.cpp
+	  IirFilterBase.h
 	  ${IIR1_SRC}
 	  ${GMPI_SDK}/Helpers/FilterBase.h
 )
@@ -66,7 +69,7 @@ source_group(iir1 FILES ${IIR1_SRC})
 
 # Don't build the filter-design maths with "fast math" (mirrors modules/Filters:
 # fast-math breaks the Butterworth high-pass passband normalisation in Release builds).
-target_compile_options(Butterworth PRIVATE
+target_compile_options(IirFilters PRIVATE
 	$<$<CXX_COMPILER_ID:MSVC>:/fp:precise>
 	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fno-fast-math>
 )

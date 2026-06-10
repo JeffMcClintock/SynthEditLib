@@ -8,23 +8,23 @@
 // deprecated DspFilters-based 'Butterworth ... 2' modules
 // (modules/Filters/IIR_Filters2.cpp): same pins and behaviour, but maintained
 // upstream code with no denormal DC injected into the signal path. Parameter
-// changes crossfade between two filter instances - see ButterworthIir.h.
+// changes crossfade between two filter instances - see IirFilterBase.h.
 
-#include "ButterworthIir.h"
+#include "IirFilterBase.h"
 
 using namespace gmpi;
 using namespace iir_filters;
 
 // Low-pass / High-pass: Signal, Pitch Hz, Poles, Output.
 template <typename FilterT>
-struct ButterworthPass3 final : public ButterworthBase<FilterT>
+struct ButterworthPass3 final : public IirFilterBase<FilterT>
 {
 	EnumInPin pinPoles;
 	AudioOutPin pinOutput;
 
 	ButterworthPass3()
 	{
-		this->initButterworth(pinPoles, pinOutput);
+		this->initFilter(pinPoles, pinOutput);
 	}
 
 	void setupFilterDesign(FilterT& f) override
@@ -38,7 +38,7 @@ using ButterworthHp3 = ButterworthPass3<Iir::Butterworth::HighPass<maxPoles>>;
 
 // Band-pass / Band-reject: Signal, Pitch Hz, Width Hz, Poles, Output.
 template <typename FilterT>
-struct ButterworthBand3 final : public ButterworthBase<FilterT>
+struct ButterworthBand3 final : public IirFilterBase<FilterT>
 {
 	FloatInPin pinWidth; // passband (or stopband) width, Hz
 	EnumInPin pinPoles;
@@ -46,7 +46,7 @@ struct ButterworthBand3 final : public ButterworthBase<FilterT>
 
 	ButterworthBand3()
 	{
-		this->initButterworth(pinPoles, pinOutput);
+		this->initFilter(pinPoles, pinOutput);
 	}
 
 	void setupFilterDesign(FilterT& f) override
@@ -56,7 +56,7 @@ struct ButterworthBand3 final : public ButterworthBase<FilterT>
 
 	bool designParamsUpdated() override
 	{
-		return ButterworthBase<FilterT>::designParamsUpdated() || pinWidth.isUpdated();
+		return IirFilterBase<FilterT>::designParamsUpdated() || pinWidth.isUpdated();
 	}
 };
 
@@ -65,7 +65,7 @@ using ButterworthBr3 = ButterworthBand3<Iir::Butterworth::BandStop<maxPoles>>;
 
 // Low-shelf / High-shelf: Signal, Pitch Hz, Gain Db, Poles, Output.
 template <typename FilterT>
-struct ButterworthShelf3 final : public ButterworthBase<FilterT>
+struct ButterworthShelf3 final : public IirFilterBase<FilterT>
 {
 	FloatInPin pinGain; // shelf gain, dB
 	EnumInPin pinPoles;
@@ -73,7 +73,7 @@ struct ButterworthShelf3 final : public ButterworthBase<FilterT>
 
 	ButterworthShelf3()
 	{
-		this->initButterworth(pinPoles, pinOutput);
+		this->initFilter(pinPoles, pinOutput);
 	}
 
 	void setupFilterDesign(FilterT& f) override
@@ -83,7 +83,7 @@ struct ButterworthShelf3 final : public ButterworthBase<FilterT>
 
 	bool designParamsUpdated() override
 	{
-		return ButterworthBase<FilterT>::designParamsUpdated() || pinGain.isUpdated();
+		return IirFilterBase<FilterT>::designParamsUpdated() || pinGain.isUpdated();
 	}
 };
 
@@ -91,7 +91,7 @@ using ButterworthLs3 = ButterworthShelf3<Iir::Butterworth::LowShelf<maxPoles>>;
 using ButterworthHs3 = ButterworthShelf3<Iir::Butterworth::HighShelf<maxPoles>>;
 
 // Band-shelf: Signal, Pitch Hz, Width Hz, Gain Db, Poles, Output.
-struct ButterworthBs3 final : public ButterworthBase<Iir::Butterworth::BandShelf<maxPoles>>
+struct ButterworthBs3 final : public IirFilterBase<Iir::Butterworth::BandShelf<maxPoles>>
 {
 	FloatInPin pinWidth; // shelf width, Hz
 	FloatInPin pinGain;  // shelf gain, dB
@@ -100,7 +100,7 @@ struct ButterworthBs3 final : public ButterworthBase<Iir::Butterworth::BandShelf
 
 	ButterworthBs3()
 	{
-		initButterworth(pinPoles, pinOutput);
+		initFilter(pinPoles, pinOutput);
 	}
 
 	void setupFilterDesign(Iir::Butterworth::BandShelf<maxPoles>& f) override
@@ -110,7 +110,7 @@ struct ButterworthBs3 final : public ButterworthBase<Iir::Butterworth::BandShelf
 
 	bool designParamsUpdated() override
 	{
-		return ButterworthBase::designParamsUpdated() || pinWidth.isUpdated() || pinGain.isUpdated();
+		return IirFilterBase::designParamsUpdated() || pinWidth.isUpdated() || pinGain.isUpdated();
 	}
 };
 
@@ -146,7 +146,7 @@ auto r3 = Register<ButterworthBp3>::withXml(R"XML(
     <Audio>
         <Pin name="Signal" datatype="float" rate="audio" linearInput="true"/>
         <Pin name="Pitch Hz" datatype="float" default="400" metadata="1,20000"/>
-        <Pin name="Width Hz" datatype="float" default="1000" metadata="1,20000"/>
+        <Pin name="Width Hz" datatype="float" default="100" metadata="1,20000"/>
         <Pin name="Poles" datatype="enum" default="4" metadata="1=1,2,3,4,5,6,7,8,9,10,11,12"/>
         <Pin name="Output" datatype="float" rate="audio" direction="out"/>
     </Audio>
@@ -159,7 +159,7 @@ auto r4 = Register<ButterworthBr3>::withXml(R"XML(
     <Audio>
         <Pin name="Signal" datatype="float" rate="audio" linearInput="true"/>
         <Pin name="Pitch Hz" datatype="float" default="400" metadata="1,20000"/>
-        <Pin name="Width Hz" datatype="float" default="1000" metadata="1,20000"/>
+        <Pin name="Width Hz" datatype="float" default="100" metadata="1,20000"/>
         <Pin name="Poles" datatype="enum" default="4" metadata="1=1,2,3,4,5,6,7,8,9,10,11,12"/>
         <Pin name="Output" datatype="float" rate="audio" direction="out"/>
     </Audio>
