@@ -2215,7 +2215,6 @@ namespace SE2
 		}
 	}
 
-#if 0 // TODO implement
 	void ViewBase::preGraphicsRedraw()
 	{
 		// Get any meter updates from DSP. ( See also CSynthEditAppBase::OnTimer() )
@@ -2223,7 +2222,6 @@ namespace SE2
 
 		processUnidirectionalModules();
 	}
-#endif
 
 	void ViewBase::markDirtyChild(IViewChild* child)
 	{

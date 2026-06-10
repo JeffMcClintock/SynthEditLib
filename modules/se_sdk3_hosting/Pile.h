@@ -579,15 +579,13 @@ struct Pile :
 		auto maybeSdk3 = (gmpi::IMpUnknown*) child;
 		gmpi_sdk::mp_shared_ptr<gmpi::IMpUserInterface2> sdk3_editor;
 		gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> sdk3_graphic;
-		gmpi_sdk::mp_shared_ptr<IGraphicsRedrawClient> sdk3_redraw;
 
 		maybeSdk3->queryInterface(gmpi_gui_api::IMpGraphics3::guid, sdk3_graphic.asIMpUnknownPtr());
 		maybeSdk3->queryInterface(gmpi::MP_IID_GUI_PLUGIN2, sdk3_editor.asIMpUnknownPtr());
-		maybeSdk3->queryInterface(legacy::IGraphicsRedrawClient::guid, sdk3_redraw.asIMpUnknownPtr());
 
 		gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
 
-		if (sdk3_editor || sdk3_graphic || sdk3_redraw)
+		if (sdk3_editor || sdk3_graphic)
 		{
 			auto wrapper = new SDK3Adaptor();
 			unknown.attach(static_cast<gmpi::api::IDrawingClient*>(wrapper));

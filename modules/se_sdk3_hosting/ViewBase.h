@@ -36,8 +36,9 @@ namespace SE2
 
 	// Base of any view that displays modules. Itself behaving as a standard-ish graphics module.
 	class ViewBase :
-		public gmpi::editor::PluginEditor
+		  public gmpi::editor::PluginEditor
 		, public gmpi::TimerClient
+		, public gmpi::api::IGraphicsRedrawClient
 	{
 		friend class ResizeAdorner;
 		friend class ViewChild;
@@ -81,7 +82,7 @@ bool isIteratingChildren = false;
 
 		void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
 		class ModuleViewPanel* getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap);
-// TODO		void preGraphicsRedraw() override;
+		void preGraphicsRedraw() override;
 		void processUnidirectionalModules();
 
 	public:
@@ -239,6 +240,11 @@ bool isIteratingChildren = false;
 		void DragNewModule(const char* id);
 		virtual ConnectorViewBase* createCable(CableType type, int32_t handleFrom, int32_t fromPin) = 0;
 
+		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+		{
+			GMPI_QUERYINTERFACE(gmpi::api::IGraphicsRedrawClient);
+			return gmpi::editor::PluginEditor::queryInterface(iid, returnInterface);
+		}
 		GMPI_REFCOUNT
 	};
 

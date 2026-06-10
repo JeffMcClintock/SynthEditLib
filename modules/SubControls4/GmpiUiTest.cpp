@@ -270,9 +270,7 @@ struct PatchMemSetFloat final : public PluginEditorNoGui
     ReturnCode process() override
     {
         if (paramHost)
-        {
             paramHost->setParameter(pinId.value, gmpi::Field::Value, 0, sizeof(float), (const uint8_t*) &pinValue.value);
-        }
 
         return ReturnCode::Ok;
     }
