@@ -30,7 +30,7 @@
 			<Pin name="Val" datatype="bool" direction="out" autoDuplicate="true" settableOutput="true" autoRename="true"/>
 		</GUI>
 	</Plugin>
-	<Plugin id="SE Concat" name="Concat" category="Sub-Controls/Conversion/String" helpUrl="Sub-control-converters.htm">
+	<Plugin id="SE Concat" name="Concat" category="Old" helpUrl="Sub-control-converters.htm">
     <GUI>
       <Pin name="Text" datatype="string"/>
       <Pin name="Text" datatype="string"/>

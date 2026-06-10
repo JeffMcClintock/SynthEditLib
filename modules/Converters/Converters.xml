@@ -484,7 +484,7 @@
     </Audio>
   </Plugin>
 
-  <Plugin id="SE StringConcat" name="Concat" category="Conversion/String" >
+  <Plugin id="SE StringConcat" name="Concat" category="Old" >
     <Audio>
       <Pin name="text" direction="in" datatype="string"/>
       <Pin name="text" direction="in" datatype="string"/>
