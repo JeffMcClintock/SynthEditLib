@@ -1013,7 +1013,19 @@ namespace SE2
 			}
 #endif
 
-			if(score < bestScore) // 'hard' hit test-> && score == 0.0f)
+			// Figma-style priority: on a tie, a selected module beats an unselected module stacked in front of it,
+			// so the selection can be clicked and dragged out from underneath.
+			// Modules only: adorners and cables keep strict Z-order (e.g. the selected module's own resize handles).
+			const bool selectedModulePriority =
+				   score == bestScore
+				&& hitObject
+				&& m->getSelected()
+				&& !hitObject->getSelected()
+				&& dynamic_cast<ModuleView*>(m.get())
+				&& dynamic_cast<ModuleView*>(hitObject)
+				&& Presenter()->editEnabled();
+
+			if(score < bestScore || selectedModulePriority) // 'hard' hit test-> && score == 0.0f)
 			{
 #if DEBUG_MOUSEOVER
 				_RPTN(0, "HIT: %s\n", typeid(*m.get()).name());
