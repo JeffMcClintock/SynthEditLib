@@ -81,6 +81,14 @@ enum HostControls { HC_NONE=-1, HC_PATCH_COMMANDS, HC_MIDI_CHANNEL, HC_PROGRAM_N
 					HC_NUM_HOST_CONTROLS,
 };
 
+// The canonical display name for the default / reset preset. The preset hash
+// includes the preset name, so the controller, the processor state manager, and
+// SynthEdit's plugin export must all use the SAME name — otherwise the default
+// patch fails to reconcile as a single preset across them (users saw it appear
+// as "Init", "Default" and "Full Reset" depending on the code path).
+// NOTE: kept in sync with the "Init" literal in SynthEdit2/ExportAsPlugin.cpp.
+inline constexpr char kDefaultPresetName[] = "Init";
+
 enum class EPatchCommands
 {
 	Undo = 17,

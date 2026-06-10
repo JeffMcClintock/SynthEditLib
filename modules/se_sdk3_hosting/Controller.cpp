@@ -409,7 +409,9 @@ void MpController::Initialize()
 
 		if (seParameter->hostControl_ == HC_PROGRAM_NAME)
 		{
-			full_reset_preset_name = WStringToUtf8(RawToValue<std::wstring>(seParameter->rawValues_[0].data(), seParameter->rawValues_[0].size()));
+			// The reset/default preset is consistently named kDefaultPresetName ("Init")
+			// across the controller, processor and export, so the read-only guard keys off it.
+			full_reset_preset_name = kDefaultPresetName;
 		}
 		if(seParameter->hostControl_ == HC_PLUGIN_UI_SCALE)
 		{
@@ -2008,7 +2010,7 @@ void MpController::syncPresetControls(DawPreset const* preset)
 
 //	_RPTN(0, "syncPresetControls Preset: %s hash %4x\n", preset->name.c_str(), preset->hash);
 
-	const std::string presetName = preset->name.empty() ? "Default" : preset->name;
+	const std::string presetName = preset->name.empty() ? kDefaultPresetName : preset->name;
 
 	// When DAW loads preset XML, try to determine if it's a factory preset, and update browser to suit.
 	int32_t presetIndex = -1; // exact match
@@ -2018,10 +2020,6 @@ void MpController::syncPresetControls(DawPreset const* preset)
 	XML will not match if any parameter was set outside the normalized range, because it will get clamped in the plugin.
 	*/
   //  _RPT2(_CRT_WARN, "setPresetFromDaw: hash=%d\nXML:\n%s\n", (int) std::hash<std::string>{}(xml), xml.c_str());
-
-	// If preset has no name, treat it as a (modified) "Default"
-	//if (presetName.empty())
-	//	presetName = "Default";
 
 	// Check if preset coincides with a factory preset, if so update browser to suit.
 	int idx = 0;

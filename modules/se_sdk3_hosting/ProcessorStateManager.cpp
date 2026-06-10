@@ -431,7 +431,7 @@ ProcessorStateMgrVst3::ProcessorStateMgrVst3() :
 	messageQueFromProcessor(SeAudioMaster::AUDIO_MESSAGE_QUE_SIZE),
 	messageQueFromController(SeAudioMaster::AUDIO_MESSAGE_QUE_SIZE)
 {
-	presetMutable.name = "Full Reset";
+	presetMutable.name = kDefaultPresetName;
 	presetMutable.isInitPreset = true;
 }
 
