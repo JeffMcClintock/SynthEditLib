@@ -269,6 +269,18 @@ namespace SE2
 				DraggingModulesInitialTopLeft = { hitObject->getLayoutRect().left, hitObject->getLayoutRect().top };
 				DraggingObject = hitObject;
 
+				// Starting a module drag: drop hover state now so hover-scopes and
+				// connector highlights don't linger (or pop up on the hover timer)
+				// while dragging — they're distracting. onPointerMove takes the drag
+				// branch and skips calcMouseOverObject, so nothing re-arms hover until
+				// the drag ends; clearing mouseOverObject lets it re-hover normally on
+				// the first move after drop.
+				if(mouseOverObject)
+				{
+					mouseOverObject->setHover(false);
+					mouseOverObject = {};
+				}
+
 				if(inputHost)
 					inputHost->setCapture();
 				autoScrollStart();
@@ -985,8 +997,10 @@ namespace SE2
 #if DEBUG_MOUSEOVER
 		_RPT0(0, "\n\nViewBase::calcMouseOverObject()\n");
 #endif
-		// when one object has captured mouse, don't highlight other objects.
-		if (mouseCaptureObject)
+		// When one object has captured the mouse — or a module drag is in progress —
+		// don't recompute the hover object. The drag case keeps hover-scopes/connector
+		// highlights suppressed for the duration of the drag (it's cleared at drag start).
+		if (mouseCaptureObject || isDraggingModules)
 		{
 #if DEBUG_MOUSEOVER
 			_RPT0(0, "Mouse already captured. exit.\n");
