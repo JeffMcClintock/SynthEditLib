@@ -80,6 +80,30 @@ protected:
 
 		return gmpi::MP_OK;
 	}
+
+	int32_t onMouseWheel(int32_t flags, int32_t delta, GmpiDrawing_API::MP1_POINT point) override
+	{
+		if (pinReadOnly == true)
+			return gmpi::MP_UNHANDLED;
+
+		// ignore horizontal scrolling
+		if (0 != (flags & gmpi_gui_api::GG_POINTER_KEY_SHIFT))
+			return gmpi::MP_UNHANDLED;
+
+		if (hitTest(point) != gmpi::MP_OK)
+			return gmpi::MP_UNHANDLED;
+
+		const float scale = (flags & gmpi_gui_api::GG_POINTER_KEY_CONTROL) ? 1.0f / 12000.0f : 1.0f / 1200.0f; // <cntr> key magnifies
+
+		float new_pos = pinAnimationPosition;
+		new_pos = std::clamp(new_pos + delta * scale, 0.0f, 1.0f);
+
+		invalidateRect();
+
+		pinAnimationPosition = new_pos;
+
+		return gmpi::MP_OK;
+	}
 };
 
 class VectorRing : public VectorBase
