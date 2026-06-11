@@ -47,7 +47,6 @@ set(IIR1_SRC
 	iir1/iir/Cascade.cpp
 	iir1/iir/ChebyshevI.cpp
 	iir1/iir/ChebyshevII.cpp
-	iir1/iir/Custom.cpp
 	iir1/iir/PoleFilter.cpp
 	iir1/iir/RBJ.cpp
 )
