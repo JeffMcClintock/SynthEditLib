@@ -48,7 +48,7 @@ void PatchParameter_base::Export(tinyxml2::XMLElement* parameters_xml, ExportFor
 #include "Drawing.h"
 #include "experimental/observable.h"
 
-enum ExportFormatType {
+enum ExportFormatType : int { // explicit underlying type allows opaque forward-declaration (e.g. in ExportAsPlugin.h)
 	 SAT_SYNTHEDIT_DSP
 	,SAT_VST3
 	,SAT_SYNTHEDIT_GUI_STRUCT
