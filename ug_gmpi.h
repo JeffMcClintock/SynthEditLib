@@ -3,9 +3,10 @@
 #include "GmpiApiAudio.h"
 #include "../Extensions/EmbeddedFile.h"
 #include "Extensions/PinCount.h"
+#include "Extensions/ElapsedTime.h"
 
 class ug_gmpi :
-	public ug_base, public gmpi::api::IProcessorHost, public synthedit::IEmbeddedFileSupport, public synthedit::IPinCount
+	public ug_base, public gmpi::api::IProcessorHost, public synthedit::IEmbeddedFileSupport, public synthedit::IPinCount, public synthedit::IElapsedTime
 {
 public:
 	ug_gmpi(class Module_Info* p_moduleType, gmpi::api::IProcessor* p_plugin);
@@ -28,6 +29,9 @@ public:
 
 	// IPinCount
 	int32_t getAutoduplicatePinCount_deprecated() override;
+
+	// IElapsedTime
+	int64_t getElapsedTime() override;
 
 	// ug_base overides
 	ug_base* Create() override;

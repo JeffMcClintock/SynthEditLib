@@ -168,6 +168,7 @@ gmpi::ReturnCode ug_gmpi::queryInterface(const gmpi::api::Guid* iid, void** retu
 	GMPI_QUERYINTERFACE(gmpi::api::IProcessorHost);
 	GMPI_QUERYINTERFACE(synthedit::IEmbeddedFileSupport);
 	GMPI_QUERYINTERFACE(synthedit::IPinCount);
+	GMPI_QUERYINTERFACE(synthedit::IElapsedTime);
 	return gmpi::ReturnCode::NoSupport;
 }
 
@@ -357,6 +358,12 @@ float ug_gmpi::getSampleRate()
 int32_t ug_gmpi::getHandle()
 {
 	return m_handle;
+}
+
+int64_t ug_gmpi::getElapsedTime()
+{
+	// SampleClock() is the module's render position in samples (block-start during process()).
+	return SampleClock();
 }
 
 ug_base* ug_gmpi::Create()
