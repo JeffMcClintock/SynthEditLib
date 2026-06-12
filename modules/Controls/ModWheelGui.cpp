@@ -30,7 +30,9 @@ class ModWheelGui final : public ValueControlBase, public gmpi::api::IDrawingLay
 			localBounds.right - slotMarginX,
 			localBounds.bottom - slotMarginY
 		};
-		const float slotCornerR = (std::max)(1.5f, getWidth(slot) * 0.42f);
+		// Only slightly rounded: the wheel is flat across its width (square-ish
+		// seen end-on), so the outline's ends are a slight chamfer, not capsule caps.
+		const float slotCornerR = (std::max)(1.5f, getWidth(slot) * 0.12f);
 
 		// Cylinder face inside the slot — small inset so the slot rim is visible
 		const float faceInsetX = (std::max)(0.5f, getWidth(slot) * 0.06f);
@@ -76,69 +78,107 @@ class ModWheelGui final : public ValueControlBase, public gmpi::api::IDrawingLay
 
 	int getShadowBlurRadius() const
 	{
+		// Penumbra stays tight — the caster is low (the crest rises only one
+		// wheel-radius above the panel), so the shadow edge is fairly crisp.
 		const float width = (std::max)(1.f, getWidth(bounds));
-		return 1; // (std::max)(2, static_cast<int>(std::ceil(width * 0.15f)));
+		return (std::max)(1, static_cast<int>(std::ceil(width * 0.06f)));
+	}
+
+	struct ShadowGeometry
+	{
+		float k;       // ground displacement per unit height (45° sun)
+		float H;       // crest height above the panel (= slot half-height)
+		float cy;      // wheel axis Y
+		float farY;    // far edge of the band cast below the bottom edge
+		float reachX;  // widest the end-cap lobe gets, right of the slot
+		float padding; // blur margin
+	};
+
+	// Sun convention: upper-left, 45° azimuth and 45° elevation, so a point at
+	// height z above the panel casts its shadow displaced (k*z, k*z) down-right.
+	// The wheel is sunk half-way: it meets the panel along its whole outline
+	// and the crest rises only one radius above it, so the shadow is a narrow
+	// fringe FUSED to that outline, never a detached blob:
+	//   - below the bottom edge: the tread's band, (sqrt(1+k^2)-1)*H ~= 0.22*H
+	//     deep, its left end cut by the shear, its right end wrapping the corner
+	//   - right of the right edge: the end-cap rim's lobe, at most k*H wide,
+	//     tapering to nothing at the top-right corner
+	//   - nothing above or to the left: those sides face the light
+	ShadowGeometry computeShadowGeometry(const Layout& layout) const
+	{
+		constexpr float k = 0.70710678f;
+		const float H = (std::max)(1.0f, 0.5f * getHeight(layout.slot));
+		const float cy = layout.wheelCenterY;
+		return {
+			k, H, cy,
+			cy + H * std::sqrt(1.0f + k * k),
+			k * H,
+			static_cast<float>(getShadowBlurRadius()) + 1.0f
+		};
 	}
 
 	ReturnCode drawShadow(Graphics& g, const Rect& localBounds)
 	{
 		const auto layout = computeLayout(localBounds);
+		const auto shadow = computeShadowGeometry(layout);
+		const Rect& slot = layout.slot;
 
 		shadowBlur.tint = Color{ 0.0f, 0.0f, 0.0f, 0.55f };
 		shadowBlur.blurRadius = getShadowBlurRadius();
 
-		// The shadow is a single closed D-shape path:
-		//   1. top-left rounded corner
-		//   2. flat top edge (length = wheel face width — the dimension the
-		//      cylinder actually casts)
-		//   3. one elliptical arc from top-right to bottom-right (the cylinder's
-		//      end-cap projection, bulging right)
-		//   4. flat bottom edge
-		//   5. bottom-left rounded corner
-		//   6. left edge closing the path
-		// The shape's top is tucked behind the wheel's rounded top corner by
-		// slotCornerR; the bottom extends past the wheel face by the same
-		// amount so the shadow emerges from beneath the wheel.
-		// A 45° Y-shear (pivoted on the wheel's right edge) tilts the whole
-		// path down-right as if lit from the upper-left.
-		const float padding = static_cast<float>(shadowBlur.blurRadius) + 1.0f;
-		const float bodyHalfHeight = (std::max)(1.0f, layout.wheelRadius);
-		const float bodyCenterY    = layout.wheelCenterY + layout.slotCornerR;
-		const float cornerR        = layout.slotCornerR;
-		const float arcXRadius     = layout.wheelRadius * 0.5f;
-		const float flatWidth      = getWidth(layout.face);
+		// The mask fills the slot footprint plus the cast fringe. The wheel
+		// graphic covers the footprint part, which keeps the visible shadow
+		// fused to the outline with no seam; the blur bleeding past the lit
+		// (top/left) edges reads as a faint contact-occlusion line.
+		const float originX = slot.left - shadow.padding;
+		const float originY = slot.top - shadow.padding;
+		const Rect bitmapRect{ 0.0f, 0.0f,
+			(slot.right + shadow.reachX + shadow.padding) - originX,
+			(shadow.farY + shadow.padding) - originY };
 
-		const float bitmapWidth  = cornerR + flatWidth + arcXRadius + padding;
-		const float bitmapHeight = 2.0f * bodyHalfHeight + 2.0f * padding;
-		gmpi::drawing::Rect bitmapRect{ 0.0f, 0.0f, bitmapWidth, bitmapHeight };
-
-		constexpr float kPi = 3.14159265f;
 		const auto orig = g.getTransform();
-		const auto translate = makeTranslation({
-			layout.slot.right,
-			bodyCenterY - bodyHalfHeight - padding
-		});
-		const auto skew = makeSkew(0.0f, kPi * 0.25f, { layout.slot.right, 0.0f });
-		g.setTransform(translate * skew * orig);
+		g.setTransform(makeTranslation({ originX, originY }) * orig);
 
 		shadowBlur.draw(g, bitmapRect, [&](Graphics& mask)
 			{
 				auto brush = mask.createSolidColorBrush(Colors::White);
 
-				const float topY      = padding;
-				const float bottomY   = padding + 2.0f * bodyHalfHeight;
-				const float leftX     = 0.0f;
-				const float arcStartX = /*cornerR +*/ flatWidth;
+				// Cast boundary traced by an end-cap rim (a sheared circle).
+				// t is the angle around the wheel axis: 0 at the bottom of the
+				// wheel, pi at the top; sin(t) is the height fraction.
+				const auto castPoint = [&](float rimX, float t) -> Point
+					{
+						const float h = shadow.H * std::sin(t);
+						return {
+							rimX + shadow.k * h - originX,
+							shadow.cy + shadow.H * std::cos(t) + shadow.k * h - originY
+						};
+					};
+
+				// The boundary hands over from rim curve to tread band where
+				// the cast curve runs parallel to the light azimuth.
+				const float tMerge = std::atan(shadow.k);
+				constexpr float kPi = 3.14159265f;
 
 				auto geometry = mask.getFactory().createPathGeometry();
 				auto sink = geometry.open();
-				sink.beginFigure({ cornerR, topY }, FigureBegin::Filled);
-				sink.addLine({ arcStartX, topY });
-				sink.addArc({ { arcStartX, bottomY }, { arcXRadius, bodyHalfHeight }, 0.f, SweepDirection::Clockwise, ArcSize::Small });
-				sink.addLine({ cornerR, bottomY });
-				sink.addArc({ { leftX, bottomY - cornerR }, { cornerR, cornerR }, 0.f, SweepDirection::Clockwise, ArcSize::Small });
-				sink.addLine({ leftX, topY + cornerR });
-				sink.addArc({ { cornerR, topY }, { cornerR, cornerR }, 0.f, SweepDirection::Clockwise, ArcSize::Small });
+
+				// Top-right corner — the shadow tapers to nothing here.
+				sink.beginFigure({ slot.right - originX, slot.top - originY }, FigureBegin::Filled);
+
+				// Right end-cap rim: around the lobe to where the band starts.
+				constexpr int rimSteps = 20;
+				for (int i = 1; i <= rimSteps; ++i)
+					sink.addLine(castPoint(slot.right, kPi + (tMerge - kPi) * static_cast<float>(i) / rimSteps));
+
+				// Far edge of the tread's band (parallel to the bottom edge),
+				// then its sheared left end back to the bottom-left corner.
+				constexpr int cutSteps = 6;
+				for (int i = 0; i <= cutSteps; ++i)
+					sink.addLine(castPoint(slot.left, tMerge * static_cast<float>(cutSteps - i) / cutSteps));
+
+				// Close around the footprint (hidden under the wheel).
+				sink.addLine({ slot.left - originX, slot.top - originY });
 				sink.endFigure();
 				sink.close();
 
@@ -240,19 +280,12 @@ public:
 		const auto height = (std::max)(1u, static_cast<uint32_t>(getHeight(bounds)));
 		const auto localBounds = getLocalBounds({ width, height });
 		const auto layout = computeLayout(localBounds);
+		const auto shadow = computeShadowGeometry(layout);
 
-		const float padding = static_cast<float>(getShadowBlurRadius()) + 1.0f;
-		const float bodyHalfHeight = (std::max)(1.0f, layout.wheelRadius);
-		const float bodyCenterY    = layout.wheelCenterY + layout.slotCornerR;
-		const float cornerR        = layout.slotCornerR;
-		const float arcXRadius     = layout.wheelRadius * 0.5f;
-		const float flatWidth      = getWidth(layout.face);
-		const float shadowRightExtent = cornerR + flatWidth + arcXRadius;
-		// 45° Y-shear pivoted on slot.right shifts the bitmap's right edge down
-		// by (bitmap right extent - slot.right). Top of the bitmap stays put
-		// because its left edge sits on the pivot.
-		const float shadowRight  = layout.slot.right + shadowRightExtent + padding;
-		const float shadowBottom = bodyCenterY + bodyHalfHeight + shadowRightExtent + 2.0f * padding;
+		// The fused shadow spills only slightly past the module: the end-cap
+		// lobe to the right of the slot and the tread band below it, plus blur.
+		const float shadowRight  = layout.slot.right + shadow.reachX + shadow.padding;
+		const float shadowBottom = shadow.farY + shadow.padding;
 
 		*returnRect = {
 			bounds.left,
