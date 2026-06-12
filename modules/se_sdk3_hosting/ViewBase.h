@@ -260,6 +260,14 @@ bool isIteratingChildren = false;
 		bool avoidRecusion{}; // from scroll bars
 		bool isAutoScrolling = false;
 
+		// Middle-button grab-pan. isPanning gates onPointerMove (move events carry no
+		// button bits, same pattern as isDraggingModules). panRef* snapshot the state at
+		// button-down so each move pans by the total drag delta — drift-free even though
+		// centerPos (and thus the view transform) updates live during the drag.
+		bool isPanning = false;
+		gmpi::drawing::Point panRefMouse{};   // absolute (panel) coords at pan start
+		gmpi::drawing::Point panRefCenter{};  // centerPos (document coords) at pan start
+
 		void calcViewTransform();
 
 	public:
@@ -278,6 +286,12 @@ bool isIteratingChildren = false;
 
 		// Wheel = zoom (with Ctrl) or pan (plain/Shift); other cases delegate to base.
 		gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override;
+
+		// Middle-button drag = grab-pan the canvas (companion to wheel scroll/zoom).
+		// Intercept the ThirdButton here, otherwise delegate to ViewBase.
+		gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
+		gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
 
 		// Auto-scroll during drag: adjusts centerPos on a timer tick.
 		bool onTimer() override;

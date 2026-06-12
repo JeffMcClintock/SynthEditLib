@@ -1146,6 +1146,58 @@ namespace SE2
 		return gmpi::ReturnCode::Ok;
 	}
 
+	gmpi::ReturnCode TopView::onPointerDown(gmpi::drawing::Point point, int32_t flags)
+	{
+		// Middle-button press begins a grab-pan of the canvas. Intercept before the
+		// normal hit-test/selection path so panning never disturbs the selection and
+		// works regardless of what's under the cursor (like most node editors).
+		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_THIRDBUTTON) != 0)
+		{
+			isPanning = true;
+			panRefMouse = point;       // absolute (panel) coords
+			panRefCenter = centerPos;  // document coords
+
+			// Logical capture so the host's OnTimer cursor-poll keeps the pan alive when
+			// the drag wanders outside the panel (same machinery as auto-scroll). Capture
+			// directly via the host rather than ViewBase::setCapture(), which would also
+			// route subsequent moves to a captured child — we want them here.
+			if (inputHost)
+				inputHost->setCapture();
+
+			return gmpi::ReturnCode::Ok;
+		}
+
+		return ViewBase::onPointerDown(point, flags);
+	}
+
+	gmpi::ReturnCode TopView::onPointerMove(gmpi::drawing::Point point, int32_t flags)
+	{
+		if (isPanning)
+		{
+			// Pan so the document point grabbed at button-down stays under the cursor.
+			// inv_viewTransform's _11/_22 are the screen->doc scale (1 / snappedZoom);
+			// they depend only on zoom, not pan, so they're constant for the gesture.
+			centerPos.x = panRefCenter.x - (point.x - panRefMouse.x) * inv_viewTransform._11;
+			centerPos.y = panRefCenter.y - (point.y - panRefMouse.y) * inv_viewTransform._22;
+			Presenter()->SetViewCenter(centerPos);
+			return gmpi::ReturnCode::Ok;
+		}
+
+		return ViewBase::onPointerMove(point, flags);
+	}
+
+	gmpi::ReturnCode TopView::onPointerUp(gmpi::drawing::Point point, int32_t flags)
+	{
+		if (isPanning && (flags & gmpi_gui_api::GG_POINTER_FLAG_THIRDBUTTON) != 0)
+		{
+			isPanning = false;
+			releaseCapture(); // drops logical capture and recalcs hover (calcMouseOverObject)
+			return gmpi::ReturnCode::Ok;
+		}
+
+		return ViewBase::onPointerUp(point, flags);
+	}
+
 	void TopView::autoScrollStart()
 	{
 		isAutoScrolling = true;

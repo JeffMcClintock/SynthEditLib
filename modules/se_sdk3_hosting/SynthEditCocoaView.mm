@@ -960,8 +960,64 @@ void ApplyKeyModifiers(int32_t& flags, NSEvent* theEvent)
     mousePos = gmpi::drawing::Point{ pointRaw.x, pointRaw.y };
     if (drawingFrame.inputClient)
         drawingFrame.inputClient->onPointerMove(mousePos, flags);
-    
+
     [self ToolTipOnMouseActivity];
+}
+
+// Middle-button (buttonNumber 2) drag = canvas grab-pan, handled cross-platform in
+// TopView via the ThirdButton flag (companion to scrollWheel scroll/zoom). AppKit
+// delivers otherMouse* to the view that got the press until release, even outside its
+// bounds, so no cursor-polling is needed here (unlike WinUI3). The closed-hand cursor
+// is the conventional macOS pan affordance.
+- (void)otherMouseDown:(NSEvent *)theEvent {
+    if (theEvent.buttonNumber != 2)
+        return;
+
+    [[self window] makeFirstResponder:self];
+
+    int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
+    flags |= gmpi_gui_api::GG_POINTER_FLAG_NEW;
+    flags |= gmpi_gui_api::GG_POINTER_FLAG_THIRDBUTTON;
+
+    ApplyKeyModifiers(flags, theEvent);
+    const auto pointRaw = se_mouseToGmpi(self, theEvent);
+    const gmpi::drawing::Point point{ pointRaw.x, pointRaw.y };
+
+    [[NSCursor closedHandCursor] push];
+
+    if (drawingFrame.inputClient)
+        drawingFrame.inputClient->onPointerDown(point, flags);
+}
+
+- (void)otherMouseDragged:(NSEvent *)theEvent {
+    if (theEvent.buttonNumber != 2)
+        return;
+
+    int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
+    flags |= gmpi_gui_api::GG_POINTER_FLAG_THIRDBUTTON;
+
+    ApplyKeyModifiers(flags, theEvent);
+    const auto pointRaw = se_mouseToGmpi(self, theEvent);
+    mousePos = gmpi::drawing::Point{ pointRaw.x, pointRaw.y };
+    if (drawingFrame.inputClient)
+        drawingFrame.inputClient->onPointerMove(mousePos, flags);
+}
+
+- (void)otherMouseUp:(NSEvent *)theEvent {
+    if (theEvent.buttonNumber != 2)
+        return;
+
+    int32_t flags = gmpi_gui_api::GG_POINTER_FLAG_INCONTACT | gmpi_gui_api::GG_POINTER_FLAG_PRIMARY | gmpi_gui_api::GG_POINTER_FLAG_CONFIDENCE;
+    flags |= gmpi_gui_api::GG_POINTER_FLAG_THIRDBUTTON;
+
+    ApplyKeyModifiers(flags, theEvent);
+    const auto pointRaw = se_mouseToGmpi(self, theEvent);
+    const gmpi::drawing::Point point{ pointRaw.x, pointRaw.y };
+
+    if (drawingFrame.inputClient)
+        drawingFrame.inputClient->onPointerUp(point, flags);
+
+    [NSCursor pop]; // balance the push in otherMouseDown
 }
 
 - (void)scrollWheel:(NSEvent *)theEvent {
