@@ -46,6 +46,17 @@ namespace SE2
 		}
 	};
 
+	// Rounded U-turn that replaces the sharp 'elbow' where a line doubles back behind its
+	// module. Computed by calcEndArc() in ConnectorViewStruct.cpp.
+	struct EndArcInfo
+	{
+		bool valid = false;
+		gmpi::drawing::Point S{}; // arc start: end of the short horizontal stub at the pin
+		gmpi::drawing::Point T{}; // arc end: where the straight run leaves the circle
+		bool clockwise = false;   // sweep direction when traversed pin -> S -> T
+		bool largeArc = false;    // turn of more than 180 degrees (hairpin)
+	};
+
 	// Plain connections on structure view only.
 	class ConnectorView2 : public ConnectorViewBase
 	{
@@ -60,6 +71,7 @@ namespace SE2
 
 		std::vector<gmpi::drawing::Point> nodes;
 		std::vector<gmpi::drawing::PathGeometry> segmentGeometrys;
+		EndArcInfo fromArc, toArc; // U-turn arcs of a doubled-back line, set by CreateGeometry()
 
 		int draggingNode = -1;
 		int hoverNode = -1;
@@ -74,6 +86,10 @@ namespace SE2
 
 		// returns { distance, hoverNode, hoverSegment }. distance: 0 = solid hit, 0..fuzzyHitTestLimit = fuzzy, totalMiss otherwise.
 		std::tuple<float, int, int> hitTestWhat(gmpi::drawing::Point point);
+
+		// The points a doubled-back CURVEY spline passes through: the U-turn arc tangent
+		// points (or the pin + sharp elbow where an arc didn't fit) bracketing the user nodes.
+		std::vector<gmpi::drawing::Point> curveyUTurnSeed(float endAdjust) const;
 
 	public:
 		// Dynamic patch-cables.

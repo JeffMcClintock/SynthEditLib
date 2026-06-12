@@ -84,6 +84,112 @@ namespace SE2
 		return vectorFromPoints(p1, p2).LengthSquared() < closeDistanceSquared;
 	}
 
+	// Rounded U-turn replacing the sharp elbow of a doubled-back line. The path leaves 'pin'
+	// horizontally (exitDirX: +1 rightward, -1 leftward) for 'stub' DIPs to clear the module
+	// edge, then follows a circle of radius r until it meets the tangent line through
+	// 'target', so the straight run leaves the curve smoothly. valid=false when 'target' is
+	// too close to fit the turn (caller falls back to the elbow).
+	EndArcInfo calcEndArc(const Point pin, const float exitDirX, const Point target, const float stub, const float r)
+	{
+		EndArcInfo res;
+		res.S = { pin.x + exitDirX * stub, pin.y };
+
+		// The circle centre sits on the side of the exit line that the wire must turn toward.
+		const float signDown = (target.y >= res.S.y) ? 1.0f : -1.0f;
+		const Point centre{ res.S.x, res.S.y + signDown * r };
+
+		const float dx = target.x - centre.x;
+		const float dy = target.y - centre.y;
+		const float distSquared = dx * dx + dy * dy;
+		if (distSquared <= r * r * 1.1f) // target inside (or grazing) the circle: no room to turn.
+			return res;
+
+		const float dist = sqrtf(distSquared);
+		const float alpha = atan2f(dy, dx);
+		const float beta = acosf((std::min)(1.0f, r / dist)); // angle at centre between 'target' and either tangent point
+
+		// Which way round the circle the wire travels. (y-down coordinates: increasing
+		// parametric angle (cos, sin) tracks clockwise on screen.)
+		const bool clockwise = signDown * exitDirX > 0.0f;
+
+		const float phiS = atan2f(res.S.y - centre.y, res.S.x - centre.x);
+
+		// Two candidate tangent points; the wire leaves at the one where the circular motion
+		// continues toward 'target' rather than away from it.
+		for (const float phiT : { alpha + beta, alpha - beta })
+		{
+			const Point tangentPoint{ centre.x + r * cosf(phiT), centre.y + r * sinf(phiT) };
+
+			const float velX = clockwise ? -sinf(phiT) : sinf(phiT);
+			const float velY = clockwise ? cosf(phiT) : -cosf(phiT);
+			if (velX * (target.x - tangentPoint.x) + velY * (target.y - tangentPoint.y) <= 0.0f)
+				continue;
+
+			constexpr float twoPi = 2.0f * 3.14159265f;
+			float sweep = clockwise ? phiT - phiS : phiS - phiT;
+			while (sweep < 0.0f)
+				sweep += twoPi;
+
+			res.T = tangentPoint;
+			res.clockwise = clockwise;
+			res.largeArc = sweep > 0.5f * twoPi;
+			res.valid = true;
+			break;
+		}
+
+		return res;
+	}
+
+	// 'reversed' draws the arc from T back to S (used at the 'to' end, where the arc was
+	// calculated outward from the pin but is drawn toward it), which flips the sweep.
+	ArcSegment makeArcSegment(const EndArcInfo& arc, float radius, bool reversed)
+	{
+		return {
+			reversed ? arc.S : arc.T,
+			{ radius, radius },
+			0.0f,
+			(arc.clockwise != reversed) ? SweepDirection::Clockwise : SweepDirection::CounterClockwise,
+			arc.largeArc ? ArcSize::Large : ArcSize::Small };
+	}
+
+	std::vector<Point> ConnectorView2::curveyUTurnSeed(float endAdjust) const
+	{
+		std::vector<Point> seed;
+
+		if (fromArc.valid)
+		{
+			seed.push_back(fromArc.T);
+		}
+		else
+		{
+			seed.push_back(from_);
+			seed.push_back({ from_.x + endAdjust, from_.y });
+		}
+
+		seed.insert(seed.end(), nodes.begin(), nodes.end());
+
+		if (toArc.valid)
+		{
+			seed.push_back(toArc.T);
+		}
+		else
+		{
+			seed.push_back({ to_.x - endAdjust, to_.y });
+			seed.push_back(to_);
+		}
+
+		// remove overlapping points. (causes failure to draw entire path)
+		for (auto it = seed.begin() + 1; it != seed.end() - 1; )
+		{
+			if (isClose(*it, *(it - 1)))
+				it = seed.erase(it);
+			else
+				++it;
+		}
+
+		return seed;
+	}
+
 	void ConnectorView2::CreateGeometry()
 	{
 		auto factory = getFactory();
@@ -102,6 +208,9 @@ namespace SE2
 
 		// 'back' going lines need extra curve
 		const auto endAdjust = calcEndFolds(draggingFromEnd, from_, to_);
+
+		fromArc = {}; // recalculated below (doubled-back lines only)
+		toArc = {};
 
 		std::vector<Point> nodesInclusive; // of start and end point.
 		nodesInclusive.push_back(from_);
@@ -136,12 +245,41 @@ namespace SE2
 				++it;
 		}
 
+		// Where the line doubles back, the sharp elbows are replaced with rounded U-turns
+		// (arc segments) that sweep the line clear of the module instead of kinking.
+		// Shared by both line styles; CURVEY splines only the run between the arcs.
+		constexpr float stub = 2.0f;
+		constexpr float uTurnRadius = 8.0f; // stub + radius ~= endAdjust: same clearance as the elbows
+
+		const Point elbowFrom{ from_.x + endAdjust, from_.y };
+		const Point elbowTo{ to_.x - endAdjust, to_.y };
+
+		std::vector<Point> interior; // user nodes, overlapping points removed
+		if (endAdjust > 0.0f)
+		{
+			for (const auto& n : nodes)
+			{
+				if (interior.empty() || !isClose(interior.back(), n))
+					interior.push_back(n);
+			}
+
+			fromArc = calcEndArc(from_, 1.0f, interior.empty() ? elbowTo : interior.front(), stub, uTurnRadius);
+			toArc = calcEndArc(to_, -1.0f, interior.empty() ? (fromArc.valid ? fromArc.T : elbowFrom) : interior.back(), stub, uTurnRadius);
+			if (interior.empty() && toArc.valid) // re-aim the from arc at the to arc, aligning the straight run with both curves.
+				fromArc = calcEndArc(from_, 1.0f, toArc.T, stub, uTurnRadius);
+		}
+
 		if (lineType_ == CURVEY)
 		{
+			// Points the spline passes through. When U-turn arcs are active, the spline
+			// covers only the run between the arc tangent points; the stubs and arcs are
+			// drawn as exact segments, the same look as straight mode at the pins.
+			const auto splineSeed = endAdjust > 0.0f ? curveyUTurnSeed(endAdjust) : nodesInclusive;
+
 			// Transform on-line nodes into Bezier Spline control points.
 			std::vector<GmpiDrawing::Point> legacyNodesInclusive;
-			legacyNodesInclusive.reserve(nodesInclusive.size());
-			for (const auto& p : nodesInclusive)
+			legacyNodesInclusive.reserve(splineSeed.size());
+			for (const auto& p : splineSeed)
 			{
 				legacyNodesInclusive.push_back(toLegacyPoint(p));
 			}
@@ -154,11 +292,28 @@ namespace SE2
 				splinePoints.push_back(toDrawingPoint(p));
 			}
 
-			sink.beginFigure(splinePoints[0], FigureBegin::Hollow);
+			if (fromArc.valid)
+			{
+				// horizontal stub out of the pin, then the U-turn arc onto the spline's first point.
+				sink.beginFigure(from_, FigureBegin::Hollow);
+				sink.addLine(fromArc.S);
+				sink.addArc(makeArcSegment(fromArc, uTurnRadius, false));
+			}
+			else
+			{
+				sink.beginFigure(splinePoints[0], FigureBegin::Hollow);
+			}
 
 			for (int i = 1; i < splinePoints.size(); i += 3)
 			{
 				sink.addBezier({ splinePoints[i], splinePoints[i + 1], splinePoints[i + 2] });
+			}
+
+			if (toArc.valid)
+			{
+				// U-turn arc off the spline's last point, then the horizontal stub into the pin.
+				sink.addArc(makeArcSegment(toArc, uTurnRadius, true));
+				sink.addLine(to_);
 			}
 
 			if (!drawArrows)
@@ -235,17 +390,60 @@ namespace SE2
 				//				sink.beginFigure(from_, FigureBegin::Hollow);
 			}
 
-			bool first = true;
-			for (auto& n : nodesInclusive)
+			std::vector<Point> drawnPath; // the rendered points; differs from nodesInclusive when U-turn arcs replace the elbows
+
+			if (endAdjust > 0.0f)
 			{
-				if (first)
+				sink.beginFigure(from_, FigureBegin::Hollow);
+				drawnPath.push_back(from_);
+
+				if (fromArc.valid)
 				{
-					sink.beginFigure(n, FigureBegin::Hollow);
-					first = false;
+					sink.addLine(fromArc.S);
+					sink.addArc(makeArcSegment(fromArc, uTurnRadius, false));
+					drawnPath.push_back(fromArc.T);
+				}
+				else // no room for the arc: keep the sharp elbow.
+				{
+					sink.addLine(elbowFrom);
+					drawnPath.push_back(elbowFrom);
+				}
+
+				for (const auto& n : interior)
+				{
+					sink.addLine(n);
+					drawnPath.push_back(n);
+				}
+
+				if (toArc.valid)
+				{
+					sink.addLine(toArc.T);
+					sink.addArc(makeArcSegment(toArc, uTurnRadius, true));
+					drawnPath.push_back(toArc.T);
 				}
 				else
 				{
-					sink.addLine(n);
+					sink.addLine(elbowTo);
+					drawnPath.push_back(elbowTo);
+				}
+
+				sink.addLine(to_);
+				drawnPath.push_back(to_);
+			}
+			else
+			{
+				bool first = true;
+				for (auto& n : nodesInclusive)
+				{
+					if (first)
+					{
+						sink.beginFigure(n, FigureBegin::Hollow);
+						first = false;
+					}
+					else
+					{
+						sink.addLine(n);
+					}
 				}
 			}
 
@@ -291,18 +489,18 @@ namespace SE2
 			// center arrow
 			if (!drawArrows)
 			{
-				int splineCount = (static_cast<int>(nodesInclusive.size()) + 1) / 2;
+				// when U-turn arcs replaced the elbows, place the arrow on the path actually drawn.
+				const auto& arrowPath = drawnPath.empty() ? nodesInclusive : drawnPath;
+
+				int splineCount = (static_cast<int>(arrowPath.size()) + 1) / 2;
 				int middleSplineIdx = splineCount / 2;
 				//				if (splineCount & 0x01) // odd number
 				{
-					//arrowPoint.x = 0.5f * (nodesInclusive[middleSplineIdx].x + nodesInclusive[middleSplineIdx + 1].x);
-					//arrowPoint.y = 0.5f * (nodesInclusive[middleSplineIdx].y + nodesInclusive[middleSplineIdx + 1].y);
-
-					const auto segmentVector = vectorFromPoints(nodesInclusive[middleSplineIdx], nodesInclusive[middleSplineIdx + 1]);
+					const auto segmentVector = vectorFromPoints(arrowPath[middleSplineIdx], arrowPath[middleSplineIdx + 1]);
 					const auto segmentLength = segmentVector.Length();
 					const auto distanceToArrowPoint = (std::min)(segmentLength, 0.5f * (segmentLength + arrowLength));
-					arrowDirection = vectorFromPoints(nodesInclusive[middleSplineIdx], nodesInclusive[middleSplineIdx + 1]);
-					arrowPoint = addVector(nodesInclusive[middleSplineIdx], (distanceToArrowPoint / segmentLength) * arrowDirection);
+					arrowDirection = vectorFromPoints(arrowPath[middleSplineIdx], arrowPath[middleSplineIdx + 1]);
+					arrowPoint = addVector(arrowPath[middleSplineIdx], (distanceToArrowPoint / segmentLength) * arrowDirection);
 				}
 				/*
 				else
@@ -359,10 +557,14 @@ namespace SE2
 
 			if (lineType_ == CURVEY)
 			{
+				// must match the spline CreateGeometry drew: arc tangent points bracket the
+				// nodes where U-turn arcs are active.
+				const auto splineSeed = hasElbows ? curveyUTurnSeed(endAdjust) : nodesInclusive;
+
 				// Transform on-line nodes into Bezier Spline control points.
 				std::vector<GmpiDrawing::Point> legacyNodesInclusive;
-				legacyNodesInclusive.reserve(nodesInclusive.size());
-				for (const auto& p : nodesInclusive)
+				legacyNodesInclusive.reserve(splineSeed.size());
+				for (const auto& p : splineSeed)
 				{
 					legacyNodesInclusive.push_back(toLegacyPoint(p));
 				}
@@ -375,8 +577,11 @@ namespace SE2
 					splinePoints.push_back(toDrawingPoint(p));
 				}
 
-				const size_t fromIdx = hasElbows ? 3 : 0;
-				const size_t toIdx = hasElbows ? splinePoints.size() - 4 : splinePoints.size() - 1;
+				// skip a lead-in/lead-out bezier only where a sharp elbow remains; with an
+				// arc the spline starts/ends at the arc tangent point and every piece is a
+				// real segment.
+				const size_t fromIdx = (hasElbows && !fromArc.valid) ? 3 : 0;
+				const size_t toIdx = (hasElbows && !toArc.valid) ? splinePoints.size() - 4 : splinePoints.size() - 1;
 
 				for (size_t i = fromIdx; i < toIdx; i += 3)
 				{
@@ -391,6 +596,16 @@ namespace SE2
 			}
 			else
 			{
+				// match the drawn U-turn arcs: hover/hit segments anchor at the arc ends,
+				// not at the old sharp elbow points.
+				if (hasElbows)
+				{
+					if (fromArc.valid)
+						nodesInclusive[1] = fromArc.T;
+					if (toArc.valid)
+						nodesInclusive[nodesInclusive.size() - 2] = toArc.T;
+				}
+
 				bool first = true;
 				PathGeometry segment;
 				GeometrySink sink;
