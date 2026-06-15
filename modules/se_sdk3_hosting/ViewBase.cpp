@@ -1092,9 +1092,10 @@ namespace SE2
 
 	gmpi::ReturnCode TopView::onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta)
 	{
-		if (isDraggingModules)
-			return gmpi::ReturnCode::Unhandled;
-
+		// NOTE: deliberately NOT early-ing out while isDraggingModules is set. Wheel
+		// pan/zoom is allowed mid-drag so the user can scroll the canvas to an off-screen
+		// drop location without releasing the module. The drag is re-synced to the cursor
+		// at the end of this function (see the isDraggingModules block before the return).
 		currentPointerPosAbsolute = point;
 		point *= inv_viewTransform;
 
@@ -1142,6 +1143,15 @@ namespace SE2
 
 			Presenter()->SetViewCenter(centerPos);
 		}
+
+		// While a module drag is in progress, the pan/zoom above just moved the canvas
+		// out from under the gesture. Replay a pointer-move at the current cursor so the
+		// grabbed module(s) stay glued to the cursor instead of sliding away with the
+		// canvas. The presenter round-trip (SetViewCenter/SetPanZoom →
+		// OM_VIEW_PANORZOOM_CHANGED → setPanZoom → calcViewTransform) is synchronous, so
+		// inv_viewTransform is already current here — same resync auto-scroll uses in onTimer().
+		if (isDraggingModules)
+			onPointerMove(currentPointerPosAbsolute, flags);
 
 		return gmpi::ReturnCode::Ok;
 	}
