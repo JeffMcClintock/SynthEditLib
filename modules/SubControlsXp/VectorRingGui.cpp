@@ -69,8 +69,9 @@ protected:
 		if (flags & gmpi_gui_api::GG_POINTER_KEY_CONTROL) // <cntr> key magnifies
 			coarseness = 0.001f;
 
+		// Respond to both axes: drag up or right increases, down or left decreases.
 		float new_pos = pinAnimationPosition;
-		new_pos = std::clamp(new_pos - coarseness * (float)offset.y, 0.0f, 1.0f);
+		new_pos = std::clamp(new_pos + coarseness * (offset.x - offset.y), 0.0f, 1.0f);
 
 		pointPrevious = point;
 

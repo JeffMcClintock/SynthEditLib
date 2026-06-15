@@ -211,7 +211,8 @@ public:
 			return ReturnCode::Unhandled;
 
 		const float coarseness = (flags & static_cast<int32_t>(gmpi::api::PointerFlags::KeyControl)) != 0 ? 0.001f : 0.005f;
-		auto newValue = pinValue.value - coarseness * (point.y - pointPrevious.y);
+		// Respond to both axes: drag up or right increases, down or left decreases.
+		auto newValue = pinValue.value + coarseness * ((point.x - pointPrevious.x) - (point.y - pointPrevious.y));
 		newValue = (std::clamp)(newValue, 0.0f, 1.0f);
 		pointPrevious = point;
 
