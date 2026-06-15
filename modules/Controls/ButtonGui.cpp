@@ -340,7 +340,7 @@ namespace
 auto r = gmpi::Register<ButtonGui>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
 <Plugin id="SE Button" name="Button" category="Sub-Controls">
-	<GUI>
+	<GUI graphicsApi="GmpiGui">
 		<Pin name="Value" datatype="bool"/>
 		<Pin name="Menu Items" datatype="string"/>
 		<Pin name="Menu Selection" datatype="int"/>
