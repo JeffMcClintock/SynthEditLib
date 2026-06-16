@@ -378,6 +378,7 @@ void ug_wave_player::sub_process_file_stereo(int start_pos, int sampleframes)
 		++gate;
 	}
 }
+#include <iostream>
 
 int ug_wave_player::open_file()
 {
@@ -395,6 +396,9 @@ int ug_wave_player::open_file()
 		return false;
 
 	auto l_filename = AudioMaster()->getShell()->ResolveFilename(FileName, L"wav");
+
+	// debug errors in CI
+	std::cout << "ug_wave_player FileName:" << WStringToUtf8(FileName) << "\n  resolved: " << WStringToUtf8(l_filename) << std::endl;
 
 	std::wstring errorMessage = L"Can't open: " + FileName + L". Check: filename is correct, check it's a WAVE file";
 
