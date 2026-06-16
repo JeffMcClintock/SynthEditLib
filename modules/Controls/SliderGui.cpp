@@ -7,6 +7,19 @@ class SliderGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 {
 	Rect previousDirtyRect{};
 
+	Pin<std::string> pinSlotColor;
+	Pin<std::string> pinTickColor;
+
+	Color getSlotColor() const
+	{
+		return pinSlotColor.value.empty() ? Color{ 0.0f, 0.0f, 0.0f, 0.25f } : colorFromHexString(pinSlotColor.value);
+	}
+
+	Color getTickColor() const
+	{
+		return pinTickColor.value.empty() ? Colors::White : colorFromHexString(pinTickColor.value);
+	}
+
 	Rect getHandleDirtyRect() const
 	{
 		const auto width = (std::max)(1u, static_cast<uint32_t>(getWidth(bounds)));
@@ -81,11 +94,42 @@ class SliderGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 			const float trackLeft = localBounds.left + (width - trackStrokeWidth) * 0.5f;
 			const float trackRadius = trackStrokeWidth * 0.5f;
 
-			auto trackBrush = g.createSolidColorBrush(Color{ 0.0f, 0.0f, 0.0f, 0.25f });
+			auto trackBrush = g.createSolidColorBrush(getSlotColor());
 			g.fillRoundedRectangle(
 				{ { trackLeft, localBounds.top, trackLeft + trackStrokeWidth, localBounds.bottom }, trackRadius, trackRadius },
 				trackBrush
 			);
+		}
+
+		// Ticks: up to 11 evenly-spaced marks, thinned out as the track shortens
+		// so the gap between adjacent ticks stays >= twice the tick width
+		// (none at all once the travel is too tiny to fit two).
+		{
+			const float handleHeight = (std::max)(12.0f, width * 0.5f);
+			const float margin = handleHeight * 0.5f;
+			const float trackTop = localBounds.top + margin;
+			const float trackBottom = localBounds.bottom - margin;
+			const float trackRange = trackBottom - trackTop;
+			const float centerX = (localBounds.left + localBounds.right) * 0.5f;
+			const float tickHalfLength = width * 0.35f;
+			const float tickThickness = (std::max)(1.0f, width * 0.05f);
+
+			// gap >= 2*tickThickness  =>  centre-to-centre spacing >= 3*tickThickness
+			const int maxIntervals = static_cast<int>(trackRange / (3.0f * tickThickness));
+			const int tickCount = (std::min)(11, maxIntervals + 1);
+
+			if (tickCount >= 2)
+			{
+				auto tickBrush = g.createSolidColorBrush(getTickColor());
+				for (int i = 0; i < tickCount; ++i)
+				{
+					const float y = trackBottom - trackRange * (i / static_cast<float>(tickCount - 1));
+					g.fillRectangle(
+						{ centerX - tickHalfLength, y - tickThickness * 0.5f, centerX + tickHalfLength, y + tickThickness * 0.5f },
+						tickBrush
+					);
+				}
+			}
 		}
 
 		const auto handleRect = getHandleRect(localBounds);
@@ -202,7 +246,11 @@ class SliderGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 	}
 
 public:
-	SliderGui() = default;
+	SliderGui()
+	{
+		pinSlotColor.onUpdate = [this](PinBase*) { ControlsBase::redraw(); };
+		pinTickColor.onUpdate = [this](PinBase*) { ControlsBase::redraw(); };
+	}
 
 	ReturnCode getClipArea(Rect* returnRect) override
 	{
@@ -337,6 +385,8 @@ auto r = gmpi::Register<SliderGui>::withXml(R"XML(
 		<Pin name="Hint" datatype="string"/>
 		<Pin name="Base Color" datatype="string" default="2E79C7"/>
 		<Pin name="Line Color" datatype="string" default="EEEEEE"/>
+		<Pin name="Slot Color" datatype="string" default="40000000"/>
+		<Pin name="Tick Color" datatype="string" default="FFFFFF"/>
     </GUI>
 </Plugin>
 )XML");
