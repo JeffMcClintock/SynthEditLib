@@ -901,13 +901,13 @@ protected:
 	gmpi::directx::ComPtr<ID2D1DeviceContext> context_;
 	Factory_base& factory;
 	gmpi::IMpUnknown* fallback{};
-	std::vector<gmpi::drawing::Rect>& clipRectStack; // shared with GMPI-UI context
+	std::vector<gmpi::directx::ClipEntry>& clipRectStack; // shared with GMPI-UI context
 
 public:
 	GraphicsContext_SDK3(
 		gmpi::IMpUnknown* pfallback
 		, Factory_base& pfactory
-		, std::vector<gmpi::drawing::Rect>& pclipRectStack
+		, std::vector<gmpi::directx::ClipEntry>& pclipRectStack
 		, ID2D1DeviceContext* deviceContext = 0
 	) :
 		context_(deviceContext)
@@ -1107,7 +1107,7 @@ public:
 	GraphicsContext2(
 		  gmpi::IMpUnknown* pfallback
 		, Factory_base& pfactory
-		, std::vector<gmpi::drawing::Rect>& clipRectStack
+		, std::vector<gmpi::directx::ClipEntry>& clipRectStack
 		, ID2D1DeviceContext* deviceContext = {}
 	) : GraphicsContext_SDK3(
 		  pfallback
@@ -1137,7 +1137,7 @@ class BitmapRenderTarget : public GraphicsContext_SDK3
 {
 	gmpi::directx::ComPtr<IWICBitmap> wicBitmap;
 	ID2D1DeviceContext* originalContext{};
-	std::vector<gmpi::drawing::Rect> clipRectStack;
+	std::vector<gmpi::directx::ClipEntry> clipRectStack;
 
 public:
 
@@ -1174,7 +1174,7 @@ public:
 	GraphicsContext_Win7(
 		gmpi::IMpUnknown* pfallback
 		, Factory_base& pfactory
-		, std::vector<gmpi::drawing::Rect>& clipRectStack
+		, std::vector<gmpi::directx::ClipEntry>& clipRectStack
 		, ID2D1DeviceContext* context
 	) :
 		GraphicsContext2(pfallback, pfactory, clipRectStack, context)

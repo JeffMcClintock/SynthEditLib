@@ -429,7 +429,7 @@ BitmapRenderTarget::BitmapRenderTarget(GraphicsContext_SDK3* g, GmpiDrawing_API:
 		, renderTex_
 	);
 
-	clipRectStack.push_back({ 0, 0, desiredSize.width, desiredSize.height });
+	clipRectStack.push_back({ { 0, 0, desiredSize.width, desiredSize.height }, gmpi::directx::ClipKind::Rect });
 }
 
 int32_t BitmapRenderTarget::GetBitmap(GmpiDrawing_API::IMpBitmap** returnBitmap)
@@ -470,7 +470,7 @@ void GraphicsContext_SDK3::PushAxisAlignedClip(const GmpiDrawing_API::MP1_RECT* 
 	GmpiDrawing::Matrix3x2 currentTransform{};
 	context_->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(&currentTransform));
 	auto r2 = currentTransform.TransformRect(*clipRect);
-	clipRectStack.push_back(*(gmpi::drawing::Rect*)&r2);
+	clipRectStack.push_back({ *(gmpi::drawing::Rect*)&r2, gmpi::directx::ClipKind::Rect });
 }
 
 void GraphicsContext_SDK3::GetAxisAlignedClip(GmpiDrawing_API::MP1_RECT* returnClipRect)
@@ -479,7 +479,7 @@ void GraphicsContext_SDK3::GetAxisAlignedClip(GmpiDrawing_API::MP1_RECT* returnC
 	GmpiDrawing::Matrix3x2 currentTransform;
 	context_->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(&currentTransform));
 	currentTransform.Invert();
-	auto r2 = currentTransform.TransformRect(*(GmpiDrawing_API::MP1_RECT*) &clipRectStack.back());
+	auto r2 = currentTransform.TransformRect(*(GmpiDrawing_API::MP1_RECT*) &clipRectStack.back().bounds);
 
 	*returnClipRect = r2;
 }
@@ -487,13 +487,13 @@ void GraphicsContext_SDK3::GetAxisAlignedClip(GmpiDrawing_API::MP1_RECT* returnC
 
 UniversalGraphicsContext::UniversalGraphicsContext(UniversalFactory* uFactory, ID2D1DeviceContext* nativeContext) :
 	gmpi::directx::GraphicsContext_base(&uFactory->gmpiFactory, nativeContext),
-	sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), uFactory->sdk3Factory, clipRectStack, nativeContext)
+	sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), uFactory->sdk3Factory, clipStack, nativeContext)
 {
 }
 
 UniversalGraphicsContext_win7::UniversalGraphicsContext_win7(UniversalFactory* uFactory, ID2D1DeviceContext* nativeContext) :
 	gmpi::directx::GraphicsContext_base(&uFactory->gmpiFactory, nativeContext),
-	sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), uFactory->sdk3Factory, clipRectStack, nativeContext)
+	sdk3Context((gmpi::IMpUnknown*) static_cast<gmpi::api::IUnknown*>(this), uFactory->sdk3Factory, clipStack, nativeContext)
 {
 }
 
