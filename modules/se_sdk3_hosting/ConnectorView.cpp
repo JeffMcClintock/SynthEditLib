@@ -3,10 +3,8 @@
 #include "ModuleView.h"
 #include "ModuleViewStruct.h"
 #include "modules/shared/xplatform_modifier_keys.h"
-#include "modules/shared/VectorMath.h"
 
 using namespace gmpi::drawing;
-using namespace Gmpi::VectorMath;
 
 // perceptually even colors. (rainbow). Might need the one with purple instead (for BLOBs).
 // https://bokeh.github.io/colorcet/

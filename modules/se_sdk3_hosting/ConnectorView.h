@@ -1,7 +1,6 @@
 #pragma once
 #include "IViewChild.h"
 #include "modules/se_sdk2/se_datatypes.h"
-#include "../shared/VectorMath.h"
 
 namespace SE2
 {

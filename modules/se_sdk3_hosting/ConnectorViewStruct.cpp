@@ -1,8 +1,6 @@
 #include "ConnectorViewStruct.h"
 #include "ModuleViewStruct.h"
 #include "ContainerView.h"
-#include "modules/shared/xplatform_modifier_keys.h"
-#include "modules/shared/VectorMath.h"
 #include "modules/shared/cardinalSpline.h"
 #include "helpers/PixelSnapper.h"
 

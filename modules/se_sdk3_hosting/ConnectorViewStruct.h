@@ -1,5 +1,6 @@
 #pragma once
 #include "ConnectorView.h"
+#include "../shared/VectorMath.h"
 
 namespace SE2
 {
