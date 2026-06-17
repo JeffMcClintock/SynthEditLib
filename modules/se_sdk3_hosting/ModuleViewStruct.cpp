@@ -1666,13 +1666,13 @@ namespace SE2
 			if (pin.direction == DR_IN)
 			{
 				p.x = left - plugDiameter * 0.5f;
-				pinRect.left = left + plugDiameter;
+				pinRect.left = left;// + plugDiameter;
 				pinRect.right = left + plugHitWidth;
 			}
 			else
 			{
 				p.x = right + plugDiameter * 0.5f;
-				pinRect.right = right - plugDiameter;
+				pinRect.right = right;// - plugDiameter;
 				pinRect.left = right - plugHitWidth;
 			}
 
@@ -1766,10 +1766,6 @@ namespace SE2
 					auto dragStartPoint = getConnectionPoint(CableType::StructureCable, toPin.pinIndex);
 					parent->StartCableDrag(CableType::StructureCable, this, toPin.pinIndex, dragStartPoint, point);
 				}
-				else // hit text. wait and see if we dragged the module. before tracing wire.
-				{
-					boundsOnMouseDown = bounds_;
-				}
 			}
 		}
 
@@ -1778,8 +1774,9 @@ namespace SE2
 
 	void ModuleViewStruct::OnClickedButDidntDrag()
 	{
-		if(hoveredPin_.pinIndex > -1 && !hoveredPin_.hitCircle)
-			Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, PinHighlightFlag_Emphasise);
+		auto pin = getPinUnderMouse(lastMousePos);
+		if(pin.pinIndex > -1 && !pin.hitCircle)
+			Presenter()->HighlightConnector(handle, pin.pinIndex, PinHighlightFlag_Emphasise);
 	}
 
 	gmpi::ReturnCode ModuleViewStruct::onPointerMove(gmpi::drawing::Point point, int32_t flags)
@@ -1799,18 +1796,6 @@ namespace SE2
 		}
 
 		return ModuleView::onPointerMove(point, flags);
-	}
-
-	gmpi::ReturnCode ModuleViewStruct::onPointerUp(gmpi::drawing::Point point, int32_t flags)
-	{
-//		if(mouseCaptured) not called cause mouse was not captured !!!!
-		{
-			// if the intention was not to drag the module, then a click on text should highlight the current pin.
-			if(bounds_ == boundsOnMouseDown && hoveredPinInstant_.pinIndex > -1)
-				Presenter()->HighlightConnector(handle, hoveredPinInstant_.pinIndex, PinHighlightFlag_Emphasise);
-		}
-
-		return ModuleView::onPointerUp(point, flags);
 	}
 
 	gmpi::ReturnCode ModuleViewStruct::setHover(bool mouseIsOverMe)

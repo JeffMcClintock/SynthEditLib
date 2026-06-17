@@ -26,7 +26,6 @@ class ModuleViewStruct : public ModuleView, public gmpi::TimerClient
 	bool muted = false;
 	pinHit hoveredPinInstant_{ -1, -1, -1, -1, 0.0f, true };	// updates instantly
 	pinHit hoveredPin_{ -1, -1, -1, -1, 0.0f, true };			// updates after deliberate pause of mouse
-	gmpi::drawing::Rect boundsOnMouseDown;
 	bool scopeIsWave{};
 	std::string hoverScopeText;
 	std::unique_ptr< std::vector<float> > hoverScopeWaveform;
@@ -95,7 +94,6 @@ public:
 	int32_t OnDoubleClicked(gmpi::drawing::Point point, int32_t flags);
 	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
-	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode setHover(bool mouseIsOverMe) override;
 	bool onTimer() override;
 	void onMousePausedOverMe();
