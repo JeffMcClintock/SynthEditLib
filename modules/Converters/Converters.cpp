@@ -1,4 +1,8 @@
+#include <iostream>
 #include "./Converters.h"
+#include "../shared/unicode_conversion.h"
+
+using namespace JmUnicodeConversions;
 
 
 SE_DECLARE_INIT_STATIC_FILE(Converters);
@@ -278,6 +282,8 @@ public:
 
 	void onSetPins() override
 	{
+		std::cout << "SE StringConcat (cout): '" << WStringToUtf8(pinIn1.getValue()) << "'\n '" << WStringToUtf8(pinIn2.getValue()) << "'" << std::endl;
+		std::wcout << "SE StringConcat (wcout): '" << pinIn1.getValue() << "'\n '" << pinIn2.getValue() << "'" << std::endl;
 		pinOut = pinIn1.getValue() + pinIn2.getValue();
 	}
 };

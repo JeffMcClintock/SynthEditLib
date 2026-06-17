@@ -1,4 +1,5 @@
 
+#include <iostream>
 #include "ug_wave_player.h"
 #include "resource.h"
 #include "module_register.h"
@@ -378,7 +379,6 @@ void ug_wave_player::sub_process_file_stereo(int start_pos, int sampleframes)
 		++gate;
 	}
 }
-#include <iostream>
 
 int ug_wave_player::open_file()
 {
