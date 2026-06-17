@@ -37,6 +37,7 @@ struct BreadcrumbBar :
     static constexpr float kChevronW      = 14.0f;
     static constexpr float kThumbPad      = 7.0f;   // vertical inset of thumbnail
     static constexpr float kThumbAspect   = 160.0f / 96.0f;
+    static constexpr float kThumbRadius   = 4.0f;   // rounded-corner radius of the thumbnail clip
     static constexpr float kNameW         = 96.0f;
     static constexpr float kFontHeight    = 13.0f;
 
@@ -250,7 +251,19 @@ public:
                 const auto sz = thumb.getSize();
                 const gmpi::drawing::Rect dest{ x, midY - 0.5f * thumbH, x + thumbW, midY + 0.5f * thumbH };
                 const gmpi::drawing::Rect src{ 0.0f, 0.0f, static_cast<float>(sz.width), static_cast<float>(sz.height) };
-                g.drawBitmap(thumb, dest, src);
+
+                // Soften the thumbnail corners by clipping the draw to a rounded rectangle.
+                auto thumbClip = g.getFactory().createPathGeometry();
+                {
+                    auto sink = thumbClip.open();
+                    sink.addRoundedRect({ dest, kThumbRadius, kThumbRadius });
+                    sink.close();
+                }
+                {
+                    gmpi::drawing::ClipDrawingToGeometry clip(g, thumbClip);
+                    g.drawBitmap(thumb, dest, src);
+                }
+
                 x += thumbW + kGap;
             }
 
