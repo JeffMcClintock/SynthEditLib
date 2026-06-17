@@ -1646,6 +1646,11 @@ namespace SE2
 
 		float outerLimitSquared = (fuzzyHitTestLimit + plugDiameter * 0.5f) * (fuzzyHitTestLimit + plugDiameter * 0.5f);
 		pinHit closestPin{ -1, -1, -1, -1, outerLimitSquared, true };
+		
+		// exclude the 'inside' of the module from fuzzy hit on pins, else it interferes with module dragging.
+		if(point.x > left && point.x < right)
+			return closestPin; // fail.
+
 		Rect pinRect{ left, getLayoutRect().top, right, getLayoutRect().top + static_cast<float>(plugDiameter) };
 		float plugHitWidth = (std::min)(40.0f, right-left); // width of area responsive to clicking on plug in general (not connection point).
 
