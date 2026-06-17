@@ -71,87 +71,68 @@ namespace SE2
 	{
 		Graphics g(drawingContext);
 
-		// Restrict drawing only to overall clip-rect.
-		auto cliprect = g.getAxisAlignedClip();
-		//_RPT4(_CRT_WARN, "OnRender    clip[ %d %d %d %d]\n", (int)cliprect.left, (int)cliprect.top, (int)cliprect.right, (int)cliprect.bottom);
+		// Composite one layer at a time so that, e.g., every shadow paints before any
+		// normal content. renderChildrenLayer recurses into sub-views, so this ordering
+		// holds across nested views, not just among this view's direct children.
+		renderChildrenLayer(g, -2); // background
+		renderChildrenLayer(g, -1); // shadows
+		renderChildrenLayer(g,  0); // normal
+		renderChildrenLayer(g,  1); // glow
 
+		return gmpi::ReturnCode::Ok;
+	}
+
+	void ViewBase::renderChildrenLayer(Graphics& g, int32_t layer)
+	{
+		// Restrict drawing to the overall clip-rect.
+		const auto cliprect = g.getAxisAlignedClip();
 		const Matrix3x2 originalTransform = g.getTransform();
 
-		// Cache the list of children inside the clip rectangle that support layered rendering.
-		// This avoids redundant clip-rect and interface checks across the 3 layer passes.
-		struct LayeredChild
-		{
-			IViewChild* child;
-			Matrix3x2 transform;
-		};
-		std::vector<LayeredChild> layeredChildren;
+		bool isOriginal = true; // is the context transform currently == originalTransform?
 		for (auto& m : children)
 		{
-			if (!m->hasRenderLayers())
+			if (!overlaps(m->getClipArea(), cliprect))
 				continue;
 
-			auto b = m->getClipArea();
-			if (!overlaps(b, cliprect))
-				continue;
-
-			auto layoutRect = m->getLayoutRect();
-			layeredChildren.push_back({ m.get(), makeTranslation(layoutRect.left, layoutRect.top) * originalTransform });
-		}
-
-		// Pass 1: layer -2 (background) - only layer-supporting plugins
-		for(auto& lc : layeredChildren)
-		{
-			g.setTransform(lc.transform);
-			lc.child->renderPluginLayer(g, -2);
-		}
-
-		// Pass 2: layer -1 (shadows) - only layer-supporting plugins
-		for(auto& lc : layeredChildren)
-		{
-			g.setTransform(lc.transform);
-			lc.child->renderPluginLayer(g, -1);
-		}
-
-		// Pass 3: normal render (all children in clip rect)
-		// Layer-supporting plugins render layer 0 inside their render() method.
-		// Non-layer plugins render normally via render().
-		bool isOriginal = false;
-		g.setTransform(originalTransform);
-		for(auto& m : children)
-		{
-			auto b = m->getClipArea();
-			if(!overlaps(b, cliprect))
-				continue;
-
-			if(dynamic_cast<ConnectorViewBase*>(m.get()))
+			if (layer == 0)
 			{
-				if(!isOriginal) // avoid repeated set of original transform if not needed.
+				// Normal pass: draw every child's whole body (layer-supporting plugins
+				// render their layer 0 inside render(); others render normally).
+				// Wires use absolute view coords; modules are translated to their layoutRect.
+				if (dynamic_cast<ConnectorViewBase*>(m.get()))
 				{
-					g.setTransform(originalTransform);
-					isOriginal = true;
+					if (!isOriginal) // avoid repeated set of original transform if not needed.
+					{
+						g.setTransform(originalTransform);
+						isOriginal = true;
+					}
 				}
+				else
+				{
+					const auto layoutRect = m->getLayoutRect();
+					g.setTransform(makeTranslation(layoutRect.left, layoutRect.top) * originalTransform);
+					isOriginal = false;
+				}
+
+				m->render(g);
 			}
 			else
 			{
-				auto layoutRect = m->getLayoutRect();
-				auto adjustedTransform = makeTranslation(layoutRect.left, layoutRect.top) * originalTransform;
-				g.setTransform(adjustedTransform);
+				// Background / shadow / glow passes: only layer-supporting plugins participate.
+				// A sub-view is layer-supporting and recurses here, hoisting the layers of its
+				// own descendants into this same pass (so all shadows draw before all bodies).
+				if (!m->hasRenderLayers())
+					continue;
+
+				const auto layoutRect = m->getLayoutRect();
+				g.setTransform(makeTranslation(layoutRect.left, layoutRect.top) * originalTransform);
 				isOriginal = false;
+
+				m->renderPluginLayer(g, layer);
 			}
-
-			m->render(g);
-		}
-
-		// Pass 4: layer 1 (glow) - only layer-supporting plugins
-		for (auto& lc : layeredChildren)
-		{
-			g.setTransform(lc.transform);
-			lc.child->renderPluginLayer(g, 1);
 		}
 
 		g.setTransform(originalTransform);
-
-		return gmpi::ReturnCode::Ok;
 	}
 
 	// all clicks are hit on a view.

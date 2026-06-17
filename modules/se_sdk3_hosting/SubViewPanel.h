@@ -10,7 +10,7 @@ namespace SE2
 }
 
 // sub-view shown on Panel.
-class SubView : public SE2::ViewBase, public ISubView
+class SubView : public SE2::ViewBase, public ISubView, public gmpi::api::IDrawingLayer
 {
 	gmpi::editor::Pin<bool> showControlsLegacy;
 	gmpi::editor::Pin<bool> showControlsOnModule;
@@ -25,6 +25,11 @@ class SubView : public SE2::ViewBase, public ISubView
 	// inv_viewTransform. panInitialized_ tracks whether the pan has been computed
 	// yet (replaces the old "-99999" sentinel on the removed offset_ member).
 	bool panInitialized_ = false;
+
+	// Re-derive the pan translation from the children's current bounding box, just
+	// before drawing. Idempotent; shared by render() and renderLayer() so the render
+	// transform always tracks the latest child layout.
+	void refreshPan();
 
 	// Translate-only helpers that keep viewTransform, viewTransformPrecise and
 	// inv_viewTransform in sync. SubView has no zoom or rotation.
@@ -78,6 +83,13 @@ public:
 	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
 	gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override;
 	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
+
+	// IDrawingLayer — lets the enclosing view hoist this sub-view's layers (shadows,
+	// glow, ...) into its own layer passes, instead of drawing the whole sub-view at
+	// layer 0. Without this the "all shadows before all bodies" order breaks at each
+	// sub-view boundary.
+	gmpi::ReturnCode renderLayer(gmpi::drawing::api::IDeviceContext* drawingContext, int32_t layer) override;
+
 	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
@@ -167,6 +179,12 @@ public:
 		if (*iid == *(const gmpi::api::Guid*)&ISubView::guid)
 		{
 			*returnInterface = static_cast<ISubView*>(this);
+			addRef();
+			return gmpi::ReturnCode::Ok;
+		}
+		if (*iid == gmpi::api::IDrawingLayer::guid)
+		{
+			*returnInterface = static_cast<gmpi::api::IDrawingLayer*>(this);
 			addRef();
 			return gmpi::ReturnCode::Ok;
 		}

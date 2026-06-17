@@ -387,55 +387,82 @@ gmpi::ReturnCode SubView::getClipArea(gmpi::drawing::Rect* returnRect)
 	return gmpi::ReturnCode::Ok;
 }
 
+void SubView::refreshPan()
+{
+	// Belt-and-braces: re-derive pan from current children's bbox just
+	// before drawing. Measure may have run with placeholder data (e.g.
+	// during a post-paste rebuild where child bounds_ load asynchronously
+	// across measure cycles); by render time the children's bounds_ may
+	// have settled into real values that an earlier measure didn't see.
+	// This guarantees the render transform matches the layout state.
+	gmpi::drawing::Rect freshBounds(200000.0f, 200000.0f, -200000.0f, -200000.0f);
+	for (auto& m : children)
+	{
+		if (m->isVisable() && dynamic_cast<SE2::ConnectorViewBase*>(m.get()) == nullptr)
+		{
+			const auto r = m->getLayoutRect();
+			freshBounds.left   = (std::min)(freshBounds.left,   r.left);
+			freshBounds.top    = (std::min)(freshBounds.top,    r.top);
+			freshBounds.right  = (std::max)(freshBounds.right,  r.right);
+			freshBounds.bottom = (std::max)(freshBounds.bottom, r.bottom);
+		}
+	}
+	const bool freshIsReal =
+		freshBounds.right > -200000.0f
+		&& (freshBounds.left != 0.0f || freshBounds.top != 0.0f);
+	if (freshIsReal
+		&& (viewTransform._31 != -freshBounds.left
+		 || viewTransform._32 != -freshBounds.top))
+	{
+		setPan(-freshBounds.left, -freshBounds.top);
+	}
+}
+
 gmpi::ReturnCode SubView::render(gmpi::drawing::api::IDeviceContext* drawingContext)
 {
 	if (!drawingContext)
 		return gmpi::ReturnCode::Fail;
 
-	if (isShown())
-	{
-		gmpi::drawing::Graphics g(drawingContext);
-
-		// Belt-and-braces: re-derive pan from current children's bbox just
-		// before drawing. Measure may have run with placeholder data (e.g.
-		// during a post-paste rebuild where child bounds_ load asynchronously
-		// across measure cycles); by render time the children's bounds_ may
-		// have settled into real values that an earlier measure didn't see.
-		// This guarantees the render transform matches the layout state.
-		gmpi::drawing::Rect freshBounds(200000.0f, 200000.0f, -200000.0f, -200000.0f);
-		for (auto& m : children)
-		{
-			if (m->isVisable() && dynamic_cast<SE2::ConnectorViewBase*>(m.get()) == nullptr)
-			{
-				const auto r = m->getLayoutRect();
-				freshBounds.left   = (std::min)(freshBounds.left,   r.left);
-				freshBounds.top    = (std::min)(freshBounds.top,    r.top);
-				freshBounds.right  = (std::max)(freshBounds.right,  r.right);
-				freshBounds.bottom = (std::max)(freshBounds.bottom, r.bottom);
-			}
-		}
-		const bool freshIsReal =
-			freshBounds.right > -200000.0f
-			&& (freshBounds.left != 0.0f || freshBounds.top != 0.0f);
-		if (freshIsReal
-			&& (viewTransform._31 != -freshBounds.left
-			 || viewTransform._32 != -freshBounds.top))
-		{
-			setPan(-freshBounds.left, -freshBounds.top);
-		}
-
-		// Apply SubView's pan (child-local -> Container plugin-local) on top of the
-		// caller's transform so children render in the right place.
-		const auto originalTransform = g.getTransform();
-		g.setTransform(viewTransform * originalTransform);
-
-		auto res = SE2::ViewBase::render(drawingContext);
-
-		g.setTransform(originalTransform);
-		return res;
-	}
-	else
+	if (!isShown())
 		return gmpi::ReturnCode::Unhandled;
+
+	gmpi::drawing::Graphics g(drawingContext);
+
+	refreshPan();
+
+	// Apply SubView's pan (child-local -> Container plugin-local) on top of the
+	// caller's transform so children render in the right place.
+	const auto originalTransform = g.getTransform();
+	g.setTransform(viewTransform * originalTransform);
+
+	auto res = SE2::ViewBase::render(drawingContext);
+
+	g.setTransform(originalTransform);
+	return res;
+}
+
+// Single-layer entry point used when the enclosing view hoists our layers into its
+// own passes (e.g. it pulls every shadow before any body). Same pan setup as render(),
+// but emits just one layer; renderChildrenLayer recurses into nested sub-views.
+gmpi::ReturnCode SubView::renderLayer(gmpi::drawing::api::IDeviceContext* drawingContext, int32_t layer)
+{
+	if (!drawingContext)
+		return gmpi::ReturnCode::Fail;
+
+	if (!isShown())
+		return gmpi::ReturnCode::Unhandled;
+
+	gmpi::drawing::Graphics g(drawingContext);
+
+	refreshPan();
+
+	const auto originalTransform = g.getTransform();
+	g.setTransform(viewTransform * originalTransform);
+
+	renderChildrenLayer(g, layer);
+
+	g.setTransform(originalTransform);
+	return gmpi::ReturnCode::Ok;
 }
 
 gmpi::ReturnCode SubView::getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString)

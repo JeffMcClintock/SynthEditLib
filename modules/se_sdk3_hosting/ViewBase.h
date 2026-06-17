@@ -106,6 +106,14 @@ bool isIteratingChildren = false;
 		virtual void markDirtyChild(IViewChild* child);
 
 		gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
+
+		// Render a single compositing layer across this view's children:
+		//   -2 background, -1 shadow, 0 normal, 1 glow.
+		// Layer 0 draws each child's full body (the legacy single-pass path); other
+		// layers draw only layer-capable children. A layer-capable child that is itself
+		// a sub-view recurses here, so an enclosing view can pull e.g. every shadow ahead
+		// of every normal body across nested sub-views (global layer ordering).
+		void renderChildrenLayer(gmpi::drawing::Graphics& g, int32_t layer);
 #if 0 // OLD: handled by base class, to be removed.
 		// gmpi::api::IDrawingClient
 		gmpi::ReturnCode setHost(gmpi::api::IUnknown* host) override;
