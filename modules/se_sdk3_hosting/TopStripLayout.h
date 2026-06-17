@@ -59,10 +59,30 @@ struct TopStripLayout :
         gmpi::ReturnCode getCapture(bool& v) override { if (owner->inputHost) return owner->inputHost->getCapture(v); v = false; return gmpi::ReturnCode::Ok; }
         gmpi::ReturnCode releaseCapture() override { return owner->inputHost ? owner->inputHost->releaseCapture() : gmpi::ReturnCode::Fail; }
 
-        // IDialogHost
-        gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** o) override    { return owner->dialogHost ? owner->dialogHost->createTextEdit(r, o)    : gmpi::ReturnCode::NoSupport; }
-        gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** o) override   { return owner->dialogHost ? owner->dialogHost->createPopupMenu(r, o)   : gmpi::ReturnCode::NoSupport; }
-        gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** o) override { return owner->dialogHost ? owner->dialogHost->createKeyListener(r, o) : gmpi::ReturnCode::NoSupport; }
+        // IDialogHost — the child supplies these rects in its own (0,0)-origin
+        // space; like invalidateRect, map them into parent space via `offset` so the
+        // native text-edit / popup / key-listener lands at the child's on-screen
+        // position. Without this the editor's (bottom child) text-edit appeared at
+        // the top of the swap-chain, ignoring the breadcrumb strip above it (the
+        // strip height is baked into offset.height).
+        gmpi::ReturnCode createTextEdit(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** o) override
+        {
+            if (!owner->dialogHost) return gmpi::ReturnCode::NoSupport;
+            const auto pr = gmpi::drawing::offsetRect(*r, offset);
+            return owner->dialogHost->createTextEdit(&pr, o);
+        }
+        gmpi::ReturnCode createPopupMenu(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** o) override
+        {
+            if (!owner->dialogHost) return gmpi::ReturnCode::NoSupport;
+            const auto pr = gmpi::drawing::offsetRect(*r, offset);
+            return owner->dialogHost->createPopupMenu(&pr, o);
+        }
+        gmpi::ReturnCode createKeyListener(const gmpi::drawing::Rect* r, gmpi::api::IUnknown** o) override
+        {
+            if (!owner->dialogHost) return gmpi::ReturnCode::NoSupport;
+            const auto pr = gmpi::drawing::offsetRect(*r, offset);
+            return owner->dialogHost->createKeyListener(&pr, o);
+        }
         gmpi::ReturnCode createFileDialog(int32_t t, gmpi::api::IUnknown** o) override                     { return owner->dialogHost ? owner->dialogHost->createFileDialog(t, o)  : gmpi::ReturnCode::NoSupport; }
         gmpi::ReturnCode createStockDialog(int32_t t, const char* a, const char* b, gmpi::api::IUnknown** o) override { return owner->dialogHost ? owner->dialogHost->createStockDialog(t, a, b, o) : gmpi::ReturnCode::NoSupport; }
 
