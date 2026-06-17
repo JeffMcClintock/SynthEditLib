@@ -77,7 +77,7 @@
       <Pin name="In" datatype="float" autoDuplicate="true" />
     </GUI>
   </Plugin>
-  <Plugin id="SE IntToBool GUI" name="Int to Bool" category="Sub-Controls/Old" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE IntToBool GUI" name="Int to Bool" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
     <GUI>
       <Pin id="0" name="Int Val" direction="in" datatype="int"/>
       <Pin id="1" name="Bool Val" direction="out" datatype="bool"/>
