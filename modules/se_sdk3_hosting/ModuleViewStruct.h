@@ -95,6 +95,7 @@ public:
 	int32_t OnDoubleClicked(gmpi::drawing::Point point, int32_t flags);
 	gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
+	gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode setHover(bool mouseIsOverMe) override;
 	bool onTimer() override;
 	void onMousePausedOverMe();

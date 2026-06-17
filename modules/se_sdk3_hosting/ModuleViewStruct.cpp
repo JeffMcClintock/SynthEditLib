@@ -1648,8 +1648,7 @@ namespace SE2
 		pinHit closestPin{ -1, -1, -1, -1, outerLimitSquared, true };
 		
 		// exclude the 'inside' of the module from fuzzy hit on pins, else it interferes with module dragging.
-		if(point.x > left && point.x < right)
-			return closestPin; // fail.
+		const auto ignorePins = point.x > left && point.x < right;
 
 		Rect pinRect{ left, getLayoutRect().top, right, getLayoutRect().top + static_cast<float>(plugDiameter) };
 		float plugHitWidth = (std::min)(40.0f, right-left); // width of area responsive to clicking on plug in general (not connection point).
@@ -1690,15 +1689,18 @@ namespace SE2
 				return closestPin;
 			}
 
-			const float distanceSquared = (point.x - p.x) * (point.x - p.x) + (point.y - p.y) * (point.y - p.y);
-
-			if(distanceSquared < closestPin.distance)
+			if(!ignorePins)
 			{
-				closestPin.pinIndex = pin.indexCombined;
-				closestPin.pinID = pin.plugDescID;
-				closestPin.guiPin = pin.isGuiPlug ? guiIndex : -1;
-				closestPin.dspPin = pin.isGuiPlug ? -1 : dspIndex;
-				closestPin.distance = distanceSquared;
+				const float distanceSquared = (point.x - p.x) * (point.x - p.x) + (point.y - p.y) * (point.y - p.y);
+
+				if(distanceSquared < closestPin.distance)
+				{
+					closestPin.pinIndex = pin.indexCombined;
+					closestPin.pinID = pin.plugDescID;
+					closestPin.guiPin = pin.isGuiPlug ? guiIndex : -1;
+					closestPin.dspPin = pin.isGuiPlug ? -1 : dspIndex;
+					closestPin.distance = distanceSquared;
+				}
 			}
 
 			p.y += plugDiameter;
@@ -1795,16 +1797,20 @@ namespace SE2
 				parent->ChildInvalidateRect(getClipArea());
 			}
 		}
-		else
-		{
-			/* todo
-			// if the intention was not to drag the module, then a click on text should highlight the current pin.
-			if(bounds_ == boundsOnMouseDown && )
-				Presenter()->HighlightConnector(this->handle, toPin.pinIndex, PinHighlightFlag_Emphasise);
-			*/
-		}
 
 		return ModuleView::onPointerMove(point, flags);
+	}
+
+	gmpi::ReturnCode ModuleViewStruct::onPointerUp(gmpi::drawing::Point point, int32_t flags)
+	{
+//		if(mouseCaptured) not called cause mouse was not captured !!!!
+		{
+			// if the intention was not to drag the module, then a click on text should highlight the current pin.
+			if(bounds_ == boundsOnMouseDown && hoveredPinInstant_.pinIndex > -1)
+				Presenter()->HighlightConnector(handle, hoveredPinInstant_.pinIndex, PinHighlightFlag_Emphasise);
+		}
+
+		return ModuleView::onPointerUp(point, flags);
 	}
 
 	gmpi::ReturnCode ModuleViewStruct::setHover(bool mouseIsOverMe)
