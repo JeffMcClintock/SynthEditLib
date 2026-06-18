@@ -797,9 +797,13 @@ target_compile_definitions (${PROJECT_NAME} PRIVATE
     COMPILE_HOST_SUPPORT
 )
 
-# enable super fast UTF conversions
+# USE_SIMD_UTF_CONVERSION intentionally disabled: simdutf's runtime CPU dispatch
+# produced intermittent empty UTF-8<->UTF-16 conversions on some CI runners, blanking
+# unicode pin defaults (TestWavePlayer.WavePlayer_UNICODE flake). On Windows this
+# reverts to the deterministic MultiByteToWideChar(CP_UTF8) path. simdutf stays linked
+# (used only by the startup kernel-name diagnostic in conversion.cpp for now).
+# NOTE: the non-Windows fallback uses locale-dependent wcstombs/mbstowcs - harden if Mac flakes.
 target_compile_definitions(
-  ${PROJECT_NAME} PUBLIC 
-  USE_SIMD_UTF_CONVERSION
+  ${PROJECT_NAME} PUBLIC
   SE_GRAPHICS_SUPPORT=$<IF:$<BOOL:${SE_GRAPHICS_SUPPORT}>,1,0>
 )

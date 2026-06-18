@@ -17,6 +17,8 @@
 #include "midi_defs.h"
 #include "IPluginGui.h"
 #include "RawConversions.h"
+#include <iostream>                             // diag: simdutf kernel + conversion-failure logging
+#include "modules/shared/unicode_conversion.h"  // diag: simdutf::get_active_implementation()
 
 #include "mfc_emulation.h"
 
@@ -583,7 +585,7 @@ std::string EscapeXmlSpecialCharacters(const std::string& s)
 		{ "&quot;",	'"'  },
 		{ "&amp;", 	'&'  },
 		{ "&apos;",	'\'' },
-//		{ "&rsquo;",'’' }, // not an ASCII character, it's multi byte
+//		{ "&rsquo;",'ï¿½' }, // not an ASCII character, it's multi byte
 		{ "&lt;", 	'<'	 },
 		{ "&gt;",	'>'	 }
 	};
@@ -894,16 +896,46 @@ std::wstring ToWstring(const char16_t* p_string)
 }
 
 
+// ---- TEMP DIAGNOSTIC (intermittent TestWavePlayer.WavePlayer_UNICODE flake) ----
+// Record which simdutf kernel this CPU dispatches to. simdutf stays linked even with
+// USE_SIMD_UTF_CONVERSION disabled, so CI logs reveal whether a specific kernel
+// correlates with the failures. The guards below log loudly when a non-empty input
+// converts to an empty / all-NUL string (the signature of the conversion failure).
+namespace
+{
+	const bool s_loggedSimdutfImpl = []
+	{
+		const simdutf::implementation* impl = simdutf::get_active_implementation();
+		std::cout << "[diag] simdutf active implementation: " << impl->name()
+		          << " (" << impl->description() << ")" << std::endl;
+		return true;
+	}();
+}
+
 std::wstring Utf8ToWstring( const std::string& p_string )
 {
-	return JmUnicodeConversions::Utf8ToWstring(p_string);
+	auto result = JmUnicodeConversions::Utf8ToWstring(p_string);
+	if (!p_string.empty() && result.find_first_not_of(L'\0') == std::wstring::npos)
+	{
+		std::cout << "[diag] Utf8ToWstring FAILED: " << p_string.size() << "-byte input '"
+		          << p_string << "' -> empty/NUL (simdutf impl="
+		          << simdutf::get_active_implementation()->name() << ")" << std::endl;
+	}
+	return result;
 }
 
 std::wstring Utf8ToWstring( char const* p_string )
 {
 	if (p_string)
 	{
-		return JmUnicodeConversions::Utf8ToWstring(p_string);
+		auto result = JmUnicodeConversions::Utf8ToWstring(p_string);
+		if (*p_string != '\0' && result.find_first_not_of(L'\0') == std::wstring::npos)
+		{
+			std::cout << "[diag] Utf8ToWstring FAILED: input '" << p_string
+			          << "' -> empty/NUL (simdutf impl="
+			          << simdutf::get_active_implementation()->name() << ")" << std::endl;
+		}
+		return result;
 	}
 	return {};
 }
@@ -1138,7 +1170,14 @@ void XmlSplitString(const char* pText, std::vector<std::string>& returnValue)
 
 std::string WStringToUtf8(const std::wstring& p_cstring )
 {
-	return JmUnicodeConversions::WStringToUtf8(p_cstring);
+	auto result = JmUnicodeConversions::WStringToUtf8(p_cstring);
+	if (!p_cstring.empty() && result.find_first_not_of('\0') == std::string::npos)
+	{
+		std::cout << "[diag] WStringToUtf8 FAILED: " << p_cstring.size()
+		          << "-wchar input -> empty/NUL (simdutf impl="
+		          << simdutf::get_active_implementation()->name() << ")" << std::endl;
+	}
+	return result;
 }
 
 void FileToString(const platform_string& path, std::string& buffer)
