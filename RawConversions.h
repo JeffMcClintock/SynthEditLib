@@ -41,9 +41,6 @@ typedef wchar_t* wide_char_ptr;
 template<>
 int RawSize<wide_char_ptr>(const wide_char_ptr& value);
 
-//template<>
-//int RawSize<std::wstring>(const std::wstring& value);
-
 // specialised for Blobs
 template<>
 const void* RawData3<struct MpBlob>(const struct MpBlob& value);
@@ -76,7 +73,6 @@ inline bool IsVariableSize<MpBlob>(const struct MpBlob& /*value*/)
 {
 	return true;
 }
-
 
 template <typename T>
 T RawToValue(const void* data, [[maybe_unused]] int size)

@@ -435,6 +435,13 @@ void MpController::Initialize()
 				}
 			);
 		}
+
+		// populate default value from initial value.
+		for(auto& param : parameters_)
+		{
+			auto raw = param->getValueRaw(gmpi::FieldType::MP_FT_VALUE, 0);
+			param->setParameterRaw(gmpi::FieldType::MP_FT_DEFAULT, raw);
+		}
 	}
 
 	// SEM Controllers.

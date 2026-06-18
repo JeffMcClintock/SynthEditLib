@@ -108,6 +108,7 @@ class MpParameter_base : public MpParameter
 {
 public:
 	std::vector< std::string > rawValues_; // rawValues_[voice] where voice is 0 - 127
+	std::string defaultValue; // raw default
 	double minimum = 0.0;
 	double maximum = 1.0;
 	int hostControl_ = -1;

@@ -10,7 +10,6 @@
 struct RawData
 {
 private:
-//	std::shared_ptr<std::string> value;
 	std::string value;
 
 public:

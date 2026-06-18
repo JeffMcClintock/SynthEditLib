@@ -17,7 +17,7 @@ using namespace gmpi::hosting;
 bool MpParameter_base::setParameterRaw(gmpi::FieldType paramField, int32_t size, const void* data, int32_t voice)
 {
 	// Handles real value and normalised only.
-	assert(paramField == gmpi::MP_FT_VALUE || paramField == gmpi::MP_FT_NORMALIZED || paramField == gmpi::MP_FT_GRAB);
+	assert(paramField == gmpi::MP_FT_DEFAULT || paramField == gmpi::MP_FT_VALUE || paramField == gmpi::MP_FT_NORMALIZED || paramField == gmpi::MP_FT_GRAB);
 
 	bool changed = false;
 
@@ -35,6 +35,11 @@ bool MpParameter_base::setParameterRaw(gmpi::FieldType paramField, int32_t size,
 			rawValues_[voice].resize(size);
 			rawValues_[voice].assign((char*)data, size);
 		}
+		break;
+
+	case gmpi::MP_FT_DEFAULT:
+		defaultValue.resize(size);
+		defaultValue.assign((char*)data, size);
 		break;
 /* safer to be read-only.
 	case FT_ENUM_LIST:
@@ -267,108 +272,110 @@ RawView MpParameter_base::getValueRaw(gmpi::FieldType paramField, int32_t voice)
 {
 	int expected_size = -1;
 
-	switch (paramField)
+	switch(paramField)
 	{
-		case gmpi::MP_FT_VALUE:
+	case gmpi::MP_FT_VALUE:
+	{
+		expected_size = getDataTypeSize(datatype_);
+
+		if(rawValues_.size() > voice && (expected_size == 0 || expected_size == (int)rawValues_[voice].size()))
 		{
-			expected_size = getDataTypeSize(datatype_);
-
-			if (rawValues_.size() > voice && (expected_size == 0 || expected_size == (int)rawValues_[voice].size()))
-			{
-				return rawValues_[voice];
-			}
-			else
-			{
-				// return zero.
-				tempReturnValue.assign(expected_size, '\0');
-				return RawView(tempReturnValue);
-			}
-			break;
-
-		case gmpi::MP_FT_RANGE_LO:
+			return rawValues_[voice];
+		}
+		else
 		{
-			// compute normalised normalized.
-			switch (datatype_)
-			{
-			case DT_FLOAT:
-			{
-				float v = (float)minimum;
-				tempReturnValue = ToRaw4(v);
-				return RawView(tempReturnValue);
-			}
-			break;
+			// return zero.
+			tempReturnValue.assign(expected_size, '\0');
+			return RawView(tempReturnValue);
+		}
+	}
+	break;
 
-			case DT_DOUBLE:
-			{
-				return ToRaw4(minimum);
-			}
-			break;
-
-			case DT_BOOL:
-			{
-				tempReturnValue = ToRaw4(false);
-				return RawView(tempReturnValue);
-			}
-			break;
-
-			default:
-			{
-//				assert(false); // TODO.
-				float normalised = 0;
-				tempReturnValue = ToRaw4(normalised);
-				return RawView(tempReturnValue);
-			}
-			break;
-			}
+	case gmpi::MP_FT_RANGE_LO:
+	{
+		// compute normalised normalized.
+		switch(datatype_)
+		{
+		case DT_FLOAT:
+		{
+			float v = (float)minimum;
+			tempReturnValue = ToRaw4(v);
+			return RawView(tempReturnValue);
 		}
 		break;
 
-		case gmpi::MP_FT_RANGE_HI:
+		case DT_DOUBLE:
 		{
-			// compute normalised normalized.
-			switch (datatype_)
-			{
-			case DT_FLOAT:
-			{
-				float v = (float)maximum;
-				tempReturnValue = ToRaw4(v);
-				return RawView(tempReturnValue);
-			}
-			break;
+			return ToRaw4(minimum);
+		}
+		break;
 
-			case DT_DOUBLE:
-			{
-				return ToRaw4(maximum);
-			}
-			break;
-
-			case DT_BOOL:
-			{
-				tempReturnValue = ToRaw4(true);
-				return RawView(tempReturnValue);
-			}
-			break;
-
-			default:
-			{
-//				assert(false); // TODO.
-				float normalised = 1;
-				//			return ToRaw4(normalised);
-				tempReturnValue = ToRaw4(normalised);
-				return RawView(tempReturnValue);
-			}
-			break;
-			}
+		case DT_BOOL:
+		{
+			tempReturnValue = ToRaw4(false);
+			return RawView(tempReturnValue);
 		}
 		break;
 
 		default:
-			return MpParameter::getValueRaw(paramField, voice);
-			break;
+		{
+			//				assert(false); // TODO.
+			float normalised = 0;
+			tempReturnValue = ToRaw4(normalised);
+			return RawView(tempReturnValue);
+		}
+		break;
 		}
 	}
+	break;
 
-	return RawView();
+	case gmpi::MP_FT_RANGE_HI:
+	{
+		// compute normalised normalized.
+		switch(datatype_)
+		{
+		case DT_FLOAT:
+		{
+			float v = (float)maximum;
+			tempReturnValue = ToRaw4(v);
+			return RawView(tempReturnValue);
+		}
+		break;
+
+		case DT_DOUBLE:
+		{
+			return ToRaw4(maximum);
+		}
+		break;
+
+		case DT_BOOL:
+		{
+			tempReturnValue = ToRaw4(true);
+			return RawView(tempReturnValue);
+		}
+		break;
+
+		default:
+		{
+			float normalised = 1;
+			tempReturnValue = ToRaw4(normalised);
+			return RawView(tempReturnValue);
+		}
+		break;
+		}
+	}
+	break;
+
+	case gmpi::MP_FT_DEFAULT:
+	{
+		return RawView(defaultValue);
+	}
+	break;
+
+	default:
+		return MpParameter::getValueRaw(paramField, voice);
+		break;
+	}
 }
 
 double MpParameter_base::getValueReal() const
