@@ -33,13 +33,12 @@ struct BreadcrumbBar :
     // ---- tunables ----
     static constexpr float kStripHeight   = 52.0f;
     static constexpr float kPadX          = 8.0f;
-    static constexpr float kGap           = 4.0f;
     static constexpr float kChevronW      = 14.0f;
     static constexpr float kThumbPad      = 7.0f;   // vertical inset of thumbnail
     static constexpr float kThumbAspect   = 160.0f / 96.0f;
     static constexpr float kThumbRadius   = 4.0f;   // rounded-corner radius of the thumbnail clip
     static constexpr float kNameW         = 96.0f;
-    static constexpr float kFontHeight    = 13.0f;
+    static constexpr float kFontHeight    = 8.67f;  // ~2/3 of the previous 13
 
     // ---- wiring (platform supplies these) ----
     std::function<void(CContainer*)> onNavigate;
@@ -214,6 +213,7 @@ public:
             const std::array<std::string_view, 2> families{ "Segoe UI", "Arial" };
             textFormat = g.getFactory().createTextFormat(kFontHeight, families);
             textFormat.setWordWrapping(gmpi::drawing::WordWrapping::NoWrap);
+            textFormat.setTextAlignment(gmpi::drawing::TextAlignment::Center);
             textFormat.setParagraphAlignment(gmpi::drawing::ParagraphAlignment::Center);
         }
 
@@ -225,9 +225,16 @@ public:
         auto dimBrush     = g.createSolidColorBrush(dimColor);
         auto& chevronBrush = dimBrush;
 
+        // The title overlays the bottom of the thumbnail on a translucent dark band,
+        // so light text stays legible over any image regardless of theme.
+        auto captionBrush    = g.createSolidColorBrush(gmpi::drawing::Color{ 1.0f, 1.0f, 1.0f, 1.0f });
+        auto captionDimBrush = g.createSolidColorBrush(gmpi::drawing::Color{ 1.0f, 1.0f, 1.0f, 0.6f });
+        auto bandBrush       = g.createSolidColorBrush(gmpi::drawing::Color{ 0.0f, 0.0f, 0.0f, 0.5f });
+
         const float thumbH = (bounds.bottom - bounds.top) - 2.0f * kThumbPad;
         const float thumbW = thumbH * kThumbAspect;
         const float midY = 0.5f * (bounds.top + bounds.bottom);
+        const float captionH = kFontHeight + 3.0f;
 
         crumbHits.clear();
         float x = bounds.left + kPadX;
@@ -245,33 +252,42 @@ public:
             }
 
             const float x0 = x;
+            const std::string name = toUtf8(c->GetName());
+            auto thumb = thumbnailFor(c);
 
-            if (auto thumb = thumbnailFor(c))
+            // With a thumbnail: a compact tile with the title overlaid on its bottom
+            // edge — packs more crumbs in. Without one (e.g. macOS today): a wider
+            // name-only tile so the label stays readable.
+            const float tileW = thumb ? thumbW : kNameW;
+            const gmpi::drawing::Rect tile{ x, midY - 0.5f * thumbH, x + tileW, midY + 0.5f * thumbH };
+
+            if (thumb)
             {
                 const auto sz = thumb.getSize();
-                const gmpi::drawing::Rect dest{ x, midY - 0.5f * thumbH, x + thumbW, midY + 0.5f * thumbH };
                 const gmpi::drawing::Rect src{ 0.0f, 0.0f, static_cast<float>(sz.width), static_cast<float>(sz.height) };
 
-                // Soften the thumbnail corners by clipping the draw to a rounded rectangle.
+                // Soften the corners by clipping the thumbnail + caption to a rounded rect.
                 auto thumbClip = g.getFactory().createPathGeometry();
                 {
                     auto sink = thumbClip.open();
-                    sink.addRoundedRect({ dest, kThumbRadius, kThumbRadius });
+                    sink.addRoundedRect({ tile, kThumbRadius, kThumbRadius });
                     sink.close();
                 }
                 {
                     gmpi::drawing::ClipDrawingToGeometry clip(g, thumbClip);
-                    g.drawBitmap(thumb, dest, src);
-                }
+                    g.drawBitmap(thumb, tile, src);
 
-                x += thumbW + kGap;
+                    const gmpi::drawing::Rect caption{ tile.left, tile.bottom - captionH, tile.right, tile.bottom };
+                    g.fillRectangle(caption, bandBrush);
+                    g.drawTextU(name, textFormat, caption, isCurrent ? captionBrush : captionDimBrush, gmpi::drawing::DrawTextOptions::Clip);
+                }
+            }
+            else
+            {
+                g.drawTextU(name, textFormat, tile, isCurrent ? currentBrush : dimBrush, gmpi::drawing::DrawTextOptions::Clip);
             }
 
-            const std::string name = toUtf8(c->GetName());
-            const gmpi::drawing::Rect nr{ x, bounds.top, x + kNameW, bounds.bottom };
-            g.drawTextU(name, textFormat, nr, isCurrent ? currentBrush : dimBrush, gmpi::drawing::DrawTextOptions::Clip);
-            x += kNameW + kPadX;
-
+            x += tileW + kPadX;
             crumbHits.push_back({ x0, x, c->Handle() });
         }
 
