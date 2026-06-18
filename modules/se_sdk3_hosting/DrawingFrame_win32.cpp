@@ -1215,11 +1215,9 @@ int32_t DrawingFrameBase::releaseCapture()
 
 int32_t DrawingFrameBase::createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu)
 {
-	// gmpi_ui's GMPI_WIN_PopupMenu treats the rect as native pixels (dpiScale is
-	// effectively unused for menu position — DPI=1 path preserved from legacy
-	// behaviour). Pre-scale here to match the original behaviour at high DPI.
-	auto nativeRect = DipsToWindow.TransformRect(*rect);
-	auto* gmpiRect = reinterpret_cast<gmpi::drawing::Rect*>(&nativeRect);
+	// The factory takes DIPs and applies dpiScale (_22) internally for placement,
+	// same as createPlatformTextEdit below — so pass the DIP rect straight through.
+	auto* gmpiRect = reinterpret_cast<gmpi::drawing::Rect*>(rect);
 	gmpi::api::IUnknown* unknown = nullptr;
 	const auto rc = gmpi::hosting::win32::createPlatformPopupMenu(
 		getWindowHandle(), gmpiRect, DipsToWindow._22, &unknown);
