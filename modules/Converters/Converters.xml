@@ -77,35 +77,35 @@
       <Pin name="In" datatype="float" autoDuplicate="true" />
     </GUI>
   </Plugin>
-  <Plugin id="SE IntToBool GUI" name="Int to Bool" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE IntToBool GUI" name="Int to Bool" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Int Val" direction="in" datatype="int"/>
       <Pin id="1" name="Bool Val" direction="out" datatype="bool"/>
     </GUI>
   </Plugin>
 
-  <Plugin id="SE IntToFloat GUI" name="Int To Float" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE IntToFloat GUI" name="Int To Float" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Int Val" direction="in" datatype="int"/>
       <Pin id="1" name="Float Val" direction="out" datatype="float"/>
     </GUI>
   </Plugin>
 
-  <Plugin id="SE IntToText GUI" name="Int To Text" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE IntToText GUI" name="Int To Text" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Int Val" direction="in" datatype="int"/>
       <Pin id="1" name="Text Val" direction="out" datatype="string"/>
     </GUI>
   </Plugin>
 
-  <Plugin id="SE FloatToInt GUI" name="Float To Int" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE FloatToInt GUI" name="Float To Int" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Float Val" direction="in" datatype="float"/>
       <Pin id="1" name="Int Val" direction="out" datatype="int"/>
     </GUI>
   </Plugin>
 
-  <Plugin id="SE FloatToBool GUI" name="Float To Bool" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE FloatToBool GUI" name="Float To Bool" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Float Val" direction="in" datatype="float"/>
       <Pin id="1" name="Bool Val" direction="out" datatype="bool"/>
@@ -120,21 +120,21 @@
     </GUI>
   </Plugin>
 
-  <Plugin id="SE BoolToInt GUI" name="Bool To Int" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE BoolToInt GUI" name="Bool To Int" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Bool Val" direction="in" datatype="bool"/>
       <Pin id="1" name="Int Val" direction="out" datatype="int"/>
     </GUI>
   </Plugin>
 
-  <Plugin id="SE BoolToFloat GUI" name="Bool To Float" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE BoolToFloat GUI" name="Bool To Float" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Bool Val" direction="in" datatype="bool"/>
       <Pin id="1" name="Float Val" direction="out" datatype="float"/>
     </GUI>
   </Plugin>
 
-  <Plugin id="SE BoolToText GUI" name="Bool To Text" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE BoolToText GUI" name="Bool To Text" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Bool Val" direction="in" datatype="bool"/>
       <Pin id="1" name="Text Val" direction="out" datatype="string"/>
@@ -155,19 +155,19 @@
   </GUI>
   </Plugin>
 
-  <Plugin id="SE TextToInt GUI" name="Text To Int" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE TextToInt GUI" name="Text To Int" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Text Val" direction="in" datatype="string"/>
       <Pin id="1" name="Int Val" direction="out" datatype="int"/>
     </GUI>
   </Plugin>
-  <Plugin id="SE TextToFloat GUI" name="Text To Float" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE TextToFloat GUI" name="Text To Float" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Text Val" direction="in" datatype="string"/>
       <Pin id="1" name="Float Val" direction="out" datatype="float"/>
     </GUI>
   </Plugin>
-  <Plugin id="SE TextToBool GUI" name="Text To Bool" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE TextToBool GUI" name="Text To Bool" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Text Val" direction="in" datatype="string"/>
       <Pin id="1" name="Bool Val" direction="out" datatype="bool"/>
@@ -226,7 +226,7 @@
       </GUI>
     </Plugin>
 
-  <Plugin id="SE BlobToText GUI" name="Blob to Text" category="Sub-Controls/Conversion" graphicsApi="none" helpUrl="converters.htm">
+  <Plugin id="SE BlobToText GUI" name="Blob to Text" category="Sub-Controls/Conversion" graphicsApi="none" helpUrl="converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Value In" direction="in" datatype="blob"/>
       <Pin id="1" name="Value Out" direction="out" datatype="string"/>
@@ -243,7 +243,7 @@
       <Pin name="Value In" direction="in" datatype="blob"/>
       <Pin name="Value Out" direction="out" datatype="int"/>
     </Audio>
-  </Plugin>  <Plugin id="SE TextToBlob GUI" name="Text to Blob" category="Sub-Controls/Conversion" graphicsApi="none" helpUrl="converters.htm">
+  <Plugin id="SE TextToBlob GUI" name="Text to Blob" category="Sub-Controls/Conversion" graphicsApi="none" helpUrl="converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Value In" direction="in" datatype="string"/>
       <Pin id="1" name="Value Out" direction="out" datatype="blob"/>
