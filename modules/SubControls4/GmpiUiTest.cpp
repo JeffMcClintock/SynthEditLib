@@ -44,11 +44,12 @@ public:
 	{
     }
 
-    ReturnCode setHost(gmpi::api::IUnknown* host) override
-    {
+	ReturnCode setHost(gmpi::api::IUnknown* host) override
+	{
+		const auto result = PluginEditor::setHost(host);
 		updateTextFromValue();
-        return PluginEditor::setHost(host);
-    }
+		return result;
+	}
 
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
     {
