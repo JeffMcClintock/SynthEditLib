@@ -243,6 +243,7 @@
       <Pin name="Value In" direction="in" datatype="blob"/>
       <Pin name="Value Out" direction="out" datatype="int"/>
     </Audio>
+  </Plugin>
   <Plugin id="SE TextToBlob GUI" name="Text to Blob" category="Sub-Controls/Conversion" graphicsApi="none" helpUrl="converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Value In" direction="in" datatype="string"/>
