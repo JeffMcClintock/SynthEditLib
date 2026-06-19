@@ -8,6 +8,7 @@ using namespace FastUnicode;
 */
 
 #include <string>
+#include <assert.h> // used below; keep the header self-contained
 
 namespace FastUnicode
 {
@@ -59,8 +60,11 @@ namespace FastUnicode
 			{
 				if (codepoint > 0xffff)
 				{
-					out.append(1, static_cast<wchar_t>(0xd800 + (codepoint >> 10)));
-					out.append(1, static_cast<wchar_t>(0xdc00 + (codepoint & 0x03ff)));
+					// Encode as a UTF-16 surrogate pair. Must subtract 0x10000 first;
+					// the high surrogate omitted this, corrupting all astral codepoints.
+					const unsigned int v = codepoint - 0x10000;
+					out.append(1, static_cast<wchar_t>(0xd800 + (v >> 10)));
+					out.append(1, static_cast<wchar_t>(0xdc00 + (v & 0x03ff)));
 				}
 				else
 					out.append(1, static_cast<wchar_t>(codepoint));
