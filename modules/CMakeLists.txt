@@ -5,6 +5,11 @@ include(${GMPI_SDK}/gmpi_plugin.cmake)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
 
+# The SynthEditLib repo root holds shared headers these modules include directly
+# (e.g. se_filesystem.h). It is not on the global include path, so add it here for
+# every module subdirectory added below.
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+
 # Build individual SEM modules
 add_subdirectory(Arpeggiator)
 add_subdirectory(BoolInverter)

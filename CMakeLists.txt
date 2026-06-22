@@ -813,9 +813,9 @@ target_compile_definitions(
 # symbols are annotated "introduced in macOS 10.15"). When deploying to an older
 # target, substitute the header-only ghc::filesystem - a drop-in implementation
 # with an identical API that builds its operations on POSIX directly, so it has
-# no dependency on the 10.15+ libc++ runtime. se_filesystem.h selects between the
-# two via SELIB_HAS_FILESYSTEM. The setting is PUBLIC so this library and every
-# consumer (which may include BundleInfo.h etc.) agree on the same choice.
+# no dependency on the 10.15+ libc++ runtime. se_filesystem.h assumes std::filesystem
+# by default and only switches to ghc when SELIB_HAS_FILESYSTEM=0; the define is PUBLIC
+# so this library and every consumer that links it agree on the same choice.
 if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "10.15")
   message(STATUS "SynthEditLib: macOS deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET} < 10.15 - using ghc::filesystem instead of std::filesystem")
   CPMAddPackage(
@@ -827,6 +827,7 @@ if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "10.15")
   # target (CMake forbids mixing plain and keyword forms). Linking this INTERFACE
   # library plainly still propagates its include directory to consumers.
   target_link_libraries(${PROJECT_NAME} ghc_filesystem)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC SELIB_HAS_FILESYSTEM=0)
 else()
   target_compile_definitions(${PROJECT_NAME} PUBLIC SELIB_HAS_FILESYSTEM=1)
 endif()
