@@ -103,7 +103,9 @@ class SliderGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 
 		// Ticks: up to 11 evenly-spaced marks, thinned out as the track shortens
 		// so the gap between adjacent ticks stays >= twice the tick width
-		// (none at all once the travel is too tiny to fit two).
+		// (none at all once the travel is too tiny to fit two). Each tick is
+		// drawn as two short lines, one either side of the track, leaving a
+		// small margin so they don't overlap it.
 		{
 			const float handleHeight = (std::max)(12.0f, width * 0.5f);
 			const float margin = handleHeight * 0.5f;
@@ -114,18 +116,32 @@ class SliderGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 			const float tickHalfLength = width * 0.35f;
 			const float tickThickness = (std::max)(1.0f, width * 0.05f);
 
+			// inner end of each tick: track edge plus a small margin
+			const float trackStrokeWidth = (std::max)(4.0f, width * 0.15f);
+			const float tickGap = (std::max)(1.0f, width * 0.04f);
+			const float tickInner = trackStrokeWidth * 0.5f + tickGap;
+
 			// gap >= 2*tickThickness  =>  centre-to-centre spacing >= 3*tickThickness
 			const int maxIntervals = static_cast<int>(trackRange / (3.0f * tickThickness));
 			const int tickCount = (std::min)(11, maxIntervals + 1);
 
-			if (tickCount >= 2)
+			if (tickCount >= 2 && tickInner < tickHalfLength)
 			{
 				auto tickBrush = g.createSolidColorBrush(getTickColor());
 				for (int i = 0; i < tickCount; ++i)
 				{
 					const float y = trackBottom - trackRange * (i / static_cast<float>(tickCount - 1));
+					const float top = y - tickThickness * 0.5f;
+					const float bottom = y + tickThickness * 0.5f;
+
+					// left of track
 					g.fillRectangle(
-						{ centerX - tickHalfLength, y - tickThickness * 0.5f, centerX + tickHalfLength, y + tickThickness * 0.5f },
+						{ centerX - tickHalfLength, top, centerX - tickInner, bottom },
+						tickBrush
+					);
+					// right of track
+					g.fillRectangle(
+						{ centerX + tickInner, top, centerX + tickHalfLength, bottom },
 						tickBrush
 					);
 				}
