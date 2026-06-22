@@ -7,7 +7,7 @@
 #include <optional>
 #include <algorithm>
 #include <format>
-#include <filesystem>
+#include "se_filesystem.h"
 #include <charconv>
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -479,7 +479,7 @@ struct Image4Gui : public PluginEditor
     void onSetFilename()
     {
         // ensure that the filename has an extension that indicates that it is an image (SynthEdit has special rules for locating images).
-		std::filesystem::path uri(pinFilename.value);
+		se_fs::path uri(pinFilename.value);
 		if (!uri.has_extension())
 		{
 			uri.replace_extension(".png");
@@ -497,7 +497,7 @@ struct Image4Gui : public PluginEditor
 		synthEdit->registerResourceUri(fullUri.c_str());
 
         // images have a coresponding text file that provides information about how they should be animated.
-        std::filesystem::path textfileUri(fullUri.str());
+        se_fs::path textfileUri(fullUri.str());
 		textfileUri.replace_extension("txt");
         synthEdit->registerResourceUri(textfileUri.generic_string().c_str());
 

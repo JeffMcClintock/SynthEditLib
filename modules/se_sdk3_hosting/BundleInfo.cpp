@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <fstream>
-#include <filesystem>
+#include "se_filesystem.h"
 #include "tinyXml2/tinyxml2.h"
 #include "BundleInfo.h"
 #include "xp_dynamic_linking.h"
@@ -70,8 +70,8 @@ CFBundleRef CreatePluginBundleRef()
 		return {};
 
 	// Walk up the path looking for a "Contents" component, indicating a bundle.
-	std::filesystem::path path(info.dli_fname);
-	std::filesystem::path bundleRoot;
+	se_fs::path path(info.dli_fname);
+	se_fs::path bundleRoot;
 	for (auto it = path.begin(); it != path.end(); ++it)
 	{
 		if (it->filename() == "Contents")
@@ -159,11 +159,11 @@ std::string getSettingsFolder()
 #endif
 }
 
-std::filesystem::path BundleInfo::getPluginPath()
+se_fs::path BundleInfo::getPluginPath()
 {
-    std::filesystem::path path(gmpi_dynamic_linking::MP_GetDllFilename()); // get full path of executable (might be in a bundle)
+    se_fs::path path(gmpi_dynamic_linking::MP_GetDllFilename()); // get full path of executable (might be in a bundle)
 
-    std::filesystem::path pluginRootPath;
+    se_fs::path pluginRootPath;
 	for (auto it = path.begin(); it != path.end(); ++it)
     {
         if (it->filename() == "Contents")
@@ -175,11 +175,11 @@ std::filesystem::path BundleInfo::getPluginPath()
 	return pluginRootPath;
 }
 
-std::filesystem::path BundleInfo::getBundleContentsFolder()
+se_fs::path BundleInfo::getBundleContentsFolder()
 {
-    std::filesystem::path path(gmpi_dynamic_linking::MP_GetDllFilename());
+    se_fs::path path(gmpi_dynamic_linking::MP_GetDllFilename());
 
-    std::filesystem::path contentsPath;
+    se_fs::path contentsPath;
     for (auto it = path.begin(); it != path.end(); ++it)
     {
         contentsPath /= *it;
@@ -299,35 +299,35 @@ std::wstring BundleInfo::getImbeddedFileFolder()
 }
 
 // Plugins only.
-std::filesystem::path BundleInfo::getUserDocumentFolder()
+se_fs::path BundleInfo::getUserDocumentFolder()
 {
 #if defined( _WIN32 )
 
 	// Correct folder (user presets). [MYDOCUMENTS]/VST3 Presets/$COMPANY/$PLUGIN-NAME/
 	wchar_t myDocumentsPath[MAX_PATH];
 	SHGetFolderPathW(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, myDocumentsPath);
-	return std::filesystem::path{ myDocumentsPath } / L"";
+	return se_fs::path{ myDocumentsPath } / L"";
 
 #else // Mac.
     // getpwuid returns the real home directory even when sandboxed,
     // whereas getenv("HOME") returns the container path in a sandbox.
     const struct passwd* pwd = getpwuid(getuid());
     if (pwd)
-        return std::filesystem::path{ pwd->pw_dir };
+        return se_fs::path{ pwd->pw_dir };
 
     const char *homeDir = getenv("HOME");
     if(homeDir)
-        return std::filesystem::path{ homeDir };
+        return se_fs::path{ homeDir };
 #if 0
     // sandboxed returns:    "/Users/jeffmcclintock/Library/Containers/com.synthedit.SynthEditMac/Data/SynthEdit Projects/skins/"
     const char *homeDir = getenv("HOME");
     
     if(homeDir)
-        return std::filesystem::path{ homeDir };
+        return se_fs::path{ homeDir };
     
     const struct passwd* pwd = getpwuid(getuid());
     if (pwd)
-        return std::filesystem::path{ pwd->pw_dir };
+        return se_fs::path{ pwd->pw_dir };
 #endif
     
 	return {};
@@ -337,14 +337,14 @@ std::filesystem::path BundleInfo::getUserDocumentFolder()
 // Shared, all-users document folder. Used for resources installed once per
 // machine and shared by every user (skins, prefabs), rather than the
 // per-user folder returned by getUserDocumentFolder().
-std::filesystem::path BundleInfo::getCommonDocumentFolder()
+se_fs::path BundleInfo::getCommonDocumentFolder()
 {
 #if defined( _WIN32 )
 
 	// "All Users" / Public documents. e.g. C:\Users\Public\Documents
 	wchar_t commonDocumentsPath[MAX_PATH];
 	SHGetFolderPathW(NULL, CSIDL_COMMON_DOCUMENTS, NULL, SHGFP_TYPE_CURRENT, commonDocumentsPath);
-	return std::filesystem::path{ commonDocumentsPath } / L"";
+	return se_fs::path{ commonDocumentsPath } / L"";
 
 #else // Mac.
 	// No equivalent "All Users Documents" location, and a shared path risks
@@ -603,7 +603,7 @@ const BundleInfo::pluginInformation& BundleInfo::getPluginInfo()
 void BundleInfo::initPluginInfo()
 {
 #if 1 // def SELIB_HAS_FILESYSTEM
-    const std::filesystem::path path(gmpi_dynamic_linking::MP_GetDllFilename());
+    const se_fs::path path(gmpi_dynamic_linking::MP_GetDllFilename());
 
     // are we in the editor?
 	auto filename = path.filename().wstring();
@@ -659,16 +659,16 @@ void BundleInfo::initPluginInfo()
     // of pre-built modules in the SE16 source repo. Only triggers when
     // the bundle-default doesn't exist, so it's a no-op for installed
     // users and a quiet convenience for repo contributors.
-    if (!std::filesystem::exists(semFolder))
+    if (!se_fs::exists(semFolder))
     {
-        std::filesystem::path dir(path);
+        se_fs::path dir(path);
         dir = dir.parent_path();
-        std::filesystem::path prev;
+        se_fs::path prev;
         while (!dir.empty() && dir != prev && dir != dir.root_path())
         {
             const auto candidate = dir / L"SynthEdit2" / L"PlugIns";
             std::error_code ec;
-            if (std::filesystem::exists(candidate, ec))
+            if (se_fs::exists(candidate, ec))
             {
                 // Trailing slash matches the format of the line above.
                 semFolder = (candidate / "").wstring();

@@ -241,7 +241,7 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 	{
 		const auto cancellationSettingFile = BundleInfo::instance()->getPluginPath().replace_extension("xml");
 
-		if (std::filesystem::exists(cancellationSettingFile))
+		if (se_fs::exists(cancellationSettingFile))
 		{
 			tinyxml2::XMLDocument doc;
 			if (doc.LoadFile(cancellationSettingFile.string().c_str()) == tinyxml2::XML_SUCCESS)
@@ -1544,9 +1544,9 @@ void AudioMasterBase::CancellationFreeze3()
 	const int32_t blockSize = BlockSize();
 
 	// determin output folder in users Documents
-	std::filesystem::path outputFolder(BundleInfo::instance()->getUserDocumentFolder());
+	se_fs::path outputFolder(BundleInfo::instance()->getUserDocumentFolder());
 	outputFolder /= "cancellation" / BundleInfo::instance()->getPluginPath().filename().replace_extension("");
-	std::filesystem::create_directories(outputFolder);
+	se_fs::create_directories(outputFolder);
 
 	// add time and date to filename to make unique per session.
 	const auto now = std::chrono::system_clock::now();
@@ -1561,7 +1561,7 @@ void AudioMasterBase::CancellationFreeze3()
 	stampedName << L"snapshot_"
 		<< std::put_time(&localTime, L"%Y%m%d_%H%M%S.raw");
 
-	std::filesystem::path filename = outputFolder / stampedName.str();
+	se_fs::path filename = outputFolder / stampedName.str();
 
 	auto file = fopen(filename.string().c_str(), "wb");
 
@@ -2799,7 +2799,7 @@ void SeAudioMaster::setPresetsState(const std::vector< std::pair<int32_t, std::s
 }
 
 #ifdef _DEBUG
-#include <filesystem>
+#include "se_filesystem.h"
 void SeAudioMaster::dumpPreset(int tag)
 {
 #if 0
@@ -2812,7 +2812,7 @@ void SeAudioMaster::dumpPreset(int tag)
 		std::string chunk;
 		patchmanager->getPresetState(chunk, true);
 
-		std::filesystem::path saveFileName = std::format("C:\\temp\\preset_dump_{}_{}.txt", tag, index); // debugging only
+		se_fs::path saveFileName = std::format("C:\\temp\\preset_dump_{}_{}.txt", tag, index); // debugging only
 
 		std::ofstream outFile(saveFileName, std::ios::binary);
 		if (outFile.is_open())

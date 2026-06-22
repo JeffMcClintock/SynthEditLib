@@ -1,6 +1,6 @@
 #pragma once
 
-#include <filesystem>
+#include "se_filesystem.h"
 #include "Module_Info3_base.h"
 
 #ifndef _WIN32
@@ -14,11 +14,11 @@
 class PluginHolder
 {
 	gmpi_dynamic_linking::DLL_HANDLE dllHandle = {};
-	std::filesystem::path pluginPath; // actual dll on Windows (possible inside bundle), enclosing Bundle folder on macOS (not the binary)
+	se_fs::path pluginPath; // actual dll on Windows (possible inside bundle), enclosing Bundle folder on macOS (not the binary)
 
 public:
 	PluginHolder() = default;
-	PluginHolder(std::filesystem::path binary_path)
+	PluginHolder(se_fs::path binary_path)
 	{
 		setPluginPath(binary_path);
 	}
@@ -28,11 +28,11 @@ public:
 	{
 		return dllHandle != 0;
 	}
-	std::filesystem::path getPluginPath() const
+	se_fs::path getPluginPath() const
 	{
 		return pluginPath;
 	}
-	void setPluginPath(std::filesystem::path pPath)
+	void setPluginPath(se_fs::path pPath)
 	{
 		pluginPath = pPath;
 	}

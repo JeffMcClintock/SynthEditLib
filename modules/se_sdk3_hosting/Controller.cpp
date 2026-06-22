@@ -2,7 +2,7 @@
 #include <locale>
 #include <thread>
 #include <fstream>
-#include <filesystem>
+#include "se_filesystem.h"
 #include <map>
 #include <algorithm>
 #include <cwctype>
@@ -595,7 +595,7 @@ std::string MpController::loadNativePresetAnyFormat(const std::wstring& sourceFi
 
 std::vector< MpController::presetInfo > MpController::scanNativePresets()
 {
-	namespace fs = std::filesystem;
+	namespace fs = se_fs;
 
 	// Scan the plugin's own native format, plus the portable xmlpreset and both
 	// DAW-native formats, so a preset saved in any of them is found. (xmlpreset is
@@ -717,13 +717,13 @@ std::vector< MpController::presetInfo > MpController::scanPresetFolder(platform_
 	std::vector< presetInfo > returnValues;
 
 	const bool isXmlPreset = ToUtf8String(extension) == "xmlpreset";
-	const std::filesystem::path presetDir(PresetFolder);
-	const auto targetExtension = std::filesystem::path(extension).wstring();
+	const se_fs::path presetDir(PresetFolder);
+	const auto targetExtension = se_fs::path(extension).wstring();
 	const auto extWithDot = targetExtension.empty() ? std::wstring{} : std::wstring(L".") + targetExtension;
 
 	std::error_code ec;
 	// Recursive: presets are also discovered inside category sub-folders.
-	for (const auto& entry : std::filesystem::recursive_directory_iterator(presetDir, std::filesystem::directory_options::skip_permission_denied, ec))
+	for (const auto& entry : se_fs::recursive_directory_iterator(presetDir, se_fs::directory_options::skip_permission_denied, ec))
 	{
 		if (ec)
 			break;
@@ -2241,7 +2241,7 @@ void MpController::DeletePreset(int presetIndex)
 	// Non-throwing: a global preset lives in a read-only location (e.g. /Library) and
 	// can't be removed by a normal user — fail quietly rather than crash the host.
 	std::error_code removeEc;
-	std::filesystem::remove(presets[presetIndex].filename, removeEc);
+	se_fs::remove(presets[presetIndex].filename, removeEc);
 #else
     remove(WStringToUtf8(presets[presetIndex].filename).c_str());
 #endif

@@ -11,7 +11,7 @@
 #include <assert.h>
 #include <cctype>
 #include <sys/stat.h> // mkdir
-#include <filesystem>
+#include "se_filesystem.h"
 #include "conversion.h"
 #include "modules/se_sdk3/it_enum_list.h"
 #include "midi_defs.h"
@@ -1201,12 +1201,12 @@ void FileToString(const platform_string& path, std::string& buffer)
 // Works only if user has permissions.
 bool CreateFolderRecursive(std::wstring folderPath)
 {
-	std::filesystem::path path(folderPath);
+	se_fs::path path(folderPath);
 
 	assert(!folderPath.empty());
 	assert(path.is_absolute());
 
-	return std::filesystem::create_directories(path);
+	return se_fs::create_directories(path);
 
 #if 0 // old way
 	vector<wstring> paths;

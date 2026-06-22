@@ -1,7 +1,7 @@
 
 #include <vector>
 #include <sstream>
-#include <filesystem>
+#include "se_filesystem.h"
 #include <algorithm>
 #include <string>
 #include <cstdio>
@@ -60,8 +60,8 @@ struct inouterror
 
 int serializeCancelationSnapshot(const wchar_t* filename, std::vector<mod_an>& results)
 {
-	// std::filesystem::path handles the native encoding for fopen on each platform.
-	const std::filesystem::path path(filename);
+	// se_fs::path handles the native encoding for fopen on each platform.
+	const se_fs::path path(filename);
 #ifdef _WIN32
 	auto file = _wfopen(path.c_str(), L"rb");
 #else

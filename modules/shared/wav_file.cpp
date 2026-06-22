@@ -4,7 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>
+#include "se_filesystem.h"
 #include <span>
 #include <string_view>
 #include <vector>
@@ -29,11 +29,11 @@ constexpr std::string_view kSmplId = "smpl";
 	return std::ranges::equal(id, expected);
 }
 
-[[nodiscard]] std::filesystem::path toPath(const std::string& filename)
+[[nodiscard]] se_fs::path toPath(const std::string& filename)
 {
 	// In C++20, u8path is deprecated. Use char8_t iterator constructor instead.
 	auto p = reinterpret_cast<const char8_t*>(filename.data());
-	return std::filesystem::path(p, p + filename.size());
+	return se_fs::path(p, p + filename.size());
 }
 
 

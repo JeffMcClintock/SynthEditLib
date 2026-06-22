@@ -1,6 +1,6 @@
 
 #include "GmpiResourceManager.h"
-#include <filesystem>
+#include "se_filesystem.h"
 #include <string>
 #include <string_view>
 #include "conversion.h"
@@ -11,7 +11,7 @@
 using namespace std;
 using namespace JmUnicodeConversions;
 
-namespace fs = std::filesystem;
+namespace fs = se_fs;
 
 bool ResourceExists(const std::wstring& path)
 {
@@ -247,9 +247,9 @@ int32_t GmpiResourceManager::OpenUri(const char* fullUri, gmpi::IProtectedFile2*
 	return *returnStream != nullptr ? (gmpi::MP_OK) : (gmpi::MP_FAIL);
 }
 
-std::filesystem::path GmpiResourceManager::ResolveResourceUri(const std::filesystem::path& filename, std::wstring_view skinName)
+se_fs::path GmpiResourceManager::ResolveResourceUri(const se_fs::path& filename, std::wstring_view skinName)
 {
-	namespace fs = std::filesystem;
+	namespace fs = se_fs;
 
 	// Already absolute - return as-is
 	if (filename.is_absolute())
@@ -279,7 +279,7 @@ std::filesystem::path GmpiResourceManager::ResolveResourceUri(const std::filesys
 
 std::string GmpiResourceManager::ShortenResourceUri(const std::string& fullPath)
 {
-	namespace fs = std::filesystem;
+	namespace fs = se_fs;
 
 	const fs::path path(fullPath);
 	const auto filename = path.filename();

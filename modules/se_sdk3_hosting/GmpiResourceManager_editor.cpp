@@ -1,6 +1,6 @@
 
 #include "GmpiResourceManager_editor.h"
-#include <filesystem>
+#include "se_filesystem.h"
 #include "conversion.h"
 #include "ProtectedFile.h"
 #include "SkinMgr.h"
@@ -25,7 +25,7 @@ int32_t GmpiResourceManager_editor::OpenUri(const char* fullUri, gmpi::IProtecte
 		return gmpi::MP_NOSUPPORT;
 	}
 
-	std::filesystem::path fullpath(fullUri);
+	se_fs::path fullpath(fullUri);
 	if (fullpath.filename() == "global.txt") // special magic 'file'.
 	{
 		const auto skinName = fullpath.parent_path().filename().wstring();

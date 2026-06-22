@@ -807,3 +807,26 @@ target_compile_definitions(
   ${PROJECT_NAME} PUBLIC
   SE_GRAPHICS_SUPPORT=$<IF:$<BOOL:${SE_GRAPHICS_SUPPORT}>,1,0>
 )
+
+# --- std::filesystem availability ------------------------------------------
+# Apple's libc++ only ships std::filesystem from macOS 10.15 (the <filesystem>
+# symbols are annotated "introduced in macOS 10.15"). When deploying to an older
+# target, substitute the header-only ghc::filesystem - a drop-in implementation
+# with an identical API that builds its operations on POSIX directly, so it has
+# no dependency on the 10.15+ libc++ runtime. se_filesystem.h selects between the
+# two via SELIB_HAS_FILESYSTEM. The setting is PUBLIC so this library and every
+# consumer (which may include BundleInfo.h etc.) agree on the same choice.
+if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "10.15")
+  message(STATUS "SynthEditLib: macOS deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET} < 10.15 - using ghc::filesystem instead of std::filesystem")
+  CPMAddPackage(
+    NAME ghc_filesystem
+    GITHUB_REPOSITORY gulrak/filesystem
+    GIT_TAG v1.5.14
+  )
+  # NB: plain signature to match the other target_link_libraries() calls on this
+  # target (CMake forbids mixing plain and keyword forms). Linking this INTERFACE
+  # library plainly still propagates its include directory to consumers.
+  target_link_libraries(${PROJECT_NAME} ghc_filesystem)
+else()
+  target_compile_definitions(${PROJECT_NAME} PUBLIC SELIB_HAS_FILESYSTEM=1)
+endif()

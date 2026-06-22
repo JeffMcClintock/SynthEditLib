@@ -1,7 +1,7 @@
 #include <optional>
 #include <algorithm>
 #include <format>
-#include <filesystem>
+#include "se_filesystem.h"
 #include <charconv>
 #include "helpers/GmpiPluginEditor.h"
 #include "helpers/GmpiPluginEditor2.h"

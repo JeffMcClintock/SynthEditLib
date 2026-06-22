@@ -1,5 +1,6 @@
 #include "./FileDialogGui.h"
 
+#include "se_filesystem.h"
 #include "../shared/unicode_conversion.h"
 #include "../shared/it_enum_list.h"
 #include "../shared/string_utilities.h"
@@ -135,9 +136,9 @@ void FileDialogGui::OnFileDialogComplete(int32_t result)
 		{
 #if 0
 			// try to find a shorter filename that SynthEdit can find.
-			std::filesystem::path fullPath(filepath);
+			se_fs::path fullPath(filepath);
 
-			std::vector<std::filesystem::path> pathParts;
+			std::vector<se_fs::path> pathParts;
 			for (auto p : fullPath)
 			{
 				pathParts.push_back(p);
@@ -145,12 +146,12 @@ void FileDialogGui::OnFileDialogComplete(int32_t result)
 
 			std::reverse(pathParts.begin(), pathParts.end());
 
-			std::filesystem::path shortName;
+			se_fs::path shortName;
 			for (auto p : pathParts)
 			{
 				shortName = shortName.empty() ? p : p / shortName;
 
-				const std::filesystem::path r = uiHost.FindResourceU(shortName.string().c_str(), fileclass);
+				const se_fs::path r = uiHost.FindResourceU(shortName.string().c_str(), fileclass);
 				if (filepath == r)
 				{
 					filepath = shortName.string();

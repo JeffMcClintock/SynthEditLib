@@ -9,7 +9,7 @@ BundleInfo::instance()->getResource("whatever");
 
 #include <string>
 #include <vector>
-#include <filesystem>
+#include "se_filesystem.h"
 #include "ElatencyContraintType.h"
 
 #if !defined( _WIN32 )
@@ -91,18 +91,18 @@ public:
     // getPresetFolder() by swapping the per-user root for the shared root.
     // Returns empty if it can't be derived.
     std::wstring getGlobalPresetFolder();
-	std::filesystem::path getUserDocumentFolder();
+	se_fs::path getUserDocumentFolder();
 	// Shared, all-users document folder for resources installed once per machine
 	// (skins, prefabs). Windows: C:\Users\Public\Documents (CSIDL_COMMON_DOCUMENTS).
-	std::filesystem::path getCommonDocumentFolder();
-    std::filesystem::path getBundleContentsFolder();
+	se_fs::path getCommonDocumentFolder();
+    se_fs::path getBundleContentsFolder();
 	std::wstring getImbeddedFileFolder();
     std::wstring getResourceFolder();
 	std::wstring getSemFolder();
     
 	int32_t getPluginId(); // 4-char VST2 code to identify presets.
     const pluginInformation& getPluginInfo();
-	std::filesystem::path getPluginPath(); // root folder/file of plugin. e.g. .../Common Files/VST3/MyPlugin.vst3
+	se_fs::path getPluginPath(); // root folder/file of plugin. e.g. .../Common Files/VST3/MyPlugin.vst3
 };
 
 #endif /* BundleInstance_h */

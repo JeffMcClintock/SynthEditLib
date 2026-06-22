@@ -2,7 +2,7 @@
 // Copyright 2007-2026 Jeff McClintock.
 
 #include <algorithm>
-#include <filesystem>
+#include "se_filesystem.h"
 #include "helpers/GmpiPluginEditor.h"
 #include "helpers/ImageCache.h"
 #include "Extensions/EmbeddedFile.h"
@@ -41,7 +41,7 @@ class PlainImageGui final : public PluginEditor, public gmpi::api::IDrawingLayer
 		{
 			// SynthEdit needs to know the file type to search for it. If the filename doesn't have an extension, add .png as a default.
 			// SynthEdit will still find .bpm and .jpg files if .png is added, but not if no extension is provided.
-			std::filesystem::path filename(pinFilename.value);
+			se_fs::path filename(pinFilename.value);
 			if(!filename.has_extension())
 				filename.replace_extension(".png");
 

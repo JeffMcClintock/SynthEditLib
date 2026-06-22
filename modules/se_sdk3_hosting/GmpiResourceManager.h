@@ -1,5 +1,5 @@
 #pragma once
-#include <filesystem>
+#include "se_filesystem.h"
 #include <map>
 #include <unordered_map>
 #include "mp_sdk_common.h"
@@ -17,10 +17,10 @@ class GmpiResourceManager
 public:
 	static GmpiResourceManager* Instance(); // ref: platform_plugin.cpp or GmpiResourceManager_editor.cpp
 
-	std::filesystem::path projectFile; // path up to first period. e.g. "C:\mydocument.version23.synthedit" => "C:\mydocument"
+	se_fs::path projectFile; // path up to first period. e.g. "C:\mydocument.version23.synthedit" => "C:\mydocument"
 
 	// Returns the per-project, project-specific skin folder (e.g. "C:\mysynth.skin"), or empty if no project is set.
-	std::filesystem::path projectSkinFolder() const
+	se_fs::path projectSkinFolder() const
 	{
 		if (projectFile.empty())
 			return {};
@@ -28,14 +28,14 @@ public:
 	}
 
 	// Returns the per-project, project-specific resources folder (e.g. "C:\mysynth.resources"), or empty if no project is set.
-	std::filesystem::path projectResourcesFolder() const
+	se_fs::path projectResourcesFolder() const
 	{
 		if (projectFile.empty())
 			return {};
 		return projectFile.parent_path() / (projectFile.stem().wstring() + L".resources");
 	}
 
-	void setProjectFile(const std::filesystem::path& fullPath)
+	void setProjectFile(const se_fs::path& fullPath)
 	{
 		if (fullPath.empty())
 		{
@@ -62,7 +62,7 @@ public:
 	int32_t RegisterResourceUri(int32_t moduleHandle, const char* fullUri);
 	int32_t FindResourceU(int32_t moduleHandle, const std::string skinName, const char* resourceName, const char* resourceType, gmpi::IString* returnString);
 	std::string ShortenResourceUri(const std::string& fullPath);
-	std::filesystem::path ResolveResourceUri(const std::filesystem::path& filename, std::wstring_view skinName);
+	se_fs::path ResolveResourceUri(const se_fs::path& filename, std::wstring_view skinName);
 	virtual int32_t OpenUri(const char* fullUri, gmpi::IProtectedFile2** returnStream);
 };
 
