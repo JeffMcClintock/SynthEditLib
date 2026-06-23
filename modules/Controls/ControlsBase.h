@@ -136,6 +136,13 @@ protected:
 		return ReturnCode::Ok;
 	}
 
+	ReturnCode getToolTip(gmpi::drawing::Point point, gmpi::api::IString* returnString) override
+	{
+		const auto& hint = pinHint.value;
+		returnString->setData(hint.data(), static_cast<int32_t>(hint.size()));
+		return ReturnCode::Ok;
+	}
+
 private:
 	enum class MenuItemType { Normal, Separator, Break, SubMenu, SubMenuEnd };
 

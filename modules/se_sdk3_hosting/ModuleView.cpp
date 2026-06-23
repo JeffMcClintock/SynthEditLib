@@ -1438,10 +1438,17 @@ if(pluginGraphics)
 
 	std::string ModuleView::getToolTip(gmpi::drawing::Point point)
 	{
-		if (pluginGraphics2)
+		if(pluginInput_GMPI)
 		{
 			auto local = PointToPlugin(point);
+			gmpi::ReturnString s;
+			if(gmpi::ReturnCode::Ok == pluginInput_GMPI->getToolTip(local, &s))
+				return s.str();
+		}
+		else if (pluginGraphics2)
+		{
 
+			auto local = PointToPlugin(point);
 			gmpi_sdk::MpString s;
 			if( MP_OK == pluginGraphics2->getToolTip(*reinterpret_cast<GmpiDrawing_API::MP1_POINT*>(&local), &s) )
 				return s.str();
