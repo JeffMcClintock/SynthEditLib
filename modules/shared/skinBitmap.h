@@ -58,7 +58,10 @@ protected:
 		{
 			if (!hitTestPixelAccurate)
 			{
-				GmpiDrawing::Rect backgroundRect(0, 0, (float)bitmapMetadata_->frameSize.width, (float)bitmapMetadata_->frameSize.height);
+				// Background is drawn offset by the padding (see renderBitmap), so the hit-test rect must match.
+				const float bgLeft = bitmapMetadata_->padding_left;
+				const float bgTop = bitmapMetadata_->padding_top;
+				GmpiDrawing::Rect backgroundRect(bgLeft, bgTop, bgLeft + (float)bitmapMetadata_->frameSize.width, bgTop + (float)bitmapMetadata_->frameSize.height);
 				return !(point.x < backgroundRect.left || point.x > backgroundRect.right || point.y < backgroundRect.top || point.y > backgroundRect.bottom);
 			}
 
