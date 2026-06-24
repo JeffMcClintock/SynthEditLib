@@ -1890,8 +1890,9 @@ namespace SE2
 			releaseCapture();
 
 		// Clear out previous view.
-		assert(!isIteratingChildren);
-		children.clear();
+			assert(!isIteratingChildren);
+			mouseOverObject = nullptr;
+			children.clear();
 		children_monodirectional.clear();
 		isDraggingModules = false;
 		patchAutomatorWrapper_ = nullptr;
