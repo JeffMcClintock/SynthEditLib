@@ -432,7 +432,7 @@ namespace SE2
 			{0xFF55FFu, 0xBF40BFu}, // BLOB -purple
 			{0xFF55FFu, 0xBF40BFu}, // Class -purple
 			{0xFF0000u, 0xBF0000u}, // string (utf8) red
-			{0xFF55FFu, 0xBF40BFu}, // BLOB2 -purple
+			{0xFF55FFu, 0xBF40BFu}, // OBJECT -purple
 			{0xFFFFFFu, 0x808080u}, // Spare - white.
 		}};
 

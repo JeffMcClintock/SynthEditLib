@@ -45,9 +45,9 @@ struct SeDatatypeTraits<MpBlob>
 
 // TODO
 //template<>
-//struct SeDatatypeTraits<MpBlob2>
+//struct SeDatatypeTraits<MpObject>
 //{
-//	enum { result = DT_BLOB2 };
+//	enum { result = DT_OBJECT };
 //};
 
 template<>

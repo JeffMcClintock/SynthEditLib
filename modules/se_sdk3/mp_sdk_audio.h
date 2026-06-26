@@ -505,8 +505,8 @@ public:
 	const wchar_t* operator=(const wchar_t* valueUtf16);
 };
 
-// BLOB2 - Binary datatype. except memory is shared and ref counted
-class Blob2PinBase : public MpPinBase
+// OBJECT - a reference-counted, COM-like object passed by pointer (addRef/release).
+class ObjectPinBase : public MpPinBase
 {
 protected:
 	gmpi::ISharedBlob* value_ = nullptr;
@@ -518,7 +518,7 @@ public:
 	void processEvent(const gmpi::MpEvent*) override {}
 	void postProcessEvent(const gmpi::MpEvent*) override {}
 
-	int getDatatype() const override { return gmpi::MP_BLOB2; }
+	int getDatatype() const override { return gmpi::MP_OBJECT; }
 	MpBaseMemberPtr getDefaultEventHandler() override { return {}; }
 	void sendFirstUpdate() override {}
 
@@ -528,9 +528,9 @@ public:
 	}
 };
 
-class Blob2InPin : public Blob2PinBase
+class ObjectInPin : public ObjectPinBase
 {
-	friend class Blob2OutPin;
+	friend class ObjectOutPin;
 
 	bool freshValue_{};
 
@@ -580,12 +580,12 @@ public:
 	}
 };
 
-class Blob2OutPin : public Blob2PinBase
+class ObjectOutPin : public ObjectPinBase
 {
 public:
 	int getDirection() const override { return gmpi::MP_OUT; }
 
-	const Blob2InPin& operator=(Blob2InPin& pin)
+	const ObjectInPin& operator=(ObjectInPin& pin)
 	{
 //		if (value_/*.get()*/ != pin.value_/*.get()*/) // avoid unnesc updates (would need to compare bytes)
 		{

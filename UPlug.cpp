@@ -729,7 +729,7 @@ void UPlug::SetDefaultDirect(const char* utf8val)
 	break;
 
 	case DT_BLOB: // not handled, perhaps could support hex !!!
-	case DT_BLOB2:
+	case DT_OBJECT:
 		break;
 
 	default:
@@ -839,12 +839,12 @@ void UPlug::CreateBuffer()
 		}
 		break;
 
-		case DT_BLOB2:
+		case DT_OBJECT:
 		{
 			// if plugin didn't provide storage for the variable, provide it ourself
 			if (io_variable == 0)
 			{
-				io_variable = &m_buffer.blob2_ptr;
+				io_variable = &m_buffer.object_ptr;
 			}
 		}
 		break;
@@ -944,7 +944,7 @@ void UPlug::SetBufferValue( const char* p_val )
 	}
 	break;
 
-	case DT_BLOB2:
+	case DT_OBJECT:
 	{
 		// TODO figure this out.
 		//gmpi::ISharedBlob* blob = *(gmpi::ISharedBlob**)io_variable;
@@ -1011,7 +1011,7 @@ void UPlug::CloneBufferValue( const UPlug& clonePlug )
 	break;
 
 	case DT_BLOB: // not handles, perhaps could support hex !!!
-	case DT_BLOB2:
+	case DT_OBJECT:
 		break;
 
 	default:

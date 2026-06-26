@@ -171,7 +171,7 @@ public:
 		int int_ob; // in or out
 		double* double_ptr; // in or out
 		bool bool_ob; // in or out
-		gmpi::ISharedBlob* blob2_ptr; // in or out
+		gmpi::ISharedBlob* object_ptr; // in or out
 	} m_buffer = {};
 
 	UPlug* TiedTo;

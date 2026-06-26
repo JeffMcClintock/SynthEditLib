@@ -21,10 +21,10 @@ SE_DECLARE_INIT_STATIC_FILE(Blob2ToBlob);
 
 using namespace gmpi;
 
-class BlobToBlob2 final : public MpBase2
+class BlobToObject final : public MpBase2
 {
 	BlobInPin pinValueIn;
-	Blob2OutPin pinValueOut;
+	ObjectOutPin pinValueOut;
 
 	struct blobInfo
 	{
@@ -36,7 +36,7 @@ class BlobToBlob2 final : public MpBase2
 	std::vector<std::unique_ptr<blobInfo>> outputBlobPool;
 
 public:
-	BlobToBlob2()
+	BlobToObject()
 	{
 		initializePin(pinValueIn);
 		initializePin(pinValueOut);
@@ -74,13 +74,13 @@ public:
 	}
 };
 
-class Blob2ToBlob final : public MpBase2
+class ObjectToBlob final : public MpBase2
 {
-	Blob2InPin pinValueIn;
+	ObjectInPin pinValueIn;
 	BlobOutPin pinValueOut;
 
 public:
-	Blob2ToBlob()
+	ObjectToBlob()
 	{
 		initializePin(pinValueIn);
 		initializePin(pinValueOut);
@@ -103,6 +103,6 @@ public:
 
 namespace
 {
-	auto r1 = sesdk::Register<BlobToBlob2>::withId(L"SE BlobToBlob2");
-	auto r2 = sesdk::Register<Blob2ToBlob>::withId(L"SE Blob2ToBlob");
+	auto r1 = sesdk::Register<BlobToObject>::withId(L"SE BlobToBlob2");
+	auto r2 = sesdk::Register<ObjectToBlob>::withId(L"SE Blob2ToBlob");
 }

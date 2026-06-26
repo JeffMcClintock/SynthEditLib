@@ -20,11 +20,11 @@ using namespace gmpi;
 
 SE_DECLARE_INIT_STATIC_FILE(Blob2Test)
 
-class Blob2Test final : public MpBase2
+class ObjectTest final : public MpBase2
 {
 	BoolInPin pinTrigger;
-	Blob2InPin pinValueIn;
-	Blob2OutPin pinValueOut;
+	ObjectInPin pinValueIn;
+	ObjectOutPin pinValueOut;
 
 	int value = 1234;
 
@@ -33,7 +33,7 @@ class Blob2Test final : public MpBase2
 	char outputValues[2][100];
 
 public:
-	Blob2Test()
+	ObjectTest()
 	{
 		// fails
 		//initializePin(1, pinTrigger);
@@ -54,7 +54,7 @@ public:
 			inputBlob = pinValueIn.getValue();
 
 			// print contents of BLOB for diagnostic purposes
-			_RPTN(0, "Recieved BLOB2 at %x\n", inputBlob);
+			_RPTN(0, "Recieved OBJECT at %x\n", inputBlob);
 			uint8_t* data{};
 			int64_t size{};
 			if (inputBlob) // blob can be null
@@ -115,7 +115,7 @@ public:
 					blob_ptr->set(outputValues[i], strlen(outputValues[i]));
 
 					// send my blob out
-					_RPTN(0, "Sending BLOB2 at %x\n", blob_ptr);
+					_RPTN(0, "Sending OBJECT at %x\n", blob_ptr);
 					pinValueOut = blob_ptr;
 					sent = true;
 					break;
@@ -134,15 +134,15 @@ public:
 
 namespace
 {
-	auto r = sesdk::Register<Blob2Test>::withXml(R"XML(
+	auto r = sesdk::Register<ObjectTest>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
 <PluginList>
-    <Plugin id="SE Blob2 Test" name="Blob2 Test" category="Debug">
+    <Plugin id="SE Blob2 Test" name="Object Test" category="Debug">
         <Audio>
 			<!-- TESTING NON-SEQUENTIAL PIN IDs -->
             <Pin id="1" name="Trigger" datatype="bool"/>
-            <Pin id="3" name="Blob2" datatype="blob2"/>
-            <Pin id="99999" name="Blob2" datatype="blob2" direction="out"/>
+            <Pin id="3" name="Object" datatype="object"/>
+            <Pin id="99999" name="Object" datatype="object" direction="out"/>
         </Audio>
     </Plugin>
 </PluginList>

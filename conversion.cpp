@@ -628,7 +628,7 @@ bool AreCompatible( EPlugDataType d1, EPlugDataType d2 )
 	if ((d1 == DT_FSAMPLE || d1 == DT_INT) && (d2 == DT_FSAMPLE || d2 == DT_INT))
 		return true;
 
-	if ((d1 == DT_BLOB || d1 == DT_BLOB2) && (d2 == DT_BLOB || d2 == DT_BLOB2))
+	if ((d1 == DT_BLOB || d1 == DT_OBJECT) && (d2 == DT_BLOB || d2 == DT_OBJECT))
 		return true;
 
 	/* no
@@ -1023,7 +1023,7 @@ static const TextToIntStruct2 datatypeInfo[] =
 	("string")			,DT_TEXT,
 	"string_utf8"		,DT_STRING_UTF8,
 	("blob")			,DT_BLOB,
-	("blob2")			,DT_BLOB2,
+	("object")			,DT_OBJECT,
 	("midi")			,DT_MIDI,
 	("bool")			,DT_BOOL,
 	("enum")			,DT_ENUM,
@@ -1037,9 +1037,23 @@ bool XmlStringToDatatype( string s, int& returnValue )
 	if (LookupEnum(s, datatypeInfo, std::size(datatypeInfo), DT_FLOAT, returnValue))
 		return true;
 
+	// legacy alias: "blob2" was the former name for the "object" datatype. Accepted when
+	// reading XML so old projects/modules load. We always write the canonical "object".
+	if (s == "blob2")
+	{
+		returnValue = DT_OBJECT;
+		return true;
+	}
+
 	if (s.find("struct:") == 0)
 	{
 		returnValue = DT_CLASS;
+		return true;
+	}
+
+	if (s.find("object:") == 0)
+	{
+		returnValue = DT_OBJECT;
 		return true;
 	}
 

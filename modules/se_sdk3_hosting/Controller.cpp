@@ -288,7 +288,7 @@ void MpController::Initialize()
 		parameter_xml->QueryIntAttribute("Handle", &ParameterHandle);
 		parameter_xml->QueryIntAttribute("Private", &Private);
 
-		if (dataType == DT_STRING_UTF8 || dataType == DT_TEXT || dataType == DT_BLOB || dataType == DT_BLOB2)
+		if (dataType == DT_STRING_UTF8 || dataType == DT_TEXT || dataType == DT_BLOB || dataType == DT_OBJECT)
 		{
 			Private = 1; // VST and AU can't handle this type of parameter.
 		}

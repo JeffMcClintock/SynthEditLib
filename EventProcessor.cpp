@@ -137,13 +137,13 @@ short_cut:
 					// remove any previous identical stat change
 					if( event2->parm1 == pin_idx )
 					{
-						// blob2 data represents a pointer to a reference counted object.
+						// object data represents a pointer to a reference counted object.
 						// need to decrement the count to indicate that the data is not referenced and can be reused.
-						if (datatype == DT_BLOB2)
+						if (datatype == DT_OBJECT)
 						{
-							auto blob2 = reinterpret_cast<gmpi::IMpUnknown**>(const_cast<int32_t*>(&(event2->parm3)));
-							if (*blob2)
-								(*blob2)->release();
+							auto object = reinterpret_cast<gmpi::IMpUnknown**>(const_cast<int32_t*>(&(event2->parm3)));
+							if (*object)
+								(*object)->release();
 						}
 
 						events.erase( it );
@@ -250,13 +250,13 @@ void EventProcessor::DiscardOldPinEvents( int pin_index, int datatype)
 
 		if( e2->parm1 == pin_index && e2->eventType >= UET_EVENT_SETPIN && e2->eventType <= UET_EVENT_STREAMING_STOP  )
 		{
-			// blob2 data represents a pointer to a reference counted object.
+			// object data represents a pointer to a reference counted object.
 			// need to deccrement the count to indicate that the data is not referenced and can be reused.
-			if(datatype == DT_BLOB2)
+			if(datatype == DT_OBJECT)
 			{
-				auto blob2 = reinterpret_cast<gmpi::IMpUnknown**>(const_cast<int32_t*>(&(e2->parm3)));
-				if (*blob2)
-					(*blob2)->release();
+				auto object = reinterpret_cast<gmpi::IMpUnknown**>(const_cast<int32_t*>(&(e2->parm3)));
+				if (*object)
+					(*object)->release();
 			}
 
 			it = events.erase( it );
@@ -442,7 +442,7 @@ void EventProcessor::LogEvents(std::ofstream& eventLogFile)
 						break;
 
 					case DT_BLOB:
-					case DT_BLOB2:
+					case DT_OBJECT:
 					{
 						eventLogFile << "{BLOB}";
 					}

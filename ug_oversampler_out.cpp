@@ -471,7 +471,7 @@ void ug_oversampler_out::OnFirstSample()
 		case DT_STRING_UTF8:
 		case DT_TEXT:
 		case DT_BLOB:
-		case DT_BLOB2:
+		case DT_OBJECT:
 			size = 0;
 			break;
 
@@ -943,7 +943,7 @@ void ug_oversampler_in::TransmitInitialPinValues()
 		case DT_STRING_UTF8:
 		case DT_TEXT:
 		case DT_BLOB:
-		case DT_BLOB2:
+		case DT_OBJECT:
 			size = 0;
 			break;
 

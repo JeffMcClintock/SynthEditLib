@@ -470,7 +470,7 @@ void ug_container::ConnectPatchCables()
 				auto datatype = fromPlug->DataType;
 				const wchar_t* feedbackModuleType = nullptr;
 
-				const wchar_t* datatypes[] = { L"Enum", L"Text", L"MIDI", L"Double", L"Bool", L"Volts", L"Float", L"", L"Int", L"Int64", L"Blob", L"class-unused", L"Text8", L"Blob2" };
+				const wchar_t* datatypes[] = { L"Enum", L"Text", L"MIDI", L"Double", L"Bool", L"Volts", L"Float", L"", L"Int", L"Int64", L"Blob", L"class-unused", L"Text8", L"Object" };
 
 				wchar_t temp[30];
 
@@ -489,7 +489,7 @@ void ug_container::ConnectPatchCables()
 				case DT_BOOL:
 				case DT_INT64:
 				case DT_BLOB:
-				case DT_BLOB2:
+				case DT_OBJECT:
 				case DT_ENUM:
 					swprintf(temp, sizeof(temp) / sizeof(temp[0]), L"SE Feedback Delay - %ls", datatypes[datatype]);
 					feedbackModuleType = temp;

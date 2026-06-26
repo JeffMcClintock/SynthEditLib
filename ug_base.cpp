@@ -840,13 +840,13 @@ void ug_base::SetPinValue(timestamp_t timestamp, int pin_index, int datatype, co
 		eventType = UET_EVENT_MIDI;
 		break;
 
-	case DT_BLOB2:
+	case DT_OBJECT:
 	{
-		// blob2 data represents a pointer to a reference counted object.
+		// object data represents a pointer to a reference counted object.
 		// need to increment the count to indicate that the data is 'in flight' and can't be reused yet.
-		auto blob2 = reinterpret_cast<gmpi::IMpUnknown**>(const_cast<void*>(data1));
-		if(*blob2)
-			(*blob2)->addRef();
+		auto object = reinterpret_cast<gmpi::IMpUnknown**>(const_cast<void*>(data1));
+		if(*object)
+			(*object)->addRef();
 	}
 	[[fallthrough]];
 
@@ -923,7 +923,7 @@ void ug_base::SendPinsCurrentValue( timestamp_t timestamp, UPlug* from_plug )
 	}
 	break;
 
-	case DT_BLOB2:
+	case DT_OBJECT:
 	{
 		data_size = sizeof(gmpi::ISharedBlob*);
 	}
@@ -1751,7 +1751,7 @@ void ug_base::connect( UPlug* from_plug, UPlug* to_plug )
 
 	if( to_plug->DataType != from_plug->DataType )
 	{
-		const wchar_t* datatypes[] = { L"Enum", L"Text", L"Midi", L"Double", L"Bool", L"Volts", L"Float", L"", L"Int", L"Int64", L"Blob", L"class-unused", L"Text8", L"Blob2"};
+		const wchar_t* datatypes[] = { L"Enum", L"Text", L"Midi", L"Double", L"Bool", L"Volts", L"Float", L"", L"Int", L"Int64", L"Blob", L"class-unused", L"Text8", L"Blob2" /* (Object) */};
 
 		wchar_t temp[30];
 		swprintf(temp, sizeof(temp)/sizeof(temp[0]), L"SE %lsTo%ls", datatypes[from_plug->DataType], datatypes[to_plug->DataType]);
@@ -1943,7 +1943,7 @@ void ug_base::connect( UPlug* from_plug, UPlug* to_plug )
 					break;
 
 			case DT_BLOB:	// new datatype in 1.1. Don't need backward compatibility.
-			case DT_BLOB2:
+			case DT_OBJECT:
 				break;
 
 				// copy current output value to destination plug.
