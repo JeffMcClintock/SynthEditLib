@@ -29,8 +29,8 @@ namespace
 <PluginList>
   <Plugin id="SE Render" name="Render" category="Experimental/Graphics">
     <GUI graphicsApi="Cadmium">
-      <Pin name="Brush" datatype="class:brush"/>
-      <Pin name="Geometry" datatype="class:geometry"/>
+      <Pin name="Brush" datatype="struct:brush"/>
+      <Pin name="Geometry" datatype="struct:geometry"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -43,8 +43,8 @@ namespace
   <Plugin id="CD Square" name="Square" category="Experimental/Graphics">
     <GUI graphicsApi="Cadmium">
       <Pin name="Size" datatype="float" />
-      <Pin name="Center" datatype="class:point" />
-      <Pin name="Geometry" datatype="class:geometry" direction="out" />
+      <Pin name="Center" datatype="struct:point" />
+      <Pin name="Geometry" datatype="struct:geometry" direction="out" />
     </GUI>
   </Plugin>
 </PluginList>
@@ -57,7 +57,7 @@ namespace
   <Plugin id="CD Circle" name="Circle" category="Experimental/Graphics">
     <GUI graphicsApi="Cadmium">
       <Pin name="Radius" datatype="float" />
-      <Pin name="Geometry" datatype="class:geometry" direction="out" />
+      <Pin name="Geometry" datatype="struct:geometry" direction="out" />
     </GUI>
   </Plugin>
 </PluginList>
@@ -70,7 +70,7 @@ namespace
   <Plugin id="SE Solid Color Brush" name="Solid Color Brush" category="Experimental/Graphics">
     <GUI graphicsApi="Cadmium">
       <Pin name="Color" datatype="string" default="aaffa500"/>
-      <Pin name="Brush" datatype="class:brush" direction="out" />
+      <Pin name="Brush" datatype="struct:brush" direction="out" />
     </GUI>
   </Plugin>
 </PluginList>
@@ -82,7 +82,7 @@ namespace
 <PluginList>
   <Plugin id="CD Pointer" name="Pointer" category="Experimental/Graphics">
     <GUI graphicsApi="Cadmium">
-      <Pin name="Point" datatype="class:point" direction="out" />
+      <Pin name="Point" datatype="struct:point" direction="out" />
     </GUI>
   </Plugin>
 </PluginList>
@@ -94,7 +94,7 @@ namespace
 <PluginList>
   <Plugin id="CD Point2Values" name="Point to Values" category="Experimental/Graphics">
     <GUI graphicsApi="Cadmium">
-      <Pin name="Point" datatype="class:point"  />
+      <Pin name="Point" datatype="struct:point"  />
       <Pin name="x" datatype="float" direction="out" />
       <Pin name="y" datatype="float" direction="out" />
     </GUI>
@@ -108,7 +108,7 @@ namespace
 <PluginList>
   <Plugin id="CD Apply" name="Apply" category="Experimental/Graphics">
     <GUI graphicsApi="Cadmium">
-      <Pin name="List" datatype="class:list" />
+      <Pin name="List" datatype="struct:list" />
     </GUI>
   </Plugin>
 </PluginList>
@@ -120,8 +120,8 @@ namespace
 <PluginList>
   <Plugin id="CD Make List" name="Make List" category="Experimental/Graphics">
     <GUI graphicsApi="Cadmium">
-      <Pin name="List" datatype="class:list" direction="out" />
-      <Pin name="in" datatype="class:any" autoDuplicate="true" />
+      <Pin name="List" datatype="struct:list" direction="out" />
+      <Pin name="in" datatype="struct:any" autoDuplicate="true" />
     </GUI>
   </Plugin>
 </PluginList>
@@ -134,7 +134,7 @@ namespace
 <PluginList>
   <Plugin id="CD Render Function" name="Render Function" category="Experimental/Graphics">
     <GUI graphicsApi="Cadmium">
-      <Pin name="Function" datatype="class:func" direction="out" />
+      <Pin name="Function" datatype="struct:func" direction="out" />
     </GUI>
   </Plugin>
 </PluginList>

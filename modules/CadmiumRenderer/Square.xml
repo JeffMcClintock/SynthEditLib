@@ -26,36 +26,36 @@
 
   <Plugin id="SE Render" name="Render" category="Graphics">
     <GUI graphicsApi="GmpiGui">
-      <Pin name="Brush" datatype="class:brush"/>
-      <Pin name="Geometry" datatype="class:geometry"/>
+      <Pin name="Brush" datatype="struct:brush"/>
+      <Pin name="Geometry" datatype="struct:geometry"/>
     </GUI>
   </Plugin>
 
   <Plugin id="CD Square" name="Square" category="Graphics">
     <GUI>
       <Pin name="Size" datatype="float" />
-      <Pin name="Center" datatype="class:point" />
-      <Pin name="Geometry" datatype="class:geometry" direction="out" />
+      <Pin name="Center" datatype="struct:point" />
+      <Pin name="Geometry" datatype="struct:geometry" direction="out" />
     </GUI>
   </Plugin>
 
   <Plugin id="CD Circle" name="Circle" category="Graphics">
     <GUI graphicsApi="Cadmium">
       <Pin name="Radius" datatype="float" />
-      <Pin name="Geometry" datatype="class:geometry" direction="out" />
+      <Pin name="Geometry" datatype="struct:geometry" direction="out" />
     </GUI>
   </Plugin>
 
   <Plugin id="SE Solid Color Brush" name="Solid Color Brush" category="Graphics">
     <GUI>
       <Pin name="Color" datatype="string" default="aaffa500"/>
-      <Pin name="Brush" datatype="class:brush" direction="out" />
+      <Pin name="Brush" datatype="struct:brush" direction="out" />
     </GUI>
   </Plugin>
 
   <Plugin id="CD Pointer" name="Pointer" category="Graphics">
     <GUI>
-      <Pin name="Point" datatype="class:point" direction="out" />
+      <Pin name="Point" datatype="struct:point" direction="out" />
     </GUI>
   </Plugin>
 

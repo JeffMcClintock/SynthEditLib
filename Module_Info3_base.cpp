@@ -732,10 +732,10 @@ void Module_Info::RegisterPin(TiXmlElement* pin, module_info_pins_t* pinlist, in
 						pind.datatype = DT_FSAMPLE;
 					}
 				}
-				else if (pind.datatype == DT_CLASS) // e.g. "class:geometry"
+				else if (pind.datatype == DT_CLASS) // e.g. "struct:geometry"
 				{
-					if (pin_datatype.size() > 6)
-						pind.classname = pin_datatype.substr(6);
+					if (pin_datatype.size() > 7)
+						pind.classname = pin_datatype.substr(7);
 				}
 				else if (pind.datatype == DT_TEXT && GetExtension(Filename())== L"gmpi")
 				{
@@ -1111,10 +1111,10 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 						addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 					}
 
-					if (pind.datatype == DT_CLASS) // e.g. "class:geometry"
+					if (pind.datatype == DT_CLASS) // e.g. "struct:geometry"
 					{
-						if (pin_datatype.size() > 6)
-							pind.classname = pin_datatype.substr(6);
+						if (pin_datatype.size() > 7)
+							pind.classname = pin_datatype.substr(7);
 					}
 					else if (pind.datatype == DT_TEXT && MT_GMPI == ModuleTechnology())
 					{

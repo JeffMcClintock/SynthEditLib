@@ -1029,7 +1029,7 @@ static const TextToIntStruct2 datatypeInfo[] =
 	("enum")			,DT_ENUM,
 	("double")			,DT_DOUBLE,
 	("int64")			,DT_INT64,
-	("class")			,DT_CLASS,	
+	("struct")			,DT_CLASS,
 };
 
 bool XmlStringToDatatype( string s, int& returnValue )
@@ -1037,7 +1037,7 @@ bool XmlStringToDatatype( string s, int& returnValue )
 	if (LookupEnum(s, datatypeInfo, std::size(datatypeInfo), DT_FLOAT, returnValue))
 		return true;
 
-	if (s.find("class:") == 0)
+	if (s.find("struct:") == 0)
 	{
 		returnValue = DT_CLASS;
 		return true;
