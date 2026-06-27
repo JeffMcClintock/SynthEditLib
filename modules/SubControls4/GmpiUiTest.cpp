@@ -1125,6 +1125,14 @@ public:
         host->setPin(id, 0, dataSize(ptr), dataPtr(ptr));
     }
 
+    // assign the object and send it out the pin in one step.
+    T* operator=(T* pvalue)
+    {
+        value = pvalue;
+        send();
+        return pvalue;
+    }
+
     operator bool() const
     {
         return !value.isNull();
@@ -1175,8 +1183,8 @@ auto r17a = gmpi::Register<ObjectTester>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: ObjectTester" name="ObjectTester" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="In" datatype="int64"/>
-      <Pin name="Out" datatype="int64" direction="out"/>
+      <Pin name="In" datatype="object:test"/>
+      <Pin name="Out" datatype="object:test" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -1184,7 +1192,7 @@ auto r17a = gmpi::Register<ObjectTester>::withXml(R"XML(
 }
 struct CircleGeometry final : public GraphicsProcessor
 {
-    Pin<int64_t> pinOutput;
+    ObjectOut<drawing::api::IPathGeometry> pinOutput;
 
     gmpi::drawing::PathGeometry geometry;
 
@@ -1195,7 +1203,7 @@ struct CircleGeometry final : public GraphicsProcessor
 
     ReturnCode process() override
     {
-        if (!pinOutput.value)
+        if (!pinOutput)
         {
             geometry = drawingFactory.createPathGeometry();
 #ifdef _DEBUG
@@ -1224,7 +1232,7 @@ struct CircleGeometry final : public GraphicsProcessor
             sink.endFigure(FigureEnd::Closed);
             sink.close();
 
-			pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(geometry));
+			pinOutput = AccessPtr::get(geometry);
         }
 
         return ReturnCode::Ok;
@@ -1239,7 +1247,7 @@ auto r17 = gmpi::Register<CircleGeometry>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: CircleGeometry" name="CircleGeometry" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Path" datatype="int64" direction="out"/>
+      <Pin name="Path" datatype="object:path" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -1249,13 +1257,13 @@ auto r17 = gmpi::Register<CircleGeometry>::withXml(R"XML(
 struct SvgGeometry final : public GraphicsProcessor
 {
     Pin<std::string> pinFilename;
-    Pin<int64_t> pinOutput;
+    ObjectOut<drawing::api::IPathGeometry> pinOutput;
 
     gmpi::drawing::PathGeometry geometry;
 
     ReturnCode process() override
     {
-        if (!pinOutput.value)
+        if (!pinOutput)
         {
             geometry = drawingFactory.createPathGeometry();
 
@@ -1277,7 +1285,7 @@ struct SvgGeometry final : public GraphicsProcessor
             //sink.endFigure(FigureEnd::Closed);
             sink.close();
 
-            pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(geometry));
+            pinOutput = AccessPtr::get(geometry);
         }
 
         return ReturnCode::Ok;
@@ -1293,7 +1301,7 @@ auto r17b = gmpi::Register<SvgGeometry>::withXml(R"XML(
   <Plugin id="SE: SvgGeometry" name="Svg Geometry" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
 	  <Pin name="SVG File" datatype="string_utf8" isFilename="true" metadata="svg"/>
-      <Pin name="Path" datatype="int64" direction="out"/>
+      <Pin name="Path" datatype="object:path" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -1302,19 +1310,17 @@ auto r17b = gmpi::Register<SvgGeometry>::withXml(R"XML(
 
 struct RenderGeometry final : public PluginEditor
 {
-    Pin<int64_t> pinInput;
+    ObjectIn<drawing::api::IPathGeometry> pinInput;
 
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
     {
-		if (!pinInput.value)
+		if (!pinInput)
 			return ReturnCode::Ok;
 
+        // wrap the incoming interface so we can draw it.
         PathGeometry geometry;
-        {
-            auto unknown = reinterpret_cast<gmpi::api::IUnknown*>(pinInput.value);
-            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
-                return ReturnCode::Fail;
-        }
+        if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
+            return ReturnCode::Fail;
 
         Graphics g(drawingContext);
 
@@ -1335,7 +1341,7 @@ auto r18 = gmpi::Register<RenderGeometry>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: RenderGeometry" name="Render" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Path" datatype="int64"/>
+      <Pin name="Path" datatype="object:path"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -1344,22 +1350,20 @@ auto r18 = gmpi::Register<RenderGeometry>::withXml(R"XML(
 
 struct Render2Bitmap final : public GraphicsProcessor
 {
-    Pin<int64_t> pinInput;
-    Pin<int64_t> pinOutput;
+    ObjectIn<drawing::api::IPathGeometry>  pinInput;
+    ObjectOut<drawing::api::IBitmap>       pinOutput;
 
     Bitmap bitmap;
 
     ReturnCode process() override
     {
-        if (!pinInput.value)
+        if (!pinInput)
             return ReturnCode::Ok;
 
+        // wrap the incoming interface so we can draw it.
         PathGeometry geometry;
-        {
-            auto unknown = reinterpret_cast<gmpi::api::IUnknown*>(pinInput.value);
-            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
-                return ReturnCode::Fail;
-        }
+        if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
+            return ReturnCode::Fail;
         {
             const SizeU size{ 100, 100 };// getWidth(bounds), getHeight(bounds)}; size is zero on first process.
             const int32_t flags = (int32_t)BitmapRenderTargetFlags::Mask;
@@ -1387,7 +1391,7 @@ struct Render2Bitmap final : public GraphicsProcessor
             bitmap = g2.getBitmap();
         }
 
-        pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(bitmap));
+        pinOutput = AccessPtr::get(bitmap);
 
         return ReturnCode::Ok;
     }
@@ -1401,8 +1405,8 @@ auto r19 = gmpi::Register<Render2Bitmap>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: Render2Bitmap" name="Render2Bitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Path" datatype="int64"/>
-      <Pin name="Bitmap" datatype="int64" direction="out"/>
+      <Pin name="Path" datatype="object:path"/>
+      <Pin name="Bitmap" datatype="object:bitmap" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -1411,7 +1415,7 @@ auto r19 = gmpi::Register<Render2Bitmap>::withXml(R"XML(
 
 struct RenderBitmap final : public PluginEditor
 {
-    Pin<int64_t> pinInput;
+    ObjectIn<drawing::api::IBitmap> pinInput;
 
     ReturnCode process() override
     {
@@ -1421,17 +1425,15 @@ struct RenderBitmap final : public PluginEditor
 
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
     {
-        if (!pinInput.value)
+        if (!pinInput)
             return ReturnCode::Ok;
-        
+
         Graphics g(drawingContext);
 
+        // wrap the incoming interface so we can draw it.
         Bitmap bitmap;
-        {
-            auto unknown = reinterpret_cast<gmpi::api::IUnknown*>(pinInput.value);
-            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IBitmap::guid, AccessPtr::put_void(bitmap)))
-                return ReturnCode::Fail;
-        }
+        if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IBitmap::guid, AccessPtr::put_void(bitmap)))
+            return ReturnCode::Fail;
 
         const auto size = bitmap.getSize();
         const Rect rect{ 0, 0, static_cast<float>(size.width), static_cast<float>(size.height) };
@@ -1450,7 +1452,7 @@ auto r20 = gmpi::Register<RenderBitmap>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: RenderBitmap" name="RenderBitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Bitmap" datatype="int64"/>
+      <Pin name="Bitmap" datatype="object:bitmap"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -1459,8 +1461,8 @@ auto r20 = gmpi::Register<RenderBitmap>::withXml(R"XML(
 
 struct BlurBitmap final : public GraphicsProcessor
 {
-    Pin<int64_t> pinInput;
-    Pin<int64_t> pinOutput;
+    ObjectIn<gmpi::api::IUnknown>    pinInput;  // accepts either a bitmap or a path.
+    ObjectOut<drawing::api::IBitmap> pinOutput;
 
     drawing::Color tint = drawing::colorFromHex(0xd4c1ffu);
     Bitmap blurredBitmap;
@@ -1468,10 +1470,10 @@ struct BlurBitmap final : public GraphicsProcessor
 
     ReturnCode process() override
     {
-        if (!pinInput.value)
+        if (!pinInput)
             return ReturnCode::Ok;
 
-        auto unknown = reinterpret_cast<gmpi::api::IUnknown*>(pinInput.value);
+        auto unknown = pinInput.value.get();
 
         Bitmap bitmap;
         PathGeometry geometry;
@@ -1606,7 +1608,7 @@ struct BlurBitmap final : public GraphicsProcessor
             }
         }
 
-        pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(blurredBitmap));
+        pinOutput = AccessPtr::get(blurredBitmap);
 
         return ReturnCode::Ok;
     }
@@ -1620,8 +1622,8 @@ auto r21 = gmpi::Register<BlurBitmap>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: BlurBitmap" name="Blur" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Bitmap/Path" datatype="int64"/>
-      <Pin name="Blurred" datatype="int64" direction="out"/>
+      <Pin name="Bitmap/Path" datatype="object"/>
+      <Pin name="Blurred" datatype="object:bitmap" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -1630,17 +1632,17 @@ auto r21 = gmpi::Register<BlurBitmap>::withXml(R"XML(
 
 struct TextFormatNode final : public GraphicsProcessor
 {
-    Pin<int64_t> pinOutput;
+    ObjectOut<drawing::api::ITextFormat> pinOutput;
 
     gmpi::drawing::TextFormat textFormat;
 
     ReturnCode process() override
     {
-        if (!pinOutput.value)
+        if (!pinOutput)
         {
 			textFormat = drawingFactory.createTextFormat(20.0f);
 
-            pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(textFormat));
+            pinOutput = AccessPtr::get(textFormat);
         }
 
         return ReturnCode::Ok;
@@ -1655,7 +1657,7 @@ auto r22 = gmpi::Register<TextFormatNode>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: TextFormat" name="TextFormat" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Font" datatype="int64" direction="out"/>
+      <Pin name="Font" datatype="object:font" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -1664,23 +1666,21 @@ auto r22 = gmpi::Register<TextFormatNode>::withXml(R"XML(
 
 struct RenderText2Bitmap final : public GraphicsProcessor
 {
-    Pin<int64_t> pinInput;
-    Pin<std::string> pinText;
-    Pin<int64_t> pinOutput;
+    ObjectIn<drawing::api::ITextFormat> pinInput;
+    Pin<std::string>                    pinText;
+    ObjectOut<drawing::api::IBitmap>    pinOutput;
 
     Bitmap bitmap;
 
     ReturnCode process() override
     {
-        if (!pinInput.value)
+        if (!pinInput)
             return ReturnCode::Ok;
 
+        // wrap the incoming interface so we can draw with it.
         TextFormat geometry;
-        {
-            auto unknown = reinterpret_cast<gmpi::api::IUnknown*>(pinInput.value);
-            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::ITextFormat::guid, AccessPtr::put_void(geometry)))
-                return ReturnCode::Fail;
-        }
+        if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::ITextFormat::guid, AccessPtr::put_void(geometry)))
+            return ReturnCode::Fail;
         {
             const SizeU size{ 100, 100 };// getWidth(bounds), getHeight(bounds)}; size is zero on first process.
             const int32_t flags = (int32_t)BitmapRenderTargetFlags::Mask;
@@ -1710,7 +1710,7 @@ struct RenderText2Bitmap final : public GraphicsProcessor
             bitmap = g2.getBitmap();
         }
 
-        pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(bitmap));
+        pinOutput = AccessPtr::get(bitmap);
 
         return ReturnCode::Ok;
     }
@@ -1724,9 +1724,9 @@ auto r23 = gmpi::Register<RenderText2Bitmap>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: RenderText2Bitmap" name="RenderText2Bitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Font" datatype="int64"/>
+      <Pin name="Font" datatype="object:font"/>
       <Pin name="Text" datatype="string_utf8"/>
-      <Pin name="Bitmap" datatype="int64" direction="out"/>
+      <Pin name="Bitmap" datatype="object:bitmap" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -1736,23 +1736,21 @@ auto r23 = gmpi::Register<RenderText2Bitmap>::withXml(R"XML(
 // 8-bit mask image to 32-bit bitmap.
 struct Mask2Bitmap final : public GraphicsProcessor
 {
-    Pin<int64_t> pinInput;
-    Pin<int64_t> pinOutput;
+    ObjectIn<drawing::api::IBitmap>  pinInput;
+    ObjectOut<drawing::api::IBitmap> pinOutput;
 
     drawing::Color tint = drawing::colorFromHex(0xffffffu);
     Bitmap blurredBitmap;
 
     ReturnCode process() override
     {
-        if (!pinInput.value)
+        if (!pinInput)
             return ReturnCode::Ok;
 
-        auto unknown = reinterpret_cast<gmpi::api::IUnknown*>(pinInput.value);
+        auto unknown = pinInput.value.get();
 
         Bitmap bitmap;
-        PathGeometry geometry;
 
-        // test if input is Bitmap or Path
         if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IBitmap::guid, AccessPtr::put_void(bitmap)))
             return ReturnCode::Fail;
 
@@ -1840,7 +1838,7 @@ struct Mask2Bitmap final : public GraphicsProcessor
             }
         }
 
-        pinOutput = reinterpret_cast<int64_t>(AccessPtr::get(blurredBitmap));
+        pinOutput = AccessPtr::get(blurredBitmap);
 
         return ReturnCode::Ok;
     }
@@ -1854,8 +1852,8 @@ auto r24 = gmpi::Register<Mask2Bitmap>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: Mask2Bitmap" name="Mask2Bitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Bitmap8" datatype="int64"/>
-      <Pin name="Bitmap24" datatype="int64" direction="out"/>
+      <Pin name="Bitmap8" datatype="object:bitmap"/>
+      <Pin name="Bitmap24" datatype="object:bitmap" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
