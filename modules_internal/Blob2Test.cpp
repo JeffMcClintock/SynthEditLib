@@ -28,18 +28,12 @@ class ObjectTest final : public MpBase2
 
 	int value = 1234;
 
-	gmpi::ISharedBlob* inputBlob = {};
 	SharedBlobView outputBlobPool[2];
 	char outputValues[2][100];
 
 public:
 	ObjectTest()
 	{
-		// fails
-		//initializePin(1, pinTrigger);
-		//initializePin(3, pinValueIn);
-		//initializePin(99999, pinValueOut);
-
 		// initialise with index, not ID.
 		initializePin(0, pinTrigger);
 		initializePin(1, pinValueIn);
@@ -51,6 +45,7 @@ public:
 		// Check which pins are updated.
 		if (pinValueIn.isUpdated())
 		{
+			gmpi::ISharedBlob* inputBlob = {};
 			inputBlob = pinValueIn.getValue();
 
 			// print contents of BLOB for diagnostic purposes

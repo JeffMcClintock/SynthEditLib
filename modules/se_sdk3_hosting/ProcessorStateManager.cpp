@@ -830,7 +830,7 @@ void init(std::map<int32_t, paramInfo>& parametersInfo, tinyxml2::XMLNode* param
 		parameter_xml->QueryIntAttribute("Private", &Private);
 		p.private_ = Private != 0;
 
-		if (p.dataType == gmpi::PinDatatype::String || p.dataType == gmpi::PinDatatype::WideString || p.dataType == gmpi::PinDatatype::Blob || p.dataType == gmpi::PinDatatype::Blob2)
+		if (p.dataType == gmpi::PinDatatype::String || p.dataType == gmpi::PinDatatype::WideString || p.dataType == gmpi::PinDatatype::Blob || p.dataType == gmpi::PinDatatype::Object)
 		{
 			Private = 1; // VST and AU can't handle this type of parameter.
 		}
