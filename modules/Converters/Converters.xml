@@ -399,15 +399,15 @@
       <Pin id="1" name="Bool Val" direction="out" datatype="bool"/>
     </Audio>
   </Plugin>
-	<Plugin id="SE BlobToBlob2" name="Blob To Object" category="Conversion" helpUrl="converters.htm" alwaysExport="true">
+	<Plugin id="SE BlobToBlob2" name="Blob To Blob2" category="Conversion" helpUrl="converters.htm" alwaysExport="true">
 		<Audio>
 			<Pin name="Blob Val" direction="in" datatype="blob"/>
-			<Pin name="Object Val" direction="out" datatype="object"/>
+			<Pin name="Blob2 Val" direction="out" datatype="object"/>
 		</Audio>
 	</Plugin>
-	<Plugin id="SE Blob2ToBlob" name="Object To Blob" category="Conversion" helpUrl="converters.htm" alwaysExport="true">
+	<Plugin id="SE Blob2ToBlob" name="Blob2 To Blob" category="Conversion" helpUrl="converters.htm" alwaysExport="true">
 		<Audio>
-			<Pin name="Object Val" direction="in" datatype="object"/>
+			<Pin name="Blob2 Val" direction="in" datatype="object"/>
 			<Pin name="Blob Val" direction="out" datatype="blob"/>
 		</Audio>
 	</Plugin>

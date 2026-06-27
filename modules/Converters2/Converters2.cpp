@@ -13,8 +13,10 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 #include <memory>
+#include <string>
 #include "Processor.h"
 #include "Extensions/PinCount.h"
+#include "Helpers/SharedBlob.h"
 
 using namespace gmpi;
 
@@ -145,6 +147,108 @@ auto r2 = Register<OsDetect>::withXml(R"XML(
     <Audio>
         <Pin name="Windows" datatype="bool" direction="out"/>
         <Pin name="macOS" datatype="bool" direction="out"/>
+    </Audio>
+</Plugin>
+)XML");
+}
+
+
+// Convert a by-value Blob into a shared 'object' (api::ISharedBlob), passed downstream by reference.
+struct BlobToObject final : public Processor
+{
+	BlobInPin                      pinValueIn;
+	ObjectOutPin<api::ISharedBlob> pinValueOut;
+
+	// Each sent blob must keep a stable address while it's still 'in flight' (referenced
+	// downstream), so the pool holds unique_ptrs - growing the vector never moves existing entries.
+	struct blobInfo
+	{
+		SharedBlobView blobview;
+		std::string    blobData;
+	};
+	std::vector<std::unique_ptr<blobInfo>> outputBlobPool;
+
+	void onSetPins() override
+	{
+		if (!pinValueIn.isUpdated())
+			return;
+
+		// find a free pool entry, or grow the pool.
+		blobInfo* blob = nullptr;
+		for (auto& entry : outputBlobPool)
+		{
+			if (!entry->blobview.inUse())
+			{
+				blob = entry.get();
+				break;
+			}
+		}
+		if (!blob)
+		{
+			outputBlobPool.push_back(std::make_unique<blobInfo>());
+			blob = outputBlobPool.back().get();
+		}
+
+		// copy the incoming bytes into stable storage, point the view at them, and send.
+		const Blob& in = pinValueIn.getValue();
+		blob->blobData.assign(reinterpret_cast<const char*>(in.data()), in.size());
+		blob->blobview.set(blob->blobData.data(), static_cast<int64_t>(blob->blobData.size()));
+
+		pinValueOut = &blob->blobview;
+	}
+};
+
+namespace
+{
+auto r4 = Register<BlobToObject>::withXml(R"XML(
+<?xml version="1.0" encoding="UTF-8"?>
+<Plugin id="SE BlobToBlob2_b" name="Blob To Blob2 b" category="Conversion">
+    <Audio>
+        <Pin name="Blob Val" direction="in" datatype="blob"/>
+        <Pin name="Blob2 Val" direction="out" datatype="object:blob"/>
+    </Audio>
+</Plugin>
+)XML");
+}
+
+
+// Convert a shared 'object' (api::ISharedBlob) back into a by-value Blob.
+struct ObjectToBlob final : public Processor
+{
+	ObjectInPin<api::ISharedBlob> pinValueIn;
+	BlobOutPin                    pinValueOut;
+
+	void onSetPins() override
+	{
+		if (!pinValueIn.isUpdated())
+			return;
+
+		// The pin resolved the ISharedBlob interface for us (null if the object is absent
+		// or isn't an ISharedBlob) - no queryInterface boilerplate, no unsafe assumption.
+		if (auto blob = pinValueIn.getValue())
+		{
+			const uint8_t* data{};
+			int64_t size{};
+			if (blob->read(&data, &size) == ReturnCode::Ok)
+			{
+				pinValueOut = Blob(data, data + size);
+				return;
+			}
+		}
+
+		// no usable object - emit an empty blob.
+		pinValueOut = Blob{};
+	}
+};
+
+namespace
+{
+auto r5 = Register<ObjectToBlob>::withXml(R"XML(
+<?xml version="1.0" encoding="UTF-8"?>
+<Plugin id="SE Blob2ToBlob_b" name="Blob2 To Blob b" category="Conversion">
+    <Audio>
+        <Pin name="Blob2 Val" direction="in" datatype="object:blob"/>
+        <Pin name="Blob Val" direction="out" datatype="blob"/>
     </Audio>
 </Plugin>
 )XML");
