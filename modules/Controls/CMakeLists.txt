@@ -19,10 +19,13 @@ gmpi_plugin(
       PlainImageGui.cpp
 	  ${GMPI_UI_SDK}/helpers/ImageCache.cpp
 	  ${GMPI_UI_SDK}/helpers/ImageMetadata.cpp
+	  ${GMPI_UI_SDK}/helpers/Timer.cpp
 	  VUMeterGui.cpp
 	  BarLEDMeterGui.cpp
 	  PostItGui.cpp
 	  TextEntryGui.cpp
 	  TextEntry.cpp
       LabelGui.cpp
+	  Scope4.cpp
+	  Scope4Gui.cpp
 )

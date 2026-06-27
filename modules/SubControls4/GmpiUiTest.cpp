@@ -1048,7 +1048,140 @@ struct GraphicsProcessor : public PluginEditorNoGui
     }
 };
 
+// a test interface and object to test passing ref-counted objects arround.
+struct DECLSPEC_NOVTABLE ITest : gmpi::api::IUnknown
+{
+    virtual int32_t get() = 0;
+    virtual void set(int32_t) = 0;
 
+    // {BAC97FE8-3551-4A93-B362-AC3DBE296017}
+    inline static const gmpi::api::Guid guid =
+    { 0xbac97fe8, 0x3551, 0x4a93, { 0xb3, 0x62, 0xac, 0x3d, 0xbe, 0x29, 0x60, 0x17 } };
+};
+
+// an inplementation of the test interface.
+struct TestObject : public ITest
+{
+    int32_t value{};
+
+    int32_t get() override { return value; }
+    void set(int32_t pvalue) override {value = pvalue;}
+
+	TestObject()
+	{
+		_RPT0(0, "TestObject constructor\n");
+	}
+    ~TestObject()
+	{
+		_RPT0(0, "TestObject destructor\n");
+	}
+
+    GMPI_REFCOUNT
+    GMPI_QUERYINTERFACE_METHOD(ITest)
+};
+
+template<typename T>
+class ObjectIn : public gmpi::editor2::PinBase
+{
+    void setFromHost(int32_t voice, int32_t size, const uint8_t* data) override
+    {
+        dirty = true;
+
+        gmpi::api::IUnknown* temp{};
+        valueFromData({ data, static_cast<size_t>(size) }, temp);
+
+        if(temp)
+            temp->queryInterface(&T::guid, (void**)value.put_void());
+        else
+            value = nullptr;
+
+        if(onUpdate)
+            onUpdate(this);
+    }
+
+public:
+    gmpi::shared_ptr<T> value;
+
+	operator bool() const
+	{
+		return !value.isNull();
+	}
+};
+
+template<typename T>
+class ObjectOut : public gmpi::editor2::PinBase
+{
+    void setFromHost(int32_t voice, int32_t size, const uint8_t* data) override
+    {
+        // N/A
+    }
+
+public:
+    gmpi::shared_ptr<T> value;
+
+    void send()
+    {
+        const auto& ptr = value.get();
+        host->setPin(id, 0, dataSize(ptr), dataPtr(ptr));
+    }
+
+    operator bool() const
+    {
+        return !value.isNull();
+    }
+};
+
+// a test module that takes an input object, and returns a pointer to it's output object with the input incremented by 1.
+struct ObjectTester final : public GraphicsProcessor
+{
+    ObjectIn<ITest> pinInput;
+    ObjectOut<ITest> pinOutput;
+
+    ReturnCode process() override
+    {
+        const bool firstTime = !pinOutput;
+        if(firstTime)
+            pinOutput.value.attach(new TestObject());
+
+		const auto before = pinOutput.value->get();
+
+        if(pinInput)
+        {
+            pinOutput.value->set(pinInput.value->get() + 1);
+
+            _RPTN(0, "ObjectTester: %d -> %d\n", pinInput.value->get(), pinOutput.value->get());
+        }
+        else
+        {
+            _RPT0(0, "ObjectTester: no input\n");
+			pinOutput.value->set(0);
+        }
+
+        if(firstTime || before != pinOutput.value->get())
+        {
+            pinOutput.send();
+        }
+
+        return ReturnCode::Ok;
+    }
+};
+
+// register the test module
+namespace
+{
+auto r17a = gmpi::Register<ObjectTester>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: ObjectTester" name="ObjectTester" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="In" datatype="int64"/>
+      <Pin name="Out" datatype="int64" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
 struct CircleGeometry final : public GraphicsProcessor
 {
     Pin<int64_t> pinOutput;
