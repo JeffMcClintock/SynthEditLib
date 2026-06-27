@@ -1346,25 +1346,99 @@ auto r25 = gmpi::Register<ColorFromRGBA>::withXml(R"XML(
 )XML");
 }
 
+// A bundle of drawing-style properties (fill, stroke, stroke width) passed as a single
+// reference-counted object - the CSS idea of a 'class' applied to many elements with one wire.
+// It's an interface (not a value struct) so it can grow new properties (dashes, gradients,
+// caps, ...) via an IStyle2 without breaking existing modules or saved patches.
+struct DECLSPEC_NOVTABLE IStyle : gmpi::api::IUnknown
+{
+    // Each getter returns Ok when the property is supplied. (Future: Fail could mean 'inherit',
+    // for CSS-like cascading/merging.) A colour with alpha 0 means 'don't paint this part'.
+    virtual gmpi::ReturnCode getFillColor(gmpi::drawing::Color* returnColor) = 0;
+    virtual gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* returnColor) = 0;
+    virtual gmpi::ReturnCode getStrokeWidth(float* returnWidth) = 0;
+
+    // {5D4686F8-97A7-4A55-AFFC-6B7CB6BA4505}
+    inline static const gmpi::api::Guid guid =
+    { 0x5d4686f8, 0x97a7, 0x4a55, { 0xaf, 0xfc, 0x6b, 0x7c, 0xb6, 0xba, 0x45, 0x05 } };
+};
+
+// Concrete, mutable style. Reference counted; the producing module owns it.
+struct StyleObject final : public IStyle
+{
+    gmpi::drawing::Color fillColor{};                 // alpha 0 = no fill
+    gmpi::drawing::Color strokeColor{ 0, 0, 0, 1 };   // opaque black
+    float strokeWidth = 1.0f;
+
+    gmpi::ReturnCode getFillColor(gmpi::drawing::Color* c) override { *c = fillColor; return gmpi::ReturnCode::Ok; }
+    gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* c) override { *c = strokeColor; return gmpi::ReturnCode::Ok; }
+    gmpi::ReturnCode getStrokeWidth(float* w) override { *w = strokeWidth; return gmpi::ReturnCode::Ok; }
+
+    GMPI_QUERYINTERFACE_METHOD(IStyle);
+    GMPI_REFCOUNT
+};
+
+// Bundles fill colour, stroke colour and stroke width into a single 'object:style' output.
+// Build the style once and fan the one wire out to as many renderers as you like.
+struct StyleBuilder final : public PluginEditorNoGui
+{
+    Pin<gmpi::drawing::Color> pinFill;
+    Pin<gmpi::drawing::Color> pinStroke;
+    Pin<float>                pinStrokeWidth;
+    ObjectOut<IStyle>         pinStyle;
+
+    StyleBuilder()
+    {
+        // visible defaults: opaque-black 1px stroke, no fill (fill alpha stays 0).
+        pinStroke.value = gmpi::drawing::Color{ 0, 0, 0, 1 };
+        pinStrokeWidth.value = 1.0f;
+    }
+
+    ReturnCode process() override
+    {
+        // create the style object once, then keep mutating it in place and re-sending.
+        if (!pinStyle)
+            pinStyle.value.attach(new StyleObject());
+
+        auto* s = static_cast<StyleObject*>(pinStyle.value.get());
+        s->fillColor   = pinFill.value;
+        s->strokeColor = pinStroke.value;
+        s->strokeWidth = pinStrokeWidth.value;
+
+        pinStyle.send();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r26 = gmpi::Register<StyleBuilder>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: StyleBuilder" name="Style" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Fill" datatype="struct:color"/>
+      <Pin name="Stroke" datatype="struct:color"/>
+      <Pin name="Stroke Width" datatype="float" default="1"/>
+      <Pin name="Style" datatype="object:style" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 struct RenderGeometry final : public PluginEditor
 {
     ObjectIn<drawing::api::IPathGeometry> pinInput;
-    Pin<gmpi::drawing::Color>             pinFillColor;
-    Pin<gmpi::drawing::Color>             pinStrokeColor;
-    Pin<float>                            pinStrokeWidth;
+    ObjectIn<IStyle>                      pinStyle;
 
     RenderGeometry()
     {
-        // sensible defaults when the colour pins aren't connected (fill stays transparent).
-        pinStrokeColor.value = Colors::White;
-        pinStrokeWidth.value = 1.0f;
-
-        // redraw whenever any input changes.
+        // redraw whenever the geometry or its style changes.
         auto invalidate = [this](PinBase*) { if (drawingHost) drawingHost->invalidateRect({}); };
         pinInput.onUpdate = invalidate;
-        pinFillColor.onUpdate = invalidate;
-        pinStrokeColor.onUpdate = invalidate;
-        pinStrokeWidth.onUpdate = invalidate;
+        pinStyle.onUpdate = invalidate;
     }
 
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
@@ -1377,14 +1451,31 @@ struct RenderGeometry final : public PluginEditor
         if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
             return ReturnCode::Fail;
 
+        // resolve the style, falling back to a built-in default (white 1px stroke, no fill)
+        // when nothing is connected.
+        gmpi::drawing::Color fill{};                  // alpha 0 = no fill
+        gmpi::drawing::Color stroke = Colors::White;
+        float strokeWidth = 1.0f;
+        if (auto* style = pinStyle.value.get())
+        {
+            style->getFillColor(&fill);
+            style->getStrokeColor(&stroke);
+            style->getStrokeWidth(&strokeWidth);
+        }
+
         Graphics g(drawingContext);
 
-        // fill the interior, then stroke the outline.
-        auto fillBrush = g.createSolidColorBrush(pinFillColor.value);
-        g.fillGeometry(geometry, fillBrush);
-
-        auto strokeBrush = g.createSolidColorBrush(pinStrokeColor.value);
-        g.drawGeometry(geometry, strokeBrush, pinStrokeWidth.value);
+        // fill the interior, then stroke the outline (alpha 0 / zero width = skip).
+        if (fill.a > 0.0f)
+        {
+            auto fillBrush = g.createSolidColorBrush(fill);
+            g.fillGeometry(geometry, fillBrush);
+        }
+        if (stroke.a > 0.0f && strokeWidth > 0.0f)
+        {
+            auto strokeBrush = g.createSolidColorBrush(stroke);
+            g.drawGeometry(geometry, strokeBrush, strokeWidth);
+        }
 
         return ReturnCode::Ok;
     }
@@ -1399,9 +1490,7 @@ auto r18 = gmpi::Register<RenderGeometry>::withXml(R"XML(
   <Plugin id="SE: RenderGeometry" name="Render" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Path" datatype="object:path"/>
-      <Pin name="Fill" datatype="struct:color"/>
-      <Pin name="Stroke" datatype="struct:color"/>
-      <Pin name="Stroke Width" datatype="float" default="1"/>
+      <Pin name="Style" datatype="object:style"/>
     </GUI>
   </Plugin>
 </PluginList>
