@@ -1088,7 +1088,9 @@ class ObjectIn : public gmpi::editor2::PinBase
         dirty = true;
 
         gmpi::api::IUnknown* temp{};
-        valueFromData({ data, static_cast<size_t>(size) }, temp);
+
+        if(size)
+            valueFromData({ data, static_cast<size_t>(size) }, temp);
 
         if(temp)
             temp->queryInterface(&T::guid, (void**)value.put_void());
@@ -1308,9 +1310,62 @@ auto r17b = gmpi::Register<SvgGeometry>::withXml(R"XML(
 )XML");
 }
 
+// Build a gmpi::drawing::Color from RGBA floats and pass it out a 'struct:color' pin.
+// The colour travels as a plain value (the Color struct itself), not a reference-counted interface.
+struct ColorFromRGBA final : public PluginEditorNoGui
+{
+    Pin<float> pinRed;
+    Pin<float> pinGreen;
+    Pin<float> pinBlue;
+    Pin<float> pinAlpha;
+    Pin<gmpi::drawing::Color> pinColor;
+
+    ReturnCode process() override
+    {
+        pinColor = gmpi::drawing::Color{ pinRed.value, pinGreen.value, pinBlue.value, pinAlpha.value };
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r25 = gmpi::Register<ColorFromRGBA>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: ColorFromRGBA" name="Color (RGBA)" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Red" datatype="float"/>
+      <Pin name="Green" datatype="float"/>
+      <Pin name="Blue" datatype="float"/>
+      <Pin name="Alpha" datatype="float" default="1"/>
+      <Pin name="Color" datatype="struct:color" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 struct RenderGeometry final : public PluginEditor
 {
     ObjectIn<drawing::api::IPathGeometry> pinInput;
+    Pin<gmpi::drawing::Color>             pinFillColor;
+    Pin<gmpi::drawing::Color>             pinStrokeColor;
+    Pin<float>                            pinStrokeWidth;
+
+    RenderGeometry()
+    {
+        // sensible defaults when the colour pins aren't connected (fill stays transparent).
+        pinStrokeColor.value = Colors::White;
+        pinStrokeWidth.value = 1.0f;
+
+        // redraw whenever any input changes.
+        auto invalidate = [this](PinBase*) { if (drawingHost) drawingHost->invalidateRect({}); };
+        pinInput.onUpdate = invalidate;
+        pinFillColor.onUpdate = invalidate;
+        pinStrokeColor.onUpdate = invalidate;
+        pinStrokeWidth.onUpdate = invalidate;
+    }
 
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
     {
@@ -1324,10 +1379,12 @@ struct RenderGeometry final : public PluginEditor
 
         Graphics g(drawingContext);
 
-		auto brush = g.createSolidColorBrush(Colors::White);
-		auto strokeStyle = g.getFactory().createStrokeStyle(CapStyle::Flat);
+        // fill the interior, then stroke the outline.
+        auto fillBrush = g.createSolidColorBrush(pinFillColor.value);
+        g.fillGeometry(geometry, fillBrush);
 
-		g.drawGeometry(geometry, brush);
+        auto strokeBrush = g.createSolidColorBrush(pinStrokeColor.value);
+        g.drawGeometry(geometry, strokeBrush, pinStrokeWidth.value);
 
         return ReturnCode::Ok;
     }
@@ -1342,6 +1399,9 @@ auto r18 = gmpi::Register<RenderGeometry>::withXml(R"XML(
   <Plugin id="SE: RenderGeometry" name="Render" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Path" datatype="object:path"/>
+      <Pin name="Fill" datatype="struct:color"/>
+      <Pin name="Stroke" datatype="struct:color"/>
+      <Pin name="Stroke Width" datatype="float" default="1"/>
     </GUI>
   </Plugin>
 </PluginList>
