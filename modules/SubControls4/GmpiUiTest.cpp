@@ -1220,9 +1220,9 @@ struct CircleGeometry final : public GraphicsProcessor
 
             auto sink = geometry.open();
 
-            // make a circle from two half-circle arcs
-            const Point center{ 20.0f, 20.0f };
-            const float radius{ 10.f };
+            // unit circle: centred on the origin, radius 1, so a transform can size and place it.
+            const Point center{ 0.0f, 0.0f };
+            const float radius{ 1.0f };
 
             constexpr float pi = static_cast<float>(M_PI);
             sink.beginFigure({ center.x, center.y - radius }, drawing::FigureBegin::Filled);
@@ -1665,8 +1665,6 @@ struct RingOfTransforms final : public PluginEditorNoGui
 {
     Pin<int32_t> pinCount;
     Pin<float>   pinRadius;
-    Pin<float>   pinCenterX;
-    Pin<float>   pinCenterY;
     ObjectOut<ITransformList> pinTransforms;
 
     ReturnCode process() override
@@ -1674,15 +1672,16 @@ struct RingOfTransforms final : public PluginEditorNoGui
         if (!pinTransforms)
             pinTransforms.value.attach(new TransformListObject());
 
+        // Lay the ring out around the origin (0,0); the renderer centres its own frame, so we
+        // don't need to know the target widget's size or position. This generator only places
+        // points - compose a Scale/Rotate onto the whole list downstream with Transform Each.
         auto* list = static_cast<TransformListObject*>(pinTransforms.value.get());
         const int n = (std::max)(0, pinCount.value);
         list->transforms.resize(n);
         for (int i = 0; i < n; ++i)
         {
             const float angle = static_cast<float>(i) / static_cast<float>((std::max)(1, n)) * 2.0f * static_cast<float>(M_PI);
-            list->transforms[i] = makeTranslation(
-                pinCenterX.value + pinRadius.value * cosf(angle),
-                pinCenterY.value + pinRadius.value * sinf(angle));
+            list->transforms[i] = makeTranslation(pinRadius.value * cosf(angle), pinRadius.value * sinf(angle));
         }
 
         pinTransforms.send();
@@ -1700,8 +1699,61 @@ auto r31 = gmpi::Register<RingOfTransforms>::withXml(R"XML(
     <GUI>
       <Pin name="Count" datatype="int" default="12"/>
       <Pin name="Radius" datatype="float" default="40"/>
-      <Pin name="Center X" datatype="float" default="0"/>
-      <Pin name="Center Y" datatype="float" default="0"/>
+      <Pin name="Transforms" datatype="object:transformlist" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Composes one transform onto every element of a transform list - the dataflow "map over the
+// collection" operation (cf. a Grasshopper component / Houdini wrangle). out[i] = Transform * In[i],
+// i.e. Transform is applied to the template first, then each item's own placement. This is how you
+// scale a unit template, rotate/offset the whole field, etc. WITHOUT baking it into the generator.
+// Transform defaults to identity, so an unconnected node passes the list through unchanged.
+struct TransformEach final : public PluginEditorNoGui
+{
+    Pin<gmpi::drawing::Matrix3x2> pinTransform;
+    ObjectIn<ITransformList>      pinIn;
+    ObjectOut<ITransformList>     pinOut;
+
+    ReturnCode process() override
+    {
+        if (!pinOut)
+            pinOut.value.attach(new TransformListObject());
+
+        auto* out = static_cast<TransformListObject*>(pinOut.value.get());
+        if (auto* in = pinIn.value.get())
+        {
+            const int n = in->getCount();
+            out->transforms.resize(n);
+            for (int i = 0; i < n; ++i)
+            {
+                gmpi::drawing::Matrix3x2 t;
+                in->getTransform(i, &t);
+                out->transforms[i] = pinTransform.value * t;
+            }
+        }
+        else
+        {
+            out->transforms.clear();
+        }
+
+        pinOut.send();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r33 = gmpi::Register<TransformEach>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: TransformEach" name="Transform Each" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Transform" datatype="struct:transform"/>
+      <Pin name="Transforms" datatype="object:transformlist"/>
       <Pin name="Transforms" datatype="object:transformlist" direction="out"/>
     </GUI>
   </Plugin>
@@ -1753,7 +1805,11 @@ struct RenderInstances final : public PluginEditor
         auto strokeBrush = g.createSolidColorBrush(stroke);
 
         auto* list = pinTransforms.value.get();
-        const auto base = g.getTransform();
+
+        // Put the origin at the widget's centre, so upstream generators can lay instances out
+        // around (0,0) without knowing the widget's size or position.
+        const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * g.getTransform();
+
         const int count = list->getCount();
         for (int i = 0; i < count; ++i)
         {
@@ -1761,7 +1817,7 @@ struct RenderInstances final : public PluginEditor
             if (ReturnCode::Ok != list->getTransform(i, &t))
                 continue;
 
-            g.setTransform(t * base);  // place this instance, relative to the module's origin.
+            g.setTransform(t * base);  // place this instance, relative to the widget centre.
 
             if (fill.a > 0.0f)
                 g.fillGeometry(geometry, fillBrush);
