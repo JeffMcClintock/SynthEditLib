@@ -1625,6 +1625,172 @@ auto r18 = gmpi::Register<RenderGeometry>::withXml(R"XML(
 )XML");
 }
 
+// ============================================================================================
+// Instancing proof-of-concept: one template geometry drawn N times under a LIST of transforms.
+// Mirrors Houdini Copy-to-Points / Unreal ISM / TouchDesigner Geometry COMP: repetition lives
+// in the DATA (a transform list on one wire), not in duplicated nodes/wires.
+// ============================================================================================
+
+// A list of transforms carried on one 'object:transformlist' wire. Reference counted.
+struct DECLSPEC_NOVTABLE ITransformList : gmpi::api::IUnknown
+{
+    virtual int32_t getCount() = 0;
+    virtual gmpi::ReturnCode getTransform(int32_t index, gmpi::drawing::Matrix3x2* returnTransform) = 0;
+
+    // {55CECBC5-88D6-48CB-83A4-DD42814BD8D3}
+    inline static const gmpi::api::Guid guid =
+    { 0x55cecbc5, 0x88d6, 0x48cb, { 0x83, 0xa4, 0xdd, 0x42, 0x81, 0x4b, 0xd8, 0xd3 } };
+};
+
+struct TransformListObject final : public ITransformList
+{
+    std::vector<gmpi::drawing::Matrix3x2> transforms;
+
+    int32_t getCount() override { return static_cast<int32_t>(transforms.size()); }
+    gmpi::ReturnCode getTransform(int32_t index, gmpi::drawing::Matrix3x2* out) override
+    {
+        if (index < 0 || index >= static_cast<int32_t>(transforms.size()))
+            return gmpi::ReturnCode::Fail;
+        *out = transforms[index];
+        return gmpi::ReturnCode::Ok;
+    }
+
+    GMPI_QUERYINTERFACE_METHOD(ITransformList);
+    GMPI_REFCOUNT
+};
+
+// Generates N translation transforms evenly spaced around a ring - the "spawn 100 points"
+// half: one module emits the whole collection on a single wire.
+struct RingOfTransforms final : public PluginEditorNoGui
+{
+    Pin<int32_t> pinCount;
+    Pin<float>   pinRadius;
+    Pin<float>   pinCenterX;
+    Pin<float>   pinCenterY;
+    ObjectOut<ITransformList> pinTransforms;
+
+    ReturnCode process() override
+    {
+        if (!pinTransforms)
+            pinTransforms.value.attach(new TransformListObject());
+
+        auto* list = static_cast<TransformListObject*>(pinTransforms.value.get());
+        const int n = (std::max)(0, pinCount.value);
+        list->transforms.resize(n);
+        for (int i = 0; i < n; ++i)
+        {
+            const float angle = static_cast<float>(i) / static_cast<float>((std::max)(1, n)) * 2.0f * static_cast<float>(M_PI);
+            list->transforms[i] = makeTranslation(
+                pinCenterX.value + pinRadius.value * cosf(angle),
+                pinCenterY.value + pinRadius.value * sinf(angle));
+        }
+
+        pinTransforms.send();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r31 = gmpi::Register<RingOfTransforms>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: RingOfTransforms" name="Ring of Transforms" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Count" datatype="int" default="12"/>
+      <Pin name="Radius" datatype="float" default="40"/>
+      <Pin name="Center X" datatype="float" default="0"/>
+      <Pin name="Center Y" datatype="float" default="0"/>
+      <Pin name="Transforms" datatype="object:transformlist" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Draws one template geometry once per transform in the list - the instancing renderer.
+// Author the look once (template + style); the transform list drives how many copies appear.
+struct RenderInstances final : public PluginEditor
+{
+    ObjectIn<drawing::api::IPathGeometry> pinTemplate;
+    ObjectIn<ITransformList>              pinTransforms;
+    ObjectIn<IStyle>                      pinStyle;
+
+    RenderInstances()
+    {
+        auto invalidate = [this](PinBase*) { if (drawingHost) drawingHost->invalidateRect({}); };
+        pinTemplate.onUpdate = invalidate;
+        pinTransforms.onUpdate = invalidate;
+        pinStyle.onUpdate = invalidate;
+    }
+
+    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    {
+        if (!pinTemplate || !pinTransforms)
+            return ReturnCode::Ok;
+
+        // wrap the template geometry.
+        PathGeometry geometry;
+        if (ReturnCode::Ok != pinTemplate.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
+            return ReturnCode::Fail;
+
+        // resolve the style (default white 1px stroke, no fill).
+        gmpi::drawing::Color fill{};
+        gmpi::drawing::Color stroke = Colors::White;
+        float strokeWidth = 1.0f;
+        if (auto* style = pinStyle.value.get())
+        {
+            style->getFillColor(&fill);
+            style->getStrokeColor(&stroke);
+            style->getStrokeWidth(&strokeWidth);
+        }
+
+        Graphics g(drawingContext);
+
+        // brushes are transform-independent, so create once and reuse for every instance.
+        auto fillBrush = g.createSolidColorBrush(fill);
+        auto strokeBrush = g.createSolidColorBrush(stroke);
+
+        auto* list = pinTransforms.value.get();
+        const auto base = g.getTransform();
+        const int count = list->getCount();
+        for (int i = 0; i < count; ++i)
+        {
+            gmpi::drawing::Matrix3x2 t;
+            if (ReturnCode::Ok != list->getTransform(i, &t))
+                continue;
+
+            g.setTransform(t * base);  // place this instance, relative to the module's origin.
+
+            if (fill.a > 0.0f)
+                g.fillGeometry(geometry, fillBrush);
+            if (stroke.a > 0.0f && strokeWidth > 0.0f)
+                g.drawGeometry(geometry, strokeBrush, strokeWidth);
+        }
+        g.setTransform(base);
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r32 = gmpi::Register<RenderInstances>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: RenderInstances" name="Render Instances" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Path" datatype="object:path"/>
+      <Pin name="Transforms" datatype="object:transformlist"/>
+      <Pin name="Style" datatype="object:style"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 struct Render2Bitmap final : public GraphicsProcessor
 {
     ObjectIn<drawing::api::IPathGeometry>  pinInput;
