@@ -1194,35 +1194,25 @@ auto r17a = gmpi::Register<ObjectTester>::withXml(R"XML(
 }
 struct CircleGeometry final : public GraphicsProcessor
 {
+    Pin<float> pinRadius;
     ObjectOut<drawing::api::IPathGeometry> pinOutput;
 
     gmpi::drawing::PathGeometry geometry;
-
-  //  ~CircleGeometry()
-  //  {
-		//_RPT0(0, "CircleGeometry destructor\n");
-  //  }
+    float builtRadius = -1.0f; // forces a build on the first process()
 
     ReturnCode process() override
     {
-        if (!pinOutput)
+        // Build the circle at its ACTUAL radius (centred on the origin), so the size lives in the
+        // geometry itself rather than in a render-time scale - which keeps stroke width in real
+        // pixels. Rebuild only when the radius changes.
+        if (!geometry || pinRadius.value != builtRadius)
         {
             geometry = drawingFactory.createPathGeometry();
-#ifdef _DEBUG
-            // test move/copy operators.
-            gmpi::drawing::PathGeometry geometry2;
-            geometry2 = geometry;
-
-            gmpi::drawing::PathGeometry geometry3(geometry);
-
-//            std::shared_ptr<int> test;
-#endif
 
             auto sink = geometry.open();
 
-            // unit circle: centred on the origin, radius 1, so a transform can size and place it.
             const Point center{ 0.0f, 0.0f };
-            const float radius{ 1.0f };
+            const float radius = pinRadius.value;
 
             constexpr float pi = static_cast<float>(M_PI);
             sink.beginFigure({ center.x, center.y - radius }, drawing::FigureBegin::Filled);
@@ -1234,7 +1224,8 @@ struct CircleGeometry final : public GraphicsProcessor
             sink.endFigure(FigureEnd::Closed);
             sink.close();
 
-			pinOutput = AccessPtr::get(geometry);
+            builtRadius = pinRadius.value;
+            pinOutput = AccessPtr::get(geometry);
         }
 
         return ReturnCode::Ok;
@@ -1249,6 +1240,7 @@ auto r17 = gmpi::Register<CircleGeometry>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: CircleGeometry" name="CircleGeometry" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
+      <Pin name="Radius" datatype="float" default="10"/>
       <Pin name="Path" datatype="object:path" direction="out"/>
     </GUI>
   </Plugin>
