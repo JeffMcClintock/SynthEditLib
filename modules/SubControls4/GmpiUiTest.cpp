@@ -1346,6 +1346,134 @@ auto r25 = gmpi::Register<ColorFromRGBA>::withXml(R"XML(
 )XML");
 }
 
+// ---- Transform producers ----------------------------------------------------------------
+// A transform is a 'struct:transform' = gmpi::drawing::Matrix3x2 (a 2D affine matrix, plain
+// value like a Color). Matrix3x2 defaults to identity, so an unconnected transform pin is a
+// harmless no-op. These are atomic (one transform each); chain them with Combine Transforms.
+
+// Rotation by an angle given in TURNS (1 turn = a full circle), not radians.
+struct Rotation final : public PluginEditorNoGui
+{
+    Pin<float>                    pinTurns;
+    Pin<gmpi::drawing::Matrix3x2> pinTransform;
+
+    ReturnCode process() override
+    {
+        const float radians = pinTurns.value * 2.0f * static_cast<float>(M_PI);
+        pinTransform = makeRotation(radians);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r27 = gmpi::Register<Rotation>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Rotation" name="Rotation" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Angle (turns)" datatype="float"/>
+      <Pin name="Transform" datatype="struct:transform" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Translation by (X, Y).
+struct Translation final : public PluginEditorNoGui
+{
+    Pin<float>                    pinX;
+    Pin<float>                    pinY;
+    Pin<gmpi::drawing::Matrix3x2> pinTransform;
+
+    ReturnCode process() override
+    {
+        pinTransform = makeTranslation(pinX.value, pinY.value);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r28 = gmpi::Register<Translation>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Translation" name="Translation" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="X" datatype="float"/>
+      <Pin name="Y" datatype="float"/>
+      <Pin name="Transform" datatype="struct:transform" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Scale by (X, Y). Defaults to 1 (identity) so an unconnected scale doesn't collapse geometry.
+struct Scale final : public PluginEditorNoGui
+{
+    Pin<float>                    pinX;
+    Pin<float>                    pinY;
+    Pin<gmpi::drawing::Matrix3x2> pinTransform;
+
+    ReturnCode process() override
+    {
+        pinTransform = makeScale(pinX.value, pinY.value);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r29 = gmpi::Register<Scale>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Scale" name="Scale" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="X" datatype="float" default="1"/>
+      <Pin name="Y" datatype="float" default="1"/>
+      <Pin name="Transform" datatype="struct:transform" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Combine two transforms into one: Result = A * B (i.e. apply A, then B).
+struct CombineTransforms final : public PluginEditorNoGui
+{
+    Pin<gmpi::drawing::Matrix3x2> pinA;
+    Pin<gmpi::drawing::Matrix3x2> pinB;
+    Pin<gmpi::drawing::Matrix3x2> pinResult;
+
+    ReturnCode process() override
+    {
+        pinResult = pinA.value * pinB.value;
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r30 = gmpi::Register<CombineTransforms>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: CombineTransforms" name="Combine Transforms" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="A" datatype="struct:transform"/>
+      <Pin name="B" datatype="struct:transform"/>
+      <Pin name="A x B" datatype="struct:transform" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 // A bundle of drawing-style properties (fill, stroke, stroke width) passed as a single
 // reference-counted object - the CSS idea of a 'class' applied to many elements with one wire.
 // It's an interface (not a value struct) so it can grow new properties (dashes, gradients,
