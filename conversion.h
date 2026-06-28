@@ -110,7 +110,7 @@ inline T combine_path_and_file_imp( const T& p_path, const T& p_file )
     // ensure file does not begin with slash
     auto last_bit = p_file;
     
-    if( !last_bit.empty() && last_bit[0] == L'\\' && last_bit[0] == L'/' )
+    if( !last_bit.empty() && ( last_bit[0] == L'\\' || last_bit[0] == L'/' ) )
     {
         last_bit = Right( p_file,p_file.size() - 1 );
     }

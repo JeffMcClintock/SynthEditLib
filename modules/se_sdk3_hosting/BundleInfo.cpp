@@ -241,7 +241,7 @@ std::wstring BundleInfo::getResourceFolder()
     {
         // loading resource from bundle resource folder.
         const auto path = gmpi_dynamic_linking::MP_GetDllFilename();
-        return path.substr(0, path.find(L"Contents")) + L"Contents/Resources/";
+        return path.substr(0, path.find(L"Contents")) + L"Contents\\Resources\\";
     }
 
     return getImbeddedFileFolder();
