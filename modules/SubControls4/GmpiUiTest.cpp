@@ -1706,6 +1706,199 @@ auto r31 = gmpi::Register<RingOfTransforms>::withXml(R"XML(
 )XML");
 }
 
+// ============================================================================================
+// Generic layout spine. RingOfTransforms is a convenience preset; the same ring (or a line,
+// spiral, ...) can be built from these primitives, with both repetition AND per-element variation
+// living in the data (cf. Houdini point attributes / Blender fields). A 'number list' carries one
+// scalar per element; per-element math maps a function over the whole list; an assembler turns
+// coordinate lists into transforms. Angles are in TURNS (1 turn = full circle).
+// ============================================================================================
+
+// A list of scalars carried on one 'object:numberlist' wire (a per-element attribute).
+struct DECLSPEC_NOVTABLE INumberList : gmpi::api::IUnknown
+{
+    virtual int32_t getCount() = 0;
+    virtual gmpi::ReturnCode getValue(int32_t index, float* returnValue) = 0;
+
+    // {EDA1B70A-9592-4B8E-B712-B3CD49561F6B}
+    inline static const gmpi::api::Guid guid =
+    { 0xeda1b70a, 0x9592, 0x4b8e, { 0xb7, 0x12, 0xb3, 0xcd, 0x49, 0x56, 0x1f, 0x6b } };
+};
+
+struct NumberListObject final : public INumberList
+{
+    std::vector<float> values;
+
+    int32_t getCount() override { return static_cast<int32_t>(values.size()); }
+    gmpi::ReturnCode getValue(int32_t index, float* out) override
+    {
+        if (index < 0 || index >= static_cast<int32_t>(values.size()))
+            return gmpi::ReturnCode::Fail;
+        *out = values[index];
+        return gmpi::ReturnCode::Ok;
+    }
+
+    GMPI_QUERYINTERFACE_METHOD(INumberList);
+    GMPI_REFCOUNT
+};
+
+// Spawn N numbers spread from Start to End (End exclusive, so a full-turn ring closes cleanly):
+//   value[i] = Start + (End - Start) * i / Count.   This is the "make N elements" primitive.
+struct Series final : public PluginEditorNoGui
+{
+    Pin<int32_t> pinCount;
+    Pin<float>   pinStart;
+    Pin<float>   pinEnd;
+    ObjectOut<INumberList> pinOut;
+
+    ReturnCode process() override
+    {
+        if (!pinOut)
+            pinOut.value.attach(new NumberListObject());
+
+        auto* out = static_cast<NumberListObject*>(pinOut.value.get());
+        const int n = (std::max)(0, pinCount.value);
+        out->values.resize(n);
+        for (int i = 0; i < n; ++i)
+            out->values[i] = pinStart.value + (pinEnd.value - pinStart.value) * (static_cast<float>(i) / static_cast<float>((std::max)(1, n)));
+
+        pinOut.send();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r34 = gmpi::Register<Series>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Series" name="Series" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Count" datatype="int" default="12"/>
+      <Pin name="Start" datatype="float" default="0"/>
+      <Pin name="End" datatype="float" default="1"/>
+      <Pin name="Numbers" datatype="object:numberlist" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Per-element math: maps one function over every value in a number list (cf. Houdini wrangle /
+// Blender field). K is the operand for Multiply/Add; Cos/Sin take their input in TURNS.
+struct NumberMath final : public PluginEditorNoGui
+{
+    Pin<int32_t> pinOp;        // 0=Multiply, 1=Add, 2=Cos, 3=Sin
+    Pin<float>   pinK;
+    ObjectIn<INumberList>  pinIn;
+    ObjectOut<INumberList> pinOut;
+
+    ReturnCode process() override
+    {
+        if (!pinOut)
+            pinOut.value.attach(new NumberListObject());
+
+        auto* out = static_cast<NumberListObject*>(pinOut.value.get());
+        if (auto* in = pinIn.value.get())
+        {
+            const int n = in->getCount();
+            const float k = pinK.value;
+            const float turns = 2.0f * static_cast<float>(M_PI);
+            out->values.resize(n);
+            for (int i = 0; i < n; ++i)
+            {
+                float v{};
+                in->getValue(i, &v);
+                switch (pinOp.value)
+                {
+                default:
+                case 0: v = v * k;            break;
+                case 1: v = v + k;            break;
+                case 2: v = cosf(v * turns);  break;
+                case 3: v = sinf(v * turns);  break;
+                }
+                out->values[i] = v;
+            }
+        }
+        else
+        {
+            out->values.clear();
+        }
+
+        pinOut.send();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r35 = gmpi::Register<NumberMath>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: NumberMath" name="Number Math" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Op" datatype="enum" default="0" metadata="Multiply,Add,Cos (turns),Sin (turns)"/>
+      <Pin name="K" datatype="float" default="1"/>
+      <Pin name="Numbers" datatype="object:numberlist"/>
+      <Pin name="Numbers" datatype="object:numberlist" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Assemble a transform list from coordinate lists: transform[i] = translate(X[i], Y[i]).
+// A missing/short list contributes 0 for that axis (so X-only gives a line along X).
+struct TranslateXY final : public PluginEditorNoGui
+{
+    ObjectIn<INumberList>     pinX;
+    ObjectIn<INumberList>     pinY;
+    ObjectOut<ITransformList> pinOut;
+
+    ReturnCode process() override
+    {
+        if (!pinOut)
+            pinOut.value.attach(new TransformListObject());
+
+        auto* out = static_cast<TransformListObject*>(pinOut.value.get());
+        auto* xs = pinX.value.get();
+        auto* ys = pinY.value.get();
+        const int nx = xs ? xs->getCount() : 0;
+        const int ny = ys ? ys->getCount() : 0;
+        const int n = (std::max)(nx, ny);
+        out->transforms.resize(n);
+        for (int i = 0; i < n; ++i)
+        {
+            float x{}, y{};
+            if (i < nx) xs->getValue(i, &x);
+            if (i < ny) ys->getValue(i, &y);
+            out->transforms[i] = makeTranslation(x, y);
+        }
+
+        pinOut.send();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r36 = gmpi::Register<TranslateXY>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: TranslateXY" name="Translate XY" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="X" datatype="object:numberlist"/>
+      <Pin name="Y" datatype="object:numberlist"/>
+      <Pin name="Transforms" datatype="object:transformlist" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 // Composes one transform onto every element of a transform list - the dataflow "map over the
 // collection" operation (cf. a Grasshopper component / Houdini wrangle). out[i] = Transform * In[i],
 // i.e. Transform is applied to the template first, then each item's own placement. This is how you
