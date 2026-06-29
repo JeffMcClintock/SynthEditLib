@@ -1546,6 +1546,7 @@ struct DECLSPEC_NOVTABLE IStyle : gmpi::api::IUnknown
     virtual gmpi::ReturnCode getFillColor(gmpi::drawing::Color* returnColor) = 0;
     virtual gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* returnColor) = 0;
     virtual gmpi::ReturnCode getStrokeWidth(float* returnWidth) = 0;
+    virtual int32_t getStrokeCap() = 0; // gmpi::drawing::CapStyle as int (Flat / Square / Round)
 
     // {5D4686F8-97A7-4A55-AFFC-6B7CB6BA4505}
     inline static const gmpi::api::Guid guid =
@@ -1558,10 +1559,12 @@ struct StyleObject final : public IStyle
     gmpi::drawing::Color fillColor{};                 // alpha 0 = no fill
     gmpi::drawing::Color strokeColor{ 0, 0, 0, 1 };   // opaque black
     float strokeWidth = 1.0f;
+    int32_t strokeCap = 0;                            // CapStyle::Flat
 
     gmpi::ReturnCode getFillColor(gmpi::drawing::Color* c) override { *c = fillColor; return gmpi::ReturnCode::Ok; }
     gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* c) override { *c = strokeColor; return gmpi::ReturnCode::Ok; }
     gmpi::ReturnCode getStrokeWidth(float* w) override { *w = strokeWidth; return gmpi::ReturnCode::Ok; }
+    int32_t getStrokeCap() override { return strokeCap; }
 
     GMPI_QUERYINTERFACE_METHOD(IStyle);
     GMPI_REFCOUNT
@@ -1574,6 +1577,7 @@ struct StyleBuilder final : public PluginEditorNoGui
     Pin<gmpi::drawing::Color> pinFill;
     Pin<gmpi::drawing::Color> pinStroke;
     Pin<float>                pinStrokeWidth;
+    Pin<int32_t>              pinCap;
     ObjectOut<IStyle>         pinStyle;
 
     StyleBuilder()
@@ -1593,6 +1597,7 @@ struct StyleBuilder final : public PluginEditorNoGui
         s->fillColor   = pinFill.value;
         s->strokeColor = pinStroke.value;
         s->strokeWidth = pinStrokeWidth.value;
+        s->strokeCap   = pinCap.value;
 
         pinStyle.send();
         return ReturnCode::Ok;
@@ -1610,6 +1615,7 @@ auto r26 = gmpi::Register<StyleBuilder>::withXml(R"XML(
       <Pin name="Fill" datatype="struct:color"/>
       <Pin name="Stroke" datatype="struct:color"/>
       <Pin name="Stroke Width" datatype="float" default="1"/>
+      <Pin name="Cap" datatype="enum" default="0" metadata="Flat,Square,Round"/>
       <Pin name="Style" datatype="object:style" direction="out"/>
     </GUI>
   </Plugin>
@@ -1645,11 +1651,13 @@ struct RenderGeometry final : public PluginEditor
         gmpi::drawing::Color fill{};                  // alpha 0 = no fill
         gmpi::drawing::Color stroke = Colors::White;
         float strokeWidth = 1.0f;
+        int32_t cap = 0;
         if (auto* style = pinStyle.value.get())
         {
             style->getFillColor(&fill);
             style->getStrokeColor(&stroke);
             style->getStrokeWidth(&strokeWidth);
+            cap = style->getStrokeCap();
         }
 
         Graphics g(drawingContext);
@@ -1667,7 +1675,8 @@ struct RenderGeometry final : public PluginEditor
         if (stroke.a > 0.0f && strokeWidth > 0.0f)
         {
             auto strokeBrush = g.createSolidColorBrush(stroke);
-            g.drawGeometry(geometry, strokeBrush, strokeWidth);
+            auto strokeStyle = g.getFactory().createStrokeStyle(static_cast<CapStyle>(cap));
+            g.drawGeometry(geometry, strokeBrush, strokeWidth, strokeStyle);
         }
 
         return ReturnCode::Ok;
@@ -2153,18 +2162,21 @@ struct RenderInstances final : public PluginEditor
         gmpi::drawing::Color fill{};
         gmpi::drawing::Color stroke = Colors::White;
         float strokeWidth = 1.0f;
+        int32_t cap = 0;
         if (auto* style = pinStyle.value.get())
         {
             style->getFillColor(&fill);
             style->getStrokeColor(&stroke);
             style->getStrokeWidth(&strokeWidth);
+            cap = style->getStrokeCap();
         }
 
         Graphics g(drawingContext);
 
-        // brushes are transform-independent, so create once and reuse for every instance.
+        // brushes/stroke-style are transform-independent, so create once and reuse for every instance.
         auto fillBrush = g.createSolidColorBrush(fill);
         auto strokeBrush = g.createSolidColorBrush(stroke);
+        auto strokeStyle = g.getFactory().createStrokeStyle(static_cast<CapStyle>(cap));
 
         auto* list = pinTransforms.value.get();
 
@@ -2184,7 +2196,7 @@ struct RenderInstances final : public PluginEditor
             if (fill.a > 0.0f)
                 g.fillGeometry(geometry, fillBrush);
             if (stroke.a > 0.0f && strokeWidth > 0.0f)
-                g.drawGeometry(geometry, strokeBrush, strokeWidth);
+                g.drawGeometry(geometry, strokeBrush, strokeWidth, strokeStyle);
         }
         g.setTransform(base);
 
@@ -2335,16 +2347,19 @@ struct RenderEach final : public PluginEditor
         gmpi::drawing::Color fill{};
         gmpi::drawing::Color stroke = Colors::White;
         float strokeWidth = 1.0f;
+        int32_t cap = 0;
         if (auto* style = pinStyle.value.get())
         {
             style->getFillColor(&fill);
             style->getStrokeColor(&stroke);
             style->getStrokeWidth(&strokeWidth);
+            cap = style->getStrokeCap();
         }
 
         Graphics g(drawingContext);
         auto fillBrush = g.createSolidColorBrush(fill);
         auto strokeBrush = g.createSolidColorBrush(stroke);
+        auto strokeStyle = g.getFactory().createStrokeStyle(static_cast<CapStyle>(cap));
 
         const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * g.getTransform();
         const int n = (std::min)(paths->getCount(), xforms->getCount());
@@ -2364,7 +2379,7 @@ struct RenderEach final : public PluginEditor
             if (fill.a > 0.0f)
                 g.fillGeometry(geometry, fillBrush);
             if (stroke.a > 0.0f && strokeWidth > 0.0f)
-                g.drawGeometry(geometry, strokeBrush, strokeWidth);
+                g.drawGeometry(geometry, strokeBrush, strokeWidth, strokeStyle);
         }
         g.setTransform(base);
 
