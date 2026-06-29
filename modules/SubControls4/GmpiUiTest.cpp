@@ -19,6 +19,7 @@
 #include "NumberEditClient.h"
 #include "Extensions/EmbeddedFile.h"
 #include "../shared/unicode_conversion.h"
+#include "mfc_emulation.h"
 
 using namespace gmpi;
 using namespace gmpi::editor2;
