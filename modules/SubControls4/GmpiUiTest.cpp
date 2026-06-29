@@ -1249,6 +1249,74 @@ auto r17 = gmpi::Register<CircleGeometry>::withXml(R"XML(
 )XML");
 }
 
+// An open arc (centred on the origin) that sweeps Normalized * Sweep turns from Start. Built at
+// its real radius so stroke width stays in pixels. This is the geometry primitive for a knob/
+// meter ring; stroke it with RenderGeometry, glow it with BlurBitmap, label it with text - all
+// existing modules. Angles are in TURNS; +ve sweep is clockwise (screen coords, y down).
+struct ArcGeometry final : public GraphicsProcessor
+{
+    Pin<float> pinNormalized; // 0..1, fraction of Sweep that is drawn
+    Pin<float> pinRadius;
+    Pin<float> pinStartTurns;
+    Pin<float> pinSweepTurns;
+    ObjectOut<drawing::api::IPathGeometry> pinPath;
+
+    gmpi::drawing::PathGeometry geometry;
+    float bN = -1e9f, bR = -1e9f, bS = -1e9f, bW = -1e9f;
+
+    ReturnCode process() override
+    {
+        if (geometry && pinNormalized.value == bN && pinRadius.value == bR
+                     && pinStartTurns.value == bS && pinSweepTurns.value == bW)
+            return ReturnCode::Ok; // nothing relevant changed
+
+        bN = pinNormalized.value; bR = pinRadius.value; bS = pinStartTurns.value; bW = pinSweepTurns.value;
+
+        geometry = drawingFactory.createPathGeometry();
+        auto sink = geometry.open();
+
+        const float tau = 2.0f * static_cast<float>(M_PI);
+        const float R = pinRadius.value;
+        // fraction of the sweep that is filled; clamp away from a full turn to avoid a degenerate
+        // start==end arc (which is ambiguous between zero and full circle).
+        const float sweep = std::clamp(pinSweepTurns.value * std::clamp(pinNormalized.value, 0.0f, 1.0f), -0.999f, 0.999f);
+        if (std::fabs(sweep) > 1e-4f)
+        {
+            const float a0 = pinStartTurns.value * tau;
+            const float a1 = (pinStartTurns.value + sweep) * tau;
+            sink.beginFigure({ R * cosf(a0), R * sinf(a0) }, drawing::FigureBegin::Hollow);
+            ArcSegment arc{ { R * cosf(a1), R * sinf(a1) }, { R, R }, 0.0f,
+                sweep >= 0 ? SweepDirection::Clockwise : SweepDirection::CounterClockwise,
+                std::fabs(sweep) > 0.5f ? ArcSize::Large : ArcSize::Small };
+            sink.addArc(arc);
+            sink.endFigure(FigureEnd::Open);
+        }
+
+        sink.close();
+        pinPath = AccessPtr::get(geometry);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r41 = gmpi::Register<ArcGeometry>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: ArcGeometry" name="Arc Geometry" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Normalized" datatype="float" default="1"/>
+      <Pin name="Radius" datatype="float" default="10"/>
+      <Pin name="Start (turns)" datatype="float" default="0.3"/>
+      <Pin name="Sweep (turns)" datatype="float" default="0.9"/>
+      <Pin name="Path" datatype="object:path" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 struct SvgGeometry final : public GraphicsProcessor
 {
     Pin<std::string> pinFilename;
@@ -1585,6 +1653,10 @@ struct RenderGeometry final : public PluginEditor
         }
 
         Graphics g(drawingContext);
+
+        // origin at the widget centre (geometry is authored centred on origin).
+        const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * g.getTransform();
+        g.setTransform(base);
 
         // fill the interior, then stroke the outline (alpha 0 / zero width = skip).
         if (fill.a > 0.0f)
