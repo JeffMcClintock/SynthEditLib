@@ -35,6 +35,17 @@ constexpr int   kCaptureBytes     = SCOPE_BUFFER_SIZE * static_cast<int>(sizeof(
 constexpr float kFadeTau          = 0.2f;  // decay time-constant in seconds (smaller = faster fade)
 constexpr float kWaveIntensity    = 1.15f; // brightness a steadily-swept pixel settles to (>1 lets overlaps bloom)
 constexpr float kVelocityFloor    = 0.6f;  // steep segments never dim below this (keeps the trace connected, no gaps)
+
+// Auto-brightness (AGC). A periodic trace hits the same pixels every frame and
+// integrates up to kWaveIntensity; an aperiodic/random trace hits each pixel only
+// once and sits at the dimmer single-hit level (≈ kWaveIntensity·(1-decay)). Drive
+// an overall gain from the brightest accumulated pixel so both read equally bright.
+constexpr float kAutoGainTarget  = kWaveIntensity; // displayed peak a normalized trace reaches
+constexpr float kAutoGainMax     = 8.0f;  // ceiling on the boost (caps amplification of very faint traces)
+constexpr float kAutoGainFloor   = 0.01f; // engage only when a real trace is present (else hold the gain)
+constexpr float kAutoGainTauUp   = 0.35f; // smooth ramp when brightening (gain rising — dim content appears)
+constexpr float kAutoGainTauDown = 0.10f; // faster when dimming (gain falling) so it never flashes over-bright
+
 constexpr float kLiveWindowSec    = 0.5f;  // a trace is redrawn at full brightness while updated this recently
 constexpr float kAnimateWindowSec = 2.0f;  // keep the fade timer running this long after the last update
 constexpr int   kTimerMs          = 33;    // ~30 Hz fade animation
@@ -166,6 +177,9 @@ class Scope4Gui final : public PluginEditor, public gmpi::TimerClient
 	std::vector<int32_t> dirty_;    // pixels touched while rasterizing one trace (for cheap clear/blend)
 	int    bufW_ = 0, bufH_ = 0;    // buffer pixel dimensions
 	clock::time_point lastDecay_{}; // for frame-rate-independent (time-based) decay
+
+	float  autoGain_ = 1.0f;        // auto-brightness gain, applied at composite (display only)
+	float  frameMax_ = 0.0f;        // brightest accumulated pixel touched this frame (drives the AGC)
 
 	void redraw()
 	{
@@ -422,9 +436,12 @@ class Scope4Gui final : public PluginEditor, public gmpi::TimerClient
 			RgbF& w = waveBuf_[idx];
 			if (w.r != 0.0f || w.g != 0.0f || w.b != 0.0f)
 			{
-				accum_[idx].r += w.r * gain;
-				accum_[idx].g += w.g * gain;
-				accum_[idx].b += w.b * gain;
+				RgbF& a = accum_[idx];
+				a.r += w.r * gain;
+				a.g += w.g * gain;
+				a.b += w.b * gain;
+				// brightest accumulated pixel touched this frame → drives the auto-gain.
+				frameMax_ = (std::max)(frameMax_, (std::max)(a.r, (std::max)(a.g, a.b)));
 				w = RgbF{}; // clear for the next trace (and dedup repeated dirty entries)
 			}
 		}
@@ -508,7 +525,22 @@ class Scope4Gui final : public PluginEditor, public gmpi::TimerClient
 		// steadily-swept pixel settles to kWaveIntensity independent of frame rate;
 		// pixels swept by overlapping traces build higher and bloom.
 		const float gain = kWaveIntensity * (1.0f - decay);
+		frameMax_ = 0.0f;
 		blendLiveTraces(showUpdatesAfter, mid_y, scale, gain);
+
+		// Auto-brightness: a periodic trace integrates up to kWaveIntensity over many
+		// frames, but an aperiodic/random trace hits each pixel just once and stays at
+		// the dim single-hit level. Normalize the brightest pixel touched this frame
+		// toward the target so both read equally bright. Smoothed (slow rise / fast
+		// fall) so it ramps gently and never flashes over-bright. Updated only while a
+		// trace is live (frameMax_ > floor); otherwise the gain is HELD so a stale
+		// trace's trail fades out normally — only the build-up (fade-in) is compensated.
+		if (frameMax_ > kAutoGainFloor)
+		{
+			const float rawGain = std::clamp(kAutoGainTarget / frameMax_, 1.0f, kAutoGainMax);
+			const float tau = (rawGain < autoGain_) ? kAutoGainTauDown : kAutoGainTauUp;
+			autoGain_ += (rawGain - autoGain_) * (1.0f - std::exp(-dt / tau));
+		}
 	}
 
 	// Tone-map one linear-HDR pixel to a premultiplied-sRGB BGRA word. Per Jeff's
@@ -545,14 +577,20 @@ class Scope4Gui final : public PluginEditor, public gmpi::TimerClient
 		if (g_glowKernel[0][0] == 0.0f)
 			buildGlowKernel();
 
-		glowBuf_ = accum_; // each pixel's own light
+		// Base: each pixel's own light, scaled by the auto-brightness gain so an
+		// aperiodic trace is lifted to the same displayed level as a periodic one. The
+		// gain is applied here at composite time only — accum_ itself stays un-gained so
+		// it keeps integrating (and decaying) correctly frame to frame.
+		const float g = autoGain_;
+		for (size_t i = 0; i < accum_.size(); ++i)
+			glowBuf_[i] = accum_[i] * g;
 
 		for (int y = 0; y < bufH_; ++y)
 		{
 			const RgbF* row = accum_.data() + static_cast<size_t>(y) * bufW_;
 			for (int x = 0; x < bufW_; ++x)
 			{
-				const RgbF& src = row[x];
+				const RgbF src{ row[x].r * g, row[x].g * g, row[x].b * g };
 				if (src.r <= kGlowThreshold && src.g <= kGlowThreshold && src.b <= kGlowThreshold)
 					continue; // too dim to emit
 
