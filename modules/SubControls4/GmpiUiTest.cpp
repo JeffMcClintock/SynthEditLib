@@ -2137,6 +2137,186 @@ auto r32 = gmpi::Register<RenderInstances>::withXml(R"XML(
 )XML");
 }
 
+// ============================================================================================
+// Per-instance GEOMETRY: a list of paths, one per instance. This is how you vary RADIUS with a
+// CONSTANT stroke width - each circle is built at its own real radius (size in the geometry, not
+// a render scale) and drawn at 1:1, so the stroke isn't scaled. (cf. Houdini copying a different
+// piece per point.) Contrast RenderInstances, where one template is scaled per instance and the
+// stroke scales with it.
+// ============================================================================================
+
+// A list of path geometries carried on one 'object:pathlist' wire.
+struct DECLSPEC_NOVTABLE IPathList : gmpi::api::IUnknown
+{
+    virtual int32_t getCount() = 0;
+    // Returns a BORROWED pointer (the list owns it; valid while you hold the list).
+    virtual gmpi::ReturnCode getPath(int32_t index, drawing::api::IPathGeometry** returnPath) = 0;
+
+    // {80415BF2-B842-480A-ADB4-33D6CCA40DD3}
+    inline static const gmpi::api::Guid guid =
+    { 0x80415bf2, 0xb842, 0x480a, { 0xad, 0xb4, 0x33, 0xd6, 0xcc, 0xa4, 0x0d, 0xd3 } };
+};
+
+struct PathListObject final : public IPathList
+{
+    std::vector<gmpi::drawing::PathGeometry> paths;
+
+    int32_t getCount() override { return static_cast<int32_t>(paths.size()); }
+    gmpi::ReturnCode getPath(int32_t index, drawing::api::IPathGeometry** out) override
+    {
+        if (index < 0 || index >= static_cast<int32_t>(paths.size()))
+        {
+            *out = nullptr;
+            return gmpi::ReturnCode::Fail;
+        }
+        *out = AccessPtr::get(paths[index]); // borrowed
+        return gmpi::ReturnCode::Ok;
+    }
+
+    GMPI_QUERYINTERFACE_METHOD(IPathList);
+    GMPI_REFCOUNT
+};
+
+// Build one circle geometry per radius in the list, each at its ACTUAL radius (centred on the
+// origin). Pair with placement-only transforms + RenderEach for constant stroke width.
+struct Circles final : public GraphicsProcessor
+{
+    ObjectIn<INumberList> pinRadii;
+    ObjectOut<IPathList>  pinPaths;
+
+    ReturnCode process() override
+    {
+        if (!pinPaths)
+            pinPaths.value.attach(new PathListObject());
+
+        auto* out = static_cast<PathListObject*>(pinPaths.value.get());
+        out->paths.clear();
+
+        if (auto* radii = pinRadii.value.get())
+        {
+            const int n = radii->getCount();
+            out->paths.reserve(n);
+            constexpr float pi = static_cast<float>(M_PI);
+            for (int i = 0; i < n; ++i)
+            {
+                float radius = 1.0f;
+                radii->getValue(i, &radius);
+
+                auto geom = drawingFactory.createPathGeometry();
+                auto sink = geom.open();
+                sink.beginFigure({ 0.0f, -radius }, drawing::FigureBegin::Filled);
+                sink.addArc({ { 0.0f,  radius }, { radius, radius }, pi, SweepDirection::Clockwise, ArcSize::Small });
+                sink.addArc({ { 0.0f, -radius }, { radius, radius }, pi, SweepDirection::Clockwise, ArcSize::Small });
+                sink.endFigure(FigureEnd::Closed);
+                sink.close();
+
+                out->paths.push_back(std::move(geom));
+            }
+        }
+
+        pinPaths.send();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r39 = gmpi::Register<Circles>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Circles" name="Circles" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Radius" datatype="object:numberlist"/>
+      <Pin name="Paths" datatype="object:pathlist" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Draws a LIST of geometries, one per transform (zipped): path[i] at transform[i]. Because each
+// geometry already carries its real size and the transform is placement-only, the stroke width is
+// drawn at 1:1 - the same in pixels for every instance regardless of its radius.
+struct RenderEach final : public PluginEditor
+{
+    ObjectIn<IPathList>      pinPaths;
+    ObjectIn<ITransformList> pinTransforms;
+    ObjectIn<IStyle>         pinStyle;
+
+    RenderEach()
+    {
+        auto invalidate = [this](PinBase*) { if (drawingHost) drawingHost->invalidateRect({}); };
+        pinPaths.onUpdate = invalidate;
+        pinTransforms.onUpdate = invalidate;
+        pinStyle.onUpdate = invalidate;
+    }
+
+    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    {
+        if (!pinPaths || !pinTransforms)
+            return ReturnCode::Ok;
+
+        auto* paths = pinPaths.value.get();
+        auto* xforms = pinTransforms.value.get();
+
+        gmpi::drawing::Color fill{};
+        gmpi::drawing::Color stroke = Colors::White;
+        float strokeWidth = 1.0f;
+        if (auto* style = pinStyle.value.get())
+        {
+            style->getFillColor(&fill);
+            style->getStrokeColor(&stroke);
+            style->getStrokeWidth(&strokeWidth);
+        }
+
+        Graphics g(drawingContext);
+        auto fillBrush = g.createSolidColorBrush(fill);
+        auto strokeBrush = g.createSolidColorBrush(stroke);
+
+        const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * g.getTransform();
+        const int n = (std::min)(paths->getCount(), xforms->getCount());
+        for (int i = 0; i < n; ++i)
+        {
+            drawing::api::IPathGeometry* raw{};
+            if (ReturnCode::Ok != paths->getPath(i, &raw) || !raw)
+                continue;
+
+            PathGeometry geometry;
+            raw->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry));
+
+            gmpi::drawing::Matrix3x2 t;
+            xforms->getTransform(i, &t);
+            g.setTransform(t * base); // placement only -> stroke width stays at 1:1 (constant)
+
+            if (fill.a > 0.0f)
+                g.fillGeometry(geometry, fillBrush);
+            if (stroke.a > 0.0f && strokeWidth > 0.0f)
+                g.drawGeometry(geometry, strokeBrush, strokeWidth);
+        }
+        g.setTransform(base);
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r40 = gmpi::Register<RenderEach>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: RenderEach" name="Render Each" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Paths" datatype="object:pathlist"/>
+      <Pin name="Transforms" datatype="object:transformlist"/>
+      <Pin name="Style" datatype="object:style"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 struct Render2Bitmap final : public GraphicsProcessor
 {
     ObjectIn<drawing::api::IPathGeometry>  pinInput;
