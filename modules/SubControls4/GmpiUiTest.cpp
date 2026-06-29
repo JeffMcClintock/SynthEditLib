@@ -1946,6 +1946,110 @@ auto r33 = gmpi::Register<TransformEach>::withXml(R"XML(
 )XML");
 }
 
+// ---- Per-element (per-instance) variation ---------------------------------------------------
+// Assemble per-instance SCALE transforms from number lists, then compose them element-wise onto
+// the placement list. This is how a number list drives a different size for every instance (cf.
+// Houdini's pscale attribute / Blender capturing a field). Y unconnected = uniform scale.
+struct ScaleXY final : public PluginEditorNoGui
+{
+    ObjectIn<INumberList>     pinX;
+    ObjectIn<INumberList>     pinY;
+    ObjectOut<ITransformList> pinOut;
+
+    ReturnCode process() override
+    {
+        if (!pinOut)
+            pinOut.value.attach(new TransformListObject());
+
+        auto* out = static_cast<TransformListObject*>(pinOut.value.get());
+        auto* xs = pinX.value.get();
+        auto* ys = pinY.value.get();
+        const int nx = xs ? xs->getCount() : 0;
+        const int ny = ys ? ys->getCount() : 0;
+        const int n = (std::max)(nx, ny);
+        out->transforms.resize(n);
+        for (int i = 0; i < n; ++i)
+        {
+            float x = 1.0f, y = 1.0f;
+            if (i < nx) xs->getValue(i, &x);
+            if (ny > 0) { if (i < ny) ys->getValue(i, &y); }  // Y connected: use it
+            else        { y = x; }                            // Y unconnected: uniform scale
+            out->transforms[i] = makeScale(x, y);
+        }
+
+        pinOut.send();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r37 = gmpi::Register<ScaleXY>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: ScaleXY" name="Scale XY" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="X" datatype="object:numberlist"/>
+      <Pin name="Y" datatype="object:numberlist"/>
+      <Pin name="Transforms" datatype="object:transformlist" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Compose two transform lists element-wise: out[i] = A[i] * B[i] (apply A then B). The list
+// version of CombineTransforms - e.g. CombineEach(per-instance scales, placements) gives each
+// instance its own size at its own position. Counts that differ are truncated to the shorter.
+struct CombineEach final : public PluginEditorNoGui
+{
+    ObjectIn<ITransformList>  pinA;
+    ObjectIn<ITransformList>  pinB;
+    ObjectOut<ITransformList> pinOut;
+
+    ReturnCode process() override
+    {
+        if (!pinOut)
+            pinOut.value.attach(new TransformListObject());
+
+        auto* out = static_cast<TransformListObject*>(pinOut.value.get());
+        auto* a = pinA.value.get();
+        auto* b = pinB.value.get();
+        const int na = a ? a->getCount() : 0;
+        const int nb = b ? b->getCount() : 0;
+        const int n = (std::min)(na, nb);
+        out->transforms.resize(n);
+        for (int i = 0; i < n; ++i)
+        {
+            gmpi::drawing::Matrix3x2 ta, tb;
+            a->getTransform(i, &ta);
+            b->getTransform(i, &tb);
+            out->transforms[i] = ta * tb;
+        }
+
+        pinOut.send();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r38 = gmpi::Register<CombineEach>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: CombineEach" name="Combine Each" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="A" datatype="object:transformlist"/>
+      <Pin name="B" datatype="object:transformlist"/>
+      <Pin name="A x B" datatype="object:transformlist" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 // Draws one template geometry once per transform in the list - the instancing renderer.
 // Author the look once (template + style); the transform list drives how many copies appear.
 struct RenderInstances final : public PluginEditor
