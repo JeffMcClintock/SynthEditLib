@@ -24,15 +24,34 @@ namespace SettingsFile
 		std::wstring meSettingsFile(mySettingsPath);
 		meSettingsFile += L"/";
 #else
+        // macOS: locate ~/Library/Preferences/.
+        //
+        // CAUTION (sandboxing): inside an App Sandbox the system redirects HOME to the
+        // app's container, e.g. /Users/<user>/Library/Containers/<bundle-id>/Data, so
+        // getenv("HOME") returns that container path, NOT /Users/<user>. Containers are
+        // keyed per bundle-id, so each sandboxed host (Logic, GarageBand, all AUv3
+        // extensions) gets its own isolated copy of this settings file. For licensing
+        // this means a registration made in one host is invisible to another -> the user
+        // is asked to register again. Unsandboxed DAWs (Reaper, Live, Cubase, Bitwig...)
+        // are unaffected: there HOME is the real home and this code behaves as intended.
+        //
+        // Note: getpwuid(getuid())->pw_dir below returns the REAL home (/Users/<user>)
+        // even inside a sandbox, but it is only used as a fallback when HOME is unset --
+        // and in a sandbox HOME is set (to the container), so this branch does not run.
+        // Switching to getpwuid unconditionally is NOT a fix for the licensing problem:
+        // the sandbox restricts file access by PATH, not by the value of HOME, so writing
+        // to the real ~/Library/Preferences from a sandboxed host fails with EPERM. A
+        // machine-wide license shared across hosts needs an installer-written shared path
+        // (e.g. /Library/Application Support/<vendor>/) or the Keychain instead.
         const char* homeDir = getenv("HOME");
-        
+
         if(!homeDir)
         {
             struct passwd* pwd = getpwuid(getuid());
             if (pwd)
                 homeDir = pwd->pw_dir;
         }
-        
+
         auto meSettingsFile = FastUnicode::Utf8ToWstring(homeDir) + L"/Library/Preferences/";
 #endif
 		meSettingsFile += product;
