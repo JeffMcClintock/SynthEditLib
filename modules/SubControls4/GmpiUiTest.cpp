@@ -2709,54 +2709,97 @@ auto r22 = gmpi::Register<TextFormatNode>::withXml(R"XML(
 )XML");
 }
 
+// Renders text to a colour bitmap, sized to the text extent at physical resolution and centred
+// on the origin (so a centred RenderBitmap places it in the middle of the control). Mirrors
+// BlurBitmap's mask->tint->createImage path, minus the blur.
 struct RenderText2Bitmap final : public GraphicsProcessor
 {
     ObjectIn<drawing::api::ITextFormat> pinInput;
     Pin<std::string>                    pinText;
+    Pin<gmpi::drawing::Color>           pinColor;
     ObjectOut<drawing::api::IBitmap>    pinOutput;
 
     Bitmap bitmap;
 
+    RenderText2Bitmap() { pinColor.value = gmpi::drawing::Color{ 1, 1, 1, 1 }; }
+
     ReturnCode process() override
     {
-        if (!pinInput)
+        if (!pinInput || pinText.value.empty())
             return ReturnCode::Ok;
 
-        // wrap the incoming interface so we can draw with it.
-        TextFormat geometry;
-        if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::ITextFormat::guid, AccessPtr::put_void(geometry)))
+        TextFormat textFormat;
+        if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::ITextFormat::guid, AccessPtr::put_void(textFormat)))
             return ReturnCode::Fail;
+
+        Factory factory;
         {
-            const SizeU size{ 100, 100 };// getWidth(bounds), getHeight(bounds)}; size is zero on first process.
-            const int32_t flags = (int32_t)BitmapRenderTargetFlags::Mask;
+            gmpi::shared_ptr<gmpi::api::IUnknown> u;
+            drawingHost->getDrawingFactory(u.put());
+            u->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
+        }
 
-            // get factory.
-            Factory factory;
+        const float scale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
+
+        // measure the text (DIPs); pad a little; size symmetric about the origin.
+        const Size ext = textFormat.getTextExtentU(pinText.value);
+        const float halfW = ext.width * 0.5f + 2.0f;
+        const float halfH = ext.height * 0.5f + 2.0f;
+        const int   w = (std::max)(1, static_cast<int>(2.0f * halfW * scale + 0.5f));
+        const int   h = (std::max)(1, static_cast<int>(2.0f * halfH * scale + 0.5f));
+
+        // render the (white) text into a mask, drawing in DIPs (origin -> buffer centre,
+        // text laid out from -ext/2 so it's centred on the origin).
+        std::vector<uint8_t> mask(static_cast<size_t>(w) * h, 0);
+        {
+            auto rt = factory.createCpuRenderTarget(SizeU{ static_cast<uint32_t>(w), static_cast<uint32_t>(h) },
+                (int32_t)BitmapRenderTargetFlags::Mask | (int32_t)BitmapRenderTargetFlags::CpuReadable);
+            rt.beginDraw();
+            rt.setTransform(makeTranslation(halfW, halfH) * makeScale(scale));
+            auto brush = rt.createSolidColorBrush(Colors::White);
+            rt.drawTextU(pinText.value, textFormat,
+                Rect{ -ext.width * 0.5f, -ext.height * 0.5f, ext.width * 0.5f, ext.height * 0.5f }, brush);
+            rt.endDraw();
+
+            auto maskBmp = rt.getBitmap();
+            auto d = maskBmp.lockPixels();
+            const auto stride = d.getBytesPerRow();
+            const uint8_t* srcp = d.getAddress();
+            for (int y = 0; y < h; ++y)
+                std::memcpy(&mask[static_cast<size_t>(y) * w], srcp + static_cast<size_t>(y) * stride, w);
+        }
+
+        // tint the coverage with the text colour into a full-res output bitmap.
+        bitmap = factory.createImage(w, h,
+            (int32_t)drawing::BitmapRenderTargetFlags::SRGBPixels | (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
+        {
+            auto dd = bitmap.lockPixels(drawing::BitmapLockFlags::Write);
+            const auto dstride = dd.getBytesPerRow();
+            uint8_t* dst = dd.getAddress();
+            const float tintf[3] = { pinColor.value.r, pinColor.value.g, pinColor.value.b };
+            const float ta = pinColor.value.a;
+            constexpr float inv255 = 1.0f / 255.0f;
+            for (int y = 0; y < h; ++y)
             {
-                gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-                drawingHost->getDrawingFactory(unknown.put());
-                unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
+                uint8_t* drow = dst + static_cast<size_t>(y) * dstride;
+                const uint8_t* mrow = &mask[static_cast<size_t>(y) * w];
+                for (int x = 0; x < w; ++x)
+                {
+                    const uint8_t a8 = mrow[x];
+                    uint8_t* px = drow + x * 4;
+                    if (a8 == 0) { px[0] = px[1] = px[2] = px[3] = 0; }
+                    else
+                    {
+                        const float an = a8 * inv255 * ta;
+                        for (int j = 0; j < 3; ++j)
+                            px[j] = drawing::linearPixelToSRGB(tintf[j] * an);
+                        px[3] = static_cast<uint8_t>(255.0f * an + 0.5f);
+                    }
+                }
             }
-
-            // create a bitmap render target on CPU.
-            auto g2 = factory.createCpuRenderTarget(size, flags);
-
-            g2.beginDraw();
-
-            auto brush = g2.createSolidColorBrush(Colors::White);
-            auto strokeStyle = factory.createStrokeStyle(CapStyle::Flat);
-
-            //g2.drawGeometry(geometry, brush);
-			
-            g2.drawTextU(pinText.value, geometry, { 0, 0, 100, 100 }, brush);
-
-            g2.endDraw();
-
-            bitmap = g2.getBitmap();
         }
 
         pinOutput = AccessPtr::get(bitmap);
-
         return ReturnCode::Ok;
     }
 };
@@ -2771,6 +2814,7 @@ auto r23 = gmpi::Register<RenderText2Bitmap>::withXml(R"XML(
     <GUI>
       <Pin name="Font" datatype="object:font"/>
       <Pin name="Text" datatype="string_utf8"/>
+      <Pin name="Color" datatype="struct:color"/>
       <Pin name="Bitmap" datatype="object:bitmap" direction="out"/>
     </GUI>
   </Plugin>
