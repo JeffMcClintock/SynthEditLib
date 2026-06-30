@@ -505,12 +505,10 @@ auto r7 = gmpi::Register<OneWayText>::withXml(R"XML(
 
 struct Image4Gui : public PluginEditor
 {
-    // NOTE: pinAnimationPosition is written back via setAnimationPos(), so this pre-existing module
-    // genuinely uses bidirectional Pin<T> - left as-is.
-    Pin<std::string> pinFilename;
-    Pin<float> pinAnimationPosition;
-    Pin<int32_t> pinFrame;
-    Pin<bool> pinHdMode;
+    In<std::string> pinFilename;
+    In<float> pinAnimationPosition;
+    In<int32_t> pinFrame;
+    In<bool> pinHdMode;
 
     gmpi_helper::AnimatedBitmap image;
 
@@ -519,11 +517,6 @@ struct Image4Gui : public PluginEditor
         pinFilename.onUpdate = [this](PinBase*) { onSetFilename(); };
 		pinAnimationPosition.onUpdate = [this](PinBase*) { calcDrawAt(); };
 		pinFrame.onUpdate = [this](PinBase*) { calcDrawAt(); };
-    }
-
-    void setAnimationPos(float p)
-    {
-        pinAnimationPosition = p;
     }
 
     void onSetFilename()
