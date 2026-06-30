@@ -229,9 +229,14 @@ struct PatchMemSet final : public PluginEditorNoGui
     {
         if (paramHost)
         {
-            const float safeValue = std::clamp(pinNormalized.value, 0.0f, 1.0f);
-
-            paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), (const uint8_t*) &safeValue);
+            // Only push Normalized while grabbed (dragging). Writing it every block would clobber
+            // other writers (a Number Entry editing the Value field, host automation) the instant
+            // they change the parameter - then nothing typed would ever stick.
+            if (pinMouseDown.value)
+            {
+                const float safeValue = std::clamp(pinNormalized.value, 0.0f, 1.0f);
+                paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), (const uint8_t*) &safeValue);
+            }
             paramHost->setParameter(pinId.value, gmpi::Field::Grab, 0, sizeof(bool), (const uint8_t*) &pinMouseDown.value);
         }
 
@@ -808,8 +813,9 @@ protected:
     Pin<std::string> pinUnits;
     Pin<int32_t>     pinDecimalPlaces;
     ObjectIn<IStyle> pinStyle;
-    Pin<float>       pinValueOut;
+    Pin<int32_t>     pinId;        // parameter handle to write (from a Value / PatchMemGet)
 
+    gmpi::shared_ptr<gmpi::api::IParameterSetter> paramHost;
     sdk::TextEditCallback callback;
     float pendingValue = 0.0f;
     bool  hasPending = false;
@@ -824,6 +830,12 @@ public:
                 hasPending = true;
                 if (drawingHost) drawingHost->invalidateRect({});
             };
+    }
+
+    ReturnCode initialize() override
+    {
+        paramHost = editorHost.as<gmpi::api::IParameterSetter>();
+        return PluginEditorBase::initialize();
     }
 
     std::string formatNumber() const
@@ -863,16 +875,14 @@ public:
 
     ReturnCode process() override
     {
-        // On commit, emit the typed value for one block (downstream Value-Set captures it); then
-        // resume echoing the input so a knob drag stays in control.
+        // On commit, write the typed number straight into the parameter's Value field (once). The
+        // display then follows via the Value (in) pin; a knob drag writes Normalized independently,
+        // so the two never fight over a continuously-driven setter.
         if (hasPending)
         {
-            pinValueOut = pendingValue;
+            if (paramHost)
+                paramHost->setParameter(pinId.value, gmpi::Field::Value, 0, sizeof(float), (const uint8_t*) &pendingValue);
             hasPending = false;
-        }
-        else
-        {
-            pinValueOut = pinValueIn.value;
         }
 
         if (drawingHost) drawingHost->invalidateRect({});
@@ -918,7 +928,7 @@ auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
 		<Pin name="Units" datatype="string_utf8" />
 		<Pin name="Decimal Places" datatype="int" default="2" />
 		<Pin name="Style" datatype="object:style" />
-		<Pin name="Value" datatype="float" direction="out" />
+		<Pin name="ID" datatype="int" />
 	</GUI>
   </Plugin>
 </PluginList>
