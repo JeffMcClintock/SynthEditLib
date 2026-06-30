@@ -13,6 +13,7 @@
 #include <math.h>
 #include "helpers/GmpiPluginEditor.h"
 #include "helpers/GmpiPluginEditor2.h"
+#include "../shared/MonoDirectionalPins.h" // In<T> / Out<T> / ObjectIn<T> / ObjectOut<T>
 #include "helpers/CachedBlur.h"
 #include "helpers/AnimatedBitmap.h"
 #include "helpers/SvgParser.h"
@@ -209,48 +210,6 @@ class ReallyFunctional
 
 		*out.outputvalue1 = *in.value1 + *in.value2;
 	}
-};
-
-// Mono-directional value pins. The framework's Pin<T> is bidirectional - setFromHost() reads it
-// AND operator= sends it - which is the right thing for an audio module's plug, but the patch-
-// memory / value-routing helpers below are strictly one-way. These make the direction explicit
-// (you can't accidentally drive an input or read an output) - the value-type analogue of the
-// ObjectIn / ObjectOut pins.
-template<typename T>
-class In : public PinBase
-{
-    void setFromHost(int32_t /*voice*/, int32_t size, const uint8_t* data) override
-    {
-        dirty = true;
-        valueFromData({ data, static_cast<size_t>(size) }, value);
-        if (onUpdate)
-            onUpdate(this);
-    }
-
-public:
-    T value{};
-};
-
-template<typename T>
-class Out : public PinBase
-{
-    void setFromHost(int32_t /*voice*/, int32_t /*size*/, const uint8_t* /*data*/) override
-    {
-        // N/A - an output is never driven by the host.
-    }
-
-public:
-    T value{};
-
-    const T& operator=(const T& pvalue)
-    {
-        if (pvalue != value)
-        {
-            value = pvalue;
-            host->setPin(id, 0, dataSize(value), dataPtr(value));
-        }
-        return value;
-    }
 };
 
 struct PatchMemSet final : public PluginEditorNoGui
@@ -654,70 +613,6 @@ auto r8 = gmpi::Register<Image4Gui>::withXml(R"XML(
 </PluginList>
 )XML");
 }
-
-// Object pins templated on their interface: queryInterface happens inside the pin, so user
-// code just reads pinFoo.value (a gmpi::shared_ptr<T>). Defined here so GUI modules above can
-// use them too.
-template<typename T>
-class ObjectIn : public gmpi::editor2::PinBase
-{
-    void setFromHost(int32_t voice, int32_t size, const uint8_t* data) override
-    {
-        dirty = true;
-
-        gmpi::api::IUnknown* temp{};
-
-        if(size)
-            valueFromData({ data, static_cast<size_t>(size) }, temp);
-
-        if(temp)
-            temp->queryInterface(&T::guid, (void**)value.put_void());
-        else
-            value = nullptr;
-
-        if(onUpdate)
-            onUpdate(this);
-    }
-
-public:
-    gmpi::shared_ptr<T> value;
-
-	operator bool() const
-	{
-		return !value.isNull();
-	}
-};
-
-template<typename T>
-class ObjectOut : public gmpi::editor2::PinBase
-{
-    void setFromHost(int32_t voice, int32_t size, const uint8_t* data) override
-    {
-        // N/A
-    }
-
-public:
-    gmpi::shared_ptr<T> value;
-
-    void send()
-    {
-        const auto& ptr = value.get();
-        host->setPin(id, 0, dataSize(ptr), dataPtr(ptr));
-    }
-
-    // assign the object and send it out the pin in one step.
-    T* operator=(T* pvalue)
-    {
-        value = pvalue;
-        send();
-        return pvalue;
-    }
-
-    operator bool() const
-    {
-        return !value.isNull();
-    }
-};
 
 // A bundle of drawing-style properties (fill, stroke, stroke width) passed as a single
 // reference-counted object - the CSS idea of a 'class' applied to many elements with one wire.
