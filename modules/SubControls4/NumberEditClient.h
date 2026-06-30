@@ -134,6 +134,7 @@ class NumberEdit : public gmpi::TimerClient, public gmpi::api::IKeyListenerCallb
     int selectedFrom = -1;
     int selectedTo = -1;
 	int cursorPos = -1;     // 0 - left off all chars, through to text.length() - right of all chars.
+    float renderedTextLeft{}; // text origin x from the last render(), for click-to-position the caret
     GlyphArrangement numberEditGlyfs;
     gmpi::shared_ptr<gmpi::api::IKeyListener> listener;
 
@@ -190,6 +191,32 @@ public:
         selectedFrom = selectedTo = -1;
 
         client.endEditValue();
+        client.repaintText();
+    }
+
+    // Move the caret to the glyph boundary nearest local x (same coord space as render()'s bounds),
+    // collapsing any selection - i.e. clicking within the text positions the cursor like a normal
+    // text editor. No-op when not editing.
+    void moveCursorToX(float x)
+    {
+        if (cursorPos < 0)
+            return;
+
+        const float local = x - renderedTextLeft;
+        int pos = static_cast<int>(numberEditGlyfs.glyphs.size()); // past the last glyph
+        for (size_t i = 0; i < numberEditGlyfs.glyphs.size(); ++i)
+        {
+            const auto& gl = numberEditGlyfs.glyphs[i];
+            if (local < 0.5f * (gl.left + gl.right)) // left of this glyph's midpoint
+            {
+                pos = static_cast<int>(i);
+                break;
+            }
+        }
+
+        cursorPos = pos;
+        selectedFrom = selectedTo = cursorPos; // collapse selection
+        timerCounter = 0;                      // show the caret immediately
         client.repaintText();
     }
 
@@ -502,6 +529,8 @@ public:
             bounds.top = 0.5f * (bounds.top + bounds.bottom - textHeight);
             break;
         }
+
+        renderedTextLeft = bounds.left; // remember where the text was drawn, for click-to-position
 
         auto brush = g.createSolidColorBrush(textColor);
         g.drawTextU(numberEditGlyfs.text_utf8, textFormat, bounds, brush);

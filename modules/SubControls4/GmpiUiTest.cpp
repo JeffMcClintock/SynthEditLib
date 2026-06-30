@@ -822,11 +822,21 @@ public:
     }
     gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
     {
+        if (editing)
+        {
+            // a click inside an active edit positions the caret (like a platform text editor).
+            numberEdit.moveCursorToX(point.x);
+            return ReturnCode::Handled;
+        }
+
         inputHost->setCapture();
         return ReturnCode::Unhandled;
     }
     gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
     {
+        if (editing)
+            return ReturnCode::Handled; // the press just repositioned the caret; don't restart editing
+
         inputHost->releaseCapture();
 
         // edit the NUMBER only (Units stay read-only on screen).
