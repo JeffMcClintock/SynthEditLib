@@ -1249,37 +1249,35 @@ auto r17 = gmpi::Register<CircleGeometry>::withXml(R"XML(
 )XML");
 }
 
-// An open arc (centred on the origin) that sweeps Normalized * Sweep turns from Start. Built at
-// its real radius so stroke width stays in pixels. This is the geometry primitive for a knob/
-// meter ring; stroke it with RenderGeometry, glow it with BlurBitmap, label it with text - all
-// existing modules. Angles are in TURNS; +ve sweep is clockwise (screen coords, y down).
+// A pure open-arc primitive (centred on the origin): an arc of the given Radius from Start,
+// sweeping Sweep turns. Built at its real radius so stroke width stays in pixels. To make a
+// value-arc, drive Sweep from a normalized value scaled by a Multiply - the mapping lives
+// OUTSIDE this module. Angles are in TURNS; +ve sweep is clockwise (screen coords, y down).
 struct ArcGeometry final : public GraphicsProcessor
 {
-    Pin<float> pinNormalized; // 0..1, fraction of Sweep that is drawn
     Pin<float> pinRadius;
     Pin<float> pinStartTurns;
     Pin<float> pinSweepTurns;
     ObjectOut<drawing::api::IPathGeometry> pinPath;
 
     gmpi::drawing::PathGeometry geometry;
-    float bN = -1e9f, bR = -1e9f, bS = -1e9f, bW = -1e9f;
+    float bR = -1e9f, bS = -1e9f, bW = -1e9f;
 
     ReturnCode process() override
     {
-        if (geometry && pinNormalized.value == bN && pinRadius.value == bR
-                     && pinStartTurns.value == bS && pinSweepTurns.value == bW)
+        if (geometry && pinRadius.value == bR && pinStartTurns.value == bS && pinSweepTurns.value == bW)
             return ReturnCode::Ok; // nothing relevant changed
 
-        bN = pinNormalized.value; bR = pinRadius.value; bS = pinStartTurns.value; bW = pinSweepTurns.value;
+        bR = pinRadius.value; bS = pinStartTurns.value; bW = pinSweepTurns.value;
 
         geometry = drawingFactory.createPathGeometry();
         auto sink = geometry.open();
 
         const float tau = 2.0f * static_cast<float>(M_PI);
         const float R = pinRadius.value;
-        // fraction of the sweep that is filled; clamp away from a full turn to avoid a degenerate
-        // start==end arc (which is ambiguous between zero and full circle).
-        const float sweep = std::clamp(pinSweepTurns.value * std::clamp(pinNormalized.value, 0.0f, 1.0f), -0.999f, 0.999f);
+        // clamp away from a full turn to avoid a degenerate start==end arc (ambiguous between
+        // zero and a full circle).
+        const float sweep = std::clamp(pinSweepTurns.value, -0.999f, 0.999f);
         if (std::fabs(sweep) > 1e-4f)
         {
             const float a0 = pinStartTurns.value * tau;
@@ -1306,10 +1304,9 @@ auto r41 = gmpi::Register<ArcGeometry>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: ArcGeometry" name="Arc Geometry" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Normalized" datatype="float" default="1"/>
       <Pin name="Radius" datatype="float" default="10"/>
       <Pin name="Start (turns)" datatype="float" default="0.3"/>
-      <Pin name="Sweep (turns)" datatype="float" default="0.9"/>
+      <Pin name="Sweep (turns)" datatype="float" default="0.75"/>
       <Pin name="Path" datatype="object:path" direction="out"/>
     </GUI>
   </Plugin>
