@@ -680,9 +680,6 @@ public:
         pinValueOut = pinValueIn.value;
         drawingHost->invalidateRect({});
 
-        //        if (pinValue.value)
-//            editorHost2->setDirty(); // return to zero next frame.
-
         return ReturnCode::Ok;
     }
 
@@ -748,8 +745,6 @@ protected:
     Out<float>       pinValueOut;
 
     sdk::TextEditCallback callback;
-    float pendingValue = 0.0f;
-    bool  hasPending = false;
 
 public:
     NumberEntry()
@@ -757,9 +752,7 @@ public:
         pinDecimalPlaces.value = 2;
         callback.onSuccess = [this](const std::string& text)
             {
-                pendingValue = static_cast<float>(strtod(text.c_str(), nullptr));
-                hasPending = true;
-                if (drawingHost) drawingHost->invalidateRect({});
+                pinValueOut = static_cast<float>(strtod(text.c_str(), nullptr));
             };
     }
 
@@ -800,21 +793,11 @@ public:
 
     ReturnCode process() override
     {
-        // Mono-directional: emit the value out the pin and let a Value-Set write the parameter.
-        // After a commit, keep asserting the typed value until the round-tripped display matches it
-        // (compare as formatted text, like the old UpdateFloatText), then resume echoing the input -
-        // so a knob drag stays in control.
-        if (hasPending && formatNumber(pendingValue) != formatNumber(pinValueIn.value))
-        {
-            pinValueOut = pendingValue;
-        }
-        else
-        {
-            pinValueOut = pinValueIn.value;
-            hasPending = false;
-        }
+        pinValueOut = pinValueIn.value;
 
-        if (drawingHost) drawingHost->invalidateRect({});
+        assert(drawingHost);
+        drawingHost->invalidateRect({});
+        
         return ReturnCode::Ok;
     }
 
