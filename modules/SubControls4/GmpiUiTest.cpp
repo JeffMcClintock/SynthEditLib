@@ -2530,9 +2530,8 @@ auto r20 = gmpi::Register<RenderBitmap>::withXml(R"XML(
 struct BlurBitmap final : public GraphicsProcessor
 {
     ObjectIn<drawing::api::IPathGeometry> pinPath;
-    Pin<float>                pinStrokeWidth;
+    ObjectIn<IStyle>          pinStyle;
     Pin<float>                pinBlurRadius;   // in DIPs
-    Pin<gmpi::drawing::Color> pinColor;
     Pin<bool>                 pinDownsample;
     ObjectOut<drawing::api::IBitmap> pinOutput;
 
@@ -2540,9 +2539,7 @@ struct BlurBitmap final : public GraphicsProcessor
 
     BlurBitmap()
     {
-        pinStrokeWidth.value = 4.0f;
         pinBlurRadius.value  = 8.0f;
-        pinColor.value       = gmpi::drawing::Color{ 1, 1, 1, 1 };
         pinDownsample.value  = true;
     }
 
@@ -2562,8 +2559,18 @@ struct BlurBitmap final : public GraphicsProcessor
             u->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
         }
 
+        // resolve the glow from the same Style interface that Render uses: the stroke colour is
+        // the glow tint, the stroke width sets how thick the glowed shape is. Default white/4px.
+        gmpi::drawing::Color tint = Colors::White;
+        float strokeWidthRaw = 4.0f;
+        if (auto* style = pinStyle.value.get())
+        {
+            style->getStrokeColor(&tint);
+            style->getStrokeWidth(&strokeWidthRaw);
+        }
+
         const float scale   = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
-        const float strokeW = (std::max)(0.0f, pinStrokeWidth.value);
+        const float strokeW = (std::max)(0.0f, strokeWidthRaw);
         const float blurDip = (std::max)(0.0f, pinBlurRadius.value);
 
         // Symmetric extent (DIPs) about the origin: geometry is authored centred on the origin,
@@ -2620,8 +2627,8 @@ struct BlurBitmap final : public GraphicsProcessor
             auto dd = blurredBitmap.lockPixels(drawing::BitmapLockFlags::Write);
             const auto dstride = dd.getBytesPerRow();
             uint8_t* dst = dd.getAddress();
-            const float tintf[3] = { pinColor.value.r, pinColor.value.g, pinColor.value.b };
-            const float ta = pinColor.value.a;
+            const float tintf[3] = { tint.r, tint.g, tint.b };
+            const float ta = tint.a;
             constexpr float inv255 = 1.0f / 255.0f;
             for (int y = 0; y < outDim; ++y)
             {
@@ -2661,9 +2668,8 @@ auto r21 = gmpi::Register<BlurBitmap>::withXml(R"XML(
   <Plugin id="SE: BlurBitmap" name="Blur" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Path" datatype="object:path"/>
-      <Pin name="Stroke Width" datatype="float" default="4"/>
+      <Pin name="Style" datatype="object:style"/>
       <Pin name="Blur Radius" datatype="float" default="8"/>
-      <Pin name="Color" datatype="struct:color"/>
       <Pin name="Downsample" datatype="bool" default="1"/>
       <Pin name="Blurred" datatype="object:bitmap" direction="out"/>
     </GUI>
@@ -2713,12 +2719,10 @@ struct RenderText2Bitmap final : public GraphicsProcessor
 {
     ObjectIn<drawing::api::ITextFormat> pinInput;
     Pin<std::string>                    pinText;
-    Pin<gmpi::drawing::Color>           pinColor;
+    ObjectIn<IStyle>                    pinStyle;
     ObjectOut<drawing::api::IBitmap>    pinOutput;
 
     Bitmap bitmap;
-
-    RenderText2Bitmap() { pinColor.value = gmpi::drawing::Color{ 1, 1, 1, 1 }; }
 
     ReturnCode process() override
     {
@@ -2735,6 +2739,11 @@ struct RenderText2Bitmap final : public GraphicsProcessor
             drawingHost->getDrawingFactory(u.put());
             u->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
         }
+
+        // text colour comes from the Style's fill (text is a filled shape). Default white.
+        gmpi::drawing::Color tint = Colors::White;
+        if (auto* style = pinStyle.value.get())
+            style->getFillColor(&tint);
 
         const float scale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
 
@@ -2773,8 +2782,8 @@ struct RenderText2Bitmap final : public GraphicsProcessor
             auto dd = bitmap.lockPixels(drawing::BitmapLockFlags::Write);
             const auto dstride = dd.getBytesPerRow();
             uint8_t* dst = dd.getAddress();
-            const float tintf[3] = { pinColor.value.r, pinColor.value.g, pinColor.value.b };
-            const float ta = pinColor.value.a;
+            const float tintf[3] = { tint.r, tint.g, tint.b };
+            const float ta = tint.a;
             constexpr float inv255 = 1.0f / 255.0f;
             for (int y = 0; y < h; ++y)
             {
@@ -2811,7 +2820,7 @@ auto r23 = gmpi::Register<RenderText2Bitmap>::withXml(R"XML(
     <GUI>
       <Pin name="Font" datatype="object:font"/>
       <Pin name="Text" datatype="string_utf8"/>
-      <Pin name="Color" datatype="struct:color"/>
+      <Pin name="Style" datatype="object:style"/>
       <Pin name="Bitmap" datatype="object:bitmap" direction="out"/>
     </GUI>
   </Plugin>
