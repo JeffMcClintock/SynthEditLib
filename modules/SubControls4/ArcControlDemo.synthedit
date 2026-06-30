@@ -1,105 +1,159 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="395014228" SelectedViewType="256" emulate_ignore_pc="true" vst_preset_count="64" vst_version="1.0.0">
-    <master_container type="Container" handle="395014228" name="Main" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
+<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="517429484" SelectedViewType="256" emulate_ignore_pc="true" vst_preset_count="64" vst_version="1.0.0">
+    <master_container type="Container" handle="517429484" name="Main" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
         <plugs>
             <plug idx="7"/>
         </plugs>
         <structRect l="0" r="0" t="0" b="0"/>
         <PatchManager>
             <ProgramNames/>
+            <Parameters>
+                <param type="6" handle="608964784" module="1603807554" moduleParamId="0">
+                    <patch-list>
+                        <s repeat="128">0</s>
+                    </patch-list>
+                </param>
+            </Parameters>
         </PatchManager>
         <modules>
-            <module type="SE: RenderBitmap" handle="1959217078">
-                <structRect l="624" r="624" t="516" b="516"/>
+            <module type="SE: MouseTarget" handle="1560413195">
+                <structRect l="900" r="900" t="180" b="180"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: RenderGeometry" handle="229465567">
-                <structRect l="624" r="624" t="120" b="120"/>
+            <module type="SE: RenderBitmap" handle="1662862934">
+                <structRect l="900" r="900" t="756" b="756"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: RenderBitmap" handle="105708409">
-                <structRect l="624" r="624" t="300" b="300"/>
+            <module type="SE: RenderGeometry" handle="1701792118">
+                <structRect l="900" r="900" t="360" b="360"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: RenderText2Bitmap" handle="2108380823">
-                <structRect l="300" r="300" t="516" b="516"/>
+            <module type="SE: RenderBitmap" handle="336809948">
+                <structRect l="900" r="900" t="564" b="564"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: ColorFromRGBA" handle="423347668">
+            <module type="SE: RenderText2Bitmap" handle="1246874127">
+                <structRect l="564" r="564" t="756" b="756"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: ColorFromRGBA" handle="272515262">
                 <plugs>
                     <plug default="1.0"/>
                     <plug default="1.0"/>
                     <plug default="1.0"/>
                 </plugs>
-                <structRect l="36" r="36" t="696" b="696"/>
+                <structRect l="36" r="36" t="876" b="876"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: Float2Text" handle="1336118989">
+            <module type="SE: Float2Text" handle="2020164435">
                 <plugs>
-                    <plug default="1.5"/>
-                    <plug default="1"/>
+                    <plug default="2" idx="1"/>
                 </plugs>
-                <structRect l="36" r="36" t="564" b="564"/>
+                <structRect l="300" r="300" t="756" b="756"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: TextFormat" handle="1669531498">
-                <structRect l="36" r="36" t="468" b="468"/>
+            <module type="SE: TextFormat" handle="1400437331">
+                <structRect l="36" r="36" t="756" b="756"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: BlurBitmap" handle="755264070">
+            <module type="SE: BlurBitmap" handle="466308478">
                 <plugs>
                     <plug default="7" idx="1"/>
                     <plug default="14"/>
                 </plugs>
-                <structRect l="264" r="264" t="300" b="300"/>
+                <structRect l="300" r="300" t="624" b="624"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: ColorFromRGBA" handle="622759656">
+            <module type="SE: ColorFromRGBA" handle="959572851">
                 <plugs>
                     <plug default="0.6"/>
                     <plug default="0.8"/>
                     <plug default="1.0"/>
                 </plugs>
-                <structRect l="36" r="36" t="336" b="336"/>
+                <structRect l="36" r="36" t="624" b="624"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: StyleBuilder" handle="311918763">
+            <module type="SE: StyleBuilder" handle="549136132">
                 <plugs>
                     <plug default="4" idx="2"/>
                     <plug default="2"/>
                 </plugs>
-                <structRect l="264" r="264" t="144" b="144"/>
+                <structRect l="300" r="300" t="504" b="504"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: ColorFromRGBA" handle="544095563">
+            <module type="SE: ColorFromRGBA" handle="305733396">
                 <plugs>
                     <plug default="1.0"/>
                     <plug default="1.0"/>
                     <plug default="1.0"/>
                 </plugs>
+                <structRect l="36" r="36" t="456" b="456"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: ArcGeometry" handle="1136809997">
+                <plugs>
+                    <plug default="40" idx="1"/>
+                </plugs>
+                <structRect l="300" r="300" t="360" b="360"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: Add" handle="1991087142">
+                <structRect l="696" r="696" t="204" b="204"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: Multiply" handle="2086175846">
+                <plugs>
+                    <plug default="0.005" idx="1"/>
+                </plugs>
+                <structRect l="564" r="564" t="240" b="240"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: Multiply" handle="1623768812">
+                <structRect l="420" r="420" t="204" b="204"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: Delta" handle="869641951">
+                <structRect l="264" r="264" t="204" b="204"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: MouseTarget" handle="55094247">
                 <structRect l="36" r="36" t="180" b="180"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: ArcGeometry" handle="224498075">
+            <module type="SE: PatchMemSet" handle="582928328">
+                <structRect l="696" r="696" t="36" b="36"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: PatchMemGet" handle="1603807554">
                 <plugs>
-                    <plug default="0.72"/>
-                    <plug default="40"/>
+                    <plug default="0.6"/>
                 </plugs>
                 <structRect l="36" r="36" t="36" b="36"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
         </modules>
         <lines>
-            <line type="Line" handle="335241905" lineType="1" fMod="224498075" tMod="229465567" fPlg="4"/>
-            <line type="Line" handle="1172716110" lineType="1" fMod="544095563" tMod="311918763" fPlg="4" tPlg="1"/>
-            <line type="Line" handle="510410890" lineType="1" fMod="311918763" tMod="229465567" fPlg="4" tPlg="1"/>
-            <line type="Line" handle="2111672806" lineType="1" fMod="224498075" tMod="755264070" fPlg="4"/>
-            <line type="Line" handle="99229924" lineType="1" fMod="622759656" tMod="755264070" fPlg="4" tPlg="3"/>
-            <line type="Line" handle="1039128594" lineType="1" fMod="755264070" tMod="105708409" fPlg="5"/>
-            <line type="Line" handle="1000817995" lineType="1" fMod="1669531498" tMod="2108380823"/>
-            <line type="Line" handle="693313733" lineType="1" fMod="1336118989" tMod="2108380823" fPlg="2" tPlg="1"/>
-            <line type="Line" handle="562050795" lineType="1" fMod="423347668" tMod="2108380823" fPlg="4" tPlg="2"/>
-            <line type="Line" handle="1593012894" lineType="1" fMod="2108380823" tMod="1959217078" fPlg="3"/>
+            <line type="Line" handle="1863900967" lineType="1" fMod="1603807554" tMod="582928328" fPlg="3"/>
+            <line type="Line" handle="1388703345" lineType="1" fMod="1560413195" tMod="869641951" fPlg="3"/>
+            <line type="Line" handle="397125390" lineType="1" fMod="1560413195" tMod="1623768812" fPlg="1"/>
+            <line type="Line" handle="1200667568" lineType="1" fMod="869641951" tMod="1623768812" fPlg="1" tPlg="1"/>
+            <line type="Line" handle="1135509692" lineType="1" fMod="1623768812" tMod="2086175846" fPlg="2"/>
+            <line type="Line" handle="1963220151" lineType="1" fMod="1603807554" tMod="1991087142" fPlg="4"/>
+            <line type="Line" handle="294050458" lineType="1" fMod="2086175846" tMod="1991087142" fPlg="2" tPlg="1"/>
+            <line type="Line" handle="1390235095" lineType="1" fMod="1991087142" tMod="582928328" fPlg="2" tPlg="1"/>
+            <line type="Line" handle="1321785642" lineType="1" fMod="1560413195" tMod="582928328" fPlg="1" tPlg="2"/>
+            <line type="Line" handle="28088965" lineType="1" fMod="1603807554" tMod="1136809997" fPlg="4"/>
+            <line type="Line" handle="820248258" lineType="1" fMod="1603807554" tMod="2020164435" fPlg="4"/>
+            <line type="Line" handle="1047662179" lineType="1" fMod="1136809997" tMod="1701792118" fPlg="4"/>
+            <line type="Line" handle="608639306" lineType="1" fMod="305733396" tMod="549136132" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="2051648966" lineType="1" fMod="549136132" tMod="1701792118" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="1791372734" lineType="1" fMod="1136809997" tMod="466308478" fPlg="4"/>
+            <line type="Line" handle="776712812" lineType="1" fMod="959572851" tMod="466308478" fPlg="4" tPlg="3"/>
+            <line type="Line" handle="1934638726" lineType="1" fMod="466308478" tMod="336809948" fPlg="5"/>
+            <line type="Line" handle="1472069304" lineType="1" fMod="1400437331" tMod="1246874127"/>
+            <line type="Line" handle="170977801" lineType="1" fMod="2020164435" tMod="1246874127" fPlg="2" tPlg="1"/>
+            <line type="Line" handle="489776650" lineType="1" fMod="272515262" tMod="1246874127" fPlg="4" tPlg="2"/>
+            <line type="Line" handle="361202327" lineType="1" fMod="1246874127" tMod="1662862934" fPlg="3"/>
         </lines>
         <PanelLocationCenter x="3984" y="3984"/>
         <StructLocationCenter x="3984" y="3984"/>
@@ -124,6 +178,13 @@
                 <Pin name="Controls on Module" datatype="bool" noAutomation="true"/>
                 <Pin name="Visible" datatype="bool"/>
                 <Pin name="Ignore Program Change" datatype="bool" noAutomation="true"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: Add" name="Add" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Value" datatype="float"/>
+                <Pin name="Value" datatype="float"/>
+                <Pin name="Value" datatype="float" direction="out"/>
             </GUI>
         </Plugin>
         <Plugin id="SE: ArcGeometry" name="Arc Geometry" flags="384" category="GMPI/SDK Examples">
@@ -154,11 +215,53 @@
                 <Pin name="Color" datatype="struct:color" direction="out"/>
             </GUI>
         </Plugin>
+        <Plugin id="SE: Delta" name="Delta" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Value" datatype="float"/>
+                <Pin name="Value" datatype="float" direction="out"/>
+            </GUI>
+        </Plugin>
         <Plugin id="SE: Float2Text" name="Float2Text" flags="384" category="GMPI/SDK Examples">
             <GUI>
                 <Pin name="Value" datatype="float"/>
                 <Pin name="Decimal Places" datatype="int" default="-1"/>
                 <Pin name="Value" datatype="string_utf8" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: MouseTarget" name="MouseTarget" flags="384" category="GMPI/SDK Examples">
+            <GUI graphicsApi="GmpiGui">
+                <Pin name="Hover" datatype="bool" direction="out"/>
+                <Pin name="Left Click" datatype="bool" direction="out"/>
+                <Pin name="X" datatype="float" direction="out"/>
+                <Pin name="Y" datatype="float" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: Multiply" name="Multiply" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Value" datatype="float"/>
+                <Pin name="Value" datatype="float"/>
+                <Pin name="Value" datatype="float" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: PatchMemGet" name="Value" flags="384" category="GMPI/SDK Examples">
+            <Parameters>
+                <Parameter id="0" datatype="float" name=""/>
+            </Parameters>
+            <GUI>
+                <Pin name="Normalized-in" datatype="float" private="true" parameterId="0" parameterField="Normalized"/>
+                <Pin name="MouseDown-in" datatype="bool" private="true" parameterId="0" parameterField="Grab"/>
+                <Pin name="Value-in" datatype="float" private="true" parameterId="0"/>
+                <Pin name="ID" datatype="int" direction="out"/>
+                <Pin name="Normalized" datatype="float" direction="out"/>
+                <Pin name="MouseDown" datatype="bool" direction="out"/>
+                <Pin name="Value" datatype="float" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: PatchMemSet" name="Value Set" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="ID" datatype="int"/>
+                <Pin name="Normalized" datatype="float"/>
+                <Pin name="MouseDown" datatype="bool"/>
             </GUI>
         </Plugin>
         <Plugin id="SE: RenderBitmap" name="RenderBitmap" flags="384" category="GMPI/SDK Examples">
