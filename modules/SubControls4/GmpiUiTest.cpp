@@ -762,11 +762,13 @@ public:
         int dp = pinDecimalPlaces.value;
         if (dp < 0)
         {
-            // "auto" (-1): fewer decimals as the magnitude grows, for a sensible readout
-            // (cf. displaydBD2 in SE2JUCE_parameterToString.h: <10 -> 1 dp, >=10 -> 0 dp).
-            // Sub-0.1 values keep extra precision so they don't collapse to "0.0".
+            // "auto": fewer decimals as the magnitude grows, for a sensible readout (cf. displaydBD2
+            // in SE2JUCE_parameterToString.h). -1 is the base (>=10 -> 0 dp, <10 -> 1 dp); each
+            // further -N adds one more digit per tier (so -2 gives 123 -> "123.0", 6.0 -> "6.00").
+            // Sub-0.1 values always keep 3 dp so they don't collapse to "0.0".
             const float a = std::fabs(v);
-            dp = (a >= 10.0f) ? 0 : (a > 0.0f && a < 0.1f) ? 3 : 1;
+            const int extra = -dp - 1; // -1 -> +0, -2 -> +1, ...
+            dp = (a > 0.0f && a < 0.1f) ? 3 : ((a >= 10.0f) ? 0 : 1) + extra;
         }
         char buf[64];
         snprintf(buf, sizeof(buf), "%.*f", dp, v);
