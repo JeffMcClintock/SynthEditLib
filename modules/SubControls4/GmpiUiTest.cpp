@@ -759,8 +759,16 @@ public:
 
     std::string formatNumber(float v) const
     {
+        int dp = pinDecimalPlaces.value;
+        if (dp < 0)
+        {
+            // "auto" (-1): fewer decimals as the magnitude grows, for a sensible readout
+            // (cf. displaydBD2 in SE2JUCE_parameterToString.h: <10 -> 1 dp, >=10 -> 0 dp).
+            // Sub-0.1 values keep extra precision so they don't collapse to "0.0".
+            const float a = std::fabs(v);
+            dp = (a >= 10.0f) ? 0 : (a > 0.0f && a < 0.1f) ? 3 : 1;
+        }
         char buf[64];
-        const int dp = (std::max)(0, pinDecimalPlaces.value);
         snprintf(buf, sizeof(buf), "%.*f", dp, v);
         return buf;
     }
