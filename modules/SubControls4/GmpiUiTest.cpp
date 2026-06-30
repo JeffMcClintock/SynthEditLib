@@ -2492,9 +2492,19 @@ struct RenderBitmap final : public PluginEditor
             return ReturnCode::Fail;
 
         const auto size = bitmap.getSize();
-        const Rect rect{ 0, 0, static_cast<float>(size.width), static_cast<float>(size.height) };
 
-		g.drawBitmap(bitmap, rect, rect);
+        // The bitmap is at physical resolution; its DIP footprint is pixels / rasterizationScale.
+        // Draw it centred on the widget so it aligns with other origin-centred layers.
+        const float scale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
+        const float halfW = 0.5f * size.width / scale;
+        const float halfH = 0.5f * size.height / scale;
+
+        const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * g.getTransform();
+        g.setTransform(base);
+
+        const Rect dest{ -halfW, -halfH, halfW, halfH };
+        const Rect src{ 0, 0, static_cast<float>(size.width), static_cast<float>(size.height) };
+        g.drawBitmap(bitmap, dest, src);
 
         return ReturnCode::Ok;
     }
@@ -2515,157 +2525,132 @@ auto r20 = gmpi::Register<RenderBitmap>::withXml(R"XML(
 )XML");
 }
 
+// Soft glow of a path. The OUTPUT bitmap is full physical resolution (logical * rasterization
+// scale) and sized symmetrically about the origin, so a centred RenderBitmap aligns it with the
+// (centred) sharp geometry. The expensive blur runs at a reduced (1/ds) resolution and is then
+// upsampled into the full-res output; an integer ds keeps the upscale clean. Downsample = off
+// forces full-resolution blur.
 struct BlurBitmap final : public GraphicsProcessor
 {
-    ObjectIn<gmpi::api::IUnknown>    pinInput;  // accepts either a bitmap or a path.
+    ObjectIn<drawing::api::IPathGeometry> pinPath;
+    Pin<float>                pinStrokeWidth;
+    Pin<float>                pinBlurRadius;   // in DIPs
+    Pin<gmpi::drawing::Color> pinColor;
+    Pin<bool>                 pinDownsample;
     ObjectOut<drawing::api::IBitmap> pinOutput;
 
-    drawing::Color tint = drawing::colorFromHex(0xd4c1ffu);
     Bitmap blurredBitmap;
 
+    BlurBitmap()
+    {
+        pinStrokeWidth.value = 4.0f;
+        pinBlurRadius.value  = 8.0f;
+        pinColor.value       = gmpi::drawing::Color{ 1, 1, 1, 1 };
+        pinDownsample.value  = true;
+    }
 
     ReturnCode process() override
     {
-        if (!pinInput)
+        if (!pinPath)
             return ReturnCode::Ok;
 
-        auto unknown = pinInput.value.get();
-
-        Bitmap bitmap;
         PathGeometry geometry;
+        if (ReturnCode::Ok != pinPath.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
+            return ReturnCode::Fail;
 
-        // test if input is Bitmap or Path
-        if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IBitmap::guid, AccessPtr::put_void(bitmap)))
+        Factory factory;
         {
-            if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
-                return ReturnCode::Fail;
-
-            // it's a path, render it to the mask bitmap.
-            const SizeU size{ 100, 100 };// getWidth(bounds), getHeight(bounds)}; size is zero on first process.
-            const int32_t flags = (int32_t)BitmapRenderTargetFlags::Mask;
-
-            // get factory.
-            Factory factory;
-            {
-                gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-                drawingHost->getDrawingFactory(unknown.put());
-                unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
-            }
-
-            // create a bitmap render target on CPU.
-            auto g2 = factory.createCpuRenderTarget(size, flags);
-
-            g2.beginDraw();
-
-            auto brush = g2.createSolidColorBrush(Colors::White);
-            auto strokeStyle = factory.createStrokeStyle(CapStyle::Flat);
-
-            g2.drawGeometry(geometry, brush);
-
-            g2.endDraw();
-
-            bitmap = g2.getBitmap();
+            gmpi::shared_ptr<gmpi::api::IUnknown> u;
+            drawingHost->getDrawingFactory(u.put());
+            u->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
         }
 
-        auto size = bitmap.getSize();
-        const Rect rect{ 0, 0, static_cast<float>(size.width), static_cast<float>(size.height) };
+        const float scale   = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
+        const float strokeW = (std::max)(0.0f, pinStrokeWidth.value);
+        const float blurDip = (std::max)(0.0f, pinBlurRadius.value);
 
-        // copy the mask bitmap to working RAM.
-        std::vector<uint8_t> workingArea;
+        // Symmetric extent (DIPs) about the origin: geometry is authored centred on the origin,
+        // so the bitmap centre == the geometry origin and a centred draw aligns the layers.
+        auto strokeStyle = factory.createStrokeStyle(CapStyle::Round);
+        const Rect wb = geometry.getWidenedBounds(strokeW, strokeStyle);
+        if (!std::isfinite(wb.left) || !std::isfinite(wb.right) || !std::isfinite(wb.top) || !std::isfinite(wb.bottom))
+            return ReturnCode::Ok; // empty/degenerate geometry
+        float halfDip = 0.0f;
+        for (float v : { std::fabs(wb.left), std::fabs(wb.right), std::fabs(wb.top), std::fabs(wb.bottom) })
+            halfDip = (std::max)(halfDip, v);
+        halfDip += blurDip + 1.0f;               // room for the blur to fade to zero
+        const float dipSize = 2.0f * halfDip;
+
+        const int outDim = (std::max)(1, static_cast<int>(dipSize * scale + 0.5f)); // full physical res
+
+        // The smooth blur runs at outDim / ds. Any integer ds keeps the integer upscale clean.
+        int ds = 1;
+        if (pinDownsample.value)
         {
-            auto data = bitmap.lockPixels();
-
-            const auto stride = data.getBytesPerRow();
-			const auto format = data.getPixelFormat();
-
-            constexpr int pixelSize = 1; // 8 bytes per pixel for half-float,1 byte for mask.
-            const int totalPixels = (int)size.height * stride / pixelSize;
-
-			const uint8_t* pixel = data.getAddress();
-
-            // could switch on format here
-            workingArea.resize(totalPixels);
-            for (int i = 0; i < totalPixels; ++i)
-            {
-                workingArea[i] = *pixel++;//[i * pixelSize + 3]; // alpha channel
-            }
+            constexpr int kMaxBlurDim = 256;
+            ds = (std::max)(1, static_cast<int>(std::ceil(static_cast<float>(outDim) / kMaxBlurDim)));
         }
-        // modify the buffer
+        const int   loDim   = (std::max)(1, outDim / ds);
+        const float loScale = static_cast<float>(loDim) / dipSize; // DIP -> blur-buffer pixel
+
+        // render the stroked path into a low-res mask, drawing in DIPs (origin -> buffer centre).
+        std::vector<uint8_t> mask(static_cast<size_t>(loDim) * loDim, 0);
         {
-            // modify pixels here
-#if 0
+            auto rt = factory.createCpuRenderTarget(SizeU{ static_cast<uint32_t>(loDim), static_cast<uint32_t>(loDim) },
+                (int32_t)BitmapRenderTargetFlags::Mask | (int32_t)BitmapRenderTargetFlags::CpuReadable);
+            rt.beginDraw();
+            rt.setTransform(makeTranslation(halfDip, halfDip) * makeScale(loScale));
+            auto brush = rt.createSolidColorBrush(Colors::White);
+            rt.drawGeometry(geometry, brush, strokeW, strokeStyle);
+            rt.endDraw();
+
+            auto maskBmp = rt.getBitmap();
+            auto d = maskBmp.lockPixels();
+            const auto stride = d.getBytesPerRow();
+            const uint8_t* srcp = d.getAddress();
+            for (int y = 0; y < loDim; ++y)
+                std::memcpy(&mask[static_cast<size_t>(y) * loDim], srcp + static_cast<size_t>(y) * stride, loDim);
+        }
+
+        // blur the mask (radius in blur-buffer pixels => blurDip DIPs once upsampled).
+        const unsigned blurPx = static_cast<unsigned>((std::max)(1.0f, blurDip * loScale + 0.5f));
+        ginSingleChannel(mask.data(), loDim, loDim, blurPx, loDim);
+
+        // tint + integer-upsample the blurred mask into the full-res output bitmap.
+        blurredBitmap = factory.createImage(outDim, outDim,
+            (int32_t)drawing::BitmapRenderTargetFlags::SRGBPixels | (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
+        {
+            auto dd = blurredBitmap.lockPixels(drawing::BitmapLockFlags::Write);
+            const auto dstride = dd.getBytesPerRow();
+            uint8_t* dst = dd.getAddress();
+            const float tintf[3] = { pinColor.value.r, pinColor.value.g, pinColor.value.b };
+            const float ta = pinColor.value.a;
+            constexpr float inv255 = 1.0f / 255.0f;
+            for (int y = 0; y < outDim; ++y)
             {
-                // half-float pixels.
-                auto pixel = (half*)data.getAddress();
-                ginARGB(pixel, imageSize.width, imageSize.height, 5);
-            }
-#else
-            {
-                // create a blurred mask of the image.
-                auto pixel = workingArea.data();
-                ginSingleChannel(pixel, size.width, size.height, 5);
-            }
-#endif
-
-            // get drawingFactory
-            Factory factory;
-            {
-                gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-                drawingHost->getDrawingFactory(unknown.put());
-                unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
-            }
-
-            // create bitmap
-           blurredBitmap = factory.createImage(size, (int32_t)drawing::BitmapRenderTargetFlags::SRGBPixels | (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
-            {
-                auto destdata = blurredBitmap.lockPixels(drawing::BitmapLockFlags::Write);
-                constexpr int pixelSize = 4; // 8 bytes per pixel for half-float, 4 for 8-bit
-                auto stride = destdata.getBytesPerRow();
-                auto format = destdata.getPixelFormat();
-                const int totalPixels = (int)size.height * stride / pixelSize;
-
-                const int pixelSizeTest = stride / size.width; // 8 for half-float RGB, 4 for 8-bit sRGB, 1 for alpha mask
-
-                auto pixelsrc = workingArea.data(); // data.getAddress();
-                //   auto pixeldest = (half*)destdata.getAddress();
-                auto pixeldest = destdata.getAddress();
-
-                float tintf[4] = { tint.r, tint.g, tint.b, tint.a };
-
-                constexpr float inv255 = 1.0f / 255.0f;
-
-                for (int i = 0; i < totalPixels; ++i)
+                const int sy = (std::min)(loDim - 1, y / ds);
+                uint8_t* drow = dst + static_cast<size_t>(y) * dstride;
+                for (int x = 0; x < outDim; ++x)
                 {
-                    const auto alpha = *pixelsrc;
-                    if (alpha == 0)
+                    const int sx = (std::min)(loDim - 1, x / ds);
+                    const uint8_t a8 = mask[static_cast<size_t>(sy) * loDim + sx];
+                    uint8_t* px = drow + x * 4;
+                    if (a8 == 0)
                     {
-                        pixeldest[0] = pixeldest[1] = pixeldest[2] = pixeldest[3] = {};
+                        px[0] = px[1] = px[2] = px[3] = 0;
                     }
                     else
                     {
-                        const float AlphaNorm = alpha * inv255;
+                        const float an = a8 * inv255 * ta;
                         for (int j = 0; j < 3; ++j)
-                        {
-                            // To linear
-                            auto cf = tintf[j];
-
-                            // pre-multiply in linear space.
-                            cf *= AlphaNorm;
-
-                            // back to SRGB
-                            pixeldest[j] = drawing::linearPixelToSRGB(cf);
-                        }
-                        pixeldest[3] = alpha;
+                            px[j] = drawing::linearPixelToSRGB(tintf[j] * an);
+                        px[3] = static_cast<uint8_t>(255.0f * an + 0.5f);
                     }
-
-                    pixelsrc++;
-                    pixeldest += 4;
                 }
             }
         }
 
         pinOutput = AccessPtr::get(blurredBitmap);
-
         return ReturnCode::Ok;
     }
 };
@@ -2678,7 +2663,11 @@ auto r21 = gmpi::Register<BlurBitmap>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: BlurBitmap" name="Blur" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Bitmap/Path" datatype="object"/>
+      <Pin name="Path" datatype="object:path"/>
+      <Pin name="Stroke Width" datatype="float" default="4"/>
+      <Pin name="Blur Radius" datatype="float" default="8"/>
+      <Pin name="Color" datatype="struct:color"/>
+      <Pin name="Downsample" datatype="bool" default="1"/>
       <Pin name="Blurred" datatype="object:bitmap" direction="out"/>
     </GUI>
   </Plugin>
