@@ -505,6 +505,8 @@ auto r7 = gmpi::Register<OneWayText>::withXml(R"XML(
 
 struct Image4Gui : public PluginEditor
 {
+    // NOTE: pinAnimationPosition is written back via setAnimationPos(), so this pre-existing module
+    // genuinely uses bidirectional Pin<T> - left as-is.
     Pin<std::string> pinFilename;
     Pin<float> pinAnimationPosition;
     Pin<int32_t> pinFrame;
@@ -745,8 +747,8 @@ struct DECLSPEC_NOVTABLE IStyle : gmpi::api::IUnknown
 class TextEntry4Gui : public PluginEditor
 {
 protected:
-    Pin<std::string> pinValueIn;
-    Pin<std::string> pinValueOut;
+    In<std::string> pinValueIn;
+    Out<std::string> pinValueOut;
     ObjectIn<IStyle> pinStyle;
 
     sdk::TextEditCallback callback;
@@ -977,10 +979,10 @@ auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
 class MouseTarget : public PluginEditor
 {
 protected:
-    Pin<bool>  pinHover;
-    Pin<bool>  pinLClick;
-    Pin<float> pinX;
-    Pin<float> pinY;
+    Out<bool>  pinHover;
+    Out<bool>  pinLClick;
+    Out<float> pinX;
+    Out<float> pinY;
 
 public:
     gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
@@ -1041,8 +1043,8 @@ auto r9 = gmpi::Register<MouseTarget>::withXml(R"XML(
 
 class Delta final : public PluginEditorNoGui
 {
-    Pin<float> pinValue_in;
-    Pin<float> pinValue;
+    In<float> pinValue_in;
+    Out<float> pinValue;
 
     float prev{};
 
@@ -1079,9 +1081,9 @@ auto r10 = gmpi::Register<Delta>::withXml(R"XML(
 
 class Add final : public PluginEditorNoGui
 {
-    Pin<float> pinValue_inA;
-    Pin<float> pinValue_inB;
-    Pin<float> pinValue;
+    In<float> pinValue_inA;
+    In<float> pinValue_inB;
+    Out<float> pinValue;
 
 public:
     ReturnCode process() override
@@ -1110,9 +1112,9 @@ auto r11 = gmpi::Register<Add>::withXml(R"XML(
 
 struct Multiply final : public PluginEditorNoGui
 {
-    Pin<float> pinValue_inA;
-    Pin<float> pinValue_inB;
-    Pin<float> pinValue;
+    In<float> pinValue_inA;
+    In<float> pinValue_inB;
+    Out<float> pinValue;
 
     ReturnCode process() override
     {
@@ -1140,8 +1142,8 @@ auto r12 = gmpi::Register<Multiply>::withXml(R"XML(
 
 struct Bool2Float final : public PluginEditorNoGui
 {
-    Pin<bool> pinValue_in;
-    Pin<float> pinValue;
+    In<bool> pinValue_in;
+    Out<float> pinValue;
 
     ReturnCode process() override
     {
@@ -1168,9 +1170,9 @@ auto r13 = gmpi::Register<Bool2Float>::withXml(R"XML(
 
 struct Float2Text final : public PluginEditorNoGui
 {
-    Pin<float> pinValue_in;
-    Pin<int> pinDecimals;
-    Pin<std::string> pinOutput;
+    In<float> pinValue_in;
+    In<int> pinDecimals;
+    Out<std::string> pinOutput;
 
     ReturnCode process() override
     {
@@ -1243,8 +1245,8 @@ auto r14 = gmpi::Register<Float2Text>::withXml(R"XML(
 
 struct Utf82Wide final : public PluginEditorNoGui
 {
-    Pin<std::string> pinValue_in;
-    Pin<std::wstring> pinOutput;
+    In<std::string> pinValue_in;
+    Out<std::wstring> pinOutput;
 
     ReturnCode process() override
     {
@@ -1271,8 +1273,8 @@ auto r15 = gmpi::Register<Utf82Wide>::withXml(R"XML(
 
 struct Wide2Utf8 final : public PluginEditorNoGui
 {
-    Pin<std::wstring> pinValue_in;
-    Pin<std::string> pinOutput;
+    In<std::wstring> pinValue_in;
+    Out<std::string> pinOutput;
 
     ReturnCode process() override
     {
@@ -1402,7 +1404,7 @@ auto r17a = gmpi::Register<ObjectTester>::withXml(R"XML(
 }
 struct CircleGeometry final : public GraphicsProcessor
 {
-    Pin<float> pinRadius;
+    In<float> pinRadius;
     ObjectOut<drawing::api::IPathGeometry> pinOutput;
 
     gmpi::drawing::PathGeometry geometry;
@@ -1462,9 +1464,9 @@ auto r17 = gmpi::Register<CircleGeometry>::withXml(R"XML(
 // OUTSIDE this module. Angles are in TURNS; +ve sweep is clockwise (screen coords, y down).
 struct ArcGeometry final : public GraphicsProcessor
 {
-    Pin<float> pinRadius;
-    Pin<float> pinStartTurns;
-    Pin<float> pinSweepTurns;
+    In<float> pinRadius;
+    In<float> pinStartTurns;
+    In<float> pinSweepTurns;
     ObjectOut<drawing::api::IPathGeometry> pinPath;
 
     gmpi::drawing::PathGeometry geometry;
@@ -1523,7 +1525,7 @@ auto r41 = gmpi::Register<ArcGeometry>::withXml(R"XML(
 
 struct SvgGeometry final : public GraphicsProcessor
 {
-    Pin<std::string> pinFilename;
+    In<std::string> pinFilename;
     ObjectOut<drawing::api::IPathGeometry> pinOutput;
 
     gmpi::drawing::PathGeometry geometry;
@@ -1579,11 +1581,11 @@ auto r17b = gmpi::Register<SvgGeometry>::withXml(R"XML(
 // The colour travels as a plain value (the Color struct itself), not a reference-counted interface.
 struct ColorFromRGBA final : public PluginEditorNoGui
 {
-    Pin<float> pinRed;
-    Pin<float> pinGreen;
-    Pin<float> pinBlue;
-    Pin<float> pinAlpha;
-    Pin<gmpi::drawing::Color> pinColor;
+    In<float> pinRed;
+    In<float> pinGreen;
+    In<float> pinBlue;
+    In<float> pinAlpha;
+    Out<gmpi::drawing::Color> pinColor;
 
     ReturnCode process() override
     {
@@ -1619,8 +1621,8 @@ auto r25 = gmpi::Register<ColorFromRGBA>::withXml(R"XML(
 // Rotation by an angle given in TURNS (1 turn = a full circle), not radians.
 struct Rotation final : public PluginEditorNoGui
 {
-    Pin<float>                    pinTurns;
-    Pin<gmpi::drawing::Matrix3x2> pinTransform;
+    In<float>                    pinTurns;
+    Out<gmpi::drawing::Matrix3x2> pinTransform;
 
     ReturnCode process() override
     {
@@ -1649,9 +1651,9 @@ auto r27 = gmpi::Register<Rotation>::withXml(R"XML(
 // Translation by (X, Y).
 struct Translation final : public PluginEditorNoGui
 {
-    Pin<float>                    pinX;
-    Pin<float>                    pinY;
-    Pin<gmpi::drawing::Matrix3x2> pinTransform;
+    In<float>                    pinX;
+    In<float>                    pinY;
+    Out<gmpi::drawing::Matrix3x2> pinTransform;
 
     ReturnCode process() override
     {
@@ -1680,9 +1682,9 @@ auto r28 = gmpi::Register<Translation>::withXml(R"XML(
 // Scale by (X, Y). Defaults to 1 (identity) so an unconnected scale doesn't collapse geometry.
 struct Scale final : public PluginEditorNoGui
 {
-    Pin<float>                    pinX;
-    Pin<float>                    pinY;
-    Pin<gmpi::drawing::Matrix3x2> pinTransform;
+    In<float>                    pinX;
+    In<float>                    pinY;
+    Out<gmpi::drawing::Matrix3x2> pinTransform;
 
     ReturnCode process() override
     {
@@ -1711,9 +1713,9 @@ auto r29 = gmpi::Register<Scale>::withXml(R"XML(
 // Combine two transforms into one: Result = A * B (i.e. apply A, then B).
 struct CombineTransforms final : public PluginEditorNoGui
 {
-    Pin<gmpi::drawing::Matrix3x2> pinA;
-    Pin<gmpi::drawing::Matrix3x2> pinB;
-    Pin<gmpi::drawing::Matrix3x2> pinResult;
+    In<gmpi::drawing::Matrix3x2> pinA;
+    In<gmpi::drawing::Matrix3x2> pinB;
+    Out<gmpi::drawing::Matrix3x2> pinResult;
 
     ReturnCode process() override
     {
@@ -1760,10 +1762,10 @@ struct StyleObject final : public IStyle
 // Build the style once and fan the one wire out to as many renderers as you like.
 struct StyleBuilder final : public PluginEditorNoGui
 {
-    Pin<gmpi::drawing::Color> pinFill;
-    Pin<gmpi::drawing::Color> pinStroke;
-    Pin<float>                pinStrokeWidth;
-    Pin<int32_t>              pinCap;
+    In<gmpi::drawing::Color> pinFill;
+    In<gmpi::drawing::Color> pinStroke;
+    In<float>                pinStrokeWidth;
+    In<int32_t>              pinCap;
     ObjectOut<IStyle>         pinStyle;
 
     StyleBuilder()
@@ -1923,8 +1925,8 @@ struct TransformListObject final : public ITransformList
 // half: one module emits the whole collection on a single wire.
 struct RingOfTransforms final : public PluginEditorNoGui
 {
-    Pin<int32_t> pinCount;
-    Pin<float>   pinRadius;
+    In<int32_t> pinCount;
+    In<float>   pinRadius;
     ObjectOut<ITransformList> pinTransforms;
 
     ReturnCode process() override
@@ -2006,9 +2008,9 @@ struct NumberListObject final : public INumberList
 //   value[i] = Start + (End - Start) * i / Count.   This is the "make N elements" primitive.
 struct Series final : public PluginEditorNoGui
 {
-    Pin<int32_t> pinCount;
-    Pin<float>   pinStart;
-    Pin<float>   pinEnd;
+    In<int32_t> pinCount;
+    In<float>   pinStart;
+    In<float>   pinEnd;
     ObjectOut<INumberList> pinOut;
 
     ReturnCode process() override
@@ -2049,8 +2051,8 @@ auto r34 = gmpi::Register<Series>::withXml(R"XML(
 // Blender field). K is the operand for Multiply/Add; Cos/Sin take their input in TURNS.
 struct NumberMath final : public PluginEditorNoGui
 {
-    Pin<int32_t> pinOp;        // 0=Multiply, 1=Add, 2=Cos, 3=Sin
-    Pin<float>   pinK;
+    In<int32_t> pinOp;        // 0=Multiply, 1=Add, 2=Cos, 3=Sin
+    In<float>   pinK;
     ObjectIn<INumberList>  pinIn;
     ObjectOut<INumberList> pinOut;
 
@@ -2166,7 +2168,7 @@ auto r36 = gmpi::Register<TranslateXY>::withXml(R"XML(
 // Transform defaults to identity, so an unconnected node passes the list through unchanged.
 struct TransformEach final : public PluginEditorNoGui
 {
-    Pin<gmpi::drawing::Matrix3x2> pinTransform;
+    In<gmpi::drawing::Matrix3x2> pinTransform;
     ObjectIn<ITransformList>      pinIn;
     ObjectOut<ITransformList>     pinOut;
 
@@ -2720,8 +2722,8 @@ struct BlurBitmap final : public GraphicsProcessor
 {
     ObjectIn<drawing::api::IPathGeometry> pinPath;
     ObjectIn<IStyle>          pinStyle;
-    Pin<float>                pinBlurRadius;   // in DIPs
-    Pin<bool>                 pinDownsample;
+    In<float>                pinBlurRadius;   // in DIPs
+    In<bool>                 pinDownsample;
     ObjectOut<drawing::api::IBitmap> pinOutput;
 
     Bitmap blurredBitmap;
@@ -2907,7 +2909,7 @@ auto r22 = gmpi::Register<TextFormatNode>::withXml(R"XML(
 struct RenderText2Bitmap final : public GraphicsProcessor
 {
     ObjectIn<drawing::api::ITextFormat> pinInput;
-    Pin<std::string>                    pinText;
+    In<std::string>                     pinText;
     ObjectIn<IStyle>                    pinStyle;
     ObjectOut<drawing::api::IBitmap>    pinOutput;
 
