@@ -613,11 +613,94 @@ auto r8 = gmpi::Register<Image4Gui>::withXml(R"XML(
 )XML");
 }
 
+// Object pins templated on their interface: queryInterface happens inside the pin, so user
+// code just reads pinFoo.value (a gmpi::shared_ptr<T>). Defined here so GUI modules above can
+// use them too.
+template<typename T>
+class ObjectIn : public gmpi::editor2::PinBase
+{
+    void setFromHost(int32_t voice, int32_t size, const uint8_t* data) override
+    {
+        dirty = true;
+
+        gmpi::api::IUnknown* temp{};
+
+        if(size)
+            valueFromData({ data, static_cast<size_t>(size) }, temp);
+
+        if(temp)
+            temp->queryInterface(&T::guid, (void**)value.put_void());
+        else
+            value = nullptr;
+
+        if(onUpdate)
+            onUpdate(this);
+    }
+
+public:
+    gmpi::shared_ptr<T> value;
+
+	operator bool() const
+	{
+		return !value.isNull();
+	}
+};
+
+template<typename T>
+class ObjectOut : public gmpi::editor2::PinBase
+{
+    void setFromHost(int32_t voice, int32_t size, const uint8_t* data) override
+    {
+        // N/A
+    }
+
+public:
+    gmpi::shared_ptr<T> value;
+
+    void send()
+    {
+        const auto& ptr = value.get();
+        host->setPin(id, 0, dataSize(ptr), dataPtr(ptr));
+    }
+
+    // assign the object and send it out the pin in one step.
+    T* operator=(T* pvalue)
+    {
+        value = pvalue;
+        send();
+        return pvalue;
+    }
+
+    operator bool() const
+    {
+        return !value.isNull();
+    }
+};
+
+// A bundle of drawing-style properties (fill, stroke, stroke width) passed as a single
+// reference-counted object - the CSS idea of a 'class' applied to many elements with one wire.
+// It's an interface (not a value struct) so it can grow new properties (dashes, gradients,
+// caps, ...) via an IStyle2 without breaking existing modules or saved patches.
+struct DECLSPEC_NOVTABLE IStyle : gmpi::api::IUnknown
+{
+    // Each getter returns Ok when the property is supplied. (Future: Fail could mean 'inherit',
+    // for CSS-like cascading/merging.) A colour with alpha 0 means 'don't paint this part'.
+    virtual gmpi::ReturnCode getFillColor(gmpi::drawing::Color* returnColor) = 0;
+    virtual gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* returnColor) = 0;
+    virtual gmpi::ReturnCode getStrokeWidth(float* returnWidth) = 0;
+    virtual int32_t getStrokeCap() = 0; // gmpi::drawing::CapStyle as int (Flat / Square / Round)
+
+    // {5D4686F8-97A7-4A55-AFFC-6B7CB6BA4505}
+    inline static const gmpi::api::Guid guid =
+    { 0x5d4686f8, 0x97a7, 0x4a55, { 0xaf, 0xfc, 0x6b, 0x7c, 0xb6, 0xba, 0x45, 0x05 } };
+};
+
 class TextEntry4Gui : public PluginEditor
 {
 protected:
     Pin<std::string> pinValueIn;
     Pin<std::string> pinValueOut;
+    ObjectIn<IStyle> pinStyle;
 
     sdk::TextEditCallback callback;
 
@@ -634,19 +717,24 @@ public:
     {
         Graphics g(drawingContext);
 
-		auto borderBrush = g.createSolidColorBrush(Colors::White);
-		auto textBrush = g.createSolidColorBrush(Colors::Black);
-		auto textRect = bounds;
-		textRect.left += 2;
-		textRect.top += 2;
-		textRect.right -= 2;
-		textRect.bottom -= 2;
+        // text colour from the Style's fill (default white); transparent background so the
+        // editable readout sits over the artwork like the rendered text it replaces.
+        gmpi::drawing::Color textColor = Colors::White;
+        if (auto* style = pinStyle.value.get())
+            style->getFillColor(&textColor);
 
-		auto textFormat = g.getFactory().createTextFormat(getHeight(textRect));
+        auto textRect = bounds;
+        textRect.left += 2;
+        textRect.top += 2;
+        textRect.right -= 2;
+        textRect.bottom -= 2;
 
-		g.fillRectangle(textRect, borderBrush);
-		g.drawTextU(pinValueIn.value, textFormat, textRect, textBrush);
-		g.drawRectangle(textRect, borderBrush);
+        auto textFormat = g.getFactory().createTextFormat(getHeight(textRect));
+        textFormat.setTextAlignment(gmpi::drawing::TextAlignment::Center);
+        textFormat.setParagraphAlignment(gmpi::drawing::ParagraphAlignment::Center);
+
+        auto textBrush = g.createSolidColorBrush(textColor);
+        g.drawTextU(pinValueIn.value, textFormat, textRect, textBrush);
         return ReturnCode::Ok;
     }
 
@@ -700,6 +788,7 @@ auto r8B = gmpi::Register<TextEntry4Gui>::withXml(R"XML(
 	<GUI graphicsApi="GmpiGui">
 		<Pin name="Value" datatype="string_utf8" />
 		<Pin name="Value" datatype="string_utf8" direction="out" />
+		<Pin name="Style" datatype="object:style" />
 	</GUI>
   </Plugin>
 </PluginList>
@@ -1079,67 +1168,6 @@ struct TestObject : public ITest
 
     GMPI_REFCOUNT
     GMPI_QUERYINTERFACE_METHOD(ITest)
-};
-
-template<typename T>
-class ObjectIn : public gmpi::editor2::PinBase
-{
-    void setFromHost(int32_t voice, int32_t size, const uint8_t* data) override
-    {
-        dirty = true;
-
-        gmpi::api::IUnknown* temp{};
-
-        if(size)
-            valueFromData({ data, static_cast<size_t>(size) }, temp);
-
-        if(temp)
-            temp->queryInterface(&T::guid, (void**)value.put_void());
-        else
-            value = nullptr;
-
-        if(onUpdate)
-            onUpdate(this);
-    }
-
-public:
-    gmpi::shared_ptr<T> value;
-
-	operator bool() const
-	{
-		return !value.isNull();
-	}
-};
-
-template<typename T>
-class ObjectOut : public gmpi::editor2::PinBase
-{
-    void setFromHost(int32_t voice, int32_t size, const uint8_t* data) override
-    {
-        // N/A
-    }
-
-public:
-    gmpi::shared_ptr<T> value;
-
-    void send()
-    {
-        const auto& ptr = value.get();
-        host->setPin(id, 0, dataSize(ptr), dataPtr(ptr));
-    }
-
-    // assign the object and send it out the pin in one step.
-    T* operator=(T* pvalue)
-    {
-        value = pvalue;
-        send();
-        return pvalue;
-    }
-
-    operator bool() const
-    {
-        return !value.isNull();
-    }
 };
 
 // a test module that takes an input object, and returns a pointer to it's output object with the input incremented by 1.
@@ -1531,24 +1559,6 @@ auto r30 = gmpi::Register<CombineTransforms>::withXml(R"XML(
 </PluginList>
 )XML");
 }
-
-// A bundle of drawing-style properties (fill, stroke, stroke width) passed as a single
-// reference-counted object - the CSS idea of a 'class' applied to many elements with one wire.
-// It's an interface (not a value struct) so it can grow new properties (dashes, gradients,
-// caps, ...) via an IStyle2 without breaking existing modules or saved patches.
-struct DECLSPEC_NOVTABLE IStyle : gmpi::api::IUnknown
-{
-    // Each getter returns Ok when the property is supplied. (Future: Fail could mean 'inherit',
-    // for CSS-like cascading/merging.) A colour with alpha 0 means 'don't paint this part'.
-    virtual gmpi::ReturnCode getFillColor(gmpi::drawing::Color* returnColor) = 0;
-    virtual gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* returnColor) = 0;
-    virtual gmpi::ReturnCode getStrokeWidth(float* returnWidth) = 0;
-    virtual int32_t getStrokeCap() = 0; // gmpi::drawing::CapStyle as int (Flat / Square / Round)
-
-    // {5D4686F8-97A7-4A55-AFFC-6B7CB6BA4505}
-    inline static const gmpi::api::Guid guid =
-    { 0x5d4686f8, 0x97a7, 0x4a55, { 0xaf, 0xfc, 0x6b, 0x7c, 0xb6, 0xba, 0x45, 0x05 } };
-};
 
 // Concrete, mutable style. Reference counted; the producing module owns it.
 struct StyleObject final : public IStyle
