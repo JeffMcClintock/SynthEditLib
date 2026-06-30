@@ -20,6 +20,7 @@ namespace SE2
 struct TopStripLayout :
       public gmpi::api::IDrawingClient
     , public gmpi::api::IInputClient
+    , public gmpi::api::IGraphicsRedrawClient
 {
     // Per-child host: forwards everything to the parent's host, mapping the
     // child's (0,0)-origin invalidations into parent coordinates via `offset`.
@@ -103,6 +104,7 @@ struct TopStripLayout :
         gmpi::drawing::Rect pos{}; // position within the parent (this layout)
         gmpi::shared_ptr<gmpi::api::IDrawingClient> graphic;
         gmpi::shared_ptr<gmpi::api::IInputClient> editor;
+        gmpi::shared_ptr<gmpi::api::IGraphicsRedrawClient> redraw;
     };
 
     gmpi::shared_ptr<gmpi::api::IDrawingHost> drawingHost;
@@ -134,8 +136,20 @@ struct TopStripLayout :
         u = c;
         ch.graphic = u.as<gmpi::api::IDrawingClient>();
         ch.editor = u.as<gmpi::api::IInputClient>();
+        ch.redraw = u.as<gmpi::api::IGraphicsRedrawClient>();
         if (ch.graphic)
             ch.graphic->setHost(static_cast<gmpi::api::IDrawingHost*>(&ch.host));
+    }
+
+    // ---- IGraphicsRedrawClient ----
+    // Transparent passthrough: forward the per-tick redraw heartbeat to both
+    // children. Without this the editor view (bottomChild), buried under this
+    // layout in the Pile, never receives preGraphicsRedraw and its DSP→GUI queue
+    // (meters, scopes, value updates via ViewBase::serviceGuiQueue) goes stale.
+    void preGraphicsRedraw() override
+    {
+        if (topChild.redraw)    topChild.redraw->preGraphicsRedraw();
+        if (bottomChild.redraw) bottomChild.redraw->preGraphicsRedraw();
     }
 
     // ---- IDrawingClient ----
@@ -269,6 +283,7 @@ struct TopStripLayout :
         *returnInterface = {};
         GMPI_QUERYINTERFACE(gmpi::api::IInputClient);
         GMPI_QUERYINTERFACE(gmpi::api::IDrawingClient);
+        GMPI_QUERYINTERFACE(gmpi::api::IGraphicsRedrawClient);
         return gmpi::ReturnCode::NoSupport;
     }
     GMPI_REFCOUNT;
