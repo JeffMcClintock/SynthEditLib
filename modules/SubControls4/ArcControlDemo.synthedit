@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="818930150" SelectedViewType="128" emulate_ignore_pc="true" vst_preset_count="64" vst_version="1.0.0">
-    <master_container type="Container" handle="818930150" name="Main" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
+<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="941731574" SelectedViewType="128" emulate_ignore_pc="true" vst_preset_count="64" vst_version="1.0.0">
+    <master_container type="Container" handle="941731574" name="Main" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
         <plugs>
             <plug idx="7"/>
         </plugs>
@@ -8,12 +8,12 @@
         <PatchManager>
             <ProgramNames/>
             <Parameters>
-                <param type="6" handle="712844608" module="1845780321" moduleParamId="0">
+                <param type="6" handle="371454682" module="390968858" moduleParamId="0">
                     <patch-list>
                         <s repeat="128">6</s>
                     </patch-list>
                 </param>
-                <param type="10" handle="951334225" private="true" hostControl="49">
+                <param type="10" handle="911672041" private="true" hostControl="49">
                     <patch-list>
                         <s repeat="128"></s>
                     </patch-list>
@@ -21,72 +21,57 @@
             </Parameters>
         </PatchManager>
         <modules>
-            <module type="SE: TextEntry4Gui" handle="360944835">
+            <module type="SE: NumberEntry" handle="1532011330">
+                <plugs>
+                    <plug default="dB" idx="1"/>
+                </plugs>
                 <structRect l="756" r="756" t="900" b="900"/>
-                <panelRect l="3958" r="4010" t="3972" b="3996"/>
+                <panelRect l="3948" r="4020" t="3976" b="3992"/>
             </module>
-            <module type="SE: MouseTarget" handle="594234634">
+            <module type="SE: MouseTarget" handle="652226850">
                 <structRect l="984" r="984" t="180" b="180"/>
                 <panelRect l="3934" r="4034" t="3934" b="4034"/>
             </module>
-            <module type="SE: RenderGeometry" handle="280287154">
+            <module type="SE: RenderGeometry" handle="657858609">
                 <structRect l="984" r="984" t="360" b="360"/>
                 <panelRect l="3934" r="4034" t="3934" b="4034"/>
             </module>
-            <module type="SE: RenderBitmap" handle="1804086038">
+            <module type="SE: RenderBitmap" handle="1198255317">
                 <structRect l="984" r="984" t="564" b="564"/>
                 <panelRect l="3934" r="4034" t="3934" b="4034"/>
             </module>
-            <module type="SE: StyleBuilder" handle="1020949614">
-                <structRect l="480" r="480" t="924" b="924"/>
+            <module type="SE: StyleBuilder" handle="802723078">
+                <structRect l="480" r="480" t="900" b="900"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: ColorFromRGBA" handle="530496902">
+            <module type="SE: ColorFromRGBA" handle="1586772637">
                 <plugs>
                     <plug default="1.0"/>
                     <plug default="1.0"/>
                     <plug default="1.0"/>
                 </plugs>
-                <structRect l="300" r="300" t="924" b="924"/>
+                <structRect l="300" r="300" t="900" b="900"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: PatchMemSetFloat" handle="161769614">
-                <structRect l="864" r="864" t="756" b="756"/>
+            <module type="SE: PatchMemSetFloat" handle="1919960039">
+                <structRect l="756" r="756" t="756" b="756"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: Multiply" handle="1887009346">
-                <plugs>
-                    <plug default="10" idx="1"/>
-                </plugs>
-                <structRect l="696" r="696" t="816" b="816"/>
-                <panelRect l="0" r="0" t="0" b="0"/>
-            </module>
-            <module type="SE: PatchMemUpdateFloatText" handle="1250376311">
-                <structRect l="516" r="516" t="756" b="756"/>
-                <panelRect l="0" r="0" t="0" b="0"/>
-            </module>
-            <module type="SE: Float2Text" handle="208986370">
-                <plugs>
-                    <plug default="2" idx="1"/>
-                </plugs>
-                <structRect l="300" r="300" t="756" b="756"/>
-                <panelRect l="0" r="0" t="0" b="0"/>
-            </module>
-            <module type="SE: BlurBitmap" handle="1668306970">
+            <module type="SE: BlurBitmap" handle="1327697260">
                 <plugs>
                     <plug default="14" idx="2"/>
                 </plugs>
                 <structRect l="420" r="420" t="624" b="624"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: StyleBuilder" handle="1654545900">
+            <module type="SE: StyleBuilder" handle="661476136">
                 <plugs>
                     <plug default="7" idx="2"/>
                 </plugs>
                 <structRect l="180" r="180" t="624" b="624"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: ColorFromRGBA" handle="114902474">
+            <module type="SE: ColorFromRGBA" handle="527953635">
                 <plugs>
                     <plug default="0.6"/>
                     <plug default="0.8"/>
@@ -95,7 +80,7 @@
                 <structRect l="36" r="36" t="624" b="624"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: StyleBuilder" handle="968952554">
+            <module type="SE: StyleBuilder" handle="178630540">
                 <plugs>
                     <plug default="4" idx="2"/>
                     <plug default="2"/>
@@ -103,7 +88,7 @@
                 <structRect l="300" r="300" t="504" b="504"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: ColorFromRGBA" handle="982983989">
+            <module type="SE: ColorFromRGBA" handle="573944297">
                 <plugs>
                     <plug default="1.0"/>
                     <plug default="1.0"/>
@@ -112,78 +97,73 @@
                 <structRect l="36" r="36" t="456" b="456"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: ArcGeometry" handle="1091223755">
+            <module type="SE: ArcGeometry" handle="8197695">
                 <plugs>
                     <plug default="40"/>
                 </plugs>
                 <structRect l="300" r="300" t="360" b="360"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: Multiply" handle="83927107">
+            <module type="SE: Multiply" handle="1873392815">
                 <plugs>
                     <plug default="0.8" idx="1"/>
                 </plugs>
                 <structRect l="60" r="60" t="360" b="360"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: Add" handle="2001119634">
+            <module type="SE: Add" handle="998973943">
                 <structRect l="720" r="720" t="204" b="204"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: Multiply" handle="633774019">
+            <module type="SE: Multiply" handle="845294033">
                 <plugs>
                     <plug default="-0.005" idx="1"/>
                 </plugs>
                 <structRect l="564" r="564" t="252" b="252"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: Multiply" handle="445116274">
+            <module type="SE: Multiply" handle="1670855972">
                 <structRect l="420" r="420" t="204" b="204"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: Delta" handle="1883278218">
+            <module type="SE: Delta" handle="765095961">
                 <structRect l="264" r="264" t="204" b="204"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: PatchMemSet" handle="591596887">
+            <module type="SE: PatchMemSet" handle="1147986019">
                 <structRect l="720" r="720" t="36" b="36"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="SE: PatchMemGet" handle="1845780321">
+            <module type="SE: PatchMemGet" handle="390968858">
                 <structRect l="36" r="36" t="36" b="36"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
         </modules>
         <lines>
-            <line type="Line" handle="633302174" lineType="1" fMod="1845780321" tMod="591596887" fPlg="3"/>
-            <line type="Line" handle="699526109" lineType="1" fMod="594234634" tMod="1883278218" fPlg="3"/>
-            <line type="Line" handle="1939425758" lineType="1" fMod="594234634" tMod="445116274" fPlg="1"/>
-            <line type="Line" handle="618657100" lineType="1" fMod="1883278218" tMod="445116274" fPlg="1" tPlg="1"/>
-            <line type="Line" handle="289278918" lineType="1" fMod="445116274" tMod="633774019" fPlg="2"/>
-            <line type="Line" handle="843977984" lineType="1" fMod="1845780321" tMod="2001119634" fPlg="4"/>
-            <line type="Line" handle="1896482074" lineType="1" fMod="633774019" tMod="2001119634" fPlg="2" tPlg="1"/>
-            <line type="Line" handle="5806091" lineType="1" fMod="2001119634" tMod="591596887" fPlg="2" tPlg="1"/>
-            <line type="Line" handle="1092944551" lineType="1" fMod="594234634" tMod="591596887" fPlg="1" tPlg="2"/>
-            <line type="Line" handle="295665472" lineType="1" fMod="1845780321" tMod="83927107" fPlg="4"/>
-            <line type="Line" handle="2039164597" lineType="1" fMod="83927107" tMod="1091223755" fPlg="2" tPlg="2"/>
-            <line type="Line" handle="453817895" lineType="1" fMod="1091223755" tMod="280287154" fPlg="3"/>
-            <line type="Line" handle="1910410145" lineType="1" fMod="982983989" tMod="968952554" fPlg="4" tPlg="1"/>
-            <line type="Line" handle="165339821" lineType="1" fMod="968952554" tMod="280287154" fPlg="4" tPlg="1"/>
-            <line type="Line" handle="1069267239" lineType="1" fMod="1091223755" tMod="1668306970" fPlg="3"/>
-            <line type="Line" handle="1976921771" lineType="1" fMod="594234634" tMod="114902474" tPlg="3"/>
-            <line type="Line" handle="259986202" lineType="1" fMod="114902474" tMod="1654545900" fPlg="4" tPlg="1"/>
-            <line type="Line" handle="2047007321" lineType="1" fMod="1654545900" tMod="1668306970" fPlg="4" tPlg="1"/>
-            <line type="Line" handle="1072826227" lineType="1" fMod="1668306970" tMod="1804086038" fPlg="4"/>
-            <line type="Line" handle="1974139759" lineType="1" fMod="1845780321" tMod="208986370" fPlg="4"/>
-            <line type="Line" handle="1260954711" lineType="1" fMod="208986370" tMod="360944835" fPlg="2"/>
-            <line type="Line" handle="1415847760" lineType="1" fMod="208986370" tMod="1250376311" fPlg="2"/>
-            <line type="Line" handle="720157185" lineType="1" fMod="360944835" tMod="1250376311" fPlg="1" tPlg="1"/>
-            <line type="Line" handle="1389683146" lineType="1" fMod="1845780321" tMod="1250376311" fPlg="4" tPlg="2"/>
-            <line type="Line" handle="448459227" lineType="1" fMod="1250376311" tMod="1887009346" fPlg="3"/>
-            <line type="Line" handle="940184757" lineType="1" fMod="1887009346" tMod="161769614" fPlg="2" tPlg="1"/>
-            <line type="Line" handle="886493096" lineType="1" fMod="1845780321" tMod="161769614" fPlg="3"/>
-            <line type="Line" handle="1149086894" lineType="1" fMod="530496902" tMod="1020949614" fPlg="4"/>
-            <line type="Line" handle="218341911" lineType="1" fMod="1020949614" tMod="360944835" fPlg="4" tPlg="2"/>
+            <line type="Line" handle="972042338" lineType="1" fMod="390968858" tMod="1147986019" fPlg="3"/>
+            <line type="Line" handle="1085494295" lineType="1" fMod="652226850" tMod="765095961" fPlg="3"/>
+            <line type="Line" handle="1441610792" lineType="1" fMod="652226850" tMod="1670855972" fPlg="1"/>
+            <line type="Line" handle="934443244" lineType="1" fMod="765095961" tMod="1670855972" fPlg="1" tPlg="1"/>
+            <line type="Line" handle="763309536" lineType="1" fMod="1670855972" tMod="845294033" fPlg="2"/>
+            <line type="Line" handle="1337680677" lineType="1" fMod="390968858" tMod="998973943" fPlg="4"/>
+            <line type="Line" handle="645661471" lineType="1" fMod="845294033" tMod="998973943" fPlg="2" tPlg="1"/>
+            <line type="Line" handle="294697730" lineType="1" fMod="998973943" tMod="1147986019" fPlg="2" tPlg="1"/>
+            <line type="Line" handle="422447102" lineType="1" fMod="652226850" tMod="1147986019" fPlg="1" tPlg="2"/>
+            <line type="Line" handle="1586832377" lineType="1" fMod="390968858" tMod="1873392815" fPlg="4"/>
+            <line type="Line" handle="1538948971" lineType="1" fMod="1873392815" tMod="8197695" fPlg="2" tPlg="2"/>
+            <line type="Line" handle="851462117" lineType="1" fMod="8197695" tMod="657858609" fPlg="3"/>
+            <line type="Line" handle="238329774" lineType="1" fMod="573944297" tMod="178630540" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="346623775" lineType="1" fMod="178630540" tMod="657858609" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="831149248" lineType="1" fMod="8197695" tMod="1327697260" fPlg="3"/>
+            <line type="Line" handle="1115856954" lineType="1" fMod="652226850" tMod="527953635" tPlg="3"/>
+            <line type="Line" handle="346192480" lineType="1" fMod="527953635" tMod="661476136" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="1486944773" lineType="1" fMod="661476136" tMod="1327697260" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="965203802" lineType="1" fMod="1327697260" tMod="1198255317" fPlg="4"/>
+            <line type="Line" handle="1695004677" lineType="1" fMod="390968858" tMod="1532011330" fPlg="6"/>
+            <line type="Line" handle="443812767" lineType="1" fMod="1532011330" tMod="1919960039" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="2136697032" lineType="1" fMod="390968858" tMod="1919960039" fPlg="3"/>
+            <line type="Line" handle="1157833556" lineType="1" fMod="1586772637" tMod="802723078" fPlg="4"/>
+            <line type="Line" handle="1521668501" lineType="1" fMod="802723078" tMod="1532011330" fPlg="4" tPlg="3"/>
         </lines>
         <PanelLocationCenter x="3984" y="3984"/>
         <StructLocationCenter x="3984" y="3984"/>
@@ -249,13 +229,6 @@
                 <Pin name="Value" datatype="float" direction="out"/>
             </GUI>
         </Plugin>
-        <Plugin id="SE: Float2Text" name="Float2Text" flags="384" category="GMPI/SDK Examples">
-            <GUI>
-                <Pin name="Value" datatype="float"/>
-                <Pin name="Decimal Places" datatype="int" default="-1"/>
-                <Pin name="Value" datatype="string_utf8" direction="out"/>
-            </GUI>
-        </Plugin>
         <Plugin id="SE: MouseTarget" name="MouseTarget" flags="384" category="GMPI/SDK Examples">
             <GUI graphicsApi="GmpiGui">
                 <Pin name="Hover" datatype="bool" direction="out"/>
@@ -268,6 +241,15 @@
             <GUI>
                 <Pin name="Value" datatype="float"/>
                 <Pin name="Value" datatype="float"/>
+                <Pin name="Value" datatype="float" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: NumberEntry" name="Number Entry" flags="384" category="GMPI/SDK Examples">
+            <GUI graphicsApi="GmpiGui">
+                <Pin name="Value" datatype="float"/>
+                <Pin name="Units" datatype="string_utf8"/>
+                <Pin name="Decimal Places" datatype="int" default="2"/>
+                <Pin name="Style" datatype="object:style"/>
                 <Pin name="Value" datatype="float" direction="out"/>
             </GUI>
         </Plugin>
@@ -298,14 +280,6 @@
                 <Pin name="Value" datatype="float"/>
             </GUI>
         </Plugin>
-        <Plugin id="SE: PatchMemUpdateFloatText" name="PatchMemUpdateFloatText" flags="384" category="GMPI/SDK Examples">
-            <GUI>
-                <Pin name="Original Text" datatype="string_utf8"/>
-                <Pin name="Modified Text" datatype="string_utf8"/>
-                <Pin name="Value" datatype="float"/>
-                <Pin name="Value" datatype="float" direction="out"/>
-            </GUI>
-        </Plugin>
         <Plugin id="SE: RenderBitmap" name="RenderBitmap" flags="384" category="GMPI/SDK Examples">
             <GUI>
                 <Pin name="Bitmap" datatype="object:bitmap"/>
@@ -324,13 +298,6 @@
                 <Pin name="Stroke Width" datatype="float" default="1"/>
                 <Pin name="Cap" datatype="enum" metadata="Flat,Square,Round"/>
                 <Pin name="Style" datatype="object:style" direction="out"/>
-            </GUI>
-        </Plugin>
-        <Plugin id="SE: TextEntry4Gui" name="Text Entry" flags="384" category="GMPI/SDK Examples">
-            <GUI graphicsApi="GmpiGui">
-                <Pin name="Value" datatype="string_utf8"/>
-                <Pin name="Value" datatype="string_utf8" direction="out"/>
-                <Pin name="Style" datatype="object:style"/>
             </GUI>
         </Plugin>
     </PluginList>

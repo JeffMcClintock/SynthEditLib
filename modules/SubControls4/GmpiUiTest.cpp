@@ -795,6 +795,136 @@ auto r8B = gmpi::Register<TextEntry4Gui>::withXml(R"XML(
 )XML");
 }
 
+// A click-to-edit numeric readout. Folds the format + edit + parse into one module (no
+// Float2Text / PatchMemUpdateFloatText plumbing): it shows the Value pin formatted to Decimal
+// Places, with an optional non-editable Units suffix ("dB" -> "6.00 dB"). Clicking opens an edit
+// box containing just the number; on commit it parses the text out the Value (out) pin once, then
+// resumes echoing the input - so feed Value (out) to a Value-Set and Value (in) from a Value
+// (PatchMemGet). Text colour comes from the Style's fill; background is transparent.
+class NumberEntry : public PluginEditor
+{
+protected:
+    Pin<float>       pinValueIn;
+    Pin<std::string> pinUnits;
+    Pin<int32_t>     pinDecimalPlaces;
+    ObjectIn<IStyle> pinStyle;
+    Pin<float>       pinValueOut;
+
+    sdk::TextEditCallback callback;
+    float pendingValue = 0.0f;
+    bool  hasPending = false;
+
+public:
+    NumberEntry()
+    {
+        pinDecimalPlaces.value = 2;
+        callback.onSuccess = [this](const std::string& text)
+            {
+                pendingValue = static_cast<float>(strtod(text.c_str(), nullptr));
+                hasPending = true;
+                if (drawingHost) drawingHost->invalidateRect({});
+            };
+    }
+
+    std::string formatNumber() const
+    {
+        char buf[64];
+        const int dp = (std::max)(0, pinDecimalPlaces.value);
+        snprintf(buf, sizeof(buf), "%.*f", dp, pinValueIn.value);
+        return buf;
+    }
+
+    std::string displayText() const
+    {
+        auto s = formatNumber();
+        if (!pinUnits.value.empty())
+            s += " " + pinUnits.value;
+        return s;
+    }
+
+    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    {
+        Graphics g(drawingContext);
+
+        // text colour from the Style's fill (default white); transparent background.
+        gmpi::drawing::Color textColor = Colors::White;
+        if (auto* style = pinStyle.value.get())
+            style->getFillColor(&textColor);
+
+        auto textRect = bounds;
+        auto textFormat = g.getFactory().createTextFormat(getHeight(textRect));
+        textFormat.setTextAlignment(gmpi::drawing::TextAlignment::Center);
+        textFormat.setParagraphAlignment(gmpi::drawing::ParagraphAlignment::Center);
+
+        auto textBrush = g.createSolidColorBrush(textColor);
+        g.drawTextU(displayText(), textFormat, textRect, textBrush);
+        return ReturnCode::Ok;
+    }
+
+    ReturnCode process() override
+    {
+        // On commit, emit the typed value for one block (downstream Value-Set captures it); then
+        // resume echoing the input so a knob drag stays in control.
+        if (hasPending)
+        {
+            pinValueOut = pendingValue;
+            hasPending = false;
+        }
+        else
+        {
+            pinValueOut = pinValueIn.value;
+        }
+
+        if (drawingHost) drawingHost->invalidateRect({});
+        return ReturnCode::Ok;
+    }
+
+    ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
+    {
+        return ReturnCode::Ok;
+    }
+    gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
+    {
+        inputHost->setCapture();
+        return ReturnCode::Unhandled;
+    }
+    gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
+    {
+        inputHost->releaseCapture();
+
+        gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+        dialogHost->createTextEdit(&bounds, unknown.put());
+
+        auto textEdit = unknown.as<gmpi::api::ITextEdit>();
+        if (textEdit)
+        {
+            textEdit->setText(formatNumber().c_str()); // number only - Units are not editable
+            textEdit->showAsync(&callback);
+        }
+
+        return ReturnCode::Unhandled;
+    }
+};
+
+namespace
+{
+auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: NumberEntry" name="Number Entry" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+	<GUI graphicsApi="GmpiGui">
+		<Pin name="Value" datatype="float" />
+		<Pin name="Units" datatype="string_utf8" />
+		<Pin name="Decimal Places" datatype="int" default="2" />
+		<Pin name="Style" datatype="object:style" />
+		<Pin name="Value" datatype="float" direction="out" />
+	</GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 class MouseTarget : public PluginEditor
 {
 protected:
