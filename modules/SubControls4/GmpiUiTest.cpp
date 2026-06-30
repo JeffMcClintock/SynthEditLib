@@ -731,11 +731,14 @@ auto r8B = gmpi::Register<TextEntry4Gui>::withXml(R"XML(
 
 // A click-to-edit numeric readout. Folds the format + edit + parse into one module (no
 // Float2Text / PatchMemUpdateFloatText plumbing): it shows the Value pin formatted to Decimal
-// Places, with an optional non-editable Units suffix ("dB" -> "6.00 dB"). Clicking opens an edit
-// box containing just the number; on commit it parses the text out the Value (out) pin once, then
-// resumes echoing the input - so feed Value (out) to a Value-Set and Value (in) from a Value
-// (PatchMemGet). Text colour comes from the Style's fill; background is transparent.
-class NumberEntry : public PluginEditor
+// Places, with an optional non-editable Units suffix ("dB" -> "6.00 dB"). On commit it parses the
+// text out the Value (out) pin; the value round-trips back through Value (in) - so feed Value (out)
+// to a Value-Set and Value (in) from a Value (PatchMemGet).
+//
+// Editing is IN-PLACE via NumberEdit: the number is drawn with THIS control's own font + Style
+// colour (no platform edit-box with a foreign font), and only the number is editable - the Units
+// stay on screen, read-only, drawn just to the right so the two centre as one block.
+class NumberEntry : public PluginEditor, public NumberEditClient
 {
 protected:
     In<float>        pinValueIn;
@@ -744,16 +747,13 @@ protected:
     ObjectIn<IStyle> pinStyle;
     Out<float>       pinValueOut;
 
-    sdk::TextEditCallback callback;
+    NumberEdit numberEdit;
+    bool editing = false;
 
 public:
-    NumberEntry()
+    NumberEntry() : numberEdit(*this)
     {
         pinDecimalPlaces.value = 2;
-        callback.onSuccess = [this](const std::string& text)
-            {
-                pinValueOut = static_cast<float>(strtod(text.c_str(), nullptr));
-            };
     }
 
     std::string formatNumber(float v) const
@@ -764,40 +764,55 @@ public:
         return buf;
     }
 
-    std::string displayText() const
-    {
-        auto s = formatNumber(pinValueIn.value);
-        if (!pinUnits.value.empty())
-            s += " " + pinUnits.value;
-        return s;
-    }
-
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
     {
         Graphics g(drawingContext);
+
+        // while not editing, the readout mirrors the parameter value (the editor owns the text
+        // during a session). Cheap no-op when unchanged.
+        if (!editing)
+            numberEdit.setText(formatNumber(pinValueIn.value));
 
         // text colour from the Style's fill (default white); transparent background.
         gmpi::drawing::Color textColor = Colors::White;
         if (auto* style = pinStyle.value.get())
             style->getFillColor(&textColor);
 
-        auto textRect = bounds;
-        auto textFormat = g.getFactory().createTextFormat(getHeight(textRect));
-        textFormat.setTextAlignment(gmpi::drawing::TextAlignment::Center);
-        textFormat.setParagraphAlignment(gmpi::drawing::ParagraphAlignment::Center);
+        // top-left text format - NumberEdit does its own centring (and draws the cursor/selection).
+        auto textFormat = g.getFactory().createTextFormat(getHeight(bounds));
 
-        auto textBrush = g.createSolidColorBrush(textColor);
-        g.drawTextU(displayText(), textFormat, textRect, textBrush);
+        // Reserve room for the read-only Units so the number + units centre together as one block.
+        const std::string units = pinUnits.value.empty() ? std::string() : (" " + pinUnits.value);
+        const float unitW = units.empty() ? 0.0f : textFormat.getTextExtentU(units).width;
+
+        Rect numberBounds = bounds;
+        numberBounds.right -= unitW;
+        numberEdit.render(g, textFormat, numberBounds, textColor); // the editable number, in our style
+
+        if (!units.empty())
+        {
+            const auto numSize = textFormat.getTextExtentU(numberEdit.unsavedText());
+            const float numLeft = 0.5f * (numberBounds.left + numberBounds.right - numSize.width);
+            const Rect unitRect{ numLeft + numSize.width,
+                                 0.5f * (bounds.top + bounds.bottom - numSize.height),
+                                 bounds.right, bounds.bottom };
+            auto brush = g.createSolidColorBrush(textColor);
+            g.drawTextU(units, textFormat, unitRect, brush);
+        }
+
         return ReturnCode::Ok;
     }
 
     ReturnCode process() override
     {
-        pinValueOut = pinValueIn.value;
+        pinValueOut = pinValueIn.value;            // echo; the round-trip keeps the readout fresh
 
-        assert(drawingHost);
-        drawingHost->invalidateRect({});
-        
+        if (!editing)
+            numberEdit.setText(formatNumber(pinValueIn.value));
+
+        if (drawingHost)
+            drawingHost->invalidateRect({});
+
         return ReturnCode::Ok;
     }
 
@@ -814,17 +829,27 @@ public:
     {
         inputHost->releaseCapture();
 
-        gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-        dialogHost->createTextEdit(&bounds, unknown.put());
-
-        auto textEdit = unknown.as<gmpi::api::ITextEdit>();
-        if (textEdit)
-        {
-            textEdit->setText(formatNumber(pinValueIn.value).c_str()); // number only - Units are not editable
-            textEdit->showAsync(&callback);
-        }
+        // edit the NUMBER only (Units stay read-only on screen).
+        numberEdit.setText(formatNumber(pinValueIn.value));
+        editing = true;
+        numberEdit.show(dialogHost, &bounds);
 
         return ReturnCode::Unhandled;
+    }
+
+    // NumberEditClient - the in-place editor calls back here.
+    void repaintText() override
+    {
+        if (drawingHost)
+            drawingHost->invalidateRect({});
+    }
+    void setEditValue(std::string s) override
+    {
+        pinValueOut = static_cast<float>(strtod(s.c_str(), nullptr)); // emit; round-trips to Value (in)
+    }
+    void endEditValue() override
+    {
+        editing = false;
     }
 };
 

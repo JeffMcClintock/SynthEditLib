@@ -469,6 +469,7 @@ public:
           gmpi::drawing::Graphics& g
         , gmpi::drawing::TextFormat& textFormat
         , gmpi::drawing::Rect bounds
+        , gmpi::drawing::Color textColor = gmpi::drawing::Colors::White
         , gmpi::drawing::TextAlignment textAlignment = gmpi::drawing::TextAlignment::Center
         , gmpi::drawing::ParagraphAlignment paragraphAlignment = gmpi::drawing::ParagraphAlignment::Center
     )
@@ -502,7 +503,7 @@ public:
             break;
         }
 
-        auto brush = g.createSolidColorBrush(gmpi::drawing::Colors::White);
+        auto brush = g.createSolidColorBrush(textColor);
         g.drawTextU(numberEditGlyfs.text_utf8, textFormat, bounds, brush);
 
         // Highlight selection
@@ -547,7 +548,7 @@ public:
             float top = bounds.top;
             float bottom = top + numberEditGlyfs.height;
 
-            brush.setColor(gmpi::drawing::Colors::White);
+            brush.setColor(textColor);
             g.drawLine({ cursorX, top - 2 }, { cursorX, bottom + 2 }, brush, 2.0f);
         }
 
