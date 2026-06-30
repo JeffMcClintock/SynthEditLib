@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="395014228" SelectedViewType="256" emulate_ignore_pc="true" vst_preset_count="64" vst_version="1.0.0">
+    <master_container type="Container" handle="395014228" name="Main" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
+        <plugs>
+            <plug idx="7"/>
+        </plugs>
+        <structRect l="0" r="0" t="0" b="0"/>
+        <PatchManager>
+            <ProgramNames/>
+        </PatchManager>
+        <modules>
+            <module type="SE: RenderBitmap" handle="1959217078">
+                <structRect l="624" r="624" t="516" b="516"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: RenderGeometry" handle="229465567">
+                <structRect l="624" r="624" t="120" b="120"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: RenderBitmap" handle="105708409">
+                <structRect l="624" r="624" t="300" b="300"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: RenderText2Bitmap" handle="2108380823">
+                <structRect l="300" r="300" t="516" b="516"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: ColorFromRGBA" handle="423347668">
+                <plugs>
+                    <plug default="1.0"/>
+                    <plug default="1.0"/>
+                    <plug default="1.0"/>
+                </plugs>
+                <structRect l="36" r="36" t="696" b="696"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: Float2Text" handle="1336118989">
+                <plugs>
+                    <plug default="1.5"/>
+                    <plug default="1"/>
+                </plugs>
+                <structRect l="36" r="36" t="564" b="564"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: TextFormat" handle="1669531498">
+                <structRect l="36" r="36" t="468" b="468"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: BlurBitmap" handle="755264070">
+                <plugs>
+                    <plug default="7" idx="1"/>
+                    <plug default="14"/>
+                </plugs>
+                <structRect l="264" r="264" t="300" b="300"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: ColorFromRGBA" handle="622759656">
+                <plugs>
+                    <plug default="0.6"/>
+                    <plug default="0.8"/>
+                    <plug default="1.0"/>
+                </plugs>
+                <structRect l="36" r="36" t="336" b="336"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: StyleBuilder" handle="311918763">
+                <plugs>
+                    <plug default="4" idx="2"/>
+                    <plug default="2"/>
+                </plugs>
+                <structRect l="264" r="264" t="144" b="144"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: ColorFromRGBA" handle="544095563">
+                <plugs>
+                    <plug default="1.0"/>
+                    <plug default="1.0"/>
+                    <plug default="1.0"/>
+                </plugs>
+                <structRect l="36" r="36" t="180" b="180"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+            <module type="SE: ArcGeometry" handle="224498075">
+                <plugs>
+                    <plug default="0.72"/>
+                    <plug default="40"/>
+                </plugs>
+                <structRect l="36" r="36" t="36" b="36"/>
+                <panelRect l="0" r="0" t="0" b="0"/>
+            </module>
+        </modules>
+        <lines>
+            <line type="Line" handle="335241905" lineType="1" fMod="224498075" tMod="229465567" fPlg="4"/>
+            <line type="Line" handle="1172716110" lineType="1" fMod="544095563" tMod="311918763" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="510410890" lineType="1" fMod="311918763" tMod="229465567" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="2111672806" lineType="1" fMod="224498075" tMod="755264070" fPlg="4"/>
+            <line type="Line" handle="99229924" lineType="1" fMod="622759656" tMod="755264070" fPlg="4" tPlg="3"/>
+            <line type="Line" handle="1039128594" lineType="1" fMod="755264070" tMod="105708409" fPlg="5"/>
+            <line type="Line" handle="1000817995" lineType="1" fMod="1669531498" tMod="2108380823"/>
+            <line type="Line" handle="693313733" lineType="1" fMod="1336118989" tMod="2108380823" fPlg="2" tPlg="1"/>
+            <line type="Line" handle="562050795" lineType="1" fMod="423347668" tMod="2108380823" fPlg="4" tPlg="2"/>
+            <line type="Line" handle="1593012894" lineType="1" fMod="2108380823" tMod="1959217078" fPlg="3"/>
+        </lines>
+        <PanelLocationCenter x="3984" y="3984"/>
+        <StructLocationCenter x="3984" y="3984"/>
+        <PanelWndPosition l="0" r="0" t="0" b="0"/>
+        <PanelLocation l="0" r="500" t="0" b="500"/>
+        <StructLocation l="0" r="500" t="0" b="500"/>
+        <PanelScroll x="3734" y="3734"/>
+        <StructScroll x="3734" y="3734"/>
+        <PanelWndOffset cx="-99999" cy="-99999"/>
+        <panel_rect l="3732" r="4212" t="3732" b="4212"/>
+    </master_container>
+    <PluginList>
+        <Plugin id="Container" class="1" name="Container" flags="384" category="">
+            <Audio>
+                <Pin name="Spare" datatype="float" rate="audio" autoRename="true" autoDuplicate="true" isContainerIoPlug="true"/>
+                <Pin name="Polyphony" datatype="enum" default="6" private="true" isMinimised="true" metadata="range 1,128"/>
+                <Pin name="MIDI Automation" datatype="bool" private="true" isMinimised="true"/>
+                <Pin name="Show Controls" datatype="enum" private="true" isMinimised="true" metadata="Off,On Panel,On Module"/>
+            </Audio>
+            <GUI>
+                <Pin name="Controls on Parent" datatype="bool" direction="out" isMinimised="true"/>
+                <Pin name="Controls on Module" datatype="bool" noAutomation="true"/>
+                <Pin name="Visible" datatype="bool"/>
+                <Pin name="Ignore Program Change" datatype="bool" noAutomation="true"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: ArcGeometry" name="Arc Geometry" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Normalized" datatype="float" default="1"/>
+                <Pin name="Radius" datatype="float" default="10"/>
+                <Pin name="Start (turns)" datatype="float" default="0.3"/>
+                <Pin name="Sweep (turns)" datatype="float" default="0.9"/>
+                <Pin name="Path" datatype="object:path" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: BlurBitmap" name="Blur" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Path" datatype="object:path"/>
+                <Pin name="Stroke Width" datatype="float" default="4"/>
+                <Pin name="Blur Radius" datatype="float" default="8"/>
+                <Pin name="Color" datatype="struct:color"/>
+                <Pin name="Downsample" datatype="bool" default="1"/>
+                <Pin name="Blurred" datatype="object:bitmap" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: ColorFromRGBA" name="Color (RGBA)" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Red" datatype="float"/>
+                <Pin name="Green" datatype="float"/>
+                <Pin name="Blue" datatype="float"/>
+                <Pin name="Alpha" datatype="float" default="1"/>
+                <Pin name="Color" datatype="struct:color" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: Float2Text" name="Float2Text" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Value" datatype="float"/>
+                <Pin name="Decimal Places" datatype="int" default="-1"/>
+                <Pin name="Value" datatype="string_utf8" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: RenderBitmap" name="RenderBitmap" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Bitmap" datatype="object:bitmap"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: RenderGeometry" name="Render" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Path" datatype="object:path"/>
+                <Pin name="Style" datatype="object:style"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: RenderText2Bitmap" name="RenderText2Bitmap" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Font" datatype="object:font"/>
+                <Pin name="Text" datatype="string_utf8"/>
+                <Pin name="Color" datatype="struct:color"/>
+                <Pin name="Bitmap" datatype="object:bitmap" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: StyleBuilder" name="Style" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Fill" datatype="struct:color"/>
+                <Pin name="Stroke" datatype="struct:color"/>
+                <Pin name="Stroke Width" datatype="float" default="1"/>
+                <Pin name="Cap" datatype="enum" metadata="Flat,Square,Round"/>
+                <Pin name="Style" datatype="object:style" direction="out"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE: TextFormat" name="TextFormat" flags="384" category="GMPI/SDK Examples">
+            <GUI>
+                <Pin name="Font" datatype="object:font" direction="out"/>
+            </GUI>
+        </Plugin>
+    </PluginList>
+</Document>
