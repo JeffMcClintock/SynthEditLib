@@ -813,9 +813,8 @@ protected:
     Pin<std::string> pinUnits;
     Pin<int32_t>     pinDecimalPlaces;
     ObjectIn<IStyle> pinStyle;
-    Pin<int32_t>     pinId;        // parameter handle to write (from a Value / PatchMemGet)
+    Pin<float>       pinValueOut;
 
-    gmpi::shared_ptr<gmpi::api::IParameterSetter> paramHost;
     sdk::TextEditCallback callback;
     float pendingValue = 0.0f;
     bool  hasPending = false;
@@ -832,23 +831,17 @@ public:
             };
     }
 
-    ReturnCode initialize() override
-    {
-        paramHost = editorHost.as<gmpi::api::IParameterSetter>();
-        return PluginEditorBase::initialize();
-    }
-
-    std::string formatNumber() const
+    std::string formatNumber(float v) const
     {
         char buf[64];
         const int dp = (std::max)(0, pinDecimalPlaces.value);
-        snprintf(buf, sizeof(buf), "%.*f", dp, pinValueIn.value);
+        snprintf(buf, sizeof(buf), "%.*f", dp, v);
         return buf;
     }
 
     std::string displayText() const
     {
-        auto s = formatNumber();
+        auto s = formatNumber(pinValueIn.value);
         if (!pinUnits.value.empty())
             s += " " + pinUnits.value;
         return s;
@@ -875,13 +868,17 @@ public:
 
     ReturnCode process() override
     {
-        // On commit, write the typed number straight into the parameter's Value field (once). The
-        // display then follows via the Value (in) pin; a knob drag writes Normalized independently,
-        // so the two never fight over a continuously-driven setter.
-        if (hasPending)
+        // Mono-directional: emit the value out the pin and let a Value-Set write the parameter.
+        // After a commit, keep asserting the typed value until the round-tripped display matches it
+        // (compare as formatted text, like the old UpdateFloatText), then resume echoing the input -
+        // so a knob drag stays in control.
+        if (hasPending && formatNumber(pendingValue) != formatNumber(pinValueIn.value))
         {
-            if (paramHost)
-                paramHost->setParameter(pinId.value, gmpi::Field::Value, 0, sizeof(float), (const uint8_t*) &pendingValue);
+            pinValueOut = pendingValue;
+        }
+        else
+        {
+            pinValueOut = pinValueIn.value;
             hasPending = false;
         }
 
@@ -908,7 +905,7 @@ public:
         auto textEdit = unknown.as<gmpi::api::ITextEdit>();
         if (textEdit)
         {
-            textEdit->setText(formatNumber().c_str()); // number only - Units are not editable
+            textEdit->setText(formatNumber(pinValueIn.value).c_str()); // number only - Units are not editable
             textEdit->showAsync(&callback);
         }
 
@@ -928,7 +925,7 @@ auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
 		<Pin name="Units" datatype="string_utf8" />
 		<Pin name="Decimal Places" datatype="int" default="2" />
 		<Pin name="Style" datatype="object:style" />
-		<Pin name="ID" datatype="int" />
+		<Pin name="Value" datatype="float" direction="out" />
 	</GUI>
   </Plugin>
 </PluginList>
