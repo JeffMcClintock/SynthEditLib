@@ -211,11 +211,53 @@ class ReallyFunctional
 	}
 };
 
+// Mono-directional value pins. The framework's Pin<T> is bidirectional - setFromHost() reads it
+// AND operator= sends it - which is the right thing for an audio module's plug, but the patch-
+// memory / value-routing helpers below are strictly one-way. These make the direction explicit
+// (you can't accidentally drive an input or read an output) - the value-type analogue of the
+// ObjectIn / ObjectOut pins.
+template<typename T>
+class In : public PinBase
+{
+    void setFromHost(int32_t /*voice*/, int32_t size, const uint8_t* data) override
+    {
+        dirty = true;
+        valueFromData({ data, static_cast<size_t>(size) }, value);
+        if (onUpdate)
+            onUpdate(this);
+    }
+
+public:
+    T value{};
+};
+
+template<typename T>
+class Out : public PinBase
+{
+    void setFromHost(int32_t /*voice*/, int32_t /*size*/, const uint8_t* /*data*/) override
+    {
+        // N/A - an output is never driven by the host.
+    }
+
+public:
+    T value{};
+
+    const T& operator=(const T& pvalue)
+    {
+        if (pvalue != value)
+        {
+            value = pvalue;
+            host->setPin(id, 0, dataSize(value), dataPtr(value));
+        }
+        return value;
+    }
+};
+
 struct PatchMemSet final : public PluginEditorNoGui
 {
-    Pin<int32_t> pinId;
-    Pin<float> pinNormalized;
-    Pin<bool> pinMouseDown;
+    In<int32_t> pinId;
+    In<float> pinNormalized;
+    In<bool> pinMouseDown;
 
 	gmpi::shared_ptr <gmpi::api::IParameterSetter> paramHost;
 
@@ -263,8 +305,8 @@ auto r2 = gmpi::Register<PatchMemSet>::withXml(R"XML(
 
 struct PatchMemSetFloat final : public PluginEditorNoGui
 {
-    Pin<int32_t> pinId;
-    Pin<float> pinValue;
+    In<int32_t> pinId;
+    In<float> pinValue;
 
     gmpi::shared_ptr <gmpi::api::IParameterSetter> paramHost;
 
@@ -301,14 +343,14 @@ auto r6 = gmpi::Register<PatchMemSetFloat>::withXml(R"XML(
 
 struct PatchMemGet final : public PluginEditorNoGui
 {
-    Pin<float> pinNormalized_in;
-    Pin<bool> pinMouseDown_in;
-    Pin<float> pinValue_in;
+    In<float> pinNormalized_in;
+    In<bool> pinMouseDown_in;
+    In<float> pinValue_in;
 
-    Pin<int32_t> pinId;
-    Pin<float> pinNormalized;
-    Pin<bool> pinMouseDown;
-    Pin<float> pinValue;
+    Out<int32_t> pinId;
+    Out<float> pinNormalized;
+    Out<bool> pinMouseDown;
+    Out<float> pinValue;
 
     ReturnCode initialize() override
     {
@@ -359,10 +401,10 @@ auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
 
 struct PatchMemUpdateFloatText final : public PluginEditorNoGui
 {
-    Pin<std::string> text_orig;
-    Pin<std::string> text_mod;
-    Pin<float> pinValue_in;
-    Pin<float> pinValue;
+    In<std::string> text_orig;
+    In<std::string> text_mod;
+    In<float> pinValue_in;
+    Out<float> pinValue;
 
     ReturnCode process() override
 	{
@@ -405,8 +447,8 @@ auto r4 = gmpi::Register<PatchMemUpdateFloatText>::withXml(R"XML(
 // just to help with simulating mono-directional system
 struct OneWayFloat final : public PluginEditorNoGui
 {
-    Pin<float> pinValue_in;
-    Pin<float> pinValue;
+    In<float> pinValue_in;
+    Out<float> pinValue;
 
     ReturnCode process() override
     {
@@ -434,8 +476,8 @@ auto r5 = gmpi::Register<OneWayFloat>::withXml(R"XML(
 
 struct OneWayText final : public PluginEditorNoGui
 {
-    Pin<std::string> pinValue_in;
-    Pin<std::string> pinValue;
+    In<std::string> pinValue_in;
+    Out<std::string> pinValue;
 
     ReturnCode process() override
     {
@@ -809,11 +851,11 @@ auto r8B = gmpi::Register<TextEntry4Gui>::withXml(R"XML(
 class NumberEntry : public PluginEditor
 {
 protected:
-    Pin<float>       pinValueIn;
-    Pin<std::string> pinUnits;
-    Pin<int32_t>     pinDecimalPlaces;
+    In<float>        pinValueIn;
+    In<std::string>  pinUnits;
+    In<int32_t>      pinDecimalPlaces;
     ObjectIn<IStyle> pinStyle;
-    Pin<float>       pinValueOut;
+    Out<float>       pinValueOut;
 
     sdk::TextEditCallback callback;
     float pendingValue = 0.0f;
