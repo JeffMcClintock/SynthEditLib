@@ -745,6 +745,7 @@ protected:
     In<std::string>  pinUnits;
     In<int32_t>      pinDecimalPlaces;
     ObjectIn<IStyle> pinStyle;
+    ObjectIn<IStyle> pinUnitStyle;
     Out<float>       pinValueOut;
 
     NumberEdit numberEdit;
@@ -773,31 +774,43 @@ public:
         if (!editing)
             numberEdit.setText(formatNumber(pinValueIn.value));
 
-        // text colour from the Style's fill (default white); transparent background.
+        // number colour from the Style's fill (default white); transparent background.
         gmpi::drawing::Color textColor = Colors::White;
         if (auto* style = pinStyle.value.get())
             style->getFillColor(&textColor);
 
-        // top-left text format - NumberEdit does its own centring (and draws the cursor/selection).
-        auto textFormat = g.getFactory().createTextFormat(getHeight(bounds));
+        // units get their own (optional) Style; default to matching the number.
+        gmpi::drawing::Color unitColor = textColor;
+        if (auto* us = pinUnitStyle.value.get())
+            us->getFillColor(&unitColor);
+
+        // top-left text formats - NumberEdit does its own centring (and draws the cursor/selection).
+        // The units are drawn ~2/3 the number's height (like the JUCE readout).
+        const float numberHeight = getHeight(bounds);
+        auto numberFormat = g.getFactory().createTextFormat(numberHeight);
+        auto unitFormat   = g.getFactory().createTextFormat(numberHeight * (2.0f / 3.0f));
 
         // Reserve room for the read-only Units so the number + units centre together as one block.
         const std::string units = pinUnits.value.empty() ? std::string() : (" " + pinUnits.value);
-        const float unitW = units.empty() ? 0.0f : textFormat.getTextExtentU(units).width;
+        const float unitW = units.empty() ? 0.0f : unitFormat.getTextExtentU(units).width;
 
         Rect numberBounds = bounds;
         numberBounds.right -= unitW;
-        numberEdit.render(g, textFormat, numberBounds, textColor); // the editable number, in our style
+        numberEdit.render(g, numberFormat, numberBounds, textColor); // the editable number, in our style
 
         if (!units.empty())
         {
-            const auto numSize = textFormat.getTextExtentU(numberEdit.unsavedText());
+            const auto numSize = numberFormat.getTextExtentU(numberEdit.unsavedText());
             const float numLeft = 0.5f * (numberBounds.left + numberBounds.right - numSize.width);
-            const Rect unitRect{ numLeft + numSize.width,
-                                 0.5f * (bounds.top + bounds.bottom - numSize.height),
-                                 bounds.right, bounds.bottom };
-            auto brush = g.createSolidColorBrush(textColor);
-            g.drawTextU(units, textFormat, unitRect, brush);
+            const float numTop  = 0.5f * (bounds.top + bounds.bottom - numSize.height);
+
+            // Align the (smaller) units' baseline with the number's baseline.
+            const float numBaseline = numTop + numberFormat.getFontMetrics().ascent;
+            const float unitTop     = numBaseline - unitFormat.getFontMetrics().ascent;
+
+            const Rect unitRect{ numLeft + numSize.width, unitTop, bounds.right, bounds.bottom };
+            auto brush = g.createSolidColorBrush(unitColor);
+            g.drawTextU(units, unitFormat, unitRect, brush);
         }
 
         return ReturnCode::Ok;
@@ -875,6 +888,7 @@ auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
 		<Pin name="Units" datatype="string_utf8" />
 		<Pin name="Decimal Places" datatype="int" default="2" />
 		<Pin name="Style" datatype="object:style" />
+		<Pin name="Units Style" datatype="object:style" />
 		<Pin name="Value" datatype="float" direction="out" />
 	</GUI>
   </Plugin>
