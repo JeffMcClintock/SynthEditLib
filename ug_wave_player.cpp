@@ -411,9 +411,9 @@ int ug_wave_player::open_file()
 	{
 		cursor = wavReader.open(WStringToUtf8(l_filename));
 	}
-	catch (char* errormes)
+	catch (std::runtime_error errormes)
 	{
-		errorMessage = Utf8ToWstring(errormes);
+		errorMessage = errorMessage + L": " + Utf8ToWstring(errormes.what());
 		cursor = nullptr;
 	}
 
