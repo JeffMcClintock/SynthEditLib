@@ -400,7 +400,7 @@ int ug_wave_player::open_file()
 	// debug errors in CI
 	std::cout << "ug_wave_player FileName:" << WStringToUtf8(FileName) << "\n  resolved: " << WStringToUtf8(l_filename) << std::endl;
 
-	std::wstring errorMessage = L"Can't open: " + FileName + L". Check: filename is correct, check it's a WAVE file";
+	std::wstring errorMessage = L"Can't open: " + l_filename + L". Check: filename is correct, check it's a WAVE file";
 
 	if (BundleInfo::instance()->isEditor)
 	{
