@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="394138552" SelectedViewType="128" emulate_ignore_pc="true" vst_preset_count="64" vst_version="1.0.0">
-    <master_container type="Container" handle="394138552" name="Main" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
+    <master_container type="Container" handle="394138552" name="Main" PanelLocationZoom="1" StructLocationZoom="1.8189894" ViewOpenFlags="384" skin="default3">
         <plugs>
             <plug idx="7"/>
         </plugs>
@@ -10,7 +10,8 @@
             <Parameters>
                 <param type="6" handle="812668086" module="904414819" moduleParamId="0">
                     <patch-list>
-                        <s repeat="128">6</s>
+                        <s>6.43332</s>
+                        <s repeat="127">6</s>
                     </patch-list>
                 </param>
                 <param type="10" handle="1682976179" private="true" hostControl="49">
@@ -25,26 +26,26 @@
                 <plugs>
                     <plug default="1" idx="4"/>
                 </plugs>
-                <structRect l="984" r="984" t="180" b="180"/>
-                <panelRect l="3934" r="4034" t="3934" b="4034"/>
+                <structRect l="984" r="1092" t="180" b="280"/>
+                <panelRect l="3928" r="4028" t="3936" b="4036"/>
             </module>
             <module type="SE: NumberEntry" handle="552590888">
                 <plugs>
                     <plug default="dB" idx="1"/>
                 </plugs>
-                <structRect l="756" r="756" t="900" b="900"/>
-                <panelRect l="3946" r="4022" t="3974" b="3996"/>
+                <structRect l="756" r="864" t="900" b="1000"/>
+                <panelRect l="3928" r="4040" t="3974" b="3996"/>
             </module>
             <module type="SE: RenderGeometry" handle="1913932725">
-                <structRect l="984" r="984" t="360" b="360"/>
+                <structRect l="984" r="1092" t="360" b="460"/>
                 <panelRect l="3934" r="4034" t="3934" b="4034"/>
             </module>
             <module type="SE: RenderBitmap" handle="2042175546">
-                <structRect l="984" r="984" t="564" b="564"/>
+                <structRect l="984" r="1092" t="564" b="664"/>
                 <panelRect l="3934" r="4034" t="3934" b="4034"/>
             </module>
             <module type="SE: StyleBuilder" handle="600586769">
-                <structRect l="480" r="480" t="1020" b="1020"/>
+                <structRect l="480" r="564" t="1020" b="1080"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: ColorFromRGBA" handle="1776643534">
@@ -53,11 +54,11 @@
                     <plug default="0.7"/>
                     <plug default="0.7"/>
                 </plugs>
-                <structRect l="300" r="300" t="1020" b="1020"/>
+                <structRect l="300" r="348" t="1020" b="1080"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: StyleBuilder" handle="1669496136">
-                <structRect l="480" r="480" t="900" b="900"/>
+                <structRect l="480" r="564" t="900" b="960"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: ColorFromRGBA" handle="1249793460">
@@ -66,25 +67,25 @@
                     <plug default="1.0"/>
                     <plug default="1.0"/>
                 </plugs>
-                <structRect l="300" r="300" t="900" b="900"/>
+                <structRect l="300" r="348" t="900" b="960"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: PatchMemSetFloat" handle="349924565">
-                <structRect l="996" r="996" t="900" b="900"/>
+                <structRect l="996" r="1044" t="900" b="924"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: BlurBitmap" handle="982348332">
                 <plugs>
                     <plug default="14" idx="2"/>
                 </plugs>
-                <structRect l="420" r="420" t="624" b="624"/>
+                <structRect l="420" r="504" t="624" b="684"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: StyleBuilder" handle="1259388648">
                 <plugs>
                     <plug default="7" idx="2"/>
                 </plugs>
-                <structRect l="180" r="180" t="624" b="624"/>
+                <structRect l="180" r="264" t="624" b="684"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: ColorFromRGBA" handle="1935879986">
@@ -93,7 +94,7 @@
                     <plug default="0.8"/>
                     <plug default="1.0"/>
                 </plugs>
-                <structRect l="36" r="36" t="624" b="624"/>
+                <structRect l="36" r="84" t="624" b="684"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: StyleBuilder" handle="588617276">
@@ -101,7 +102,7 @@
                     <plug default="4" idx="2"/>
                     <plug default="2"/>
                 </plugs>
-                <structRect l="300" r="300" t="504" b="504"/>
+                <structRect l="300" r="384" t="504" b="564"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: ColorFromRGBA" handle="85295825">
@@ -110,48 +111,48 @@
                     <plug default="1.0"/>
                     <plug default="1.0"/>
                 </plugs>
-                <structRect l="36" r="36" t="456" b="456"/>
+                <structRect l="36" r="84" t="456" b="516"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: ArcGeometry" handle="778365047">
                 <plugs>
                     <plug default="40"/>
                 </plugs>
-                <structRect l="300" r="300" t="360" b="360"/>
+                <structRect l="300" r="384" t="360" b="408"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: Multiply" handle="1726153257">
                 <plugs>
                     <plug default="0.8" idx="1"/>
                 </plugs>
-                <structRect l="60" r="60" t="360" b="360"/>
+                <structRect l="60" r="108" t="360" b="396"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: Add" handle="1400965097">
-                <structRect l="720" r="720" t="204" b="204"/>
+                <structRect l="720" r="768" t="204" b="240"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: Multiply" handle="2140617019">
                 <plugs>
                     <plug default="-0.005" idx="1"/>
                 </plugs>
-                <structRect l="564" r="564" t="252" b="252"/>
+                <structRect l="564" r="612" t="252" b="288"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: Multiply" handle="1663052906">
-                <structRect l="420" r="420" t="204" b="204"/>
+                <structRect l="420" r="468" t="204" b="240"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: Delta" handle="1488916705">
-                <structRect l="264" r="264" t="204" b="204"/>
+                <structRect l="264" r="312" t="204" b="228"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: PatchMemSet" handle="217399557">
-                <structRect l="720" r="720" t="36" b="36"/>
+                <structRect l="720" r="792" t="36" b="72"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
             <module type="SE: PatchMemGet" handle="904414819">
-                <structRect l="36" r="36" t="36" b="36"/>
+                <structRect l="36" r="108" t="36" b="84"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
         </modules>
@@ -185,12 +186,12 @@
             <line type="Line" handle="111222334" lineType="1" fMod="220375261" tMod="552590888" fPlg="5" tPlg="6"/>
         </lines>
         <PanelLocationCenter x="3984" y="3984"/>
-        <StructLocationCenter x="3984" y="3984"/>
+        <StructLocationCenter x="972.22382" y="968.89508"/>
         <PanelWndPosition l="0" r="0" t="0" b="0"/>
         <PanelLocation l="0" r="500" t="0" b="500"/>
         <StructLocation l="0" r="500" t="0" b="500"/>
         <PanelScroll x="3734" y="3734"/>
-        <StructScroll x="3734" y="3734"/>
+        <StructScroll x="722" y="718"/>
         <PanelWndOffset cx="-99999" cy="-99999"/>
         <panel_rect l="3732" r="4212" t="3732" b="4212"/>
     </master_container>
