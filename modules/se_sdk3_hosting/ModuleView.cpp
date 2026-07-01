@@ -173,7 +173,15 @@ namespace SE2
 
 	gmpi::ReturnCode GmpiHelper::setDirty()
 	{
-		moduleview.setDirty();
+		// A module asking to be re-processed (e.g. a GUI source emitting movement deltas) must also
+		// flag the parent, otherwise processUnidirectionalModules() early-returns: plain setDirty()
+		// sets only the module's own flag, whereas markDirtyChild() also sets childrenDirty (which
+		// schedules the pass). Without this, a source module with no live input pin is never pumped
+		// during a drag, so its process() only runs later - after the button is already released.
+		if (moduleview.parent)
+			moduleview.parent->markDirtyChild(&moduleview);
+		else
+			moduleview.setDirty();
 		return gmpi::ReturnCode::Ok;
 	}
 
@@ -974,8 +982,17 @@ if(pluginGraphics)
 
 		bool clientHit = false;
 
+		// In the editor, right-click is reserved for the module's context menu. Forwarding it
+		// to the client plugin lets the widget capture the mouse or return Handled, either of
+		// which suppresses the context menu (structure view only works because its click lands
+		// outside the small client rect and skips this block). Skip the client dispatch so we
+		// fall through to the SECONDBUTTON 'return Unhandled' below and doContextMenu() shows
+		// the menu — giving panel-view the same right-click behaviour as structure-view.
+		const bool rightClickInEditor =
+			(flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && editEnabled();
+
 		// Mouse over client area?
-		if((pluginGraphics_GMPI || pluginGraphics) && pointInRect(moduleLocal, pluginGraphicsPos))
+		if(!rightClickInEditor && (pluginGraphics_GMPI || pluginGraphics) && pointInRect(moduleLocal, pluginGraphicsPos))
 		{
 			auto local = PointToPlugin(point);
 
