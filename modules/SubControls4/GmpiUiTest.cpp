@@ -747,6 +747,7 @@ protected:
     ObjectIn<IStyle> pinStyle;
     ObjectIn<IStyle> pinUnitStyle;
     Out<float>       pinValueOut;
+    In<bool>         pinEditTrigger; // a pulse here starts keyboard entry (e.g. MouseTarget's Double-click)
 
     NumberEdit numberEdit;
     bool editing = false;
@@ -755,6 +756,22 @@ public:
     NumberEntry() : numberEdit(*this)
     {
         pinDecimalPlaces.value = 2;
+        // SE dispatches a pointer to a single topmost widget, so a MouseTarget stacked on top of us
+        // can't "pass" a double-click down. Instead it wires its Double-click output to this Edit pin.
+        // Open only on a rising pulse (value==true); the host also pushes the pin's initial value at
+        // load, which must NOT open the editor.
+        pinEditTrigger.onUpdate = [this](PinBase*) { if (pinEditTrigger.value) startEditing(); };
+    }
+
+    void startEditing()
+    {
+        if (editing)
+            return;
+
+        // edit the NUMBER only (Units stay read-only on screen).
+        numberEdit.setText(formatNumber(pinValueIn.value));
+        editing = true;
+        numberEdit.show(dialogHost, &bounds);
     }
 
     std::string formatNumber(float v) const
@@ -862,11 +879,7 @@ public:
             return ReturnCode::Handled; // the press just repositioned the caret; don't restart editing
 
         inputHost->releaseCapture();
-
-        // edit the NUMBER only (Units stay read-only on screen).
-        numberEdit.setText(formatNumber(pinValueIn.value));
-        editing = true;
-        numberEdit.show(dialogHost, &bounds);
+        startEditing();
 
         return ReturnCode::Unhandled;
     }
@@ -901,6 +914,7 @@ auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
 		<Pin name="Style" datatype="object:style" />
 		<Pin name="Units Style" datatype="object:style" />
 		<Pin name="Value" datatype="float" direction="out" />
+		<Pin name="Edit" datatype="bool" />
 	</GUI>
   </Plugin>
 </PluginList>
@@ -914,10 +928,29 @@ protected:
     Out<bool>  pinLClick;
     Out<float> pinX;
     Out<float> pinY;
+    In<bool>   pinDoubleClickEdits; // when set, a double-click fires Double-click instead of moving the knob
+    Out<bool>  pinDoubleClick;      // rising pulse on double-click; wire to a NumberEntry's Edit pin
+    bool       editOnUp = false;    // a double-click was pressed; fire the trigger on the matching up
 
 public:
     gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
     {
+        pinDoubleClick = false; // arm the next rising pulse (no-op unless still set from a prior edit)
+
+        // With "Double-click Edits" set, a double-click starts keyboard entry in a NumberEntry stacked
+        // beneath us. SE routes a click to a single topmost widget, so we can't pass it down - we fire
+        // the Double-click trigger (wired to the NumberEntry's Edit pin). We fire on the matching
+        // pointer-UP, not here: that makes opening the in-place editor the LAST event of the gesture,
+        // so nothing steals focus from it afterwards (the same reason plain click-to-edit opens on
+        // mouse-up). Single-click still drags the knob, so single-click moves the value.
+        const bool isDouble = (flags & static_cast<int32_t>(gmpi::api::PointerFlags::Double)) != 0;
+        if (pinDoubleClickEdits.value && isDouble)
+        {
+            editOnUp = true;
+            inputHost->setCapture();          // so the matching up routes back to us
+            return gmpi::ReturnCode::Handled; // no knob grab; Handled so the host doesn't steal focus
+        }
+
         inputHost->setCapture();
         pinLClick = true;
 
@@ -939,8 +972,16 @@ public:
 
     gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
     {
-        pinLClick = false;
         inputHost->releaseCapture();
+
+        if (editOnUp)
+        {
+            editOnUp = false;
+            pinDoubleClick = true; // rising pulse -> NumberEntry opens its editor (gesture's last event)
+            return gmpi::ReturnCode::Handled;
+        }
+
+        pinLClick = false;
         return gmpi::ReturnCode::Ok;
     }
 
@@ -966,6 +1007,8 @@ auto r9 = gmpi::Register<MouseTarget>::withXml(R"XML(
         <Pin name="Left Click" datatype="bool" direction="out"/>
         <Pin name="X" datatype="float" direction="out"/>
         <Pin name="Y" datatype="float" direction="out"/>
+        <Pin name="Double-click Edits" datatype="bool"/>
+        <Pin name="Double-click" datatype="bool" direction="out"/>
 	</GUI>
   </Plugin>
 </PluginList>
