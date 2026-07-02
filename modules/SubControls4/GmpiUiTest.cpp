@@ -56,8 +56,8 @@ public:
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
     {
         Graphics g(drawingContext);
-
         ClipDrawingToBounds _(g, bounds);
+
         g.clear(Colors::Black);
 
         if (isHovered)
@@ -653,6 +653,7 @@ public:
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
     {
         Graphics g(drawingContext);
+        ClipDrawingToBounds _(g, bounds);
 
         // text colour from the Style's fill (default white); transparent background so the
         // editable readout sits over the artwork like the rendered text it replaces.
@@ -747,7 +748,7 @@ protected:
     ObjectIn<IStyle> pinStyle;
     ObjectIn<IStyle> pinUnitStyle;
     Out<float>       pinValueOut;
-    In<bool>         pinEditTrigger; // a pulse here starts keyboard entry (e.g. MouseTarget's Double-click)
+    In<bool>         pinTrigger; // rising edge starts keyboard entry (e.g. wired to MouseTarget's Double Click)
 
     NumberEdit numberEdit;
     bool editing = false;
@@ -756,11 +757,9 @@ public:
     NumberEntry() : numberEdit(*this)
     {
         pinDecimalPlaces.value = 2;
-        // SE dispatches a pointer to a single topmost widget, so a MouseTarget stacked on top of us
-        // can't "pass" a double-click down. Instead it wires its Double-click output to this Edit pin.
-        // Open only on a rising pulse (value==true); the host also pushes the pin's initial value at
-        // load, which must NOT open the editor.
-        pinEditTrigger.onUpdate = [this](PinBase*) { if (pinEditTrigger.value) startEditing(); };
+        // Open the in-place editor on a rising edge only (value==true). The host also pushes the pin's
+        // initial value at load, which must NOT open the editor.
+        pinTrigger.onUpdate = [this](PinBase*) { if (pinTrigger.value) startEditing(); };
     }
 
     void startEditing()
@@ -796,6 +795,7 @@ public:
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
     {
         Graphics g(drawingContext);
+        ClipDrawingToBounds _(g, bounds);
 
         // while not editing, the readout mirrors the parameter value (the editor owns the text
         // during a session). Cheap no-op when unchanged.
@@ -914,7 +914,7 @@ auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
 		<Pin name="Style" datatype="object:style" />
 		<Pin name="Units Style" datatype="object:style" />
 		<Pin name="Value" datatype="float" direction="out" />
-		<Pin name="Edit" datatype="bool" />
+		<Pin name="Trigger" datatype="bool" />
 	</GUI>
   </Plugin>
 </PluginList>
@@ -924,48 +924,57 @@ auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
 class MouseTarget : public PluginEditor
 {
 protected:
-    Out<bool>  pinHover;
-    Out<bool>  pinLClick;
-    Out<float> pinX;
-    Out<float> pinY;
-    In<bool>   pinDoubleClickEdits; // when set, a double-click fires Double-click instead of moving the knob
-    Out<bool>  pinDoubleClick;      // rising pulse on double-click; wire to a NumberEntry's Edit pin
-    bool       editOnUp = false;    // a double-click was pressed; fire the trigger on the matching up
+    Out<bool>  pinHover;             // 0
+    Out<bool>  pinLClick;            // 1  left button
+    Out<bool>  pinCClick;            // 2  centre (middle) button
+    Out<bool>  pinRClick;            // 3  right button
+    Out<bool>  pinDoubleClick;       // 4  true on the 2nd mouse-down, false on the 2nd mouse-up
+    Out<float> pinX;                 // 5
+    Out<float> pinY;                 // 6
+    Out<float> pinDx;                // 7  movement delta since the last move (returns to zero next pass)
+    Out<float> pinDy;                // 8
+
+    // Movement deltas. We emit them from process() (not onPointerMove) so they behave exactly like
+    // the Delta module: the delta is emitted in one process() pass and zeroed in the NEXT. Emitting
+    // in the move handler and zeroing in process() would race - the pump's zeroing pass wipes the
+    // delta before the downstream module's process() reads it.
+    gmpi::drawing::Point curPoint{};  // latest position from onPointerMove
+    gmpi::drawing::Point prevPoint{}; // position at the previous delta emission
+    bool primed = false;              // seed prevPoint on the first move (no giant initial delta)
+    bool wasDouble = false;
+
+    static constexpr int32_t kFirst  = static_cast<int32_t>(gmpi::api::PointerFlags::FirstButton);
+    static constexpr int32_t kSecond = static_cast<int32_t>(gmpi::api::PointerFlags::SecondButton);
+    static constexpr int32_t kThird  = static_cast<int32_t>(gmpi::api::PointerFlags::ThirdButton);
+    static constexpr int32_t kDouble = static_cast<int32_t>(gmpi::api::PointerFlags::Double);
 
 public:
     gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
     {
-        pinDoubleClick = false; // arm the next rising pulse (no-op unless still set from a prior edit)
-
-        // With "Double-click Edits" set, a double-click starts keyboard entry in a NumberEntry stacked
-        // beneath us. SE routes a click to a single topmost widget, so we can't pass it down - we fire
-        // the Double-click trigger (wired to the NumberEntry's Edit pin). We fire on the matching
-        // pointer-UP, not here: that makes opening the in-place editor the LAST event of the gesture,
-        // so nothing steals focus from it afterwards (the same reason plain click-to-edit opens on
-        // mouse-up). Single-click still drags the knob, so single-click moves the value.
-        const bool isDouble = (flags & static_cast<int32_t>(gmpi::api::PointerFlags::Double)) != 0;
-        if (pinDoubleClickEdits.value && isDouble)
-        {
-            editOnUp = true;
-            inputHost->setCapture();          // so the matching up routes back to us
-            return gmpi::ReturnCode::Handled; // no knob grab; Handled so the host doesn't steal focus
-        }
-
         inputHost->setCapture();
-        pinLClick = true;
+        curPoint = prevPoint = point; // deltas are measured from the press
+        primed = true;
+
+        // The flag identifies WHICH button; down vs up is the action (this handler = pressed).
+        if (flags & kFirst)  pinLClick = true;
+        if (flags & kSecond) pinRClick = true;
+        if (flags & kThird)  pinCClick = true;
+
+        // The OS sets Double on the second down; report it (cleared on the 2nd up below).
+        wasDouble = flags & kDouble; // remember double-click on down.
+        pinDoubleClick = false;
 
         return gmpi::ReturnCode::Ok;
     }
 
     gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override
     {
-        bool isCaptured{};
-		//inputHost->getCapture(isCaptured);
-  //      if (isCaptured)
-        {
-            pinX = point.x;
-            pinY = point.y;
-        }
+        pinX = point.x;
+        pinY = point.y;
+
+        if (!primed) { prevPoint = point; primed = true; }
+        curPoint = point;
+        editorHost2->setDirty(); // process() emits the delta
 
         return gmpi::ReturnCode::Ok;
     }
@@ -974,14 +983,33 @@ public:
     {
         inputHost->releaseCapture();
 
-        if (editOnUp)
+        if (flags & (kFirst | kSecond | kThird)) // host says which button released (e.g. Win32)
         {
-            editOnUp = false;
-            pinDoubleClick = true; // rising pulse -> NumberEntry opens its editor (gesture's last event)
-            return gmpi::ReturnCode::Handled;
+            if (flags & kFirst)  pinLClick = false;
+            if (flags & kSecond) pinRClick = false;
+            if (flags & kThird)  pinCClick = false;
+        }
+        else // host didn't specify (e.g. the headless harness) - release all
+        {
+            pinLClick = false;
+            pinRClick = false;
+            pinCClick = false;
         }
 
-        pinLClick = false;
+        pinDoubleClick = wasDouble; // Set on the (2nd) up
+
+        return gmpi::ReturnCode::Ok;
+    }
+
+    gmpi::ReturnCode process() override
+    {
+        // Emit the movement delta, then advance prevPoint so the NEXT pass emits zero (cf. Delta). The
+        // delta must return to zero or a downstream integrator (value += dX) would run away.
+        pinDx = curPoint.x - prevPoint.x;
+        pinDy = curPoint.y - prevPoint.y;
+        prevPoint = curPoint;
+        if (pinDx.value != 0.0f || pinDy.value != 0.0f)
+            editorHost2->setDirty(); // schedule one more pass to emit the zero
         return gmpi::ReturnCode::Ok;
     }
 
@@ -1005,10 +1033,13 @@ auto r9 = gmpi::Register<MouseTarget>::withXml(R"XML(
 	<GUI graphicsApi="GmpiGui">
         <Pin name="Hover" datatype="bool" direction="out"/>
         <Pin name="Left Click" datatype="bool" direction="out"/>
+        <Pin name="Center Click" datatype="bool" direction="out"/>
+        <Pin name="Right Click" datatype="bool" direction="out"/>
+        <Pin name="Double Click" datatype="bool" direction="out"/>
         <Pin name="X" datatype="float" direction="out"/>
         <Pin name="Y" datatype="float" direction="out"/>
-        <Pin name="Double-click Edits" datatype="bool"/>
-        <Pin name="Double-click" datatype="bool" direction="out"/>
+        <Pin name="dX" datatype="float" direction="out"/>
+        <Pin name="dY" datatype="float" direction="out"/>
 	</GUI>
   </Plugin>
 </PluginList>
@@ -1803,6 +1834,9 @@ struct RenderGeometry final : public PluginEditor
 		if (!pinInput)
 			return ReturnCode::Ok;
 
+        Graphics g(drawingContext);
+        ClipDrawingToBounds _(g, bounds);
+
         // wrap the incoming interface so we can draw it.
         PathGeometry geometry;
         if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
@@ -1822,11 +1856,9 @@ struct RenderGeometry final : public PluginEditor
             cap = style->getStrokeCap();
         }
 
-        Graphics g(drawingContext);
 
         // origin at the widget centre (geometry is authored centred on origin).
-        const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * g.getTransform();
-        g.setTransform(base);
+        TempTransform tt(g, makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f));
 
         // fill the interior, then stroke the outline (alpha 0 / zero width = skip).
         if (fill.a > 0.0f)
@@ -2315,6 +2347,9 @@ struct RenderInstances final : public PluginEditor
         if (!pinTemplate || !pinTransforms)
             return ReturnCode::Ok;
 
+        Graphics g(drawingContext);
+        ClipDrawingToBounds _(g, bounds);
+
         // wrap the template geometry.
         PathGeometry geometry;
         if (ReturnCode::Ok != pinTemplate.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
@@ -2333,8 +2368,6 @@ struct RenderInstances final : public PluginEditor
             cap = style->getStrokeCap();
         }
 
-        Graphics g(drawingContext);
-
         // brushes/stroke-style are transform-independent, so create once and reuse for every instance.
         auto fillBrush = g.createSolidColorBrush(fill);
         auto strokeBrush = g.createSolidColorBrush(stroke);
@@ -2344,7 +2377,8 @@ struct RenderInstances final : public PluginEditor
 
         // Put the origin at the widget's centre, so upstream generators can lay instances out
         // around (0,0) without knowing the widget's size or position.
-        const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * g.getTransform();
+        const auto originalTransform = g.getTransform();
+        const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * originalTransform;
 
         const int count = list->getCount();
         for (int i = 0; i < count; ++i)
@@ -2360,7 +2394,7 @@ struct RenderInstances final : public PluginEditor
             if (stroke.a > 0.0f && strokeWidth > 0.0f)
                 g.drawGeometry(geometry, strokeBrush, strokeWidth, strokeStyle);
         }
-        g.setTransform(base);
+        g.setTransform(originalTransform);
 
         return ReturnCode::Ok;
     }
@@ -2503,6 +2537,9 @@ struct RenderEach final : public PluginEditor
         if (!pinPaths || !pinTransforms)
             return ReturnCode::Ok;
 
+        Graphics g(drawingContext);
+        ClipDrawingToBounds _(g, bounds);
+
         auto* paths = pinPaths.value.get();
         auto* xforms = pinTransforms.value.get();
 
@@ -2518,12 +2555,13 @@ struct RenderEach final : public PluginEditor
             cap = style->getStrokeCap();
         }
 
-        Graphics g(drawingContext);
+
         auto fillBrush = g.createSolidColorBrush(fill);
         auto strokeBrush = g.createSolidColorBrush(stroke);
         auto strokeStyle = g.getFactory().createStrokeStyle(static_cast<CapStyle>(cap));
 
-        const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * g.getTransform();
+		const auto originalTransform = g.getTransform();
+        const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * originalTransform;
         const int n = (std::min)(paths->getCount(), xforms->getCount());
         for (int i = 0; i < n; ++i)
         {
@@ -2543,7 +2581,7 @@ struct RenderEach final : public PluginEditor
             if (stroke.a > 0.0f && strokeWidth > 0.0f)
                 g.drawGeometry(geometry, strokeBrush, strokeWidth, strokeStyle);
         }
-        g.setTransform(base);
+        g.setTransform(originalTransform);
 
         return ReturnCode::Ok;
     }
@@ -2647,6 +2685,7 @@ struct RenderBitmap final : public PluginEditor
             return ReturnCode::Ok;
 
         Graphics g(drawingContext);
+        ClipDrawingToBounds _(g, bounds);
 
         // wrap the incoming interface so we can draw it.
         Bitmap bitmap;
@@ -2661,8 +2700,7 @@ struct RenderBitmap final : public PluginEditor
         const float halfW = 0.5f * size.width / scale;
         const float halfH = 0.5f * size.height / scale;
 
-        const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * g.getTransform();
-        g.setTransform(base);
+        TempTransform tt(g, makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f));
 
         const Rect dest{ -halfW, -halfH, halfW, halfH };
         const Rect src{ 0, 0, static_cast<float>(size.width), static_cast<float>(size.height) };
