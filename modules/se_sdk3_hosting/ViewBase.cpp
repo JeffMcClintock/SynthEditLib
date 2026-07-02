@@ -705,7 +705,8 @@ namespace SE2
 										if (dt == DT_ENUM) // special hack for enum lists on properties of GUI modules.
 											dt = DT_INT;
 
-										const auto raw = ParseToRaw(dt, default_element.asString());
+										// className lets ParseToRaw convert struct:color defaults (hex -> raw Color).
+										const auto raw = ParseToRaw(dt, default_element.asString(), pinInfo->getClassName());
 
 										wrapper->setPin(0, 0, pinId, 0, (int32_t)raw.size(), (void*)raw.data());
 
@@ -762,7 +763,8 @@ namespace SE2
 									{
 										dt = DT_INT;
 									}
-									auto raw = ParseToRaw(dt, pinInfo.GetDefaultVal());
+									// className lets ParseToRaw convert struct:color defaults (hex -> raw Color).
+									auto raw = ParseToRaw(dt, pinInfo.GetDefaultVal(), pinInfo.getClassName());
 									wrapper->setPin(0, 0, pinId, 0, (int)raw.size(), (void*)(&raw[0]));
 								}
 							}

@@ -1,7 +1,32 @@
 
+#include <cstring>
 #include "RawConversions.h"
 #include "Base64.h"
 #include "./modules/se_sdk2/se_datatypes.h"
+#include "GmpiUiDrawing.h" // gmpi::drawing::Color + colorFromHexString for struct:color defaults
+
+namespace
+{
+	// Convert a hex colour string ("RRGGBB" or "AARRGGBB", optional #/0x prefix) into the pin's
+	// raw 16-byte {float r,g,b,a} wire form. Returns "" for an empty/invalid string, so an unset
+	// colour default is a no-op that preserves the module's built-in default (empty span = keep).
+	std::string colorHexToRaw(std::string_view hex)
+	{
+		if (!hex.empty() && hex.front() == '#') hex.remove_prefix(1);
+		if (hex.size() >= 2 && hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X')) hex.remove_prefix(2);
+
+		if (hex.size() != 6 && hex.size() != 8) return {};
+		for (char c : hex)
+			if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+				return {};
+
+		const gmpi::drawing::Color color = gmpi::drawing::colorFromHexString(hex);
+		std::string raw;
+		raw.resize(sizeof(color));
+		std::memcpy(raw.data(), &color, sizeof(color));
+		return raw;
+	}
+}
 
 template<>
 int RawSize(const std::wstring& value)
@@ -178,7 +203,7 @@ std::string RawToUtf8<std::wstring>(const void* data, int size)
 	return WStringToUtf8(v);
 }
 
-std::string ParseToRaw( int datatype, const std::wstring& s )
+std::string ParseToRaw( int datatype, const std::wstring& s, std::string_view className )
 {
 	std::string result;
 
@@ -229,7 +254,10 @@ std::string ParseToRaw( int datatype, const std::wstring& s )
 		result = Base64::decode(WStringToUtf8(s));
 		break;
 
-	case DT_CLASS: // currently can't convert string to class
+	case DT_CLASS:
+		// struct:color -> raw Color bytes; other struct/class pins stay empty (keep existing).
+		if (className == "color")
+			result = colorHexToRaw(WStringToUtf8(s));
 		break;
 
 	default:
@@ -239,7 +267,7 @@ std::string ParseToRaw( int datatype, const std::wstring& s )
 	return result;
 }
 
-std::string ParseToRaw( int datatype, const std::string& s )
+std::string ParseToRaw( int datatype, const std::string& s, std::string_view className )
 {
 	std::string result;
 
@@ -294,8 +322,11 @@ std::string ParseToRaw( int datatype, const std::string& s )
 		result = Base64::decode(s);
 		break;
 
-    case DT_CLASS: // currently can't convert string to class
-        break;
+	case DT_CLASS:
+		// struct:color -> raw Color bytes; other struct/class pins stay empty (keep existing).
+		if (className == "color")
+			result = colorHexToRaw(s);
+		break;
 
 	default:
 		assert( false ); // you are using an undefined datatype

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include "./MyTypeTraits.h"
 #include <assert.h>
 // Fix for <sstream> on Mac (sstream uses undefined int_64t)
@@ -148,8 +149,10 @@ std::string RawToUtf8<MpBlob>(const void* data, int size);
 template<>
 std::string RawToUtf8<std::wstring>(const void* data, int size);
 
-std::string ParseToRaw( int datatype, const std::wstring& s );
-std::string ParseToRaw( int datatype, const std::string& s );
+// className is the struct/object subtype (e.g. "color" for datatype="struct:color"), used to
+// convert DT_CLASS defaults; empty for all non-class datatypes and callers that don't have it.
+std::string ParseToRaw( int datatype, const std::wstring& s, std::string_view className = {} );
+std::string ParseToRaw( int datatype, const std::string& s, std::string_view className = {} );
 
 template<typename T>
 std::string ToRaw4( const T& value )
