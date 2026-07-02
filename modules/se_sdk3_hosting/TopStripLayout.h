@@ -249,14 +249,39 @@ struct TopStripLayout :
     }
     gmpi::ReturnCode onPointerMove(gmpi::drawing::Point p, int32_t flags) override
     {
-        auto ch = capturedChild ? capturedChild : childAt(p);
+        child* ch = capturedChild;
+        if (!ch)
+        {
+            // A drag can retain LOGICAL capture on the editor (bottomChild) across a
+            // mid-gesture button-up — e.g. a "pickup" cable drag: click a pin, RELEASE,
+            // then the line follows the cursor with no button held until a second click.
+            // capturedChild is only (re)set on pointer-DOWN, so once a button-up cleared
+            // it we'd fall back to a position hit-test. But the OS-cursor poll that drives
+            // auto-scroll synthesizes moves OUTSIDE the panel, where childAt() returns
+            // null and the move would be dropped here — freezing auto-scroll. While the
+            // host still reports capture, keep routing to the captured child (only the
+            // editor takes capture in this chain) rather than hit-testing the position.
+            bool held = false;
+            if (inputHost) inputHost->getCapture(held);
+            ch = held ? &bottomChild : childAt(p);
+        }
         return (ch && ch->editor) ? ch->editor->onPointerMove(toLocal(ch, p), flags) : gmpi::ReturnCode::Unhandled;
     }
     gmpi::ReturnCode onPointerUp(gmpi::drawing::Point p, int32_t flags) override
     {
-        auto ch = capturedChild ? capturedChild : childAt(p);
-        capturedChild = nullptr;
-        return (ch && ch->editor) ? ch->editor->onPointerUp(toLocal(ch, p), flags) : gmpi::ReturnCode::Unhandled;
+        child* ch = capturedChild ? capturedChild : childAt(p);
+        const auto r = (ch && ch->editor) ? ch->editor->onPointerUp(toLocal(ch, p), flags) : gmpi::ReturnCode::Unhandled;
+        // Keep our routing pointer in sync with the editor's LOGICAL capture rather than
+        // clearing it on every raw button-up. A pickup drag sees a real button-up in the
+        // middle of the gesture, yet the editor keeps capture across it, so we must too —
+        // otherwise the next out-of-panel move can't find its child (see onPointerMove).
+        // Checked AFTER forwarding, because the child releases capture from inside its own
+        // onPointerUp on the genuine end-click.
+        bool held = false;
+        if (inputHost) inputHost->getCapture(held);
+        if (!held)
+            capturedChild = nullptr;
+        return r;
     }
     gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point p, int32_t flags, int32_t delta) override
     {
