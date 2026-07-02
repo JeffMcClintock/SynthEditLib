@@ -86,6 +86,7 @@ struct TopStripLayout :
         }
         gmpi::ReturnCode createFileDialog(int32_t t, gmpi::api::IUnknown** o) override                     { return owner->dialogHost ? owner->dialogHost->createFileDialog(t, o)  : gmpi::ReturnCode::NoSupport; }
         gmpi::ReturnCode createStockDialog(int32_t t, const char* a, const char* b, gmpi::api::IUnknown** o) override { return owner->dialogHost ? owner->dialogHost->createStockDialog(t, a, b, o) : gmpi::ReturnCode::NoSupport; }
+        gmpi::ReturnCode createColorDialog(gmpi::drawing::Color initialColor, gmpi::api::IUnknown** o) override { return owner->dialogHost ? owner->dialogHost->createColorDialog(initialColor, o) : gmpi::ReturnCode::NoSupport; }
 
         gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
         {

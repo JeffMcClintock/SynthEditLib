@@ -121,6 +121,11 @@ namespace SE2
 		return moduleview.parent->dialogHost->createStockDialog(dialogType, title, text, returnDialog);
 	}
 
+	ReturnCode GmpiHelper::createColorDialog(gmpi::drawing::Color initialColor, gmpi::api::IUnknown** returnDialog)
+	{
+		return moduleview.parent->dialogHost->createColorDialog(initialColor, returnDialog);
+	}
+
 	gmpi::ReturnCode GmpiHelper::getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle)
 	{
 		returnHandle = moduleview.parent->Presenter()->GetPatchManager()->getParameterHandle(moduleview.handle, moduleParameterId);
