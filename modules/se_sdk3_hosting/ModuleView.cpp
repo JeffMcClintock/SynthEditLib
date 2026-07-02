@@ -1194,6 +1194,10 @@ if(pluginGraphics)
 
 	void ModuleViewPanel::render(Graphics& g)
 	{
+#ifdef _DEBUG
+		const auto ot = g.getTransform();
+#endif
+
 		if (pluginGraphics_GMPI)
 		{
 			auto gmpiContext = AccessPtr::get(g);
@@ -1218,12 +1222,6 @@ if(pluginGraphics)
 			g.fillRectangle(getClipArea(), g.createSolidColorBrush(Color::FromArgb(0x200000ff)));
 			g.fillRectangle(getLayoutRect(), g.createSolidColorBrush(Color::FromArgb(0x2000ff00)));
 #endif
-			/*
-					// Transform to module-relative.
-					const auto originalTransform = g.getTransform();
-					auto adjustedTransform = Matrix3x2::Translation(bounds_.left , bounds_.top) * originalTransform;
-					g.setTransform(adjustedTransform);
-			*/
 			// Render.
 			renderLegacyClient(g);
 
@@ -1235,8 +1233,6 @@ if(pluginGraphics)
 				g.fillRectangle(Rect(64, 64, 65, 65), brsh);
 			}
 #endif
-			// Transform back.
-		//		g.setTransform(originalTransform);
 		}
 
 		if(isHovered_ && editEnabled() && !getSelected())
@@ -1245,6 +1241,12 @@ if(pluginGraphics)
 			gmpi::drawing::Rect r(0, 0, getWidth(bounds_), getHeight(bounds_));
 			g.drawRoundedRectangle({ r, 2.f, 2.f }, brush, 2.f);
 		}
+
+#ifdef _DEBUG
+		const auto ft = g.getTransform();
+		if(ot != ft)
+			assert(false);
+#endif
 	}
 
 	bool ModuleViewPanel::hasRenderLayers() const
