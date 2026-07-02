@@ -141,11 +141,6 @@ class NumberEdit : public gmpi::TimerClient, public gmpi::api::IKeyListenerCallb
 public:
     NumberEdit(NumberEditClient& pclient) : client(pclient)
     {
-//        setWantsKeyboardFocus(true);
-    }
-    ~NumberEdit()
-    {
-//        juce::Desktop::getInstance().removeGlobalMouseListener(this);
     }
 
     std::string unsavedText() const
@@ -172,9 +167,7 @@ public:
 		listener = ret.as<gmpi::api::IKeyListener>();
 
         if(listener)
-        {
             listener->showAsync(static_cast<gmpi::api::IKeyListenerCallback*>(this));
-        }
 
         client.repaintText();
 
