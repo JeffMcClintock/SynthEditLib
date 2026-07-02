@@ -6,7 +6,7 @@ namespace SE2
 {
 	struct sharedGraphicResources_connectors
 	{
-		gmpi::drawing::SolidColorBrush brushes[13];
+		gmpi::drawing::SolidColorBrush brushes[14]; // one per EPlugDataType (DT_ENUM..DT_OBJECT)
 		gmpi::drawing::SolidColorBrush errorBrush;
 		gmpi::drawing::SolidColorBrush emphasiseBrush;
 		gmpi::drawing::SolidColorBrush selectedBrush;
@@ -23,27 +23,26 @@ namespace SE2
 			draggingBrush = g.createSolidColorBrush(Colors::Orange);
 
 			uint32_t datatypeColors[] = {
-				0x00A800, // ENUM green
-				0xbc0000, // TEXT red
-				0xD9D900, //0xbcbc00, // MIDI2 yellow
-				0x00bcbc, // DOUBLE
-				0x000000, // BOOL - black.
-				0x0000bc, // float blue
-				0x00A8A8,//0x00bcbc, // FLOAT green-blue
-				0x008989, // unused
-				0xbc5c00, // INT orange
-				0xb45e00, // INT64 orange
-				0xbc00bc, // BLOB -purple
-				0xbc00bc, // Class -purple
-				0xbc0000, // Text UTF8 red.
+				0x00A800, // [ 0] DT_ENUM        green
+				0xbc0000, // [ 1] DT_TEXT        red
+				0xD9D900, // [ 2] DT_MIDI2       yellow
+				0x00bcbc, // [ 3] DT_DOUBLE      cyan
+				0x000000, // [ 4] DT_BOOL        black
+				0x0000bc, // [ 5] DT_FSAMPLE     blue
+				0x00A8A8, // [ 6] DT_FLOAT       green-blue
+				0x008989, // [ 7] DT_VST_PARAM   unused
+				0xbc5c00, // [ 8] DT_INT         orange
+				0xb45e00, // [ 9] DT_INT64       orange
+				0xbc00bc, // [10] DT_BLOB        purple
+				0xbc00bc, // [11] DT_CLASS       purple (struct)
+				0xbc0000, // [12] DT_STRING_UTF8 red
+				0xbc00bc, // [13] DT_OBJECT      purple
 			};
 
-			assert(std::size(brushes) <= std::size(datatypeColors));
+			assert(std::size(datatypeColors) <= std::size(brushes));
 
 			for(size_t i = 0; i < std::size(brushes); ++i)
-			{
 				brushes[i] = g.createSolidColorBrush(datatypeColors[i]);
-			}
 		}
 	};
 
