@@ -44,14 +44,6 @@ build_gmpi_plugin(
         VoltsToMidiCc.h
         ../shared/expression_evaluate.h
         ../shared/expression_evaluate.cpp
-        ../shared/simdutf/simdutf.h
-        ../shared/simdutf/simdutf.cpp
         ${se_sdk_folder}/it_enum_list.h
         ${se_sdk_folder}/it_enum_list.cpp
-)
-
-# enable super fast UTF conversions
-target_compile_definitions(
-  ${PROJECT_NAME} PRIVATE 
-  USE_SIMD_UTF_CONVERSION
 )

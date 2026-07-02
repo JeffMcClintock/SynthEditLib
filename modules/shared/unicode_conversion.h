@@ -16,10 +16,13 @@ using namespace JmUnicodeConversions;
 #include "windows.h"
 #endif
 
-#include "./simdutf/simdutf.h"
+#include "unicode_conversion2.h"  // FastUnicode - deterministic scalar fallback (non-Windows)
 
 /*
-For fastest conversion, set USE_SIMD_UTF_CONVERSION to 1 and include simdutf.cpp in the build.
+Windows uses the OS UTF-8 codec (MultiByteToWideChar/WideCharToMultiByte). Every
+other platform uses the hand-rolled FastUnicode scalar converters. simdutf was
+removed: its runtime CPU dispatch produced intermittent empty conversions on some
+CI kernels (icelake), and none of these paths need SIMD.
 */
 
 namespace JmUnicodeConversions
@@ -29,28 +32,6 @@ inline std::string WStringToUtf8(const std::wstring& p_cstring )
 {
     std::string res;
 
-#ifdef USE_SIMD_UTF_CONVERSION
-    if constexpr(sizeof(wchar_t) == 2)
-    {
-        assert(sizeof(wchar_t) == 2);
-
-        const size_t expected_utf8words = simdutf::utf8_length_from_utf16le((const char16_t*) p_cstring.data(), p_cstring.size());
-
-        res.resize(expected_utf8words);
-
-        [[maybe_unused]] const auto r = simdutf::convert_utf16le_to_utf8((const char16_t*) p_cstring.data(), p_cstring.size(), (char*) res.data());
-    }
-    else
-    {
-        assert(sizeof(wchar_t) == 4);
-
-        const size_t expected_utf8words = simdutf::utf8_length_from_utf32((const char32_t*) p_cstring.data(), p_cstring.size());
-
-        res.resize(expected_utf8words);
-
-        [[maybe_unused]] const auto r = simdutf::convert_utf32_to_utf8((const char32_t*) p_cstring.data(), p_cstring.size(), (char*) res.data());
-    }
-#else
 #if defined(_WIN32)
     const size_t size = WideCharToMultiByte(
 		CP_UTF8,
@@ -76,13 +57,9 @@ inline std::string WStringToUtf8(const std::wstring& p_cstring )
 		NULL
 	);
 #else
-	const auto size = std::wcstombs(0, p_cstring.c_str(), 0);
-    if(static_cast<std::size_t>(-1) == size) // invalid chars
-        return res;
-    
-	res.resize(size);
-	std::wcstombs((char*)res.data(), p_cstring.c_str(), size);
-#endif
+	// wchar_t is UTF-32 here; FastUnicode::WStringToUtf8 handles both UTF-16
+	// (surrogate pairs) and UTF-32 (direct codepoints) code units.
+	res = FastUnicode::WStringToUtf8(p_cstring);
 #endif
 	return res;
 }
@@ -90,25 +67,6 @@ inline std::string WStringToUtf8(const std::wstring& p_cstring )
 inline std::wstring Utf8ToWstring(const char* pstr, size_t psize)
 {
 	std::wstring res;
-
-#ifdef USE_SIMD_UTF_CONVERSION
-    if constexpr(sizeof(wchar_t) == 2)
-    {
-        const size_t expected_utf16words = simdutf::utf16_length_from_utf8(pstr, psize);
-
-        res.resize(expected_utf16words);
-
-        [[maybe_unused]] const auto r = simdutf::convert_utf8_to_utf16le(pstr, psize, (char16_t*) res.data());
-    }
-    else
-    {
-        const size_t expected_utfwords = simdutf::utf32_length_from_utf8(pstr, psize);
-
-        res.resize(expected_utfwords);
-
-        [[maybe_unused]] const auto r = simdutf::convert_utf8_to_utf32(pstr, psize, (char32_t*) res.data());
-    }
-#else
 
 #if defined(_WIN32)
 	const size_t size = MultiByteToWideChar(
@@ -131,10 +89,9 @@ inline std::wstring Utf8ToWstring(const char* pstr, size_t psize)
 		static_cast<int>(size)
 	);
 #else
-	const auto size = mbstowcs(0, pstr, 0);
-	res.resize(size);
-	mbstowcs(const_cast<wchar_t*>(res.data()), pstr, size);
-#endif
+	// wchar_t is UTF-32 here; decode to codepoints (no surrogate pairs) and copy.
+	const std::u32string u32 = FastUnicode::Utf8ToUtf32(std::string_view(pstr, psize));
+	res.assign(u32.begin(), u32.end());
 #endif
 	return res;
 }

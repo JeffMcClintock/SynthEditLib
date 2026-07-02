@@ -24,8 +24,6 @@ gmpi_plugin(
         ${GMPI_UI_SDK}/helpers/ImageCache.cpp
         ${GMPI_UI_SDK}/helpers/ImageMetadata.h
         ${GMPI_UI_SDK}/helpers/ImageMetadata.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../shared/simdutf/simdutf.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/../shared/simdutf/simdutf.cpp
         ${TINYXML2_DIR}/tinyxml2.h
         ${TINYXML2_DIR}/tinyxml2.cpp
 )

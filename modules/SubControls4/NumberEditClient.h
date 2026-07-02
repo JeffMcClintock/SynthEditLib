@@ -1,6 +1,6 @@
 #pragma once
 #include "helpers/Timer.h"
-#include "../shared/simdutf/simdutf.h"
+#include "../shared/unicode_conversion2.h"
 
 struct NumberEditClient
 {
@@ -11,10 +11,7 @@ struct NumberEditClient
 
 std::string toUtf8(const std::u32string& utf32)
 {
-	std::string utf8;
-	utf8.resize(simdutf::utf8_length_from_utf32(utf32.data(), utf32.size()));
-	[[maybe_unused]] const auto r = simdutf::convert_utf32_to_utf8(utf32.data(), utf32.size(), utf8.data());
-	return utf8;
+	return FastUnicode::Utf32ToUtf8(utf32);
 }
 
 class GlyphArrangement
@@ -81,13 +78,8 @@ public:
 
     bool setText(std::string_view newText)
     {
-        std::u32string text;
         // convert string to UTF-32 on the assumption that most glyfs will resolve to one utf32 char (not always true)
-        const size_t expected_utfwords = simdutf::utf32_length_from_utf8(newText.data(), newText.size());
-        text.resize(expected_utfwords);
-        [[maybe_unused]] const auto r = simdutf::convert_utf8_to_utf32(newText.data(), newText.size(), (char32_t*)text.data());
-
-        return setText(text);
+        return setText(FastUnicode::Utf8ToUtf32(newText));
     }
 
     void update(gmpi::drawing::TextFormat& textFormat)
@@ -100,11 +92,7 @@ public:
             gmpi::drawing::Size sizeCumulative{};
             for (auto i = glyphs.size(); i < text_utf32.size(); ++i)
             {
-                const size_t expected_utf8words = simdutf::utf8_length_from_utf32(&text_utf32[i], 1);
-                
-                std::string charUtf8;
-                charUtf8.resize(expected_utf8words);
-                [[maybe_unused]] const auto r = simdutf::convert_utf32_to_utf8(&text_utf32[i], 1, charUtf8.data());
+                std::string charUtf8 = FastUnicode::Utf32ToUtf8(std::u32string_view(&text_utf32[i], 1));
 
                 allChars += charUtf8;
                 auto boundsIndividual = textFormat.getTextExtentU({ charUtf8.data(), charUtf8.size() });
@@ -469,10 +457,7 @@ public:
 
         // convert to glyfs
 		const std::string_view utf8(ptext, psize);
-		const size_t expected_utfwords = simdutf::utf32_length_from_utf8(utf8.data(), utf8.size());
-		std::u32string utf32;
-		utf32.resize(expected_utfwords);
-		[[maybe_unused]] const auto r = simdutf::convert_utf8_to_utf32(utf8.data(), utf8.size(), (char32_t*)utf32.data());
+		const std::u32string utf32 = FastUnicode::Utf8ToUtf32(utf8);
 
         // paste into string
         text = text.substr(0, cursorPos) + utf32 + text.substr(cursorPos);

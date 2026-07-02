@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.30)
 # To build SE Modules, point CMake at 'SE16' folder, not here.
 # for ARM64, use the following commands:
 #  cd build_arm (C:SE/SynthEditLib/build_arm)
-#  cmake ../../SE16 -G "Visual Studio 17 2022" -A ARM64   (or ARM64EC, fails with SIMDUTF8 lib)
+#  cmake ../../SE16 -G "Visual Studio 17 2022" -A ARM64   (ARM64EC now also OK - simdutf removed)
 
 # macOS 13.3 required for std::format (SubControls4)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS deployment version")
@@ -65,8 +65,6 @@ ${se_shared_folder}/FileWatcher.h
 ${se_shared_folder}/FileWatcher.cpp
 ${se_shared_folder}/PatchCables.h
 ${se_shared_folder}/PatchCables.cpp
-${se_shared_folder}/simdutf/simdutf.h
-${se_shared_folder}/simdutf/simdutf.cpp
 ${se_shared_folder}/wav_file.h
 ${se_shared_folder}/wav_file.cpp
 ${se_shared_folder}/xp_dynamic_linking.h
@@ -797,12 +795,11 @@ target_compile_definitions (${PROJECT_NAME} PRIVATE
     COMPILE_HOST_SUPPORT
 )
 
-# USE_SIMD_UTF_CONVERSION intentionally disabled: simdutf's runtime CPU dispatch
-# produced intermittent empty UTF-8<->UTF-16 conversions on some CI runners, blanking
-# unicode pin defaults (TestWavePlayer.WavePlayer_UNICODE flake). On Windows this
-# reverts to the deterministic MultiByteToWideChar(CP_UTF8) path. simdutf stays linked
-# (used only by the startup kernel-name diagnostic in conversion.cpp for now).
-# NOTE: the non-Windows fallback uses locale-dependent wcstombs/mbstowcs - harden if Mac flakes.
+# simdutf was removed entirely: its runtime CPU dispatch produced intermittent empty
+# UTF-8<->UTF-16 conversions on some CI kernels (icelake), blanking unicode pin defaults
+# (TestWavePlayer.WavePlayer_UNICODE flake). Unicode conversion now uses the deterministic
+# MultiByteToWideChar(CP_UTF8) path on Windows and hand-rolled scalar FastUnicode
+# (modules/shared/unicode_conversion2.h) on every other platform. No SIMD, no dispatch.
 target_compile_definitions(
   ${PROJECT_NAME} PUBLIC
   SE_GRAPHICS_SUPPORT=$<IF:$<BOOL:${SE_GRAPHICS_SUPPORT}>,1,0>
