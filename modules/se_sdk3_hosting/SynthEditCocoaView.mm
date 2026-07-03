@@ -25,6 +25,10 @@
 #include "backends/MacPopupMenu.h"
 #include "backends/MacFileDialog.h"
 #include "backends/MacStockDialog.h"
+// No GMPI_MAC_COLORDIALOG_IMPLEMENTATION here: this .mm links alongside gmpi_ui's DrawingFrameMac.o
+// (same libSynthEditLib.a), which emits the colour-picker ObjC @implementation — exactly as this
+// host already relies on it for GMPI_MAC_PopupMenu / GMPI_MAC_KeyListener.
+#include "backends/MacColorDialog.h"
 
 // In VST3 wrapper this object is a child window of SynthEditPluginCocoaView,
 // It serves to provide a C++ to Objective-C adaptor to the gmpi Drawing framework.
@@ -397,9 +401,12 @@ public:
         *returnDialog = static_cast<gmpi::api::IStockDialog*>(dlg);
         return gmpi::ReturnCode::Ok;
     }
-    // TODO: wire to GMPI_MAC_ColorDialog (NSColorPanel) so this Cocoa host gets the native
-    // colour picker. NoSupport for now — the swatch click is a graceful no-op without it.
-    gmpi::ReturnCode createColorDialog(gmpi::drawing::Color, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::NoSupport; }
+    gmpi::ReturnCode createColorDialog(gmpi::drawing::Color initialColor, gmpi::api::IUnknown** returnDialog) override
+    {
+        auto dlg = new GMPI_MAC_ColorDialog(view, initialColor);
+        *returnDialog = static_cast<gmpi::api::IColorDialog*>(dlg);
+        return gmpi::ReturnCode::Ok;
+    }
 
     // IMpGraphicsHost
     void MP_STDCALL invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override
