@@ -2672,6 +2672,8 @@ auto r19 = gmpi::Register<Render2Bitmap>::withXml(R"XML(
 struct RenderBitmap final : public PluginEditor
 {
     ObjectIn<drawing::api::IBitmap> pinInput;
+    In<float> pinOffsetX; // DIPs; shifts the bitmap from centre (e.g. a neumorphic drop-shadow offset)
+    In<float> pinOffsetY;
 
     ReturnCode process() override
     {
@@ -2702,7 +2704,9 @@ struct RenderBitmap final : public PluginEditor
 
         TempTransform tt(g, makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f));
 
-        const Rect dest{ -halfW, -halfH, halfW, halfH };
+        const float ox = pinOffsetX.value;
+        const float oy = pinOffsetY.value;
+        const Rect dest{ -halfW + ox, -halfH + oy, halfW + ox, halfH + oy };
         const Rect src{ 0, 0, static_cast<float>(size.width), static_cast<float>(size.height) };
         g.drawBitmap(bitmap, dest, src);
 
@@ -2719,6 +2723,8 @@ auto r20 = gmpi::Register<RenderBitmap>::withXml(R"XML(
   <Plugin id="SE: RenderBitmap" name="RenderBitmap" category="GMPI/SDK Examples" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Bitmap" datatype="object:bitmap"/>
+      <Pin name="Offset X" datatype="float"/>
+      <Pin name="Offset Y" datatype="float"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -2736,6 +2742,7 @@ struct BlurBitmap final : public GraphicsProcessor
     ObjectIn<IStyle>          pinStyle;
     In<float>                pinBlurRadius;   // in DIPs
     In<bool>                 pinDownsample;
+    In<bool>                 pinFill;         // blur the FILLED shape (drop-shadow) vs the stroke (glow)
     ObjectOut<drawing::api::IBitmap> pinOutput;
 
     Bitmap blurredBitmap;
@@ -2779,7 +2786,8 @@ struct BlurBitmap final : public GraphicsProcessor
         // Symmetric extent (DIPs) about the origin: geometry is authored centred on the origin,
         // so the bitmap centre == the geometry origin and a centred draw aligns the layers.
         auto strokeStyle = factory.createStrokeStyle(CapStyle::Round);
-        const Rect wb = geometry.getWidenedBounds(strokeW, strokeStyle);
+        // Fill mode measures the plain shape (stroke width 0); glow mode measures the widened stroke.
+        const Rect wb = geometry.getWidenedBounds(pinFill.value ? 0.0f : strokeW, strokeStyle);
         if (!std::isfinite(wb.left) || !std::isfinite(wb.right) || !std::isfinite(wb.top) || !std::isfinite(wb.bottom))
             return ReturnCode::Ok; // empty/degenerate geometry
         float halfDip = 0.0f;
@@ -2808,7 +2816,10 @@ struct BlurBitmap final : public GraphicsProcessor
             rt.beginDraw();
             rt.setTransform(makeTranslation(halfDip, halfDip) * makeScale(loScale));
             auto brush = rt.createSolidColorBrush(Colors::White);
-            rt.drawGeometry(geometry, brush, strokeW, strokeStyle);
+            if (pinFill.value)
+                rt.fillGeometry(geometry, brush);   // solid drop-shadow of the filled shape
+            else
+                rt.drawGeometry(geometry, brush, strokeW, strokeStyle); // glow around the outline
             rt.endDraw();
 
             auto maskBmp = rt.getBitmap();
@@ -2874,6 +2885,7 @@ auto r21 = gmpi::Register<BlurBitmap>::withXml(R"XML(
       <Pin name="Style" datatype="object:style"/>
       <Pin name="Blur Radius" datatype="float" default="8"/>
       <Pin name="Downsample" datatype="bool" default="1"/>
+      <Pin name="Fill" datatype="bool"/>
       <Pin name="Blurred" datatype="object:bitmap" direction="out"/>
     </GUI>
   </Plugin>

@@ -182,7 +182,7 @@
             <line type="Line" handle="794021290" lineType="1" fMod="220375261" tMod="1935879986" tPlg="3"/>
             <line type="Line" handle="2061041581" lineType="1" fMod="1935879986" tMod="1259388648" fPlg="4" tPlg="1"/>
             <line type="Line" handle="2063241882" lineType="1" fMod="1259388648" tMod="982348332" fPlg="4" tPlg="1"/>
-            <line type="Line" handle="899789103" lineType="1" fMod="982348332" tMod="2042175546" fPlg="4"/>
+            <line type="Line" handle="899789103" lineType="1" fMod="982348332" tMod="2042175546" fPlg="5"/>
             <line type="Line" handle="863030338" lineType="1" fMod="904414819" tMod="552590888" fPlg="6"/>
             <line type="Line" handle="302177445" lineType="1" fMod="552590888" tMod="349924565" fPlg="5" tPlg="1"/>
             <line type="Line" handle="698517171" lineType="1" fMod="904414819" tMod="349924565" fPlg="3"/>
@@ -253,6 +253,7 @@
                 <Pin name="Style" datatype="object:style"/>
                 <Pin name="Blur Radius" datatype="float" default="8"/>
                 <Pin name="Downsample" datatype="bool" default="1"/>
+                <Pin name="Fill" datatype="bool"/>
                 <Pin name="Blurred" datatype="object:bitmap" direction="out"/>
             </GUI>
         </Plugin>
@@ -326,6 +327,8 @@
         <Plugin id="SE: RenderBitmap" name="RenderBitmap" flags="384" category="GMPI/SDK Examples">
             <GUI>
                 <Pin name="Bitmap" datatype="object:bitmap"/>
+                <Pin name="Offset X" datatype="float"/>
+                <Pin name="Offset Y" datatype="float"/>
             </GUI>
         </Plugin>
         <Plugin id="SE: RenderGeometry" name="Render" flags="384" category="GMPI/SDK Examples">
