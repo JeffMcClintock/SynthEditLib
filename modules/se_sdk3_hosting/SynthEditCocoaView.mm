@@ -397,6 +397,9 @@ public:
         *returnDialog = static_cast<gmpi::api::IStockDialog*>(dlg);
         return gmpi::ReturnCode::Ok;
     }
+    // TODO: wire to GMPI_MAC_ColorDialog (NSColorPanel) so this Cocoa host gets the native
+    // colour picker. NoSupport for now — the swatch click is a graceful no-op without it.
+    gmpi::ReturnCode createColorDialog(gmpi::drawing::Color, gmpi::api::IUnknown** returnDialog) override { return gmpi::ReturnCode::NoSupport; }
 
     // IMpGraphicsHost
     void MP_STDCALL invalidateRect(const GmpiDrawing_API::MP1_RECT* invalidRect) override
