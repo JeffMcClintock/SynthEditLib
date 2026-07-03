@@ -627,7 +627,13 @@ bool AreCompatible( EPlugDataType d1, EPlugDataType d2 )
 	if ((d1 == DT_FSAMPLE || d1 == DT_INT) && (d2 == DT_FSAMPLE || d2 == DT_INT))
 		return true;
 
-	if ((d1 == DT_BLOB || d1 == DT_OBJECT) && (d2 == DT_BLOB || d2 == DT_OBJECT))
+	// A raw BLOB connects to a typed 'struct' pin (untyped wildcard; the subtype is checked at
+	// connect time) and to a 'blob2'/object pin. BLOB<->object aren't the same type, but the DSP
+	// graph auto-inserts a BlobToBlob2 / Blob2ToBlob converter (see ug_base::connect), so from the
+	// user's perspective they're connectable. (BLOB<->BLOB, struct<->struct and object<->object are
+	// handled by the d1==d2 test above; struct/object subtype matching is enforced at connect time.)
+	if ((d1 == DT_BLOB && (d2 == DT_STRUCT || d2 == DT_OBJECT))
+		|| ((d1 == DT_STRUCT || d1 == DT_OBJECT) && d2 == DT_BLOB))
 		return true;
 
 	/* no
@@ -996,7 +1002,7 @@ static const TextToIntStruct2 datatypeInfo[] =
 	("enum")			,DT_ENUM,
 	("double")			,DT_DOUBLE,
 	("int64")			,DT_INT64,
-	("struct")			,DT_CLASS,
+	("struct")			,DT_STRUCT,
 };
 
 bool XmlStringToDatatype( string s, int& returnValue )
@@ -1014,7 +1020,7 @@ bool XmlStringToDatatype( string s, int& returnValue )
 
 	if (s.find("struct:") == 0)
 	{
-		returnValue = DT_CLASS;
+		returnValue = DT_STRUCT;
 		return true;
 	}
 

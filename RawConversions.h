@@ -150,7 +150,7 @@ template<>
 std::string RawToUtf8<std::wstring>(const void* data, int size);
 
 // className is the struct/object subtype (e.g. "color" for datatype="struct:color"), used to
-// convert DT_CLASS defaults; empty for all non-class datatypes and callers that don't have it.
+// convert DT_STRUCT defaults; empty for all non-struct datatypes and callers that don't have it.
 std::string ParseToRaw( int datatype, const std::wstring& s, std::string_view className = {} );
 std::string ParseToRaw( int datatype, const std::string& s, std::string_view className = {} );
 
@@ -179,7 +179,7 @@ inline int getDataTypeSize(int datatype)
 {
 	switch (datatype)
 	{
-	case DT_CLASS:
+	case DT_STRUCT:
 	case DT_BLOB:
 	case DT_OBJECT:
 	case DT_TEXT:

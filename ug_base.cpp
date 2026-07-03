@@ -1751,7 +1751,7 @@ void ug_base::connect( UPlug* from_plug, UPlug* to_plug )
 
 	if( to_plug->DataType != from_plug->DataType )
 	{
-		const wchar_t* datatypes[] = { L"Enum", L"Text", L"Midi", L"Double", L"Bool", L"Volts", L"Float", L"", L"Int", L"Int64", L"Blob", L"class-unused", L"Text8", L"Blob2" /* (Object) */};
+		const wchar_t* datatypes[] = { L"Enum", L"Text", L"Midi", L"Double", L"Bool", L"Volts", L"Float", L"", L"Int", L"Int64", L"Blob", L"struct-unused", L"Text8", L"Blob2" /* (Object) */};
 
 		wchar_t temp[30];
 		swprintf(temp, sizeof(temp)/sizeof(temp[0]), L"SE %lsTo%ls", datatypes[from_plug->DataType], datatypes[to_plug->DataType]);

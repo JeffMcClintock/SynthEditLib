@@ -254,7 +254,7 @@ std::string ParseToRaw( int datatype, const std::wstring& s, std::string_view cl
 		result = Base64::decode(WStringToUtf8(s));
 		break;
 
-	case DT_CLASS:
+	case DT_STRUCT:
 		// struct:color -> raw Color bytes; other struct/class pins stay empty (keep existing).
 		if (className == "color")
 			result = colorHexToRaw(WStringToUtf8(s));
@@ -322,7 +322,7 @@ std::string ParseToRaw( int datatype, const std::string& s, std::string_view cla
 		result = Base64::decode(s);
 		break;
 
-	case DT_CLASS:
+	case DT_STRUCT:
 		// struct:color -> raw Color bytes; other struct/class pins stay empty (keep existing).
 		if (className == "color")
 			result = colorHexToRaw(s);

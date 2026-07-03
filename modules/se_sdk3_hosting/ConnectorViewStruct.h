@@ -34,7 +34,7 @@ namespace SE2
 				0xbc5c00, // [ 8] DT_INT         orange
 				0xb45e00, // [ 9] DT_INT64       orange
 				0xbc00bc, // [10] DT_BLOB        purple
-				0xbc00bc, // [11] DT_CLASS       purple (struct)
+				0xbc00bc, // [11] DT_STRUCT      purple (struct)
 				0xbc0000, // [12] DT_STRING_UTF8 red
 				0xbc00bc, // [13] DT_OBJECT      purple
 			};

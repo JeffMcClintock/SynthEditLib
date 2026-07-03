@@ -450,7 +450,7 @@ void Module_Info::RegisterParameters(tinyxml2::XMLElement* parameters) // XML da
 
 		// Datatype.
 		int temp;
-		if (XmlStringToDatatype(pin_datatype, temp) && temp != DT_CLASS && temp != DT_OBJECT)
+		if (XmlStringToDatatype(pin_datatype, temp) && temp != DT_STRUCT && temp != DT_OBJECT)
 		{
 			pind->datatype = (EPlugDataType)temp;
 
@@ -732,7 +732,7 @@ void Module_Info::RegisterPin(TiXmlElement* pin, module_info_pins_t* pinlist, in
 						pind.datatype = DT_FSAMPLE;
 					}
 				}
-				else if (pind.datatype == DT_CLASS || pind.datatype == DT_OBJECT) // e.g. "struct:geometry" or "object:MyType"
+				else if (pind.datatype == DT_STRUCT || pind.datatype == DT_OBJECT) // e.g. "struct:geometry" or "object:MyType"
 				{
 					if (pin_datatype.size() > 7)
 						pind.classname = pin_datatype.substr(7);
@@ -1111,7 +1111,7 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 						addPinXmlDiagnostic(PINXML_ERROR, pinLine, oss.str());
 					}
 
-					if (pind.datatype == DT_CLASS || pind.datatype == DT_OBJECT) // e.g. "struct:geometry" or "object:MyType"
+					if (pind.datatype == DT_STRUCT || pind.datatype == DT_OBJECT) // e.g. "struct:geometry" or "object:MyType"
 					{
 						if (pin_datatype.size() > 7)
 							pind.classname = pin_datatype.substr(7);
