@@ -2731,7 +2731,13 @@ auto r20 = gmpi::Register<RenderBitmap>::withXml(R"XML(
 )XML");
 }
 
-// Soft glow of a path. The OUTPUT bitmap is full physical resolution (logical * rasterization
+// Soft shadow/glow of a path. Mode picks where the softness falls (glow vs shadow is then just the
+// tint - light reads as a glow, dark as a shadow):
+//   Glow         - blur the stroked outline (softness straddles the edge)
+//   Drop Shadow  - blur the filled shape, unclipped (interior + halo; sits behind an opaque object)
+//   Outer Glow   - blur the filled shape, clip to OUTSIDE the edge (halo only, hollow interior)
+//   Inner Shadow - blur the shape's INVERSE, clip to INSIDE the edge (soft rim, recessed look)
+// The OUTPUT bitmap is full physical resolution (logical * rasterization
 // scale) and sized symmetrically about the origin, so a centred RenderBitmap aligns it with the
 // (centred) sharp geometry. The expensive blur runs at a reduced (1/ds) resolution and is then
 // upsampled into the full-res output; an integer ds keeps the upscale clean. Downsample = off
@@ -2742,7 +2748,7 @@ struct BlurBitmap final : public GraphicsProcessor
     ObjectIn<IStyle>          pinStyle;
     In<float>                pinBlurRadius;   // in DIPs
     In<bool>                 pinDownsample;
-    In<bool>                 pinFill;         // blur the FILLED shape (drop-shadow) vs the stroke (glow)
+    In<int32_t>              pinMode;         // 0 Glow, 1 Drop Shadow, 2 Outer Glow, 3 Inner Shadow
     ObjectOut<drawing::api::IBitmap> pinOutput;
 
     Bitmap blurredBitmap;
@@ -2785,9 +2791,16 @@ struct BlurBitmap final : public GraphicsProcessor
 
         // Symmetric extent (DIPs) about the origin: geometry is authored centred on the origin,
         // so the bitmap centre == the geometry origin and a centred draw aligns the layers.
+        // 0 Glow (blur the stroke), 1 Drop Shadow (fill, unclipped), 2 Outer Glow (fill, clip to
+        // outside the edge), 3 Inner Shadow (blur the INVERSE, clip to inside the edge).
+        const bool useFill     = pinMode.value != 0; // everything but Glow fills the shape
+        const bool innerShadow = pinMode.value == 3; // blur the inverse of the shape
+        const bool clipInside  = pinMode.value == 3; // keep only the soft rim inside the edge
+        const bool clipOutside = pinMode.value == 2; // keep only the halo outside the edge
+
         auto strokeStyle = factory.createStrokeStyle(CapStyle::Round);
-        // Fill mode measures the plain shape (stroke width 0); glow mode measures the widened stroke.
-        const Rect wb = geometry.getWidenedBounds(pinFill.value ? 0.0f : strokeW, strokeStyle);
+        // Fill modes measure the plain shape (stroke width 0); glow measures the widened stroke.
+        const Rect wb = geometry.getWidenedBounds(useFill ? 0.0f : strokeW, strokeStyle);
         if (!std::isfinite(wb.left) || !std::isfinite(wb.right) || !std::isfinite(wb.top) || !std::isfinite(wb.bottom))
             return ReturnCode::Ok; // empty/degenerate geometry
         float halfDip = 0.0f;
@@ -2816,8 +2829,8 @@ struct BlurBitmap final : public GraphicsProcessor
             rt.beginDraw();
             rt.setTransform(makeTranslation(halfDip, halfDip) * makeScale(loScale));
             auto brush = rt.createSolidColorBrush(Colors::White);
-            if (pinFill.value)
-                rt.fillGeometry(geometry, brush);   // solid drop-shadow of the filled shape
+            if (useFill)
+                rt.fillGeometry(geometry, brush);   // solid shape (drop shadow / outer glow / inner shadow)
             else
                 rt.drawGeometry(geometry, brush, strokeW, strokeStyle); // glow around the outline
             rt.endDraw();
@@ -2830,9 +2843,29 @@ struct BlurBitmap final : public GraphicsProcessor
                 std::memcpy(&mask[static_cast<size_t>(y) * loDim], srcp + static_cast<size_t>(y) * stride, loDim);
         }
 
+        // Inner shadow: blur the INVERSE of the shape (keep the sharp shape to clip against after).
+        // The blurred inverse bleeds inward past the edge; clipping to the shape leaves a soft rim
+        // hugging the inside of the outline - a recessed / pressed look.
+        std::vector<uint8_t> shape;
+        if (clipInside || clipOutside)
+            shape = mask;                                  // sharp shape coverage, kept for the clip
+        if (innerShadow)
+            for (auto& m : mask) m = static_cast<uint8_t>(255 - m); // blur the inverse
+
         // blur the mask (radius in blur-buffer pixels => blurDip DIPs once upsampled).
         const unsigned blurPx = static_cast<unsigned>((std::max)(1.0f, blurDip * loScale + 0.5f));
         ginSingleChannel(mask.data(), loDim, loDim, blurPx, loDim);
+
+        if (clipInside) // Inner Shadow: keep only the soft rim inside the shape
+        {
+            for (size_t i = 0; i < mask.size(); ++i)
+                mask[i] = static_cast<uint8_t>((static_cast<int>(mask[i]) * shape[i]) / 255);
+        }
+        else if (clipOutside) // Outer Glow: erase the interior, keep the halo outside the edge
+        {
+            for (size_t i = 0; i < mask.size(); ++i)
+                mask[i] = static_cast<uint8_t>((static_cast<int>(mask[i]) * (255 - shape[i])) / 255);
+        }
 
         // tint + integer-upsample the blurred mask into the full-res output bitmap.
         blurredBitmap = factory.createImage(outDim, outDim,
@@ -2885,7 +2918,7 @@ auto r21 = gmpi::Register<BlurBitmap>::withXml(R"XML(
       <Pin name="Style" datatype="object:style"/>
       <Pin name="Blur Radius" datatype="float" default="8"/>
       <Pin name="Downsample" datatype="bool" default="1"/>
-      <Pin name="Fill" datatype="bool"/>
+      <Pin name="Mode" datatype="enum" default="0" metadata="Glow,Drop Shadow,Outer Glow,Inner Shadow"/>
       <Pin name="Blurred" datatype="object:bitmap" direction="out"/>
     </GUI>
   </Plugin>

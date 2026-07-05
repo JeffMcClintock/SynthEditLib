@@ -253,7 +253,7 @@
                 <Pin name="Style" datatype="object:style"/>
                 <Pin name="Blur Radius" datatype="float" default="8"/>
                 <Pin name="Downsample" datatype="bool" default="1"/>
-                <Pin name="Fill" datatype="bool"/>
+                <Pin name="Mode" datatype="enum" default="0" metadata="Glow,Drop Shadow,Outer Glow,Inner Shadow"/>
                 <Pin name="Blurred" datatype="object:bitmap" direction="out"/>
             </GUI>
         </Plugin>
