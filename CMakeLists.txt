@@ -170,6 +170,7 @@ set(srcs_dspfilters ${srcs_dspfilters}
 modules/Filters/ButterworthLp.h
 modules/Filters/ButterworthLp.cpp
 modules/Filters/IIR_Filters2.cpp      
+modules/Filters/Lookahead.cpp      
 )
 endif()
 

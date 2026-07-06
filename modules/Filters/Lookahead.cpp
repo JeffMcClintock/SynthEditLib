@@ -27,6 +27,8 @@
 
 using namespace gmpi;
 
+SE_DECLARE_INIT_STATIC_FILE(Lookahead);
+
 class Lookahead final : public MpBase2
 {
 	FloatInPin pinLatencyMs;

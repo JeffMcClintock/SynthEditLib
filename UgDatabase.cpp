@@ -1075,6 +1075,7 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 	INIT_STATIC_FILE(ImpulseResponse);
 	INIT_STATIC_FILE(ImpulseResponse2);
 	INIT_STATIC_FILE(Inverter);
+	INIT_STATIC_FILE(Lookahead);
 	INIT_STATIC_FILE(MIDItoGate);
 	INIT_STATIC_FILE(NoteExpression);
 	INIT_STATIC_FILE(OscillatorNaive);
