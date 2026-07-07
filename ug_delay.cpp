@@ -208,6 +208,8 @@ void ug_delay::CreateBuffer()
 	if( buffer_size > getSampleRate() * 10 )	// limit to 10 s sample
 		buffer_size = (int) getSampleRate() * 10;
 
+//	_RPTN(0, "ug_delay[%0x]::CreateBuffer()  buffer_size = %d, modulation=%f\n", (int) this, buffer_size, *modulation_ptr);
+
 	/*	buffer = new float[buffer_size];
 	memset(buffer, 0, buffer_size * sizeof(float) ); // clear buffer
 */

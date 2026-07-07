@@ -2690,7 +2690,7 @@ int ug_base::calcDelayCompensation()
 							//_RPT1(_CRT_WARN, " Inserted %d compensation from ", compensationSamples);
 							//fromPlug->UG->DebugIdentify();
 							//_RPT0(_CRT_WARN, "\n");
-							log << " Inserted " << compensationSamples << " compensation from " << WStringToUtf8(fromPlug->UG->DebugModuleName()) << "\n";
+							log << " Inserted " << compensationSamples << " compensation from [" << fromPlug->UG->Handle() << "] " << WStringToUtf8(fromPlug->UG->DebugModuleName()) << " to [" << Handle() << "] " << WStringToUtf8(DebugModuleName()) << "\n";
 						#endif
 
 						// now insert an latency adjustor
