@@ -2762,6 +2762,9 @@ int ug_base::calcDelayCompensation()
 
 		// Constraint
 		cumulativeLatencySamples = (std::min)(cumulativeLatencySamples, AudioMaster()->latencyCompensationMax() );
+
+//		DebugIdentify();
+//		_RPTN(_CRT_WARN, ". Latency %d\n", latencySamples);
 	}
 
 	#if defined( DEBUG_LATENCY )

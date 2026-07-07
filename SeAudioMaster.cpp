@@ -1443,21 +1443,19 @@ void SeAudioMaster::SetModuleLatency(int32_t handle, int32_t latency)
 	if (it == moduleLatencies.end())
 	{
 		if (latency == 0) // avoid too many zero entries, they don't achieve anything.
-		{
 			return;
-		}
 
 		moduleLatencies.insert({ handle, latency });
 	}
 	else
 	{
 		if ((*it).second == latency)
-		{
 			return;
-		}
 
 		(*it).second = latency;
 	}
+
+//	_RPTN(0, "SetModuleLatency: %d %d\n", handle, latency);
 
 	interrupt_module_latency_change = true;
 	TriggerInterrupt();
