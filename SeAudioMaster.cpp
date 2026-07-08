@@ -239,7 +239,7 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 		"C:\Users\jef\OneDrive\Documents\cancellation\SpacePro\snapshot.raw"
 	*/
 	{
-		const auto cancellationSettingFile = BundleInfo::instance()->getPluginPath().replace_extension("xml");
+		const auto cancellationSettingFile = BundleInfo::instance()->getPluginPath().replace_extension("xml"); // aka cancellation_config.xml
 
 		if (se_fs::exists(cancellationSettingFile))
 		{
