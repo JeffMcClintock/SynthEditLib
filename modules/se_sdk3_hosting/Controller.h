@@ -382,7 +382,7 @@ public:
 	void ResetProcessor2();
 	virtual void OnStartPresetChange() {}
 	virtual void OnEndPresetChange();
-	virtual void OnLatencyChanged() {}
+	virtual void notifyDawLatencyChanged() {} // called on the Controller (foreground) thread to notify the DAW of a latency change.
 	virtual MpParameter_native* makeNativeParameter(int ParameterTag, bool isInverted = false) = 0;
 };
 

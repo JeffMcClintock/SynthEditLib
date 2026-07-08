@@ -1587,9 +1587,9 @@ bool MpController::onQueMessageReady(int recievingHandle, int recievingMessageId
 		}
 		break;
 
-		case id_to_long2("ltnc"): // latency changed. VST3 or AU.
+		case id_to_long2("ltnc"): // latency changed. VST3 or AU. (posted from the real-time thread, handled here on the foreground thread)
 		{
-			OnLatencyChanged();
+			notifyDawLatencyChanged();
 		}
 		break;
 

@@ -134,19 +134,9 @@ void SynthRuntime::prepareToPlay(
 			assert(reinitializeFlag == false); // loading prior preset should not have changed any persistant host-controls.
 		}
 #endif
-		generator->Open();
+		OpenGenerator();
 
 		generator->synth_thread_running = true;
-
-		const auto newLatencySamples = generator->getLatencySamples();
-		if(currentPluginLatency != newLatencySamples)
-		{
-			currentPluginLatency = newLatencySamples;
-
-			my_msg_que_output_stream strm( MessageQueToGui(), (int)UniqueSnowflake::APPLICATION, "ltnc");
-			strm << (int)0; // message length.
-			strm.Send();
-		}
 	}
 
 	// this can change regardless of if we reinit or not.
@@ -169,6 +159,16 @@ SynthRuntime::~SynthRuntime()
     }
 }
 
+void SynthRuntime::checkLatency()
+{
+	const auto oldLatency = currentPluginLatency;
+	currentPluginLatency = generator->getLatencySamples();
+
+	// notify DAW of new latency.
+	if(oldLatency != currentPluginLatency)
+		shell_->latencyChanged();
+}
+
 void SynthRuntime::OpenGenerator()
 {
 	generator->Open();
@@ -188,8 +188,9 @@ void SynthRuntime::OpenGenerator()
 	}
 	*/
 
-//	const bool runsRealtime = io_manager->AudioDriver()->RunsRealTime();
 	generator->SetHostControl(HC_PROCESS_RENDERMODE, runsRealtimeCurrent ? 0 : 2); // from Waves. Mode 0 = "Live", 2 = "Preview" (Offline)
+
+	checkLatency();
 }
 
 void rebuildDsp(
@@ -352,19 +353,14 @@ void SynthRuntime::process(
 			}
 			restartDontRestorePresets = false; // back to normal behaviour.
 
-//				io_manager->OnRebuildDsp();
-
 			_RPT0(0, "eRuntimeState launching rebuild thread\n");
 			runtimeState = eRuntimeState::idling;
 			_RPT0(0, "eRuntimeState::idling\n");
 
-//				const auto sampleRate = audio_driver->getSampleRate();
-
 			generator = std::make_unique<SeAudioMaster>(static_cast<float>(sampleRate), this, BundleInfo::instance()->getPluginInfo().latencyConstraint);
-			//generator->setBufferSize(audio_driver->getBufferSize());
 			generator->setBlockSize(generator->CalcBlockSize(maxBlockSize));
 
-			if (runsRealtimeCurrent) //io_manager->AudioDriver()->RunsRealTime())
+			if (runsRealtimeCurrent)
 			{
 				dspBuilderThread = std::thread(
 					[this]
@@ -374,8 +370,6 @@ void SynthRuntime::process(
 							, &currentDspXml
 							, pendingPresets
 							, runtimeState
-//								, feedbackTrace
-//								, extraPinDefaultChanges
 						);
 					}
 				);
@@ -388,9 +382,9 @@ void SynthRuntime::process(
 					, &currentDspXml
 					, pendingPresets
 					, runtimeState
-//						, feedbackTrace
-//						, extraPinDefaultChanges
 				);
+
+				// runtimeState is now eRuntimeState::newDspReady
 			}
 		}
 		else

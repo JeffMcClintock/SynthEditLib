@@ -169,8 +169,6 @@ public:
 
 	void initGuiParameters();
 
-	void OnLatencyChanged() override;
-
 	// IProcessorMessageQues
 	gmpi::hosting::IWriteableQue* MessageQueToGui()  override
 	{

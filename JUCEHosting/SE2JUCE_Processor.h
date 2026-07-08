@@ -59,7 +59,7 @@ public:
     {
         dawStateManager.enableIgnoreProgramChange();
     }
-    void OnLatencyChanged();
+    void latencyChanged() override; // IShellServices, from Processor thread
     void RestartWithPreset(DawPreset*);
     void dumpPreset(int tag);
 

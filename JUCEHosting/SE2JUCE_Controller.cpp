@@ -349,11 +349,6 @@ void SeJuceController::initGuiParameters()
 	}
 }
 
-void SeJuceController::OnLatencyChanged()
-{
-	processor->OnLatencyChanged();
-}
-
 void SeJuceController::timerCallback()
 {
 	if (const auto pdirty = juceParameters_dirty.exchange(false, std::memory_order_relaxed); pdirty)
