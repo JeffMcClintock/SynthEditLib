@@ -328,7 +328,7 @@ void SE2JUCE_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
     //_RPT0(0, "\nSE2JUCE_Processor::prepareToPlay()\n");
 #endif
 
-    latencyChanged();
+    latencyChanged(processor.getLatencySamples());
 
 	// Some DAWs can set the state before prepareToPlay is called. (and therefore before the generator is available to accept the preset).
     // Bring processor up-to-date with state.
@@ -339,9 +339,9 @@ void SE2JUCE_Processor::prepareToPlay (double sampleRate, int samplesPerBlock)
     }
 }
 
-void SE2JUCE_Processor::latencyChanged()
+void SE2JUCE_Processor::latencyChanged(int newLatency)
 {
-    setLatencySamples(processor.getLatencySamples());
+    setLatencySamples(newLatency);
 }
 
 void SE2JUCE_Processor::RestartWithPreset(DawPreset* preset)

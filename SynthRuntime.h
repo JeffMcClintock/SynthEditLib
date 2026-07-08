@@ -25,7 +25,7 @@ public:
     virtual void flushPendingParameterUpdates() = 0;
 	virtual void onSetParameter(int32_t handle, int32_t field, RawView rawValue, int voiceId) = 0;
 	virtual void EnableIgnoreProgramChange() = 0;
-	virtual void latencyChanged() = 0; // called on the Processor (real-time) thread when async restart changes latency. Implementations must defer to the foreground thread before notifying the DAW.
+	virtual void latencyChanged(int newLatency) = 0; // called on the Processor (real-time) thread when async restart changes latency. Implementations must defer to the foreground thread before notifying the DAW.
 };
 
 class SynthRuntime : public SeShellDsp

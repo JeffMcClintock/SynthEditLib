@@ -166,7 +166,7 @@ void SynthRuntime::checkLatency()
 
 	// notify DAW of new latency.
 	if(oldLatency != currentPluginLatency)
-		shell_->latencyChanged();
+		shell_->latencyChanged(currentPluginLatency);
 }
 
 void SynthRuntime::OpenGenerator()
