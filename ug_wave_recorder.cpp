@@ -194,14 +194,15 @@ void ug_wave_recorder::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug, state
 			wo_pointer = buffer;
 
 			// allow render to 'null device' for benchmarking purposes
+			// (stderr, not stdout: SynthEditCL's JSONL protocol owns stdout)
 			if (FileName.empty() || open_file() != 0)
 			{
-				std::wcout << L"Wave Recorder: failed to open: " << l_filename << std::endl;
+				std::wcerr << L"Wave Recorder: failed to open: " << l_filename << std::endl;
 				SET_PROCESS_FUNC(&ug_base::process_nothing);
 			}
 			else
 			{
-				std::wcout << L"Wave Recorder: Writing to file: " << l_filename << std::endl;
+				std::wcerr << L"Wave Recorder: Writing to file: " << l_filename << std::endl;
 				RUN_AT(SampleClock() + (8 * BUF_SIZE) / (bits_per_sample * n_channels), &ug_wave_recorder::flush_buffer);
 			}
 		}
@@ -221,6 +222,9 @@ int ug_wave_recorder::open_file()
         if(!err.empty()) {
             full += L" (" + err + L")";
         }
+        // message() only reaches a live GUI; under SynthEditCL the queue is
+        // never serviced, so also report on stderr (with the errno detail).
+        std::wcerr << L"Wave Recorder: " << full << std::endl;
         message(full);
 
 		if (AudioMaster2())
