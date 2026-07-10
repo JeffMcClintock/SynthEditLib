@@ -106,6 +106,7 @@ public:
 
 	virtual void Clear()
 	{
+		// Causes double restarts on 'Play'. But in *editor* we shouldn't cache latencies indefinatly in case the user changes the signal path or loads a different document.
 		moduleLatencies.clear();
 	}
 	

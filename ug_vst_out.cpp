@@ -87,6 +87,9 @@ uint64_t ug_vst_out::getSilenceFlags(int output, int count)
 
 void ug_vst_out::setIoBuffers(float* const* p_outputs, int numChannels)
 {
+	assert(GetFlag(UGF_OPEN));
+	assert(m_outputs);
+
 	dawChannels_ = numChannels;
 
     const int myChannelCount = static_cast<int>(plugs.size()) - PIN_AUDIOOUT0;
