@@ -417,6 +417,138 @@ void ug_feedback_delay_out::PPPropogateVoiceNumUp(int n)
 }
 
 ///////////////////////////////////////////////////////////
+// Lookahead2 : old-style port of the new-SDK "SE Lookahead" module.
+namespace
+{
+REGISTER_MODULE_1(L"Lookahead2", L"Lookahead2",
+	L"Special", ug_lookahead2,
+	CF_STRUCTURE_VIEW,
+	L"Delays reporting of the signal to the host to provide look-ahead. Passes the signal through unchanged while informing the host of the added latency.");
+}
+
+// Fill an array of InterfaceObjects with plugs and parameters.
+void ug_lookahead2::ListInterface2(std::vector<class InterfaceObject*>& PList)
+{
+	// IO Var, Direction, Datatype, Default, Range, defid, Help
+	// (order must match PN_MS / PN_IN / PN_OUT).
+	LIST_VAR3(L"ms", latencyMs, DR_IN, DT_FLOAT, L"1", L"", 0, L"Look-ahead time in milliseconds.");
+	LIST_PIN2(L"Signal In", input1_ptr, DR_IN, L"0", L"", IO_LINEAR_INPUT, L"");
+	LIST_PIN2(L"Signal Out", output1_ptr, DR_OUT, L"5", L"", 0, L"");
+}
+
+ug_lookahead2::ug_lookahead2()
+{
+}
+
+// The 'ms' pin is not intended to be user-connected, so its value is the pin default —
+// which the Default Setter's output plug already holds before the graph starts processing.
+// The LIST_VAR3-bound latencyMs is populated only once pins have transmitted (i.e. after
+// Open), so reading the pin buffer directly is the only way to get the value early.
+float ug_lookahead2::getLookaheadMs()
+{
+	float ms = latencyMs; // fallback (variable is populated once pins have transmitted)
+
+	if (const auto p = GetPlug(PN_MS); !p->connections.empty())
+	{
+		if (const auto from = p->connections.front(); from->io_variable && from->DataType == DT_FLOAT)
+			ms = *reinterpret_cast<float*>(from->io_variable);
+	}
+
+	return ms;
+}
+
+void ug_lookahead2::SetLatencyFromPin()
+{
+	const int latencySmp = static_cast<int>(0.5f + getLookaheadMs() * getSampleRate() * 0.001f);
+	AudioMaster()->SetModuleLatency(Handle(), latencySmp);
+}
+
+// Seeding latencySamples here, during the initial delay-compensation pass, plus pre-seeding
+// the shell's latency map, means Open()/onSetPin() later report the same value and cause no
+// async restart (which would reset oscillator phases and other module state).
+int ug_lookahead2::calcDelayCompensation()
+{
+	if (cumulativeLatencySamples == LATENCY_NOT_SET) // not yet computed
+	{
+		latencySamples = static_cast<int>(0.5f + getLookaheadMs() * getSampleRate() * 0.001f);
+		AudioMaster()->getShell()->GetModuleLatencies()[Handle()] = latencySamples;
+	}
+
+	return ug_base::calcDelayCompensation();
+}
+
+int ug_lookahead2::Open()
+{
+	ug_base::Open();
+
+	// When the delay-compensation pass has run, the latency is already seeded — and by
+	// Open the 'ms' pin buffer may have been re-plumbed away (oversampling-capable
+	// containers), so reporting here would send a stale value and force a restart.
+	if (cumulativeLatencySamples == LATENCY_NOT_SET)
+		SetLatencyFromPin();
+
+	SET_PROCESS_FUNC(&ug_lookahead2::sub_process);
+	OutputChange(0, GetPlug(PN_OUT), ST_STATIC);
+
+	return 0;
+}
+
+void ug_lookahead2::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type /*p_state*/)
+{
+	// Update host latency whenever the "ms" pin changes.
+	if (p_to_plug == GetPlug(PN_MS))
+	{
+		SetLatencyFromPin();
+	}
+
+	// Output follows the input's streaming/static state.
+	const state_type in_state = GetPlug(PN_IN)->getState();
+
+	if (in_state == ST_RUN)
+	{
+		SET_PROCESS_FUNC(&ug_lookahead2::sub_process);
+	}
+	else
+	{
+		ResetStaticOutput();
+		SET_PROCESS_FUNC(&ug_lookahead2::sub_process_static);
+	}
+
+	OutputChange(p_clock, GetPlug(PN_OUT), in_state);
+}
+
+void ug_lookahead2::sub_process(int start_pos, int sampleframes)
+{
+	const float* in = input1_ptr + start_pos;
+	float* __restrict out = output1_ptr + start_pos;
+
+	// auto-vectorized copy.
+	while (sampleframes > 3)
+	{
+		out[0] = in[0];
+		out[1] = in[1];
+		out[2] = in[2];
+		out[3] = in[3];
+
+		out += 4;
+		in += 4;
+		sampleframes -= 4;
+	}
+
+	while (sampleframes > 0)
+	{
+		*out++ = *in++;
+		--sampleframes;
+	}
+}
+
+void ug_lookahead2::sub_process_static(int start_pos, int sampleframes)
+{
+	sub_process(start_pos, sampleframes);
+	SleepIfOutputStatic(sampleframes);
+}
+
+///////////////////////////////////////////////////////////
 typedef ug_feedback_delay_base<DT_FLOAT, DR_IN> ug_feedback_delay_float;
 typedef ug_feedback_delay_base<DT_INT, DR_IN> ug_feedback_delay_int;
 typedef ug_feedback_delay_base<DT_MIDI, DR_IN> ug_feedback_delay_midi;
