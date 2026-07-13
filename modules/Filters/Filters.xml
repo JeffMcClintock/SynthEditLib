@@ -73,7 +73,7 @@
 		</Audio>
 	</Plugin>
 	
-	<Plugin id="SE Lookahead" name="Lookahead" category="Special">
+	<Plugin id="SE Lookahead" name="Lookahead" category="Debug">
     <Audio>
       <Pin name="ms" datatype="float" default="1" metadata="1,500"/>
       <Pin name="Signal In" datatype="float" rate="audio" linearInput="true"/>
