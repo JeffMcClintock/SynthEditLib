@@ -246,7 +246,7 @@ public:
 	virtual ~AudioMasterBase();
 
 	void CancellationFreeze3();
-	void WriteCancellationData(int32_t blockSize, FILE* file);
+	void WriteCancellationData(int32_t blockSize, FILE* file, FILE* nameFile = nullptr);
 	bool isInCancellationMode() override
 	{
 		return cancellation_snapshot_timestamp > -1;

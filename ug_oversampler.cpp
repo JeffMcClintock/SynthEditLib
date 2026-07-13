@@ -918,6 +918,15 @@ int ug_oversampler::calcDelayCompensation()
 	}
 
 	cumulativeLatencySamples = ug_base::calcDelayCompensation() + oversampler_out->calcDelayCompensation() / oversampleFactor_;
+
+#if defined( DEBUG_LATENCY )
+	if(latencySamples || cumulativeLatencySamples)
+	{
+		DebugIdentify(true);
+		_RPT2(_CRT_WARN, ". OS factor %d, Latency %d, cumulative %d\n", oversampleFactor_, latencySamples, cumulativeLatencySamples);
+	}
+#endif
+
 	return cumulativeLatencySamples;
 }
 

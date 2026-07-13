@@ -31,8 +31,6 @@
 using namespace std;
 using namespace gmpi::hosting;
 
-// #define DEBUG_LATENCY 1
-
 bool ug_base::trash_bool_ptr;
 float* ug_base::trash_sample_ptr;
 
@@ -2687,9 +2685,6 @@ int ug_base::calcDelayCompensation()
 					{
 						const auto compensationSamples = cumulativeLatencySamples - upstreamLatency;
 						#if defined( DEBUG_LATENCY )
-							//_RPT1(_CRT_WARN, " Inserted %d compensation from ", compensationSamples);
-							//fromPlug->UG->DebugIdentify();
-							//_RPT0(_CRT_WARN, "\n");
 							log << " Inserted " << compensationSamples << " compensation from [" << fromPlug->UG->Handle() << "] " << WStringToUtf8(fromPlug->UG->DebugModuleName()) << " to [" << Handle() << "] " << WStringToUtf8(DebugModuleName()) << "\n";
 						#endif
 
@@ -2762,19 +2757,19 @@ int ug_base::calcDelayCompensation()
 
 		// Constraint
 		cumulativeLatencySamples = (std::min)(cumulativeLatencySamples, AudioMaster()->latencyCompensationMax() );
-
-//		DebugIdentify();
-//		_RPTN(_CRT_WARN, ". Latency %d\n", latencySamples);
 	}
 
 	#if defined( DEBUG_LATENCY )
-		DebugIdentify();
+	if(latencySamples || cumulativeLatencySamples)
+	{
+		DebugIdentify(true);
 		_RPT2(_CRT_WARN, ". Latency %d, cumulative %d\n", latencySamples, cumulativeLatencySamples);
 		const auto s = log.str();
 		if(!s.empty())
 		{
 			_RPT1(_CRT_WARN, "%s\n", s.c_str());
 		}
+	}
 	#endif
 
 	return cumulativeLatencySamples;

@@ -1566,17 +1566,24 @@ void AudioMasterBase::CancellationFreeze3()
 	if (!file)
 		return;
 
+	// diagnostic sidecar: module identities (ptr handle voice name), same basename as the .raw
+	auto namesFilename = filename;
+	namesFilename.replace_extension(".names.txt");
+	auto nameFile = fopen(namesFilename.string().c_str(), "w");
+
 	// Write blocksize
 	fwrite(&blockSize, sizeof(blockSize), 1, file);
 
-	WriteCancellationData(blockSize, file);
+	WriteCancellationData(blockSize, file, nameFile);
 
 	fclose(file);
+	if (nameFile)
+		fclose(nameFile);
 
 	_RPTN(0, "Wrote cancellation snapshot to %s\n", filename.string().c_str());
 }
 
-void AudioMasterBase::WriteCancellationData(int32_t blockSize, FILE* file)
+void AudioMasterBase::WriteCancellationData(int32_t blockSize, FILE* file, FILE* nameFile)
 {
 	for (auto it = activeModules.inclusiveBegin(); it != activeModules.inclusiveEnd(); ++it)
 	{
@@ -1597,6 +1604,14 @@ void AudioMasterBase::WriteCancellationData(int32_t blockSize, FILE* file)
 
 		if (pinCount)
 		{
+			if (nameFile)
+			{
+				fprintf(nameFile, "%llu %d %d %s\n",
+					(unsigned long long)reinterpret_cast<uintptr_t>(ug),
+					ug->Handle(), ug->pp_voice_num,
+					WStringToUtf8(ug->DebugModuleName()).c_str());
+			}
+
 			// Write module identity (address)
 			fwrite(&ug, sizeof(ug), 1, file);
 
@@ -1638,7 +1653,7 @@ void AudioMasterBase::WriteCancellationData(int32_t blockSize, FILE* file)
 		auto oversampler = dynamic_cast<ug_oversampler*>(ug);
 		if (oversampler)
 		{
-			oversampler->WriteCancellationData(blockSize, file);
+			oversampler->WriteCancellationData(blockSize, file, nameFile);
 		}
 	}
 }
