@@ -2685,7 +2685,7 @@ int ug_base::calcDelayCompensation()
 					{
 						const auto compensationSamples = cumulativeLatencySamples - upstreamLatency;
 						#if defined( DEBUG_LATENCY )
-							log << " Inserted " << compensationSamples << " compensation from [" << fromPlug->UG->Handle() << "] " << WStringToUtf8(fromPlug->UG->DebugModuleName()) << " to [" << Handle() << "] " << WStringToUtf8(DebugModuleName()) << "\n";
+							log << " Inserted " << compensationSamples << " compensation from [" << fromPlug->UG->Handle() << "] " << WStringToUtf8(fromPlug->UG->DebugModuleName()) << " to [" << Handle() << "] " << WStringToUtf8(DebugModuleName()) << " pin " << p->getPlugIndex() << " dt " << (int)p->DataType << "\n";
 						#endif
 
 						// now insert an latency adjustor

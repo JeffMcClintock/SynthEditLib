@@ -6,6 +6,8 @@
 #include "ug_flags.h"
 #include "EventProcessor.h"
 
+// #define DEBUG_LATENCY 1
+
 // return info about plugs
 #define	DECLARE_UG_INFO_FUNC2	void ListInterface2(std::vector<class InterfaceObject*> &PList) override
 #define	IMPLEMENT_UG_INFO_FUNC2(class_name) void class_name::ListInterface2(std::vector<class InterfaceObject*> &PList)
