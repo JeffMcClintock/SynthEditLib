@@ -48,7 +48,7 @@ void ug_envelope::ChooseSubProcess()
 	}
 	else
 	{
-		if( level_plugs[cur_segment] != NULL )
+		if( level_plugs[cur_segment] != nullptr )
 		{
 			fixed_segment_level = level_plugs[cur_segment]->getValue();
 			segment_end_level_run = level_plugs[cur_segment]->getState() == ST_RUN;
@@ -88,7 +88,7 @@ void ug_envelope::ChooseSubProcess()
 			else // special case optimised.  Flat Sustain or end (no change in level)
 			{
 				/* already done up above
-					if( level_plugs[cur_segment] != NULL )
+					if( level_plugs[cur_segment] != nullptr )
 					{
 						fixed_segment_level = level_plugs[cur_segment]->getValue();
 					}

@@ -44,7 +44,7 @@ UniqueSnowflake* UniqueSnowflakeOwner::HandleToObject( int p_handle )
 	return (*it).second;
 }
 
-// Same as above except returns NULL if not found. Used to get parameters during bank load (that may have since been deleted).
+// Same as above except returns nullptr if not found. Used to get parameters during bank load (that may have since been deleted).
 UniqueSnowflake* UniqueSnowflakeOwner::HandleToObjectWithNull( int p_handle )
 {
 	auto it = m_unique_objects.find( p_handle );
@@ -130,7 +130,7 @@ UniqueSnowflakeOwner::UniqueSnowflakeOwner()
 #ifdef _DEBUG
 	random_generator.seed((unsigned int)1965);
 #else
-	random_generator.seed((unsigned int)time(NULL));
+	random_generator.seed((unsigned int)time(nullptr));
 #endif
 }
 

@@ -465,9 +465,9 @@ bool FileExists(const std::wstring& filename)
 	/* Open for read (will fail if file "data" does not exist) */
 #if defined( _WIN32 )
 	_wfopen_s(&stream, filename.c_str(), (L"r"));
-	if (stream != NULL)
+	if (stream != nullptr)
 #else
-	if( (stream  = fopen( WStringToUtf8(filename).c_str(), "r")) != NULL )
+	if( (stream  = fopen( WStringToUtf8(filename).c_str(), "r")) != nullptr )
 #endif
 	{
 		fclose(stream);
@@ -816,7 +816,7 @@ void WStringToWchars( const std::wstring& string, wchar_t* dest, int p_max_char 
 		return;
 	}
 
-	std::string::size_type string_length = string.size() + 1; // + 1 for NULL terminator
+	std::string::size_type string_length = string.size() + 1; // + 1 for nullptr terminator
 	string_length = min( (int) string_length, p_max_char );
 	#if defined( _MSC_VER )
 		wcsncpy_s( dest, string_length, string.data(), string_length );
@@ -836,7 +836,7 @@ void CStringToAnsi(const std::wstring& p_cstring, char* p_ansi, int p_max_char )
 		return;
 	}
 
-	int bytes_required = 1 + WideCharToMultiByte( CP_ACP, 0, p_cstring.c_str(), -1, 0, 0, NULL, NULL);
+	int bytes_required = 1 + WideCharToMultiByte( CP_ACP, 0, p_cstring.c_str(), -1, 0, 0, nullptr, nullptr);
 
 	if( bytes_required > p_max_char )
 	{
@@ -844,17 +844,17 @@ void CStringToAnsi(const std::wstring& p_cstring, char* p_ansi, int p_max_char )
 		p_ansi[bytes_required] = 0; // add terminator (because only part of string will be copied)
 	}
 
-	WideCharToMultiByte(CP_ACP, 0, p_cstring.c_str(), -1, p_ansi, bytes_required, NULL, NULL);
+	WideCharToMultiByte(CP_ACP, 0, p_cstring.c_str(), -1, p_ansi, bytes_required, nullptr, nullptr);
 }
 
 std::string WstringToString(const std::wstring p_cstring)
 {
-	int bytes_required = WideCharToMultiByte( CP_ACP, 0, p_cstring.c_str(), -1, 0, 0, NULL, NULL);
+	int bytes_required = WideCharToMultiByte( CP_ACP, 0, p_cstring.c_str(), -1, 0, 0, nullptr, nullptr);
 	if (bytes_required <= 1)
 		return {};
 
 	std::string res(bytes_required - 1, '\0');
-	WideCharToMultiByte( CP_ACP, 0, p_cstring.c_str(), -1, res.data(), bytes_required, NULL, NULL);
+	WideCharToMultiByte( CP_ACP, 0, p_cstring.c_str(), -1, res.data(), bytes_required, nullptr, nullptr);
 	return res;
 }
 #endif

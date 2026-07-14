@@ -133,10 +133,10 @@ void ug_system_command::input_changed()
 			memset( &sui, 0, sizeof(sui) );
 			PROCESS_INFORMATION pi;
 			CreateProcessW(
-			    NULL,
+			    nullptr,
 			    (LPWSTR) m_command.c_str(),
-			    NULL,
-			    NULL,
+			    nullptr,
+			    nullptr,
 			    FALSE,
 			    0,
 			    0,0,&sui,&pi);

@@ -720,8 +720,8 @@ void Module_Info::ClearPlugs()
 
 ug_base* Module_Info::BuildSynthOb()
 {
-	if( dsp_create == NULL )
-		return NULL; // trying to build an object that can't be (display-only object)
+	if( dsp_create == nullptr )
+		return nullptr; // trying to build an object that can't be (display-only object)
 
 	ug_base* module = dsp_create();
 	module->moduleType = this;
@@ -803,7 +803,7 @@ void Module_Info::SetupPlugs()
 
 void Module_Info::SetupPlugs_pt2(ug_base* ug)
 {
-	if( ug != NULL )	// ignore display-only objects
+	if( ug != nullptr )	// ignore display-only objects
 	{
 		InterfaceObjectArray temp;
 		ug->ListInterface2( temp );	// and query it's interface

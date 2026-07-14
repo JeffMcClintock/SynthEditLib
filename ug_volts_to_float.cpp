@@ -70,7 +70,7 @@ enum
 
 
 ug_volts_to_float::ug_volts_to_float() :
-	monitor_routine(NULL)
+	monitor_routine(nullptr)
 	,max_input(0.f)
 	,current_max(0.f)
 	,monitor_routine_running (false)
@@ -87,7 +87,7 @@ int ug_volts_to_float::Open()
 	ug_base::Open();
 
 	if( mode != 0 )
-		threshold_ptr = NULL;
+		threshold_ptr = nullptr;
 
 	mode_change();
 	current_max = -1000.f; // force initial update

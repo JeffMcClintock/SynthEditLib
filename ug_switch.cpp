@@ -20,7 +20,7 @@ REGISTER_MODULE_1(L"Switch (Many->1)", IDS_MN_SWITCH_MANY_1,IDS_MG_FLOW_CONTROL,
 ug_switch::ug_switch() :
 	out_num(0)
 	,cur_state(ST_STOP)
-	,current_output_plug(NULL)
+	,current_output_plug(nullptr)
 	,static_output_counts(0)
 	,current_output_plug_number(-1)
 {
@@ -76,7 +76,7 @@ void ug_switch::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug, state_type p
 	{
 		cur_state = p_state;
 
-		if( current_output_plug != NULL )
+		if( current_output_plug != nullptr )
 		{
 			OutputChange( SampleClock(), current_output_plug, cur_state );
 		}

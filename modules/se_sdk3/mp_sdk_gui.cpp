@@ -449,7 +449,7 @@ LRESULT CALLBACK MpWindowProc( HWND hwnd,
 #endif
 
 	// Check if the pointer is NULL and call the Default WndProc.
-	if( classptr == NULL )
+	if( classptr == nullptr )
 	{
 		return DefWindowProc( hwnd, uMsg, wParam, lParam );
 	}
@@ -489,9 +489,9 @@ int32_t MpGuiWindowsGfxBase::PreCreateWindow( WNDCLASSEX& wcx )
  //   wcx.cbClsExtra = 0;				// no extra class memory
  //   wcx.cbWndExtra = 0;				// no extra window memory
 	wcx.hInstance = local_GetDllHandle(); // dllInstanceHandle;	// handle to dll instance, very important to differentiate when same window class name used in 2 different dlls.
- //   wcx.hIcon = LoadIcon(NULL,
+ //   wcx.hIcon = LoadIcon(nullptr,
  //     IDI_APPLICATION);				// predefined app. icon
-	wcx.hCursor = LoadCursor(NULL,
+	wcx.hCursor = LoadCursor(nullptr,
 		IDC_ARROW);						// predefined arrow
 //    wcx.hbrBackground = (HBRUSH) GetStockObject(
 //        BLACK_BRUSH);					// white background brush
@@ -593,13 +593,13 @@ int32_t MP_STDCALL MpGuiWindowsGfxBase::openWindow( HWND parentWindow, HWND& ret
 	returnWindowHandle = window_ = CreateWindowEx(
 								extendedStyle,
 							   L"DefaultMpWClass",
-							   (LPCTSTR) NULL,
+							   (LPCTSTR) nullptr,
 							   style,
 							   r.left,r.top,r.right-r.left,r.bottom-r.top,
 							   parentWindow,
 							   (HMENU) 0,
 								local_GetDllHandle(), //dllInstanceHandle,
-							   NULL);
+							   nullptr);
 
 	// Adds a pointer to your current class to the WndClassEx structure.
 

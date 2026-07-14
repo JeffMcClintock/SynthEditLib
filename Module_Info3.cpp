@@ -39,12 +39,12 @@ void PluginHolder::load()
 				FORMAT_MESSAGE_ALLOCATE_BUFFER |
 				FORMAT_MESSAGE_FROM_SYSTEM |
 				FORMAT_MESSAGE_IGNORE_INSERTS,
-				NULL,
+				nullptr,
 				err_code,
 				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
 				(LPTSTR)&lpMsgBuf,
 				0,
-				NULL
+				nullptr
 			);
 
 			std::wstring errorMessage = lpMsgBuf;
@@ -55,7 +55,7 @@ void PluginHolder::load()
 // fails on missing plugins in debug.	assert(exists(pluginPath / L"Contents")); // mac plugins must be a bundle.
 
 	// Create a path to the bundle
-	CFStringRef pluginPathStringRef = CFStringCreateWithCString(NULL, pluginPath.c_str(), kCFStringEncodingUTF8);
+	CFStringRef pluginPathStringRef = CFStringCreateWithCString(nullptr, pluginPath.c_str(), kCFStringEncodingUTF8);
 
 	CFURLRef bundleUrl = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
 		pluginPathStringRef, kCFURLPOSIXPathStyle, true);
@@ -252,15 +252,15 @@ void Module_Info3::LoadDll_old()
 		}
 #else
     	// int32_t r = MP_DllLoad( &dllHandle, load_filename.c_str() );
-	CFStringRef dirs[] = { CFStringCreateWithCString(NULL, fullPath.c_str(), kCFStringEncodingUTF8) };
+	CFStringRef dirs[] = { CFStringCreateWithCString(nullptr, fullPath.c_str(), kCFStringEncodingUTF8) };
 
 		// Create a path to the bundle
-		CFStringRef pluginPathStringRef = CFStringCreateWithCString(NULL,
+		CFStringRef pluginPathStringRef = CFStringCreateWithCString(nullptr,
 			WStringToUtf8( load_filename ).c_str(), kCFStringEncodingUTF8);
 
 		CFURLRef bundleUrl = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
 		pluginPathStringRef, kCFURLPOSIXPathStyle, true);
-		if(bundleUrl == NULL) {
+		if(bundleUrl == nullptr) {
 			printf("Couldn't make URL reference for plugin\n");
 			return;
 		}
@@ -281,7 +281,7 @@ void Module_Info3::LoadDll_old()
     
 #if defined( _WIN32)
 	// If the handle is valid, we're done
-	if(dllHandle != NULL)
+	if(dllHandle != nullptr)
 	{
 		return; // OK
 	}
@@ -294,12 +294,12 @@ void Module_Info3::LoadDll_old()
 			FORMAT_MESSAGE_ALLOCATE_BUFFER |
 			FORMAT_MESSAGE_FROM_SYSTEM |
 			FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL,
+			nullptr,
 			err_code,
 			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
 			(LPTSTR) &lpMsgBuf,
 			0,
-			NULL
+			nullptr
 		);
 
 		errorMessage = lpMsgBuf;
@@ -327,7 +327,7 @@ void Module_Info3::LoadDll_old()
 void Module_Info3::Unload()
 {
 #if defined( _WIN32)
-	if (dllHandle != NULL)
+	if (dllHandle != nullptr)
 	{
 		const auto r = MP_DllUnload( dllHandle );
 

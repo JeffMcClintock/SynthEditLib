@@ -628,7 +628,7 @@ void ug_vca::OnCurveChange()
 		break;
 
 	case 2:
-			//		lookup_table = NULL; // linear
+			//		lookup_table = nullptr; // linear
 			break;
 
 	case 3:

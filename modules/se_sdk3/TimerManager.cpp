@@ -104,7 +104,7 @@ namespace se_sdk_timers
 #ifdef _WIN32
 
 			idleTimer_ = SetTimer(
-				0,	// HWND. NULL = host main window
+				0,	// HWND. nullptr = host main window
 				0,	// timer ID. must be 0 if HWND is null
 				periodMilliSeconds,
 				SynthEditVstTimerProc);

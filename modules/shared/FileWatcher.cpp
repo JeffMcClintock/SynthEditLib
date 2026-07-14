@@ -18,7 +18,7 @@ namespace file_watcher
 
 		eventHandles[0] = stopEvent;
 
-		_tsplitpath_s(fullPath.c_str(), lpDrive, 4, NULL, 0, lpFile, _MAX_FNAME, lpExt, _MAX_EXT);
+		_tsplitpath_s(fullPath.c_str(), lpDrive, 4, nullptr, 0, lpFile, _MAX_FNAME, lpExt, _MAX_EXT);
 
 		lpDrive[2] = (TCHAR)'\\';
 		lpDrive[3] = (TCHAR)'\0';
@@ -37,7 +37,7 @@ namespace file_watcher
 		}
 
 		// Make a final validation check on our handles.
-		if(eventHandles[0] == NULL || eventHandles[1] == NULL)
+		if(eventHandles[0] == nullptr || eventHandles[1] == nullptr)
 		{
 			printf("\n ERROR: Unexpected NULL from FindFirstChangeNotification.\n");
 			return;
@@ -135,15 +135,15 @@ void fse_handle_events(
             //          if (hookstart)
             //              hookstart(watcher->context);
             void* info = (void*) &callback;
-            FSEventStreamContext streamcontext = { 0, info, NULL, NULL, NULL };
+            FSEventStreamContext streamcontext = { 0, info, nullptr, nullptr, nullptr };
                 
-            CFStringRef dirs[] = { CFStringCreateWithCString(NULL, fullPath.c_str(), kCFStringEncodingUTF8) };
+            CFStringRef dirs[] = { CFStringCreateWithCString(nullptr, fullPath.c_str(), kCFStringEncodingUTF8) };
                 
             auto stream = FSEventStreamCreate(
-                    NULL,
+                    nullptr,
                     &fse_handle_events,
                     &streamcontext,
-                    CFArrayCreate(NULL, (const void **)&dirs, 1, NULL),
+                    CFArrayCreate(nullptr, (const void **)&dirs, 1, nullptr),
                     kFSEventStreamEventIdSinceNow,
                     (CFAbsoluteTime) 0.1,
                     kFSEventStreamCreateFlagNone | kFSEventStreamCreateFlagWatchRoot | kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseCFTypes
@@ -162,7 +162,7 @@ void fse_handle_events(
 	{
 #if defined(_WIN32)
 		//_RPT1(_CRT_WARN, "FileWatcher::Start(%S)\n", fullPath.c_str());
-		stopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+		stopEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 
 		backgroundThread = std::thread(
             [stopEvent=stopEvent, fullPath, pCallback]

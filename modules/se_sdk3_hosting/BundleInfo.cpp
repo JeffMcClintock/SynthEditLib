@@ -132,7 +132,7 @@ std::string getPlatformPluginsFolder()
 {
 #ifdef _WIN32
     char path[MAX_PATH];
-    SHGetFolderPathA(NULL, CSIDL_PROGRAM_FILES_COMMON, NULL, SHGFP_TYPE_CURRENT, path);
+    SHGetFolderPathA(nullptr, CSIDL_PROGRAM_FILES_COMMON, nullptr, SHGFP_TYPE_CURRENT, path);
     return path;
 #else
     return "/Library/Audio/Plug-Ins/";
@@ -143,7 +143,7 @@ std::string getSettingsFolder()
 {
 #ifdef _WIN32
     char path[MAX_PATH];
-    SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, SHGFP_TYPE_CURRENT, path);
+    SHGetFolderPathA(nullptr, CSIDL_COMMON_APPDATA, nullptr, SHGFP_TYPE_CURRENT, path);
     return path;
 #else
     // ~/Library/Application Support/
@@ -305,7 +305,7 @@ se_fs::path BundleInfo::getUserDocumentFolder()
 
 	// Correct folder (user presets). [MYDOCUMENTS]/VST3 Presets/$COMPANY/$PLUGIN-NAME/
 	wchar_t myDocumentsPath[MAX_PATH];
-	SHGetFolderPathW(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, myDocumentsPath);
+	SHGetFolderPathW(nullptr, CSIDL_MYDOCUMENTS, nullptr, SHGFP_TYPE_CURRENT, myDocumentsPath);
 	return se_fs::path{ myDocumentsPath } / L"";
 
 #else // Mac.
@@ -343,7 +343,7 @@ se_fs::path BundleInfo::getCommonDocumentFolder()
 
 	// "All Users" / Public documents. e.g. C:\Users\Public\Documents
 	wchar_t commonDocumentsPath[MAX_PATH];
-	SHGetFolderPathW(NULL, CSIDL_COMMON_DOCUMENTS, NULL, SHGFP_TYPE_CURRENT, commonDocumentsPath);
+	SHGetFolderPathW(nullptr, CSIDL_COMMON_DOCUMENTS, nullptr, SHGFP_TYPE_CURRENT, commonDocumentsPath);
 	return se_fs::path{ commonDocumentsPath } / L"";
 
 #else // Mac.
@@ -401,7 +401,7 @@ std::wstring BundleInfo::getPresetFolder()
 #if defined( _WIN32 )
     // Correct folder (user presets). [MYDOCUMENTS]/VST3 Presets/$COMPANY/$PLUGIN-NAME/
     wchar_t myDocumentsPath[MAX_PATH];
-    SHGetFolderPathW(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, myDocumentsPath);
+    SHGetFolderPathW(nullptr, CSIDL_MYDOCUMENTS, nullptr, SHGFP_TYPE_CURRENT, myDocumentsPath);
     std::wstring myDocuments(myDocumentsPath);
     std::wstring vst3PresetFolder{ myDocuments };
 
@@ -544,19 +544,19 @@ std::string BundleInfo::getResource( const char* resourceId )
     CFBundleRef br = CreatePluginBundleRef();
 	if (br ) // getBundleRef ())
 	{
-		CFStringRef cfStr = CFStringCreateWithCString (NULL, resourceId, kCFStringEncodingUTF8);
+		CFStringRef cfStr = CFStringCreateWithCString (nullptr, resourceId, kCFStringEncodingUTF8);
 		if (cfStr)
 		{
-			CFURLRef url = CFBundleCopyResourceURL (br, cfStr, 0, NULL);
+			CFURLRef url = CFBundleCopyResourceURL (br, cfStr, 0, nullptr);
 			if (url)
 			{
 				char filePath[PATH_MAX];
 				if (CFURLGetFileSystemRepresentation (url, true, (UInt8*)filePath, PATH_MAX))
 				{
 					FILE* fp = fopen (filePath, "rb");
-                    //char *source = NULL;
+                    //char *source = nullptr;
                     long bufsize = 0;
-                    if (fp != NULL) {
+                    if (fp != nullptr) {
                         /* Go to the end of the file. */
                         if (fseek(fp, 0L, SEEK_END) == 0) {
                             /* Get the size of the file. */

@@ -1406,7 +1406,7 @@ namespace half_float
 		/// \param y second operand as positive finite half-precision value
 		/// \param quo adress to store quotient at, `nullptr` if \a Q `false`
 		/// \return modulus of \a x / \a y
-		template<bool Q,bool R> unsigned int mod(unsigned int x, unsigned int y, int *quo = NULL)
+		template<bool Q,bool R> unsigned int mod(unsigned int x, unsigned int y, int *quo = nullptr)
 		{
 			unsigned int q = 0;
 			if(x > y)

@@ -17,11 +17,11 @@ using namespace std;
 
 UPlug::UPlug(ug_base* ug, InterfaceObject& pdesc) :
 	Direction( pdesc.GetDirection() )
-	,Proxy(NULL)
+	,Proxy(nullptr)
 	,state(ST_STOP)
 	,DataType( pdesc.GetDatatype() )
 	,UG( ug )
-	,TiedTo(NULL)
+	,TiedTo(nullptr)
 	,io_variable( pdesc.GetVarAddr() )
 	,flags(PF_PP_NONE)
 	,sample_ptr(pdesc.sample_ptr)
@@ -66,14 +66,14 @@ UPlug::UPlug(ug_base* ug, InterfaceObject& pdesc) :
 // This version used for container IO fake plugs and parameters and .sep plugs
 UPlug::UPlug( ug_base* ug, EDirection dr, EPlugDataType dt ) :
 	Direction( dr )
-	,Proxy(NULL)
+	,Proxy(nullptr)
 	,state(ST_STOP)
 	,DataType(dt)
 	,UG(ug)
-	,TiedTo(NULL)
-	,io_variable(NULL)
+	,TiedTo(nullptr)
+	,io_variable(nullptr)
 	,flags(PF_PP_NONE)
-	,sample_ptr(NULL)
+	,sample_ptr(nullptr)
 	,m_last_one_off_time(SE_TIMESTAMP_MAX)
 	,uniqueId_(-1)
 #if defined( _DEBUG )
@@ -86,7 +86,7 @@ UPlug::UPlug( ug_base* ug, EDirection dr, EPlugDataType dt ) :
 		// SPECIAL CASE
 		// unused midi inputs are not connected anywhere (unused audio inputs are connected to io mod)
 		// so if a MIDI input is connected to an IO MOD, BUT there is nothing connected
-		// to the outside container plug, CRASH!, io_variable pointer remains NULL
+		// to the outside container plug, CRASH!, io_variable pointer remains nullptr
 		// this fixes it
 		if( DataType == DT_MIDI2 && Direction == DR_OUT )
 		{
@@ -98,14 +98,14 @@ UPlug::UPlug( ug_base* ug, EDirection dr, EPlugDataType dt ) :
 // used during clone of a ug, SHOULD ONLY BE USED FOR DYNAMIC PLUGS
 UPlug::UPlug( ug_base* ug, UPlug* copy_plug ) :
 	Direction( copy_plug->Direction )
-	,Proxy(NULL)
+	,Proxy(nullptr)
 	,state(ST_STOP)
 	,DataType(copy_plug->DataType)
 	,UG( ug )
-	,TiedTo(NULL)
-	,io_variable(NULL)
+	,TiedTo(nullptr)
+	,io_variable(nullptr)
 	,flags( copy_plug->flags )
-	,sample_ptr(NULL)
+	,sample_ptr(nullptr)
 	,m_last_one_off_time(SE_TIMESTAMP_MAX)
 	,uniqueId_( copy_plug->UniqueId() )
 #if defined( _DEBUG )
@@ -387,7 +387,7 @@ bool UPlug::IsAdder()
 USampBlock* UPlug::GetSampleBlock()
 {
 	assert( DataType == DT_FSAMPLE );
-	assert( io_variable != NULL );
+	assert( io_variable != nullptr );
 
 	if( Direction == DR_OUT )
 	{

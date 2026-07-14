@@ -82,7 +82,7 @@ public:
 
 
 
-	// allow comparison for NULL
+	// allow comparison for nullptr
 
 	inline friend bool operator==(const T* lhs, const MySmartPtr& rhs)
 

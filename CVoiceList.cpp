@@ -27,7 +27,7 @@
 using namespace std;
 
 
-// Lookup a UGs clone, if not found return NULL
+// Lookup a UGs clone, if not found return nullptr
 // this is because some UGs aren't cloned for polyphony
 // e.g. wave_out
 ug_base* CUGLookupList::LookupPolyphonic( ug_base* originalModule )
@@ -833,7 +833,7 @@ void Voice::CloneUGsFrom( Voice* FromVoice, CUGLookupList& UGLookupList )
 		{
 			auto clone = u->Clone( UGLookupList );
 
-			if( clone != NULL)
+			if( clone != nullptr)
 			{
 				AddUG( clone );
 				clone->SetPPVoiceNumber(m_voice_number);
@@ -875,7 +875,7 @@ void Voice::CopyFrom(ISeAudioMaster* audiomaster, ug_container* parent_container
 		clone->SetPolyphonic(true);
 		u->SetPolyphonic(true);
 #endif
-		assert( clone != NULL);
+		assert( clone != nullptr);
 		AddUG( clone );
 		UGLookupList_local.insert({ u, clone });
 	}
@@ -1261,7 +1261,7 @@ void Voice::SetUpNoteMonitor( bool secondPass )
 						// bit tricky, tail ug is already connected to adder
 						// so need to temp reset p->Proxy to null so voicemonitor don't connect to adder
 						UPlug* proxy = p->Proxy;
-						p->Proxy = NULL;
+						p->Proxy = nullptr;
 						u->connect( p, voice_mon->plugs[1] );	// plug[1] is input
 						// restore proxy
 						p->Proxy = proxy;

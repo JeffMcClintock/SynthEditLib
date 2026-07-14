@@ -291,7 +291,7 @@ public:
 
 protected:
 	int m_polyphony{ 8 };
-	// only used with new-style Keyboard2 voice-allocation.  Must be NULL when using MIDI-CV etc else side-by-side MIDI-CVs won't work.
+	// only used with new-style Keyboard2 voice-allocation.  Must be nullptr when using MIDI-CV etc else side-by-side MIDI-CVs won't work.
 	int monoNotePlaying_;
 	bool note_status[maxVoiceId];
 	SENoteStack noteStack;

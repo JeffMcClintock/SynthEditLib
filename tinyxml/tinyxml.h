@@ -579,7 +579,7 @@ public:
 	#endif
 
 	/** Add a new node related to this. Adds a child past the LastChild.
-		Returns a pointer to the new object or NULL if an error occured.
+		Returns a pointer to the new object or nullptr if an error occured.
 	*/
 	TiXmlNode* InsertEndChild( const TiXmlNode& addThis );
 

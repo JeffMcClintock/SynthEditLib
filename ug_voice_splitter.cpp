@@ -16,7 +16,7 @@ namespace
 
 ug_voice_splitter::ug_voice_splitter() :
 	voice_(-1)
-	, current_output_plug(NULL)
+	, current_output_plug(nullptr)
 	, current_output_plug_number(-2)
 {
 	SET_PROCESS_FUNC(&ug_voice_splitter::sub_process);

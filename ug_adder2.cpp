@@ -60,7 +60,7 @@ void ug_adder2::ListInterface2(std::vector<class InterfaceObject*>& PList)
 
 ug_adder2::ug_adder2() :
 	static_input_sum(123456.789f) // unlikely value to trigger initial status update.
-	,running_inputs(NULL)
+	,running_inputs(nullptr)
     ,running_input_max_size(0)
 
 {

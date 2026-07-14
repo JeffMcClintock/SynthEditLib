@@ -305,7 +305,7 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
         {
             int ret = 0;
             size_t size = sizeof(ret);
-            if (sysctlbyname("sysctl.proc_translated", &ret, &size, NULL, 0) != -1)
+            if (sysctlbyname("sysctl.proc_translated", &ret, &size, nullptr, 0) != -1)
             {
                 processIsTranslated = ret > 0;
             }
@@ -2288,7 +2288,7 @@ int SeAudioMaster::Open( )
 	next_master_clock = 0;
 	current_run_ug = nullptr;
 	block_start_clock = 0;
-	// AudioDevs = NULL;
+	// AudioDevs = nullptr;
 	activeModules.clear();
 #ifdef _DEBUG
 	dbg_copy_output_array.clear();
@@ -2486,7 +2486,7 @@ void SeAudioMaster::CpuFunc()
 lookup_table_entry::lookup_table_entry( void* p_pluginInstance, std::wstring p_name, int p_sample_rate, bool integer_table, size_t p_size ) :
 name( p_name )
 ,sample_rate(p_sample_rate)
-,lookup_table(NULL)
+,lookup_table(nullptr)
 ,pluginInstance(p_pluginInstance)
 {
 	if( integer_table )

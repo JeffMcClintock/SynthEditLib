@@ -50,9 +50,9 @@ int ug_adsr::Open()
 	rate_plugs[0] = GetPlug(PN_ATTACK);
 	rate_plugs[1] = GetPlug(PN_DECAY);
 	rate_plugs[2] = GetPlug(PN_RELEASE);
-	level_plugs[0] = NULL;
+	level_plugs[0] = nullptr;
 	level_plugs[1] = GetPlug(PN_SUSTAIN);
-	level_plugs[2] = NULL;
+	level_plugs[2] = nullptr;
 	return ug_envelope::Open();
 }
 

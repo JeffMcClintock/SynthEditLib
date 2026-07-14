@@ -148,7 +148,7 @@ public:
 
 	void Send(timestamp_t timestamp, const void* data1, int size1)
 	{
-		if (m_plug) // NULL if not connected
+		if (m_plug) // nullptr if not connected
 		{
 			for (auto to : m_plug->connections)
 			{
@@ -158,7 +158,7 @@ public:
 	}
 	void Send(timestamp_t timestamp, const void* data1, size_t size1)
 	{
-		if (m_plug) // NULL if not connected
+		if (m_plug) // nullptr if not connected
 		{
 			for (auto to : m_plug->connections)
 			{

@@ -21,7 +21,7 @@ REGISTER_MODULE_1(L"AND Gate", IDS_MN_AND_GATE,IDS_MG_LOGIC,ug_logic_AND ,CF_STR
 ug_logic_gate::ug_logic_gate() :
 	output(-99.f) // impossible initial val to force stat-change event on output
 	,input_count(0)
-	,in_ptr(NULL)
+	,in_ptr(nullptr)
 	,output_changed( true )
 {
 	SET_PROCESS_FUNC( &ug_logic_gate::sub_process );

@@ -5,7 +5,7 @@
 using namespace std;
 
 ug_logic_complex::ug_logic_complex() :
-	in_ptr(NULL)
+	in_ptr(nullptr)
 	,outputs(0)
 	,inputs_running(false)
 {

@@ -912,7 +912,7 @@ void ug_container::ReRoutePlugs()
 
 		// inner output connections must be deleted, even if no connection outside
 		// else IO Mod become part of feedback loop (it's used to set all unconnected inputs)
-		if( tiedto != NULL && tiedto->InUse() ) // ug_base::connect() should usually ensure so, but not always
+		if( tiedto != nullptr && tiedto->InUse() ) // ug_base::connect() should usually ensure so, but not always
 		{
 			if( p->Direction == DR_OUT )
 			{

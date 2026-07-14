@@ -44,7 +44,7 @@ void ug_test_tone::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_
 	{
 		/*
 				cur_state = p_state;
-				if( current_output_plug != NULL )
+				if( current_output_plug != nullptr )
 				{
 					OutputChange( SampleClock(), current_output_plug, cur_state );
 				}

@@ -119,7 +119,7 @@ void EventProcessor::AddEvent( SynthEditEvent* p_event, int datatype)
 			int pin_idx = p_event->parm1;
 			goto short_cut; // jump into loop
 
-			while( it != events.rend() ) //pos != NULL )
+			while( it != events.rend() ) //pos != nullptr )
 			{
 				event2 = *it;
 short_cut:

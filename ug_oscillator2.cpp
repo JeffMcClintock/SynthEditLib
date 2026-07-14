@@ -80,10 +80,10 @@ void ug_oscillator2::ListInterface2(std::vector<class InterfaceObject*>& PList)
 }
 
 ug_oscillator2::ug_oscillator2() :
-	cur_wave(NULL)
-	,next_wave(NULL)
-	,m_wave_data(NULL)
-	,wavetable(NULL)
+	cur_wave(nullptr)
+	,next_wave(nullptr)
+	,m_wave_data(nullptr)
+	,wavetable(nullptr)
 	,wave_fade_samples(0)
 	,cur_phase(0)//-999) // allows easer check if inititaled b4 use
 	,buf0(0)
@@ -943,7 +943,7 @@ unsigned int ug_oscillator2::calc_phase( float phase, float modulation_depth)
 // do-all sub-process. pitch, phase mod active
 void ug_oscillator2::sub_process(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output			= output_ptr + start_pos;
 	float* pitch			= pitch_ptr + start_pos;
 	float* phase_mod		= phase_mod_ptr + start_pos;
@@ -964,7 +964,7 @@ void ug_oscillator2::sub_process(int start_pos, int sampleframes)
 // sub-process. pitch active
 void ug_oscillator2::sub_process_pitch(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output			= output_ptr + start_pos;
 	float* pitch			= pitch_ptr + start_pos;
 	unsigned int c = count; // move to local var
@@ -983,7 +983,7 @@ void ug_oscillator2::sub_process_pitch(int start_pos, int sampleframes)
 // do-all sub-process. phase mod active
 void ug_oscillator2::sub_process_phase(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output			= output_ptr + start_pos;
 	float* phase_mod		= phase_mod_ptr + start_pos;
 	float* phase_mod_depth	= phase_mod_depth_ptr + start_pos;
@@ -1004,7 +1004,7 @@ void ug_oscillator2::sub_process_phase(int start_pos, int sampleframes)
 void ug_oscillator2::sub_process_fp(int start_pos, int sampleframes)
 {
 	float* output = output_ptr + start_pos;
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	unsigned int c = count; // move to local var
 	const unsigned int l_increment = fixed_increment;
 	float* l_wave_data = m_wave_data;
@@ -1037,7 +1037,7 @@ void ug_oscillator2::sub_process_fp(int start_pos, int sampleframes)
 // fixed pitch, no phase modulation
 void ug_oscillator2::sub_process_fp_ramp(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output	= output_ptr + start_pos;
 //	float* pitch	= pitch_ptr + start_pos;
 	unsigned int c = count; // move to local var
@@ -1056,7 +1056,7 @@ void ug_oscillator2::sub_process_fp_ramp(int start_pos, int sampleframes)
 // sub-process. pitch active
 void ug_oscillator2::sub_process_pitch_ramp(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output			= output_ptr + start_pos;
 	float* pitch			= pitch_ptr + start_pos;
 	unsigned int c = count; // move to local var
@@ -1075,7 +1075,7 @@ void ug_oscillator2::sub_process_pitch_ramp(int start_pos, int sampleframes)
 // phase mod active
 void ug_oscillator2::sub_process_phase_ramp(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output			= output_ptr + start_pos;
 	float* phase_mod		= phase_mod_ptr + start_pos;
 	float* phase_mod_depth	= phase_mod_depth_ptr + start_pos;
@@ -1095,7 +1095,7 @@ void ug_oscillator2::sub_process_phase_ramp(int start_pos, int sampleframes)
 // same as sub_process, but inverts output
 void ug_oscillator2::sub_process_ramp(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output			= output_ptr + start_pos;
 	float* pitch			= pitch_ptr + start_pos;
 	float* phase_mod		= phase_mod_ptr + start_pos;
@@ -1177,7 +1177,7 @@ float ug_oscillator2::pulse_get_sample2( float* wavedata, const unsigned int p_c
 // sub-process fixed pitch, no phase modulation, no pulse modulation
 void ug_oscillator2::sub_process_fp_pulse(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output = output_ptr + start_pos;
 	unsigned int c = count; // move to local var
 	const unsigned int l_increment = fixed_increment;
@@ -1196,7 +1196,7 @@ void ug_oscillator2::sub_process_fp_pulse(int start_pos, int sampleframes)
 // uses mix of saw and ramp to produce variable pulse
 void ug_oscillator2::sub_process_pulse(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output	= output_ptr + start_pos;
 	float* pitch	= pitch_ptr + start_pos;
 	float* phase_mod		= phase_mod_ptr + start_pos;
@@ -1218,7 +1218,7 @@ void ug_oscillator2::sub_process_pulse(int start_pos, int sampleframes)
 // sub-process. pitch active
 void ug_oscillator2::sub_process_pitch_pulse(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output			= output_ptr + start_pos;
 	float* pitch			= pitch_ptr + start_pos;
 	unsigned int c = count; // move to local var
@@ -1238,7 +1238,7 @@ void ug_oscillator2::sub_process_pitch_pulse(int start_pos, int sampleframes)
 // do-all sub-process. phase mod active
 void ug_oscillator2::sub_process_phase_pulse(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output			= output_ptr + start_pos;
 	float* phase_mod		= phase_mod_ptr + start_pos;
 	float* phase_mod_depth	= phase_mod_depth_ptr + start_pos;
@@ -1260,7 +1260,7 @@ void ug_oscillator2::sub_process_phase_pulse(int start_pos, int sampleframes)
 // sub-process fixed pitch, no phase modulation, no pulse modulation
 void ug_oscillator2::sub_process_pw_fp_pulse(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 
 	float* pw		= pulse_width_ptr + start_pos;
 	float* output	= output_ptr + start_pos;
@@ -1275,7 +1275,7 @@ void ug_oscillator2::sub_process_pw_fp_pulse(int start_pos, int sampleframes)
 // uses mix of saw and ramp to produce variable pulse
 void ug_oscillator2::sub_process_pw_pulse(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output	= output_ptr + start_pos;
 	float* pitch	= pitch_ptr + start_pos;
 	float* phase_mod		= phase_mod_ptr + start_pos;
@@ -1296,7 +1296,7 @@ void ug_oscillator2::sub_process_pw_pulse(int start_pos, int sampleframes)
 // sub-process. pitch active
 void ug_oscillator2::sub_process_pw_pitch_pulse(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output			= output_ptr + start_pos;
 	float* pitch			= pitch_ptr + start_pos;
 	float* pw		= pulse_width_ptr + start_pos;
@@ -1317,7 +1317,7 @@ void ug_oscillator2::sub_process_pw_pitch_pulse(int start_pos, int sampleframes)
 // do-all sub-process. phase mod active
 void ug_oscillator2::sub_process_pw_phase_pulse(int start_pos, int sampleframes)
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 	float* output			= output_ptr + start_pos;
 	float* phase_mod		= phase_mod_ptr + start_pos;
 	float* phase_mod_depth	= phase_mod_depth_ptr + start_pos;
@@ -1343,18 +1343,18 @@ void ug_oscillator2::ChangeWaveform( unsigned int blockPos )
 		if( cur_wave_func )
 		{
 	///		run_function( cur_wave_func, ST_STOP );
-			cur_wave_func = NULL;
+			cur_wave_func = nullptr;
 		}
 		if( cur_wavetable_func )
 		{
 	///		EventAbort( cur_wavetable_func );
-			cur_wavetable_func = NULL;
+			cur_wavetable_func = nullptr;
 		}
 	*/
 	//	_RPT1(_CRT_WARN, "ug_oscillator2::ChangeWaveform()%d\n", waveform );
 	assert( waveform >= 0 && waveform < 7 );
-	wavetable = NULL;
-	cur_wave = NULL;
+	wavetable = nullptr;
+	cur_wave = nullptr;
 
 	switch( waveform )
 	{
@@ -1396,7 +1396,7 @@ void ug_oscillator2::ChangeWaveform( unsigned int blockPos )
 			run_function( cur_wave_func, ST_RUN );
 		}*/
 	//	wavetable_mode = false;
-	if( wavetable != NULL )
+	if( wavetable != nullptr )
 	{
 		cur_wave = next_wave = (*wavetable)[0].WaveTable();
 		m_wave_data = cur_wave->wave;
@@ -1428,7 +1428,7 @@ void ug_oscillator2::switch_wavetable( unsigned int increment, unsigned int bloc
 	// need to investigate why this is happening (in release version only?) !!!
 	if( increment_lo_band > increment || increment_hi_band < increment )
 	{
-		if( next_wave != NULL && wavetable != NULL ) // can happen intermittant just after waveform switched
+		if( next_wave != nullptr && wavetable != nullptr ) // can happen intermittant just after waveform switched
 		{
 			assert( next_wave );
 			// check whether freq has strayed outside allowable range
@@ -1489,7 +1489,7 @@ void ug_oscillator2::switch_wavetable( unsigned int increment, unsigned int bloc
 // output sawtooth
 void ug_oscillator2::sawtooth(int start_pos, int sampleframes) // Ouput Sawtooth wave
 {
-	assert( cur_wave != NULL );
+	assert( cur_wave != nullptr );
 
 	float *output		= output_ptr + start_pos;
 	float *pitch	= pitch_ptr + start_pos;

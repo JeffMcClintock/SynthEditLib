@@ -14,7 +14,7 @@ public:
     smart_output(smart_output_curve_type p_curve_type = SOT_LINEAR, int p_transition_samples = 4) :
 	    output_level(0.f)
 	    ,target(0.f)
-	    ,plug(NULL)
+	    ,plug(nullptr)
 	    ,m_transition_samples( p_transition_samples )
 	    ,curve_type(p_curve_type)
 	    ,static_output_count(0)
@@ -90,7 +90,7 @@ public:
     }
 	inline void Process(int start_pos, int sampleframes, bool& can_sleep )
     {
-	    assert( plug != NULL );
+	    assert( plug != nullptr );
 
 	    if( m_static_mode )
 	    {

@@ -127,7 +127,7 @@ int32_t Factory_base::CreateTextFormat(const char* fontFamilyName, void* unused 
 
 	auto hr = info.writeFactory->CreateTextFormat(
 		fontFamilyNameW.c_str(),
-		NULL,
+		nullptr,
 		(DWRITE_FONT_WEIGHT)fontWeight,
 		(DWRITE_FONT_STYLE)fontStyle,
 		(DWRITE_FONT_STRETCH)fontStretch,
@@ -205,7 +205,7 @@ int32_t Factory_base::LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap
 		if (SUCCEEDED(hr)) {
 			hr = info.wicFactory->CreateDecoderFromStream(
 				pIWICStream,                   // The stream to use to create the decoder
-				NULL,                          // Do not prefer a particular vendor
+				nullptr,                          // Do not prefer a particular vendor
 				WICDecodeMetadataCacheOnLoad,  // Cache metadata when needed
 				pDecoder.put());               // Pointer to the decoder
 		}
@@ -217,7 +217,7 @@ int32_t Factory_base::LoadImageU(const char* utf8Uri, GmpiDrawing_API::IMpBitmap
 		// To load a bitmap from a file, first use WIC objects to load the image and to convert it to a Direct2D-compatible format.
 		hr = info.wicFactory->CreateDecoderFromFilename(
 			uriW.c_str(),
-			NULL,
+			nullptr,
 			GENERIC_READ,
 			WICDecodeMetadataCacheOnLoad,
 			pDecoder.put()

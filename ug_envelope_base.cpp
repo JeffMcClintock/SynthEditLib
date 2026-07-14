@@ -32,7 +32,7 @@ ug_envelope_base::ug_envelope_base() :
 	,output_val(0.f)
 	,fixed_level(0.f)
 	,fixed_segment_level(0.f)
-	,output_ptr(NULL)
+	,output_ptr(nullptr)
 	,gate_state(false)
 {
 	SET_PROCESS_FUNC( &ug_envelope_base::sub_process );

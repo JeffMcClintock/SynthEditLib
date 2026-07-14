@@ -90,7 +90,7 @@ static int instanceCounter = 0;
 ug_base::ug_base() : EventProcessor()
 ,parent_container(0)
 ,pp_voice_num(-1)
-,patch_control_container(NULL)
+,patch_control_container(nullptr)
 ,m_clone_of(this)
 ,m_next_clone(0)
 ,cpuParent(0)
@@ -194,7 +194,7 @@ UPlug* ug_base::GetPlug(const std::wstring& plug_name)
 	}
 
 	assert(false); // GetPlug(char *name) failed
-	return NULL;
+	return nullptr;
 }
 
 // see also SetupDynamicPlugs2
@@ -454,7 +454,7 @@ ug_base* ug_base::Copy(ISeAudioMaster* audiomaster, CUGLookupList& UGLookupList 
 // Add default plugs (not 'spare' ones')
 void ug_base::AddFixedPlugs()
 {
-	// ug_oversampler_in/out have NULL moduletype.
+	// ug_oversampler_in/out have nullptr moduletype.
 	if( moduleType )
 	{
 		// Add standard plugs.
@@ -1629,8 +1629,8 @@ void ug_base::InsertVoiceAdders()
 					if( to_plug->IsAdder() )
 					{
 						// if last ug is an adder, to_plug's proxie will already be set,
-						// if so NULL it so I don't inadvertantly connect to wrong adder
-						to_plug->Proxy = NULL;
+						// if so nullptr it so I don't inadvertantly connect to wrong adder
+						to_plug->Proxy = nullptr;
 						connect( from_plug, to_plug );
 						// drum trigger needs to know that voice chain ends here
 						to_plug->UG->SetFlag(UGF_POLYPHONIC_AGREGATOR|UGF_PP_TERMINATED_PATH);
@@ -1648,8 +1648,8 @@ void ug_base::InsertVoiceAdders()
 						//_RPT2(_CRT_WARN, "] Connecting adder to %s plug %d\n", to_plug->UG->DebugModuleName(),to_plug->getPlugIndex() );
 						//						connect( p, to_plug );
 						// if last ug is an adder, to_plug's proxie will already be set,
-						// if so NULL it so I don't inadvertantly connect to wrong adder
-						to_plug->Proxy = NULL;
+						// if so nullptr it so I don't inadvertantly connect to wrong adder
+						to_plug->Proxy = nullptr;
 						connect( adder->plugs[0], to_plug );
 
 						// hack for scope
@@ -1742,10 +1742,10 @@ void ug_base::connect( UPlug* from_plug, UPlug* to_plug )
 
 	// if an input already has an adder
 	// Proxy will point to the adder
-	while( to_plug->Proxy != NULL )
+	while( to_plug->Proxy != nullptr )
 		to_plug=to_plug->Proxy;
 
-	while( from_plug->Proxy != NULL )
+	while( from_plug->Proxy != nullptr )
 		from_plug=from_plug->Proxy;
 
 	if( to_plug->DataType != from_plug->DataType )
@@ -1924,12 +1924,12 @@ void ug_base::connect( UPlug* from_plug, UPlug* to_plug )
 	to_plug->connections.push_back(from_plug);
 
 	{
-		if( from_plug->DataType == DT_MIDI2 && output != NULL )
+		if( from_plug->DataType == DT_MIDI2 && output != nullptr )
 		{
 			((midi_output*) output)->SetUp(from_plug);
 		}
 
-		if( input != NULL && output != NULL )
+		if( input != nullptr && output != nullptr )
 		{
 			switch(from_plug->DataType)
 			{

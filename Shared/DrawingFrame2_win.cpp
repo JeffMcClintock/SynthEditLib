@@ -169,7 +169,7 @@ void DrawingFrameHwndBase::ReSize(int left, int top, int right, int bottom)
     {
         SetWindowPos(
             getWindowHandle()
-            , NULL
+            , nullptr
             , 0
             , 0
             , width

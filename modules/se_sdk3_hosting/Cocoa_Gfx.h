@@ -49,15 +49,15 @@ namespace se
                 NSPoint ps[3];
                 switch ([geometry elementAtIndex:i associatedPoints:ps]) {
                     case NSMoveToBezierPathElement: {
-                        CGPathMoveToPoint(cgPath, NULL, ps[0].x, ps[0].y);
+                        CGPathMoveToPoint(cgPath, nullptr, ps[0].x, ps[0].y);
                         break;
                     }
                     case NSLineToBezierPathElement: {
-                        CGPathAddLineToPoint(cgPath, NULL, ps[0].x, ps[0].y);
+                        CGPathAddLineToPoint(cgPath, nullptr, ps[0].x, ps[0].y);
                         break;
                     }
                     case NSCurveToBezierPathElement: {
-                        CGPathAddCurveToPoint(cgPath, NULL, ps[0].x, ps[0].y, ps[1].x, ps[1].y, ps[2].x, ps[2].y);
+                        CGPathAddCurveToPoint(cgPath, nullptr, ps[0].x, ps[0].y, ps[1].x, ps[1].y, ps[2].x, ps[2].y);
                         break;
                     }
                     case NSClosePathBezierPathElement: {
@@ -1180,12 +1180,12 @@ return gmpi::MP_FAIL;
 			{
                 auto cgPath2 = gmpi::cocoa::NsToCGPath(geometry_);
                 
-                CGPathRef hitTargetPath = CGPathCreateCopyByStrokingPath(cgPath2, NULL, (CGFloat) strokeWidth, (CGLineCap) [geometry_ lineCapStyle], (CGLineJoin)[geometry_ lineJoinStyle], [geometry_ miterLimit] );
+                CGPathRef hitTargetPath = CGPathCreateCopyByStrokingPath(cgPath2, nullptr, (CGFloat) strokeWidth, (CGLineCap) [geometry_ lineCapStyle], (CGLineJoin)[geometry_ lineJoinStyle], [geometry_ miterLimit] );
                 
                 CGPathRelease(cgPath2);
                 
                 CGPoint cgpoint = CGPointMake(point.x, point.y);
-                *returnContains = (bool) CGPathContainsPoint(hitTargetPath, NULL, cgpoint, (bool)[geometry_ windingRule]);
+                *returnContains = (bool) CGPathContainsPoint(hitTargetPath, nullptr, cgpoint, (bool)[geometry_ windingRule]);
                 
                 CGPathRelease(hitTargetPath);
 				return gmpi::MP_OK;
@@ -2135,7 +2135,7 @@ return gmpi::MP_FAIL;
             SetNativePenStrokeStyle(nsPath, (GmpiDrawing_API::IMpStrokeStyle*) strokeStyle);
 
             CGMutablePathRef cgPath = gmpi::cocoa::NsToCGPath(nsPath);
-            CGPathRef strokePath = CGPathCreateCopyByStrokingPath(cgPath, NULL, strokeWidth, (CGLineCap)[nsPath lineCapStyle],
+            CGPathRef strokePath = CGPathCreateCopyByStrokingPath(cgPath, nullptr, strokeWidth, (CGLineCap)[nsPath lineCapStyle],
                                                                   (CGLineJoin)[nsPath lineJoinStyle], [nsPath miterLimit]);
             CGPathRelease(cgPath);
 
@@ -2178,7 +2178,7 @@ return gmpi::MP_FAIL;
             SetNativePenStrokeStyle(nsPath, (GmpiDrawing_API::IMpStrokeStyle*) strokeStyle);
 
             CGMutablePathRef cgPath = gmpi::cocoa::NsToCGPath(nsPath);
-            CGPathRef strokePath = CGPathCreateCopyByStrokingPath(cgPath, NULL, strokeWidth, (CGLineCap)[nsPath lineCapStyle],
+            CGPathRef strokePath = CGPathCreateCopyByStrokingPath(cgPath, nullptr, strokeWidth, (CGLineCap)[nsPath lineCapStyle],
                                                                   (CGLineJoin)[nsPath lineJoinStyle], [nsPath miterLimit]);
             CGPathRelease(cgPath);
 
@@ -2219,7 +2219,7 @@ return gmpi::MP_FAIL;
             auto offset = GmpiDrawing::TransformPoint(brushProperties_.transform, {0.0f, 0.0f});
 
             NSImage* nsImage = bitmap_.nativeBitmap_;
-            CGImageRef cgImage = [nsImage CGImageForProposedRect:NULL context:nil hints:nil];
+            CGImageRef cgImage = [nsImage CGImageForProposedRect:nullptr context:nil hints:nil];
             const CGFloat tileW = CGImageGetWidth(cgImage);
             const CGFloat tileH = CGImageGetHeight(cgImage);
 

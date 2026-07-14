@@ -38,7 +38,7 @@ public:
 	inline float GetAt(int p_index)
 	{
 #ifdef _DEBUG
-		assert( m_samples != NULL );
+		assert( m_samples != nullptr );
 		assert( p_index >= 0 && p_index < debugBlocksize_ );
 #endif
 		return m_samples[p_index];

@@ -234,7 +234,7 @@ std::string generateUUid()
 	{
 		std::string res;
 #if defined(_WIN32)
-		size_t bytes_required = 1 + WideCharToMultiByte(CP_ACP, 0, p_cstring.c_str(), -1, 0, 0, NULL, NULL);
+		size_t bytes_required = 1 + WideCharToMultiByte(CP_ACP, 0, p_cstring.c_str(), -1, 0, 0, nullptr, nullptr);
 #else
 		const size_t bytes_required = wcstombs(0, p_cstring.c_str(), 0);
 		if (static_cast<std::size_t>(-1) == bytes_required) // invalid chars
@@ -244,7 +244,7 @@ std::string generateUUid()
 		res.resize(bytes_required);
 
 #if defined(_WIN32)
-		WideCharToMultiByte(CP_ACP, 0, p_cstring.c_str(), -1, (LPSTR)res.data(), (int)bytes_required, NULL, NULL);
+		WideCharToMultiByte(CP_ACP, 0, p_cstring.c_str(), -1, (LPSTR)res.data(), (int)bytes_required, nullptr, nullptr);
 #else
 		wcstombs((char*)res.data(), p_cstring.c_str(), bytes_required);
 #endif

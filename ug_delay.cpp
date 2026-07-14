@@ -227,7 +227,7 @@ void ug_delay::CreateBuffer()
 	if( buffer )
 	{
 		delete [] buffer;
-		buffer = NULL;
+		buffer = nullptr;
 	}
 
 	buffer_size = (int) ( getSampleRate() * delay_time );
