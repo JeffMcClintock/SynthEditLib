@@ -2643,6 +2643,34 @@ bool ug_base::BypassPin(UPlug* fromPin, UPlug* toPin)
 	return true;
 }
 
+/* PLUGIN DELAY COMPENSATION (PDC) - read before changing.
+
+Runs once per graph build (ug_container::setupDelayCompensation, from PostBuildStuff_pass2 -
+i.e. BEFORE any module's Open() and before pin defaults transmit). Recursive memoized walk
+upstream; cumulativeLatencySamples is the memo (LATENCY_NOT_SET = unvisited; 0 is written
+before recursing, which also breaks feedback cycles).
+
+Semantics (max-plus):
+   at each junction:  pad(arm)  = max over incoming arms(cum) - cum(arm)   [inserted below]
+   then onward:       cum(node) = max over incoming arms(cum) + latencySamples(node)
+
+Consequences that are easy to get wrong:
+ - Pads only ADD delay (equalize arms up to the max). The engine can never make an arm
+   EARLIER - causality. "Negative lookahead" is spelled Delay2.
+ - A module has ONE cumulative value, so a declared latency (Lookahead) affects EVERY
+   reconvergence in its downstream cone, not just the junction the author had in mind.
+   Replacing a real Delay2 with a Lookahead on the complementary arm is sample-exact ONLY
+   when that cone reconverges once. Detector webs that also feed meters, CV buses or
+   tap-and-rejoin loops ("diamonds") will grow pads the original design never had, changing
+   the sound. For those graphs use "Compensated Delay" (real delay, invisible here,
+   reported to the host via calcReportedLatency below).
+ - Delay2 declares 0 on purpose: an echo's delay IS the sound. Don't "fix" that - the host
+   would time-shift the effect away.
+ - Non-audio pins are compensated too ("SE LatencyAdjust-eventbased2" shifts event
+   timestamps sample-exactly), so bool/int/float legs participate in the same arithmetic.
+ - Multi-connection input pins sum through an implicit Float Adder2 whose legs are padded
+   individually (they appear in the DEBUG_LATENCY ledger with negative handles).
+*/
 int ug_base::calcDelayCompensation()
 {
 	if (cumulativeLatencySamples != LATENCY_NOT_SET)

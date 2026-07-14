@@ -1434,6 +1434,26 @@ void SeAudioMaster::HandleInterrupt()
 	}
 }
 
+/* Runtime latency reports and the async-restart contract.
+
+Latency is baked into the graph at build time (calcDelayCompensation). A report arriving
+AFTER streaming started can only take effect by REBUILDING the graph:
+interrupt_module_latency_change -> DoAsyncRestart. A restart re-creates every module and
+resets ALL state - free-running oscillator phases, envelopes, delay lines - so bit-exact
+renders (cancellation tests) diverge after any mid-stream restart. Modules should therefore
+report their latency BEFORE streaming; see ug_lookahead2::calcDelayCompensation for the
+pattern (deduce the value from the pin's document default at build time, pre-seed BOTH
+this->latencySamples and the map below).
+
+The moduleLatencies map (keyed by module handle):
+ - survives async restarts (deliberately not cleared) - it is how a mid-stream report gets
+   baked into the REBUILT graph (ug_container::setupDelayCompensation restores each entry).
+ - the early-outs below are the restart-prevention contract: reporting the SAME value that
+   is already in the map is free. Reporting a DIFFERENT value triggers a restart - including
+   an accidental 0 from Open() before input pins have transmitted. If the next build pass
+   then re-seeds the old value, the processor restarts FOREVER (the ledger repeats; see
+   DEBUG_LATENCY). Both Lookahead2 bugs of 2026-07 were exactly that loop.
+*/
 void SeAudioMaster::SetModuleLatency(int32_t handle, int32_t latency)
 {
 	auto& moduleLatencies = getShell()->GetModuleLatencies();

@@ -546,6 +546,19 @@ void UPlug::SetDefault2(const char* utf8val)
 
 // unconnected plugs are connected to an default-setter, which creates the output buffer.
 // the default-setter's output is then set to the plug's default value.
+// Document pin defaults, and how to read one before processing starts:
+// For an unconnected input, SetDefault routes the value to an upstream "SE Default Setter"
+// whose OUTPUT plug owns a buffer holding the parsed value (CreateBuffer/SetBufferValue).
+// That buffer exists from build time - long before pins transmit and populate LIST_VAR3
+// member variables (which happens after Open()). So a module can read its own unconnected
+// pin's document default early:
+//     GetPlug(N)->connections.front()->io_variable   // when the source has UGF_DEFAULT_SETTER
+// ug_lookahead2 and ug_compensated_delay use this to know their latency during
+// setupDelayCompensation, which runs before any Open().
+// TRAP: the buffer is not stable for the whole build. Oversampling-capable containers
+// re-plumb their children between the compensation pass and Open(), nulling io_variable -
+// read it during the compensation pass, or fall back to the member variable once pins have
+// transmitted; never rely on it inside Open().
 void UPlug::SetDefault(const char* utf8val)
 {
 	if( DataType == DT_MIDI2 )

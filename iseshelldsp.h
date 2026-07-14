@@ -83,6 +83,12 @@ public:
 
 	virtual int32_t SeMessageBox(const wchar_t* msg, const wchar_t* title, int flags) = 0;
 
+	// Module latencies keyed by module HANDLE, persisting across async restarts (that
+	// persistence is the point: a latency reported mid-stream lands here, the restart rebuilds
+	// the graph, and setupDelayCompensation bakes the value into the new module instances).
+	// SetModuleLatency early-outs when a report matches the map - which is why pre-seeding an
+	// entry at build time (ug_lookahead2) makes the later runtime report free, avoiding the
+	// restart entirely. Reporting a value that DIFFERS from the map always restarts.
 	virtual std::unordered_map<int32_t, int32_t>& GetModuleLatencies() = 0;
 	virtual std::unordered_map<int64_t, std::string>* getExtraPinDefaultChanges() {return {};} // Editor only
 

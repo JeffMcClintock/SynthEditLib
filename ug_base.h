@@ -6,6 +6,16 @@
 #include "ug_flags.h"
 #include "EventProcessor.h"
 
+// Prints the delay-compensation ledger to the debug output on every graph build:
+//   "<Module> [handle] in Container ... . Latency N, cumulative M"  per latency-bearing module
+//   " Inserted P compensation from [src] ... to [dst] ... pin K dt D" per inserted pad
+// A healthy build prints the ledger ONCE. The same ledger repeating endlessly means a module is
+// reporting a changed latency after streaming started and the processor is stuck in an
+// async-restart loop (see SeAudioMaster::SetModuleLatency for the contract that prevents this).
+// Note the ledger describes the FLATTENED graph: container IO Mods have dissolved (a pad's 'from'
+// module may live in a different container in the document), and engine-created modules
+// (Float Adder2, SE Default Setter, pads) print negative, per-build-sequential handles - never
+// match negative handles across two runs.
 #define DEBUG_LATENCY 1
 
 // return info about plugs

@@ -73,6 +73,23 @@ class ug_feedback_delay_out : public ug_base
 
 // Passes the audio signal straight through, while reporting a latency to the
 // host so that plugin delay-compensation can align it.
+//
+// PLACEMENT SEMANTICS - not a drop-in for a Delay2 on the same wire. A Lookahead makes its
+// own branch EARLY: the engine inserts the physical delay on the OTHER arms at the next
+// reconvergence. To reproduce "Delay2 on the audio arm", place the Lookahead on the
+// COMPLEMENTARY (detector) arm. This is sample-exact only when that branch reconverges
+// once; if it also feeds meters, CV buses or other junctions, every one of them gets
+// re-timed (the "diamond problem" - see the notes on ug_base::calcDelayCompensation).
+// For such graphs use "Compensated Delay" instead.
+//
+// RESTART-FREE CONTRACT: the latency is deduced from the 'ms' pin's document default during
+// the build-time compensation pass (calcDelayCompensation override) and pre-seeded into the
+// shell's latency map, so the later runtime SetModuleLatency() call early-outs and no async
+// restart occurs. Two traps are guarded here - re-introducing either produces an INFINITE
+// restart loop (repeating DEBUG_LATENCY ledger): (1) latencyMs is not populated until pins
+// transmit, so never report from it in Open(); (2) in oversampling-capable containers the
+// pin-default buffer (io_variable) is gone by Open() - it is only valid during the
+// compensation pass.
 class ug_lookahead2 : public ug_base
 {
 public:

@@ -159,6 +159,11 @@ SynthRuntime::~SynthRuntime()
     }
 }
 
+// Samples the plugin's reported latency once per (re)build, called right after
+// OpenGenerator(). Modules' Open() has run by now, but input pin defaults may still not
+// have transmitted - a module must not derive its report from LIST_VAR3 members at this
+// point (build-time-known parameters, as used by calcReportedLatency, are safe). A
+// mid-stream latency change only reaches here via an async restart.
 void SynthRuntime::checkLatency()
 {
 	const auto oldLatency = currentPluginLatency;

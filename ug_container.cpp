@@ -738,6 +738,16 @@ void ug_container::PostBuildStuff_pass2()
 	AudioMaster2()->CleanupBypassableModules();
 }
 
+// Runs in PostBuildStuff_pass2: the graph is fully built, but BEFORE any module's Open()
+// and before pin defaults have transmitted. A module that wants its latency in the FIRST
+// build (avoiding a mid-stream async restart later) must be able to deduce it at this
+// point - from the shell's persisted map (restored below), or from a pin-default buffer as
+// ug_lookahead2 / ug_compensated_delay do. LIST_VAR3-bound member variables are NOT
+// populated yet; reading them here yields their construction defaults.
+//
+// The moduleLatencies map is the bridge across async restarts: a value reported mid-stream
+// via SetModuleLatency lands in the map, the restart rebuilds the graph, and this function
+// bakes it into the new module instances so the second build inserts the right pads.
 void ug_container::setupDelayCompensation()
 {
 	// Calculate latency
