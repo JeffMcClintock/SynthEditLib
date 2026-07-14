@@ -114,6 +114,15 @@ public:
 	virtual void onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_state);
 	virtual bool BypassPin(UPlug* fromPin, UPlug* toPin);
 	virtual int calcDelayCompensation();
+	// Host-reported latency, decoupled from compensation. Read-only max-plus pass over the
+	// finalized graph: unlike calcDelayCompensation it inserts nothing, so a module can advertise
+	// real through-delay to the host WITHOUT triggering LatencyAdjust on its siblings (which would
+	// re-align a deliberate offset). Defaults to identical to the compensation number.
+	virtual int calcReportedLatency();
+	// The real input->output delay this module adds, for host reporting only. Defaults to
+	// latencySamples so ordinary/Lookahead/oversampler/LatencyAdjust modules report as today.
+	// "Compensated Delay" overrides this to its physical delay while keeping latencySamples == 0.
+	virtual int getReportedSelfLatency() { return latencySamples; }
 	SeAudioMaster* AudioMaster2();
 	void HandleEvent(SynthEditEvent* e) override;
 	void SendPendingOutputChanges();
@@ -213,6 +222,7 @@ public:
 	// sleep mode variables
 	int static_output_count;
 	int cumulativeLatencySamples;
+	int cumulativeReportedLatencySamples; // memo for calcReportedLatency (host report, not compensation)
 
 	std::vector<UPlug*> plugs;
 

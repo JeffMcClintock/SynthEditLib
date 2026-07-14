@@ -89,7 +89,9 @@ public:
 	int getOverallPluginLatencySamples() override
 	{
 		// If latency compensation disabled, latency will be -1;
-		return (std::max)(0, cumulativeLatencySamples);
+		// calcReportedLatency() == cumulativeLatencySamples unless a "Compensated Delay" is present,
+		// in which case it additionally includes that delay's real (compensation-invisible) through-delay.
+		return (std::max)(0, calcReportedLatency());
 	}
 	int getAudioOutputCount() override
 	{

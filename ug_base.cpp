@@ -97,6 +97,7 @@ ug_base::ug_base() : EventProcessor()
 ,moduleType(0)
 ,latencySamples(0)
 ,cumulativeLatencySamples(LATENCY_NOT_SET)
+,cumulativeReportedLatencySamples(LATENCY_NOT_SET)
 {
 	SET_PROCESS_FUNC( &ug_base::process_nothing ); // moved here from Open(). as it was overidding derived classes initialisation
 	//	SET_PROCESS_FUNC( &ug_base::process_sleep ); // messed up MIDI somehow
@@ -2773,6 +2774,40 @@ int ug_base::calcDelayCompensation()
 	#endif
 
 	return cumulativeLatencySamples;
+}
+
+// Host-reported latency, decoupled from compensation. Mirror of calcDelayCompensation's max-plus
+// longest-path, but READ-ONLY: it inserts no LatencyAdjust. Run on the finalized graph (after
+// compensation), so the LatencyAdjust modules PDC already inserted contribute their pads naturally.
+// The only difference from the compensation number is getReportedSelfLatency(): a "Compensated
+// Delay" reports its real physical delay here while contributing 0 to the compensation field, so
+// its delay reaches the host without re-aligning the deliberate offset it creates. For every other
+// module getReportedSelfLatency() == latencySamples, so this equals cumulativeLatencySamples exactly
+// (no behaviour change for existing plugins).
+int ug_base::calcReportedLatency()
+{
+	if (cumulativeReportedLatencySamples != LATENCY_NOT_SET)
+	{
+		return cumulativeReportedLatencySamples;
+	}
+
+	cumulativeReportedLatencySamples = 0; // also breaks feedback cycles (re-entrant call returns 0)
+
+	for (auto p : plugs)
+	{
+		if (p->Direction == DR_IN)
+		{
+			for (auto fromPlug : p->connections)
+			{
+				cumulativeReportedLatencySamples = (std::max)(cumulativeReportedLatencySamples, fromPlug->UG->calcReportedLatency());
+			}
+		}
+	}
+
+	cumulativeReportedLatencySamples += getReportedSelfLatency();
+	cumulativeReportedLatencySamples = (std::min)(cumulativeReportedLatencySamples, AudioMaster()->latencyCompensationMax());
+
+	return cumulativeReportedLatencySamples;
 }
 
 // Hack! Only for modules requires special privileges from audiomaster. iterates up though oversamplers to true audiomaster.

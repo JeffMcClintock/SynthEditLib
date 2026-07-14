@@ -240,3 +240,23 @@ public:
 	DECLARE_UG_BUILD_FUNC(ug_delay2);
 
 };
+
+// Like Delay2 (identical audio — same delay line), but its delay is REPORTED to the host as
+// plugin latency, so the host delay-compensates the whole plugin for it. Unlike a Lookahead the
+// physical delay stays on this wire (invisible to internal PDC → no LatencyAdjust on siblings →
+// a deliberate lookahead offset is preserved). Use for lookahead alignment; use plain Delay2 for
+// echo/effect delays that must NOT be reported. See ug_base::calcReportedLatency.
+class ug_compensated_delay : public ug_delay2
+{
+public:
+	DECLARE_UG_BUILD_FUNC(ug_compensated_delay);
+	DECLARE_UG_INFO_FUNC2; // Delay2's pins plus a build-time "Reported Latency (ms)" parameter.
+
+	// The through-delay reported to the host but invisible to compensation. Taken from the ms
+	// PARAMETER (deterministic at build), NOT the signal-driven physical delay (which may not have
+	// propagated when latency is queried) — same approach as ug_lookahead2's 'ms' pin.
+	int getReportedSelfLatency() override;
+
+private:
+	float reportedLatencyMs = 0.0f;
+};

@@ -10,6 +10,9 @@ namespace
 {
 REGISTER_MODULE_1(L"Delay", IDS_MN_DELAY,IDS_MG_DEBUG,ug_delay ,CF_STRUCTURE_VIEW,L"Creates an echo effect");
 REGISTER_MODULE_1(L"Delay2", IDS_MN_DELAY2,IDS_MG_EFFECTS,ug_delay2,CF_STRUCTURE_VIEW,L"Creates an echo effect");
+REGISTER_MODULE_1(L"Compensated Delay", L"Compensated Delay", L"Effects", ug_compensated_delay, CF_STRUCTURE_VIEW,
+	L"A delay whose latency IS reported to the host for plugin delay-compensation (unlike Delay2). "
+	L"Audio is identical to Delay2. Use for lookahead alignment; use Delay2 for echo effects.");
 }
 
 #define PN_SIGNAL		0
@@ -17,6 +20,7 @@ REGISTER_MODULE_1(L"Delay2", IDS_MN_DELAY2,IDS_MG_EFFECTS,ug_delay2,CF_STRUCTURE
 #define PN_OUTPUT		2
 #define PN_DELAY_TIME	3
 #define PN_FEEDBACK	5
+#define PN_REPORTED_MS	6	// ug_compensated_delay only: build-time reported-latency parameter
 
 // Fill an array of InterfaceObjects with plugs and parameters
 void ug_delay::ListInterface2(std::vector<class InterfaceObject*>& PList)
@@ -46,6 +50,32 @@ void ug_delay2::ListInterface2(std::vector<class InterfaceObject*>& PList)
 	LIST_VAR3( L"Delay Time (secs)",delay_time, DR_IN, DT_FLOAT , L"1.0", L"",IO_MINIMISED, L"Max delay time in Seconds. Limited to maximum 10s.");
 	LIST_VAR3( L"Interpolate Output", interpolate, DR_IN, DT_BOOL , L"0", L"", IO_MINIMISED, L"Provides smoother modulation of delay time, but increases CPU load");
 	LIST_PIN2( L"Feedback", feedback_ptr, DR_IN, L"0", L"10,0,10,0",IO_POLYPHONIC_ACTIVE, L"");
+}
+
+// Same pins as Delay2 (so audio is identical and existing plug indices are unchanged), plus a
+// build-time "Reported Latency (ms)" parameter at PN_REPORTED_MS. The author sets it to the delay's
+// actual duration; it drives ONLY the host report, never the audio.
+void ug_compensated_delay::ListInterface2(std::vector<class InterfaceObject*>& PList)
+{
+	ug_delay2::ListInterface2(PList); // pins 0..5, identical to Delay2
+	LIST_VAR3(L"Reported Latency (ms)", reportedLatencyMs, DR_IN, DT_FLOAT, L"0", L"", IO_MINIMISED,
+		L"The latency this delay reports to the host for plugin delay-compensation. Set it to the "
+		L"delay's actual duration in milliseconds. Does not affect the audio.");
+}
+
+// Reported through-delay in samples. Taken from the ms PARAMETER, read from its pin default (the
+// Default-Setter) exactly as ug_lookahead2 reads its 'ms' — so it is known at build time and
+// independent of whether the signal-driven physical delay has propagated yet.
+int ug_compensated_delay::getReportedSelfLatency()
+{
+	float ms = reportedLatencyMs; // fallback (populated once pins transmit)
+	if (const auto p = GetPlug(PN_REPORTED_MS); !p->connections.empty())
+	{
+		if (const auto from = p->connections.front(); from->io_variable && from->DataType == DT_FLOAT)
+			ms = *reinterpret_cast<float*>(from->io_variable);
+	}
+
+	return static_cast<int>(0.5f + ms * getSampleRate() * 0.001f);
 }
 
 ug_delay::ug_delay() :
