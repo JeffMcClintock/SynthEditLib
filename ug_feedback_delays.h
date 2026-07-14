@@ -71,10 +71,8 @@ class ug_feedback_delay_out : public ug_base
 	std::vector< std::pair<int, state_type> > statusQueue;
 };
 
-// Old-style port of the new-SDK "SE Lookahead" module.
 // Passes the audio signal straight through, while reporting a latency to the
-// host so that plugin delay-compensation can align it. The latency (in
-// milliseconds) is set by the "ms" control pin.
+// host so that plugin delay-compensation can align it.
 class ug_lookahead2 : public ug_base
 {
 public:
@@ -89,13 +87,13 @@ public:
 	void sub_process_static(int start_pos, int sampleframes);
 
 private:
-	// Pin (plug) indices.
 	static constexpr int PN_MS = 0;
 	static constexpr int PN_IN = 1;
 	static constexpr int PN_OUT = 2;
 
 	float getLookaheadMs();
 	void SetLatencyFromPin();
+	int msToSamples(float ms) const;
 
 	float* input1_ptr = {};
 	float* output1_ptr = {};

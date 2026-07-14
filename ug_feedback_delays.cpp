@@ -207,7 +207,6 @@ void ug_feedback_delay::onSetPin(timestamp_t p_clock, UPlug* /* p_to_plug */, st
 		}
 
 		feedback_out->StatusChangeFromFeedbackIn(relativeTime, p_state);
-		//			_RPT1(_CRT_WARN, "STOP[%d]>\n", static_cast<int>(p_clock));
 	}
 
 	m_last_output_stat = p_state;
@@ -339,11 +338,6 @@ void ug_feedback_delay_out::ListInterface2(std::vector<class InterfaceObject*>& 
 	// first one non-funcional except for dummy connection to mate.
 	LIST_VAR3N(L"", DR_IN, DT_MIDI, L"0", L"", 0, L"");
 	LIST_PIN2(L"Audio Out", output1_ptr, DR_OUT, L"5", L"", 0, L"");
-	/*
-		LIST_PIN2(L"Delay Time Out", output2_ptr, DR_OUT, L"5", L"", 0,
-				  L"The delay in milliseconds that this module adds to the signal "
-				  L"(OUTPUT ONLY).");
-	*/
 	LIST_VAR3(L"Delay Time Out", feedbackLatencyMs, DR_OUT, DT_FLOAT, L"", L"", 0, L"");
 
 	// Dummy pins
@@ -386,7 +380,6 @@ void ug_feedback_delay_out::sub_process(int start_pos, int sampleframes)
 		{
 			timestamp_t clock = AudioMaster()->BlockStartClock() + start_pos + stat.first;
 			OutputChange(clock, GetPlug(PN_OUT1), stat.second);
-//			_RPT2(_CRT_WARN, "STAT[%d](%d)>\n", static_cast<int>(clock - feedbackLatency), stat.second);
 			++eraseCount;
 		}
 		else
@@ -440,21 +433,24 @@ ug_lookahead2::ug_lookahead2()
 {
 }
 
-// The 'ms' pin is not intended to be user-connected, so its value is the pin default —
-// which the Default Setter's output plug already holds before the graph starts processing.
-// The LIST_VAR3-bound latencyMs is populated only once pins have transmitted (i.e. after
-// Open), so reading the pin buffer directly is the only way to get the value early.
+int ug_lookahead2::msToSamples(float ms) const
+{
+	return static_cast<int>(std::round(ms * getSampleRate() * 0.001f));
+}
+
 float ug_lookahead2::getLookaheadMs()
 {
-	float ms = latencyMs; // fallback (variable is populated once pins have transmitted)
+	const auto p = GetPlug(PN_MS);
 
-	if (const auto p = GetPlug(PN_MS); !p->connections.empty())
-	{
-		if (const auto from = p->connections.front(); from->io_variable && from->DataType == DT_FLOAT)
-			ms = *reinterpret_cast<float*>(from->io_variable);
-	}
+	assert(!p->connections.empty());
+	const auto from = p->connections.front();
 
-	return ms;
+	// when pin is unconnected (except to a default-setter). We can deduce latency early.
+	if(from->UG->GetFlag(UGF_DEFAULT_SETTER))
+		return *reinterpret_cast<float*>(from->io_variable);
+
+	// otherwise, we can't know the latency until the first block of audio is processed.
+	return latencyMs;
 }
 
 void ug_lookahead2::SetLatencyFromPin()
@@ -468,10 +464,16 @@ void ug_lookahead2::SetLatencyFromPin()
 // async restart (which would reset oscillator phases and other module state).
 int ug_lookahead2::calcDelayCompensation()
 {
-	if (cumulativeLatencySamples == LATENCY_NOT_SET) // not yet computed
+	if (cumulativeLatencySamples == LATENCY_NOT_SET && 0 == latencySamples) // not yet computed, or latency overrided already by Audiomaster (user changed default which is *not* reflected on default-setter)
 	{
-		latencySamples = static_cast<int>(0.5f + getLookaheadMs() * getSampleRate() * 0.001f);
-		AudioMaster()->getShell()->GetModuleLatencies()[Handle()] = latencySamples;
+		const auto p = GetPlug(PN_MS);
+
+		assert(!p->connections.empty());
+		const auto from = p->connections.front();
+
+		// when pin is unconnected (except to a default-setter). We can deduce latency early.
+		if(from->UG->GetFlag(UGF_DEFAULT_SETTER))
+			latencySamples = msToSamples(*reinterpret_cast<float*>(from->io_variable));
 	}
 
 	return ug_base::calcDelayCompensation();
@@ -481,12 +483,6 @@ int ug_lookahead2::Open()
 {
 	ug_base::Open();
 
-	// When the delay-compensation pass has run, the latency is already seeded — and by
-	// Open the 'ms' pin buffer may have been re-plumbed away (oversampling-capable
-	// containers), so reporting here would send a stale value and force a restart.
-	if (cumulativeLatencySamples == LATENCY_NOT_SET)
-		SetLatencyFromPin();
-
 	SET_PROCESS_FUNC(&ug_lookahead2::sub_process);
 	OutputChange(0, GetPlug(PN_OUT), ST_STATIC);
 
@@ -495,10 +491,12 @@ int ug_lookahead2::Open()
 
 void ug_lookahead2::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type /*p_state*/)
 {
-	// Update host latency whenever the "ms" pin changes.
+	// Dynamic latency adjustment, requires Processor restart.
 	if (p_to_plug == GetPlug(PN_MS))
 	{
-		SetLatencyFromPin();
+		auto latencySamples_new = msToSamples(latencyMs);
+		if(latencySamples_new != latencySamples)
+			AudioMaster()->SetModuleLatency(Handle(), latencySamples_new);
 	}
 
 	// Output follows the input's streaming/static state.

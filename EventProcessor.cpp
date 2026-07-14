@@ -65,7 +65,7 @@ EventProcessor::~EventProcessor()
 #endif
 }
 
-float EventProcessor::getSampleRate()
+float EventProcessor::getSampleRate() const
 {
 	return m_audio_master->SampleRate();
 }

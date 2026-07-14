@@ -245,7 +245,7 @@ public:
 		return private_sample_clock;
 	}
 #endif
-	float getSampleRate();
+	float getSampleRate() const;
 	int getBlockPosition(); // sub position within current block
 	inline class ISeAudioMaster* AudioMaster()
 	{
