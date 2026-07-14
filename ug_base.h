@@ -16,7 +16,7 @@
 // module may live in a different container in the document), and engine-created modules
 // (Float Adder2, SE Default Setter, pads) print negative, per-build-sequential handles - never
 // match negative handles across two runs.
-#define DEBUG_LATENCY 1
+// #define DEBUG_LATENCY 1
 
 // return info about plugs
 #define	DECLARE_UG_INFO_FUNC2	void ListInterface2(std::vector<class InterfaceObject*> &PList) override
