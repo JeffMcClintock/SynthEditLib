@@ -200,6 +200,12 @@ public:
 	int Open() override;
 	void CreateBuffer();
 
+	// Taps in the delay line = the longest delay it can produce. TRUNCATES, which for an echo is
+	// irrelevant (the audible delay is modulation * buffer_size, rendered by the interpolator).
+	// ug_compensated_delay overrides this to round, because there the tap count IS the reported
+	// latency and a systematic 1-sample shortfall would misreport. See getReportedSelfLatency.
+	virtual int calcBufferSize() { return static_cast<int>(getSampleRate() * delay_time); }
+
 	void resetStaticCounter()
 	{
 		static_output_count = buffer_size + AudioMaster()->BlockSize();
@@ -256,6 +262,12 @@ public:
 	// PARAMETER (deterministic at build), NOT the signal-driven physical delay (which may not have
 	// propagated when latency is queried) — same approach as ug_lookahead2's 'ms' pin.
 	int getReportedSelfLatency() override;
+
+	// Round rather than truncate. Unlike an echo, an alignment delay's tap count IS its latency,
+	// so truncating would bias every stage up to a sample short of the requested time (1.46 ms at
+	// 88.2k wants 128.772 taps: 128 = 1.4512 ms, 129 = 1.4626 ms). Rounding halves the worst-case
+	// error and lets getReportedSelfLatency() simply report the time asked for.
+	int calcBufferSize() override { return static_cast<int>(0.5 + getSampleRate() * delay_time); }
 
 private:
 	float reportedLatencyMs = 0.0f;
