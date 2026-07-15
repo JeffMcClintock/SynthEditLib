@@ -917,9 +917,12 @@ int ug_oversampler::calcDelayCompensation()
 		return cumulativeLatencySamples;
 	}
 
-	// NOTE: the inner latency is always a whole number of outer samples (ug_oversampler_out::calcLatency
-	// pads it up to a multiple of oversampleFactor_), so this division never truncates - verified at
-	// 44.1/48/88.2/96k, where the remainder is 0 and each oversampler contributes exactly 78.
+	// NOTE: ug_oversampler_out::calcLatency pads the boundary FILTERS' latency up to a multiple of
+	// oversampleFactor_, so for a filter-only inner graph this division is exact (verified at
+	// 44.1/48/88.2/96k: remainder 0, each oversampler contributes exactly 78). A latency-DECLARING
+	// module inside the container (a Lookahead2, a SEM calling SetModuleLatency) can make the inner
+	// cumulative a non-multiple, and this division then truncates - long-standing behaviour, kept:
+	// changing it would move every pad this pass inserts. The report pass below rounds instead.
 	cumulativeLatencySamples = ug_base::calcDelayCompensation() + oversampler_out->calcDelayCompensation() / oversampleFactor_;
 
 #if defined( DEBUG_LATENCY )
@@ -948,7 +951,13 @@ int ug_oversampler::calcReportedLatency()
 		return cumulativeReportedLatencySamples;
 	}
 
-	cumulativeReportedLatencySamples = ug_base::calcReportedLatency() + oversampler_out->calcReportedLatency() / oversampleFactor_;
+	// Round the inner->outer conversion rather than copying the compensation pass's truncation:
+	// an inner Compensated Delay (or Lookahead2) can make the inner reported total a non-multiple
+	// of the factor, and truncating would bias the host report up to (factor-1)/factor of a sample
+	// short. Rounding is safe HERE because this pass inserts nothing - it only changes the one
+	// number sent to the host, keeping it within half an outer sample of the true inner latency.
+	cumulativeReportedLatencySamples = ug_base::calcReportedLatency()
+		+ (oversampler_out->calcReportedLatency() + oversampleFactor_ / 2) / oversampleFactor_;
 
 	return cumulativeReportedLatencySamples;
 }
