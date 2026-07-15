@@ -1,6 +1,7 @@
 // ug_delay module
 //
 #pragma once
+#include <cmath>
 #include "ug_base.h"
 
 
@@ -274,7 +275,7 @@ public:
 	// 88.2k wants 128.772 taps: 128 = 1.4512 ms, 129 = 1.4626 ms). Rounding halves the worst-case
 	// error. Double precision, same expression shape as msToReportSamples, so report and taps
 	// cannot disagree at float32 half-integer boundaries.
-	int calcBufferSize() override { return static_cast<int>(0.5 + static_cast<double>(getSampleRate()) * delay_time); }
+	int calcBufferSize() override { return static_cast<int>(std::round(static_cast<double>(getSampleRate()) * delay_time)); }
 
 	ug_base* Clone(CUGLookupList& UGLookupList) override; // clones copy the latched report
 

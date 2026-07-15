@@ -100,11 +100,11 @@ int ug_compensated_delay::msToReportSamples(float ms, float delayTimeSecsOrNeg) 
 {
 	const double sr = static_cast<double>(getSampleRate());
 	const double exact = static_cast<double>(ms) * sr * 0.001;
-	double samples = std::floor(0.5 + exact);
+	double samples = std::round(exact);
 
 	if (delayTimeSecsOrNeg > 0.0f)
 	{
-		const double taps = std::floor(0.5 + sr * static_cast<double>(delayTimeSecsOrNeg)); // calcBufferSize's expression
+		const double taps = std::round(sr * static_cast<double>(delayTimeSecsOrNeg)); // calcBufferSize's expression
 		if (std::fabs(exact - taps) <= 1.0)
 			samples = taps;
 	}
