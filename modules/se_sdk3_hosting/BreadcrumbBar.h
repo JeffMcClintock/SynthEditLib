@@ -53,10 +53,18 @@ struct BreadcrumbBar :
     gmpi::api::IInputHost* inputHost = nullptr;
     gmpi::drawing::Rect bounds{};
 
-    CContainer* currentContainer{};
+    // Containers are referenced by HANDLE, never by cached pointer: nothing informs
+    // the bar when a container is destroyed. The retained trail in particular
+    // outlives navigation (see rebuildTrail), so deleting a container module that
+    // the trail still remembers would leave a dangling CContainer* to crash on at
+    // the next paint. Handles are unregistered on delete (CDocOb::OnDelete), so a
+    // stale one resolves to nullptr instead. The document outlives every container
+    // and is cleared explicitly (setCurrent(nullptr) from CloseAllViews).
+    CSynthEditDocBase* document = nullptr;
+    int currentHandle = UniqueSnowflake::NONE;
     int viewFlag{};
-    int deepestHandle = 0;
-    std::vector<CContainer*> trail; // root -> deepest
+    int deepestHandle = UniqueSnowflake::NONE;
+    std::vector<int> trail; // handles, root -> deepest
 
     std::map<std::pair<int, int>, gmpi::drawing::Bitmap> thumbnailCache;
 
@@ -68,13 +76,15 @@ struct BreadcrumbBar :
     // ---- public API ----
     void setCurrent(CContainer* current, int view_flag)
     {
-        currentContainer = current;
+        document = current ? current->Document() : nullptr;
+        currentHandle = current ? current->Handle() : UniqueSnowflake::NONE;
         viewFlag = view_flag;
         rebuildTrail();
         // Render thumbnails now (off the paint path) so render() only draws cached
         // bitmaps and the heavier offscreen render stays out of the paint loop.
-        for (CContainer* c : trail)
-            thumbnailFor(c);
+        for (int h : trail)
+            if (auto* c = resolveHandle(h))
+                thumbnailFor(c);
         invalidate();
     }
 
@@ -100,41 +110,58 @@ private:
             drawingHost->invalidateRect(nullptr);
     }
 
+    // nullptr if the handle is unset, the document is closed, or the container has
+    // since been deleted (its handle is unregistered on delete).
     CContainer* resolveHandle(int handle) const
     {
-        if (handle == 0 || !currentContainer || !currentContainer->Document())
+        if (handle < 0 || !document)
             return nullptr;
         return dynamic_cast<CContainer*>(
-            currentContainer->Document()->uniqueIdDatabase.HandleToObjectWithNull(handle));
+            document->uniqueIdDatabase.HandleToObjectWithNull(handle));
     }
 
     void rebuildTrail()
     {
         trail.clear();
-        if (!currentContainer)
+
+        CContainer* current = resolveHandle(currentHandle);
+        if (!current)
         {
-            deepestHandle = 0;
+            currentHandle = UniqueSnowflake::NONE;
+            deepestHandle = UniqueSnowflake::NONE;
             return;
         }
 
         // Retained-trail anchor: keep `deepest` while the current container is on
         // its ancestry (navigating up / back down the same branch); otherwise the
-        // user branched elsewhere, so reset the anchor to current.
+        // user branched elsewhere (or the anchor was deleted), so reset the anchor
+        // to current.
         CContainer* deepest = resolveHandle(deepestHandle);
         bool currentOnBranch = false;
         if (deepest)
             for (CContainer* c = deepest; c; c = c->Container())
-                if (c == currentContainer) { currentOnBranch = true; break; }
+                if (c == current) { currentOnBranch = true; break; }
 
         if (!deepest || !currentOnBranch)
         {
-            deepest = currentContainer;
-            deepestHandle = currentContainer->Handle();
+            deepest = current;
+            deepestHandle = current->Handle();
         }
 
         for (CContainer* c = deepest; c; c = c->Container())
-            trail.push_back(c);
+            trail.push_back(c->Handle());
         std::reverse(trail.begin(), trail.end());
+    }
+
+    // True while every crumb still resolves. Deleting a container the retained
+    // trail remembers is never announced to the bar, so the trail is re-validated
+    // on the paint path (a handful of hash lookups) and rebuilt when it goes stale.
+    bool trailIsValid() const
+    {
+        for (int h : trail)
+            if (!resolveHandle(h))
+                return false;
+        return true;
     }
 
     gmpi::drawing::Bitmap thumbnailFor(CContainer* container)
@@ -202,6 +229,9 @@ public:
         gmpi::drawing::Graphics g(dc);
         const auto& theme = gmpi::ui::currentTheme();
 
+        if (!trailIsValid())
+            rebuildTrail();
+
         // Background strip + bottom divider.
         {
             auto bg = g.createSolidColorBrush(theme.controlBackground);
@@ -241,8 +271,10 @@ public:
 
         for (size_t i = 0; i < trail.size(); ++i)
         {
-            CContainer* c = trail[i];
-            const bool isCurrent = (c == currentContainer);
+            CContainer* c = resolveHandle(trail[i]);
+            if (!c)
+                continue; // can't happen (trail just validated), but never deref a stale crumb
+            const bool isCurrent = (trail[i] == currentHandle);
 
             if (i > 0)
             {
@@ -320,7 +352,7 @@ public:
             {
                 if (auto* target = resolveHandle(h.handle))
                 {
-                    if (target != currentContainer && onNavigate)
+                    if (h.handle != currentHandle && onNavigate)
                         onNavigate(target);
                 }
                 else
