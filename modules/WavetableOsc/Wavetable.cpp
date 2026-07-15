@@ -1389,11 +1389,22 @@ bool WaveTable::LoadFile3( const _TCHAR* filename, bool fileIsWavetable, int wav
     return LoadFile2(0, filename, fileIsWavetable, wavetableNumber, true );
 }
 
-// Anti-aliased downsample from srcSize → destSize via real-FFT.
-// Both sizes must be powers of two; destSize must divide srcSize (i.e. integer ratio).
-// Strategy: forward FFT N samples → discard bins above destSize/2 → inverse FFT M samples,
-// then rescale so an input sinusoid of amplitude A becomes an output of the same amplitude A.
-static void downsampleFrameFFT( const float* src, int srcSize, float* dest, int destSize )
+// Band-limited resample of one single-cycle frame from srcSize → destSize samples, via the
+// frequency domain: analyse the source cycle into harmonics, then synthesise those same
+// harmonics at the new size. Runs in both directions - downsampling drops the harmonics that
+// no longer fit below the destination's Nyquist, upsampling leaves the new upper ones empty.
+//
+// destSize must be a power of two (realft synthesises it). srcSize is analysed with realft
+// when it too is a power of two, otherwise by a direct DFT: a frame is exactly one cycle, so
+// the naive transform is exact and needs no window.
+//
+// realft's packing, for both the analysis result and the synthesis input:
+//   [0] = DC, [1] = Nyquist - both real-only, and by the DFT's own convention their bin value
+//   is amplitude * size, where an ordinary harmonic's is amplitude * size / 2.
+//   [2k] = Re(harmonic k), [2k+1] = Im(harmonic k).
+// Bin values cross over verbatim rather than being rescaled to destSize; the lone 2/srcSize at
+// the end takes out that mismatch together with realft's own size/2 inverse gain.
+static void resampleFrameFFT( const float* src, int srcSize, float* dest, int destSize )
 {
     if( destSize == srcSize )
     {
@@ -1401,21 +1412,83 @@ static void downsampleFrameFFT( const float* src, int srcSize, float* dest, int 
         return;
     }
 
-    std::vector<float> work( srcSize );
-    memcpy( work.data(), src, sizeof(float) * srcSize );
-    realft( work.data() - 1, srcSize, 1 );
+    // Harmonics that exist at both sizes. Neither end's Nyquist is in this range; those are
+    // real-only bins under a different convention, so they are handled separately below.
+    const int maxHarmonic = (std::min)( ( srcSize - 1 ) / 2, destSize / 2 - 1 );
 
-    // realft packing after forward transform (1-indexed convention adjusted):
-    //   work[0] = DC (real), work[1] = source Nyquist (real, packed in imag-of-DC slot),
-    //   for k = 1 .. srcSize/2 - 1 :  work[2k] = Re(bin_k), work[2k+1] = Im(bin_k).
     std::vector<float> destFreq( destSize, 0.0f );
-    destFreq[0] = work[0];                              // DC.
-    destFreq[1] = work[ destSize ];                     // destination Nyquist = real part of source bin destSize/2.
-    for( int k = 1; k < destSize / 2; ++k )
+    float srcNyquist = 0.0f; // harmonic srcSize/2; only exists when srcSize is even.
+
+    if( ( srcSize & ( srcSize - 1 ) ) == 0 ) // power of two - use the FFT.
     {
-        destFreq[2 * k]     = work[2 * k];
-        destFreq[2 * k + 1] = work[2 * k + 1];
+        std::vector<float> work( src, src + srcSize );
+        realft( work.data() - 1, srcSize, 1 );
+
+        destFreq[0] = work[0];
+        srcNyquist  = work[1];
+
+        for( int k = 1; k <= maxHarmonic; ++k )
+        {
+            destFreq[2 * k]     = work[2 * k];
+            destFreq[2 * k + 1] = work[2 * k + 1];
+        }
     }
+    else
+    {
+        // Direct DFT, matching realft's sign convention: the Numerical Recipes transform runs a
+        // positive exponent, so the imaginary part is +sum( x[n] * sin ), not the usual minus.
+        std::vector<float> cosTable( srcSize );
+        std::vector<float> sinTable( srcSize );
+        for( int m = 0; m < srcSize; ++m )
+        {
+            const double angle = 2.0 * M_PI * (double) m / (double) srcSize;
+            cosTable[m] = (float) cos( angle );
+            sinTable[m] = (float) sin( angle );
+        }
+
+        double dc = 0.0;
+        for( int n = 0; n < srcSize; ++n )
+            dc += src[n];
+        destFreq[0] = (float) dc;
+
+        if( ( srcSize & 1 ) == 0 )
+        {
+            double nyquist = 0.0;
+            for( int n = 0; n < srcSize; ++n )
+                nyquist += ( n & 1 ) ? -src[n] : src[n]; // cos( pi * n ).
+            srcNyquist = (float) nyquist;
+        }
+
+        for( int k = 1; k <= maxHarmonic; ++k )
+        {
+            double re = 0.0;
+            double im = 0.0;
+            int idx = 0; // walks (k * n) modulo srcSize, without the modulo.
+            for( int n = 0; n < srcSize; ++n )
+            {
+                re += src[n] * cosTable[idx];
+                im += src[n] * sinTable[idx];
+                idx += k;
+                if( idx >= srcSize )
+                    idx -= srcSize;
+            }
+            destFreq[2 * k]     = (float) re;
+            destFreq[2 * k + 1] = (float) im;
+        }
+    }
+
+    if( destSize > srcSize && ( srcSize & 1 ) == 0 )
+    {
+        // Upsampling: the source's Nyquist is an ordinary harmonic of the bigger frame, so halve
+        // it to move from the Nyquist convention to the ordinary-harmonic one. Its phase is
+        // unknowable in the source (a sine at Nyquist samples to nothing); the cosine reading
+        // taken here is the one that passes back through every original sample exactly.
+        destFreq[2 * ( srcSize / 2 )] = srcNyquist * 0.5f;
+    }
+    // Downsampling leaves destFreq[1], the destination's Nyquist, at zero. The source harmonic
+    // landing there is complex, and a real-only bin cannot carry its phase - keeping just the
+    // real part would scale it by an arbitrary amount depending on that phase. It is the topmost
+    // harmonic of the cycle, which the mip bake caps away long before it could be audible.
 
     realft( destFreq.data() - 1, destSize, -1 );
 
@@ -1701,28 +1774,7 @@ bool WaveTable::LoadFile2(int selectedFromSlot, const _TCHAR* filename, bool fil
 				const float* srcFrameStart = wave.data() + srcFrame * srcFrameSize;
 				float* destSlotStart = slotsBase + destSlot * waveSize;
 
-				if( srcFrameSize == waveSize )
-				{
-					memcpy( destSlotStart, srcFrameStart, sizeof(float) * waveSize );
-				}
-				else if( srcFrameSize > waveSize
-				         && ( srcFrameSize & ( srcFrameSize - 1 ) ) == 0
-				         && ( waveSize     & ( waveSize     - 1 ) ) == 0 )
-				{
-					downsampleFrameFFT( srcFrameStart, srcFrameSize, destSlotStart, waveSize );
-				}
-				else
-				{
-					// Linear resample fallback (small frame sizes or non-power-of-two ratios).
-					for( int i = 0; i < waveSize; ++i )
-					{
-						float pos = (float) i * (float) srcFrameSize / (float) waveSize;
-						int i0 = (int) pos;
-						float frac = pos - (float) i0;
-						int i1 = ( i0 + 1 < srcFrameSize ) ? i0 + 1 : 0;
-						destSlotStart[i] = srcFrameStart[i0] + frac * ( srcFrameStart[i1] - srcFrameStart[i0] );
-					}
-				}
+				resampleFrameFFT( srcFrameStart, srcFrameSize, destSlotStart, waveSize );
 			}
 		}
 		else if( SampleCount == FullTableSamples && fileIsWavetable )
