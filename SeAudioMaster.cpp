@@ -274,7 +274,7 @@ SeAudioMaster::SeAudioMaster( float p_samplerate, ISeShellDsp* p_shell, Elatency
 		break;
 
 	case ElatencyContraintType::Constrained:
-		maxLatency = static_cast<int>(0.05f * p_samplerate); // 5ms
+		maxLatency = static_cast<int>(0.05f * p_samplerate); // 50ms
 		break;
 
 	default:
