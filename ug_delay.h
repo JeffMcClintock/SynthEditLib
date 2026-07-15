@@ -263,12 +263,25 @@ public:
 	// propagated when latency is queried) — same approach as ug_lookahead2's 'ms' pin.
 	int getReportedSelfLatency() override;
 
+	// Latches the ms pin default into latchedReportSamples while it is still reliably readable —
+	// before this pass splices pads into the arm and before oversampling containers re-plumb the
+	// buffer away. Contributes NOTHING to compensation (latencySamples stays 0); the override
+	// exists only for its timing. See getReportedSelfLatency.
+	int calcDelayCompensation() override;
+
 	// Round rather than truncate. Unlike an echo, an alignment delay's tap count IS its latency,
 	// so truncating would bias every stage up to a sample short of the requested time (1.46 ms at
 	// 88.2k wants 128.772 taps: 128 = 1.4512 ms, 129 = 1.4626 ms). Rounding halves the worst-case
-	// error and lets getReportedSelfLatency() simply report the time asked for.
-	int calcBufferSize() override { return static_cast<int>(0.5 + getSampleRate() * delay_time); }
+	// error. Double precision, same expression shape as msToReportSamples, so report and taps
+	// cannot disagree at float32 half-integer boundaries.
+	int calcBufferSize() override { return static_cast<int>(0.5 + static_cast<double>(getSampleRate()) * delay_time); }
+
+	ug_base* Clone(CUGLookupList& UGLookupList) override; // clones copy the latched report
 
 private:
+	float readPinDefaultFloat(int pinIndex, float fallback, bool* fromDocument = nullptr); // GetPlug is non-const
+	int msToReportSamples(float ms, float delayTimeSecsOrNeg) const;
+
 	float reportedLatencyMs = 0.0f;
+	int latchedReportSamples = -1; // -1 = not yet latched (latched during calcDelayCompensation)
 };

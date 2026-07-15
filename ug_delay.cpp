@@ -1,4 +1,6 @@
 
+#include <algorithm>
+#include <cmath>
 #include "ug_delay.h"
 #include "resource.h"
 #include "module_register.h"
@@ -63,26 +65,91 @@ void ug_compensated_delay::ListInterface2(std::vector<class InterfaceObject*>& P
 		L"delay's actual duration in milliseconds. Does not affect the audio.");
 }
 
-// Reported through-delay in samples: simply the requested time in samples, rounded. The ms
-// parameter is read from its pin default (the Default-Setter) exactly as ug_lookahead2 reads its
-// 'ms' - so the value is known at build time and independent of whether the signal-driven
-// modulation has propagated yet.
-//
-// This matches the delay line BY CONSTRUCTION because calcBufferSize() rounds the same way: for the
-// usual alignment case (modulation at full scale) the tap count IS this number. A modulated
-// Compensated Delay lands within half a sample of it - the residue is sub-sample and unavoidable,
-// since latency must be reported as a whole number (e.g. a stage whose true delay is 115.2 samples
-// can only be reported as 115).
-int ug_compensated_delay::getReportedSelfLatency()
+// Read a float pin's document default from the Default-Setter's build-time buffer, exactly as
+// ug_lookahead2::calcDelayCompensation does — including its UGF_DEFAULT_SETTER guard: if the pin
+// is wired to a real module instead, that module's output variable is meaningless until pins
+// transmit, so fall back. fromDocument reports whether a real document default was read (the
+// fallback member may be unpopulated/uninitialised before pins transmit).
+float ug_compensated_delay::readPinDefaultFloat(int pinIndex, float fallback, bool* fromDocument)
 {
-	float ms = reportedLatencyMs; // fallback (populated once pins transmit)
-	if (const auto p = GetPlug(PN_REPORTED_MS); !p->connections.empty())
+	if (fromDocument)
+		*fromDocument = false;
+
+	if (const auto p = GetPlug(pinIndex); !p->connections.empty())
 	{
-		if (const auto from = p->connections.front(); from->io_variable && from->DataType == DT_FLOAT)
-			ms = *reinterpret_cast<float*>(from->io_variable);
+		if (const auto from = p->connections.front();
+			from->UG->GetFlag(UGF_DEFAULT_SETTER) && from->io_variable && from->DataType == DT_FLOAT)
+		{
+			if (fromDocument)
+				*fromDocument = true;
+			return *reinterpret_cast<float*>(from->io_variable);
+		}
+	}
+	return fallback;
+}
+
+// ms -> whole samples, clamped to what the line can actually deliver: never negative, never more
+// than CreateBuffer's 10-second buffer cap. When the requested time lands within one tap of the
+// full delay line (the usual alignment case: ms == 'Delay Time (secs)' * 1000, modulation at full
+// scale), the report SNAPS to the line's own tap count — ms and Delay Time are two independently
+// stored float pins, so computing them separately can straddle a half-integer boundary and
+// disagree by 1; snapping makes report == physical by construction. A partially-modulated
+// Compensated Delay keeps the rounded ms and lands within half a sample of the true (fractional)
+// delay — unavoidable, since latency must be reported as a whole number.
+int ug_compensated_delay::msToReportSamples(float ms, float delayTimeSecsOrNeg) const
+{
+	const double sr = static_cast<double>(getSampleRate());
+	const double exact = static_cast<double>(ms) * sr * 0.001;
+	double samples = std::floor(0.5 + exact);
+
+	if (delayTimeSecsOrNeg > 0.0f)
+	{
+		const double taps = std::floor(0.5 + sr * static_cast<double>(delayTimeSecsOrNeg)); // calcBufferSize's expression
+		if (std::fabs(exact - taps) <= 1.0)
+			samples = taps;
 	}
 
-	return static_cast<int>(0.5 + ms * getSampleRate() * 0.001f);
+	return static_cast<int>((std::max)(0.0, (std::min)(samples, 10.0 * sr)));
+}
+
+// Latch the report at the only moment the pin defaults are reliably readable: during the
+// compensation pass, BEFORE this module's arms are padded (pads on our pins are inserted by our
+// own base call below, and a spliced pad's output plug has no io_variable) and BEFORE
+// oversampling-capable containers re-plumb their children (which nulls the Default-Setter buffer
+// between this pass and Open — see the note on UPlug::SetDefault). Contributes nothing to
+// compensation: latencySamples stays 0.
+int ug_compensated_delay::calcDelayCompensation()
+{
+	if (latchedReportSamples < 0)
+	{
+		const float ms = readPinDefaultFloat(PN_REPORTED_MS, reportedLatencyMs);
+		bool dtFromDocument = false;
+		const float dt = readPinDefaultFloat(PN_DELAY_TIME, 0.0f, &dtFromDocument);
+		latchedReportSamples = msToReportSamples(ms, dtFromDocument ? dt : -1.0f);
+	}
+
+	return ug_delay2::calcDelayCompensation();
+}
+
+// Reported through-delay in samples. Normally the value latched at compensation time; the guarded
+// lazy read is only a fallback for builds where the compensation pass never ran (latency
+// compensation disabled — where the report is clamped to 0 anyway). No snap here: the delay_time
+// member is not trustworthy before pins transmit.
+int ug_compensated_delay::getReportedSelfLatency()
+{
+	if (latchedReportSamples >= 0)
+		return latchedReportSamples;
+
+	return msToReportSamples(readPinDefaultFloat(PN_REPORTED_MS, reportedLatencyMs), -1.0f);
+}
+
+// Polyphonic clones are created AFTER the compensation pass, so they never latch for themselves —
+// carry the latched report across (ug_base::Clone copies latencySamples the same way).
+ug_base* ug_compensated_delay::Clone(CUGLookupList& UGLookupList)
+{
+	auto clone = static_cast<ug_compensated_delay*>(ug_delay2::Clone(UGLookupList));
+	clone->latchedReportSamples = latchedReportSamples;
+	return clone;
 }
 
 ug_delay::ug_delay() :
