@@ -1384,11 +1384,6 @@ void SliceAndDice(vector<float>& Wavefile, WaveTable* waveTable, int waveTablenu
 #endif
 }
 
-bool WaveTable::LoadFile3( const _TCHAR* filename, bool fileIsWavetable, int wavetableNumber ) // Load single wavetable.
-{
-    return LoadFile2(0, filename, fileIsWavetable, wavetableNumber, true );
-}
-
 // Band-limited resample of one single-cycle frame from srcSize → destSize samples, via the
 // frequency domain: analyse the source cycle into harmonics, then synthesise those same
 // harmonics at the new size. Runs in both directions - downsampling drops the harmonics that
@@ -1721,63 +1716,68 @@ bool WaveTable::LoadWaveFile( const _TCHAR* filename, std::vector<float> &return
 	return true;
 }
 
-bool WaveTable::LoadFile2(int selectedFromSlot, const _TCHAR* filename, bool fileIsWavetable, int waveTablenumber, bool entireTable, int method, int diagnosticPitchDetectType, float* rawPitchEstimates)
+// Decide how a file's samples map onto slots, without touching the samples themselves. Split
+// out from the load so the caller can size the table - and its mip bake - to the file's real
+// slot count before any of it is filled in.
+WaveTable::FileLayout WaveTable::PlanLoad( int sampleCount, const SerumMetadata& serumMeta )
 {
-    assert( this->waveSize > 0 && this->waveSize < 5000 );
-	assert( this->slotCount > 0 && this->slotCount < 500 );
+	FileLayout plan;
 
-    assert( selectedFromSlot >= 0 && selectedFromSlot < slotCount );
-
-	int sampleRate;
-	vector<float> wave;
-	SerumMetadata serumMeta;
-
-	if( false == LoadWaveFile( filename, wave, sampleRate, &serumMeta ) || wave.empty() )
-    {
-        return false;
-    }
-
-	int SampleCount = (int)wave.size();
-
-	if( entireTable )
+	// Serum/Vital: the file states its own cycle size, so its frame count is exact rather than
+	// guessed. Take the frames it actually holds instead of stretching them over a fixed table.
+	if( serumMeta.frameSize > 0 && serumMeta.frameSize <= sampleCount )
 	{
-		// If imported file happens to be exactly the right size to fill the table. We'll assume it's already sliced and diced.
-		int FullTableSamples = slotCount * waveSize;
+		plan.strategy     = FileLayout::SerumFrames;
+		plan.srcFrameSize = serumMeta.frameSize;
+		plan.framesInFile = sampleCount / serumMeta.frameSize;
+		plan.slotCount    = (std::max)( MinSlotCount, (std::min)( plan.framesInFile, MaxSlotCount ) );
+		return plan;
+	}
 
-		// Serum/Vital format: file declares its own cycle size in a 'clm ' chunk. Slice deterministically rather than pitch-detecting.
-		if( fileIsWavetable && serumMeta.frameSize > 0 && serumMeta.frameSize <= SampleCount )
+	// Legacy pre-sliced wavetable: exactly the size that fills the default table, so assume it
+	// was sliced and diced already.
+	if( sampleCount == DefaultSlotCount * WavetableFileSampleCount )
+	{
+		plan.strategy  = FileLayout::PreSliced;
+		plan.slotCount = DefaultSlotCount;
+		return plan;
+	}
+
+	plan.strategy  = FileLayout::PitchDetect;
+	plan.slotCount = DefaultSlotCount;
+	return plan;
+}
+
+void WaveTable::LoadSamples( std::vector<float>& wave, int fileSampleRate, const FileLayout& plan, int waveTablenumber, int method, int diagnosticPitchDetectType, float* rawPitchEstimates )
+{
+	assert( waveSize > 0 && waveSize < 5000 );
+	assert( slotCount >= MinSlotCount && slotCount <= MaxSlotCount );
+	assert( slotCount == plan.slotCount ); // the table must have been sized to the plan.
+
+	const int SampleCount = (int)wave.size();
+
+	switch( plan.strategy )
+	{
+	case FileLayout::SerumFrames:
 		{
-			const int srcFrameSize = serumMeta.frameSize;
-			int framesInFile = SampleCount / srcFrameSize;
-			if( framesInFile < 1 ) framesInFile = 1;
-
 			float* slotsBase = Wavedata + waveTablenumber * waveSize * slotCount;
 
 			for( int destSlot = 0; destSlot < slotCount; ++destSlot )
 			{
-				// Map destination slot index → source frame. Even distribution if file has >= slotCount frames; clamp otherwise.
-				int srcFrame;
-				if( framesInFile >= slotCount )
-				{
-					srcFrame = ( destSlot * ( framesInFile - 1 ) ) / ( slotCount - 1 );
-				}
-				else if( framesInFile == 1 )
-				{
-					srcFrame = 0;
-				}
-				else
-				{
-					srcFrame = ( destSlot * ( framesInFile - 1 ) + ( slotCount - 1 ) / 2 ) / ( slotCount - 1 );
-					if( srcFrame > framesInFile - 1 ) srcFrame = framesInFile - 1;
-				}
+				// slotCount is the file's own frame count, so this is normally 1:1. It only
+				// spreads out when the file carries more frames than a table can hold (even
+				// decimation, keeping the first and last), or exactly one (both slots take it).
+				const int srcFrame = ( destSlot * ( plan.framesInFile - 1 ) ) / ( slotCount - 1 );
 
-				const float* srcFrameStart = wave.data() + srcFrame * srcFrameSize;
+				const float* srcFrameStart = wave.data() + srcFrame * plan.srcFrameSize;
 				float* destSlotStart = slotsBase + destSlot * waveSize;
 
-				resampleFrameFFT( srcFrameStart, srcFrameSize, destSlotStart, waveSize );
+				resampleFrameFFT( srcFrameStart, plan.srcFrameSize, destSlotStart, waveSize );
 			}
 		}
-		else if( SampleCount == FullTableSamples && fileIsWavetable )
+		break;
+
+	case FileLayout::PreSliced:
 		{
 			float* dest = Wavedata + waveTablenumber * waveSize * slotCount;
 			for( int i = 0 ; i < SampleCount ; ++i )
@@ -1785,23 +1785,12 @@ bool WaveTable::LoadFile2(int selectedFromSlot, const _TCHAR* filename, bool fil
 				dest[i] = wave[i];
 			}
 		}
-		else
-		{
-			SliceAndDice(wave, this, waveTablenumber, method, diagnosticPitchDetectType, rawPitchEstimates, sampleRate);
-		}
-	}
-	else // 1 slot
-	{
-		int samples = std::min( waveSize, SampleCount );
-		NormalizeWave( wave );
-		float* dest = Wavedata + (waveTablenumber * slotCount + selectedFromSlot) * waveSize;
-		for( int i = 0 ; i < samples ; ++i )
-		{
-			dest[i] = wave[i];
-		}
-	}
+		break;
 
-	return true;
+	case FileLayout::PitchDetect:
+		SliceAndDice(wave, this, waveTablenumber, method, diagnosticPitchDetectType, rawPitchEstimates, fileSampleRate);
+		break;
+	}
 }
 
 /*

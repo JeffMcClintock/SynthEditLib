@@ -15,8 +15,8 @@
 // any number of threads.
 struct CachedWavetable
 {
-	// 64-slot single-cycle form. Used by the GUI's 3D landscape display, and as
-	// the source for the mip-map bake.
+	// Single-cycle form, at whatever slot count the source turned out to hold. Used by the
+	// GUI's 3D landscape display, and as the source for the mip-map bake.
 	std::vector<float> rawStorage;
 
 	// Mip-mapped form, laid out per `mipInfo`. Used by the DSP audio loop.

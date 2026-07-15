@@ -101,7 +101,16 @@ public:
 // An collection of Wavetables.
 struct WaveTable
 {
-	static const int WavetableFileSlotCount = 64;
+	// Slots per wavetable. A file that declares its own frame count (the Serum/Vital 'clm '
+	// chunk) is loaded at that real count, clamped to [MinSlotCount, MaxSlotCount]. Sources
+	// that declare nothing - pitch-detected samples, the legacy pre-sliced format, the builtin
+	// shapes - get DefaultSlotCount.
+	static const int DefaultSlotCount = 64;
+	static const int MaxSlotCount = 256;  // Serum's own ceiling.
+	// The audio loop always reads slot N alongside slot N+1 to crossfade the two, so even a
+	// single-frame file has to occupy two slots.
+	static const int MinSlotCount = 2;
+
 	static const int WavetableFileSampleCount = 512;
 
 #if defined(_DEBUG)
@@ -139,13 +148,33 @@ struct WaveTable
 		int interpolationMode = 0;   // 0 none, 1 linear crossfade, 2-4 spectral.
 	};
 
+	// How a wav file's samples map onto slots. Worked out up-front by PlanLoad, because the raw
+	// buffer, the mip layout and the bake all have to be sized to slotCount before the samples
+	// can be sliced into place.
+	struct FileLayout
+	{
+		enum Strategy
+		{
+			SerumFrames, // file declares its cycle size in a 'clm ' chunk - slice it deterministically.
+			PreSliced,   // file is exactly DefaultSlotCount * WavetableFileSampleCount - already a wavetable.
+			PitchDetect, // anything else: an ordinary sample, so hunt for the cycles by autocorrelation.
+		};
+
+		Strategy strategy = PitchDetect;
+		int slotCount = DefaultSlotCount;
+		int srcFrameSize = 0;  // SerumFrames only: cycle size the file declares.
+		int framesInFile = 0;  // SerumFrames only: whole frames the file holds.
+	};
+
 	static bool LoadWaveFile( const _TCHAR* filename, std::vector<float> &returnSamples, int& returnSampleRate, SerumMetadata* returnSerumMeta = nullptr );
 	static void NormalizeWave( std::vector<float>& wave );
 	static float ExtractPeriod( const std::vector<float>& sample, int autocorrelateto, int slot );
 	static void SliceAndDiceGetSlicePositions( const std::vector<float>& Wavefile, int slices, std::vector<int>& returnSlicePositions );
 
-    bool LoadFile3( const _TCHAR* filename, bool fileIsWavetable, int wavetableNumber = 0 );
-	bool LoadFile2(int selectedFromSlot, const _TCHAR* filename, bool fileIsWavetable, int waveTablenumber, bool entireTable, int method = 1, int diagnosticPitchDetectType = 0, float* rawPitchEstimates = 0);
+	static FileLayout PlanLoad( int sampleCount, const SerumMetadata& serumMeta );
+	// Slices already-read samples into this table, which the caller must have sized to
+	// plan.slotCount x WavetableFileSampleCount.
+	void LoadSamples( std::vector<float>& wave, int fileSampleRate, const FileLayout& plan, int waveTablenumber = 0, int method = 1, int diagnosticPitchDetectType = 0, float* rawPitchEstimates = 0 );
 	void ExportFile( const std::wstring& filename, int wavetableNumber, int selectedFromSlot, bool entireTable );
 	void GenerateWavetable( int wavetableNumber, int selectedFromSlot, int selectedToSlot, int shape );
 	void MorphSlots( int wavetableNumber, int selectedFromSlot, int selectedToSlot );
