@@ -88,7 +88,12 @@ public:
 
 	int getOverallPluginLatencySamples() override
 	{
-		// If latency compensation disabled, latency will be -1;
+		// Latency compensation disabled: the compensation pass never ran (see
+		// setupDelayCompensation's early-out) and every node of the report walk would clamp to
+		// min(x, 0) anyway - skip the whole recursive traversal.
+		if (AudioMaster()->latencyCompensationMax() <= 0)
+			return 0;
+
 		// calcReportedLatency() == cumulativeLatencySamples unless a "Compensated Delay" is present,
 		// in which case it additionally includes that delay's real (compensation-invisible) through-delay.
 		return (std::max)(0, calcReportedLatency());

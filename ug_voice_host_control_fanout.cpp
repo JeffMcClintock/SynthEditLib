@@ -166,14 +166,12 @@ int ug_voice_host_control_fanout::calcDelayCompensation()
 
 // Mirror of calcDelayCompensation for the host-report pass, for the same reason: our input plugs
 // are dummy MIDI pins with no connections, so ug_base's default walk would report 0 and disagree
-// with the latency we advertise to compensation. Keep the two passes telling the same story.
+// with the latency we advertise to compensation. Plain delegation, no second memo:
+// calcDelayCompensation is already memoized, and two caches of one value could drift apart if a
+// future path ever recomputes compensation - delegating makes disagreement impossible.
 int ug_voice_host_control_fanout::calcReportedLatency()
 {
-	if (cumulativeReportedLatencySamples != LATENCY_NOT_SET)
-		return cumulativeReportedLatencySamples;
-
-	cumulativeReportedLatencySamples = calcDelayCompensation();
-	return cumulativeReportedLatencySamples;
+	return calcDelayCompensation();
 }
 
 void ug_voice_host_control_fanout::HandleEvent(SynthEditEvent* e)

@@ -1004,9 +1004,11 @@ int ug_oversampler_in::calcDelayCompensation()
 // walk must STOP here and report only the upsampler's own filter latency. ug_base's default would
 // instead follow our pins out into the OUTER graph and add outer-rate numbers to an inner-rate
 // total (and ug_oversampler::calcReportedLatency already accounts for the outer side separately).
+// Delegate rather than duplicate the body, so a future refinement of the compensation version
+// cannot leave this twin behind.
 int ug_oversampler_in::calcReportedLatency()
 {
-	return latencySamples;
+	return calcDelayCompensation();
 }
 
 void ug_oversampler_in::subProcessUpsample(int start_pos, int sampleframes)

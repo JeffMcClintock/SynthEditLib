@@ -2832,8 +2832,11 @@ int ug_base::calcReportedLatency()
 		}
 	}
 
-	cumulativeReportedLatencySamples += getReportedSelfLatency();
-	cumulativeReportedLatencySamples = (std::min)(cumulativeReportedLatencySamples, AudioMaster()->latencyCompensationMax());
+	if (const int self = getReportedSelfLatency(); self != 0) // avoid virtual function call if not needed (mirrors calcDelayCompensation)
+	{
+		cumulativeReportedLatencySamples += self;
+		cumulativeReportedLatencySamples = (std::min)(cumulativeReportedLatencySamples, AudioMaster()->latencyCompensationMax());
+	}
 
 	return cumulativeReportedLatencySamples;
 }
