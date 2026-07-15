@@ -933,6 +933,26 @@ int ug_oversampler::calcDelayCompensation()
 	return cumulativeLatencySamples;
 }
 
+// Mirror of calcDelayCompensation for the host-report pass. The inner graph is a separate
+// AudioMaster running at oversampleFactor_ times our rate, and ug_base's walk only ever sees our
+// OUTER pins - so without this the entire oversampled region contributes nothing to the reported
+// latency: not our own filters, and not a Compensated Delay placed inside us. (This is not
+// hypothetical for the filters: the number only came out right in existing plugins because PDC had
+// inserted a pad carrying the same value on the sibling arm, which the report happened to pick up.)
+// A path never contains both us and a pad compensating for us - those are alternative arms of the
+// same reconvergence - so counting our latency here cannot double-count.
+int ug_oversampler::calcReportedLatency()
+{
+	if (cumulativeReportedLatencySamples != LATENCY_NOT_SET)
+	{
+		return cumulativeReportedLatencySamples;
+	}
+
+	cumulativeReportedLatencySamples = ug_base::calcReportedLatency() + oversampler_out->calcReportedLatency() / oversampleFactor_;
+
+	return cumulativeReportedLatencySamples;
+}
+
 void ug_oversampler::IterateContainersDepthFirst(std::function<void(ug_container*)>& f)
 {
 	main_container->IterateContainersDepthFirst(f);

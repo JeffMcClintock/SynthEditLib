@@ -1000,6 +1000,15 @@ int ug_oversampler_in::calcDelayCompensation()
 	return latencySamples;
 }
 
+// Mirror of calcDelayCompensation for the host-report pass. We are the inner graph's boundary: the
+// walk must STOP here and report only the upsampler's own filter latency. ug_base's default would
+// instead follow our pins out into the OUTER graph and add outer-rate numbers to an inner-rate
+// total (and ug_oversampler::calcReportedLatency already accounts for the outer side separately).
+int ug_oversampler_in::calcReportedLatency()
+{
+	return latencySamples;
+}
+
 void ug_oversampler_in::subProcessUpsample(int start_pos, int sampleframes)
 {
 	for (int x = (int) plugs.size() - 1; x >= 0; --x)

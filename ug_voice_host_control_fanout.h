@@ -86,6 +86,7 @@ public:
 	// Reporting the correct latency here makes the mismatch disappear and no compensator gets
 	// inserted on our outputs.
 	int calcDelayCompensation() override;
+	int calcReportedLatency() override; // must mirror the above - see the .cpp
 
 private:
 	struct connectionInfo

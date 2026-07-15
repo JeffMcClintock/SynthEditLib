@@ -128,6 +128,14 @@ public:
 	// finalized graph: unlike calcDelayCompensation it inserts nothing, so a module can advertise
 	// real through-delay to the host WITHOUT triggering LatencyAdjust on its siblings (which would
 	// re-align a deliberate offset). Defaults to identical to the compensation number.
+	//
+	// KEEP THE TWO PASSES IN STEP: if you override calcDelayCompensation() because the default
+	// pin walk gets your module wrong, override this the same way, or the host report and the
+	// internal compensation will disagree. Current pairs: ug_oversampler (descends into the inner
+	// graph and converts rate), ug_oversampler_in (terminates the inner walk),
+	// ug_voice_host_control_fanout (pins are dummies). ug_container deliberately doesn't - its
+	// override only exists to visit disconnected islands for pad insertion, and this pass inserts
+	// nothing and only walks back from the output.
 	virtual int calcReportedLatency();
 	// The real input->output delay this module adds, for host reporting only. Defaults to
 	// latencySamples so ordinary/Lookahead/oversampler/LatencyAdjust modules report as today.

@@ -94,6 +94,7 @@ public:
 	}
 
 	int calcDelayCompensation() override;
+	int calcReportedLatency() override; // must mirror the above - see the .cpp
 	void IterateContainersDepthFirst(std::function<void(ug_container*)>& f) override;
 	void SetModuleLatency(int32_t handle, int32_t latency) override;
 	int32_t RegisterIoModule(class ISpecialIoModule*) override { return 1; } // can't oversample an IO module

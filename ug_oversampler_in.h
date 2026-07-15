@@ -35,6 +35,7 @@ public:
 	int Open() override;
 	void OnOversamplerResume();
 	int calcDelayCompensation() override;
+	int calcReportedLatency() override; // must mirror the above - see the .cpp
 };
 
 
