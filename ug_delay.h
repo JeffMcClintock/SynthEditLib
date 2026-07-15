@@ -1,7 +1,6 @@
 // ug_delay module
 //
 #pragma once
-#include <cmath>
 #include "ug_base.h"
 
 
@@ -201,12 +200,6 @@ public:
 	int Open() override;
 	void CreateBuffer();
 
-	// Taps in the delay line = the longest delay it can produce. TRUNCATES, which for an echo is
-	// irrelevant (the audible delay is modulation * buffer_size, rendered by the interpolator).
-	// ug_compensated_delay overrides this to round, because there the tap count IS the reported
-	// latency and a systematic 1-sample shortfall would misreport. See getReportedSelfLatency.
-	virtual int calcBufferSize() { return static_cast<int>(getSampleRate() * delay_time); }
-
 	void resetStaticCounter()
 	{
 		static_output_count = buffer_size + AudioMaster()->BlockSize();
@@ -248,46 +241,55 @@ public:
 
 };
 
-// Like Delay2 (identical audio — same delay line), but its delay is REPORTED to the host as
-// plugin latency, so the host delay-compensates the whole plugin for it. Unlike a Lookahead the
-// physical delay stays on this wire (invisible to internal PDC → no LatencyAdjust on siblings →
-// a deliberate lookahead offset is preserved). Use for lookahead alignment; use plain Delay2 for
-// echo/effect delays that must NOT be reported. See ug_base::calcReportedLatency.
+// A pure latency fixer: delays the signal by a whole number of samples and reports EXACTLY that
+// number to the host — one 'Latency (ms)' value drives both the delay line and the report, so
+// report == physical by identity. Unlike a Lookahead the physical delay stays on this wire
+// (invisible to internal PDC → no LatencyAdjust on siblings → a deliberate lookahead offset is
+// preserved). No modulation, no interpolation, no feedback: use Delay2 for echo effects, whose
+// delay must NOT be reported. See ug_base::calcReportedLatency.
 //
-// The timing pins ('Reported Latency (ms)', 'Delay Time (secs)') carry IO_MINIMISED, which
-// prevents connections by hiding the pin: both are design-time constants, so the latency is fixed
-// for the life of a build and there is deliberately NO runtime re-report path (no SetModuleLatency
-// hook, no restart trigger) — hosts expect a plugin's latency to be constant anyway. Don't add one.
-class ug_compensated_delay : public ug_delay2
+// The 'Latency (ms)' pin carries IO_MINIMISED, which prevents connections by hiding the pin: it is
+// a design-time constant, so the latency is fixed for the life of a build and there is deliberately
+// NO runtime re-report path (no SetModuleLatency hook, no restart trigger) — hosts expect a
+// plugin's latency to be constant anyway. Don't add one.
+class ug_compensated_delay : public ug_base
 {
 public:
 	DECLARE_UG_BUILD_FUNC(ug_compensated_delay);
-	DECLARE_UG_INFO_FUNC2; // Delay2's pins plus a build-time "Reported Latency (ms)" parameter.
+	DECLARE_UG_INFO_FUNC2;
+	~ug_compensated_delay();
 
-	// The through-delay reported to the host but invisible to compensation. Taken from the ms
-	// PARAMETER (deterministic at build), NOT the signal-driven physical delay (which may not have
-	// propagated when latency is queried) — same approach as ug_lookahead2's 'ms' pin.
-	int getReportedSelfLatency() override;
+	int Open() override;
 
-	// Latches the ms pin default into latchedReportSamples while it is still reliably readable —
-	// before this pass splices pads into the arm and before oversampling containers re-plumb the
-	// buffer away. Contributes NOTHING to compensation (latencySamples stays 0); the override
-	// exists only for its timing. See getReportedSelfLatency.
+	// Latches the latency while the pin default is still reliably readable — before this pass
+	// splices pads into the arm and before oversampling containers re-plumb the buffer away.
+	// Contributes NOTHING to compensation (latencySamples stays 0); the override exists only for
+	// its timing. See getReportedSelfLatency.
 	int calcDelayCompensation() override;
 
-	// Round rather than truncate. Unlike an echo, an alignment delay's tap count IS its latency,
-	// so truncating would bias every stage up to a sample short of the requested time (1.46 ms at
-	// 88.2k wants 128.772 taps: 128 = 1.4512 ms, 129 = 1.4626 ms). Rounding halves the worst-case
-	// error. Double precision, same expression shape as msToReportSamples, so report and taps
-	// cannot disagree at float32 half-integer boundaries.
-	int calcBufferSize() override { return static_cast<int>(std::round(static_cast<double>(getSampleRate()) * delay_time)); }
+	int getReportedSelfLatency() override;
+	void onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state_type p_state) override;
+	ug_base* Clone(CUGLookupList& UGLookupList) override; // clones copy the latched latency
 
-	ug_base* Clone(CUGLookupList& UGLookupList) override; // clones copy the latched report
+	void sub_process(int start_pos, int sampleframes);
+	void sub_process_static(int start_pos, int sampleframes);
 
 private:
-	float readPinDefaultFloat(int pinIndex, float fallback, bool* fromDocument = nullptr); // GetPlug is non-const
-	int msToReportSamples(float ms, float delayTimeSecsOrNeg) const;
+	static constexpr int PN_MS = 0;
+	static constexpr int PN_IN = 1;
+	static constexpr int PN_OUT = 2;
 
-	float reportedLatencyMs = 0.0f;
-	int latchedReportSamples = -1; // -1 = not yet latched (latched during calcDelayCompensation)
+	float readMsPinDefault(); // GetPlug is non-const
+	int msToSamples(float ms) const;
+	void prepareBuffer(int samples);
+
+	float latencyMs = 0.0f;    // LIST_VAR3 member (populated once pins transmit)
+	int latchedSamples = -1;   // set during calcDelayCompensation; -1 = not yet latched
+
+	float* buffer = nullptr;   // circular, exactly bufferSamples long; nullptr when zero latency
+	int bufferSamples = 0;     // == the reported latency: report and physical share one number
+	int writeIndex = 0;
+
+	float* input_ptr = nullptr;
+	float* output_ptr = nullptr;
 };
