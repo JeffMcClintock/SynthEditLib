@@ -63,19 +63,38 @@ void ug_compensated_delay::ListInterface2(std::vector<class InterfaceObject*>& P
 		L"delay's actual duration in milliseconds. Does not affect the audio.");
 }
 
-// Reported through-delay in samples. Taken from the ms PARAMETER, read from its pin default (the
-// Default-Setter) exactly as ug_lookahead2 reads its 'ms' — so it is known at build time and
-// independent of whether the signal-driven physical delay has propagated yet.
+// Reported through-delay in samples. Both the ms parameter and 'Delay Time (secs)' are read from
+// their pin defaults (the Default-Setter) exactly as ug_lookahead2 reads its 'ms' - so the value is
+// known at build time and independent of whether the signal-driven modulation has propagated yet.
+//
+// The delay LINE can only deliver a whole number of buffer taps, and ug_delay::CreateBuffer sizes
+// that buffer by TRUNCATING: buffer_size = (int)(sampleRate * delay_time). Computing the report
+// straight from ms would ignore that truncation and over-report wherever sampleRate * delay_time
+// has a fractional part >= 0.5 (e.g. 1.46 ms @ 88.2k: the buffer holds 128 taps, so the delay IS
+// 128, but ms*sr/1000 rounds to 129). So reproduce the delay line's own arithmetic here: recover
+// the modulation the author configured (ms = modulation * delay_time * 1000) and apply it to the
+// same truncated buffer_size the line will use.
 int ug_compensated_delay::getReportedSelfLatency()
 {
-	float ms = reportedLatencyMs; // fallback (populated once pins transmit)
-	if (const auto p = GetPlug(PN_REPORTED_MS); !p->connections.empty())
-	{
-		if (const auto from = p->connections.front(); from->io_variable && from->DataType == DT_FLOAT)
-			ms = *reinterpret_cast<float*>(from->io_variable);
-	}
+	auto readPinFloat = [](UPlug* p, float fallback) -> float {
+		if (p && !p->connections.empty())
+		{
+			if (const auto from = p->connections.front(); from->io_variable && from->DataType == DT_FLOAT)
+				return *reinterpret_cast<float*>(from->io_variable);
+		}
+		return fallback;
+	};
 
-	return static_cast<int>(0.5f + ms * getSampleRate() * 0.001f);
+	const float ms = readPinFloat(GetPlug(PN_REPORTED_MS), reportedLatencyMs);
+	const float delayTimeSecs = readPinFloat(GetPlug(PN_DELAY_TIME), delay_time);
+
+	if (delayTimeSecs <= 0.0f)
+		return 0;
+
+	const int bufferTaps = static_cast<int>(getSampleRate() * delayTimeSecs); // matches CreateBuffer
+	const double modulation = static_cast<double>(ms) / (static_cast<double>(delayTimeSecs) * 1000.0);
+
+	return static_cast<int>(0.5 + modulation * bufferTaps);
 }
 
 ug_delay::ug_delay() :

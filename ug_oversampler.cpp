@@ -917,6 +917,9 @@ int ug_oversampler::calcDelayCompensation()
 		return cumulativeLatencySamples;
 	}
 
+	// NOTE: the inner latency is always a whole number of outer samples (ug_oversampler_out::calcLatency
+	// pads it up to a multiple of oversampleFactor_), so this division never truncates - verified at
+	// 44.1/48/88.2/96k, where the remainder is 0 and each oversampler contributes exactly 78.
 	cumulativeLatencySamples = ug_base::calcDelayCompensation() + oversampler_out->calcDelayCompensation() / oversampleFactor_;
 
 #if defined( DEBUG_LATENCY )
