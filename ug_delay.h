@@ -253,6 +253,11 @@ public:
 // physical delay stays on this wire (invisible to internal PDC → no LatencyAdjust on siblings →
 // a deliberate lookahead offset is preserved). Use for lookahead alignment; use plain Delay2 for
 // echo/effect delays that must NOT be reported. See ug_base::calcReportedLatency.
+//
+// The timing pins ('Reported Latency (ms)', 'Delay Time (secs)') carry IO_MINIMISED, which
+// prevents connections by hiding the pin: both are design-time constants, so the latency is fixed
+// for the life of a build and there is deliberately NO runtime re-report path (no SetModuleLatency
+// hook, no restart trigger) — hosts expect a plugin's latency to be constant anyway. Don't add one.
 class ug_compensated_delay : public ug_delay2
 {
 public:
