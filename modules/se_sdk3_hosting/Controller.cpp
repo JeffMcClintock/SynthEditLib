@@ -2,6 +2,8 @@
 #include <locale>
 #include <thread>
 #include <fstream>
+#include <sstream>
+#include <iomanip>
 #include "se_filesystem.h"
 #include <map>
 #include <algorithm>
@@ -46,6 +48,21 @@
 
 using namespace std;
 using namespace gmpi::hosting;
+
+// A MIDI-Learn file is a preset stripped of everything except the MIDI assignments.
+namespace
+{
+	constexpr char midiSettingsExtension[] = "midi.xml";
+	constexpr char midiSettingsElement[] = "MidiLearn";
+
+	// A host-control's controller ID is structural (Bender is always the bender, Hold Pedal is
+	// always CC 64), not something the user learned. Saving them is pointless and restoring them
+	// from a file built by a different plugin version would break the routing, so leave them be.
+	bool isMidiLearnExempt(MpParameter* p)
+	{
+		return p->getHostControl() != -1;
+	}
+}
 
 MpController::~MpController()
 {
@@ -1187,23 +1204,29 @@ void MpController::OnSetHostControl(int hostControl, int32_t paramField, int32_t
 			};
 
 #if !defined(SE_USE_JUCE_UI)
-            // L"Load Preset=2,Save Preset,Import Bank,Export Bank"
-            if (patchCommand > 5)
+            // L"Load Preset=2,Save Preset,Import Bank,Export Bank,Load MIDI,Save MIDI"
+            if (patchCommand > 7)
                 break;
 
 			auto gh = getGraphicsHost();
 
 			if (!gh)
                 break;
-            
-            int dialogMode = (patchCommand == 2 || patchCommand == 4) ? 0 : 1; // load or save.
+
+            int dialogMode = (patchCommand == 2 || patchCommand == 4 || patchCommand == 6) ? 0 : 1; // load or save.
             nativeFileDialog = nullptr; // release any existing dialog.
             gh->createFileDialog(dialogMode, nativeFileDialog.GetAddressOf());
 
             if (nativeFileDialog.isNull())
                 break;
-            
-            if (patchCommand > 3)
+
+            if (patchCommand > 5) // Load/Save MIDI
+            {
+                nativeFileDialog.AddExtension(midiSettingsExtension, "MIDI Learn Settings");
+                auto fullPath = BundleInfo::instance()->getUserDocumentFolder() / ("midi-learn." + std::string(midiSettingsExtension));
+                nativeFileDialog.SetInitialFullPath((char*) fullPath.generic_u8string().c_str());
+            }
+            else if (patchCommand > 3)
             {
                 nativeFileDialog.AddExtension("xmlbank", "XML Bank");
                 auto fullPath = BundleInfo::instance()->getUserDocumentFolder() / "bank.xmlbank";
@@ -1367,7 +1390,7 @@ MpParameter* MpController::createHostParameter(int32_t hostControl)
 	{
 	case HC_PATCH_COMMANDS:
 		p = new SeParameter_vst3_hostControl(this, hostControl);
-		p->enumList_ = L"Load Preset=2,Save Preset,Import Bank,Export Bank";
+		p->enumList_ = L"Load Preset=2,Save Preset,Import Bank,Export Bank,Load MIDI,Save MIDI";
 		if (undoManager.enabled)
 		{
 			p->enumList_ += L", Undo=17, Redo";
@@ -1695,7 +1718,7 @@ void MpController::OnFileDialogComplete(int patchCommand, int32_t result)
 		auto filetype = GetExtension(fullpath);
 		bool isXmlPreset = filetype == "xmlpreset";
 
-		switch (patchCommand) // L"Load Preset=2,Save Preset,Import Bank,Export Bank"
+		switch (patchCommand) // L"Load Preset=2,Save Preset,Import Bank,Export Bank,Load MIDI,Save MIDI"
 		{
 		case 2:	// Load Preset
 			if (isXmlPreset)
@@ -1776,6 +1799,14 @@ void MpController::OnFileDialogComplete(int patchCommand, int32_t result)
 
 		case 5: // Export Bank
 			ExportBankXml(fullpath.c_str());
+			break;
+
+		case 6: // Load MIDI
+			ImportMidiSettingsXml(fullpath.c_str());
+			break;
+
+		case 7: // Save MIDI
+			ExportMidiSettingsXml(fullpath.c_str());
 			break;
 		}
 	}
@@ -2435,6 +2466,131 @@ void MpController::ImportBankXml(const char* xmlfilename)
 	ScanPresets();
 	OnSetHostControl(HC_PROGRAM, gmpi::MP_FT_VALUE, sizeof(currentPreset), &currentPreset, 0);
 	UpdatePresetBrowser();
+}
+
+// Save only the MIDI-Learn assignments, none of the parameter values.
+void MpController::ExportMidiSettingsXml(const char* filename)
+{
+	tinyxml2::XMLDocument xml;
+	xml.LinkEndChild(xml.NewDeclaration());
+
+	auto element = xml.NewElement(midiSettingsElement);
+	xml.LinkEndChild(element);
+
+	{
+		// Same 4-char code a preset carries, so a file from another plugin can be rejected on load.
+		std::ostringstream oss;
+		oss << std::hex << std::setfill('0') << std::setw(8) << BundleInfo::instance()->getPluginId();
+		element->SetAttribute("pluginId", oss.str().c_str());
+	}
+
+	for (auto& p : parameters_)
+	{
+		if (p->MidiAutomation == ControllerType::None || isMidiLearnExempt(p.get()))
+			continue;
+
+		auto paramElement = xml.NewElement("Param");
+		element->LinkEndChild(paramElement);
+
+		paramElement->SetAttribute("id", p->parameterHandle_);
+		paramElement->SetAttribute("MIDI", p->MidiAutomation);
+
+		if (!p->MidiAutomationSysex.empty())
+			paramElement->SetAttribute("MIDI_SYSEX", WStringToUtf8(p->MidiAutomationSysex).c_str());
+	}
+
+	xml.SaveFile(filename);
+}
+
+// Load only the MIDI-Learn assignments. Every parameter is updated: ones absent from the
+// file are un-learned, so the plugin ends up matching the file exactly.
+void MpController::ImportMidiSettingsXml(const char* filename)
+{
+	tinyxml2::XMLDocument doc;
+	doc.LoadFile(filename);
+
+	if (doc.Error())
+	{
+		assert(false);
+		return;
+	}
+
+	auto midiE = doc.FirstChildElement(midiSettingsElement);
+	if (!midiE)
+		return;
+
+	// Parameter handles only mean anything within one plugin. Applying another plugin's file
+	// would un-learn everything, so refuse it.
+	if (const char* hexcode{}; tinyxml2::XML_SUCCESS == midiE->QueryStringAttribute("pluginId", &hexcode))
+	{
+		try
+		{
+			if (static_cast<int32_t>(std::stoul(hexcode, nullptr, 16)) != BundleInfo::instance()->getPluginId())
+				return;
+		}
+		catch (...)
+		{
+			return;
+		}
+	}
+
+	// Parameter handle to its new assignment.
+	std::map<int32_t, std::pair<int32_t, std::wstring>> assignments;
+
+	for (auto ParamE = midiE->FirstChildElement("Param"); ParamE; ParamE = ParamE->NextSiblingElement("Param"))
+	{
+		int32_t handle = -1;
+		if (tinyxml2::XML_SUCCESS != ParamE->QueryIntAttribute("id", &handle))
+			continue;
+
+		int32_t controllerId = -1;
+		if (tinyxml2::XML_SUCCESS != ParamE->QueryIntAttribute("MIDI", &controllerId))
+			continue;
+
+		std::wstring sysex;
+		if (const char* temp{}; tinyxml2::XML_SUCCESS == ParamE->QueryStringAttribute("MIDI_SYSEX", &temp))
+			sysex = Utf8ToWstring(temp);
+
+		assignments.insert({ handle, {controllerId, sysex} });
+	}
+
+	for (auto& p : parameters_)
+	{
+		if (isMidiLearnExempt(p.get()))
+			continue;
+
+		// Un-learn anything the file doesn't mention, so the result matches the file exactly.
+		int32_t controllerId = ControllerType::None;
+		std::wstring sysex;
+
+		if (const auto it = assignments.find(p->parameterHandle_); it != assignments.end())
+		{
+			controllerId = (*it).second.first;
+			sysex = (*it).second.second;
+		}
+
+		if (p->MidiAutomation == controllerId && p->MidiAutomationSysex == sysex)
+			continue;
+
+		p->MidiAutomation = controllerId;
+		p->MidiAutomationSysex = sysex;
+
+		// The DSP is the authority on MIDI assignments, tell it about the new one.
+		{
+			my_msg_que_output_stream s(getQueueToDsp(), p->parameterHandle_, "CCSX");
+			s << (int)(sizeof(int32_t) + sysex.size() * sizeof(wchar_t));
+			s << sysex;
+			s.Send();
+		}
+		{
+			my_msg_que_output_stream s(getQueueToDsp(), p->parameterHandle_, "CCID");
+			s << (int)sizeof(controllerId);
+			s << controllerId;
+			s.Send();
+		}
+
+		updateGuis(p.get(), gmpi::MP_FT_AUTOMATION);
+	}
 }
 
 void MpController::setModified(bool presetIsModified)

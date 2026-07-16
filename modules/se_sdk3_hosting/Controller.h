@@ -304,6 +304,9 @@ public:
 	void ImportBankXml(const char * filename);
 	void setModified(bool presetIsModified);
 	void ExportBankXml(const char * filename);
+	// Just the MIDI-Learn assignments of a preset, none of the parameter values.
+	void ImportMidiSettingsXml(const char * filename);
+	void ExportMidiSettingsXml(const char * filename);
 
 	void setParameterValue(RawView value, int32_t parameterHandle, gmpi::FieldType moduleFieldId = gmpi::MP_FT_VALUE, int32_t voice = 0) override;
 	void undoTransanctionStart() override;
