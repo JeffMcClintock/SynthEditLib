@@ -16,7 +16,6 @@ namespace GmpiGuiHosting
 }
 
 class IGuiHost2;
-struct DrawingFrameBase2;
 
 namespace SE2
 {
@@ -75,9 +74,6 @@ bool isIteratingChildren = false;
 
 		bool onTimer() override;
 
-#ifdef _WIN32
-		DrawingFrameBase2* frameWindow = {};
-#endif
 		class ModuleViewPanel* patchAutomatorWrapper_ = {};
 
 		void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
@@ -114,11 +110,6 @@ bool isIteratingChildren = false;
 		// a sub-view recurses here, so an enclosing view can pull e.g. every shadow ahead
 		// of every normal body across nested sub-views (global layer ordering).
 		void renderChildrenLayer(gmpi::drawing::Graphics& g, int32_t layer);
-#if 0 // OLD: handled by base class, to be removed.
-		// gmpi::api::IDrawingClient
-		gmpi::ReturnCode setHost(gmpi::api::IUnknown* host) override;
-		gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override;
-#endif
 		gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override;
 		gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
 
@@ -212,8 +203,6 @@ bool isIteratingChildren = false;
 		}
 		void invalidateRect(const gmpi::drawing::Rect* invalidRect = {});
 		virtual void OnChildMoved() {}
-
-		void DoClose();
 
 		// Native handle (HWND) of the window hosting this view. Null when not attached.
 		void* getNativeWindowHandle();

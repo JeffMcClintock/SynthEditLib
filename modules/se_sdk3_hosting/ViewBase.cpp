@@ -42,31 +42,6 @@ namespace SE2
 	{
 		Init(ppresentor);
 	}
-#if 0
-	gmpi::ReturnCode ViewBase::setHost(gmpi::api::IUnknown* host)
-	{
-		if (inputHost_)
-		{
-			inputHost_->release();
-			inputHost_ = {};
-		}
-
-		if (drawingHost_)
-		{
-			drawingHost_->release();
-			drawingHost_ = {};
-		}
-
-		host->queryInterface(&gmpi::api::IDrawingHost::guid, reinterpret_cast<void**>(&drawingHost_));
-		host->queryInterface(&gmpi::api::IInputHost::guid, reinterpret_cast<void**>(&inputHost_));
-
-#if defined(_WIN32)
-		frameWindow = dynamic_cast<DrawingFrameBase2*>(host);
-#endif
-
-		return drawingHost_ ? gmpi::ReturnCode::Ok : gmpi::ReturnCode::NoSupport;
-	}
-#endif 
 	gmpi::ReturnCode ViewBase::render(gmpi::drawing::api::IDeviceContext* drawingContext)
 	{
 		Graphics g(drawingContext);
@@ -496,19 +471,11 @@ namespace SE2
 		drawingHost->invalidateRect(&rect);
 	}
 
-	void ViewBase::DoClose()
-	{
-#if defined (_WIN32)
-		if(frameWindow)
-			SendMessage(frameWindow->getWindowHandle(), WM_CLOSE, 0, 0);
-#endif
-	}
-
 	void* ViewBase::getNativeWindowHandle()
 	{
 #if defined (_WIN32)
-		// dialogHost (set by the base setHost) is the DrawingFrame — the one object that
-		// actually knows the HWND. (frameWindow was never wired up in this architecture.)
+		// dialogHost (set by the base setHost, cleared by Unload) is the DrawingFrame —
+		// the one object that actually knows the HWND.
 		if (auto frame = dynamic_cast<gmpi::hosting::DxDrawingFrameBase*>(dialogHost.get()))
 			return frame->getWindowHandle();
 #endif
@@ -1915,12 +1882,11 @@ namespace SE2
 
 		// Detach from the drawing frame to prevent use-after-free
 		// when DSP parameter updates arrive after the editor window is closed.
+		// dialogHost included: frames are GMPI_REFCOUNT_NO_DELETE, so the shared_ptr
+		// doesn't actually keep them alive, and getNativeWindowHandle reads it.
 		drawingHost = {};
 		inputHost = {};
-
-#if defined(_WIN32)
-		frameWindow = nullptr;
-#endif
+		dialogHost = {};
 	}
 
 	void ViewBase::DragNewModule(const char* id)
