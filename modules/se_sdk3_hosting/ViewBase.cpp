@@ -1155,7 +1155,10 @@ namespace SE2
 		// Middle-button press begins a grab-pan of the canvas. Intercept before the
 		// normal hit-test/selection path so panning never disturbs the selection and
 		// works regardless of what's under the cursor (like most node editors).
-		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_THIRDBUTTON) != 0)
+		// <ALT> passes the event to the module under the mouse instead (same
+		// convention as the scroll wheel in onMouseWheel).
+		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_THIRDBUTTON) != 0
+			&& (flags & gmpi_gui_api::GG_POINTER_KEY_ALT) == 0)
 		{
 			isPanning = true;
 			panRefMouse = point;       // absolute (panel) coords
