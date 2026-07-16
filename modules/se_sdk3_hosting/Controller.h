@@ -307,11 +307,13 @@ public:
 	// Just the MIDI-Learn assignments of a preset, none of the parameter values.
 	void ImportMidiSettingsXml(const char * filename);
 	void ExportMidiSettingsXml(const char * filename);
+	void setParameterMidiAssignment(MpParameter* param, int32_t automation, const std::wstring& sysex);
 
 	void setParameterValue(RawView value, int32_t parameterHandle, gmpi::FieldType moduleFieldId = gmpi::MP_FT_VALUE, int32_t voice = 0) override;
 	void undoTransanctionStart() override;
 	void undoTransanctionEnd() override;
 	gmpi_gui::IMpGraphicsHost * getGraphicsHost();
+	void* getNativeWindowHandle(); // HWND on Windows. Null when GUI closed or unsupported.
 	virtual int32_t resolveFilename(const wchar_t* shortFilename, int32_t maxChars, wchar_t* returnFullFilename) override;
 
 	void updateGuis(MpParameter* parameter, int voice)

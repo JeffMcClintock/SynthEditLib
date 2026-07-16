@@ -194,6 +194,10 @@ namespace SE2
 		int32_t createPlatformMenu(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformMenu** returnMenu) override;
 		int32_t createPlatformTextEdit(GmpiDrawing_API::MP1_RECT* rect, gmpi_gui::IMpPlatformText** returnTextEdit) override;
 
+		// Native handle (HWND) of the window hosting this module's view, for parenting
+		// native dialogs the SDK interfaces don't cover. Null when unavailable.
+		void* getNativeWindowHandle();
+
 		// IMpUserInterfaceHost2
 		int32_t pinTransmit(int32_t pinId, int32_t size, const void* data, int32_t voice) override;
 		int32_t sendMessageToAudio(int32_t id, int32_t size, const void* messageData) override;

@@ -98,6 +98,8 @@ set(sdk_srcs
   ${GMPI_UI_SDK}/backends/DirectXGfx.cpp
   Shared/DrawingFrame2_win.h
   Shared/DrawingFrame2_win.cpp
+  modules/se_sdk3_hosting/AssignControllerDialogWin.h
+  modules/se_sdk3_hosting/AssignControllerDialogWin.cpp
 )
 endif()
 endif() # SE_GRAPHICS_SUPPORT

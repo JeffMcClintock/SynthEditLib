@@ -11,7 +11,14 @@
 using namespace std;
 using namespace gmpi::hosting;
 
+// Same choice values as the editor (SE16 PatchParameter_base::OnPopupParameterMenu):
+// 1=Learn, 2=UnLearn, 3=Edit (dialog). 'Edit' needs a native dialog, implemented on
+// Windows only so far (AssignControllerDialogWin).
+#if defined(_WIN32) && !defined(SE_USE_JUCE_UI)
+#define MIDI_LEARN_MENU_ITEMS L"Learn=1, UnLearn, Edit..."
+#else
 #define MIDI_LEARN_MENU_ITEMS L"Learn=1, UnLearn"
+#endif
 
 
 bool MpParameter_base::setParameterRaw(gmpi::FieldType paramField, int32_t size, const void* data, int32_t voice)

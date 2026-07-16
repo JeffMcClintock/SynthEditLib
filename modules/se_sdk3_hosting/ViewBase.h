@@ -215,6 +215,9 @@ bool isIteratingChildren = false;
 
 		void DoClose();
 
+		// Native handle (HWND) of the window hosting this view. Null when not attached.
+		void* getNativeWindowHandle();
+
 		IViewChild* Find(gmpi::drawing::Point& p);
 		void Unload();
 		virtual void Refresh(Json::Value* context, std::map<int, SE2::ModuleView*>& guiObjectMap_);

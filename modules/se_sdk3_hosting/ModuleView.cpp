@@ -334,6 +334,11 @@ namespace SE2
 		return gmpi::MP_OK;
 	}
 
+	void* Sdk3Helper::getNativeWindowHandle()
+	{
+		return moduleview.parent ? moduleview.parent->getNativeWindowHandle() : nullptr;
+	}
+
 	int32_t Sdk3Helper::createOkCancelDialog(int32_t dialogType, gmpi_gui::IMpOkCancelDialog** returnDialog)
 	{
 		// The host's dialogHost returns a new-API IStockDialog, which doesn't answer the

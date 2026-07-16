@@ -504,6 +504,17 @@ namespace SE2
 #endif
 	}
 
+	void* ViewBase::getNativeWindowHandle()
+	{
+#if defined (_WIN32)
+		// dialogHost (set by the base setHost) is the DrawingFrame — the one object that
+		// actually knows the HWND. (frameWindow was never wired up in this architecture.)
+		if (auto frame = dynamic_cast<gmpi::hosting::DxDrawingFrameBase*>(dialogHost.get()))
+			return frame->getWindowHandle();
+#endif
+		return {};
+	}
+
 	void ViewBase::Init(class IPresenter* ppresentor)
 	{
 		presenter.reset(ppresentor);

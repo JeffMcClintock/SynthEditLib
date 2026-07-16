@@ -24,6 +24,10 @@
 #include "../../mfc_emulation.h"
 #if !defined(SE_USE_JUCE_UI)
 #include "GuiPatchAutomator3.h"
+#include "ModuleView.h" // Sdk3Helper, for getNativeWindowHandle
+#ifdef _WIN32
+#include "AssignControllerDialogWin.h"
+#endif
 #endif
 #ifndef GMPI_VST3_WRAPPER
 #include "../../UgDatabase.h"
@@ -795,6 +799,21 @@ void MpController::setParameterValue(RawView value, int32_t parameterHandle, gmp
 	{
 		auto choice = (int32_t)value;// RawToValue<int32_t>(value.data(), value.size());
 
+#if defined(_WIN32) && !defined(SE_USE_JUCE_UI) && SE_GRAPHICS_SUPPORT
+		if (choice == 3) // Edit: type the assignment into a dialog, rather than learning it.
+		{
+			if (auto parentWindow = getNativeWindowHandle(); parentWindow)
+			{
+				SE2::MidiAssignment assignment{ seParameter->MidiAutomation, seParameter->MidiAutomationSysex };
+				if (SE2::ShowAssignControllerDialog(parentWindow, assignment))
+				{
+					setParameterMidiAssignment(seParameter, assignment.automation, assignment.sysex);
+				}
+			}
+			return;
+		}
+#endif
+
 			// 0 not used as it gets passed erroneously during init
 		int cc = 0;
 		if (choice == 1) // learn
@@ -1096,6 +1115,27 @@ gmpi_gui::IMpGraphicsHost* MpController::getGraphicsHost()
 #endif
 
 	return nullptr;
+}
+
+// Native handle (HWND) of the window hosting the plugin's GUI, for parenting native
+// dialogs the SDK interfaces don't cover. Null when the GUI is closed or unsupported.
+void* MpController::getNativeWindowHandle()
+{
+#if SE_GRAPHICS_SUPPORT && !defined(SE_USE_JUCE_UI)
+	for (auto g : m_guis2)
+	{
+		if (auto pa = dynamic_cast<GuiPatchAutomator3*>(g); pa)
+		{
+			if (auto helper = dynamic_cast<SE2::Sdk3Helper*>(pa->getHost()); helper)
+			{
+				if (auto handle = helper->getNativeWindowHandle(); handle)
+					return handle;
+			}
+		}
+	}
+#endif
+
+	return {};
 }
 
 // SeParameter_vst3_hostControl ONLY
@@ -2569,28 +2609,35 @@ void MpController::ImportMidiSettingsXml(const char* filename)
 			sysex = (*it).second.second;
 		}
 
-		if (p->MidiAutomation == controllerId && p->MidiAutomationSysex == sysex)
-			continue;
-
-		p->MidiAutomation = controllerId;
-		p->MidiAutomationSysex = sysex;
-
-		// The DSP is the authority on MIDI assignments, tell it about the new one.
-		{
-			my_msg_que_output_stream s(getQueueToDsp(), p->parameterHandle_, "CCSX");
-			s << (int)(sizeof(int32_t) + sysex.size() * sizeof(wchar_t));
-			s << sysex;
-			s.Send();
-		}
-		{
-			my_msg_que_output_stream s(getQueueToDsp(), p->parameterHandle_, "CCID");
-			s << (int)sizeof(controllerId);
-			s << controllerId;
-			s.Send();
-		}
-
-		updateGuis(p.get(), gmpi::MP_FT_AUTOMATION);
+		setParameterMidiAssignment(p.get(), controllerId, sysex);
 	}
+}
+
+// Apply a MIDI-learn assignment to a parameter: update the controller-side copy,
+// tell the DSP (which owns the live mapping), and refresh any GUIs showing it.
+void MpController::setParameterMidiAssignment(MpParameter* param, int32_t automation, const std::wstring& sysex)
+{
+	if (param->MidiAutomation == automation && param->MidiAutomationSysex == sysex)
+		return;
+
+	param->MidiAutomation = automation;
+	param->MidiAutomationSysex = sysex;
+
+	// sysex first: it's the DSP's "CCID" handler (setAutomation) that registers the mapping.
+	{
+		my_msg_que_output_stream s(getQueueToDsp(), param->parameterHandle_, "CCSX");
+		s << (int)(sizeof(int32_t) + sysex.size() * sizeof(wchar_t));
+		s << sysex;
+		s.Send();
+	}
+	{
+		my_msg_que_output_stream s(getQueueToDsp(), param->parameterHandle_, "CCID");
+		s << (int)sizeof(automation);
+		s << automation;
+		s.Send();
+	}
+
+	updateGuis(param, gmpi::MP_FT_AUTOMATION);
 }
 
 void MpController::setModified(bool presetIsModified)
