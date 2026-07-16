@@ -25,8 +25,8 @@
 #if !defined(SE_USE_JUCE_UI)
 #include "GuiPatchAutomator3.h"
 #include "ModuleView.h" // Sdk3Helper, for getNativeWindowHandle
-#ifdef _WIN32
-#include "AssignControllerDialogWin.h"
+#if defined(_WIN32) || defined(__APPLE__)
+#include "AssignControllerDialogShared.h" // MidiAssignment, ShowAssignControllerDialog (native per platform)
 #endif
 #endif
 #ifndef GMPI_VST3_WRAPPER
@@ -799,16 +799,18 @@ void MpController::setParameterValue(RawView value, int32_t parameterHandle, gmp
 	{
 		auto choice = (int32_t)value;// RawToValue<int32_t>(value.data(), value.size());
 
-#if defined(_WIN32) && !defined(SE_USE_JUCE_UI) && SE_GRAPHICS_SUPPORT
+#if (defined(_WIN32) || defined(__APPLE__)) && !defined(SE_USE_JUCE_UI) && SE_GRAPHICS_SUPPORT
 		if (choice == 3) // Edit: type the assignment into a dialog, rather than learning it.
 		{
-			if (auto parentWindow = getNativeWindowHandle(); parentWindow)
+			void* parentWindow = getNativeWindowHandle(); // HWND on Windows; null on macOS (dialog is free-standing).
+#ifdef _WIN32
+			if (!parentWindow)
+				return; // Windows needs an owner window to go modal against.
+#endif
+			SE2::MidiAssignment assignment{ seParameter->MidiAutomation, seParameter->MidiAutomationSysex };
+			if (SE2::ShowAssignControllerDialog(parentWindow, assignment))
 			{
-				SE2::MidiAssignment assignment{ seParameter->MidiAutomation, seParameter->MidiAutomationSysex };
-				if (SE2::ShowAssignControllerDialog(parentWindow, assignment))
-				{
-					setParameterMidiAssignment(seParameter, assignment.automation, assignment.sysex);
-				}
+				setParameterMidiAssignment(seParameter, assignment.automation, assignment.sysex);
 			}
 			return;
 		}

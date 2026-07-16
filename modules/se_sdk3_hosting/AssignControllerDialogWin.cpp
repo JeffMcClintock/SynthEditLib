@@ -7,9 +7,6 @@
 #include <algorithm>
 #include <vector>
 
-#include "midi_defs.h"
-#include "../shared/it_enum_list.h"
-
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
 namespace
@@ -22,28 +19,6 @@ enum
 	IDC_NUMBER_EDIT = SE2::AssignControllerDialogIds::NumberEdit,
 	IDC_SYSEX_EDIT = SE2::AssignControllerDialogIds::SysexEdit,
 };
-
-// Same entries, in the same order, as the editor's AssignControllerDialog.xaml.
-constexpr struct { int32_t type; const wchar_t* name; } controllerTypes[] =
-{
-	{ ControllerType::None,            L"<none>" },
-	{ ControllerType::CC,              L"CC" },
-	{ ControllerType::RPN,             L"RPN" },
-	{ ControllerType::NRPN,            L"NRPN" },
-	{ ControllerType::SYSEX,           L"SYSEX" },
-	{ ControllerType::Trigger,         L"Poly Trigger" },
-	{ ControllerType::Gate,            L"Poly Gate" },
-	{ ControllerType::Pitch,           L"Poly Pitch" },
-	{ ControllerType::VelocityOn,      L"Poly Velocity Key On" },
-	{ ControllerType::VelocityOff,     L"Poly Velocity Key Off" },
-	{ ControllerType::PolyAftertouch,  L"Poly Aftertouch" },
-	{ ControllerType::VirtualVoiceId,  L"Voice ID" },
-	{ ControllerType::Bender,          L"Bender" },
-	{ ControllerType::ChannelPressure, L"Channel Pressure" },
-	{ ControllerType::GlideStartPitch, L"GlideStartPitch" },
-};
-
-constexpr int maxRpnNumber = 16383;
 
 // Builds a DLGTEMPLATE in memory, so plugins need no resource (.rc) file.
 // Everything in the template is a WORD stream; items start DWORD-aligned.
@@ -115,15 +90,14 @@ void selectItemByData(HWND list, int32_t data)
 	SendMessage(list, LB_SETCURSEL, 0, 0);
 }
 
-// Show the one right-hand control the selected type needs, exactly like the
-// editor's UpdateVisibility.
+// Show the one right-hand control the selected type needs (per the shared visibility rule).
 void updateVisibility(HWND dlg)
 {
-	const auto type = selectedItemData(GetDlgItem(dlg, IDC_TYPE_LIST), ControllerType::None);
+	const auto field = SE2::fieldForType(selectedItemData(GetDlgItem(dlg, IDC_TYPE_LIST), ControllerType::None));
 
-	ShowWindow(GetDlgItem(dlg, IDC_CC_LIST),     type == ControllerType::CC ? SW_SHOW : SW_HIDE);
-	ShowWindow(GetDlgItem(dlg, IDC_NUMBER_EDIT), type == ControllerType::RPN || type == ControllerType::NRPN ? SW_SHOW : SW_HIDE);
-	ShowWindow(GetDlgItem(dlg, IDC_SYSEX_EDIT),  type == ControllerType::SYSEX ? SW_SHOW : SW_HIDE);
+	ShowWindow(GetDlgItem(dlg, IDC_CC_LIST),     field == SE2::AssignmentField::CcList ? SW_SHOW : SW_HIDE);
+	ShowWindow(GetDlgItem(dlg, IDC_NUMBER_EDIT), field == SE2::AssignmentField::Number ? SW_SHOW : SW_HIDE);
+	ShowWindow(GetDlgItem(dlg, IDC_SYSEX_EDIT),  field == SE2::AssignmentField::Sysex  ? SW_SHOW : SW_HIDE);
 }
 
 INT_PTR CALLBACK dialogProc(HWND dlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -137,17 +111,11 @@ INT_PTR CALLBACK dialogProc(HWND dlg, UINT message, WPARAM wParam, LPARAM lParam
 		SetWindowLongPtr(dlg, DWLP_USER, lParam);
 		assignment = reinterpret_cast<SE2::MidiAssignment*>(lParam);
 
-		// Decode the current assignment, same as the editor.
-		int type = assignment->automation;
-		int number = 0;
-		if (type >= 0)
-		{
-			number = type & 0x00FFFFFF;
-			type >>= 24;
-		}
+		// Decode the current assignment (shared model).
+		const auto [type, number] = SE2::decodeAutomation(assignment->automation);
 
 		auto typeList = GetDlgItem(dlg, IDC_TYPE_LIST);
-		for (const auto& t : controllerTypes)
+		for (const auto& t : SE2::controllerTypeList())
 		{
 			const auto idx = (int)SendMessage(typeList, LB_ADDSTRING, 0, (LPARAM)t.name);
 			SendMessage(typeList, LB_SETITEMDATA, idx, t.type);
@@ -156,17 +124,14 @@ INT_PTR CALLBACK dialogProc(HWND dlg, UINT message, WPARAM wParam, LPARAM lParam
 
 		// CC names from the shared table (value == CC number).
 		auto ccList = GetDlgItem(dlg, IDC_CC_LIST);
-		for (it_enum_list it(CONTROLLER_ENUM_LIST); !it.IsDone(); ++it)
+		for (const auto& cc : SE2::ccNameList())
 		{
-			if ((*it)->value < 0 || (*it)->value > 127)
-				continue;
-
-			const auto idx = (int)SendMessage(ccList, LB_ADDSTRING, 0, (LPARAM)(*it)->text.c_str());
-			SendMessage(ccList, LB_SETITEMDATA, idx, (*it)->value);
+			const auto idx = (int)SendMessage(ccList, LB_ADDSTRING, 0, (LPARAM)cc.name.c_str());
+			SendMessage(ccList, LB_SETITEMDATA, idx, cc.ccNumber);
 		}
 		selectItemByData(ccList, type == ControllerType::CC ? number : 0);
 
-		SetDlgItemInt(dlg, IDC_NUMBER_EDIT, std::clamp(number, 0, maxRpnNumber), FALSE);
+		SetDlgItemInt(dlg, IDC_NUMBER_EDIT, std::clamp(number, 0, SE2::kMaxRpnNumber), FALSE);
 		SetDlgItemTextW(dlg, IDC_SYSEX_EDIT, assignment->sysex.c_str());
 
 		updateVisibility(dlg);
@@ -187,16 +152,17 @@ INT_PTR CALLBACK dialogProc(HWND dlg, UINT message, WPARAM wParam, LPARAM lParam
 
 			// Only CC/RPN/NRPN carry a number; other types are canonically number 0.
 			int number = 0;
-			if (type == ControllerType::CC)
+			const auto field = SE2::fieldForType(type);
+			if (field == SE2::AssignmentField::CcList)
 			{
 				number = selectedItemData(GetDlgItem(dlg, IDC_CC_LIST), 0);
 			}
-			else if (type == ControllerType::RPN || type == ControllerType::NRPN)
+			else if (field == SE2::AssignmentField::Number)
 			{
-				number = std::clamp((int)GetDlgItemInt(dlg, IDC_NUMBER_EDIT, nullptr, FALSE), 0, maxRpnNumber);
+				number = std::clamp((int)GetDlgItemInt(dlg, IDC_NUMBER_EDIT, nullptr, FALSE), 0, SE2::kMaxRpnNumber);
 			}
 
-			assignment->automation = type < 0 ? type : ((type << 24) | (number & 0x00FFFFFF));
+			assignment->automation = SE2::encodeAutomation(type, number);
 
 			const auto len = GetWindowTextLengthW(GetDlgItem(dlg, IDC_SYSEX_EDIT));
 			assignment->sysex.resize(len);

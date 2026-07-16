@@ -88,6 +88,8 @@ ${GMPI_UI_SDK}/helpers/ImageMetadata.cpp
 ${GMPI_UI_SDK}/helpers/AnimatedBitmap.h
 ${GMPI_UI_SDK}/backends/DrawingFrameCommon.h
 ${GMPI_UI_SDK}/backends/DrawingFrameCommon.cpp
+modules/se_sdk3_hosting/AssignControllerDialogShared.h
+modules/se_sdk3_hosting/AssignControllerDialogShared.cpp
 )
 IF(WIN32)
 set(sdk_srcs
@@ -509,6 +511,7 @@ modules/se_sdk3_hosting/Cocoa_Gfx.h
 modules/se_sdk3_hosting/SynthEditCocoaView.mm # legacy IGuiHost2 adaptor - still used by SynthEdit se_vst3 (SEVSTGUIEditorMac) and SE2JUCE_Editor; migrate to gmpi DrawingFrameMac createNativeView to retire
 modules/se_sdk3_hosting/CocoaGuiHost.h
 modules/se_sdk3_hosting/gmpi_drawing_conversions.h
+modules/se_sdk3_hosting/AssignControllerDialogMac.mm
 ${GMPI_UI_SDK}/backends/CocoaGfx.h
 ${GMPI_UI_SDK}/backends/DrawingFrameMac.h
 ${GMPI_UI_SDK}/backends/DrawingFrameMac.mm
