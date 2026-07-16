@@ -50,6 +50,11 @@ void WavetableOscGui::updateCurrentWavetable()
 
 ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 {
+	const int32_t color_background  = 0x2A3632; // dark gray
+	const int32_t color_foreground  = 0x25E456; // green
+	const int32_t color_highlighted = 0xF8F600; // yellow
+	const auto color_fill = colorFromHex(color_foreground, 0.1f); // transparent green
+
 	Graphics g(dc);
 	ClipDrawingToBounds _(g, bounds);
 
@@ -61,7 +66,7 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 	float vscale = height * 0.25f;
 
 	// Fill background.
-	auto backgroundBrush = g.createSolidColorBrush(Color(50.0f/255.0f, 50.0f/255.0f, 50.0f/255.0f));
+	auto backgroundBrush = g.createSolidColorBrush(colorFromHex(color_background));
 	g.fillRectangle(r, backgroundBrush);
 
 	WaveTable* waveTable = currentWavetable();
@@ -71,9 +76,9 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 
 	// Wavetable 3D display - always visible so the user can see the loaded shape even with no audio running.
 	{
-		auto penLines = g.createSolidColorBrush(Color(0.0f, 155.0f/255.0f, 0.0f));
-		auto penHighlightedFirst = g.createSolidColorBrush(Color(1.0f, 50.0f/255.0f, 50.0f/255.0f));
-		auto blackBrush = g.createSolidColorBrush(Colors::Black);
+		auto penLines = g.createSolidColorBrush(colorFromHex(color_foreground));
+		auto penHighlightedFirst = g.createSolidColorBrush(colorFromHex(color_highlighted));
+		auto blackBrush = g.createSolidColorBrush(color_fill);
 
 		float horizontalDelta = width / 3.0f;
 		float x_increment = (width - horizontalDelta) / (float) waveTable->waveSize;
@@ -147,11 +152,11 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 		}
 	}
 
+	/*
 	// Wavetable name text.
 	auto textFormat = g.getFactory().createTextFormat(12.0f);
 	auto whiteBrush = g.createSolidColorBrush(Colors::White);
 
-	/*
 	std::string curWaveFile = getWaveFileName();
 	char txt[100];
 	snprintf(txt, sizeof(txt), "%s", curWaveFile.c_str());
