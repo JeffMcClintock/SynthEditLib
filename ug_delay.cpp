@@ -155,13 +155,15 @@ void ug_compensated_delay::onSetPin(timestamp_t p_clock, UPlug* p_to_plug, state
 {
 	if (p_to_plug == GetPlug(PN_MS))
 	{
+		const auto latencySamples = msToSamples(latencyMs);
+
 		// pin is not exposed, only the default is used, except possibly in the editor, in which case we just restart the graph.
-		if(buffer)
+		if(!buffer && latencySamples > 0)
 			AudioMaster()->getShell()->DoAsyncRestart();
 
 		// this fires at the first sample, before any audio has flowed. The REPORT never changes:
 		// the pin is IO_MINIMISED, a design-time constant.
-		prepareBuffer(msToSamples(latencyMs));
+		prepareBuffer(latencySamples);
 	}
 
 	// Output follows the input's streaming/static state, delayed by the buffer length: when the
