@@ -6,9 +6,11 @@
 
 class WavetableOscGui : public gmpi::editor::PluginEditor
 {
-	// Shared baked wavetable from the process-wide cache (the DSP holds an identical
-	// shared_ptr; the bake is freed when the last instance lets go).
-	std::shared_ptr<CachedWavetable> currentWavetable_;
+	// Shared raw wavetable from the process-wide cache. The display draws the waveform and
+	// never reads a mip, so it takes the raw form on its own rather than dragging in a bake
+	// (tens of MB) it would never touch. Shared with the DSP, which derives its bake from the
+	// same object; freed when the last instance lets go.
+	std::shared_ptr<RawWavetable> currentWavetable_;
 	std::string curWaveFile_;
 
 public:
@@ -19,7 +21,7 @@ public:
 
 	WaveTable* currentWavetable()
 	{
-		return currentWavetable_ ? currentWavetable_->raw() : nullptr;
+		return currentWavetable_ ? currentWavetable_->get() : nullptr;
 	}
 	void updateCurrentWavetable();
 

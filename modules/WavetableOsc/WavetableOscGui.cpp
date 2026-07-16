@@ -18,7 +18,9 @@ WavetableOscGui::WavetableOscGui()
 	pinSlot.onUpdate      = [this](editor::PinBase*) { redraw(); };
 }
 
-// Resolve the filename and pull a shared baked wavetable from the process-wide cache.
+// Resolve the filename and pull the shared raw wavetable from the process-wide cache. Only the
+// raw form: the display draws the waveform itself, so it has no use for a mip bake and no
+// sample rate to bake one at.
 void WavetableOscGui::updateCurrentWavetable()
 {
 	string curWaveFile = pinWaveFiles.value;
@@ -27,13 +29,10 @@ void WavetableOscGui::updateCurrentWavetable()
 		curWaveFile_ = curWaveFile;
 		currentWavetable_.reset();
 
-		// GUI only renders the raw (un-baked) wavetable, so the sample rate doesn't matter
-		// for what's drawn - we just pick a default to satisfy the cache key.
-		constexpr float guiCacheSampleRate = 44100.0f;
 		if (builtinWavetableShape(curWaveFile_) >= 0)
 		{
 			// Builtin test wavetable - skip host resource resolution, the name is the cache key.
-			currentWavetable_ = wavetableCache().getOrLoad(curWaveFile_, guiCacheSampleRate);
+			currentWavetable_ = wavetableCache().getOrLoadRaw(curWaveFile_);
 		}
 		else if (auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>())
 		{
@@ -41,7 +40,7 @@ void WavetableOscGui::updateCurrentWavetable()
 			if (synthEdit->findResourceUri(curWaveFile_.c_str(), &fullFilename) == ReturnCode::Ok)
 			{
 				synthEdit->registerResourceUri(fullFilename.c_str());
-				currentWavetable_ = wavetableCache().getOrLoad(fullFilename.c_str(), guiCacheSampleRate);
+				currentWavetable_ = wavetableCache().getOrLoadRaw(fullFilename.c_str());
 			}
 		}
 

@@ -23,22 +23,19 @@ int builtinWavetableShape(const std::string& name)
 	return -1;
 }
 
-std::shared_ptr<CachedWavetable> WavetableCache::getOrLoad(const std::string& fullUri, float sampleRate)
+std::shared_ptr<RawWavetable> WavetableCache::getOrLoadRawLocked(const std::string& fullUri)
 {
-	std::scoped_lock lock{mtx_};
-
-	const CacheKey key{fullUri, sampleRate};
-	if (auto it = entries_.find(key); it != entries_.end())
+	if (auto it = rawEntries_.find(fullUri); it != rawEntries_.end())
 	{
 		if (auto alive = it->second.lock())
 			return alive;
 		// Weak entry expired - rebuild and replace.
 	}
 
-	auto entry = std::make_shared<CachedWavetable>();
+	auto entry = std::make_shared<RawWavetable>();
 
 	// Read the file and plan its slot layout before allocating anything: slot count follows
-	// what the file actually holds, and it sizes the raw buffer, the mip layout and the bake.
+	// what the file actually holds, and it sizes the raw buffer - and later, any mip bake.
 	const int builtinShape = builtinWavetableShape(fullUri);
 	std::vector<float> wave;
 	int fileSampleRate = 0;
@@ -62,25 +59,51 @@ std::shared_ptr<CachedWavetable> WavetableCache::getOrLoad(const std::string& fu
 	// Wavedata[] (the struct already declares one float at the end, so subtract one).
 	const std::size_t rawBytes = sizeof(WaveTable)
 		+ static_cast<std::size_t>(slotCount * WaveTable::WavetableFileSampleCount - 1) * sizeof(float);
-	entry->rawStorage.resize((rawBytes + sizeof(float) - 1) / sizeof(float));
-	entry->raw()->SetSize(slotCount, WaveTable::WavetableFileSampleCount);
+	entry->storage.resize((rawBytes + sizeof(float) - 1) / sizeof(float));
+	entry->get()->SetSize(slotCount, WaveTable::WavetableFileSampleCount);
 
 	if (builtinShape >= 0)
 	{
-		entry->raw()->GenerateWavetable(0, 0, slotCount - 1, builtinShape);
+		entry->get()->GenerateWavetable(0, 0, slotCount - 1, builtinShape);
 	}
 	else if (haveSamples)
 	{
-		entry->raw()->LoadSamples(wave, fileSampleRate, plan);
+		entry->get()->LoadSamples(wave, fileSampleRate, plan);
 	}
 	else
 	{
 		// Fallback sine - keeps audio sane rather than silent or harsh.
-		entry->raw()->GenerateWavetable(0, 0, slotCount - 1, 2);
+		entry->get()->GenerateWavetable(0, 0, slotCount - 1, 2);
 	}
+
+	rawEntries_[fullUri] = entry;
+	return entry;
+}
+
+std::shared_ptr<RawWavetable> WavetableCache::getOrLoadRaw(const std::string& fullUri)
+{
+	std::scoped_lock lock{mtx_};
+	return getOrLoadRawLocked(fullUri);
+}
+
+std::shared_ptr<CachedWavetable> WavetableCache::getOrLoad(const std::string& fullUri, float sampleRate)
+{
+	std::scoped_lock lock{mtx_};
+
+	const CacheKey key{fullUri, sampleRate};
+	if (auto it = entries_.find(key); it != entries_.end())
+	{
+		if (auto alive = it->second.lock())
+			return alive;
+		// Weak entry expired - rebuild and replace.
+	}
+
+	auto entry = std::make_shared<CachedWavetable>();
+	entry->rawTable = getOrLoadRawLocked(fullUri);
 
 	// Bake per-note mip-mapped form. No more morphed in-between slots - the audio loop
 	// linearly crossfades adjacent file slots at playback. Mip count is sample-rate-dependent.
+	const int slotCount = entry->raw()->slotCount;
 	entry->mipInfo.initialize(WaveTable::WavetableFileSampleCount, slotCount, sampleRate);
 	entry->bakedStorage.resize(static_cast<std::size_t>(entry->mipInfo.TotalMemoryRequired()) / sizeof(float));
 	entry->raw()->CopyAndMipmap2(entry->mipInfo, entry->bakedStorage.data());
