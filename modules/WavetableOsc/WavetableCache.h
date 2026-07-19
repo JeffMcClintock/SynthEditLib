@@ -1,9 +1,11 @@
 #pragma once
 
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "Wavetable.h"
@@ -52,6 +54,12 @@ struct CachedWavetable
 // lifetimes: the raw form is well under a megabyte and is rate-independent, while a bake runs
 // to tens of MB and is per-rate (mip boundaries are measured in cycles-per-sample). Callers
 // that only need the waveform - the display - take the raw form and never pay for a bake.
+//
+// Locking: the mutex guards only the maps and the building-key sets. The slow work - file
+// I/O and the FFT bake - happens OUTSIDE the lock, with in-progress keys tracked in
+// buildingRaw_/buildingBaked_ so a second caller for the SAME key waits on the condition
+// variable rather than duplicating the work. Callers for other keys - notably the GUI thread
+// fetching a raw waveform while the loader thread bakes something else - never block.
 class WavetableCache
 {
 	struct CacheKey
@@ -69,12 +77,16 @@ class WavetableCache
 	};
 
 	std::mutex mtx_;
+	std::condition_variable buildDone_;
 	std::unordered_map<std::string, std::weak_ptr<RawWavetable>> rawEntries_;
 	std::unordered_map<CacheKey, std::weak_ptr<CachedWavetable>, CacheKeyHash> entries_;
 
-	// Caller must already hold mtx_ (std::mutex isn't recursive, and getOrLoad needs this
-	// while holding the lock).
-	std::shared_ptr<RawWavetable> getOrLoadRawLocked(const std::string& fullUri);
+	// Keys whose load/bake is currently running outside the lock.
+	std::unordered_set<std::string> buildingRaw_;
+	std::unordered_set<CacheKey, CacheKeyHash> buildingBaked_;
+
+	// The actual file-read + slicing, no locking. Never returns null (falls back to sine).
+	static std::shared_ptr<RawWavetable> buildRaw(const std::string& fullUri);
 
 public:
 	// Returns the single-cycle form for the given resolved URI, without baking anything.
@@ -86,9 +98,10 @@ public:
 	std::shared_ptr<RawWavetable> getOrLoadRaw(const std::string& fullUri);
 
 	// Returns a baked wavetable for the given resolved URI + sample rate. The first
-	// caller for a (URI, SR) pays the FFT-bake cost (under the cache mutex); subsequent
-	// callers get the cached result immediately. The raw form underneath is shared with
-	// any other rate, and with the display.
+	// caller for a (URI, SR) pays the load + FFT-bake cost (outside the cache mutex);
+	// concurrent callers for the same key wait for that one result, and everyone after
+	// gets the cached entry immediately. The raw form underneath is shared with any
+	// other rate, and with the display.
 	std::shared_ptr<CachedWavetable> getOrLoad(const std::string& fullUri, float sampleRate);
 };
 

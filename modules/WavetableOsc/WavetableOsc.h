@@ -9,6 +9,7 @@
 #include <math.h>
 #include <memory>
 #include "WavetableCache.h"
+#include "WavetableLoader.h"
 #include "../shared/SharedObject.h"
 
 #undef min
@@ -184,6 +185,15 @@ private:
 	std::shared_ptr<CachedWavetable> waveTable_;
 	float* waveData_{};
 
+	// In-flight background load, or null. Reassigning this supersedes an earlier load; the
+	// processor's destruction simply drops it (the worker keeps the block alive until done).
+	std::shared_ptr<WavetableLoadRequest> pending_;
+
+	// Shared background loader, acquired in open() (off the audio thread). Holding it here
+	// ties the worker thread's lifetime to the set of live instances, so it is joined at
+	// plugin teardown - never inside DLL unload, where joining deadlocks on the loader lock.
+	std::shared_ptr<WavetableLoader> loader_;
+
 	// Shared per-sample-rate pitch lookup table.
 	struct PitchTableData { std::vector<double> data; };
 	std::shared_ptr<PitchTableData> pitchTableShared_;
@@ -193,6 +203,31 @@ public:
 	WavetableOsc();
 	gmpi::ReturnCode open(gmpi::api::IUnknown* phost) override;
 	void onSetPins() override;
+
+	// Output silence while nothing is loaded (also the initial state - "play before a
+	// wavetable exists"). chooseSubProcess marks the output non-streaming in this state, so
+	// this module - and everything downstream - can genuinely sleep once the buffer drains.
+	void subProcessSilence(int sampleFrames);
+
+	// Active while a background load is in flight: outputs silence, but polls the pending
+	// request each block and stays awake so the finished table can be adopted the instant
+	// it's ready.
+	void subProcessLoading(int sampleFrames);
+
+	// Adopt a completed background load into the live audio state and select the real
+	// (playing) subProcess. Called from subProcessLoading once the request is ready.
+	void publishLoaded();
+
+	// Point the audio state at `table` (or clear it when null). The previous table is released
+	// only after `table` is held, so a same-file reassignment stays a cache hit rather than a
+	// reload, and remains shared with any other oscillator referencing it. A replaced table is
+	// handed to the loader's dispose queue - it may be tens of MB with this instance holding
+	// the last reference, and that free must not run on the audio thread.
+	void adoptTable(std::shared_ptr<CachedWavetable> table);
+
+	// Single point of truth for the (waveData_ / pending_ / idle) -> subProcess mapping,
+	// including the output pin's streaming state. Called from onSetPins and publishLoaded.
+	void chooseSubProcess();
 
 	// Cubic Hermite interpolation. Caller guarantees [table_floor-1, table_floor+2]
 	// are valid - the bake adds wraparound samples on each side of every slot so any
@@ -351,6 +386,7 @@ private:
 	gmpi::AudioOutPin pinSignalOut;
 	gmpi::FloatInPin pinVoiceActive;
 	gmpi::StringInPin pinWaveTableFile;
+	gmpi::IntInPin pinRenderMode; // Processor/OfflineRenderMode: 0 = Live (realtime), 2 = offline render.
 
 	double *pitchTable{};
 	bool previousActiveState = false;

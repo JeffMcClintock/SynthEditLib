@@ -21,6 +21,8 @@ synthedit_plugin(
 	  Wavetable.cpp
 	  WavetableCache.h
 	  WavetableCache.cpp
+	  WavetableLoader.h
+	  WavetableLoader.cpp
 	  WavetableMipmapPolicy.h
 	  ${SDK_FILES}
 )
