@@ -2,6 +2,8 @@
 #include "WavetableOsc.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <cstdlib>
+#include <vector>
 #include "Extensions/EmbeddedFile.h"
 
 using namespace gmpi;
@@ -89,14 +91,44 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 		const float slotPos = std::min( 1.0f, std::max( 0.0f, pinSlot.value ) );
 		const int highlightedSlot = (int)( slotPos * (float)( waveTable->slotCount - 1 ) + 0.5f );
 
-		for( int slot = waveTable->slotCount - 1 ; slot >= 0 ; --slot )
+		// Limit the number of drawn slots to keep the 3D graph readable. Pick evenly-spaced slots
+		// across the full set, always including the first and last.
+		const int maxDrawnSlots = 32;
+		std::vector<int> drawnSlots;
+		if( waveTable->slotCount <= maxDrawnSlots )
 		{
+			for( int slot = 0 ; slot < waveTable->slotCount ; ++slot )
+				drawnSlots.push_back( slot );
+		}
+		else
+		{
+			for( int k = 0 ; k < maxDrawnSlots ; ++k )
+			{
+				const int slot = (int)( (float)k * (float)( waveTable->slotCount - 1 ) / (float)( maxDrawnSlots - 1 ) + 0.5f );
+				if( drawnSlots.empty() || drawnSlots.back() != slot )
+					drawnSlots.push_back( slot );
+			}
+		}
+
+		// Highlight whichever drawn slot lies closest to the selected slot, so the highlight
+		// stays visible even when the exact slot isn't among those drawn.
+		int highlightedDrawIndex = 0;
+		for( size_t j = 1 ; j < drawnSlots.size() ; ++j )
+		{
+			if( std::abs( drawnSlots[j] - highlightedSlot ) < std::abs( drawnSlots[highlightedDrawIndex] - highlightedSlot ) )
+				highlightedDrawIndex = (int)j;
+		}
+
+		// Draw from back (highest slot index) to front so nearer waveforms overdraw farther ones.
+		for( int j = (int)drawnSlots.size() - 1 ; j >= 0 ; --j )
+		{
+			const int slot = drawnSlots[j];
 			float* wavedata = waveTable->GetSlotPtr(slot);
 
 			float yOffset = frontYaxis - (frontYaxis-backYaxis) * ((float) slot / (float) waveTable->slotCount);
 			float xOffset = (slot * horizontalDelta) / waveTable->slotCount;
 
-			auto& pen = ( slot == highlightedSlot ) ? penHighlightedFirst : penLines;
+			auto& pen = ( j == highlightedDrawIndex ) ? penHighlightedFirst : penLines;
 
 			// Draw waveform as polyline using path geometry.
 			auto geometry = g.getFactory().createPathGeometry();
@@ -116,12 +148,13 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 
 			g.drawGeometry(geometry, pen, 1.0f);
 
-			// Fill polygon between this and next slot with black.
-			if( slot > 0 )
+			// Fill polygon between this and the next drawn slot (toward the front) with black.
+			if( j > 0 )
 			{
-				float* wavedata2 = waveTable->GetSlotPtr(slot - 1 );
-				float yOffset2 = frontYaxis - (frontYaxis-backYaxis) * ((float) (slot-1) / (float) waveTable->slotCount);
-				float xOffset2 = ((slot-1) * horizontalDelta) / waveTable->slotCount;
+				const int slot2 = drawnSlots[j - 1];
+				float* wavedata2 = waveTable->GetSlotPtr(slot2);
+				float yOffset2 = frontYaxis - (frontYaxis-backYaxis) * ((float) slot2 / (float) waveTable->slotCount);
+				float xOffset2 = (slot2 * horizontalDelta) / waveTable->slotCount;
 
 				auto fillGeometry = g.getFactory().createPathGeometry();
 				auto fillSink = fillGeometry.open();
