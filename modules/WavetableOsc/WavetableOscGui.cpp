@@ -4,6 +4,7 @@
 #include <math.h>
 #include <cstdlib>
 #include <vector>
+#include "helpers/SimplifyGraph.h"
 #include "Extensions/EmbeddedFile.h"
 
 using namespace gmpi;
@@ -119,11 +120,31 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 				highlightedDrawIndex = (int)j;
 		}
 
+		// Pre-simplify each drawn slot's waveform once, thinning near-collinear points so the path
+		// geometries carry far fewer vertices. Points are kept in slot-local coordinates
+		// (SimplifyGraph is translation-invariant), so the same simplified set serves both the
+		// slot's outline and the two ribbon edges it borders.
+		const float endX = waveTable->waveSize * x_increment;
+		std::vector<std::vector<Point>> simplifiedSlots( drawnSlots.size() );
+		{
+			std::vector<Point> raw;
+			raw.reserve( waveTable->waveSize );
+			for( size_t j = 0 ; j < drawnSlots.size() ; ++j )
+			{
+				const float* wavedata = waveTable->GetSlotPtr( drawnSlots[j] );
+				raw.clear();
+				for( int i = 0 ; i < waveTable->waveSize ; ++i )
+					raw.push_back( Point( i * x_increment, wavedata[i] * -vscale ) );
+
+				SimplifyGraph( raw, simplifiedSlots[j] );
+			}
+		}
+
 		// Draw from back (highest slot index) to front so nearer waveforms overdraw farther ones.
 		for( int j = (int)drawnSlots.size() - 1 ; j >= 0 ; --j )
 		{
 			const int slot = drawnSlots[j];
-			float* wavedata = waveTable->GetSlotPtr(slot);
+			const std::vector<Point>& wave = simplifiedSlots[j];
 
 			float yOffset = frontYaxis - (frontYaxis-backYaxis) * ((float) slot / (float) waveTable->slotCount);
 			float xOffset = (slot * horizontalDelta) / waveTable->slotCount;
@@ -134,15 +155,10 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 			auto geometry = g.getFactory().createPathGeometry();
 			auto sink = geometry.open();
 
-			float xPos = 0.0f;
-			sink.beginFigure(Point(xOffset + xPos, yOffset), FigureBegin::Hollow);
-			for(int i = 0; i < waveTable->waveSize ; ++i)
-			{
-				float yVal = yOffset + (wavedata[i] * -vscale);
-				sink.addLine(Point(xOffset + xPos, yVal));
-				xPos += x_increment;
-			}
-			sink.addLine(Point(xOffset + xPos, yOffset));
+			sink.beginFigure(Point(xOffset, yOffset), FigureBegin::Hollow);
+			for( const auto& p : wave )
+				sink.addLine(Point(xOffset + p.x, yOffset + p.y));
+			sink.addLine(Point(xOffset + endX, yOffset));
 			sink.endFigure(FigureEnd::Open);
 			sink.close();
 
@@ -152,30 +168,23 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 			if( j > 0 )
 			{
 				const int slot2 = drawnSlots[j - 1];
-				float* wavedata2 = waveTable->GetSlotPtr(slot2);
+				const std::vector<Point>& wave2 = simplifiedSlots[j - 1];
 				float yOffset2 = frontYaxis - (frontYaxis-backYaxis) * ((float) slot2 / (float) waveTable->slotCount);
 				float xOffset2 = (slot2 * horizontalDelta) / waveTable->slotCount;
 
 				auto fillGeometry = g.getFactory().createPathGeometry();
 				auto fillSink = fillGeometry.open();
 
-				xPos = 0.0f;
-				fillSink.beginFigure(Point(xOffset + xPos, yOffset), FigureBegin::Filled);
-				for(int i = 0; i < waveTable->waveSize ; ++i)
-				{
-					fillSink.addLine(Point(xOffset + xPos, yOffset + (wavedata[i] * -vscale)));
-					xPos += x_increment;
-				}
-				fillSink.addLine(Point(xOffset + xPos, yOffset));
+				fillSink.beginFigure(Point(xOffset, yOffset), FigureBegin::Filled);
+				for( const auto& p : wave )
+					fillSink.addLine(Point(xOffset + p.x, yOffset + p.y));
+				fillSink.addLine(Point(xOffset + endX, yOffset));
 
 				// Back along next slot.
-				fillSink.addLine(Point(xOffset2 + xPos, yOffset2));
-				for(int i = waveTable->waveSize - 1 ; i >= 0 ; --i)
-				{
-					fillSink.addLine(Point(xOffset2 + xPos, yOffset2 + (wavedata2[i] * -vscale)));
-					xPos -= x_increment;
-				}
-				fillSink.addLine(Point(xOffset2 + xPos, yOffset2));
+				fillSink.addLine(Point(xOffset2 + endX, yOffset2));
+				for( auto it = wave2.rbegin() ; it != wave2.rend() ; ++it )
+					fillSink.addLine(Point(xOffset2 + it->x, yOffset2 + it->y));
+				fillSink.addLine(Point(xOffset2, yOffset2));
 
 				fillSink.endFigure(FigureEnd::Closed);
 				fillSink.close();
