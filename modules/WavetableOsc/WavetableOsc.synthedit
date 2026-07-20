@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="94852515" SelectedViewType="128" emulate_ignore_pc="true" vst_preset_count="64">
+<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="94852515" SelectedViewType="256" emulate_ignore_pc="true" vst_preset_count="64">
     <master_container type="Container" handle="94852515" name="Main" PanelLocationZoom="1.1641532" StructLocationZoom="1" ViewOpenFlags="384" skin="default3">
         <plugs>
             <plug idx="7"/>
@@ -22,13 +22,13 @@
                 </param>
                 <param type="6" handle="258587584" shortName="Wavetable Osc Pitch" vstParameterNumber="0" module="1714709055" moduleParamId="0">
                     <patch-list>
-                        <s>1.56666</s>
+                        <s>2.16667</s>
                         <s repeat="127">5</s>
                     </patch-list>
                 </param>
                 <param type="10" handle="732585325" shortName="Capture Data A" ignorePC="true" private="true" stateful="false" isPolyphonic="true" module="1257603951" moduleParamId="0"/>
                 <param type="4" handle="840371022" shortName="polyDetect" ignorePC="true" private="true" stateful="false" module="1257603951" moduleParamId="2"/>
-                <param type="1" handle="1590000411" shortName="Wavetable Osc WaveTableFile" vstParameterNumber="1" module="70768971" moduleParamId="0" MetaData="wav">
+                <param type="1" handle="1590000411" shortName="Wavetable Osc WaveTableFile" vstParameterNumber="1" module="70768971" moduleParamId="0">
                     <patch-list>
                         <s>C:/Users/jef/Downloads/BVKER-Custom-Wavetables/BVKER - Custom Wavetables/FM/FM 14.wav</s>
                         <s repeat="127"></s>
@@ -61,8 +61,8 @@
                     <plug parameterId="-1" idx="13"/>
                     <plug parameterId="-1"/>
                 </plugs>
-                <structRect l="3384" r="3456" t="3912" b="3994"/>
-                <panelRect l="3792" r="3842" t="3944" b="4010"/>
+                <structRect l="3384" r="3456" t="3912" b="3998"/>
+                <panelRect l="3792" r="3842" t="3944" b="4014"/>
             </module>
             <module type="Image3" handle="356931408">
                 <plugs>
@@ -84,13 +84,12 @@
                 <panelRect l="3952" r="4186" t="3752" b="3922"/>
             </module>
             <module type="SE Wavetable Osc" handle="1412763883">
-                <structRect l="3792" r="3876" t="3864" b="3924"/>
+                <structRect l="3792" r="3876" t="3864" b="3912"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
         </modules>
         <lines>
             <line type="Line" handle="1991779248" lineType="1" fMod="70768971" tMod="34702161" fPlg="6"/>
-            <line type="Line" handle="185720371" lineType="1" fMod="70768971" tMod="1412763883" fPlg="13" tPlg="5"/>
             <line type="Line" handle="4224648" lineType="1" fMod="70768971" tMod="1311285963" fPlg="6"/>
             <line type="Line" handle="2064520790" lineType="1" fMod="70768971" tMod="1311285963" fPlg="7" tPlg="1"/>
             <line type="Line" handle="174695687" lineType="1" fMod="1311285963" tMod="356931408" fPlg="2" tPlg="6"/>
@@ -100,6 +99,7 @@
             <line type="Line" handle="606484985" lineType="1" fMod="837448527" tMod="34702161" fPlg="8" tPlg="1"/>
             <line type="Line" handle="1139635031" lineType="1" fMod="837448527" tMod="1412763883" fPlg="15" tPlg="1"/>
             <line type="Line" handle="6112201" lineType="1" fMod="837448527" tMod="1751584435" fPlg="8"/>
+            <line type="Line" handle="2039189068" lineType="1" fMod="70768971" tMod="1412763883" fPlg="13" tPlg="4"/>
         </lines>
         <PanelLocationCenter x="3956" y="3993.866"/>
         <StructLocationCenter x="3984" y="3984"/>
@@ -229,8 +229,8 @@
                 <Pin name="Slot" datatype="float" rate="audio"/>
                 <Pin name="Signal Out" datatype="float" rate="audio" direction="out"/>
                 <Pin name="VoiceActive" datatype="float" default="1" private="true" isPolyphonic="true" hostConnect="Voice/Active"/>
-                <Pin name="Formant" datatype="float" rate="audio" metadata="-10,10"/>
                 <Pin name="WaveTableFile" datatype="string_utf8" isFilename="true" metadata="wav"/>
+                <Pin name="RenderMode" datatype="int" private="true" hostConnect="Processor/OfflineRenderMode"/>
             </Audio>
         </Plugin>
         <Plugin id="Slider" class="1" name="Slider" flags="4480" category="Old">
