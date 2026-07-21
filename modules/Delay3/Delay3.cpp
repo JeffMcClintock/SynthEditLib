@@ -406,7 +406,7 @@ auto r = Register<Delay3>::withXml(R"XML(
         <Pin name="Modulation" datatype="float" rate="audio" default="1"/>
         <Pin name="Signal Out" datatype="float" rate="audio" direction="out"/>
         <Pin name="Delay Time (secs)" datatype="float" default="1" isMinimised="true"/>
-        <Pin name="Interpolation" datatype="enum" default="0" metadata="None,Linear,Cubic,Sinc" isMinimised="true"/>
+        <Pin name="Interpolation" datatype="enum" default="2" metadata="None,Linear,Cubic,Sinc" isMinimised="true"/>
         <Pin name="Feedback" datatype="float" rate="audio"/>
     </Audio>
 </Plugin>
