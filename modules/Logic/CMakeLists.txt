@@ -8,4 +8,5 @@ gmpi_plugin(
  FORMATS_LIST GMPI
 	SOURCE_FILES
 	  Gates.cpp
+	  SampleAndHold2.cpp
 )
