@@ -6,10 +6,8 @@
 #include "../iseshelldsp.h"
 #include "../ug_plugin3.h"
 
-#if !defined(SE_USE_JUCE_UI)
 #include "../modules/se_sdk3_hosting/ModuleView.h"
 #include "../modules/se_sdk3_hosting/ViewBase.h"
-#endif
 
 SE_DECLARE_INIT_STATIC_FILE(PatchPoints)
 
@@ -96,7 +94,6 @@ public:
 };
 
 
-#if !defined(SE_USE_JUCE_UI)
 class PatchCableChangeNotifier : public gmpi_gui::MpGuiInvisibleBase
 {
 public:
@@ -122,7 +119,6 @@ namespace
 {
 	auto r3 = sesdk::Register<PatchCableChangeNotifier>::withId(L"SE PatchCableChangeNotifier");
 }
-#endif
 
 REGISTER_PLUGIN2(PatchPoint, L"SE Patch Point in");
 REGISTER_PLUGIN2(PatchPoint, L"SE Patch Point out");

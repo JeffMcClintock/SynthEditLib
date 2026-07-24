@@ -22,7 +22,7 @@
 #include "Shared/NativePresetReader.h"
 
 #include "../../mfc_emulation.h"
-#if !defined(SE_USE_JUCE_UI)
+#if SE_GRAPHICS_SUPPORT
 #include "GuiPatchAutomator3.h"
 #include "ModuleView.h" // Sdk3Helper, for getNativeWindowHandle
 #if defined(_WIN32) || defined(__APPLE__)
@@ -799,7 +799,7 @@ void MpController::setParameterValue(RawView value, int32_t parameterHandle, gmp
 	{
 		auto choice = (int32_t)value;// RawToValue<int32_t>(value.data(), value.size());
 
-#if (defined(_WIN32) || defined(__APPLE__)) && !defined(SE_USE_JUCE_UI) && SE_GRAPHICS_SUPPORT
+#if (defined(_WIN32) || defined(__APPLE__)) && SE_GRAPHICS_SUPPORT
 		if (choice == 3) // Edit: type the assignment into a dialog, rather than learning it.
 		{
 			void* parentWindow = getNativeWindowHandle(); // HWND on Windows; null on macOS (dialog is free-standing).
@@ -1123,7 +1123,7 @@ gmpi_gui::IMpGraphicsHost* MpController::getGraphicsHost()
 // dialogs the SDK interfaces don't cover. Null when the GUI is closed or unsupported.
 void* MpController::getNativeWindowHandle()
 {
-#if SE_GRAPHICS_SUPPORT && !defined(SE_USE_JUCE_UI)
+#if SE_GRAPHICS_SUPPORT
 	for (auto g : m_guis2)
 	{
 		if (auto pa = dynamic_cast<GuiPatchAutomator3*>(g); pa)
@@ -1245,7 +1245,7 @@ void MpController::OnSetHostControl(int hostControl, int32_t paramField, int32_t
 				break;
 			};
 
-#if !defined(SE_USE_JUCE_UI)
+#if SE_GRAPHICS_SUPPORT
             // L"Load Preset=2,Save Preset,Import Bank,Export Bank,Load MIDI,Save MIDI"
             if (patchCommand > 7)
                 break;
