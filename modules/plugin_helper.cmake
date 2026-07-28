@@ -98,6 +98,16 @@ endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".sem")
 
+if(UNIX AND NOT APPLE)
+  # Linux: no resource embedding (Windows) or bundle Resources folder (mac);
+  # place the XML beside the binary (<binary>.xml) where the module scanner looks.
+  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}.xml"
+      "$<TARGET_FILE:${PROJECT_NAME}>.xml"
+    VERBATIM)
+endif()
+
 if(WIN32)
 target_link_options(${PROJECT_NAME} PRIVATE "/SUBSYSTEM:WINDOWS")
 endif()
@@ -201,6 +211,15 @@ if(APPLE)
 endif()
 
 set_target_properties(${BUILD_GMPI_PLUGIN_PROJECT_NAME} PROPERTIES SUFFIX ".sem")
+
+if(UNIX AND NOT APPLE)
+  # Linux: place the XML beside the binary (<binary>.xml) for the module scanner.
+  add_custom_command(TARGET ${BUILD_GMPI_PLUGIN_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_CURRENT_SOURCE_DIR}/${BUILD_GMPI_PLUGIN_PROJECT_NAME}.xml"
+      "$<TARGET_FILE:${BUILD_GMPI_PLUGIN_PROJECT_NAME}>.xml"
+    VERBATIM)
+endif()
 
 if(WIN32)
 target_compile_definitions (${BUILD_GMPI_PLUGIN_PROJECT_NAME} PRIVATE -D_UNICODE -DUNICODE)
@@ -371,6 +390,15 @@ function(synthedit_plugin)
                 PROPERTIES
                 SUFFIX ".${TARGET_EXTENSION}"
             )
+        endif()
+
+        if(UNIX AND NOT APPLE AND GMPI_PLUGIN_HAS_XML)
+            # Linux: place the XML beside the binary (<binary>.xml) for the module scanner.
+            add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${CMAKE_CURRENT_SOURCE_DIR}/${GMPI_PLUGIN_PROJECT_NAME}.xml"
+                    "$<TARGET_FILE:${SUB_PROJECT_NAME}>.xml"
+                VERBATIM)
         endif()
     endforeach()
 

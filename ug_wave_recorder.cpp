@@ -356,6 +356,7 @@ void ug_wave_recorder::CloseFile()
 	//	std::wstring filename = f1.GetFilePath();
 	//	_RPT2(_CRT_WARN, "ug_wave_recorder::Closing %x thread %x\n", f1.m_hFile, AfxGetThread() );
 	fclose(fileHandle);
+	fileHandle = {}; // else the destructor fcloses it a second time (glibc aborts: double free)
 
 #if 0 // avoid linking winmm
 	//	_RPT0(_CRT_WARN, "ug_wave_recorder::Close File***\n" );

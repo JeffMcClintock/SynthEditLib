@@ -28,7 +28,7 @@ namespace gmpi_dynamic_linking
 #if defined( _WIN32)
 		*dll_handle = (DLL_HANDLE) LoadLibraryW(dll_filename);
 #else
-		*dll_handle = (DLL_HANDLE) dlopen(WStringToUtf8(dll_filename).c_str(), 0);
+		*dll_handle = (DLL_HANDLE) dlopen(WStringToUtf8(dll_filename).c_str(), RTLD_LAZY); // glibc rejects mode 0 ("invalid mode"); macOS merely tolerated it.
 #endif
 		return *dll_handle == 0;
 	}
