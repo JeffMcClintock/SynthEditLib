@@ -231,7 +231,7 @@ public:
 		{
 		case UET_EVENT_MIDI:
 		{
-			// Not real MIDI, just a convinient way to pass message from helper.
+			// Not real MIDI, just a convinient way to pass message from helper PolyToMonoA (ug_voice_splitter.cpp).
 			assert(e->parm2 <= sizeof(int));
 			auto midiData = (const unsigned char*) &(e->parm3);
 

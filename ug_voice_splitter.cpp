@@ -162,8 +162,7 @@ class PolyToMonoA : public MpBase2
 	FloatInPin pinVoiceActive;
 	MidiOutPin pinLastVoice;
 
-	int m_voice_number;
-	bool activeState = false;
+	int m_voice_number{};
 
 public:
 	PolyToMonoA()
@@ -213,14 +212,14 @@ public:
 
 	void onSetPins() override
 	{
+		// !! only goes not-active when stolen, faded-out voice is simply stopped dead.
+		// does recieve a fresh update at 1.0 on new notes somehow, despite never getting a zero.
 		if (pinVoiceActive.isUpdated())
 		{
-			bool newActiveState = pinVoiceActive > 0.0f;
-
-			if (newActiveState != activeState) // filter out voice refresh and other irrelevant updates.
+			// _RPTW2(_CRT_WARN, L"V%d  ACTIVE %f)\n", m_voice_number, pinVoiceActive.getValue());
+			if (pinVoiceActive == 1.0f)
 			{
-				activeState = newActiveState;
-				//			_RPTW2(_CRT_WARN, L"V%d  ACTIVE %f)\n", m_voice_number, pinVoiceActive.getValue());
+				constexpr bool activeState = true;
 
 				// Notify helper of voice status
 				unsigned char midiMessage2[] = { 0xF0, 0x7f, 0x7f };
