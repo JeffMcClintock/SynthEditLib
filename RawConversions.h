@@ -198,6 +198,7 @@ inline int getDataTypeSize(int datatype)
 	case DT_INT:
 	case DT_ENUM:
 	case DT_FLOAT:
+	case DT_FSAMPLE:
 	{
 		assert(sizeof(float) == sizeof(int32_t));
 		return sizeof(int32_t);
