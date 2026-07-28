@@ -117,6 +117,27 @@ CFBundleRef BundleInfo::GetBundle()
 */
 #endif
 
+#if defined(__linux__)
+#include <pwd.h>
+#include <unistd.h>
+#include <cstdlib>
+
+// The Linux analog of "~/Library/Application Support": $XDG_DATA_HOME, defaulting to ~/.local/share
+std::string settingsPath()
+{
+    if (const char* xdg = getenv("XDG_DATA_HOME"); xdg && *xdg)
+        return xdg;
+
+    std::string home;
+    if (const char* h = getenv("HOME"); h && *h)
+        home = h;
+    else if (const struct passwd* pwd = getpwuid(getuid()))
+        home = pwd->pw_dir;
+
+    return home + "/.local/share";
+}
+#endif
+
 BundleInfo* BundleInfo::instance()
 {
     static BundleInfo singleton;
@@ -134,8 +155,11 @@ std::string getPlatformPluginsFolder()
     char path[MAX_PATH];
     SHGetFolderPathA(nullptr, CSIDL_PROGRAM_FILES_COMMON, nullptr, SHGFP_TYPE_CURRENT, path);
     return path;
-#else
+#elif defined(__APPLE__)
     return "/Library/Audio/Plug-Ins/";
+#else
+    // Linux has no shared plugin root common to all formats; keep everything under the per-user data dir.
+    return settingsPath();
 #endif
 }
 
@@ -145,7 +169,7 @@ std::string getSettingsFolder()
     char path[MAX_PATH];
     SHGetFolderPathA(nullptr, CSIDL_COMMON_APPDATA, nullptr, SHGFP_TYPE_CURRENT, path);
     return path;
-#else
+#elif defined(__APPLE__)
     // ~/Library/Application Support/
     char path[PATH_MAX];
     auto state = sysdir_start_search_path_enumeration(SYSDIR_DIRECTORY_APPLICATION_SUPPORT,
@@ -156,6 +180,8 @@ std::string getSettingsFolder()
     else {
         return {};
     }
+#else
+    return settingsPath();
 #endif
 }
 
@@ -245,11 +271,11 @@ std::wstring BundleInfo::getResourceFolder()
     }
 
     return getImbeddedFileFolder();
-#else
+#elif defined(__APPLE__)
     std::string result;
-    
+
     CFBundleRef br = CreatePluginBundleRef();
-    
+
     if ( br )
     {
         CFURLRef url2 = CFBundleCopyResourcesDirectoryURL (br);
@@ -264,8 +290,13 @@ std::wstring BundleInfo::getResourceFolder()
         }
         ReleasePluginBundleRef(br);
     }
-    
+
     return Utf8ToWstring(result.c_str());
+#else
+    // Linux VST3 bundles are plain folders: <name>.vst3/Contents/x86_64-linux/<name>.so
+    // with resources at <name>.vst3/Contents/Resources/. Non-bundled executables
+    // resolve to a Resources folder beside the binary.
+    return (getBundleContentsFolder() / "Resources" / "").wstring();
 #endif
 }
 
@@ -528,11 +559,30 @@ std::string BundleInfo::getResource( const char* resourceId )
         return result;
     }
 
+#elif !defined(__APPLE__)
+    // Linux: no embedded-resource scheme; load from the bundle's Resources folder.
+    if (!resourceId)
+        return {};
+
+    const se_fs::path path = se_fs::path(getResourceFolder()) / resourceId;
+
+    std::ifstream f(path, std::ios::in | std::ios::binary);
+    if (f.fail())
+        return {};
+
+    f.seekg(0, std::ios::end);
+    const size_t fileSize = f.tellg();
+    f.seekg(0);
+
+    std::string result(fileSize, '\0');
+    f.read(result.data(), fileSize);
+
+    return result;
 #else
     // NOTE: On IOS, resources are in the main app folder, not in the Plugin (appx) which is in the Plugins folder of the main app. e.g. SE_IOS_APP.app/Plugins/SE_IOS_audiounit.appx/...
     // So in XCode add resources to the APP not the appx target.
     std::string result;
-    
+
 	if ( resourceId == 0 )
 		return "";
     

@@ -1,5 +1,8 @@
 #pragma once
 #include <assert.h>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 
 /*
 #include "UUID_Util.h"

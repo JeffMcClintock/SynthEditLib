@@ -6,6 +6,7 @@
 #include <math.h>
 #include <vector>
 #include <fstream>
+#include <filesystem>
 #include <assert.h>
 #include "float.h"
 #include "../shared/real_fft.h"
@@ -2026,7 +2027,7 @@ void WaveTable::ExportFile( const std::wstring& pfilename, int wavetableNumber, 
 		wav_head.nBlockAlign = (wav_head.wBitsPerSample / 8) * wav_head.nChannels;
 
 		ofstream myfile;
-		myfile.open ( filename.c_str(), ios_base::out | ios_base::binary | ios_base::trunc );
+		myfile.open ( std::filesystem::path{ filename }, ios_base::out | ios_base::binary | ios_base::trunc );
 		if( !myfile )
 		{
 			#if defined( _WIN32 ) && !defined(SE_TARGET_WAVES)

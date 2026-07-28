@@ -5,8 +5,11 @@
 #ifdef _WIN32
 #include "shlobj.h"
 #else
+#ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
+#endif
 #include <pwd.h>
+#include <unistd.h>
 #endif
 #include "../shared/unicode_conversion2.h"
 #include <sys/stat.h>

@@ -6,7 +6,7 @@
 #define NOMINMAX
 #include <windows.h>
 
-#else
+#elif defined(__APPLE__)
 
 #import <CoreFoundation/CoreFoundation.h>
 
@@ -39,7 +39,7 @@ void CALLBACK SynthEditVstTimerProc(
 	}
 }
 
-#else
+#elif defined(__APPLE__)
 void timerCallback(CFRunLoopTimerRef t, void *info)
 {
     /* info was null!!
@@ -111,12 +111,14 @@ namespace se_sdk_timers
 
 //			_RPT1(_CRT_WARN, "StartTimer %d\n", idleTimer_);
 
-#else
+#elif defined(__APPLE__)
             CFRunLoopTimerContext timerContext = CFRunLoopTimerContext();
 			timerContext.info = this;
 			idleTimer_ = CFRunLoopTimerCreate(kCFAllocatorDefault, CFAbsoluteTimeGetCurrent() + periodMilliSeconds * 0.001f, periodMilliSeconds * 0.001f, 0, 0, timerCallback, &timerContext);
 			if (idleTimer_)
 				CFRunLoopAddTimer(CFRunLoopGetCurrent(), (CFRunLoopTimerRef)idleTimer_, kCFRunLoopCommonModes);
+#else
+			// Linux: no run loop to attach a timer to yet. Timers never fire (headless builds don't need them).
 #endif
 		}
 	}
@@ -130,7 +132,7 @@ namespace se_sdk_timers
 			KillTimer(0, idleTimer_);
 //			_RPT1(_CRT_WARN, "KillTimer %d\n", idleTimer_);
 
-#else
+#elif defined(__APPLE__)
 			CFRunLoopRemoveTimer(CFRunLoopGetCurrent(), (CFRunLoopTimerRef)idleTimer_, kCFRunLoopCommonModes);
 			CFRunLoopTimerInvalidate((CFRunLoopTimerRef)idleTimer_);
 			CFRelease((CFRunLoopTimerRef)idleTimer_);

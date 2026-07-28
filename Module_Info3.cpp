@@ -51,7 +51,7 @@ void PluginHolder::load()
 			LocalFree(lpMsgBuf);
 		}
 	}
-#else
+#elif defined(__APPLE__)
 // fails on missing plugins in debug.	assert(exists(pluginPath / L"Contents")); // mac plugins must be a bundle.
 
 	// Create a path to the bundle
@@ -73,6 +73,15 @@ void PluginHolder::load()
 		printf("Couldn't create bundle reference\n");
 		return;
 	}
+#else
+	// Linux: plain shared object, loaded via dlopen.
+	if (MP_DllLoad(&dllHandle, pluginPath.wstring().c_str()))
+	{
+		// load failed, try it as a bundle folder.
+		const auto bundleFilepath = pluginPath / L"Contents/x86_64-linux" / pluginPath.filename();
+		if (MP_DllLoad(&dllHandle, bundleFilepath.wstring().c_str()))
+			dllHandle = {};
+	}
 #endif
 }
 
@@ -81,14 +90,14 @@ gmpi::MP_DllEntry PluginHolder::getFactory()
 	if (!dllHandle)
 		return nullptr;
 
-#if defined( _WIN32)
+#if defined( __APPLE__ )
+	return (gmpi::MP_DllEntry) CFBundleGetFunctionPointerForName((CFBundleRef)dllHandle, CFSTR("MP_GetFactory"));
+#else
     gmpi::MP_DllEntry dll_entry_point{};
 	auto r = gmpi_dynamic_linking::MP_DllSymbol(dllHandle, "MP_GetFactory", (void**)&dll_entry_point);
 	if (r != gmpi::MP_OK)
 		return nullptr;
 	return dll_entry_point;
-#else
-	return (gmpi::MP_DllEntry) CFBundleGetFunctionPointerForName((CFBundleRef)dllHandle, CFSTR("MP_GetFactory"));
 #endif
 }
 
@@ -96,11 +105,11 @@ void PluginHolder::unload()
 {
 	if (dllHandle)
 	{
-#if defined( _WIN32)
-		MP_DllUnload(dllHandle);
-#else
+#if defined( __APPLE__ )
 		CFBundleUnloadExecutable((CFBundleRef)dllHandle);
 		CFRelease((CFBundleRef)dllHandle);
+#else
+		MP_DllUnload(dllHandle);
 #endif
 		dllHandle = {};
 	}

@@ -13,6 +13,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 #include "mp_sdk_audio.h"
+#include <cstring>
 #include "SharedBlob.h"
 #include "mfc_emulation.h"
 

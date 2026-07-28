@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include "./Converters.h"
 #include "../shared/unicode_conversion.h"
 

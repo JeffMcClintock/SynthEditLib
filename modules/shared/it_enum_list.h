@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include <assert.h>
+#include <cstring>
+#include <cstdlib>
 
 enum class enum_entry_type {Normal, Separator, Break, SubMenu, SubMenuEnd};
 

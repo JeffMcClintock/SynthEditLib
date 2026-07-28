@@ -3,8 +3,9 @@
 #ifndef SMART_AUDIO_PIN_H_INCLUDED
 #define SMART_AUDIO_PIN_H_INCLUDED
 
-#include "mp_sdk_audio.h" 
+#include "mp_sdk_audio.h"
 #include <limits>
+#include <cmath>
 
 // This class supports audio-rate control signal outputs with smoothing.
 /*

@@ -1,6 +1,7 @@
 // Disable MSCPP "Consider using _wfopen_s instead. " warning.
 #define _CRT_SECURE_NO_WARNINGS
 
+#include <climits>
 #include "./MidiLogPlayback.h"
 #include "../shared/unicode_conversion.h"
 

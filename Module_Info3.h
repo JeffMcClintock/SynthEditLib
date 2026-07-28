@@ -5,6 +5,8 @@
 
 #ifndef _WIN32
 #include <dlfcn.h>
+#endif
+#ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 

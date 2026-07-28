@@ -12,7 +12,7 @@ BundleInfo::instance()->getResource("whatever");
 #include "se_filesystem.h"
 #include "ElatencyContraintType.h"
 
-#if !defined( _WIN32 )
+#if defined( __APPLE__ )
 #include <CoreFoundation/CFBundle.h>
 CFBundleRef CreatePluginBundleRef();
 #endif

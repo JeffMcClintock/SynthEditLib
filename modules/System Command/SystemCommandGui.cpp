@@ -2,9 +2,11 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include "Windows.h" // needs FULL header for ShellExecute 
-#else
+#include "Windows.h" // needs FULL header for ShellExecute
+#elif defined(__APPLE__)
 #import <Cocoa/Cocoa.h>
+#else
+#include <cstdlib> // system()
 #endif
 #include "./SystemCommandGui.h"
 #include "../shared/xplatform.h"
@@ -36,7 +38,7 @@ void SystemCommandGui::onSetTrigger()
 #ifdef _WIN32
 		const wchar_t* commands[] = { L"edit", L"explore", L"find", L"open", L"print", L"properties" };
 		ShellExecute( 0, commands[command], fullFilename.c_str(), L"", L"", SW_MAXIMIZE);
-#else
+#elif defined(__APPLE__)
         // only open works on mac.
         NSString* path = [NSString stringWithCString: JmUnicodeConversions::WStringToUtf8(fullFilename).c_str() encoding : NSUTF8StringEncoding];
         switch(command)
@@ -65,8 +67,25 @@ void SystemCommandGui::onSetTrigger()
         
 //        LSOpenFSRef(, 0);
  //       FSRef temp;
-        
+
   //      LSOpenItemsWithRole(&temp, 1,
+#else
+        // Linux: xdg-open handles 'edit'/'open'; the other verbs have no equivalent.
+        switch(command)
+        {
+            case 0: // edit
+            case 3: // open
+            {
+                std::string systemCommand("xdg-open \"");
+                systemCommand += JmUnicodeConversions::WStringToUtf8(fullFilename);
+                systemCommand += "\"";
+                system(systemCommand.c_str());
+            }
+            break;
+
+            default:
+                break;
+        }
 #endif
 	}
 	previousTrigger = trigger;

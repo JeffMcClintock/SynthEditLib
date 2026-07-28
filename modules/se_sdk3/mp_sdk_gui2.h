@@ -41,6 +41,7 @@
 #define GMPI_SDK_GUI2_H_INCLUDED
 
 #include <functional>
+#include <memory>
 #include <codecvt>
 #include "mp_sdk_gui.h"
 #include "MpString.h"

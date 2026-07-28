@@ -134,7 +134,6 @@ struct XmlSaveHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, const std::wstring& value)
 	{
 		if (!value.empty())
@@ -143,7 +142,6 @@ struct XmlSaveHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, const std::wstring& value, std::wstring defaultValue)
 	{
 		if (value != defaultValue)
@@ -152,7 +150,6 @@ struct XmlSaveHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, const std::string& value)
 	{
 		if (!value.empty())
@@ -161,7 +158,6 @@ struct XmlSaveHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, const std::string& value, std::string defaultValue)
 	{
 		if (value != defaultValue)
@@ -170,7 +166,6 @@ struct XmlSaveHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, const gmpi::drawing::RectL& value)
 	{
 		auto xml = XmlParent->GetDocument()->NewElement(name);
@@ -181,7 +176,6 @@ struct XmlSaveHelper
 		xml->SetAttribute("b", (int)value.bottom);
 	}
 
-	template<>
 	void operator()(const char* name, const GmpiDrawing::RectL& value)
 	{
 		auto xml = XmlParent->GetDocument()->NewElement(name);
@@ -192,7 +186,6 @@ struct XmlSaveHelper
 		xml->SetAttribute("b", (int)value.bottom);
 	}
 
-	template<>
 	void operator()(const char* name, const GmpiDrawing::PointL& value)
 	{
 		auto xml = XmlParent->GetDocument()->NewElement(name);
@@ -233,7 +226,6 @@ struct XmlSaveHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, const gmpi::drawing::PointL& value)
 	{
 		auto xml = XmlParent->GetDocument()->NewElement(name);
@@ -242,7 +234,6 @@ struct XmlSaveHelper
 		xml->SetAttribute("y", (int)value.y);
 	}
 
-	template<>
 	void operator()(const char* name, const GmpiDrawing::SizeL& value)
 	{
 		auto xml = XmlParent->GetDocument()->NewElement(name);
@@ -283,7 +274,6 @@ struct XmlSaveHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, const gmpi::drawing::SizeL& value)
 	{
 		auto xml = XmlParent->GetDocument()->NewElement(name);
@@ -310,7 +300,6 @@ struct XmlSaveHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, const std::vector<std::wstring>& values)
 	{
 		auto xml = XmlParent->GetDocument()->NewElement(name);
@@ -324,7 +313,6 @@ struct XmlSaveHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, const std::vector<std::string>& values)
 	{
 		auto xml = XmlParent->GetDocument()->NewElement(name);
@@ -392,7 +380,6 @@ struct XmlLoadHelper
 		value.set(valueTemp);
 	}
 
-	template<>
 	void operator()(const char* name, std::wstring& value)
 	{
 		value = {};
@@ -405,7 +392,6 @@ struct XmlLoadHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, std::wstring& value, std::wstring defaultValue)
 	{
 		const char* temp{};
@@ -420,7 +406,6 @@ struct XmlLoadHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, std::string& value)
 	{
 		value = {};
@@ -433,7 +418,6 @@ struct XmlLoadHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, std::string& value, std::string defaultValue)
 	{
 		const char* temp{};
@@ -448,7 +432,6 @@ struct XmlLoadHelper
 		}
 	}
 
-	template<>
     void operator()(const char* name, gmpi::drawing::RectL& value)
 	{
 		value = {};
@@ -630,7 +613,6 @@ struct XmlLoadHelper
 		value.bottom = temp;
 	}
 
-	template<>
 	void operator()(const char* name, GmpiDrawing::RectL& value)
 	{
 		value = {};
@@ -662,7 +644,6 @@ struct XmlLoadHelper
 		value.bottom = temp;
 	}
 
-	template<>
    void operator()(const char* name, gmpi::drawing::PointL& value)
 	{
 		value = {};
@@ -782,7 +763,6 @@ struct XmlLoadHelper
 		value.y = temp;
 	}
 
-	template<>
 	void operator()(const char* name, GmpiDrawing::PointL& value)
 	{
 		value = {};
@@ -804,7 +784,6 @@ struct XmlLoadHelper
 		value.y = temp;
 	}
 
-	template<>
     void operator()(const char* name, gmpi::drawing::SizeL& value)
 	{
 		value = {};
@@ -924,7 +903,6 @@ struct XmlLoadHelper
 		value.height = temp;
 	}
 
-	template<>
 	void operator()(const char* name, GmpiDrawing::SizeL& value)
 	{
 		value = {};
@@ -946,7 +924,6 @@ struct XmlLoadHelper
 		value.height = temp;
 	}
 
-	template<>
 	void operator()(const char* name, std::vector<std::wstring>& values)
 	{
 		values.clear();
@@ -961,7 +938,6 @@ struct XmlLoadHelper
 		}
 	}
 
-	template<>
 	void operator()(const char* name, std::vector<std::string>& values)
 	{
 		values.clear();

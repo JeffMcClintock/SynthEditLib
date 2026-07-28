@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "IViewChild.h"
 #include "modules/se_sdk2/se_datatypes.h"
 

@@ -33,7 +33,8 @@
 // XCode requires these be defined for compatibility
 #if defined _WINDOWS || defined _WINDLL
 #include <windows.h>
-#else // MacOS
+#else // MacOS / Linux
+#include <stdint.h>
 typedef unsigned int        UINT;
 typedef uint32_t            DWORD;
 typedef unsigned char		UCHAR;

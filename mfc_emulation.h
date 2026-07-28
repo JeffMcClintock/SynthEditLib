@@ -6,6 +6,14 @@
 #if !defined( _MFC_EMULATION_INCLUDED_ ) && !defined( _MFC_VER )
 #define _MFC_EMULATION_INCLUDED_
 
+// windows.h / MacTypes.h provide these on Windows and macOS; Linux has no equivalent header.
+#ifndef TRUE
+#define TRUE 1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
+
 #if /*!defined( _DEBUG) ||*/ !defined( _MSC_VER )
 // Reporting macros
 #define _CRT_WARN 0

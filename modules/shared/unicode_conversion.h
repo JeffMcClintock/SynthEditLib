@@ -8,6 +8,7 @@ using namespace JmUnicodeConversions;
 #include <string>
 #include <assert.h>
 #include <stdlib.h>	 // wcstombs() on Linux.
+#include <cstring>	 // strlen() on Linux.
 #if defined(_WIN32)
 #undef  WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN

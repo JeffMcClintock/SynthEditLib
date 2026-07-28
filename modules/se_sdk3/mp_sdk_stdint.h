@@ -29,7 +29,9 @@
 #define MP_SDK_STDINT_H_INCLUDED
 
 // Detect C99 support (i.e. specified integer sizes)
-#if __STDC_VERSION__ >= 199901L
+// note: C++ compilers don't define __STDC_VERSION__, but always provide <stdint.h>.
+// The hand-rolled fallback below conflicts with glibc on Linux (int64_t is 'long' there).
+#if defined(__cplusplus) || __STDC_VERSION__ >= 199901L
 #include <stdint.h>
 #else
 // else replicate it.

@@ -9,6 +9,7 @@
 #include <list>
 #include <fstream>
 #include <limits>
+#include <cstring>
 #include "se_types.h"
 #include "modules/se_sdk3/hasMidiTuning.h"
 #include "HostControls.h"
