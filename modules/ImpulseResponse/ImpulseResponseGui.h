@@ -3,7 +3,7 @@
 
 #if defined(_WIN32) && !defined(_WIN64)
 
-#include "../se_sdk3/MP_SDK_GUI.h"
+#include "../se_sdk3/mp_sdk_gui.h"
 
 class ImpulseResponseGui : public SeGuiCompositedGfxBase
 {

@@ -1,7 +1,7 @@
 #ifndef RECTANGLEGUI_H_INCLUDED
 #define RECTANGLEGUI_H_INCLUDED
 
-#include "MP_SDK_GUI.h"
+#include "mp_sdk_gui.h"
 
 class RectangleGui : public SeGuiCompositedGfxBase
 {

@@ -1,4 +1,4 @@
-#include "SeGui_Pin.h"
+#include "SEGUI_Pin.h"
 #include "SEGUI_base.h"
 
 void SeGuiPin::setValueText(const SeSdkString &p_new_val )

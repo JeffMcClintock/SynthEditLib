@@ -1,7 +1,7 @@
 #ifndef SUBPATCHFLOATGUI_H_INCLUDED
 #define SUBPATCHFLOATGUI_H_INCLUDED
 
-#include "MP_SDK_GUI.h"
+#include "mp_sdk_gui.h"
 
 class SubpatchFloatGui : public MpGuiBase
 {

@@ -1,7 +1,7 @@
 #ifndef GUICOMTEST2GUI_H_INCLUDED
 #define GUICOMTEST2GUI_H_INCLUDED
 
-#include "MP_SDK_GUI.h"
+#include "mp_sdk_gui.h"
 
 class GuiComTest2Gui : public SeGuiWindowsGfxBase
 {

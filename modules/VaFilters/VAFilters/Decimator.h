@@ -1,5 +1,5 @@
 #pragma once
-#include "rateconvertor.h"
+#include "RateConvertor.h"
 
 class CDecimator : public CRateConvertor
 {

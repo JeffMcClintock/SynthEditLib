@@ -1,4 +1,4 @@
-#include "KeyboardGui.h"
+#include "keyboardGui.h"
 #include <gdiplus.h>
 
 using namespace Gdiplus;

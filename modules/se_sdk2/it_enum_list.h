@@ -3,7 +3,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include "sesdk_string.h"
+#include "SESdk_String.h"
 #include <assert.h>
 
 struct enum_entry

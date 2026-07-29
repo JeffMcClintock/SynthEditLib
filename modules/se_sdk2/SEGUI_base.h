@@ -2,8 +2,8 @@
 #define _SEGUI_base_h_inc_
 
 #include "SEGUI_struct_base.h"	// "c" interface
-#include "SeSdk_String.h"
-#include "SeGui_Pin.h"
+#include "SESdk_String.h"
+#include "SEGUI_Pin.h"
 #include <vector>
 
 using namespace std;

@@ -5,7 +5,7 @@
 #include "Module_Info3.h"
 #include "InterfaceObject.h"
 #include "tinyXml/tinyxml.h"
-#include "SafeMessagebox.h"
+#include "SafeMessageBox.h"
 #include "BundleInfo.h"
 
 

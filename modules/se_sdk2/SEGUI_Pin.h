@@ -1,7 +1,7 @@
 #if !defined(_SeGuiPin_h_inc_)
 #define _SeGuiPin_h_inc_
 
-#include "SeSdk_String.h"
+#include "SESdk_String.h"
 
 struct SEGUI_base;
 

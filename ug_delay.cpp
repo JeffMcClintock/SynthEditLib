@@ -5,7 +5,7 @@
 #include "resource.h"
 #include "module_register.h"
 #include "ISeAudioMaster.h"
-#include "ISeShellDsp.h"
+#include "iseshelldsp.h"
 
 SE_DECLARE_INIT_STATIC_FILE(ug_delay);
 

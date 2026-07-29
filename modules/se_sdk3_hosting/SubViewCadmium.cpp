@@ -4,7 +4,7 @@
 #include "../shared/xplatform.h"
 #include "../shared/xp_simd.h"
 #include "ConnectorView.h"
-#include "iguihost2.h"
+#include "IGuiHost2.h"
 
 using namespace gmpi;
 using namespace std;
