@@ -2049,7 +2049,15 @@ void WaveTable::ExportFile( const std::wstring& pfilename, int wavetableNumber, 
 		{
 			for( int i = 0 ; i < sample_count; ++i )
 			{
-				int16_t s = (int16_t) (int) (0.5f + src[i] * (float) 0x10000);
+				// +/-1.0 maps to full 16-bit scale (same convention as WavFile::write).
+				// floorf(), not truncation, so negative samples round symmetrically.
+				int rounded = (int) floorf( 0.5f + src[i] * (float) 0x8000 );
+
+				// saturate. +1.0 would otherwise wrap to full-scale negative.
+				if( rounded >  32767 ) rounded =  32767;
+				if( rounded < -32768 ) rounded = -32768;
+
+				int16_t s = (int16_t) rounded;
 				myfile.write( (char*)&s, sizeof(s) );
 			}
 		}
