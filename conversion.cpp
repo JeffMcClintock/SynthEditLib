@@ -1018,6 +1018,14 @@ bool XmlStringToDatatype( string s, int& returnValue )
 		return true;
 	}
 
+	// shorthand: datatype="audio" is the same as datatype="float" rate="audio".
+	// We always write the canonical float/rate pair.
+	if (s == "audio")
+	{
+		returnValue = DT_FSAMPLE;
+		return true;
+	}
+
 	if (s.find("struct:") == 0)
 	{
 		returnValue = DT_STRUCT;

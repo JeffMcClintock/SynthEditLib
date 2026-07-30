@@ -450,7 +450,8 @@ void Module_Info::RegisterParameters(tinyxml2::XMLElement* parameters) // XML da
 
 		// Datatype.
 		int temp;
-		if (XmlStringToDatatype(pin_datatype, temp) && temp != DT_STRUCT && temp != DT_OBJECT)
+		// note: DT_FSAMPLE (datatype="audio") is not a valid parameter datatype.
+		if (XmlStringToDatatype(pin_datatype, temp) && temp != DT_STRUCT && temp != DT_OBJECT && temp != DT_FSAMPLE)
 		{
 			pind->datatype = (EPlugDataType)temp;
 
@@ -1089,22 +1090,26 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 			{
 				pind.datatype = (EPlugDataType)temp;
 
-				if (pind.datatype == DT_FLOAT)
-				{
-					if (const auto rate = pin->Attribute("rate"); rate && strcmp(rate, "audio") == 0)
-					{
-						pind.datatype = DT_FSAMPLE;
+				// datatype="audio" is shorthand for datatype="float" rate="audio", so it arrives here already as DT_FSAMPLE.
+				const auto rate = pin->Attribute("rate");
+				const bool audioRate = rate && strcmp(rate, "audio") == 0;
 
-						if (!pind.default_value.empty())
-						{
-							// multiply default by 10 (to Volts). DoubleToString() removes trilaing zeros.
-							pind.default_value = DoubleToString(10.0f * StringToFloat(pind.default_value));
-						}
+				if (pind.datatype == DT_FLOAT && audioRate)
+				{
+					pind.datatype = DT_FSAMPLE;
+				}
+
+				if (pind.datatype == DT_FSAMPLE)
+				{
+					if (!pind.default_value.empty())
+					{
+						// multiply default by 10 (to Volts). DoubleToString() removes trilaing zeros.
+						pind.default_value = DoubleToString(10.0f * StringToFloat(pind.default_value));
 					}
 				}
 				else
 				{
-					if (const auto rate = pin->Attribute("rate"); rate && strcmp(rate, "audio") == 0)
+					if (audioRate)
 					{
 						std::wostringstream oss;
 						oss << L"pin id " << pin_id << L": rate=\"audio\" only supported on float datatype.";
