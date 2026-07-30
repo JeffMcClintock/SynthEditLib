@@ -68,8 +68,8 @@ be an integer power of 2 (this is not checked for!).
 			for (i=m; i<=n; i+=istep)
 			{
 				j=i+mmax; // This is the Danielson-Lanczos formula:
-				tempr=wr*data[j]-wi*data[j+1];
-				tempi=wr*data[j+1]+wi*data[j];
+				tempr=(float)(wr*data[j]-wi*data[j+1]);
+				tempi=(float)(wr*data[j+1]+wi*data[j]);
 				data[j]=data[i]-tempr;
 				data[j+1]=data[i+1]-tempi;
 				data[i] += tempr;
@@ -125,10 +125,10 @@ must be multiplied by 2/n.)
 		h1i=c1*(data[i2]-data[i4]);
 		h2r = -c2*(data[i2]+data[i4]);
 		h2i=c2*(data[i1]-data[i3]);
-		data[i1]=h1r+wr*h2r-wi*h2i; // Here they are recombined to form	the true transform of the original real data.
-		data[i2]=h1i+wr*h2i+wi*h2r;
-		data[i3]=h1r-wr*h2r+wi*h2i;
-		data[i4] = -h1i+wr*h2i+wi*h2r;
+		data[i1]=(float)(h1r+wr*h2r-wi*h2i); // Here they are recombined to form	the true transform of the original real data.
+		data[i2]=(float)(h1i+wr*h2i+wi*h2r);
+		data[i3]=(float)(h1r-wr*h2r+wi*h2i);
+		data[i4] = (float)(-h1i+wr*h2i+wi*h2r);
 		wr=(wtemp=wr)*wpr-wi*wpi+wr; // The recurrence.
 		wi=wi*wpr+wtemp*wpi+wi;
 	}
@@ -168,14 +168,14 @@ void SineTables::InitTable(std::vector<float>& sineTable, int isign )
 	double theta = isign * M_PI; // Initialize the trigonometric recurrence.
 	for( int i = 0 ; i < 32 ; ++i)
 	{
-		sineTable.push_back( sin(0.5*theta) );
-		sineTable.push_back( sin(theta) );
+		sineTable.push_back( (float) sin(0.5*theta) );
+		sineTable.push_back( (float) sin(theta) );
 
 		theta *= 0.5;
 	}
 }
 
-const float* SineTables::GetTable( int fftSize, int fftSign )
+const float* SineTables::GetTable( int /*fftSize*/, int fftSign )
 {
 	if( fftSign == 1 )
 		return Forward1024.data();

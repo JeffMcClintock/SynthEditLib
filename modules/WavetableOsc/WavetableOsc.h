@@ -61,12 +61,12 @@ public:
 		returnIncrement = ComputeIncrement2( pitchTable, pitch );
 	};
 
-	inline static void Calculate( const double* pitchTable, float pitch, double& returnIncrement )
+	inline static void Calculate( const double* /*pitchTable*/, float /*pitch*/, double& /*returnIncrement*/ )
 	{
 		// do nothing. Hopefully optimizes away to nothing.
 	};
 
-	inline static void IncrementPointer( const float* pitch )
+	inline static void IncrementPointer( const float* /*pitch*/ )
 	{
 		// do nothing. Hopefully optimizes away to nothing.
 	};
@@ -76,7 +76,7 @@ public:
 class PitchChanging
 {
 public:
-	inline static void CalcInitial( const double* pitchTable, float pitch, double& returnIncrement )
+	inline static void CalcInitial( const double* /*pitchTable*/, float /*pitch*/, double& /*returnIncrement*/ )
 	{
 		// do nothing. Hopefully optimizes away to nothing.
 	};
@@ -96,7 +96,7 @@ public:
 class SlotChanging
 {
 public:
-	inline static void CalcInitial(const float slot, int slotCount, int& returnSlotFloor, float& returnSlotFraction)
+	inline static void CalcInitial(const float /*slot*/, int /*slotCount*/, int& /*returnSlotFloor*/, float& /*returnSlotFraction*/)
 	{
 		// do nothing. Hopefully optimizes away to nothing.
 	};
@@ -138,11 +138,11 @@ public:
 	{
 		SlotChanging::Calculate( slot, slotCount, returnSlotFloor, returnSlotFraction );
 	};
-	inline static void Calculate( const float slot, int slotCount, int& returnSlotFloor, float& returnSlotFraction )
+	inline static void Calculate( const float /*slot*/, int /*slotCount*/, int& /*returnSlotFloor*/, float& /*returnSlotFraction*/ )
 	{
 		// do nothing. Hopefully optimizes away to nothing.
 	};
-	inline static void IncrementPointer( const float* ptr )
+	inline static void IncrementPointer( const float* /*ptr*/ )
 	{
 		// do nothing. Hopefully optimizes away to nothing.
 	};

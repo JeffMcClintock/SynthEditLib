@@ -70,7 +70,7 @@ void WaveTable::NormalizeWave( vector<float>& wave )
 #ifdef _DEBUG
 //#define DEBUG_PITCH_DETECT
 #endif
-float WaveTable::ExtractPeriod( const vector<float>& sample, int autocorrelateto, int slot )
+float WaveTable::ExtractPeriod( const vector<float>& sample, int autocorrelateto, int /*slot*/ )
 {
 	const int minimumPeriod = 10; // wave less than 16 samples not much use.
 	const int correlateCount = 1024;
@@ -269,8 +269,8 @@ float WaveTable::ExtractPeriod( const vector<float>& sample, int autocorrelateto
     float upperThreshhold = maxVal - 0.3f * (maxVal-minVal);
     //double lowerThreshhold = minVal + (maxVal-minVal) * 0.05;
 
-    int state = 0; // 0 - before first peak, 1 - after first peak, 2 
-    float bestScore = FLT_MAX; // numeric_limits<float>::max( ); //double.MaxValue;
+//  int state = 0; // 0 - before first peak, 1 - after first peak, 2   (only used by the disabled search below)
+//  float bestScore = FLT_MAX; // numeric_limits<float>::max( ); //double.MaxValue;
     int bestPeriod = 0;
 //	float sucessWindow = (maxVal-minVal) * 0.05;
 
@@ -402,7 +402,9 @@ float WaveTable::ExtractPeriod( const vector<float>& sample, int autocorrelateto
 	}
 */
 	// IMPROVED. Search entire remainder of impulse.
+#ifdef _DEBUG
 	int	prevBestPeriod = bestPeriod;
+#endif
 	for (int j = i; j < correlateCount; ++j)
 	{
 		float score = autoCorrelation[j]; // + 0.1f * (maxVal-minVal) * (j-bestPeriod) / bestPeriod; // add penalty of 10% at best * 2.
@@ -512,7 +514,7 @@ float WaveTable::ExtractPeriod2( vector<float>& sample, int autocorrelateto, int
 	int tocopy = min( n, (int) sample.size( ) - autocorrelateto );
 	for( int s = 0; s < tocopy; s++ )
 	{
-		float window = 0.5f - 0.5f * cosf( s * 2.0f *M_PI / n ); // hanning.
+		float window = 0.5f - 0.5f * cosf( s * 2.0f * (float)M_PI / n ); // hanning.
 		realData[s + 1] = sample[(int) autocorrelateto + s] * window;
 	}
 
@@ -828,9 +830,9 @@ float AutoCorrelate( vector<float>& sample, int cycleStart, int autocorrelateto,
 	return error;
 }
 // Golden seach stuff.
-#define R 0.61803399
+#define R 0.61803399f
 // The golden ratios.
-#define C (1.0-R)
+#define C (1.0f-R)
 #define SHFT2(a,b,c) (a)=(b);(b)=(c);
 #define SHFT3(a,b,c,d) (a)=(b);(b)=(c);(c)=(d);
 
@@ -939,7 +941,7 @@ void WaveTable::SliceAndDiceGetSlicePositions( const vector<float>& Wavefile, in
 	// trim silence.
 	float threshhold = 0.05f;
 	int startPos = 0;
-	int EndPos = Wavefile.size() - 1;
+	int EndPos = (int) Wavefile.size() - 1;
 	// Find first loud bit.
 	for( int i = 0; i < EndPos; ++i )
 	{
@@ -1008,7 +1010,7 @@ void PeriodExtractor::MedianFilterPitches(std::vector<float>& periods)
 }
 
 
-void SliceAndDice(vector<float>& Wavefile, WaveTable* waveTable, int waveTablenumber, int method, int diagnosticPitchDetectType, float* rawPitchEstimates, int sampleRate)
+void SliceAndDice(vector<float>& Wavefile, WaveTable* waveTable, int waveTablenumber, int method, int diagnosticPitchDetectType, float* rawPitchEstimates, int /*sampleRate*/)
 {
 	WaveTable::NormalizeWave( Wavefile );
 
@@ -1043,7 +1045,7 @@ void SliceAndDice(vector<float>& Wavefile, WaveTable* waveTable, int waveTablenu
 			diagnosticProbeOutput =  WaveTable::diagnosticProbeOutput;
 #endif
 
-			periods[slot] = pitchDetect.ExtractPeriod2( &(Wavefile[0]), Wavefile.size(), cycleStart, diagnosticOutput, diagnosticProbeOutput );
+			periods[slot] = pitchDetect.ExtractPeriod2( &(Wavefile[0]), (int) Wavefile.size(), cycleStart, diagnosticOutput, diagnosticProbeOutput );
 
 #if 0 // defined( _DEBUG) && defined (_WIN32)
 			if( WaveTable::diagnosticOutput )
@@ -1129,7 +1131,7 @@ void SliceAndDice(vector<float>& Wavefile, WaveTable* waveTable, int waveTablenu
 			float bx = best;
 			float ax = bx - 1.0f;
 			float cx = bx + 1.0f;
-			float tol = 0.05f;
+		//	float tol = 0.05f; // (original termination test, superseded by tol2 below)
 			float tol2 = 0.01f;
 			float *xmin = &best;
 			/*
@@ -1154,9 +1156,9 @@ void SliceAndDice(vector<float>& Wavefile, WaveTable* waveTable, int waveTablenu
 			// we never need to evaluate the function
 			// at the original endpoints.
 			//f1=(*f)(x1);
-			f1 = AutoCorrelate( Wavefile, cycleStart, x1 + (int)period, (int) period );
+			f1 = AutoCorrelate( Wavefile, cycleStart, (int)(x1 + (int)period), (int) period );
 			//f2=(*f)(x2);
-			f2 = AutoCorrelate( Wavefile, cycleStart, x2 + (int)period, (int) period );
+			f2 = AutoCorrelate( Wavefile, cycleStart, (int)(x2 + (int)period), (int) period );
 
 			// while (fabs(x3 - x0) > tol*(fabs(x1) + fabs(x2))) { // original, can get stuck or slow.
 			while( fabs(x3 - x0) > tol2 )
@@ -1250,7 +1252,7 @@ void SliceAndDice(vector<float>& Wavefile, WaveTable* waveTable, int waveTablenu
 				{
 					double magnitudeR = realData[s * 2 + 1] * scale; // FFT is off-by one (FORTRAN code)
 					double magnitudeI = realData[s * 2 + 2] * scale;
-					double totalMagnitude = sqrtf(magnitudeR * magnitudeR + magnitudeI * magnitudeI); // combine real and imaginary.
+					double totalMagnitude = sqrtf((float)(magnitudeR * magnitudeR + magnitudeI * magnitudeI)); // combine real and imaginary.
 
 					// Put all energy back into imaginary part, therby setting phase to zero for all partials.
 					realData[s * 2 + 1] = 0;
@@ -1316,16 +1318,19 @@ void SliceAndDice(vector<float>& Wavefile, WaveTable* waveTable, int waveTablenu
 	{
 		int n = slots;
 		float cuttoff = 0.08f;
-		float l = exp(-M_PI * 2 * cuttoff);
+		float l = (float) exp(-M_PI * 2 * cuttoff);
 
 		// filter forward discarding results from near end to get a rough guess of shape at end of graph. This will be our filter's initial value.
-		int s = (3 * n) / 4;
-		float y1n = slotRms[s];
-		for (; s < n; s++)
+		float y1n;
 		{
-			// low pass
-			float xn = slotRms[s];
-			y1n = xn + l * (y1n - xn);
+			int s = (3 * n) / 4;
+			y1n = slotRms[s];
+			for (; s < n; s++)
+			{
+				// low pass
+				float xn = slotRms[s];
+				y1n = xn + l * (y1n - xn);
+			}
 		}
 
 		// Filter backward.
@@ -1646,7 +1651,6 @@ bool WaveTable::LoadWaveFile( const _TCHAR* filename, std::vector<float> &return
 		case 24:
 		{
 			const float IntToFloatMul = 1.f / 4294967296.0f; // (float) 0x0100000000;
-			int j = 0;
 			unsigned char* src = (unsigned char*) wave_data;
 			for( int i = 0; i < SampleCount; ++i )
 			{
@@ -2008,18 +2012,18 @@ void WaveTable::ExportFile( const std::wstring& pfilename, int wavetableNumber, 
 
 		if( floatFormat )
 		{
-			wav_head.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
+			wav_head.wFormatTag = (uint16_t) WAVE_FORMAT_IEEE_FLOAT;
 			bits_per_sample = 32;
 		}
 		else
 		{
-			wav_head.wFormatTag = WAVE_FORMAT_PCM;
+			wav_head.wFormatTag = (uint16_t) WAVE_FORMAT_PCM;
 			bits_per_sample = 16;
 		}
 
-		wav_head.wBitsPerSample = bits_per_sample;
+		wav_head.wBitsPerSample = (uint16_t) bits_per_sample;
 		wav_head.chnk3_size = 16;
-		wav_head.nChannels = n_channels;
+		wav_head.nChannels = (uint16_t) n_channels;
 		wav_head.chnk4_size = (int32_t) (sample_count * wav_head.wBitsPerSample / 8 * wav_head.nChannels);
 		wav_head.chnk1_size = wav_head.chnk4_size + 36;
 		wav_head.nSamplesPerSec = sample_rate;
@@ -2045,7 +2049,7 @@ void WaveTable::ExportFile( const std::wstring& pfilename, int wavetableNumber, 
 		{
 			for( int i = 0 ; i < sample_count; ++i )
 			{
-				int16_t s = (int) (0.5f + src[i] * (float) 0x10000);
+				int16_t s = (int16_t) (int) (0.5f + src[i] * (float) 0x10000);
 				myfile.write( (char*)&s, sizeof(s) );
 			}
 		}
@@ -2182,7 +2186,7 @@ void WaveTable::GenerateWavetable( int wavetableNumber, int selectedFromSlot, in
 
 	if( harmonics.size() > 0 ) //shape != 7 ) // noise 
 	{
-		int totalHarmonics = harmonics.size();
+		int totalHarmonics = (int) harmonics.size();
 
 		// windowing function to reduce gibbs phenomena (hamming). Reduced effectivness once mip-mapp truncates series anyhow.
 		for( int partial = 1 ; partial < totalHarmonics ; ++partial )
@@ -2360,7 +2364,7 @@ void WaveTable::GenerateWavetable( int wavetableNumber, int selectedFromSlot, in
 void WaveTable::MorphSlots( int wavetableNumber, int selectedFromSlot, int selectedToSlot )
 {
 	WaveTable* waveTable = this;
-	int waveSize = waveTable->waveSize;
+	// (waveSize is the identically-valued class member, already in scope)
 
 	float spectrum1[1026];
 	float spectrum2[1026];
@@ -2548,8 +2552,8 @@ void WaveTable::CopyAndMipmap( WaveTable* sourceWavetable, WavetableMipmapPolicy
 		memcpy( spectrum1, spectrum2, sizeof(spectrum1) );
 
 		// load the upper slot.
-		float* src = sourceWavetable->Wavedata + sourceWavetable->waveSize * ( slot + 1 + table * sourceWavetable->slotCount );
-		CalcComplexSpectrum( spectrum2, src, sourceSize );
+		float* srcUpper = sourceWavetable->Wavedata + sourceWavetable->waveSize * ( slot + 1 + table * sourceWavetable->slotCount );
+		CalcComplexSpectrum( spectrum2, srcUpper, sourceSize );
 
 		int morphTo = WaveTable::MorphedSlotRatio;
 		if( slot == sourceWavetable->slotCount - 2 ) // on very last slot, do the extra one.
@@ -2733,8 +2737,8 @@ void WaveTable::CopyAndMipmap2(WavetableMipmapPolicy &destMipInfo, float* destSa
 		memcpy( spectrum1, spectrum2, sizeof(spectrum1) );
 
 		// load the upper slot.
-		float* src = sourceWavetable->Wavedata + sourceWavetable->waveSize * ( slot + 1 + table * sourceWavetable->slotCount );
-		CalcComplexSpectrum( spectrum2, src, sourceSize );
+		float* srcUpper = sourceWavetable->Wavedata + sourceWavetable->waveSize * ( slot + 1 + table * sourceWavetable->slotCount );
+		CalcComplexSpectrum( spectrum2, srcUpper, sourceSize );
 
 		int morphTo = WaveTable::MorphedSlotRatio;
 		if( slot == sourceWavetable->slotCount - 2 ) // on very last slot, do the extra one.
@@ -2854,7 +2858,7 @@ PeriodExtractor::PeriodExtractor()
 
 	// Genetic alg stuff
 	double* dest = (double*) &settings;
-	int count = min( overrideSettings.size(), ( int ) sizeof( Genes ) / sizeof( double ) );
+	int count = min( ( int ) overrideSettings.size(), ( int ) ( sizeof( Genes ) / sizeof( double ) ) );
 	for( int i = 0; i < count; ++i )
 	{
 		*dest++ = overrideSettings[i];
@@ -2870,26 +2874,29 @@ PeriodExtractor::~PeriodExtractor()
 {
 }
 
-void PeriodExtractor::Whiten( float* spectrum, int n, bool debug )
+void PeriodExtractor::Whiten( float* spectrum, int n, bool /*debug*/ )
 {
 	float spectralShape[1024];
 	assert( n <= 1024 );
 
 	// filter forward discarding results from near end to get a rough guess of spectral shape at end of graph. This will be our filter's initial value.
 	float cuttoff = 0.01f; // faster settling.
-	float l = exp( -M_PI * 2 * cuttoff );
-	int s = ( 3 * n ) / 4;
-	float y1n = spectrum[s];
-	for( ; s < n; s++ )
+	float l = (float) exp( -M_PI * 2 * cuttoff );
+	float y1n;
 	{
-		// low pass
-		float xn = spectrum[s];
-		y1n = xn + l * ( y1n - xn );
+		int s = ( 3 * n ) / 4;
+		y1n = spectrum[s];
+		for( ; s < n; s++ )
+		{
+			// low pass
+			float xn = spectrum[s];
+			y1n = xn + l * ( y1n - xn );
+		}
 	}
 
 	// Nice and smooth spectral shape.
-	cuttoff = settings.WhiteningFilter * 0.001f; //  0.01f;
-	l = exp( -M_PI * 2 * cuttoff );
+	cuttoff = (float) ( settings.WhiteningFilter * 0.001f ); //  0.01f;
+	l = (float) exp( -M_PI * 2 * cuttoff );
 
 	// Filter backward.
 	for( int s = n - 1; s >= 0; s-- )
@@ -2912,8 +2919,7 @@ void PeriodExtractor::Whiten( float* spectrum, int n, bool debug )
 	// apply whitening. flatten spectrum, plus scale according to original average height. i.e. quieter hamonics reduced in amplitude.
 	for( int s = 0; s < n; s++ )
 	{
-		float spec = spectrum[s];
-		float importance = ( spectralShape[s] - ( shapeMax - settings.retainDb ) ) / settings.retainDb;
+		float importance = (float) ( ( spectralShape[s] - ( shapeMax - settings.retainDb ) ) / settings.retainDb );
 		importance = std::max( importance, 0.0f );
 		float whitened = ( spectrum[s] - spectralShape[s] ) * importance;
 		spectrum[s] = std::max( 0.0f, whitened );
@@ -2929,9 +2935,7 @@ void PeriodExtractor::Whiten( float* spectrum, int n, bool debug )
 
 float PeriodExtractor::ExtractPeriod2(float* sample, int sampleCount, int autocorrelateto, float* diagnosticOutput, float* diagnosticProbeOutput)
 {
-	const int minimumPeriod = 10; // wave less than 16 samples not much use.
 	const int n = 2048;
-	int correlateCount = n;
 	int bins = n / 2;
 
 	// New - FFT based.
@@ -2942,7 +2946,7 @@ float PeriodExtractor::ExtractPeriod2(float* sample, int sampleCount, int autoco
 	int tocopy = min( n, sampleCount - autocorrelateto );
 	for( int s = 0; s < tocopy; s++ )
 	{
-		float window = 0.5f - 0.5f * cosf( s * 2.0f *M_PI / n ); // hanning.
+		float window = 0.5f - 0.5f * cosf( s * 2.0f * (float)M_PI / n ); // hanning.
 		realData[s + 1] = sample[(int) autocorrelateto + s] * window;
 	}
 
@@ -2973,14 +2977,14 @@ float PeriodExtractor::ExtractPeriod2(float* sample, int sampleCount, int autoco
 		// Avoid overflow on zero gain.
 		if( magnitude < minimumGain )
 		{
-			magnitude = settings.referenceDb;
+			magnitude = (float) settings.referenceDb;
 		}
 		else
 		{
-			magnitude = 20.0 * log10( magnitude ); // dB
+			magnitude = (float) ( 20.0 * log10( magnitude ) ); // dB
 		}
 
-		magnitude -= settings.referenceDb;
+		magnitude -= (float) settings.referenceDb;
 
 		int freq = i / 2;
 		autoCorrelation[freq] = magnitude;
@@ -3016,7 +3020,7 @@ float PeriodExtractor::ExtractPeriod2(float* sample, int sampleCount, int autoco
 			float window = calcProbeFunction( bin, candidateFundamentalBin );
 			pEnergy += autoCorrelation[bin] * window;
 		}
-		lowestCommonDenominator[resultSlot] = pEnergy * scale;
+		lowestCommonDenominator[resultSlot] = (float) ( pEnergy * scale );
 	}
 
 	if( diagnosticProbeOutput )
@@ -3047,7 +3051,7 @@ float PeriodExtractor::ExtractPeriod2(float* sample, int sampleCount, int autoco
 		}
 
 		// estimate certanty.
-		float close = best - 0.05; // 5% ish.
+		float close = best - 0.05f; // 5% ish.
 		int count = 0;
 		for( int i = 0; i < n / 2; ++i )
 		{
@@ -3069,5 +3073,5 @@ float PeriodExtractor::ExtractPeriod2(float* sample, int sampleCount, int autoco
 	//double freq = 2.0 * pow( 2.0, minOctave + maxOctave * bestPeriod / (double) bins );
 	double freq = PeriodExtractor::ResultBinToFftBin( bestPeriod, bins );
 	double period = n / freq;
-	return period;
+	return (float) period;
 }

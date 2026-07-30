@@ -195,7 +195,7 @@ fastpow2 (float p)
 {
   float offset = (p < 0) ? 1.0f : 0.0f;
   float clipp = (p < -126) ? -126.0f : p;
-  int w = clipp;
+  int w = (int) clipp;
   float z = clipp - w + offset;
   union { uint32_t i; float f; } v = { cast_uint32_t ( (1 << 23) * (clipp + 121.2740575f + 27.7280233f / (4.84252568f - z) - 1.49012907f * z) ) };
 
@@ -362,7 +362,7 @@ static inline float
 fasterlog2 (float x)
 {
   union { float f; uint32_t i; } vx = { x };
-  float y = vx.i;
+  float y = (float) vx.i;
   y *= 1.1920928955078125e-7f;
   return y - 126.94269504f;
 }
@@ -373,7 +373,7 @@ fasterlog (float x)
 //  return 0.69314718f * fasterlog2 (x);
 
   union { float f; uint32_t i; } vx = { x };
-  float y = vx.i;
+  float y = (float) vx.i;
   y *= 8.2629582881927490e-8f;
   return y - 87.989971088f;
 }
@@ -1383,7 +1383,7 @@ fastsinfull (float x)
   static const float twopi = 6.2831853071795865f;
   static const float invtwopi = 0.15915494309189534f;
 
-  int k = x * invtwopi;
+  int k = (int) (x * invtwopi);
   float half = (x < 0) ? -0.5f : 0.5f;
   return fastsin ((half + k) * twopi - x);
 }
@@ -1394,7 +1394,7 @@ fastersinfull (float x)
   static const float twopi = 6.2831853071795865f;
   static const float invtwopi = 0.15915494309189534f;
 
-  int k = x * invtwopi;
+  int k = (int) (x * invtwopi);
   float half = (x < 0) ? -0.5f : 0.5f;
   return fastersin ((half + k) * twopi - x);
 }
@@ -1455,7 +1455,7 @@ fasttanfull (float x)
   static const float twopi = 6.2831853071795865f;
   static const float invtwopi = 0.15915494309189534f;
 
-  int k = x * invtwopi;
+  int k = (int) (x * invtwopi);
   float half = (x < 0) ? -0.5f : 0.5f;
   float xnew = x - (half + k) * twopi;
 
@@ -1468,7 +1468,7 @@ fastertanfull (float x)
   static const float twopi = 6.2831853071795865f;
   static const float invtwopi = 0.15915494309189534f;
 
-  int k = x * invtwopi;
+  int k = (int) (x * invtwopi);
   float half = (x < 0) ? -0.5f : 0.5f;
   float xnew = x - (half + k) * twopi;
 
