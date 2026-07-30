@@ -53,6 +53,8 @@ public:
 	inline static int troublesomClientId = -1; // set this to locate the troublesome client.
 #endif
 
+	int pendingMs = 0; // elapsed-time accumulator for host-pumped timers (see TimerManager::Pump).
+
 	Timer(int pPeriodMilliSeconds = 50) :
 		periodMilliSeconds(pPeriodMilliSeconds)
 #ifdef _DEBUG
@@ -87,6 +89,12 @@ public:
 	void SetInterval( int intervalMs );
 	~TimerManager();
     void OnTimer(se_sdk_timers::timer_id_t timerId);
+
+	// On platforms with no native timer source (e.g. Linux, where Windows
+	// SetTimer / macOS CFRunLoopTimer don't exist) the host application must
+	// call this periodically on the UI thread, passing the elapsed time.
+	// Do NOT call it on Windows/macOS — the native timers already fire there.
+	void Pump(int elapsedMs);
 
 private:
 	int interval_;

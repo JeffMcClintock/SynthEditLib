@@ -75,6 +75,22 @@ void TimerManager::OnTimer(se_sdk_timers::timer_id_t timerId)
 	}
 }
 
+void TimerManager::Pump(int elapsedMs)
+{
+	for (auto& timer : timers)
+	{
+		if (!timer.isRunning())
+			continue;
+
+		timer.pendingMs += elapsedMs;
+		if (timer.pendingMs >= timer.periodMilliSeconds)
+		{
+			timer.pendingMs = 0;
+			timer.OnTimer(); // may stop timers / unregister clients; the std::list stays valid.
+		}
+	}
+}
+
 
 TimerManager::TimerManager() :
 interval_( IDLE_PERIOD )
@@ -118,7 +134,11 @@ namespace se_sdk_timers
 			if (idleTimer_)
 				CFRunLoopAddTimer(CFRunLoopGetCurrent(), (CFRunLoopTimerRef)idleTimer_, kCFRunLoopCommonModes);
 #else
-			// Linux: no run loop to attach a timer to yet. Timers never fire (headless builds don't need them).
+			// Linux: no native timer source. Mark the timer running and rely on
+			// the host application driving TimerManager::Pump() (see TimerManager.h).
+			// Headless builds simply never pump.
+			idleTimer_ = this;
+			pendingMs = 0;
 #endif
 		}
 	}
