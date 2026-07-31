@@ -10,6 +10,7 @@
 #include "windows.h"
 #else
 #include <dlfcn.h>
+#include <filesystem>
 #include "unicode_conversion.h"
 using namespace JmUnicodeConversions;
 #endif
@@ -89,7 +90,18 @@ namespace gmpi_dynamic_linking
         int rv = dladdr((void *)&localFuncWithUNlikelyName3456, &info);
         assert(rv != 0);
 
+#if defined(__APPLE__)
         return Utf8ToWstring(info.dli_fname);
+#else
+        // On Linux dladdr reports the main executable exactly as it was invoked, so
+        // launching './SynthEdit' would make everything derived from it (PlugIns,
+        // Resources) relative to the current working directory. Resolve it once, at
+        // first use, before anything has a chance to change directory.
+        static const std::wstring resolved =
+            Utf8ToWstring(std::filesystem::absolute(info.dli_fname).lexically_normal().string());
+
+        return resolved;
+#endif
     }
 #endif
 }
