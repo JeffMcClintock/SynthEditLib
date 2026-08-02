@@ -20,7 +20,7 @@ class SubViewCadmium : public SE2::ViewBase, public gmpi::api::IParameterObserve
 	int parentViewType = 0;
 	SE2::ViewBase* parent = {};
 
-	functionalUI functionalUI;
+	functionalUI functionalUi_;
 	std::vector<node*> renderNodes2;
 	std::unordered_map<int32_t, observableState*> nodeParameters; // parameter-handle, 'state' node
 

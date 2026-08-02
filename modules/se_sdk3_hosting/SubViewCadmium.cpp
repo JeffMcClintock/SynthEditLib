@@ -141,7 +141,7 @@ void SubViewCadmium::OnCableDrag(SE2::ConnectorViewBase* dragline, GmpiDrawing::
 
 bool SubViewCadmium::OnTimer()
 {
-	if (functionalUI.nextFrame())
+	if (functionalUi_.nextFrame())
 	{
 		invalidateRect();
 		return true;
@@ -276,7 +276,7 @@ int32_t SubViewCadmium::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingConte
 
 	// 'CD Render Function'
 	// not optimized. just look for any node that produced a drawing function
-	for (auto& n : functionalUI.graph)
+	for (auto& n : functionalUi_.graph)
 	{
 		auto drawFunc = std::get_if<RendererX>(&(n.result.value));
 		if (drawFunc)
@@ -342,7 +342,7 @@ int32_t SubViewCadmium::onPointerMove(int32_t flags, MP1_POINT point)
 
 		const auto lpoint = adjustedTransform.TransformPoint(point);
 
-		functionalUI.onPointerMove(flags, lpoint);
+		functionalUi_.onPointerMove(flags, lpoint);
 		StartTimer();
 
 		return ViewBase::onPointerMove(flags, point);
@@ -505,13 +505,13 @@ void SubViewCadmium::calcBounds(GmpiDrawing::Rect& returnLayoutRect, GmpiDrawing
 
 void SubViewCadmium::BuildView(Json::Value* context)
 {
-	//TODO?		functionalUI.states2.clear();
+	//TODO?		functionalUi_.states2.clear();
 	//TODO just make 'states2' and 'nodes' a member of me? no real need for seperate 'functionalUI' object.
 
 	// stuff we need to pass in when building nodes.
 	functionalUI::builder builder
 	{
-		functionalUI,
+		functionalUi_,
 		Presenter()->GetPatchManager(),
 		{},
 		{},
@@ -564,18 +564,18 @@ void SubViewCadmium::BuildView(Json::Value* context)
 
 			createNode(handle, module_json, builder);
 
-			if (functionalUI.graph.size() != currentgraphsize)
+			if (functionalUi_.graph.size() != currentgraphsize)
 			{
-				currentgraphsize = functionalUI.graph.size();
-				functionalUI.graph.back().debug_name = typeName;
+				currentgraphsize = functionalUi_.graph.size();
+				functionalUi_.graph.back().debug_name = typeName;
 			}
 		}
 	}
 
 	// sort actual nodes in line with 'moduleSort' structure.
 	std::sort(
-		functionalUI.graph.begin(),
-		functionalUI.graph.end(),
+		functionalUi_.graph.begin(),
+		functionalUi_.graph.end(),
 		[&moduleSort](const node& n1, const node& n2)
 	{
 		return moduleSort[n1.handle].sort > moduleSort[n2.handle].sort;
@@ -584,15 +584,15 @@ void SubViewCadmium::BuildView(Json::Value* context)
 
 
 	std::unordered_map<int32_t, size_t> handleToIndex;
-	for (int index = 0; index < functionalUI.graph.size(); ++index)
+	for (int index = 0; index < functionalUi_.graph.size(); ++index)
 	{
-		handleToIndex.insert({ functionalUI.graph[index].handle, index });
+		handleToIndex.insert({ functionalUi_.graph[index].handle, index });
 	}
 
 	for (auto handle : builder.renderNodeHandles)
 	{
 		const auto index = handleToIndex[handle];
-		renderNodes2.push_back(&functionalUI.graph[index]);
+		renderNodes2.push_back(&functionalUi_.graph[index]);
 	}
 
 	auto patchManager = Presenter()->GetPatchManager();
@@ -602,13 +602,13 @@ void SubViewCadmium::BuildView(Json::Value* context)
 		const auto moduleHandle = it.second;
 		const auto parameterHandle = it.first;
 		const auto index = handleToIndex[moduleHandle];
-		nodeParameters.insert({ parameterHandle, &functionalUI.graph[index] });
+		nodeParameters.insert({ parameterHandle, &functionalUi_.graph[index] });
 */
 		// new: parameter is directed directly into an input state.
 		const auto parameterHandle = it.first;
 		const auto stateIndex = it.second;
 
-		nodeParameters.insert({ parameterHandle, functionalUI.states2[stateIndex].get() });
+		nodeParameters.insert({ parameterHandle, functionalUi_.states2[stateIndex].get() });
 
 		// init it's value
 		patchManager->initializeGui(this, parameterHandle, MP_FT_VALUE);
@@ -647,11 +647,11 @@ void SubViewCadmium::BuildView(Json::Value* context)
 		if(toNodeIndex != SIZE_MAX)
 		{
 			std::vector<state_t*>* destArguments = {};
-			destArguments = &functionalUI.graph[toNodeIndex].arguments;
+			destArguments = &functionalUi_.graph[toNodeIndex].arguments;
 			/* might be needed, probably not
 						else
 			{
-				destArguments = &functionalUI.renderNodes[0].arguments;
+				destArguments = &functionalUi_.renderNodes[0].arguments;
 			}
 			*/
 			// pad any inputs that have not been connected yet.
@@ -664,9 +664,9 @@ void SubViewCadmium::BuildView(Json::Value* context)
 			if (auto it2 = handleToIndex.find(fromHandle); it2 != handleToIndex.end())
 			{
 				const auto fromNodeIndex = it2->second;
-				(*destArguments)[toPin] = &functionalUI.graph[fromNodeIndex].result;
+				(*destArguments)[toPin] = &functionalUi_.graph[fromNodeIndex].result;
 
-				functionalUI.graph[fromNodeIndex].result.downstreamNodes.push_back(&functionalUI.graph[toNodeIndex]);
+				functionalUi_.graph[fromNodeIndex].result.downstreamNodes.push_back(&functionalUi_.graph[toNodeIndex]);
 			}
 			else
 			{
@@ -675,9 +675,9 @@ void SubViewCadmium::BuildView(Json::Value* context)
 				{
 					if (proxy.moduleHandle == fromHandle && proxy.pinId == fromPin)
 					{
-						(*destArguments)[toPin] = functionalUI.states2[proxy.stateIndex].get();
+						(*destArguments)[toPin] = functionalUi_.states2[proxy.stateIndex].get();
 
-						functionalUI.states2[proxy.stateIndex]->downstreamNodes.push_back(&functionalUI.graph[toNodeIndex]);
+						functionalUi_.states2[proxy.stateIndex]->downstreamNodes.push_back(&functionalUi_.graph[toNodeIndex]);
 
 						break;
 					}
@@ -686,7 +686,7 @@ void SubViewCadmium::BuildView(Json::Value* context)
 		}
 	}
 
-	functionalUI.step();
+	functionalUi_.step();
 }
 
 gmpi::ReturnCode SubViewCadmium::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
@@ -706,13 +706,13 @@ gmpi::ReturnCode SubViewCadmium::setParameter(int32_t parameterHandle, gmpi::Fie
 	auto& state = *it->second;
 
 	// this combo messy, wrap it somehow.
-	functionalUI.updateState(state, *(const float*)data);
+	functionalUi_.updateState(state, *(const float*)data);
 	StartTimer();
 
 	/*
 	state = *(float*)data;
 
-	functionalUI.step();
+	functionalUi_.step();
 	invalidateRect(); //TESTIN!!!!
 	*/
 	return gmpi::ReturnCode::Ok;

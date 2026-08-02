@@ -106,7 +106,7 @@ class CadmiumRenderer final : public PluginEditor, public TimerClient
 {
 	Pin<std::string> pinJson;
 
-	functionalUI functionalUI;
+	functionalUI functionalUi_;
 	std::vector<::node*> renderNodes2;
 
 	void update()
@@ -153,7 +153,7 @@ class CadmiumRenderer final : public PluginEditor, public TimerClient
 			{
 				auto& createNode = it->second;
 
-				createNode(handle, module_json, functionalUI.states2, functionalUI.graph);
+				createNode(handle, module_json, functionalUi_.states2, functionalUi_.graph);
 			}
 
 			if ("SE Render" == typeName)
@@ -164,8 +164,8 @@ class CadmiumRenderer final : public PluginEditor, public TimerClient
 
 		// sort actual nodes in line with 'moduleSort' structure.
 		std::sort(
-			functionalUI.graph.begin(),
-			functionalUI.graph.end(),
+			functionalUi_.graph.begin(),
+			functionalUi_.graph.end(),
 			[&moduleSort](const ::node& n1, const ::node& n2)
 				{
 					return moduleSort[n1.handle].sort > moduleSort[n2.handle].sort;
@@ -174,15 +174,15 @@ class CadmiumRenderer final : public PluginEditor, public TimerClient
 
 
 		std::unordered_map<int32_t, size_t> handleToIndex;
-		for (int index = 0; index < functionalUI.graph.size(); ++index)
+		for (int index = 0; index < functionalUi_.graph.size(); ++index)
 		{
-			handleToIndex.insert({ functionalUI.graph[index].handle, index });
+			handleToIndex.insert({ functionalUi_.graph[index].handle, index });
 		}
 
 		for (auto handle : renderNodeHandles)
 		{
 			const auto index = handleToIndex[handle];
-			renderNodes2.push_back(&functionalUI.graph[index]);
+			renderNodes2.push_back(&functionalUi_.graph[index]);
 		}
 
 		for (auto& module_json : document_json["connections"])
@@ -196,7 +196,7 @@ class CadmiumRenderer final : public PluginEditor, public TimerClient
 			if (auto it = handleToIndex.find(toHandle); it != handleToIndex.end())
 			{
 				const auto toNodeIndex = (*it).second;
-				destArguments = &functionalUI.graph[toNodeIndex].arguments;
+				destArguments = &functionalUi_.graph[toNodeIndex].arguments;
 
 				// pad any inputs that have not been connected yet.
 				while (destArguments->size() <= toPin)
@@ -205,16 +205,16 @@ class CadmiumRenderer final : public PluginEditor, public TimerClient
 				}
 
 				const auto fromNodeIndex = handleToIndex[fromHandle];
-				(*destArguments)[toPin] = &functionalUI.graph[fromNodeIndex].result;
+				(*destArguments)[toPin] = &functionalUi_.graph[fromNodeIndex].result;
 			}
 		}
 
-		functionalUI.step();
+		functionalUi_.step();
 	}
 
 	bool onTimer() override
 	{
-		functionalUI.step();
+		functionalUi_.step();
 
 		if (drawingHost)
 		{
@@ -431,7 +431,7 @@ public:
 
 	ReturnCode onPointerMove(Point point, int32_t flags) override
 	{
-		functionalUI.onPointerMove(flags, point);
+		functionalUi_.onPointerMove(flags, point);
 		return ReturnCode::Ok;
 	}
 };

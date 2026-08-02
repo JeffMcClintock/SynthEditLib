@@ -180,7 +180,7 @@ public:
 			}
 			oss << std::endl << std::endl;
 		}
-	#if defined(__APPLE__ )
+	#if !defined(_WIN32) // _RPT1/_CRT_WARN are MSVC CRT debug macros
 		printf( "%s", oss.str().c_str() );
 	#else
 		_RPT1(_CRT_WARN, "%s\n", oss.str().c_str() );

@@ -13,6 +13,7 @@
 #endif
 
 #include <algorithm>
+#include <cstdio>   // the debug-only printf below; Windows and macOS get it transitively
 #include <typeinfo>
 #include "TimerManager.h"
 #include "assert.h"
