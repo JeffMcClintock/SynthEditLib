@@ -70,7 +70,7 @@ void WaveTable::NormalizeWave( vector<float>& wave )
 #ifdef _DEBUG
 //#define DEBUG_PITCH_DETECT
 #endif
-float WaveTable::ExtractPeriod( const vector<float>& sample, int autocorrelateto, int /*slot*/ )
+float WaveTable::ExtractPeriod( const vector<float>& sample, int autocorrelateto, int slot )
 {
 	const int minimumPeriod = 10; // wave less than 16 samples not much use.
 	const int correlateCount = 1024;
