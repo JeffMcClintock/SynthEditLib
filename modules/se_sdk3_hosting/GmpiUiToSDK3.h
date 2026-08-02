@@ -897,7 +897,14 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateTextFormat(const char* fontFa
 		(gmpi::drawing::FontStyle) fontStyle,
 		(gmpi::drawing::FontStretch) fontStretch,
 		fontSize,
-		0,
+		// SDK3's CreateTextFormat has never had a size-mode parameter: its
+		// fontSize has always meant the raw size the OS interprets. Say so
+		// EXPLICITLY rather than passing 0, because 0 is FontFlags::BodyHeight
+		// and body-height scaling is being repaired — a literal 0 here would
+		// silently resize the text of every legacy module, including
+		// third-party .sem binaries that cannot be recompiled.
+		// No-op today: neither 0 nor SystemHeight scales anything.
+		(int32_t) gmpi::drawing::FontFlags::SystemHeight,
 		b.put()
 	);
 
