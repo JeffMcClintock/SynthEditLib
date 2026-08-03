@@ -1,5 +1,6 @@
 #pragma once
 #include "Cocoa_Gfx.h"
+#include "BundledFonts_se.h"
 #include "backends/CocoaGfx.h"
 
 // Universal factory for macOS that dispatches queries to either the new GMPI
@@ -12,6 +13,8 @@ struct UniversalFactory : public gmpi::api::IUnknown
 
     UniversalFactory() : sdk3Factory(gmpiFactory.info) // SDK3 factory borrows the guts from the GMPI factory.
     {
+        se::registerBundledFonts();
+
     }
 
     // dispatch queries to correct factory

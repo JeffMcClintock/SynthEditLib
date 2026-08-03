@@ -240,7 +240,7 @@ public:
 
         if (!textFormat)
         {
-            const std::array<std::string_view, 2> families{ "Segoe UI", "Arial" };
+            const std::array<std::string_view, 3> families{ "Selawik", "Segoe UI", "Arial" };
             textFormat = g.getFactory().createTextFormat(kFontHeight, families);
             textFormat.setWordWrapping(gmpi::drawing::WordWrapping::NoWrap);
             textFormat.setTextAlignment(gmpi::drawing::TextAlignment::Center);

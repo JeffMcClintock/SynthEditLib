@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d11_4.h>
+#include "BundledFonts_se.h"
 #include <span>
 #include "GraphicsRedrawClient.h"
 #include "DirectXGfx.h"
@@ -45,6 +46,8 @@ struct UniversalFactory : public gmpi::api::IUnknown
 
 	UniversalFactory() : sdk3Factory(gmpiFactory.getInfo()) // SDK3 factory borrows the guts from the GMPI factory.
 	{
+        se::registerBundledFonts();
+
 	}
 
     // dispatch queries to correct factory
