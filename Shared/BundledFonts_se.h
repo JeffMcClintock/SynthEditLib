@@ -39,11 +39,17 @@ inline void registerBundledFonts()
         std::filesystem::path(BundleInfo::instance()->getBundleContentsFolder()) / "Resources" / "fonts";
 
     using gmpi::drawing::FontWeight;
+    using gmpi::drawing::FontStyle;
     using gmpi::drawing::registerBundledFont;
 
-    registerBundledFont("Selawik", fonts / "selawk.ttf");
-    registerBundledFont("Selawik", fonts / "selawkb.ttf",  FontWeight::Bold);
-    registerBundledFont("Selawik", fonts / "selawksb.ttf", FontWeight::SemiBold);
+    const auto reg = [&](const char* file, FontWeight weight)
+    {
+        registerBundledFont("Selawik", weight, FontStyle::Normal, (fonts / file).string());
+    };
+
+    reg("selawk.ttf",   FontWeight::Regular);
+    reg("selawkb.ttf",  FontWeight::Bold);
+    reg("selawksb.ttf", FontWeight::SemiBold);
 }
 
 } // namespace se
