@@ -16,8 +16,21 @@ bool PresenterBase::CanConnect(SE2::CableType cabletype, int32_t fromModule, int
 	auto fromType = fromUg->getModuleType();
 	auto toType = toUg->getModuleType();
 
-	int toPinDirection = toType->plugs[toPin]->GetDirection();
-	int fromPinDirection = fromType->plugs[fromPin]->GetDirection();
+	if (fromType == nullptr || toType == nullptr)
+		return false;
+
+	// Pin indices arrive unvalidated. Module_Info::plugs is a std::map keyed by pin
+	// id, so plugs[pin] on an unknown pin inserts a null entry into the shared module
+	// description and then returns it to be dereferenced; getPinDescriptionById does
+	// the same lookup with no insert and a null return.
+	auto fromPinDesc = fromType->getPinDescriptionById(fromPin);
+	auto toPinDesc = toType->getPinDescriptionById(toPin);
+
+	if (fromPinDesc == nullptr || toPinDesc == nullptr)
+		return false;
+
+	int toPinDirection = toPinDesc->GetDirection();
+	int fromPinDirection = fromPinDesc->GetDirection();
 
 	return fromPinDirection != toPinDirection;
 }
