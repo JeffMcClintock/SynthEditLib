@@ -1,5 +1,6 @@
 #pragma once
 #include "backends/CpuGfx.h"
+#include "BundledFonts_se.h"
 #include "helpers/CpuTextEngine.h"
 #include "helpers/DecodeImage.h"
 #include "helpers/FontProvider.h"
@@ -23,6 +24,8 @@ struct UniversalFactory : public gmpi::api::IUnknown
 
     UniversalFactory() : sdk3Factory(&gmpiFactory) // SDK3 factory borrows the guts from the GMPI factory.
     {
+        se::registerBundledFonts();
+
         // Colour-emoji glyphs arrive as PNG blobs inside the font, so the text
         // engine needs a decoder of its own, separate from the factory's.
         textEngine.imageDecoder = gmpi::drawing::decodeImageMemory;

@@ -443,8 +443,10 @@ namespace SE2
 
 		sharedGraphicResources_struct(gmpi::drawing::Factory& factory)
 		{
-			const char* pinFontfamily = "Verdana";
-			const std::array<std::string_view, 1> pinFontFamilies{ pinFontfamily };
+			// Selawik is bundled (Shared/BundledFonts_se.h) so every platform measures
+			// text identically; Verdana remains as a degradation path if the asset is
+			// missing, which is what SynthEdit drew with before.
+			const std::array<std::string_view, 2> pinFontFamilies{ "Selawik", "Verdana" };
 
 			// Left justified text.
 			tf_plugs_left = factory.createTextFormat(static_cast<float>(plugTextSize), pinFontFamilies); // see also measure

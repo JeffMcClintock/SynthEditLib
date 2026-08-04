@@ -1,5 +1,6 @@
 #pragma once
 #include "backends/JuceGfx.h"
+#include "BundledFonts_se.h"
 #include "../modules/se_sdk3/Drawing.h" // GmpiDrawing_API, needed by GmpiUiToSDK3.h
 #include "GmpiUiToSDK3.h"
 
@@ -13,6 +14,8 @@ struct UniversalFactory : public gmpi::api::IUnknown
 
     UniversalFactory() : sdk3Factory(&gmpiFactory) // SDK3 factory borrows the guts from the GMPI factory.
     {
+        se::registerBundledFonts();
+
     }
 
     // dispatch queries to correct factory
