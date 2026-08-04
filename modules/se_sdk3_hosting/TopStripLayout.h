@@ -1,13 +1,21 @@
 #pragma once
-// A minimal two-region vertical layout for the gmpi drawing-client pipeline:
-// a fixed-height TOP strip plus a FILL region below. Both children are gmpi
-// IDrawingClient / IInputClient. Modeled on GmpiUiLayer (Pile.h) — per-child host
-// that offsets invalidations into parent space and forwards the real
-// rasterization scale (so the editor below keeps correct DPI) — but it splits the
-// area into two stacked rectangles and routes pointer input by Y.
+// A minimal two-region layout for the gmpi drawing-client pipeline: a
+// fixed-thickness STRIP along one edge plus a FILL region taking the rest.
+// Both children are gmpi IDrawingClient / IInputClient. Modeled on GmpiUiLayer
+// (Pile.h) — per-child host that offsets invalidations into parent space and
+// forwards the real rasterization scale (so the editor below keeps correct
+// DPI) — but it splits the area into two rectangles and routes pointer input
+// by position.
 //
-// Used to draw the breadcrumb bar across the top of the editor swapchain with the
-// editor view filling the rest. Cross-platform (no winrt / no Cocoa).
+// Grew from a top-only strip (breadcrumb bar above the editor), which is why
+// the members are called topChild / bottomChild and the thickness
+// topStripHeight; with stripEdge = Edge::left or Edge::right the same members
+// mean "the strip" and "the fill" and the thickness is a width. The FILL
+// child (bottomChild) is always the editor side: it gets the keyboard and the
+// logical-capture routing below, whichever edge the strip is on.
+//
+// Uses: breadcrumb/menu/tab strips across the top of the editor; the module
+// browser and properties panes beside it. Cross-platform (no winrt/Cocoa).
 
 #include <algorithm>
 #include "Drawing.h"
@@ -112,9 +120,12 @@ struct TopStripLayout :
     gmpi::shared_ptr<gmpi::api::IInputHost> inputHost;
     gmpi::shared_ptr<gmpi::api::IDialogHost> dialogHost;
 
-    child topChild;
-    child bottomChild;
-    float topStripHeight = 52.0f;
+    enum class Edge { top, left, right };
+
+    child topChild;              // the strip, whichever edge it is on
+    child bottomChild;           // the fill: the editor side
+    float topStripHeight = 52.0f;    // strip thickness: height for top, width for left/right
+    Edge  stripEdge = Edge::top;
     gmpi::drawing::Rect bounds{};
     child* capturedChild{}; // routes move/up to the child that took the down
 
@@ -178,10 +189,32 @@ struct TopStripLayout :
     gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override
     {
         bounds = *finalRect;
-        const float strip = (std::min)(topStripHeight, finalRect->bottom - finalRect->top);
+        const auto& r = *finalRect;
 
-        topChild.pos    = { finalRect->left, finalRect->top,         finalRect->right, finalRect->top + strip };
-        bottomChild.pos = { finalRect->left, finalRect->top + strip, finalRect->right, finalRect->bottom };
+        switch (stripEdge)
+        {
+        case Edge::top:
+        {
+            const float strip = (std::min)(topStripHeight, r.bottom - r.top);
+            topChild.pos    = { r.left, r.top,         r.right, r.top + strip };
+            bottomChild.pos = { r.left, r.top + strip, r.right, r.bottom };
+            break;
+        }
+        case Edge::left:
+        {
+            const float strip = (std::min)(topStripHeight, r.right - r.left);
+            topChild.pos    = { r.left,         r.top, r.left + strip, r.bottom };
+            bottomChild.pos = { r.left + strip, r.top, r.right,        r.bottom };
+            break;
+        }
+        case Edge::right:
+        {
+            const float strip = (std::min)(topStripHeight, r.right - r.left);
+            topChild.pos    = { r.right - strip, r.top, r.right,         r.bottom };
+            bottomChild.pos = { r.left,          r.top, r.right - strip, r.bottom };
+            break;
+        }
+        }
 
         arrangeChild(topChild);
         arrangeChild(bottomChild);
