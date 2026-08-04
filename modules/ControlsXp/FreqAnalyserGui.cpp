@@ -75,7 +75,7 @@ int32_t FreqAnalyserGui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingCont
 
 	if (newSpectrumCount > 0)
 	{
-		if (samplerate != capturedata[spectrumCount] || spectrumCount != newSpectrumCount)
+		if (samplerate != capturedata[newSpectrumCount] || spectrumCount != newSpectrumCount)
 		{
 			spectrumCount = newSpectrumCount;
 			samplerate = capturedata[spectrumCount]; // last entry used for sample-rate.
