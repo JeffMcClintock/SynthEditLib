@@ -735,6 +735,11 @@ namespace SE2
 		if (getSelected() || mouseHover)
 			width = 3.f;
 
+		// Widen further on hover, applied to the whole geometry (not just a hit-testable
+		// segment) so the curved-back end arcs widen along with the rest of the line.
+		if (getSelected() && mouseHover)
+			width = 4.f;
+
 		const bool snap_the_y = from_.y == to_.y;
 
 		Matrix3x2 orig;
@@ -757,12 +762,6 @@ namespace SE2
 
 		assert(brush3);
 		g.drawGeometry(geometry, *brush3, snappedStrokeWidth, strokeStyle);
-
-		if (getSelected() && mouseHover && hoverSegment != -1)
-		{
-			auto& segments = GetSegmentGeometrys();
-			g.drawGeometry(segments[hoverSegment], *brush3, snappedStrokeWidth + 1);
-		}
 
 		// Nodes
 		if (getSelected())
