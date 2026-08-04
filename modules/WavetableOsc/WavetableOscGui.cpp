@@ -4,6 +4,7 @@
 #include <math.h>
 #include <cstdlib>
 #include <vector>
+#include <algorithm>
 #include "helpers/SimplifyGraph.h"
 #include "Extensions/EmbeddedFile.h"
 
@@ -52,6 +53,50 @@ void WavetableOscGui::updateCurrentWavetable()
 	}
 }
 
+// Origin (baseline left-hand end) of one slot's waveform, from its depth within the landscape.
+gmpi::drawing::Point WavetableOscGui::slotOrigin(int slot) const
+{
+	return gmpi::drawing::Point(
+		(slot * layout_.horizontalDelta) / layout_.slotCount,
+		layout_.frontYaxis - (layout_.frontYaxis - layout_.backYaxis) * ((float) slot / (float) layout_.slotCount)
+	);
+}
+
+// Thin one slot's waveform to a polyline in slot-local coordinates, so the path geometries carry
+// far fewer vertices than the raw wave.
+void WavetableOscGui::simplifySlot(WaveTable* waveTable, int slot, std::vector<gmpi::drawing::Point>& simplified) const
+{
+	using namespace gmpi::drawing;
+
+	const float* wavedata = waveTable->GetSlotPtr( slot );
+
+	std::vector<Point> raw;
+	raw.reserve( waveTable->waveSize );
+	for( int i = 0 ; i < waveTable->waveSize ; ++i )
+		raw.push_back( Point( i * layout_.x_increment, wavedata[i] * -layout_.vscale ) );
+
+	SimplifyGraph( raw, simplified );
+}
+
+// Build one slot's waveform outline: the polyline, closed off along the baseline at each end.
+gmpi::drawing::PathGeometry WavetableOscGui::buildSlotOutline(gmpi::drawing::Factory& factory, int slot, const std::vector<gmpi::drawing::Point>& wave) const
+{
+	using namespace gmpi::drawing;
+
+	const Point origin = slotOrigin( slot );
+
+	auto outline = factory.createPathGeometry();
+	auto sink = outline.open();
+	sink.beginFigure(origin, FigureBegin::Hollow);
+	for( const auto& p : wave )
+		sink.addLine(Point(origin.x + p.x, origin.y + p.y));
+	sink.addLine(Point(origin.x + layout_.endX, origin.y));
+	sink.endFigure(FigureEnd::Open);
+	sink.close();
+
+	return outline;
+}
+
 // Build the cached 3D landscape geometry: one outline per drawn slot, plus the black fill ribbon
 // linking it to the next-nearer slot. Geometry is device-independent, so it survives across frames
 // and device contexts - only the wavetable data and the widget size feed into it (never the
@@ -62,11 +107,23 @@ void WavetableOscGui::buildDisplayGeometry(gmpi::drawing::Graphics& g, float wid
 
 	slotGeometry_.clear();
 
+	// The selected slot's outline is built against the old layout, so drop it along with the rest.
+	selectedOutline_ = {};
+	selectedOutlineSlot_ = -1;
+
 	const float vscale = height * 0.25f;
 	const float horizontalDelta = width / 3.0f;
 	const float x_increment = (width - horizontalDelta) / (float) waveTable->waveSize;
 	const float backYaxis = vscale * 0.5f;
 	const float frontYaxis = height - backYaxis;
+
+	layout_.vscale          = vscale;
+	layout_.horizontalDelta = horizontalDelta;
+	layout_.x_increment     = x_increment;
+	layout_.backYaxis       = backYaxis;
+	layout_.frontYaxis      = frontYaxis;
+	layout_.endX            = waveTable->waveSize * x_increment;
+	layout_.slotCount       = waveTable->slotCount;
 
 	// Limit the number of drawn slots to keep the 3D graph readable. Pick evenly-spaced slots
 	// across the full set, always including the first and last.
@@ -87,25 +144,12 @@ void WavetableOscGui::buildDisplayGeometry(gmpi::drawing::Graphics& g, float wid
 		}
 	}
 
-	// Pre-simplify each drawn slot's waveform once, thinning near-collinear points so the path
-	// geometries carry far fewer vertices. Points are kept in slot-local coordinates
-	// (SimplifyGraph is translation-invariant), so the same simplified set serves both the
-	// slot's outline and the two ribbon edges it borders.
-	const float endX = waveTable->waveSize * x_increment;
+	// Pre-simplify each drawn slot's waveform once. The simplified set serves both the slot's
+	// outline and the two ribbon edges it borders.
+	const float endX = layout_.endX;
 	std::vector<std::vector<Point>> simplifiedSlots( drawnSlots.size() );
-	{
-		std::vector<Point> raw;
-		raw.reserve( waveTable->waveSize );
-		for( size_t j = 0 ; j < drawnSlots.size() ; ++j )
-		{
-			const float* wavedata = waveTable->GetSlotPtr( drawnSlots[j] );
-			raw.clear();
-			for( int i = 0 ; i < waveTable->waveSize ; ++i )
-				raw.push_back( Point( i * x_increment, wavedata[i] * -vscale ) );
-
-			SimplifyGraph( raw, simplifiedSlots[j] );
-		}
-	}
+	for( size_t j = 0 ; j < drawnSlots.size() ; ++j )
+		simplifySlot( waveTable, drawnSlots[j], simplifiedSlots[j] );
 
 	auto factory = g.getFactory();
 
@@ -118,31 +162,24 @@ void WavetableOscGui::buildDisplayGeometry(gmpi::drawing::Graphics& g, float wid
 		const int slot = drawnSlots[j];
 		const std::vector<Point>& wave = simplifiedSlots[j];
 
-		const float yOffset = frontYaxis - (frontYaxis-backYaxis) * ((float) slot / (float) waveTable->slotCount);
-		const float xOffset = (slot * horizontalDelta) / waveTable->slotCount;
+		const Point origin = slotOrigin( slot );
+		const float xOffset = origin.x;
+		const float yOffset = origin.y;
 
 		SlotGeometry sg;
 		sg.slot = slot;
 
 		// Waveform outline.
-		sg.outline = factory.createPathGeometry();
-		{
-			auto sink = sg.outline.open();
-			sink.beginFigure(Point(xOffset, yOffset), FigureBegin::Hollow);
-			for( const auto& p : wave )
-				sink.addLine(Point(xOffset + p.x, yOffset + p.y));
-			sink.addLine(Point(xOffset + endX, yOffset));
-			sink.endFigure(FigureEnd::Open);
-			sink.close();
-		}
+		sg.outline = buildSlotOutline( factory, slot, wave );
 
 		// Fill polygon between this and the next drawn slot (toward the front).
 		if( j > 0 )
 		{
 			const int slot2 = drawnSlots[j - 1];
 			const std::vector<Point>& wave2 = simplifiedSlots[j - 1];
-			const float yOffset2 = frontYaxis - (frontYaxis-backYaxis) * ((float) slot2 / (float) waveTable->slotCount);
-			const float xOffset2 = (slot2 * horizontalDelta) / waveTable->slotCount;
+			const Point origin2 = slotOrigin( slot2 );
+			const float xOffset2 = origin2.x;
+			const float yOffset2 = origin2.y;
 
 			sg.fill = factory.createPathGeometry();
 			auto fillSink = sg.fill.open();
@@ -200,34 +237,61 @@ ReturnCode WavetableOscGui::render(gmpi::drawing::api::IDeviceContext* dc)
 		geometryHeight_ = height;
 	}
 
+	if( slotGeometry_.empty() ) // empty wavetable - nothing to draw, and no slot safe to index.
+		return ReturnCode::Ok;
+
 	// Wavetable 3D display - always visible so the user can see the loaded shape even with no audio running.
 	auto penLines       = g.createSolidColorBrush(colorFromHex(color_foreground));
 	auto penHighlighted = g.createSolidColorBrush(colorFromHex(color_highlighted));
 	auto fillBrush      = g.createSolidColorBrush(color_fill);
 
-	// Slot pin (0..1) maps to one of the slotCount file slots; highlight whichever drawn slot lies
-	// closest to it, so the highlight stays visible even when the exact slot isn't among those
-	// drawn. This is the only per-frame decision - the geometry itself is cached.
+	// Slot pin (0..1) maps to one of the slotCount file slots. Highlight that exact slot, even when
+	// it isn't one of the drawn subset - in that case its outline is built on the fly (below) and
+	// slotted into the back-to-front draw order at its own depth.
 	const float slotPos = std::min( 1.0f, std::max( 0.0f, pinSlot.value ) );
 	const int highlightedSlot = (int)( slotPos * (float)( waveTable->slotCount - 1 ) + 0.5f );
 
-	int highlightedSlotValue = slotGeometry_.empty() ? -1 : slotGeometry_.front().slot;
-	for( const auto& sg : slotGeometry_ )
+	const bool highlightIsDrawn = std::any_of(
+		slotGeometry_.begin(), slotGeometry_.end(),
+		[highlightedSlot](const SlotGeometry& sg) { return sg.slot == highlightedSlot; }
+	);
+
+	// Build (or reuse) the extra outline for a selected slot that isn't in the cached subset. Only
+	// ever one such outline is kept - caching every slot swept past is what the drawn-subset limit
+	// exists to avoid.
+	if( !highlightIsDrawn && selectedOutlineSlot_ != highlightedSlot )
 	{
-		if( std::abs( sg.slot - highlightedSlot ) < std::abs( highlightedSlotValue - highlightedSlot ) )
-			highlightedSlotValue = sg.slot;
+		auto factory = g.getFactory();
+		std::vector<Point> wave;
+		simplifySlot( waveTable, highlightedSlot, wave );
+
+		selectedOutline_ = buildSlotOutline( factory, highlightedSlot, wave );
+		selectedOutlineSlot_ = highlightedSlot;
 	}
 
 	// slotGeometry_ is stored back-to-front, each entry carrying the fill ribbon toward the
 	// next-nearer slot, so drawing outline-then-fill in order reproduces the depth occlusion.
+	bool selectedPending = !highlightIsDrawn && selectedOutline_;
 	for( auto& sg : slotGeometry_ )
 	{
-		auto& pen = ( sg.slot == highlightedSlotValue ) ? penHighlighted : penLines;
+		// The selected slot sits between two drawn slots: draw it once the entry behind it (and its
+		// ribbon, which would otherwise paint over it) is done, but before any nearer slot.
+		if( selectedPending && sg.slot < highlightedSlot )
+		{
+			g.drawGeometry( selectedOutline_, penHighlighted, 1.0f );
+			selectedPending = false;
+		}
+
+		auto& pen = ( sg.slot == highlightedSlot ) ? penHighlighted : penLines;
 		g.drawGeometry( sg.outline, pen, 1.0f );
 
 		if( sg.fill )
 			g.fillGeometry( sg.fill, fillBrush );
 	}
+
+	// Frontmost of all (only reachable if the selection sits beyond the last drawn slot).
+	if( selectedPending )
+		g.drawGeometry( selectedOutline_, penHighlighted, 1.0f );
 
 	return ReturnCode::Ok;
 }
