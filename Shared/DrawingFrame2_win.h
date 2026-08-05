@@ -13,6 +13,17 @@
 // GMPI-UI to replace custom code.
 #include "backends/DrawingFrameWin.h"
 
+#include "SoftwareRendererOption.h"
+#if SE_SOFTWARE_RENDERER_OPTION
+#include <memory>
+#include "backends/CpuGfx.h"
+#include "helpers/CpuTextEngine.h"
+#include "helpers/DecodeImage.h"
+#include "helpers/FontProvider.h"
+#include "GmpiUiToSDK3.h"          // se::GmpiToSDK3Factory
+#include "GmpiCpuUniversalContext.h" // se::DeviceContextLegacyAdapter
+#endif
+
 // Suppress C4250 ("class inherits via dominance") — fired by every diamond
 // member function in DrawingFrameHwndBase / DrawingFrame2 because MSVC reports
 // dominance resolution as informational. The behaviour it warns about is
@@ -44,16 +55,69 @@ struct UniversalFactory : public gmpi::api::IUnknown
     gmpi::directx::Factory gmpiFactory;
     se::directx::Factory_base sdk3Factory;
 
+#if SE_SOFTWARE_RENDERER_OPTION
+    // Debug-only: gmpi_ui's CPU backend standing in for Direct2D. Same three
+    // platform-shaped pieces DrawingFrame2_cpu.h wires up on Linux — font
+    // discovery, image decoding, shaping — except the first two resolve to
+    // DirectWrite and WIC here rather than fontconfig and libpng.
+    //
+    // The Direct2D factory above stays alive alongside it, and is NOT dead
+    // weight: it owns the ID2D1Factory the swap chain is built from
+    // (getD2dFactory), and the swap chain is still how the finished pixels
+    // reach the screen. Only the drawing goes through the CPU.
+    struct CpuStack
+    {
+        gmpi::cpugfx::Factory        gmpiFactory;
+        gmpi::drawing::CpuTextEngine textEngine{ gmpi::drawing::findFont };
+        se::GmpiToSDK3Factory        sdk3Factory;
+
+        CpuStack() : sdk3Factory(&gmpiFactory)
+        {
+            // Colour-emoji glyphs arrive as PNG blobs inside the font, so the text
+            // engine needs a decoder of its own, separate from the factory's.
+            textEngine.imageDecoder  = gmpi::drawing::decodeImageMemory;
+            gmpiFactory.imageDecoder = gmpi::drawing::decodeImageFile;
+            gmpiFactory.textEngine   = &textEngine;
+        }
+    };
+
+    // Null unless the Software Renderer preference was on when this frame was
+    // built. Non-null is the one flag the whole software path keys off.
+    std::unique_ptr<CpuStack> cpu;
+#endif
+
 	UniversalFactory() : sdk3Factory(gmpiFactory.getInfo()) // SDK3 factory borrows the guts from the GMPI factory.
 	{
         se::registerBundledFonts();
 
+#if SE_SOFTWARE_RENDERER_OPTION
+        if (se::useSoftwareRenderer())
+            cpu = std::make_unique<CpuStack>();
+#endif
 	}
 
     // dispatch queries to correct factory
     gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
     {
-        if (*iid == *(const gmpi::api::Guid*)& GmpiDrawing_API::SE_IID_FACTORY2_MPGUI || *iid == *(const gmpi::api::Guid*)& GmpiDrawing_API::SE_IID_FACTORY_MPGUI)
+        const bool wantsSdk3 =
+            *iid == *(const gmpi::api::Guid*)& GmpiDrawing_API::SE_IID_FACTORY2_MPGUI ||
+            *iid == *(const gmpi::api::Guid*)& GmpiDrawing_API::SE_IID_FACTORY_MPGUI;
+
+#if SE_SOFTWARE_RENDERER_OPTION
+        // Every resource a client creates has to come from the SAME backend that
+        // will rasterize it — a Direct2D bitmap handed to the CPU rasterizer is a
+        // failed dynamic_cast at best. So in software mode BOTH sides of the
+        // dispatch move over, not just the modern one.
+        if (cpu)
+        {
+            if (wantsSdk3)
+                return (gmpi::ReturnCode) cpu->sdk3Factory.queryInterface(*(const gmpi::MpGuid*)iid, returnInterface);
+
+            return cpu->gmpiFactory.queryInterface(iid, returnInterface);
+        }
+#endif
+
+        if (wantsSdk3)
         {
 			return (gmpi::ReturnCode) sdk3Factory.queryInterface(* (const gmpi::MpGuid*) iid, returnInterface);
         }
@@ -172,6 +236,13 @@ public:
     // (which dispatches both GMPI and SDK3 IIDs) instead of gmpi_ui's plain
     // GraphicsContext, then run the shared paintLoop.
     void renderInDeviceContext(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects) override;
+#if SE_SOFTWARE_RENDERER_OPTION
+private:
+    // The software-renderer arm of renderInDeviceContext: rasterize the client
+    // on the CPU, then blit the result into the swap chain's back buffer.
+    void renderViaSoftwareRenderer(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects);
+public:
+#endif
 
     // attachClient(IUnknown*) inherited from DxDrawingFrameBase — same body
     // (Phase 4c-2 promoted SE's swap-chain-size-on-attach into the base).

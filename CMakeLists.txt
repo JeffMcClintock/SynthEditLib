@@ -794,6 +794,15 @@ IF(WIN32)
 target_link_libraries(${PROJECT_NAME} Dwmapi dxguid d3d11.lib d2d1 dwrite windowscodecs Comctl32)
 endif()
 
+# Text shaping for gmpi_ui's CPU backend. On Windows and macOS the CPU backend is
+# only reachable through the debug-only Software Renderer preference
+# (Shared/SoftwareRendererOption.h), so a release build references none of these
+# symbols and the linker drops the lot. The parent project (SE16/CMakeLists.txt)
+# defines the target on every platform.
+if(TARGET gmpi_harfbuzz)
+  target_link_libraries(${PROJECT_NAME} gmpi_harfbuzz)
+endif()
+
 target_compile_definitions (${PROJECT_NAME} PRIVATE
     _UNICODE
     UNICODE

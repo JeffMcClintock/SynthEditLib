@@ -201,6 +201,14 @@ bool DrawingFrameBase2::canPaint(std::span<gmpi::drawing::RectL> dirtyRects)
 // renderInDeviceContext below).
 void DrawingFrameBase2::renderInDeviceContext(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects)
 {
+#if SE_SOFTWARE_RENDERER_OPTION
+    if (universalFactory && universalFactory->cpu)
+    {
+        renderViaSoftwareRenderer(deviceContext, dirtyRects);
+        return;
+    }
+#endif
+
     // UniversalGraphicsContext dispatches both GMPI and SDK3 IIDs in
     // queryInterface — that's why SE overrides this hook. The dirty-rect loop
     // (tempSharedD2DBase::paintLoop) is shared with gmpi_ui.
@@ -214,6 +222,119 @@ void DrawingFrameBase2::renderInDeviceContext(ID2D1DeviceContext* deviceContext,
         ReleaseDevice();
     }
 }
+
+#if SE_SOFTWARE_RENDERER_OPTION
+void DrawingFrameBase2::renderViaSoftwareRenderer(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects)
+{
+    const auto pixelWidth  = swapChainSize.width;
+    const auto pixelHeight = swapChainSize.height;
+    if (pixelWidth <= 0 || pixelHeight <= 0)
+        return;
+
+    auto& cpu = *universalFactory->cpu;
+
+    // cpugfx has no resize, so a target is per-frame anyway. Allocating a FRESH
+    // one each frame is also what makes partial repaints correct: everything
+    // outside the dirty rects stays transparent-black, and blending a
+    // premultiplied surface leaves those pixels of the back buffer untouched. A
+    // pooled surface would still hold the previous frame there and composite it
+    // a second time, darkening every translucent pixel a little more each frame.
+    gmpi::shared_ptr<gmpi::drawing::api::IBitmapRenderTarget> cpuTarget;
+    if (cpu.gmpiFactory.createCpuRenderTarget(
+            { static_cast<uint32_t>(pixelWidth), static_cast<uint32_t>(pixelHeight) },
+            0,
+            cpuTarget.put(),
+            96.0f) != gmpi::ReturnCode::Ok || !cpuTarget)
+    {
+        return;
+    }
+
+    {
+        // SDK3 modules reach the context through queryInterface(SE_IID_DEVICECONTEXT_MPGUI)
+        // and need an object whose vtable matches the legacy IMpDeviceContext. This
+        // is the backend-neutral equivalent of se::directx::UniversalGraphicsContext
+        // above, and is paired with cpu.sdk3Factory for the reason spelled out in
+        // GmpiCpuUniversalContext.h: context and factory must be the same bridge.
+        se::DeviceContextLegacyAdapter context(cpuTarget.get(), &cpu.sdk3Factory);
+        gmpi::drawing::Graphics graphics(&context);
+
+        graphics.beginDraw();
+
+        // Direct2D gets its DIP-to-pixel scale from the device context's DPI, which
+        // survives whatever transform the client sets. cpugfx has no DPI, so the
+        // scale has to ride in the transform instead — the same trade
+        // DrawingFrameWayland.h makes. Consequence: at a display scale other than
+        // 100%, a client that calls setTransform() with an absolute matrix (rather
+        // than composing onto the current one) will draw unscaled here but scaled
+        // under Direct2D. At 100% the two paths are identical, which is where the
+        // comparisons that motivate this option are normally made.
+        if (DipsToWindow._11 != 1.0f || DipsToWindow._22 != 1.0f)
+            graphics.setTransform(DipsToWindow);
+
+        paintLoop(&context, dirtyRects, drawingClient.get());
+        graphics.endDraw();
+    }
+
+    // Present. The CPU surface is fp16 premultiplied linear scRGB — the very
+    // format the swap chain's back buffer uses (tempSharedD2DBase::bestFormat is
+    // DXGI_FORMAT_R16G16B16A16_FLOAT) — so this is a straight copy: no sRGB
+    // encode, no dither, no precision lost. That is also why CpuEncode.h is not
+    // involved; it exists for window systems that only take 8-bit sRGB.
+    gmpi::shared_ptr<gmpi::drawing::api::IBitmap> cpuBitmap;
+    if (cpuTarget->getBitmap(cpuBitmap.put()) != gmpi::ReturnCode::Ok)
+        return;
+
+    auto* bitmap = dynamic_cast<gmpi::cpugfx::Bitmap*>(cpuBitmap.get());
+    if (!bitmap)
+        return;
+
+    const auto& surface = bitmap->surface;
+
+    D2D1_BITMAP_PROPERTIES bitmapProperties{};
+    bitmapProperties.pixelFormat = { DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED };
+    bitmapProperties.dpiX = bitmapProperties.dpiY = 96.0f; // 96 => one bitmap DIP is one bitmap pixel
+
+    gmpi::directx::ComPtr<ID2D1Bitmap> presentBitmap;
+    // Rows are padded to a multiple of 8 pixels, so the pitch is stridePixels,
+    // NOT width. Confusing the two shears the image diagonally.
+    if (FAILED(deviceContext->CreateBitmap(
+            D2D1::SizeU(static_cast<UINT32>(surface.width), static_cast<UINT32>(surface.height)),
+            surface.pixels,
+            static_cast<UINT32>(surface.stridePixels) * 4 * sizeof(uint16_t),
+            bitmapProperties,
+            presentBitmap.put())))
+    {
+        return;
+    }
+
+    deviceContext->BeginDraw();
+    deviceContext->SetTransform(D2D1::Matrix3x2F::Identity());
+
+    for (const auto& r : dirtyRects)
+    {
+        // Source rect is in the bitmap's DIPs (== pixels, given dpi 96);
+        // destination is in the context's DIPs, which are scaled by its DPI.
+        const D2D1_RECT_F source{
+            static_cast<float>(r.left),  static_cast<float>(r.top),
+            static_cast<float>(r.right), static_cast<float>(r.bottom) };
+
+        const auto destination = gmpi::drawing::transformRect(WindowToDips,
+            gmpi::drawing::Rect{ source.left, source.top, source.right, source.bottom });
+
+        deviceContext->DrawBitmap(
+            presentBitmap.get(),
+            reinterpret_cast<const D2D1_RECT_F*>(&destination),
+            1.0f,
+            D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, // 1:1, nothing to filter
+            &source);
+    }
+
+    if (deviceContext->EndDraw() != S_OK)
+    {
+        ReleaseDevice();
+    }
+}
+#endif // SE_SOFTWARE_RENDERER_OPTION
 
 void DrawingFrameBase2::sizeClientDips(float width, float height)
 {
