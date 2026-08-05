@@ -75,6 +75,7 @@ namespace SE2
 			to_ = pMousePos;
 
 		draggingFromEnd = pdraggingFromEnd;
+		startedDragAt_ = pMousePos;
 
 		parent->setCapture(this);
 		parent->autoScrollStart();
@@ -358,7 +359,7 @@ namespace SE2
 		{
 			// detect single clicks on pin, continue dragging.
 			const float dragThreshold = 6;
-			if (abs(from_.x - to_.x) < dragThreshold && abs(from_.y - to_.y) < dragThreshold)
+			if (abs(point.x - startedDragAt_.x) < dragThreshold && abs(point.y - startedDragAt_.y) < dragThreshold)
 				return gmpi::ReturnCode::Unhandled;
 
 			if(wasPickedUp)
