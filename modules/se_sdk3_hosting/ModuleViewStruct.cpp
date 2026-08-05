@@ -1850,15 +1850,17 @@ namespace SE2
 		if(hoveredPin_.pinIndex != newHoveredPin.pinIndex || hoveredPin_.hitCircle != newHoveredPin.hitCircle)
 		{
 			// temporarily trace, only while highlighted
-			if(hoveredPin_.pinIndex > -1)
+			// not on circle, else moving mouse near pin highlights the line, which gives impression that line is under mouse when clicking willinteract with pin not select line.
+			if(hoveredPin_.pinIndex > -1 && !hoveredPin_.hitCircle)
 			{
+				// unhighlight old connector
 				Presenter()->HighlightConnector(this->handle, hoveredPin_.pinIndex, ~PinHighlightFlag_EmphasiseMomentary);
 
 				//	hoverScopeWaveform can be null if you turn off audio while scope displayed, still needs erasing but				if(hoverScopeWaveform || !hoverScopeText.empty())
 				invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
 			}
 
-			if(newHoveredPin.pinIndex > -1)
+			if(newHoveredPin.pinIndex > -1 && !newHoveredPin.hitCircle)
 				Presenter()->HighlightConnector(this->handle, newHoveredPin.pinIndex, PinHighlightFlag_EmphasiseMomentary);
 
 			hoveredPin_ = newHoveredPin;
