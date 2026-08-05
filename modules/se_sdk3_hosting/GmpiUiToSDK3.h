@@ -442,7 +442,24 @@ protected:
 		{
 			int32_t returnPixelFormat{};
 			native()->getPixelFormat(&returnPixelFormat);
-			return returnPixelFormat;
+
+			// The two enums are unrelated. gmpi::drawing packs bpp/type/layout into
+			// a bit field (BGRA_sRGB_8i == 0x904), the SDK3 one is a plain 0..4
+			// index. Passing the raw value through never matched any legacy
+			// comparison, so callers like ImageTinted2 and ImageCache silently took
+			// their non-sRGB / wrong-channel-order branch.
+			using Old = GmpiDrawing_API::IMpBitmapPixels;
+			switch (returnPixelFormat)
+			{
+			case gmpi::drawing::api::IBitmapPixels::BGRA_sRGB_8i: return Old::kBGRA_SRGB;
+			case gmpi::drawing::api::IBitmapPixels::RGBA_sRGB_8i: return Old::kRGBA;
+			default:
+				// Alpha_8i and the linear float formats have no SDK3 equivalent.
+				// Nothing in the SDK3 API can describe them and no SDK3 module can
+				// read them, so report the format they all expect and rely on the
+				// backends handing legacy code 32bpp sRGB in the first place.
+				return Old::kBGRA_SRGB;
+			}
 		}
 
 		GMPI_QUERYINTERFACE1(GmpiDrawing_API::SE_IID_BITMAP_PIXELS_MPGUI, GmpiDrawing_API::IMpBitmapPixels);
