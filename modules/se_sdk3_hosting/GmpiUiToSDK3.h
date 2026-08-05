@@ -769,7 +769,12 @@ class g3_BitmapRenderTarget final : public GmpiToSDK3Context_base // emulated by
 	gmpi::drawing::api::IBitmapRenderTarget* makeNative(GmpiToSDK3Context_base* g, const gmpi::drawing::Size* desiredSize) const
 	{
 		gmpi::drawing::api::IBitmapRenderTarget* native{};
-		g->context_->createCompatibleRenderTarget(*desiredSize, 0, &native);
+		// SRGBPixels for the same reason GmpiToSDK3Factory::CreateImage passes it: every
+		// legacy SDK3 module assumes 4 bytes per pixel (BitmapPixels::getPixel/setPixel in
+		// se_sdk3/Drawing.h index as uint32_t). Without the flag the software backend hands
+		// out an RGBA_16f lock — 8 bytes per pixel — and a module computing
+		// height * getBytesPerRow() / sizeof(uint32_t) walks twice past the end of it.
+		g->context_->createCompatibleRenderTarget(*desiredSize, (int32_t)gmpi::drawing::BitmapRenderTargetFlags::SRGBPixels, &native);
 		return native;
 	}
 public:
