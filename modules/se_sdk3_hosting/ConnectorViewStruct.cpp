@@ -859,8 +859,11 @@ namespace SE2
 		// Cheap reject by max-fuzzy stroke width before iterating geometry repeatedly.
 		// strokeContainsPoint(p, w) is true iff distance(p, line) <= w/2,
 		// so testing at hitTestWidth + 2*fuzzyHitTestLimit covers any point within fuzzyHitTestLimit of the solid-hit area.
+		// Widen with our own round-join style, not the default miter: at these widths a miter
+		// spike off the arrowhead's sharp V reaches several times the stroke radius, registering
+		// hits well clear of the line.
 		const float maxFuzzyStrokeWidth = hitTestWidth + 2.0f * fuzzyHitTestLimit;
-		if (!geometry.strokeContainsPoint(point, maxFuzzyStrokeWidth))
+		if (!geometry.strokeContainsPoint(point, maxFuzzyStrokeWidth, strokeStyle))
 			return { totalMiss, -1, -1 };
 
 		// Ignore hits near to the end that mess with clickin plugs. Unless it's a direct hit on a node.
@@ -902,7 +905,7 @@ namespace SE2
 		// Distance to closest line segment, plus the stroke width to use when identifying which segment.
 		float closestLineDistance;
 		float lineMatchStrokeWidth;
-		if (geometry.strokeContainsPoint(point, hitTestWidth))
+		if (geometry.strokeContainsPoint(point, hitTestWidth, strokeStyle))
 		{
 			closestLineDistance = 0.0f;
 			lineMatchStrokeWidth = hitTestWidth;
@@ -917,7 +920,7 @@ namespace SE2
 			while (hi - lo > 2.0f)
 			{
 				const float mid = (lo + hi) * 0.5f;
-				if (geometry.strokeContainsPoint(point, mid))
+				if (geometry.strokeContainsPoint(point, mid, strokeStyle))
 					hi = mid;
 				else
 					lo = mid;
@@ -937,7 +940,7 @@ namespace SE2
 		auto& segments = GetSegmentGeometrys();
 		for (int j = 0; j < (int)segments.size(); ++j)
 		{
-			if (segments[j].strokeContainsPoint(point, lineMatchStrokeWidth))
+			if (segments[j].strokeContainsPoint(point, lineMatchStrokeWidth, strokeStyle))
 			{
 				hitSegment = j;
 				break;
@@ -991,7 +994,7 @@ namespace SE2
 		{
 			for (float x = selectionRect.left + xSpacing * 0.5f; x <= selectionRect.right - xSpacing * 0.5f; x += xSpacing)
 			{
-				if (geometry.strokeContainsPoint({x, y}, spacing))
+				if (geometry.strokeContainsPoint({x, y}, spacing, strokeStyle))
 					return true;
 			}
 		}
