@@ -838,6 +838,11 @@ namespace SE2
 			return gmpi::ReturnCode::Unhandled;
 		}
 
+		// The node drag (if any) is over. Leaving draggingNode set outlives the
+		// gesture: a later cable pick-up on this same connector would take the
+		// drag-a-node branch above and in onPointerMove instead of the cable one.
+		draggingNode = -1;
+
 		parent->autoScrollStop();
 		parent->releaseCapture();
 		return gmpi::ReturnCode::Unhandled;
