@@ -105,11 +105,11 @@ struct WaveTable
 	// chunk) is loaded at that real count, clamped to [MinSlotCount, MaxSlotCount]. Sources
 	// that declare nothing - pitch-detected samples, the legacy pre-sliced format, the builtin
 	// shapes - get DefaultSlotCount.
-	static const int DefaultSlotCount = 64;
-	static const int MaxSlotCount = 256;  // Serum's own ceiling.
+	static constexpr int DefaultSlotCount = 64;
+	static constexpr int MaxSlotCount = 256;  // Serum's own ceiling.
 	// The audio loop always reads slot N alongside slot N+1 to crossfade the two, so even a
 	// single-frame file has to occupy two slots.
-	static const int MinSlotCount = 2;
+	static constexpr int MinSlotCount = 2;
 
 	static const int WavetableFileSampleCount = 512;
 
