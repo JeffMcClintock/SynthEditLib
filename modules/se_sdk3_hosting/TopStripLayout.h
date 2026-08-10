@@ -126,6 +126,13 @@ struct TopStripLayout :
     child bottomChild;           // the fill: the editor side
     float topStripHeight = 52.0f;    // strip thickness: height for top, width for left/right
     Edge  stripEdge = Edge::top;
+    // How much the FILL child keeps no matter what. Zero (the default) is the
+    // old behaviour: the strip takes its full thickness whenever it fits at all.
+    // That is wrong once these are NESTED - the browser pane wrapping the
+    // properties pane wrapping the editor - because each layer took its width in
+    // turn and the editor was handed the remainder, which shrank to a few pixels
+    // and then went NEGATIVE on a narrow window.
+    float minFillExtent = 0.0f;
     gmpi::drawing::Rect bounds{};
     child* capturedChild{}; // routes move/up to the child that took the down
 
@@ -195,21 +202,21 @@ struct TopStripLayout :
         {
         case Edge::top:
         {
-            const float strip = (std::min)(topStripHeight, r.bottom - r.top);
+            const float strip = stripFor(r.bottom - r.top);
             topChild.pos    = { r.left, r.top,         r.right, r.top + strip };
             bottomChild.pos = { r.left, r.top + strip, r.right, r.bottom };
             break;
         }
         case Edge::left:
         {
-            const float strip = (std::min)(topStripHeight, r.right - r.left);
+            const float strip = stripFor(r.right - r.left);
             topChild.pos    = { r.left,         r.top, r.left + strip, r.bottom };
             bottomChild.pos = { r.left + strip, r.top, r.right,        r.bottom };
             break;
         }
         case Edge::right:
         {
-            const float strip = (std::min)(topStripHeight, r.right - r.left);
+            const float strip = stripFor(r.right - r.left);
             topChild.pos    = { r.right - strip, r.top, r.right,         r.bottom };
             bottomChild.pos = { r.left,          r.top, r.right - strip, r.bottom };
             break;
@@ -219,6 +226,14 @@ struct TopStripLayout :
         arrangeChild(topChild);
         arrangeChild(bottomChild);
         return gmpi::ReturnCode::Ok;
+    }
+
+    // The strip's thickness given `available` across the split: never more than
+    // it asked for, never so much that the fill drops below minFillExtent, and
+    // never negative (which would invert the child rects).
+    float stripFor(float available) const
+    {
+        return (std::max)(0.0f, (std::min)(topStripHeight, available - minFillExtent));
     }
 
     void arrangeChild(child& ch)
