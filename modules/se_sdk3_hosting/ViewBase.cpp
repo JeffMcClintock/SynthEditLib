@@ -2,6 +2,9 @@
 #include <random>
 #include <sstream>
 #include <iostream>
+#include <cstdarg>
+#include <cstdlib>
+#include <fstream>
 #include "ViewBase.h"
 #include "ConnectorView.h"
 #include "modules/se_sdk3_hosting/Presenter.h"
@@ -30,6 +33,45 @@ using namespace gmpi;
 using namespace gmpi_gui;
 using namespace gmpi::drawing;
 using namespace GmpiGuiHosting;
+
+// ---------------------------------------------------------------------------
+// Pointer-path tracing.
+//
+// The existing DEBUG_HIT_TEST / DEBUG_MOUSEOVER traces go to the CRT debug
+// channel, which needs a debugger attached and so is no use for a headless or
+// script-driven run. This writes the same kind of detail to a file instead, so
+// synthetic input (SynthEditCL's pointer verbs, or the live editor's command
+// channel) can be diagnosed after the fact.
+//
+// Off unless SE_TRACE_INPUT names a file. Costs one getenv on first use.
+// ---------------------------------------------------------------------------
+namespace
+{
+std::ofstream* inputTraceFile()
+{
+    static std::ofstream* file = []() -> std::ofstream* {
+        const char* path = std::getenv("SE_TRACE_INPUT");
+        if (!path || !*path)
+            return nullptr;
+        auto* f = new std::ofstream(path, std::ios::app);
+        return f->is_open() ? f : nullptr;
+    }();
+    return file;
+}
+} // namespace
+
+void seInputTrace(const char* fmt, ...)
+{
+    auto* out = inputTraceFile();
+    if (!out)
+        return;
+    char buf[512];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    *out << buf << std::endl;   // flushed: a crash mid-gesture must not lose it
+}
 
 namespace SE2
 {
@@ -209,6 +251,14 @@ namespace SE2
 		if(hitObject)
 		{
 			// Left-click (drag object)
+			seInputTrace("down: flags=0x%x new=%d first=%d selected=%d draggable=%d editEnabled=%d",
+				flags,
+				(flags & gmpi_gui_api::GG_POINTER_FLAG_NEW) != 0,
+				(flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0,
+				hitObject->getSelected() ? 1 : 0,
+				hitObject->isDraggable(Presenter()->editEnabled()) ? 1 : 0,
+				Presenter()->editEnabled() ? 1 : 0);
+
 			if((flags & gmpi_gui_api::GG_POINTER_FLAG_NEW) != 0 &&
 				(flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0 &&
 				hitObject->getSelected() &&
@@ -276,6 +326,10 @@ namespace SE2
 		currentPointerPosAbsolute = point;
 		lastMovePoint = currentPointerPosAbsolute * inv_viewTransform;
 
+		seInputTrace("move: flags=0x%x captureObj=%d draggingModules=%d pt=[%.1f,%.1f]",
+			flags, mouseCaptureObject ? 1 : 0, isDraggingModules ? 1 : 0,
+			lastMovePoint.x, lastMovePoint.y);
+
 		if(mouseCaptureObject)
 		{
 #if DEBUG_MOUSEOVER
@@ -301,6 +355,9 @@ namespace SE2
 					auto snapDelta = newPoint - dragModuleTopLeft;
 
 					pointPrev += snapDelta;
+
+					seInputTrace("  drag: delta=[%.1f,%.1f] snapDelta=[%.1f,%.1f]",
+						delta.width, delta.height, snapDelta.width, snapDelta.height);
 
 					if(snapDelta.width != 0.0 || snapDelta.height != 0.0)
 					{
