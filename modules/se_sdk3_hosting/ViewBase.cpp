@@ -345,13 +345,9 @@ namespace SE2
 				gmpi::drawing::Size delta(lastMovePoint.x - pointPrev.x, lastMovePoint.y - pointPrev.y);
 				if(delta.width != 0.0f || delta.height != 0.0f) // avoid false snap on selection
 				{
-					const auto snapGridSize = Presenter()->GetSnapSize();
-
 					gmpi::drawing::Point dragModuleTopLeft = DraggingModulesInitialTopLeft + DraggingModulesOffset;
-					gmpi::drawing::Point newPoint = dragModuleTopLeft + delta;
+					gmpi::drawing::Point newPoint = snapToGrid(dragModuleTopLeft + delta);
 
-					newPoint.x = floorf((snapGridSize / 2 + newPoint.x) / snapGridSize) * snapGridSize;
-					newPoint.y = floorf((snapGridSize / 2 + newPoint.y) / snapGridSize) * snapGridSize;
 					auto snapDelta = newPoint - dragModuleTopLeft;
 
 					pointPrev += snapDelta;
@@ -1372,6 +1368,101 @@ namespace SE2
 		vscrollBar(v);
 
 		avoidRecusion = false;
+	}
+
+	gmpi::drawing::Point ViewBase::snapToGrid(gmpi::drawing::Point p)
+	{
+		const auto rack = Presenter()->getRackLayout();
+
+		gmpi::drawing::Size grid{ rack.hpWidth, rack.rowHeight };
+		gmpi::drawing::Point origin = rack.origin;
+
+		if (!rack.enabled)
+		{
+			const auto snapSize = static_cast<float>(Presenter()->GetSnapSize());
+			grid = { snapSize, snapSize };
+			origin = {};
+		}
+
+		return {
+			origin.x + floorf((grid.width  * 0.5f + p.x - origin.x) / grid.width ) * grid.width,
+			origin.y + floorf((grid.height * 0.5f + p.y - origin.y) / grid.height) * grid.height
+		};
+	}
+
+	void TopView::renderRack(Graphics& g, const RackLayout& rack)
+	{
+		Rect cliprect = g.getAxisAlignedClip();
+		cliprect.left   = (std::max)(cliprect.left,   0.0f);
+		cliprect.top    = (std::max)(cliprect.top,    0.0f);
+		cliprect.right  = (std::min)(cliprect.right,  (float)viewDimensions);
+		cliprect.bottom = (std::min)(cliprect.bottom, (float)viewDimensions);
+
+		if (cliprect.right <= cliprect.left || cliprect.bottom <= cliprect.top)
+			return;
+
+		// The case interior, seen through empty slots.
+		auto brush = g.createSolidColorBrush(colorFromHex(0x1B1B1Du));
+		g.fillRectangle(cliprect, brush);
+
+		pixelSnapper2 snap(g.getTransform(), drawingHost->getRasterizationScale());
+
+		const auto zoom = g.getTransform()._11;
+		const bool drawHoles = zoom > 0.5f; // too small to make out, and there are a lot of them
+
+		const int firstRow = static_cast<int>(floorf((cliprect.top    - rack.origin.y) / rack.rowHeight));
+		const int lastRow  = static_cast<int>(floorf((cliprect.bottom - rack.origin.y) / rack.rowHeight));
+		const int firstCol = static_cast<int>(floorf((cliprect.left   - rack.origin.x) / rack.hpWidth));
+		const int lastCol  = static_cast<int>(floorf((cliprect.right  - rack.origin.x) / rack.hpWidth));
+
+		const auto railColor      = colorFromHex(0x9A9A9Eu);
+		const auto railHighlight  = colorFromHex(0xC8C8CCu);
+		const auto railShadow     = colorFromHex(0x5E5E62u);
+		const auto holeColor      = colorFromHex(0x46464Au);
+
+		const auto edge = snap.thickness(1.0f);
+		const float holeRadius = rack.hpWidth * 0.13f;
+
+		for (int row = firstRow; row <= lastRow; ++row)
+		{
+			const float rowTop = rack.origin.y + row * rack.rowHeight;
+
+			// A rail at the top and the bottom of the row, as in a real case.
+			const float railTops[2] = { rowTop, rowTop + rack.rowHeight - rack.railHeight };
+
+			for (const float railTop : railTops)
+			{
+				const float top    = snap.snapY(railTop);
+				const float bottom = snap.snapY(railTop + rack.railHeight);
+
+				if (bottom < cliprect.top || top > cliprect.bottom)
+					continue;
+
+				brush.setColor(railColor);
+				g.fillRectangle({ cliprect.left, top, cliprect.right, bottom }, brush);
+
+				// Bevel the extruded aluminium: lit along the top, shaded along the bottom.
+				brush.setColor(railHighlight);
+				const auto lit = top + edge.center_offset;
+				g.drawLine({ cliprect.left, lit }, { cliprect.right, lit }, brush, edge.width);
+
+				brush.setColor(railShadow);
+				const auto shaded = bottom - edge.width + edge.center_offset;
+				g.drawLine({ cliprect.left, shaded }, { cliprect.right, shaded }, brush, edge.width);
+
+				if (!drawHoles)
+					continue;
+
+				// One threaded mounting hole per HP.
+				brush.setColor(holeColor);
+				const float holeY = (top + bottom) * 0.5f;
+				for (int col = firstCol; col <= lastCol; ++col)
+				{
+					const float holeX = rack.origin.x + (col + 0.5f) * rack.hpWidth;
+					g.fillCircle({ holeX, holeY }, holeRadius, brush);
+				}
+			}
+		}
 	}
 
 	void TopView::renderGrid(Graphics& g, Color gridColor)

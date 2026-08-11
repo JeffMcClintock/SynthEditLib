@@ -66,10 +66,17 @@ namespace SE2
 			g.fillRectangle(temp, backgroundBrush);
 
 			// fill the drawing area
-			backgroundBrush.setColor(Colors::LightGray);
-			g.fillRectangle(editingBounds, backgroundBrush);
+			if (const auto rack = Presenter()->getRackLayout(); rack.enabled)
+			{
+				renderRack(g, rack);
+			}
+			else
+			{
+				backgroundBrush.setColor(Colors::LightGray);
+				g.fillRectangle(editingBounds, backgroundBrush);
 
-			renderGrid(g, colorFromHex(0xDDDDDDu)); // slightly lighter than LightGray background
+				renderGrid(g, colorFromHex(0xDDDDDDu)); // slightly lighter than LightGray background
+			}
 		}
 		else
 		{

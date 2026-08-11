@@ -29,6 +29,18 @@ enum class CableType;
 		std::string debugModuleName;
 	};
 
+	// "Rack mode": the view is an empty Eurorack case that modules bolt into.
+	// Modules occupy whole rows one rack-unit tall and a whole number of HP
+	// (the standard horizontal pitch) wide. Proportions follow VCV Rack.
+	struct RackLayout
+	{
+		bool enabled = false;
+		gmpi::drawing::Point origin{}; // document coords of row 0, column 0
+		float hpWidth = 15.0f;         // one unit of horizontal pitch
+		float rowHeight = 380.0f;      // one rack row, rail to rail
+		float railHeight = 15.0f;      // mounting rail along each row's top and bottom edge
+	};
+
 	class IPresenter
 	{
 	public:
@@ -45,6 +57,8 @@ enum class CableType;
 		virtual void SetPanZoom(gmpi::drawing::Point center, float zoomFactor) = 0;
 		virtual float GetZoomFactor() = 0;
 		virtual int GetSnapSize() = 0;
+		// Disabled everywhere except a rack-mode project's top-level panel view.
+		virtual RackLayout getRackLayout() { return {}; }
 		virtual SE2::ModuleView* HandleToObject(int handle) = 0; // Seems out-of-place, because can have two objects w same handle (module + adorner).
 		virtual void InitializeGuiObjects() = 0;
 

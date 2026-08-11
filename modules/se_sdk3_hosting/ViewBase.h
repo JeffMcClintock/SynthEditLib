@@ -144,6 +144,11 @@ bool isIteratingChildren = false;
 			return { canvasMidpoint, canvasMidpoint };
 		}
 
+		// Snap a document-coords point to the grid that drags and resizes follow.
+		// Normally the user's square snap setting; in rack mode the axes differ -
+		// one HP across, one whole rack row down - so modules land in real slots.
+		gmpi::drawing::Point snapToGrid(gmpi::drawing::Point p);
+
 		void calcMouseOverObject(int32_t flags);
 		void OnChildDeleted(IViewChild* childObject);
 		void onSubPanelMadeVisible();
@@ -338,6 +343,11 @@ bool isIteratingChildren = false;
 		void updateScrollBars();
 
 		void renderGrid(gmpi::drawing::Graphics& g, gmpi::drawing::Color gridColor);
+
+		// Draw the empty case that rack-mode modules bolt into: dark interior with a
+		// drilled mounting rail along the top and bottom edge of every row. Modules
+		// render afterwards, so a filled slot hides its own stretch of rail.
+		void renderRack(gmpi::drawing::Graphics& g, const RackLayout& rack);
 	};
 
 	class SelectionDragBox : public ViewChild

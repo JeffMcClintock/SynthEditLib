@@ -379,7 +379,6 @@ namespace SE2
 			return gmpi::ReturnCode::Unhandled;
 		}
 
-		auto snapGridSize = parent->Presenter()->GetSnapSize();
 		gmpi::drawing::Size delta(point.x - pointPrev.x, point.y - pointPrev.y);
 
 		if (delta.width == 0.0f && delta.height == 0.0f)
@@ -391,11 +390,7 @@ namespace SE2
 		{
 		case -1: // dragging entire module
 		{
-			gmpi::drawing::Point newPoint = snapReference;
-			newPoint.x += delta.width;
-			newPoint.y += delta.height;
-			newPoint.x = floorf((snapGridSize / 2 + newPoint.x) / snapGridSize) * snapGridSize;
-			newPoint.y = floorf((snapGridSize / 2 + newPoint.y) / snapGridSize) * snapGridSize;
+			const auto newPoint = parent->snapToGrid({ snapReference.x + delta.width, snapReference.y + delta.height });
 			gmpi::drawing::Size snapDelta{ newPoint.x - snapReference.x, newPoint.y - snapReference.y };
 
 			pointPrev.x += snapDelta.width;
@@ -424,11 +419,7 @@ namespace SE2
 			break;
 		}
 
-		gmpi::drawing::Point newPoint = snapReference;
-		newPoint.x += delta.width;
-		newPoint.y += delta.height;
-		newPoint.x = floorf((snapGridSize / 2 + newPoint.x) / snapGridSize) * snapGridSize;
-		newPoint.y = floorf((snapGridSize / 2 + newPoint.y) / snapGridSize) * snapGridSize;
+		const auto newPoint = parent->snapToGrid({ snapReference.x + delta.width, snapReference.y + delta.height });
 		gmpi::drawing::Size snapDelta{ newPoint.x - snapReference.x, newPoint.y - snapReference.y };
 
 		if(snapDelta.width == 0.0 && snapDelta.height == 0.0)
