@@ -162,6 +162,26 @@ void ug_gmpi::listPins(gmpi::api::IUnknown* callback)
 	}
 }
 
+// Is anything actually patched into this pin?
+//
+// HasNonDefaultConnection() is the question a plugin means by "connected": a
+// plug fed only by the container's default-setter reads false, a real cable
+// reads true. Testing `connections` alone would call every input connected,
+// because an unpatched input still has the default-setter attached to it.
+gmpi::ReturnCode ug_gmpi::isPinConnected(int32_t pinId, bool* returnValue)
+{
+	if (!returnValue)
+		return gmpi::ReturnCode::Fail;
+
+	*returnValue = true; // the safe answer, and what a plugin assumed before this existed
+
+	if (pinId < 0 || pinId >= static_cast<int32_t>(plugs.size()))
+		return gmpi::ReturnCode::Fail;
+
+	*returnValue = plugs[pinId]->HasNonDefaultConnection();
+	return gmpi::ReturnCode::Ok;
+}
+
 gmpi::ReturnCode ug_gmpi::queryInterface(const gmpi::api::Guid* iid, void** returnInterface)
 {
 	*returnInterface = {};
@@ -169,6 +189,7 @@ gmpi::ReturnCode ug_gmpi::queryInterface(const gmpi::api::Guid* iid, void** retu
 	GMPI_QUERYINTERFACE(synthedit::IEmbeddedFileSupport);
 	GMPI_QUERYINTERFACE(synthedit::IPinCount);
 	GMPI_QUERYINTERFACE(synthedit::IElapsedTime);
+	GMPI_QUERYINTERFACE(synthedit::IPinConnection);
 	return gmpi::ReturnCode::NoSupport;
 }
 

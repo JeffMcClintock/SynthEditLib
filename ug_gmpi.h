@@ -4,9 +4,10 @@
 #include "../Extensions/EmbeddedFile.h"
 #include "Extensions/PinCount.h"
 #include "Extensions/ElapsedTime.h"
+#include "Extensions/PinConnection.h"
 
 class ug_gmpi :
-	public ug_base, public gmpi::api::IProcessorHost, public synthedit::IEmbeddedFileSupport, public synthedit::IPinCount, public synthedit::IElapsedTime
+	public ug_base, public gmpi::api::IProcessorHost, public synthedit::IEmbeddedFileSupport, public synthedit::IPinCount, public synthedit::IElapsedTime, public synthedit::IPinConnection
 {
 public:
 	ug_gmpi(class Module_Info* p_moduleType, gmpi::api::IProcessor* p_plugin);
@@ -32,6 +33,9 @@ public:
 
 	// IElapsedTime
 	int64_t getElapsedTime() override;
+
+	// IPinConnection
+	gmpi::ReturnCode isPinConnected(int32_t pinId, bool* returnValue) override;
 
 	// ug_base overides
 	ug_base* Create() override;
