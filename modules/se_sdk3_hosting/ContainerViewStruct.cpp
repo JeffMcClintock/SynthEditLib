@@ -1,4 +1,5 @@
 
+#include <cstdlib>
 #include <random>
 #include <sstream>
 #include <iostream>
@@ -108,7 +109,13 @@ namespace SE2
 		// THEME
 		const unsigned int backGroundColor = 0xACACACu; // Background color
 
+		// TEMPORARY profiling ablation gates (SE_ABLATE bitmask env var): 16=skip
+		// the grid, 128=skip the background fills, 256=skip rendering children.
+		// See tests/profile — remove when profiling is done.
+		static const int ablate = [] { const char* e = std::getenv("SE_ABLATE"); return e ? std::atoi(e) : 0; }();
+
 		// Background
+		if ((ablate & 128) == 0)
 		{
 			// fill in the area arround the drawing area. avoiding overdraw.
 			gmpi::drawing::Rect editingBounds{ 0.0f, 0.0f, (float)viewDimensions, (float)viewDimensions };
@@ -139,9 +146,12 @@ namespace SE2
 		}
 
 		// draw grid
-		renderGrid(g, colorFromHex(backGroundColor + 0x040404u));
+		if ((ablate & 16) == 0)
+			renderGrid(g, colorFromHex(backGroundColor + 0x040404u));
 
-		const auto r = ViewBase::render(drawingContext);
+		const auto r = (ablate & 256) != 0
+			? gmpi::ReturnCode::Ok
+			: ViewBase::render(drawingContext);
 
 #if 0 //def _DEBUG
 		{

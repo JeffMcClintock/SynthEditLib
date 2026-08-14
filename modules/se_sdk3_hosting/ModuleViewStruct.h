@@ -19,6 +19,14 @@ class ModuleViewStruct : public ModuleView, public gmpi::TimerClient
 	std::string lPlugNames;
 	std::string rPlugNames;
 	gmpi::drawing::PathGeometry outlineGeometry;
+
+	// Cached body-background gradient brush. Building the gradient stops +
+	// stop collection + linear-gradient brush per module per frame was ~half
+	// the d2d scroll-redraw cost (tests/profile/OPTIMIZATIONS.md); the inputs
+	// almost never change, so it's rebuilt only when cachedBackgroundKey (a
+	// hash of those inputs) changes. 0 = not built yet.
+	gmpi::drawing::Brush cachedBackgroundBrush;
+	uint64_t cachedBackgroundKey = 0;
 	std::vector< pinViewInfo > plugs_;
 	const float clientPadding = 2.0f;
 	const int plugTextHorizontalPadding = -1; // gap between plug text and plug circle outer radius.

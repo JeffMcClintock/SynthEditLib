@@ -476,6 +476,15 @@ namespace SE2
 			moduleOutlineBrush = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0x7C7C7Cu));
 			moduleOutlineBrushHovered = g.createSolidColorBrush(gmpi::drawing::Colors::DodgerBlue);
 
+			// Fixed-color brushes formerly created inside every
+			// ModuleViewStruct::render call — brush creation per module per
+			// frame was a major slice of scroll-redraw cost (see
+			// tests/profile/OPTIMIZATIONS.md).
+			textBrush           = g.createSolidColorBrush(gmpi::drawing::Colors::Black);
+			unconnectedPinBrush = g.createSolidColorBrush(gmpi::drawing::Colors::White);
+			zoomedOutBodyBrush  = g.createSolidColorBrush(gmpi::drawing::colorFromHex(0xE5E5E5u));
+			mutedBodyBrush      = g.createSolidColorBrush(gmpi::drawing::Colors::DarkGray);
+
 			for (size_t i = 0; i < pinColors.size(); ++i)
 			{
 				const auto fillColor = gmpi::drawing::colorFromHex(pinColors[i][0]);
@@ -513,6 +522,10 @@ namespace SE2
 		std::array<gmpi::drawing::SolidColorBrush, pinColors.size()> pinOutlineBrushesHovered;
 		gmpi::drawing::SolidColorBrush moduleOutlineBrush;
 		gmpi::drawing::SolidColorBrush moduleOutlineBrushHovered;
+		gmpi::drawing::SolidColorBrush textBrush;
+		gmpi::drawing::SolidColorBrush unconnectedPinBrush;
+		gmpi::drawing::SolidColorBrush zoomedOutBodyBrush;
+		gmpi::drawing::SolidColorBrush mutedBodyBrush;
 		bool pinBrushesInitialized = false;
 
 		std::unordered_map< std::string, gmpi::drawing::PathGeometry > outlineCache;
