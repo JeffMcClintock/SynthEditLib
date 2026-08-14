@@ -6,6 +6,9 @@
 //                               attribute); a mismatch forces a rescan.
 //   SkinMgr.cpp              -- the copied skin folder (".resource_version");
 //                               a mismatch re-copies the built-in skins.
+//   Application.cpp          -- CopyInitialPrefabs' "SynthEdit Projects"
+//                               ".resource_version" stamp; a mismatch re-copies
+//                               the built-in prefabs. Added at C5.
 //
 // Deliberately NOT SynthEdit's product version. This repo is public and shared
 // -- TIDE Rack's release cycle is not SynthEdit's -- so it cannot include the
