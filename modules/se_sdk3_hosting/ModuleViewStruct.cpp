@@ -1,3 +1,5 @@
+#include <cstdlib>
+#include <cstring>
 #include <vector>
 #include <sstream>
 #include <iomanip>
@@ -518,6 +520,15 @@ namespace SE2
 
 	void ModuleViewStruct::render(gmpi::drawing::Graphics& g)
 	{
+		// TEMPORARY profiling ablation gates (SE_ABLATE bitmask env var), used by
+		// tests/profile to size the cost buckets: 1=skip pin/header text,
+		// 2=solid background instead of gradient, 8=skip pin circles,
+		// 32=skip header text-extent measurement, 64=skip module render entirely.
+		// Remove when profiling is done.
+		static const int ablate = [] { const char* e = std::getenv("SE_ABLATE"); return e ? std::atoi(e) : 0; }();
+		if ((ablate & 64) != 0)
+			return;
+
 		constexpr auto& plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
 		// calc line thickness and offset to align nicely on pixel
@@ -539,81 +550,103 @@ namespace SE2
 
 		Brush backgroundBrush;// = &brush; // temp
 
-		if (zoomFactor < 0.3f)
+		if ((ablate & 2) != 0 || zoomFactor < 0.3f)
 		{
-			backgroundBrush = g.createSolidColorBrush(colorFromHex(0xE5E5E5u)); // todo: CACHE !!!!
+			backgroundBrush = resources->zoomedOutBodyBrush;
 		}
 		else
 		{
 			if (muted)
 			{
-				backgroundBrush = g.createSolidColorBrush(Colors::DarkGray);
+				backgroundBrush = resources->mutedBodyBrush;
 			}
 			else
 			{
-				// SE 1.4
-				//const auto GuiTopColor = Color::FromArgb(0xFFD2EFF2); // H185 S13 V94
-				//const auto GuiBotColor = Color::FromArgb(0xFFB1C9CC); // V80
-				constexpr float opacity = 0.85f;
-#if 0 // slowish calculation
-				// use original SE colors, but with some transparancy
-				const Color greyBack{ 0xACACACu };
-				const auto GuiTopColor = calcColor({ 0xDDEEFFu }, greyBack, opacity);//  Color::FromArgb(0xFFDDEEFF);
-				const auto GuiBotColor = calcColor({ 0xAABBCCu }, greyBack, opacity);// Color::FromArgb(0xFFAABBCC);
+				// The gradient depends only on the plug pattern, the module
+				// heights and directionality — all stable across frames.
+				// Rebuilding the stop collection + brush per frame was ~half
+				// the d2d scroll-redraw cost, so cache it keyed on a hash of
+				// those inputs (tests/profile/OPTIMIZATIONS.md).
+				const auto totalHeight = getHeight(getLayoutRect());
+				const auto boundsHeight = getHeight(bounds_);
 
-				const auto DspTopColor = calcColor({ 0xEFEFEFu }, greyBack, opacity);// Color::FromArgb(0xFFEFEFEF); // S0
-				const auto DspBotColor = calcColor({ 0xCCCCCCu }, greyBack, opacity);// Color::FromArgb(0xFFCCCCCC); // V80 S0
-#else
-				// calculated in advance (same formula)                          Greenish                                                   Blueish
-				const Color GuiTopColor = isMonoDirectional() ? Color(0.777851462f, 1.103668900f, 0.933072031f, opacity) : Color(0.777851462f, 0.933072031f, 1.103668900f, opacity);
-				const Color GuiBotColor = isMonoDirectional() ? Color(0.400113374f, 0.637583494f, 0.511825383f, opacity) : Color(0.400113374f, 0.511825383f, 0.637583494f, opacity);
-				const Color DspTopColor(0.942677438f, 0.942677438f, 0.942677430f, opacity);
-				const Color DspBotColor(0.637583494f, 0.637583494f, 0.637583494f, opacity);
-#endif
-				std::vector<gmpi::drawing::Gradientstop> gradientStops;
+				uint64_t key = 1469598103934665603ull; // FNV-1a
+				const auto mix = [&key](uint64_t v) { key ^= v; key *= 1099511628211ull; };
+				for (const auto& p : plugs_)
+					mix((p.isVisible ? 2u : 0u) | (p.isGuiPlug ? 1u : 0u));
+				uint32_t bits;
+				static_assert(sizeof bits == sizeof totalHeight);
+				std::memcpy(&bits, &totalHeight, sizeof bits);  mix(bits);
+				std::memcpy(&bits, &boundsHeight, sizeof bits); mix(bits);
+				mix(isMonoDirectional() ? 1u : 2u);
+				key |= 1; // 0 stays "not built"
 
-				auto totalHeight = getHeight(getLayoutRect());
-
-				int plugCount = 0;
-				int type = -1;
-				for (auto& p : plugs_)
+				if (!cachedBackgroundBrush || key != cachedBackgroundKey)
 				{
-					if (p.isVisible)
-					{
-						int t = p.isGuiPlug ? 0 : 1; // GUI or normal?
+					// SE 1.4
+					//const auto GuiTopColor = Color::FromArgb(0xFFD2EFF2); // H185 S13 V94
+					//const auto GuiBotColor = Color::FromArgb(0xFFB1C9CC); // V80
+					constexpr float opacity = 0.85f;
+#if 0 // slowish calculation
+					// use original SE colors, but with some transparancy
+					const Color greyBack{ 0xACACACu };
+					const auto GuiTopColor = calcColor({ 0xDDEEFFu }, greyBack, opacity);//  Color::FromArgb(0xFFDDEEFF);
+					const auto GuiBotColor = calcColor({ 0xAABBCCu }, greyBack, opacity);// Color::FromArgb(0xFFAABBCC);
 
-						if (t != type)
+					const auto DspTopColor = calcColor({ 0xEFEFEFu }, greyBack, opacity);// Color::FromArgb(0xFFEFEFEF); // S0
+					const auto DspBotColor = calcColor({ 0xCCCCCCu }, greyBack, opacity);// Color::FromArgb(0xFFCCCCCC); // V80 S0
+#else
+					// calculated in advance (same formula)                          Greenish                                                   Blueish
+					const Color GuiTopColor = isMonoDirectional() ? Color(0.777851462f, 1.103668900f, 0.933072031f, opacity) : Color(0.777851462f, 0.933072031f, 1.103668900f, opacity);
+					const Color GuiBotColor = isMonoDirectional() ? Color(0.400113374f, 0.637583494f, 0.511825383f, opacity) : Color(0.400113374f, 0.511825383f, 0.637583494f, opacity);
+					const Color DspTopColor(0.942677438f, 0.942677438f, 0.942677430f, opacity);
+					const Color DspBotColor(0.637583494f, 0.637583494f, 0.637583494f, opacity);
+#endif
+					std::vector<gmpi::drawing::Gradientstop> gradientStops;
+
+					int plugCount = 0;
+					int type = -1;
+					for (auto& p : plugs_)
+					{
+						if (p.isVisible)
 						{
-							if (type == -1)
+							int t = p.isGuiPlug ? 0 : 1; // GUI or normal?
+
+							if (t != type)
 							{
-								// Top color
-								gradientStops.push_back({0.0f, t == 0 ? GuiTopColor : DspTopColor});
-							}
-							else
-							{
-								float fraction = (plugCount * plugDiameter) / totalHeight;
-								if (t == 0)
+								if (type == -1)
 								{
-									gradientStops.push_back({fraction, interpolateColor(DspTopColor, DspBotColor, fraction)});
-									gradientStops.push_back({fraction, interpolateColor(GuiTopColor, GuiBotColor, fraction)});
+									// Top color
+									gradientStops.push_back({0.0f, t == 0 ? GuiTopColor : DspTopColor});
 								}
 								else
 								{
-									gradientStops.push_back({fraction, interpolateColor(GuiTopColor, GuiBotColor, fraction)});
-									gradientStops.push_back({fraction, interpolateColor(DspTopColor, DspBotColor, fraction)});
+									float fraction = (plugCount * plugDiameter) / totalHeight;
+									if (t == 0)
+									{
+										gradientStops.push_back({fraction, interpolateColor(DspTopColor, DspBotColor, fraction)});
+										gradientStops.push_back({fraction, interpolateColor(GuiTopColor, GuiBotColor, fraction)});
+									}
+									else
+									{
+										gradientStops.push_back({fraction, interpolateColor(GuiTopColor, GuiBotColor, fraction)});
+										gradientStops.push_back({fraction, interpolateColor(DspTopColor, DspBotColor, fraction)});
+									}
 								}
+								type = t;
 							}
-							type = t;
+							++plugCount;
 						}
-						++plugCount;
 					}
-				}
-				// Bottom color
-				gradientStops.push_back({1.0f, type == 0 ? GuiBotColor : DspBotColor});
+					// Bottom color
+					gradientStops.push_back({1.0f, type == 0 ? GuiBotColor : DspBotColor});
 
-				auto gradientStopCollection = g.createGradientstopCollection(gradientStops);
-				LinearGradientBrushProperties lgbp1{ Point(0.f, 0.0f), Point(0.f, getHeight(bounds_)) };
-				backgroundBrush = g.createLinearGradientBrush(lgbp1, BrushProperties(), gradientStopCollection);
+					auto gradientStopCollection = g.createGradientstopCollection(gradientStops);
+					LinearGradientBrushProperties lgbp1{ Point(0.f, 0.0f), Point(0.f, boundsHeight) };
+					cachedBackgroundBrush = g.createLinearGradientBrush(lgbp1, BrushProperties(), gradientStopCollection);
+					cachedBackgroundKey = key;
+				}
+				backgroundBrush = cachedBackgroundBrush;
 			}
 		}
 
@@ -656,12 +689,11 @@ namespace SE2
 		}
 
 		// Draw pin text elements.
-		auto outlineBrush = g.createSolidColorBrush(Colors::Gray);
-		if (zoomFactor > 0.1f)
+		if ((ablate & 8) == 0 && zoomFactor > 0.1f)
 		{
 			const float pinRadius = 3.0f;
 			const auto adjustedPinRadius = pinRadius + 0.1f; // nicer pixelation, more even outline circle.
-			auto whiteBrush = g.createSolidColorBrush(Colors::White);
+			auto& whiteBrush = resources->unconnectedPinBrush;
 
 			// Pins (see also drawoutline for snapping)
 			const float left = 0.0f;
@@ -702,7 +734,7 @@ namespace SE2
 		}
 
 		// Pin text and header text.
-		if (zoomFactor > 0.5f)
+		if ((ablate & 1) == 0 && zoomFactor > 0.5f)
 		{
 			// Text
 			Rect r(0,0, getWidth(bounds_), getHeight(bounds_));
@@ -710,21 +742,22 @@ namespace SE2
 			r.left  += static_cast<float>(plugTextHorizontalPadding + 0.5f * plugDiameter);
 			r.right -= static_cast<float>(plugTextHorizontalPadding + 0.5f * plugDiameter);
 
-			outlineBrush.setColor(Colors::Black);
+			auto& textBrush = resources->textBrush;
 
 			// Left justified text.
-			g.drawTextU(lPlugNames, resources->tf_plugs_left, r, outlineBrush);
+			g.drawTextU(lPlugNames, resources->tf_plugs_left, r, textBrush);
 
 			// Right justified text.
-			g.drawTextU(rPlugNames, resources->tf_plugs_right, r, outlineBrush);
+			g.drawTextU(rPlugNames, resources->tf_plugs_right, r, textBrush);
 
 			// Header.
-			auto textExtraWidth = 1.0f + 0.5f * (std::max)(0.0f, resources->tf_header.getTextExtentU(name).width - getWidth(r));
+			auto textExtraWidth = (ablate & 32) != 0 ? 1.0f
+				: 1.0f + 0.5f * (std::max)(0.0f, resources->tf_header.getTextExtentU(name).width - getWidth(r));
 
 			r.top -= 16;
 			r.left -= textExtraWidth;
 			r.right += textExtraWidth;
-			g.drawTextU(name, resources->tf_header, r, outlineBrush);
+			g.drawTextU(name, resources->tf_header, r, textBrush);
 		}
 
 		// CPU graph and hover-scope are drawn in the layer-1 pass so they

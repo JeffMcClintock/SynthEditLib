@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "ConnectorViewStruct.h"
 #include "ModuleViewStruct.h"
 #include "ContainerView.h"
@@ -690,6 +691,12 @@ namespace SE2
 	void ConnectorView2::render(gmpi::drawing::Graphics& g)
 	{
 		if (!geometry)
+			return;
+
+		// TEMPORARY profiling ablation gate (SE_ABLATE bitmask env var): 4=skip
+		// cable rendering. See tests/profile — remove when profiling is done.
+		static const int ablate = [] { const char* e = std::getenv("SE_ABLATE"); return e ? std::atoi(e) : 0; }();
+		if ((ablate & 4) != 0)
 			return;
 
 		auto resources = getDrawingResources(g);
