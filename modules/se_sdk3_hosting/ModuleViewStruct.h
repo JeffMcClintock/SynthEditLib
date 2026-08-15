@@ -27,6 +27,18 @@ class ModuleViewStruct : public ModuleView, public gmpi::TimerClient
 	// hash of those inputs) changes. 0 = not built yet.
 	gmpi::drawing::Brush cachedBackgroundBrush;
 	uint64_t cachedBackgroundKey = 0;
+
+	// Width of the header text, measured once. render() (to widen the header's
+	// draw rect) and arrange() (to expand the clip area for an overhanging
+	// title) both want the same tf_header extent of the same `name`, and every
+	// measurement builds a throwaway text layout inside the backend. The
+	// render() one ran per module per frame — ~0.2 ms of a 4.3 ms structure
+	// view frame (tests/profile/OPTIMIZATIONS.md in the SynthEdit repo).
+	// `name` is set once in the constructor (a rename rebuilds every module
+	// view) and the shared text format is never mutated after creation, so
+	// there is nothing to invalidate. Negative = not yet measured.
+	float cachedHeaderWidth = -1.0f;
+	float headerWidth(sharedGraphicResources_struct* resources);
 	std::vector< pinViewInfo > plugs_;
 	const float clientPadding = 2.0f;
 	const int plugTextHorizontalPadding = -1; // gap between plug text and plug circle outer radius.

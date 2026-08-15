@@ -401,8 +401,7 @@ namespace SE2
         auto resources = getDrawingResources(drawingFactory);
 
 		// Expand left and right for long headers.
-		auto headersize = resources->tf_header.getTextExtentU(name);
-		float overhang = ceilf((headersize.width - getWidth(clipArea)) * 0.5f);
+		float overhang = ceilf((headerWidth(resources) - getWidth(clipArea)) * 0.5f);
 		if (overhang > 0.0f)
 		{
 			clipArea.left -= overhang;
@@ -452,6 +451,14 @@ namespace SE2
 			drawingResources = drawingResourcesCache.get(factory);
 
 		return drawingResources.get();
+	}
+
+	float ModuleViewStruct::headerWidth(sharedGraphicResources_struct* resources)
+	{
+		if (cachedHeaderWidth < 0.0f)
+			cachedHeaderWidth = resources->tf_header.getTextExtentU(name).width;
+
+		return cachedHeaderWidth;
 	}
 
 	gmpi::drawing::Rect ModuleViewStruct::GetCpuRect()
@@ -752,7 +759,7 @@ namespace SE2
 
 			// Header.
 			auto textExtraWidth = (ablate & 32) != 0 ? 1.0f
-				: 1.0f + 0.5f * (std::max)(0.0f, resources->tf_header.getTextExtentU(name).width - getWidth(r));
+				: 1.0f + 0.5f * (std::max)(0.0f, headerWidth(resources) - getWidth(r));
 
 			r.top -= 16;
 			r.left -= textExtraWidth;
