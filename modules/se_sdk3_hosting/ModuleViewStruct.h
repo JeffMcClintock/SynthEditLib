@@ -39,6 +39,24 @@ class ModuleViewStruct : public ModuleView, public gmpi::TimerClient
 	// there is nothing to invalidate. Negative = not yet measured.
 	float cachedHeaderWidth = -1.0f;
 	float headerWidth(sharedGraphicResources_struct* resources);
+
+	// Retained layouts for the three strings this view draws every frame.
+	// drawTextU makes the backend lay the text out again on every call - three
+	// times per module per frame while scrolling - so the layouts are built
+	// once and redrawn. They are pixel-identical to the drawTextU calls they
+	// replace (gmpi_ui guarantees that for a run-free layout), and they depend
+	// only on the strings and the box, both of which change only when the
+	// module is resized: arrange() clears them alongside outlineGeometry.
+	//
+	// Retained layouts are an OPTIONAL backend capability. Where the backend
+	// declines these stay null and the drawTextU calls below run instead, so
+	// nothing is lost - only the speedup.
+	gmpi::drawing::TextLayout pinTextLayoutLeft;
+	gmpi::drawing::TextLayout pinTextLayoutRight;
+	gmpi::drawing::TextLayout headerTextLayout;
+	bool textLayoutsBuilt = false;
+	void buildTextLayouts(gmpi::drawing::Factory& factory, sharedGraphicResources_struct* resources,
+		gmpi::drawing::Rect pinRect, gmpi::drawing::Rect headerRect);
 	std::vector< pinViewInfo > plugs_;
 	const float clientPadding = 2.0f;
 	const int plugTextHorizontalPadding = -1; // gap between plug text and plug circle outer radius.

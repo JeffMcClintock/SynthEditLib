@@ -337,7 +337,17 @@ namespace SE2
 	void ModuleViewStruct::arrange(gmpi::drawing::Rect finalRect)
 	{
 		if (getHeight(bounds_) != getHeight(finalRect) || getWidth(bounds_) != getWidth(finalRect))
+		{
 			outlineGeometry = {};
+
+			// The layouts bake in the box they were built for, and the pin
+			// names are rebuilt by CreateModuleOutline on this same trigger -
+			// so they are invalidated together and cannot drift apart.
+			pinTextLayoutLeft = {};
+			pinTextLayoutRight = {};
+			headerTextLayout = {};
+			textLayoutsBuilt = false;
+		}
 
 		bounds_ = finalRect;
 
@@ -459,6 +469,23 @@ namespace SE2
 			cachedHeaderWidth = resources->tf_header.getTextExtentU(name).width;
 
 		return cachedHeaderWidth;
+	}
+
+	void ModuleViewStruct::buildTextLayouts(Factory& factory, sharedGraphicResources_struct* resources,
+		Rect pinRect, Rect headerRect)
+	{
+		// Attempted once per invalidation, whatever the outcome: a backend
+		// without retained layouts must not be re-asked every frame.
+		textLayoutsBuilt = true;
+
+		const auto pinWidth = getWidth(pinRect);
+		const auto pinHeight = getHeight(pinRect);
+
+		// Same strings, same formats, same boxes as the drawTextU calls these
+		// replace - which is what makes the rendering identical.
+		pinTextLayoutLeft = factory.createTextLayout(lPlugNames, resources->tf_plugs_left, pinWidth, pinHeight);
+		pinTextLayoutRight = factory.createTextLayout(rPlugNames, resources->tf_plugs_right, pinWidth, pinHeight);
+		headerTextLayout = factory.createTextLayout(name, resources->tf_header, getWidth(headerRect), getHeight(headerRect));
 	}
 
 	gmpi::drawing::Rect ModuleViewStruct::GetCpuRect()
@@ -751,20 +778,38 @@ namespace SE2
 
 			auto& textBrush = resources->textBrush;
 
-			// Left justified text.
-			g.drawTextU(lPlugNames, resources->tf_plugs_left, r, textBrush);
-
-			// Right justified text.
-			g.drawTextU(rPlugNames, resources->tf_plugs_right, r, textBrush);
-
-			// Header.
-			auto textExtraWidth = (ablate & 32) != 0 ? 1.0f
+			// Header rect: widened so a long title overhangs the module body.
+			const auto textExtraWidth = (ablate & 32) != 0 ? 1.0f
 				: 1.0f + 0.5f * (std::max)(0.0f, headerWidth(resources) - getWidth(r));
 
-			r.top -= 16;
-			r.left -= textExtraWidth;
-			r.right += textExtraWidth;
-			g.drawTextU(name, resources->tf_header, r, textBrush);
+			Rect headerRect = r;
+			headerRect.top -= 16;
+			headerRect.left -= textExtraWidth;
+			headerRect.right += textExtraWidth;
+
+			// Lay the three strings out once and redraw them from then on. The
+			// drawTextU calls below stay as the fallback for backends that
+			// decline retained layouts.
+			if (!textLayoutsBuilt)
+				buildTextLayouts(drawingFactory, resources, r, headerRect);
+
+			// Left justified text.
+			if (pinTextLayoutLeft)
+				g.drawTextLayout(pinTextLayoutLeft, { r.left, r.top }, textBrush);
+			else
+				g.drawTextU(lPlugNames, resources->tf_plugs_left, r, textBrush);
+
+			// Right justified text.
+			if (pinTextLayoutRight)
+				g.drawTextLayout(pinTextLayoutRight, { r.left, r.top }, textBrush);
+			else
+				g.drawTextU(rPlugNames, resources->tf_plugs_right, r, textBrush);
+
+			// Header.
+			if (headerTextLayout)
+				g.drawTextLayout(headerTextLayout, { headerRect.left, headerRect.top }, textBrush);
+			else
+				g.drawTextU(name, resources->tf_header, headerRect, textBrush);
 		}
 
 		// CPU graph and hover-scope are drawn in the layer-1 pass so they
