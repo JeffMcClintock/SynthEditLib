@@ -277,6 +277,15 @@ struct DeviceContextLegacyAdapter
         return modernContext->drawRichTextU(richTextFormat, layoutRect, brush, flags);
     }
 
+    gmpi::ReturnCode drawTextLayout(
+        gmpi::drawing::Point point,
+        gmpi::drawing::api::ITextLayout* textLayout,
+        gmpi::drawing::api::IBrush* brush,
+        int32_t flags) override
+    {
+        return modernContext->drawTextLayout(point, textLayout, brush, flags);
+    }
+
     gmpi::ReturnCode setTransform(const gmpi::drawing::Matrix3x2* transform) override
     {
         return modernContext->setTransform(transform);
