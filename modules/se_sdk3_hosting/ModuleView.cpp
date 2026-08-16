@@ -618,6 +618,20 @@ namespace SE2
 
 	////////////////////////////////////////////////////////
 
+
+// TEMPORARY U2d trace - local only, do not commit.
+#include <cstdio>
+#include <cstdarg>
+static void tideTraceLog(const char* fmt, ...)
+{
+	if (FILE* f = fopen("/tmp/tide-skin-debug.log", "a"))
+	{
+		va_list args; va_start(args, fmt);
+		vfprintf(f, fmt, args); va_end(args);
+		fputc('\n', f); fclose(f);
+	}
+}
+
 	ModuleView::ModuleView(const wchar_t* typeId, ViewBase* pParent, int handle) : ViewChild(pParent, handle)
 //		, uiHelper(*this)
 		, recursionStopper_(0)
@@ -625,6 +639,7 @@ namespace SE2
 		, ignoreMouse(false)
 	{
 		moduleInfo = CModuleFactory::Instance()->GetById(typeId);
+		tideTraceLog("ModuleView ctor(typeId): '%S' -> moduleInfo=%p", typeId, (void*)moduleInfo);
 	}
 
 	ModuleView::ModuleView(Json::Value* context, ViewBase* pParent) : ViewChild(context, pParent)
@@ -653,6 +668,7 @@ namespace SE2
 		auto typeName = module_element["type"].asString();
 		const auto typeId = JmUnicodeConversions::Utf8ToWstring(typeName);
 		moduleInfo = CModuleFactory::Instance()->GetById(typeId);
+		tideTraceLog("ModuleView ctor(json): '%S' -> moduleInfo=%p", typeId.c_str(), (void*)moduleInfo);
         assert( moduleInfo != nullptr );
 	}
 
@@ -660,6 +676,12 @@ namespace SE2
 	{
 		if (!moduleInfo)
 		{
+			// Loud in Release on purpose (TideSynth BACKLOG U2d): this is never a
+			// legitimate state -- the view silently renders nothing but its
+			// selection adorner, which cost two instrumented debugging sessions
+			// to diagnose on two platforms. stderr, not a dialog: it can fire
+			// mid-layout, and constraint 5 rules out surprise modals anyway.
+			fprintf(stderr, "SynthEdit: ModuleViewPanel: unregistered module type '%S' - view will be empty\n", typeId);
 			_RPTN(0, "ModuleViewPanel created for unregistered module type '%S'\n", typeId);
 			return;
 		}

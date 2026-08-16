@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "./ClassicControlGuiBase.h"
 #include "../sharedLegacyWidgets/TextWidget.h"
 
@@ -18,7 +19,17 @@ int32_t ClassicControlGuiBase::initialize()
 {
 	auto r = gmpi_gui::MpGuiGfxBase::initialize(); // ensure all pins initialised (so widgets are built).
 
-	dynamic_cast<TextWidget*>(widgets.back().get())->SetText(pinTitle);
+	// widgets.back() on an empty vector is UB (crashed TIDE at address -16 =
+	// empty back() with 16-byte elements; TideSynth BACKLOG U2d). Widgets are
+	// built by pin-init callbacks above; a host where those don't fire must
+	// not bring the whole process down. Loud, not silent, per U2d's rule.
+	if (widgets.empty())
+	{
+		fprintf(stderr, "SynthEdit: ClassicControlGuiBase::initialize: no widgets built - control will not draw (check font/skin resources)\n");
+		return r;
+	}
+	if (auto* titleWidget = dynamic_cast<TextWidget*>(widgets.back().get()); titleWidget)
+		titleWidget->SetText(pinTitle);
 
 	return r;
 }
