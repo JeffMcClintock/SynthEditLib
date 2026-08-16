@@ -160,6 +160,12 @@ int32_t TextEntryGui::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawi
 
 int32_t TextEntryGui::arrange(GmpiDrawing_API::MP1_RECT finalRect_s)
 {
+	// Same empty-widgets guard as initialize()/measure() (TideSynth BACKLOG
+	// U2e): the widget-build pin handlers never ran, and arrange's widget
+	// indexing was the third distinct SIGSEGV from the same root.
+	if (widgets.empty())
+		return gmpi::MP_OK;
+
 	Rect finalRect(finalRect_s);
 
 	MpGuiGfxBase::arrange(finalRect);
