@@ -136,6 +136,16 @@ void TextEntryGui::onSetExtension()
 
 int32_t TextEntryGui::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_API::MP1_SIZE* returnDesiredSize)
 {
+	// Same empty-widgets guard as initialize() (TideSynth BACKLOG U2d): a host
+	// where the pin-init callbacks never built widgets must get a placeholder
+	// size, not a null deref (widgets[0]) -- this crashed TIDE_VST3 in REAPER.
+	if (widgets.empty())
+	{
+		returnDesiredSize->width = 100.0f;
+		returnDesiredSize->height = 20.0f;
+		return gmpi::MP_OK;
+	}
+
 	auto s = widgets[0]->getSize();
 
 	returnDesiredSize->width = (std::max)(s.width, availableSize.width);
