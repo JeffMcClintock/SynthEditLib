@@ -1,5 +1,5 @@
 #include "resource.h"
-#include "SynthEditApp.h"
+#include "ILicenseState.h"
 #ifdef _WIN32
 #include "afxres.h"
 #endif
@@ -1252,13 +1252,16 @@ void MfcDocPresenter::populateContextMenu(gmpi::api::IContextItemSink* sink, gmp
 
 						menu.addItem("Parameters...", [this, o](int32_t result) -> int32_t { this->DoModuleCommand(POPUP_MENU_PARAMETER_DETAIL, o); return gmpi::MP_OK; });
 						{
-							// Gray out "Selection to Prefab" when moonbase is enabled and license is inactive
-							// (it's effectively a save action). Runtime check (not #ifdef) because this file
-							// lives in EditorLib, compiled without SE_MOONBASE_SUPPORT — the runtime flag
-							// reflects whichever SynthEditApp.cpp the linker selected.
-							extern SynthEditApp* theApp;
+							// Gray out "Selection to Prefab" when this app has gated features and the
+							// current license doesn't cover them (it's effectively a save action).
+							// Runtime check (not #ifdef) because this file lives in EditorLib, compiled
+							// once for every app — GetLicenseState() resolves per-app at link time
+							// (BACKLOG C11: narrowed from a direct SynthEditApp dependency to this
+							// generic interface so the public repo doesn't need to know the private
+							// app's type or its licensing method names).
+							auto* license = GetLicenseState();
 							int32_t prefabFlags = 0;
-							if (theApp && theApp->isMoonbaseEnabled() && !theApp->licenseIsActive())
+							if (license && license->hasGatedFeatures() && !license->isLicensed())
 								prefabFlags = gmpi_gui::MP_PLATFORM_MENU_GRAYED;
 							menu.addItem("Selection to Prefab", [this, o](int32_t result) -> int32_t { this->DoModuleCommand(POPUP_MENU_TO_PREFAB, o); return gmpi::MP_OK; }, prefabFlags);
 						}
