@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include <cstring>
 #include <vector>
 #include <sstream>
@@ -554,15 +553,6 @@ namespace SE2
 
 	void ModuleViewStruct::render(gmpi::drawing::Graphics& g)
 	{
-		// TEMPORARY profiling ablation gates (SE_ABLATE bitmask env var), used by
-		// tests/profile to size the cost buckets: 1=skip pin/header text,
-		// 2=solid background instead of gradient, 8=skip pin circles,
-		// 32=skip header text-extent measurement, 64=skip module render entirely.
-		// Remove when profiling is done.
-		static const int ablate = [] { const char* e = std::getenv("SE_ABLATE"); return e ? std::atoi(e) : 0; }();
-		if ((ablate & 64) != 0)
-			return;
-
 		constexpr auto& plugDiameter = sharedGraphicResources_struct::plugDiameter;
 
 		// calc line thickness and offset to align nicely on pixel
@@ -584,7 +574,7 @@ namespace SE2
 
 		Brush backgroundBrush;// = &brush; // temp
 
-		if ((ablate & 2) != 0 || zoomFactor < 0.3f)
+		if (zoomFactor < 0.3f)
 		{
 			backgroundBrush = resources->zoomedOutBodyBrush;
 		}
@@ -723,7 +713,7 @@ namespace SE2
 		}
 
 		// Draw pin text elements.
-		if ((ablate & 8) == 0 && zoomFactor > 0.1f)
+		if (zoomFactor > 0.1f)
 		{
 			const float pinRadius = 3.0f;
 			const auto adjustedPinRadius = pinRadius + 0.1f; // nicer pixelation, more even outline circle.
@@ -768,7 +758,7 @@ namespace SE2
 		}
 
 		// Pin text and header text.
-		if ((ablate & 1) == 0 && zoomFactor > 0.5f)
+		if (zoomFactor > 0.5f)
 		{
 			// Text
 			Rect r(0,0, getWidth(bounds_), getHeight(bounds_));
@@ -779,8 +769,8 @@ namespace SE2
 			auto& textBrush = resources->textBrush;
 
 			// Header rect: widened so a long title overhangs the module body.
-			const auto textExtraWidth = (ablate & 32) != 0 ? 1.0f
-				: 1.0f + 0.5f * (std::max)(0.0f, headerWidth(resources) - getWidth(r));
+			const auto textExtraWidth =
+				1.0f + 0.5f * (std::max)(0.0f, headerWidth(resources) - getWidth(r));
 
 			Rect headerRect = r;
 			headerRect.top -= 16;
