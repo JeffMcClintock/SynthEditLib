@@ -107,8 +107,12 @@ struct ApplicationSettings
 		s("ModulePath", ModulePath);
 
 		s("AudioOutDevice"   , m_audio_output_guid);
-		s("SampleRate"       , sampleRate_);
-		s("AudioDriverBufferSizeMs", AudioDriverBufferSizeMs);
+
+		// 3-arg form: a settings file written before these attributes existed must
+		// restore the real default, not the 0 the 2-arg overload leaves behind
+		// (0 Hz / a 0 ms buffer would reach the audio drivers).
+		s("SampleRate"       , sampleRate_, 44100.f);
+		s("AudioDriverBufferSizeMs", AudioDriverBufferSizeMs, int32_t{100});
 
 		s("LatencyCompensation", latencyCompensation);
 
