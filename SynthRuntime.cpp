@@ -39,7 +39,14 @@ void SynthRuntime::prepareToPlay(
 	// But we need to rebuild the DSP graph from scratch only when something fundamental changes.
 	// e.g. sample-rate, block-size, polyphony, latency compensation, patch cables.
 
+	bool documentPendingNow{};
+	{
+		std::lock_guard<std::mutex> x(generatorLock);
+		documentPendingNow = documentPending_;
+	}
+
 	const bool mustReinitilize =
+		documentPendingNow ||
 		generator == nullptr ||
 		generator->SampleRate() != sampleRate ||
 		generator->BlockSize() != generator->CalcBlockSize(maxBlockSize) ||
@@ -60,6 +67,7 @@ void SynthRuntime::prepareToPlay(
 				currentDspXml.Parse(pendingDocumentXml_.c_str());
 				pendingDocumentXml_.clear();
 			}
+			documentPending_ = false;
 		}
 
 		ModuleFactory()->RegisterExternalPluginsXmlOnce(nullptr);
@@ -501,14 +509,16 @@ void SynthRuntime::GetRegistrationInfo(std::wstring& p_user_email, std::wstring&
 
 void SynthRuntime::setDocumentXml(const std::string& xml)
 {
-	{
-		std::lock_guard<std::mutex> x(generatorLock);
-		pendingDocumentXml_ = xml;
-	}
+	std::lock_guard<std::mutex> x(generatorLock);
+	pendingDocumentXml_ = xml;
 
-	// No-op when the generator isn't running yet; prepareToPlay() then picks
-	// the document up on its own.
-	DoAsyncRestart();
+	// Consumed by the next prepareToPlay(), which the caller drives (TIDE's
+	// processor re-calls it on every document arrival). documentPending_
+	// forces the rebuild even when sample rate and block size are unchanged.
+	// The AsyncRestart fade path is NOT used here: in the plugin runtime
+	// nothing ever enters eRuntimeState::resetting, so that path would store
+	// the document and never rebuild.
+	documentPending_ = true;
 }
 
 void SynthRuntime::DoAsyncRestart()

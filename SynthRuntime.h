@@ -33,6 +33,7 @@ class SynthRuntime : public SeShellDsp
 	IShellServices* shell_ = {};
 	bool restartDontRestorePresets{};
 	std::string pendingDocumentXml_; // guarded by generatorLock; see setDocumentXml
+	bool documentPending_ = false;   // guarded by generatorLock; forces the next prepareToPlay to rebuild
 
 public:
 	SynthRuntime();
