@@ -2,6 +2,7 @@
 #include <array>
 #include <sstream>
 #include <iomanip>
+#include <cstdio> // fprintf(stderr, ...) in ModuleViewPanel's unregistered-type guard
 
 #include "ModuleView.h"
 #include "ContainerView.h"
@@ -618,20 +619,6 @@ namespace SE2
 
 	////////////////////////////////////////////////////////
 
-
-// TEMPORARY U2d trace - local only, do not commit.
-#include <cstdio>
-#include <cstdarg>
-static void tideTraceLog(const char* fmt, ...)
-{
-	if (FILE* f = fopen("/tmp/tide-skin-debug.log", "a"))
-	{
-		va_list args; va_start(args, fmt);
-		vfprintf(f, fmt, args); va_end(args);
-		fputc('\n', f); fclose(f);
-	}
-}
-
 	ModuleView::ModuleView(const wchar_t* typeId, ViewBase* pParent, int handle) : ViewChild(pParent, handle)
 //		, uiHelper(*this)
 		, recursionStopper_(0)
@@ -639,7 +626,6 @@ static void tideTraceLog(const char* fmt, ...)
 		, ignoreMouse(false)
 	{
 		moduleInfo = CModuleFactory::Instance()->GetById(typeId);
-		tideTraceLog("ModuleView ctor(typeId): '%S' -> moduleInfo=%p", typeId, (void*)moduleInfo);
 	}
 
 	ModuleView::ModuleView(Json::Value* context, ViewBase* pParent) : ViewChild(context, pParent)
@@ -668,7 +654,6 @@ static void tideTraceLog(const char* fmt, ...)
 		auto typeName = module_element["type"].asString();
 		const auto typeId = JmUnicodeConversions::Utf8ToWstring(typeName);
 		moduleInfo = CModuleFactory::Instance()->GetById(typeId);
-		tideTraceLog("ModuleView ctor(json): '%S' -> moduleInfo=%p", typeId.c_str(), (void*)moduleInfo);
         assert( moduleInfo != nullptr );
 	}
 
