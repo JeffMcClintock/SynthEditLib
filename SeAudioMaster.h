@@ -602,6 +602,12 @@ private:
 	ISpecialIoModuleAudioOut* audioOutModule = {};
 	ISpecialIoModuleAudioIn* audioInModule = {};
 
+	// The patch's "MIDI In" module, if it has one. In the standalone app
+	// UIoManager owns this relationship and feeds the module from a MIDI
+	// device; a plug-in has no device, so the host's MIDI is delivered here
+	// instead (see MidiIn()). One is meaningful, matching UIoManager's rule.
+	class MidiIn* midiInModule = {};
+
 	// typically editor-only
 	uint16_t cpuConsumption[CPU_BATCH_SIZE]; // per block
 	int cpuConsumptionIndex = 0;

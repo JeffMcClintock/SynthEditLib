@@ -23,6 +23,7 @@
 #include "UgDebugInfo.h"
 #include "UgDatabase.h"
 #include "ug_io_mod.h"
+#include "modules_internal/MidiIn.h"
 #include "USampBlock.h"
 #include "ug_event.h"
 #include "ug_voice_splitter.h"
@@ -541,6 +542,14 @@ int32_t SeAudioMaster::RegisterIoModule(class ISpecialIoModule* m)
 		audioInModule = audioin;
 	}
 
+	// A "MIDI In" module registers itself here exactly as Sound Out does. The
+	// standalone's UIoManager pairs it with a MIDI device; in a plug-in the
+	// host IS the device, so remember it and feed it from MidiIn() below.
+	if (auto midiin = dynamic_cast<class MidiIn*>(m); midiin)
+	{
+		midiInModule = midiin;
+	}
+
 	return getShell()->RegisterIoModule(m);
 }
 
@@ -780,7 +789,20 @@ void SeAudioMaster::PostProcess(int sampleframes)
 void SeAudioMaster::MidiIn( int delta, const unsigned char* MidiMsg, int length )
 {
 	const timestamp_t clock = SampleClock() + delta;
-	audioInModule->sendMidi(clock, { MidiMsg , length });
+
+	// Route 1: the container's MIDI input pin via the synthetic VST Input
+	// module - the classic exported-plug-in path, for patches that take MIDI
+	// through an IO Mod.
+	if (audioInModule)
+		audioInModule->sendMidi(clock, { MidiMsg , length });
+
+	// Route 2: a "MIDI In" module placed directly in the patch. It registers
+	// itself (see RegisterIoModule) but nothing fed it in a plug-in, because
+	// the standalone receives MIDI from a device via UIoManager::OnMidiData.
+	// This is the same call that function makes, so the module behaves
+	// identically in both hosts.
+	if (midiInModule)
+		midiInModule->AddMidiEvent(clock, const_cast<unsigned char*>(MidiMsg), length);
 }
 
 void SeAudioMaster::setParameterNormalizedDsp( int delta, int paramIndex, float value, int32_t flags )
