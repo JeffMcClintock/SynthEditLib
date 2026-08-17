@@ -58,6 +58,14 @@ class dsp_msg_target;
 class IO_base;
 struct DawPreset;
 
+// The "MIDI In" module (modules_internal/MidiIn.h). Declared HERE, at namespace
+// scope, and referred to as ::MidiIn everywhere inside SeAudioMaster below -
+// because SeAudioMaster has member functions called MidiIn() too, and inside
+// the class those hide the class name. An unqualified `class MidiIn*` member
+// therefore does not name this type; MSVC binds it to a second, never-defined
+// class and every use fails with "use of undefined type 'MidiIn'".
+class MidiIn;
+
 // helper struct to track lookup table list
 struct lookup_table_entry
 {
@@ -606,7 +614,10 @@ private:
 	// UIoManager owns this relationship and feeds the module from a MIDI
 	// device; a plug-in has no device, so the host's MIDI is delivered here
 	// instead (see MidiIn()). One is meaningful, matching UIoManager's rule.
-	class MidiIn* midiInModule = {};
+	//
+	// ::MidiIn, qualified: the member functions named MidiIn() above hide the
+	// class name within this scope. See the forward declaration near the top.
+	::MidiIn* midiInModule = {};
 
 	// typically editor-only
 	uint16_t cpuConsumption[CPU_BATCH_SIZE]; // per block
