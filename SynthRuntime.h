@@ -32,6 +32,7 @@ class SynthRuntime : public SeShellDsp
 {
 	IShellServices* shell_ = {};
 	bool restartDontRestorePresets{};
+	std::string pendingDocumentXml_; // guarded by generatorLock; see setDocumentXml
 
 public:
 	SynthRuntime();
@@ -45,6 +46,16 @@ public:
 
 	void OpenGenerator();
 	void checkLatency();
+
+	// TIDE (TideSynth S12): accept the document from the EDITOR at runtime
+	// instead of from the exporter-baked 'dsp.se.xml' bundle resource. Safe to
+	// call from any thread, before or after the generator exists: before the
+	// first prepareToPlay it just seeds the XML; while running it triggers the
+	// existing fade-out / teardown / rebuild / fade-up (DoAsyncRestart), and
+	// the resetting branch of process() swaps the document in. Presets are NOT
+	// harvested across a document swap - parameter handles need not survive an
+	// arbitrary edit, and the editor's document is the state of record.
+	void setDocumentXml(const std::string& xml);
 
 	void setProcessor( IShellServices* vst3Processor )
 	{
