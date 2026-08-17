@@ -34,6 +34,42 @@ public:
 	bool OnTimer() override;
 };
 
+// View menu: which pieces of chrome are on screen. Shared by all three front
+// ends so the choice follows the user between them, and so a pane hidden on
+// one platform is described by the same setting name on the others.
+// All default on - the app looks as it always has until something is hidden.
+//
+// ApplicationSettings holds two of these: one for the main window, one shared by
+// every torn-out window. A tab pulled out into its own window is usually there to
+// give the structure more room, so it wants less chrome than the main window - see
+// ApplicationSettings::MainWindowChrome / TearOutWindowChrome.
+struct ChromeVisibility
+{
+	bool ShowModuleBrowser = true;
+	bool ShowPropertiesBrowser = true;
+	bool ShowToolbar = true;
+	// The breadcrumb/thumbnail strip along the top of the editor (SE2::BreadcrumbBar).
+	// Unlike the three above it is drawn inside the editor swapchain rather than
+	// being a native widget, so hiding it means giving its TopStripLayout a zero
+	// strip height - see the front ends' view-visibility code.
+	bool ShowThumbnailBar = true;
+
+	// 'prefix' namespaces the attributes: "" for the main window (those are the
+	// original names, so settings files written before the split still load) and
+	// "TearOut" for the torn-out windows.
+	// 'defaults' supplies the value for an attribute that isn't in the file. The
+	// 3-arg serializer form is required, not merely tidy: these default to true,
+	// and the 2-arg overload restores T{} (false) when the attribute is absent.
+	template< class Serializer >
+	void Serialize(Serializer& s, const std::string& prefix, const ChromeVisibility& defaults)
+	{
+		s((prefix + "ShowModuleBrowser").c_str(), ShowModuleBrowser, defaults.ShowModuleBrowser);
+		s((prefix + "ShowPropertiesBrowser").c_str(), ShowPropertiesBrowser, defaults.ShowPropertiesBrowser);
+		s((prefix + "ShowToolbar").c_str(), ShowToolbar, defaults.ShowToolbar);
+		s((prefix + "ShowThumbnailBar").c_str(), ShowThumbnailBar, defaults.ShowThumbnailBar);
+	}
+};
+
 // see also SynthEditApp::InitInstance() for LOAD SETTINGS
 struct ApplicationSettings
 {
@@ -68,18 +104,11 @@ struct ApplicationSettings
 	int ModuleBrowserWidth = 270;
 	int PropertiesBrowserWidth = 270;
 
-	// View menu: which pieces of chrome are on screen. Shared by all three front
-	// ends so the choice follows the user between them, and so a pane hidden on
-	// one platform is described by the same setting name on the others.
-	// All default on - the app looks as it always has until something is hidden.
-	bool ShowModuleBrowser = true;
-	bool ShowPropertiesBrowser = true;
-	bool ShowToolbar = true;
-	// The breadcrumb/thumbnail strip along the top of the editor (SE2::BreadcrumbBar).
-	// Unlike the three above it is drawn inside the editor swapchain rather than
-	// being a native widget, so hiding it means giving its TopStripLayout a zero
-	// strip height - see the front ends' view-visibility code.
-	bool ShowThumbnailBar = true;
+	// View menu chrome, kept independently for the main window and for the
+	// torn-out windows (which share one set between them). See ChromeVisibility.
+	// Front ends that have no torn-out windows use MainWindowChrome throughout.
+	ChromeVisibility MainWindowChrome;
+	ChromeVisibility TearOutWindowChrome;
 
 	// Properties Browser label-column width, as a fraction (0..1) of the panel's
 	// text area. Fractional (not px) so it scales when the panel itself is resized.
@@ -126,13 +155,13 @@ struct ApplicationSettings
 		s("PropertiesBrowserWidth", PropertiesBrowserWidth, 270);
 		s("PropertiesLabelColumnFraction", PropertiesLabelColumnFraction, 0.4f);
 
-		// 3-arg form is required, not merely tidy: these default to true, and the
-		// 2-arg overload restores T{} (false) when the attribute is absent - which
-		// it is for every settings file written before this release.
-		s("ShowModuleBrowser", ShowModuleBrowser, true);
-		s("ShowPropertiesBrowser", ShowPropertiesBrowser, true);
-		s("ShowToolbar", ShowToolbar, true);
-		s("ShowThumbnailBar", ShowThumbnailBar, true);
+		// Order matters: the tear-out set falls back to whatever the main window
+		// just loaded, so a settings file written before the two were split (or by
+		// a front end that only knows about the main window) gives torn-out windows
+		// the same chrome the user already had, rather than silently reinstating
+		// panes they had hidden. Once the two differ the difference is written out.
+		MainWindowChrome.Serialize(s, "", ChromeVisibility{});
+		TearOutWindowChrome.Serialize(s, "TearOut", MainWindowChrome);
 	}
 };
 
