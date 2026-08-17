@@ -541,11 +541,34 @@ void CModuleFactory::RegisterExternalPluginsXmlOnce(TiXmlNode* /* pluginList */)
 
 		// Modules database.
 		auto databaseXml = bundleinfo->getResource("database.se.xml");
+
+		// BACKLOG S13. An ABSENT database is legitimate and is not an error.
+		// database.se.xml is written by ExportAsPlugin, so an exported plugin
+		// has one; a plugin built directly from source does not. TIDE is the
+		// latter -- PLAN constraint 7 compiles its module set in and S1a
+		// removed the runtime scan -- so there is simply nothing to register.
+		// getResource() returns an empty string for a resource that is not in
+		// the bundle, which is the same test SynthRuntime.cpp already applies
+		// to dsp.se.xml a few lines after calling this function.
+		//
+		// Before this, absent and corrupt both fell into assert(false) below.
+		// That compiles out in Release, which is why it went unnoticed for so
+		// long, and aborts the host in Debug -- so the one build with asserts
+		// and symbols could not be used to debug anything. Found while
+		// verifying S11, where it cost the investigation its debugger.
+		if (databaseXml.empty())
+		{
+			return;
+		}
+
 		tinyxml2::XMLDocument doc;
 		doc.Parse(databaseXml.c_str());
 
 		if (doc.Error())
 		{
+			// Present but will not parse -- a real error, and still worth an
+			// assert. Deliberately still fires for a corrupt or truncated
+			// database, which is the case this check was always for.
 			assert(false);
 			return;
 		}
