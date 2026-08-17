@@ -50,6 +50,18 @@ void SynthRuntime::prepareToPlay(
 
 	if (mustReinitilize)
 	{
+		// TIDE: a runtime-supplied document takes precedence over (and normally
+		// replaces entirely) the baked bundle resource below.
+		{
+			std::lock_guard<std::mutex> x(generatorLock);
+			if (!pendingDocumentXml_.empty())
+			{
+				currentDspXml.Clear();
+				currentDspXml.Parse(pendingDocumentXml_.c_str());
+				pendingDocumentXml_.clear();
+			}
+		}
+
 		ModuleFactory()->RegisterExternalPluginsXmlOnce(nullptr);
 
 		// cache xml document to save time re-parsing on every restart.
@@ -336,19 +348,22 @@ void SynthRuntime::process(
 
 		if (generatorStateWas == audioMasterState::AsyncRestart)
 		{
-#if 0 // editor only
-			if (pendingDspXml)
+			// TIDE (was '#if 0 // editor only'): swap in a runtime-supplied
+			// document while the audio is faded out. See setDocumentXml.
+			bool documentReplaced = false;
 			{
-				currentDspXml = std::move(pendingDspXml);
-
-				GetModuleLatencies().clear();
-
-				extraPinDefaultChanges.clear();
+				std::lock_guard<std::mutex> x(generatorLock);
+				if (!pendingDocumentXml_.empty())
+				{
+					currentDspXml.Clear();
+					currentDspXml.Parse(pendingDocumentXml_.c_str());
+					pendingDocumentXml_.clear();
+					documentReplaced = true;
+				}
 			}
-			else
-#endif
+
 			pendingPresets.clear();
-			if(!restartDontRestorePresets)
+			if(!documentReplaced && !restartDontRestorePresets)
 			{
 				_RPT0(0, "Restart - get preset\n");
 
@@ -482,6 +497,18 @@ void SynthRuntime::GetRegistrationInfo(std::wstring& p_user_email, std::wstring&
 {
 	p_user_email = Utf8ToWstring(BundleInfo::instance()->getPluginInfo().vendorName);
 	p_serial = L"Unknown";
+}
+
+void SynthRuntime::setDocumentXml(const std::string& xml)
+{
+	{
+		std::lock_guard<std::mutex> x(generatorLock);
+		pendingDocumentXml_ = xml;
+	}
+
+	// No-op when the generator isn't running yet; prepareToPlay() then picks
+	// the document up on its own.
+	DoAsyncRestart();
 }
 
 void SynthRuntime::DoAsyncRestart()
