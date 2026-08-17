@@ -545,7 +545,10 @@ int32_t SeAudioMaster::RegisterIoModule(class ISpecialIoModule* m)
 	// A "MIDI In" module registers itself here exactly as Sound Out does. The
 	// standalone's UIoManager pairs it with a MIDI device; in a plug-in the
 	// host IS the device, so remember it and feed it from MidiIn() below.
-	if (auto midiin = dynamic_cast<class MidiIn*>(m); midiin)
+	// ::MidiIn, qualified: this is a member function of SeAudioMaster, which
+	// has its own MidiIn() overloads, and inside that scope they hide the
+	// class of the same name (see the forward declaration in the header).
+	if (auto midiin = dynamic_cast<::MidiIn*>(m); midiin)
 	{
 		midiInModule = midiin;
 	}
