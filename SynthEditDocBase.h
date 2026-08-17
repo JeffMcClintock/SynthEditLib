@@ -4,6 +4,7 @@
 #include <memory>
 #include "DocOb.h"
 #include "ElatencyContraintType.h"
+#include "EditorWindowLayout.h"
 
 class CSynthEditAppBase;
 class ApplicationBase;
@@ -52,6 +53,8 @@ public:
 	void Snapshot(tinyxml2::XMLDocument&);
 	virtual bool OnSaveDocument(const wchar_t* lpszPathName);
 	virtual bool doCloseDoc();
+	// The editor front end, or null in a headless host. See m_windowLayout.
+	class ISEAppManaged* editorUserInterface();
 	bool PostLoad();
 	bool isDeletingContents();
 	void SetLoadingVersion(int ver);
@@ -180,6 +183,13 @@ public:
 	std::vector< class CUG* > m_upgrade_replace_modules;
 	int32_t SelectedViewHandle = -1;
 	int32_t SelectedViewType{};
+
+	// Which tabs were torn out into their own windows, and where those windows sat.
+	// Filled by the UI just before a save (ISEAppManaged::CaptureWindowLayout) and
+	// consumed by it just after a load (ISEAppManaged::ApplyWindowLayout); front ends
+	// without torn-out windows leave it alone, so it round-trips rather than being
+	// dropped. Kept out of undo snapshots - see ExportXml.
+	EditorWindowLayout m_windowLayout;
 
 	// Lay out and draw the top-level panel view as a Eurorack case (experimental).
 	bool rackMode = {};

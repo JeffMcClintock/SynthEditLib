@@ -29,6 +29,8 @@
 #include "Notify_msg.h"
 #include "ModuleFactory_Editor.h"
 #include "MfcDocPresenter.h"
+#include "SynthEditAppBase.h"
+#include "ISEAppManaged.h"
 #include "Shared/VstPreset.h"
 #include "Shared/AuPreset.h"
 #include "BundleInfo.h"
@@ -319,6 +321,16 @@ void CSynthEditDocBase::ExportXmlProject(std::wstring filename)
 
 	ExportXml(doc_xml->ToElement(), targetType);
 
+	// Editor window arrangement. Written here rather than from ExportXml because
+	// this function is reached only by a real save of a .synthedit file, whereas
+	// ExportXml is also how the undo system builds each snapshot - and neither
+	// bloating every snapshot with the layout nor letting undo rearrange the
+	// user's windows is wanted. Capture immediately before writing, so the file
+	// records where the windows are now.
+	if (auto* ui = editorUserInterface())
+		ui->CaptureWindowLayout();
+	m_windowLayout.Export(doc_xml);
+
 	ModuleFactory()->ClearSerialiseFlags();
 
 	auto mastercontainer_xml = xmlDocument.NewElement("master_container");
@@ -348,6 +360,11 @@ void CSynthEditDocBase::ImportXmlDocument(std::wstring filename)
 
 	// Document properties.
 	CDocOb::m_loading_version = ImportXml(pRoot, targetType);
+
+	// Symmetric with ExportXmlProject: read here, not in ImportXml, so that
+	// restoring an undo snapshot (which has no <WindowLayout>) can't clear the
+	// arrangement this document was opened with.
+	m_windowLayout.Import(pRoot);
 
 	// load module database info for unavail modules
 	ImportModuleInfo(pRoot, targetType, CDocOb::m_loading_version);
@@ -524,6 +541,16 @@ void CSynthEditDocBase::UpGradeIncompatibleModules()
 	m_upgrade_replace_modules.clear();
 }
 
+// The editor front end, when there is one. Null in headless hosts (SynthEditCL, the
+// plugin runtime, unit tests), which is why both callers below are guarded.
+// Application() is typed as the base, so the cast is how the doc reaches the UI - the
+// same route CpuMeterGui already takes.
+ISEAppManaged* CSynthEditDocBase::editorUserInterface()
+{
+	auto* app = dynamic_cast<CSynthEditAppBase*>(Application());
+	return app ? app->m_app_user_interface : nullptr;
+}
+
 bool CSynthEditDocBase::PostLoad()
 {
 	SetModified(false);
@@ -554,6 +581,13 @@ bool CSynthEditDocBase::PostLoad()
 	auto container = dynamic_cast<CContainer*>(uniqueIdDatabase.HandleToObjectWithNull(savedSelectedViewHandle));
 	if(container)
 		OpenView(container, savedSelectedViewType);
+
+	// Every tab now exists in the main window. Hand the saved arrangement to the UI,
+	// which moves the torn-out ones into their own windows. Only reached on a real
+	// document open - undo/redo re-runs OpenViews() from checkpoint.cpp, not from
+	// here, so undoing an edit never rearranges the user's windows.
+	if (auto* ui = editorUserInterface())
+		ui->ApplyWindowLayout();
 
 	SyncTitle();
 
