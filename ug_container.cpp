@@ -1274,9 +1274,20 @@ void ug_container::dispatchMidi2(timestamp_t timestamp, gmpi::midi::message_view
 
 		case gmpi::midi_2_0::PolyBender:
 		{
+			// decodePolyController returns 0..1 with 0.5 = centre, and MidiToCv2's totalBend
+			// treats pinVoiceBender as bipolar around 0 (`pinVoiceBender * 0.05f`), so it needs
+			// the same [-1,+1] remap the channel-wide PitchBend case below already does. It was
+			// missing here, and the cost was silent: a CENTRED per-note bend arrived as +0.5,
+			// contributing 0.5 * 0.05 = 0.025 normalised = 0.25 V = exactly THREE SEMITONES sharp
+			// on every note. REAPER emits a centred per-note bend at note-on, so every note played
+			// through a MIDI-CV was a minor third out while staying perfectly in tune with itself
+			// -- which is why it read as a tuning-convention disagreement rather than a bug.
+			// Measured: key 60 sounded 311.127 Hz, +3.00 semitones to within 0.00 cents; with this
+			// remap it sounds 261.6257 Hz against a true middle C of 261.6256 (+0.001 cents).
+			// TideSynth E8.
 			const auto pc = gmpi::midi_2_0::decodePolyController(msg);
 			if (auto voice = GetVoice(static_cast<short>(pc.noteNumber)))
-				firePoly(this, HC_VOICE_PITCH_BEND, timestamp, this, voice->m_voice_number, pc.value);
+				firePoly(this, HC_VOICE_PITCH_BEND, timestamp, this, voice->m_voice_number, pc.value * 2.0f - 1.0f);
 		}
 		break;
 
