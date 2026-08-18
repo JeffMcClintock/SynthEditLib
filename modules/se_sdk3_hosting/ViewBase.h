@@ -52,6 +52,19 @@ bool isIteratingChildren = false;
 		bool isArranged = false;
 		bool childrenDirty = false;
 		std::vector< std::unique_ptr<IViewChild> > children;
+
+	public:
+		// A child SubView is handed a COPY of this view's dialogHost so popups and
+		// text-edits inside a nested container land next to the control that asked
+		// for them (ModuleView::BuildContainer). That copy is NON-OWNING in
+		// practice -- the hosts implementing it are GMPI_REFCOUNT_NO_DELETE -- so it
+		// must be dropped before the host dies, and the only signal for that is
+		// setHost(nullptr). Without this override the copies outlived the host and
+		// releasing them at teardown was a virtual call through a dangling pointer:
+		// SIGSEGV in ~PluginEditor <- ~SubView <- ~ModuleView, faulting on a null
+		// vtable read (TideSynth E12). Only the SEVERING direction is propagated;
+		// children get their live host from ModuleView's own adaptors, not from here.
+		gmpi::ReturnCode setHost(gmpi::api::IUnknown* phost) override;
 		std::vector<ModuleView*> children_monodirectional;
 		std::unique_ptr<IPresenter> presenter;
 
