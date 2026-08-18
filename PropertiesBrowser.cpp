@@ -1604,9 +1604,13 @@ gmpi::ReturnCode PropertiesBrowser::setHover(bool isMouseOverMe)
 gmpi::ReturnCode PropertiesBrowser::render(gmpi::drawing::api::IDeviceContext* drawingContext)
 {
 	// Theme change requires full visual rebuild (new colors for backgrounds, text, etc.)
-	// Don't rely solely on consumeThemeChanged() as Form::DoUpdates() may consume it first.
-	consumeThemeChanged();
-
+	// The mode comparison below is what decides that, and always was.
+	//
+	// consumeThemeChanged() used to be called here as well, to beat Form::DoUpdates
+	// to the flag. It no longer has to: DoUpdates consumes against its own counter
+	// through the versioned overload, so it cannot take anything this view needed.
+	// The no-argument overload it used keeps ONE static shared by every caller in
+	// the process, so two views watching through it would race in any case.
 	const auto currentMode = gmpi::ui::themeModeStorage();
 	if (currentMode != viewModel.lastRenderedTheme)
 		viewModel.formIsDirty = true;
