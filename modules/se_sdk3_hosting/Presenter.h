@@ -1,5 +1,6 @@
 #pragma once
 #include <list>
+#include <vector>
 #include "../shared/PatchCables.h"
 #include "GmpiUiDrawing.h"
 #include "helpers/ContextMenuHelper.h"
@@ -72,6 +73,19 @@ enum class CableType;
 		// created (e.g. prefab paths that spawn multiple modules, or stub
 		// presenters that don't actually mutate the document).
 		virtual int AddModule(const wchar_t* uniqueid, gmpi::drawing::Point point) = 0;
+		// Insert a prefab ("*P=<file>") and return the handles of every
+		// top-level module it created, in insertion order. Empty means nothing
+		// was created -- a missing or unreadable prefab file, or a stub
+		// presenter. This exists because AddModule CANNOT answer: a prefab may
+		// hold several top-level modules, so there is no single handle to
+		// return, which is what its -1 above means. Callers previously had to
+		// snapshot the container's handles and diff them; two of them did, and
+		// each invented its own idiom.
+		//
+		// Defaulted rather than pure so the several stub and read-only
+		// presenters implementing this interface need no change, the same way
+		// getRackLayout/SetModuleRect/GetModuleRect are defaulted above.
+		virtual std::vector<int32_t> AddPrefab(const wchar_t* /*uniqueid*/, gmpi::drawing::Point /*point*/) { return {}; }
 		virtual bool CanConnect(CableType cabletype, int32_t fromModule, int fromPin, int32_t toModule, int toPin) = 0;
 		virtual bool AddConnector(int32_t fromModule, int fromPin, int32_t toModule, int toPin, bool placeAtBack) = 0;
 		virtual void HighlightConnector(int32_t moduleHandle, int pin, int highlightType) = 0;

@@ -4,6 +4,9 @@
 #include "afxres.h"
 #endif
 #include <fstream>
+#include <vector>
+#include <algorithm>
+#include <set>
 #include <filesystem>
 #include "helpers/browseto.h"
 
@@ -14,6 +17,7 @@
 
 #include "CContainer.h"
 #include "CLine2.h"
+#include "it_doc_ob.h"
 #include "notify.h"
 #include "module_info.h"
 #include "UgDatabase.h"
@@ -113,6 +117,56 @@ int MfcDocPresenter::AddModule(const wchar_t* uniqueid, gmpi::drawing::Point poi
 		return -1;
 
 	return handle;
+}
+
+std::vector<int32_t> MfcDocPresenter::AddPrefab(const wchar_t* uniqueid, gmpi::drawing::Point point)
+{
+	// Deliberately built ON TOP of AddModule rather than beside it: the insert,
+	// the undo checkpoint (prefabs need the full serialise-based one) and the
+	// drag-cursor reset all stay in exactly one place, and this method adds only
+	// the answer AddModule structurally cannot give.
+	//
+	// The handles come from a before/after diff of the container's top-level
+	// modules, NOT from the selection. Paste does select what it inserted
+	// (CContainer::OnEditPaste calls setAllSelected(false) then SetSelected(true)
+	// on each pasted module), and reading that would be cheaper -- but selection
+	// is a UI concern any later code is entitled to change, while the diff is
+	// exact and answers the question actually being asked.
+	//
+	// dynamic_cast<CUG*> is the necessary filter, not decoration: a container's
+	// child list holds CLine2 connections alongside modules.
+	auto topLevelModules = [](CContainer* c)
+		{
+			std::vector<int32_t> handles;
+			it_doc_ob it(c);
+			for (it.First(); !it.IsDone(); it.Next())
+			{
+				if (auto* m = dynamic_cast<CUG*>(it.CurrentItem()); m)
+					handles.push_back(m->Handle());
+			}
+			return handles;
+		};
+
+	const auto beforeList = topLevelModules(container);
+	const std::set<int32_t> before(beforeList.begin(), beforeList.end());
+
+	AddModule(uniqueid, point);
+
+	std::vector<int32_t> created;
+	for (const auto h : topLevelModules(container))
+	{
+		if (before.find(h) == before.end())
+			created.push_back(h);
+	}
+
+	// CContainer::AddSorted PREPENDS modules (and appends lines), so iteration
+	// is reverse-insertion order. Reverse it so a caller reading created[0] gets
+	// the prefab's first module rather than its last -- which for a single-module
+	// prefab is the same thing, and for a multi-module one is the difference
+	// between a stable contract and a coin toss.
+	std::reverse(created.begin(), created.end());
+
+	return created;
 }
 
 bool MfcDocPresenterBase::CanConnect(SE2::CableType cabletype, int32_t fromModule, int fromPin, int32_t toModule, int toPin)

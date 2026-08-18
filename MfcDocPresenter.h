@@ -357,6 +357,7 @@ public:
 	}
 
 	int AddModule(const wchar_t* uniqueid, gmpi::drawing::Point point) override;
+	std::vector<int32_t> AddPrefab(const wchar_t* uniqueid, gmpi::drawing::Point point) override;
 	bool AddPatchCable(int32_t fromModule, int fromPin, int32_t toModule, int toPin, int colorIndex, bool placeAtBack) override;
 	void RemovePatchCable(int32_t fromModule, int fromPin, int32_t toModule, int toPin) override;
 
