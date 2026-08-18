@@ -2733,4 +2733,26 @@ namespace SE2
 
 		return nullptr;
 	}
+gmpi::ReturnCode ViewBase::setHost(gmpi::api::IUnknown* phost)
+{
+	const auto r = gmpi::editor::PluginEditor::setHost(phost);
+
+	// Severing only -- see the declaration for why, and why not both directions.
+	if (!phost)
+	{
+		for (auto& child : children)
+		{
+			auto* moduleView = dynamic_cast<ModuleView*>(child.get());
+			if (!moduleView || !moduleView->subView)
+				continue;
+
+			// Recurses: a container inside a container copied the host down again.
+			if (auto* sub = dynamic_cast<ViewBase*>(moduleView->subView.get()); sub)
+				sub->setHost(nullptr);
+		}
+	}
+
+	return r;
+}
+
 }// namespace
