@@ -74,6 +74,43 @@ namespace synthedit_args_detail
         return s.size() >= 2 && s[0] == '-';
     }
 
+    // "-160,100" is a position, not a flag, but it is hyphen-introduced and so
+    // isFlag() says otherwise - which used to cost --add-module its coordinates
+    // whenever they were negative, silently placing the module at the origin
+    // and then reporting the pair as an unrecognised verb. Flag names are
+    // alphabetic, so a token shaped like a number pair can never collide with
+    // one.
+    inline bool isCoordinatePair(std::string_view s)
+    {
+        const auto comma = s.find(',');
+        if (comma == std::string_view::npos || comma == 0 || comma + 1 == s.size())
+            return false;
+
+        auto isNumber = [](std::string_view t)
+        {
+            if (!t.empty() && (t.front() == '-' || t.front() == '+'))
+                t.remove_prefix(1);
+            if (t.empty())
+                return false;
+
+            bool seenDot = false;
+            for (const char c : t)
+            {
+                if (c == '.')
+                {
+                    if (seenDot)
+                        return false;
+                    seenDot = true;
+                }
+                else if (c < '0' || c > '9')
+                    return false;
+            }
+            return true;
+        };
+
+        return isNumber(s.substr(0, comma)) && isNumber(s.substr(comma + 1));
+    }
+
     // Every flag name the parser below recognises. Used only to classify an
     // unmatched flag (typo vs. known verb missing its operands) and to offer
     // near-matches in the error — parsing itself is still done by the
@@ -170,6 +207,7 @@ inline std::string_view stripFlagDashes(std::string_view s)
 inline SynthEditConfig ParseSynthEditArgs(std::vector<std::string_view>& args)
 {
     using synthedit_args_detail::isFlag;
+    using synthedit_args_detail::isCoordinatePair;
 
     SynthEditConfig cfg;
 
@@ -439,7 +477,7 @@ inline SynthEditConfig ParseSynthEditArgs(std::vector<std::string_view>& args)
                         xy = std::string(args[i]);
                     }
                 }
-                else if (!isFlag(next))
+                else if (!isFlag(next) || isCoordinatePair(next))
                 {
                     ++i;
                     xy = std::string(args[i]);
