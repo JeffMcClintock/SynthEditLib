@@ -20,7 +20,9 @@ enum{ ID_EDIT_COPY = 0xe122, ID_EDIT_PASTE = 0xe125, ID_EDIT_CUT = 0xe123, ID_ED
 #endif
 
 // Forward declaration so the free-function export can be granted friend access.
-bool ExportAsPlugin(CSynthEditDocBase* doc, int autoSave, std::wstring presetsFolder);
+// Keep in step with ExportAsPlugin.h — the friend declaration below matches by
+// signature, so a parameter added there silently withdraws the friendship.
+bool ExportAsPlugin(CSynthEditDocBase* doc, int autoSave, std::wstring presetsFolder, std::string* errorOut);
 
 class CContainer : public CUG_with_patches
 {
@@ -29,7 +31,7 @@ class CContainer : public CUG_with_patches
 	friend class CSynthEditDocBase;
 	friend class dlg_connect_ug;
 	friend class CSynthEditDoc;
-	friend bool ::ExportAsPlugin(CSynthEditDocBase*, int, std::wstring);
+	friend bool ::ExportAsPlugin(CSynthEditDocBase*, int, std::wstring, std::string*);
 
 #ifdef _DEBUG
 	friend class CLine2; // for extra checking code
