@@ -127,7 +127,7 @@ namespace synthedit_args_detail
             "delete", "pointer-down", "pointer-move", "pointer-up", "hover", "drag",
             "key", "type", "get-param", "set-param", "containerise", "as", "script",
             "ping", "rename", "start-audio", "stop-audio", "audio-state",
-            "renderer", "profile-scroll",
+            "renderer", "profile-scroll", "set-plugin-info",
         };
         return names;
     }
@@ -484,6 +484,20 @@ inline SynthEditConfig ParseSynthEditArgs(std::vector<std::string_view>& args)
                 }
             }
             pushCmd("add-module", {std::move(name), std::move(xy)});
+            cfg.jsonOutput = true;
+            continue;
+        }
+        // --set-plugin-info key=value [key=value ...]
+        // Variable arity: consume every following token that isn't a flag, so
+        // the whole identity can be set in one call. A value with spaces is
+        // quoted by the script tokenizer, which keeps "name=My Synth" one token.
+        if (flag == "set-plugin-info")
+        {
+            std::vector<std::string> settings;
+            while (i + 1 < args.size() && !isFlag(args[i + 1]))
+                settings.emplace_back(args[++i]);
+
+            pushCmd("set-plugin-info", std::move(settings));
             cfg.jsonOutput = true;
             continue;
         }
