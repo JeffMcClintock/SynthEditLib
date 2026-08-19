@@ -254,17 +254,19 @@ target_include_directories(EditorLib
     PUBLIC
         ${SYNTHEDITLIB_DIR}
         ${VST3_SDK}
-# The three private SE16 directories that used to be listed here are gone.
+# ALL of the private SE16 directories that used to be listed here are gone, and
+# as of C14 (2026-08-20) SE16 no longer re-adds one from its own root either.
 # ../Shared does not exist in the tree at all and ../SynthEdit holds only icons
 # and skins -- both measured dead by dropping them and rebuilding clean. The
-# third, ../SynthEdit2, IS still needed, but C13 took it from seven includes to
-# ONE: ISEAppManaged.h, IMidiDriver.h and ParseSynthEditArgs.h now live in this
-# repo. The last public file reaching into the private tree is
-# ApplySynthEditConfig.cpp -> SynthEditApp.h, which cannot simply move because
-# SynthEditApp.h pulls in moonbasepp_Licensing.h, the commercial licensing
-# library. That is C14, and this directory goes away when it lands -- it is the
-# last thing C7's clean-clone test will trip over. SE16 re-adds it to this target from its own
-# root CMakeLists, where naming a private path is fine.
+# third, ../SynthEdit2, survived C13 for exactly one edge:
+# ApplySynthEditConfig.cpp -> SynthEditApp.h. C14 closed it by narrowing both
+# ApplyConfig* functions to CSynthEditAppBase, which is declared in THIS repo
+# and already carries every member they use -- so nothing had to move, and the
+# private licensing header never became a public dependency.
+# EditorLib now compiles with ZERO private include directories, which is what
+# C7's clean-clone test needs. Do not re-add one: if a public file needs a
+# private declaration, narrow it to a public base or interface instead
+# (C11 and C14 are the two precedents).
 )
 
 # EditorLib calls into SynthEditLib; declaring the edge makes CMake order the
