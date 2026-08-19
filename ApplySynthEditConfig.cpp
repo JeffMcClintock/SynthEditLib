@@ -1,9 +1,9 @@
 #include "ApplySynthEditConfig.h"
-#include "SynthEditApp.h"
+#include "SynthEditAppBase.h"
 #include "BundleInfo.h"
 #include "ModuleFactory_Editor.h"
 
-void ApplyConfigPreInit(SynthEditApp& app, const SynthEditConfig& cfg)
+void ApplyConfigPreInit(CSynthEditAppBase& app, const SynthEditConfig& cfg)
 {
     if (cfg.quiet)
         app.SetQuiet();
@@ -29,7 +29,7 @@ void ApplyConfigPreInit(SynthEditApp& app, const SynthEditConfig& cfg)
         app.overrideSamplesFolder = Utf8ToWstring(cfg.overrideSamplesFolder);
 }
 
-void ApplyConfigPostInit(SynthEditApp& app, const SynthEditConfig& cfg, bool rescanAlreadyHandled)
+void ApplyConfigPostInit(CSynthEditAppBase& app, const SynthEditConfig& cfg, bool rescanAlreadyHandled)
 {
     // In-place rescan path (Windows): cache-clear in PreInit wasn't possible
     // because args were parsed after InitInstance already loaded modules.
