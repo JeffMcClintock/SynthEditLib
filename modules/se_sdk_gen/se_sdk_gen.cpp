@@ -2140,6 +2140,23 @@ int main()
 		}
 		else if (api_name == "drawing_api")
 		{
+			// STOP - the drawing spec in GMPI.xml is years stale, and these
+			// four files are no longer generated. As of Aug 2026 the XML has
+			// 'resource' with no getFactory, 'device context' with 25 methods
+			// (no drawRichTextU, pushClipGeometry or drawTextLayout), a
+			// 'factory' five methods short beside a 'factory2' the API no
+			// longer has, and neither of the retained-text interfaces.
+			//
+			// GmpiApiDrawing.h is now hand-maintained and its vtable is
+			// FROZEN as of drawTextLayout; gmpi_ui/projections/plain_c/
+			// gmpi_drawing.h is hand-maintained to mirror it exactly.
+			// Regenerating either from this spec would silently rewind both
+			// sides of a frozen ABI and crash every module in the field.
+			//
+			// Updating the drawing spec to match means re-authoring it for
+			// the full current API - and buys nothing, because a frozen
+			// vtable has no future regenerations to amortise it. The audio
+			// and common APIs above are unaffected.
 			{
 				std::ofstream file("C:\\SE\\GMPI.generated\\Core\\GmpiApiDrawing.h");
 				file << oss_cpp.str();
