@@ -399,7 +399,32 @@ int32_t ApplicationBase::SeMessageBox(const wchar_t* msg, const wchar_t* title, 
 		// output on Linux (verbs ran, files were written, stdout was empty).
 		// SynthEditCL's protocol is UTF-8 JSON on stdout, so nothing may ever
 		// wide-orient it.
-		std::cout << WStringToUtf8(msg ? msg : L"") << std::endl;
+		//
+		// Indent the continuation lines. A dialog is one message, but printed
+		// raw it arrives as several unrelated-looking lines, so a reader
+		// scraping this stream keeps the first and drops the rest — which is
+		// how "VST3 plugins folder not found:" reached the MCP client without
+		// the path that was the whole point of it. Leading whitespace is the
+		// convention that marks them as belonging to the line above.
+		auto text = WStringToUtf8(msg ? msg : L"");
+		while (!text.empty() && (text.back() == '\n' || text.back() == '\r'))
+			text.pop_back();
+
+		for (size_t pos = 0, line = 0; pos <= text.size(); ++line)
+		{
+			const auto eol = text.find('\n', pos);
+			const auto len = (eol == std::string::npos ? text.size() : eol) - pos;
+
+			// A blank separator line would carry no indent and so would break
+			// the run; the indent alone keeps the message together.
+			if (len > 0)
+				std::cout << (line == 0 ? "" : "  ") << text.substr(pos, len) << "\n";
+
+			if (eol == std::string::npos)
+				break;
+			pos = eol + 1;
+		}
+		std::cout << std::flush;
 		return MB_OK;
 	}
 	else
