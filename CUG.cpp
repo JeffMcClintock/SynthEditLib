@@ -3352,8 +3352,9 @@ R"XML(
 		s += L"\npublic:\n";
 
 		// Constructor
-		s += L"\t" + ui_module_name + L"()";
+		s += L"\t" + ui_module_name + L"() = default;";
 
+#if 0
 		if (useHeader)
 		{
 			s +=L";";
@@ -3381,6 +3382,7 @@ R"XML(
 #endif
 			s += L"\t}";
 		}
+#endif
 
 		s += L"\n\n"; //	// overrides.\n";
 
@@ -3437,7 +3439,7 @@ R"XML(
 #ifdef USE_GMPI2
 			if(hasDsp)
 			{
-				s += L"\tauto r = gmpi::Register<" + destinationClassName + L"Gui>::withId(L\"" + MakeModuleId(plugin_name) + L"\");\n";
+				s += L"\tauto r = gmpi::Register<" + destinationClassName + L"Gui>::withId(\"" + MakeModuleId(plugin_name) + L"\");\n";
 			}
 			else
 			{
@@ -3450,8 +3452,8 @@ R"XML(
 			}
 #else
 			s += L"\tauto r = sesdk::Register<" + destinationClassName + L"Gui>::withId(L\"" + MakeModuleId(plugin_name) + L"\");\n";
-			s += L"}\n";
 #endif
+			s += L"}\n";
 		}
 
 		if (useHeader)
