@@ -2611,24 +2611,33 @@ void SeAudioMaster::RegisterPatchAutomator(class ug_patch_automator* client)
 
 void SeAudioMaster::UpdateTempo( my_VstTimeInfo* timeInfo )
 {
-	if ((timeInfo->flags & my_VstTimeInfo::kVstTempoValid) == 0)
+	// A host can also flag these valid and then supply nonsense - Ardour's
+	// headless tooling sends tempo 0 - so substitute the same default as for
+	// absent values rather than passing a zero on to the patch automators,
+	// which divide by it.
+	const bool tempoSupplied = (timeInfo->flags & my_VstTimeInfo::kVstTempoValid) != 0;
+	if (!tempoSupplied || !(timeInfo->tempo > 0.0))
 	{
+		if (tempoSupplied && !warnedInvalidTempo)
+		{
+			warnedInvalidTempo = true;
+			std::cerr << "WARNING: DAW supplied an invalid tempo (" << timeInfo->tempo
+				<< "); using 120. Further occurrences not reported." << std::endl;
+		}
 		timeInfo->tempo = 120.0f;
 	}
 
-	if ((timeInfo->flags & my_VstTimeInfo::kVstTimeSigValid) == 0)
+	const bool timeSigSupplied = (timeInfo->flags & my_VstTimeInfo::kVstTimeSigValid) != 0;
+	if (!timeSigSupplied || timeInfo->timeSigNumerator <= 0 || timeInfo->timeSigDenominator <= 0)
 	{
+		if (timeSigSupplied && !warnedInvalidTimeSig)
+		{
+			warnedInvalidTimeSig = true;
+			std::cerr << "WARNING: DAW supplied an invalid time signature ("
+				<< timeInfo->timeSigNumerator << "/" << timeInfo->timeSigDenominator
+				<< "); using 4/4. Further occurrences not reported." << std::endl;
+		}
 		timeInfo->timeSigNumerator = timeInfo->timeSigDenominator = 4;
-	}
-
-	if (!(timeInfo->tempo > 0.0))
-	{
-		std::cerr << "ERROR: DAW Tempo Invalid" << std::endl;
-	}
-
-	if (timeInfo->timeSigNumerator <= 0 || timeInfo->timeSigDenominator <= 0)
-	{
-		std::cerr << "ERROR: DAW time signature Invalid" << std::endl;
 	}
 
 	// Fix for AU Validation which passes ppqPos = inf

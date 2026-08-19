@@ -572,6 +572,11 @@ public:
 
 	bool synth_thread_running;
 	bool synth_thread_started;
+
+	// UpdateTempo runs per audio block, so a host sending nonsense would
+	// otherwise print thousands of lines a minute. Warn on the first one only.
+	bool warnedInvalidTempo = false;
+	bool warnedInvalidTimeSig = false;
 	static int profileBlockSize;
 	std::atomic<audioMasterState> processingState = audioMasterState::Stopped;
 
