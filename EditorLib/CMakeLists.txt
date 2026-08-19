@@ -257,10 +257,13 @@ target_include_directories(EditorLib
 # The three private SE16 directories that used to be listed here are gone.
 # ../Shared does not exist in the tree at all and ../SynthEdit holds only icons
 # and skins -- both measured dead by dropping them and rebuilding clean. The
-# third, ../SynthEdit2, IS still needed: seven includes from public files still
-# resolve only there (ISEAppManaged.h, IMidiDriver.h, ParseSynthEditArgs.h,
-# SynthEditApp.h -- the headers no carve-out stage owns, and what C7's
-# clean-clone test will trip over). SE16 re-adds it to this target from its own
+# third, ../SynthEdit2, IS still needed, but C13 took it from seven includes to
+# ONE: ISEAppManaged.h, IMidiDriver.h and ParseSynthEditArgs.h now live in this
+# repo. The last public file reaching into the private tree is
+# ApplySynthEditConfig.cpp -> SynthEditApp.h, which cannot simply move because
+# SynthEditApp.h pulls in moonbasepp_Licensing.h, the commercial licensing
+# library. That is C14, and this directory goes away when it lands -- it is the
+# last thing C7's clean-clone test will trip over. SE16 re-adds it to this target from its own
 # root CMakeLists, where naming a private path is fine.
 )
 
