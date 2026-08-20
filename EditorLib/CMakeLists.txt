@@ -103,91 +103,91 @@ add_library(EditorLib STATIC
     # "safe to remove": the repetition count is a CMake implementation detail,
     # the groups are explicit and cost nothing, and removing them is a change
     # with real risk and no benefit. Recorded here rather than acted on.
-    ${SYNTHEDITLIB_DIR}/Application.h
-    ${SYNTHEDITLIB_DIR}/Application.cpp
-    ${SYNTHEDITLIB_DIR}/CContainer.cpp
-    ${SYNTHEDITLIB_DIR}/CContainer.h
-    ${SYNTHEDITLIB_DIR}/checkpoint.cpp
-    ${SYNTHEDITLIB_DIR}/checkpoint.h
-    ${SYNTHEDITLIB_DIR}/CLine2.cpp
-    ${SYNTHEDITLIB_DIR}/CLine2.h
-    ${SYNTHEDITLIB_DIR}/commandMgr.cpp
-    ${SYNTHEDITLIB_DIR}/commandMgr.h
-    ${SYNTHEDITLIB_DIR}/Control.cpp
-    ${SYNTHEDITLIB_DIR}/Control.h
-    ${SYNTHEDITLIB_DIR}/CPlugin.cpp
-    ${SYNTHEDITLIB_DIR}/CPlugin.h
-    ${SYNTHEDITLIB_DIR}/cpu_accumulator.cpp
-    ${SYNTHEDITLIB_DIR}/cpu_accumulator.h
-    ${SYNTHEDITLIB_DIR}/Dialogs_editor.h
-    ${SYNTHEDITLIB_DIR}/Ctl_Combo.cpp
-    ${SYNTHEDITLIB_DIR}/Ctl_Combo.h
-    ${SYNTHEDITLIB_DIR}/Ctl_Keyboard2.cpp
-    ${SYNTHEDITLIB_DIR}/Ctl_Keyboard2.h
-    ${SYNTHEDITLIB_DIR}/Ctl_Slider.cpp
-    ${SYNTHEDITLIB_DIR}/Ctl_Slider.h
-    ${SYNTHEDITLIB_DIR}/Ctl_Text.cpp
-    ${SYNTHEDITLIB_DIR}/Ctl_Text.h
-    ${SYNTHEDITLIB_DIR}/CUG.cpp
-    ${SYNTHEDITLIB_DIR}/CUG.h
-    ${SYNTHEDITLIB_DIR}/CUG_with_patches.cpp
-    ${SYNTHEDITLIB_DIR}/CUG_with_patches.h
-    ${SYNTHEDITLIB_DIR}/DocOb.cpp
-    ${SYNTHEDITLIB_DIR}/DocOb.h
-    ${SYNTHEDITLIB_DIR}/FrameRateLogger.cpp
-    ${SYNTHEDITLIB_DIR}/FrameRateLogger.h
-    ${SYNTHEDITLIB_DIR}/FuzzyMatch.h
-    ${SYNTHEDITLIB_DIR}/IGuiHost.h
-    ${SYNTHEDITLIB_DIR}/imbedded_file.cpp
-    ${SYNTHEDITLIB_DIR}/imbedded_file.h
-    ${SYNTHEDITLIB_DIR}/InterfaceObject_editor.cpp
-    ${SYNTHEDITLIB_DIR}/InterfaceObject_editor.h
-    ${SYNTHEDITLIB_DIR}/it_doc_ob.cpp
-    ${SYNTHEDITLIB_DIR}/it_doc_ob.h
-    ${SYNTHEDITLIB_DIR}/it_doc_ob_recursive.cpp
-    ${SYNTHEDITLIB_DIR}/it_doc_ob_recursive.h
-    ${SYNTHEDITLIB_DIR}/it_plug_destinations.cpp
-    ${SYNTHEDITLIB_DIR}/it_plug_destinations.h
-    ${SYNTHEDITLIB_DIR}/legacyExternalApp.cpp
-    ${SYNTHEDITLIB_DIR}/legacyExternalApp.h
-    ${SYNTHEDITLIB_DIR}/MfcDocPresenter.cpp
-    ${SYNTHEDITLIB_DIR}/MfcDocPresenter.h
-    ${SYNTHEDITLIB_DIR}/ModuleBrowser.cpp
-    ${SYNTHEDITLIB_DIR}/ModuleBrowser.h
-    ${SYNTHEDITLIB_DIR}/PropertiesBrowser.cpp
-    ${SYNTHEDITLIB_DIR}/PropertiesBrowser.h
-    ${SYNTHEDITLIB_DIR}/ModuleDragAndDropManager.cpp
-    ${SYNTHEDITLIB_DIR}/ModuleDragAndDropManager.h
-    ${SYNTHEDITLIB_DIR}/ModuleFactory_Editor.cpp
-    ${SYNTHEDITLIB_DIR}/ModuleFactory_Editor.h
-    ${SYNTHEDITLIB_DIR}/PatchManager.cpp
-    ${SYNTHEDITLIB_DIR}/PatchManager.h
-    ${SYNTHEDITLIB_DIR}/PatchParameter.cpp
-    ${SYNTHEDITLIB_DIR}/PatchParameter.h
-    ${SYNTHEDITLIB_DIR}/PatchParameter_host_generated.cpp
-    ${SYNTHEDITLIB_DIR}/PatchParameter_host_generated.h
-    ${SYNTHEDITLIB_DIR}/platform_editor.cpp
-    ${SYNTHEDITLIB_DIR}/Plug.h
-    ${SYNTHEDITLIB_DIR}/plug4.cpp
-    ${SYNTHEDITLIB_DIR}/Plug4.h
-    ${SYNTHEDITLIB_DIR}/PlugDescriptionDecorator.cpp
-    ${SYNTHEDITLIB_DIR}/PlugDescriptionDecorator.h
-    ${SYNTHEDITLIB_DIR}/PlugIO4.cpp
-    ${SYNTHEDITLIB_DIR}/PlugIO4.h
-    ${SYNTHEDITLIB_DIR}/Plug_decorator_autoduplicate.cpp
-    ${SYNTHEDITLIB_DIR}/Plug_decorator_autoduplicate.h
-    ${SYNTHEDITLIB_DIR}/Plug_decorator_namable.cpp
-    ${SYNTHEDITLIB_DIR}/Plug_decorator_namable.h
-    ${SYNTHEDITLIB_DIR}/Plug_decorator_sdk2.cpp
-    ${SYNTHEDITLIB_DIR}/Plug_decorator_sdk2.h
-    ${SYNTHEDITLIB_DIR}/Plug_decorator_vst.cpp
-    ${SYNTHEDITLIB_DIR}/Plug_decorator_vst.h
-    ${SYNTHEDITLIB_DIR}/SkinMgr.cpp
-    ${SYNTHEDITLIB_DIR}/SkinMgr.h
-    ${SYNTHEDITLIB_DIR}/SuspendDSP.cpp
-    ${SYNTHEDITLIB_DIR}/SuspendDSP.h
-    ${SYNTHEDITLIB_DIR}/SynthEditDocBase.cpp
-    ${SYNTHEDITLIB_DIR}/SynthEditDocBase.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Application.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Application.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/CContainer.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/CContainer.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/checkpoint.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/checkpoint.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/CLine2.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/CLine2.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/commandMgr.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/commandMgr.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Control.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/Control.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/CPlugin.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/CPlugin.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/cpu_accumulator.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/cpu_accumulator.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Dialogs_editor.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Ctl_Combo.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/Ctl_Combo.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Ctl_Keyboard2.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/Ctl_Keyboard2.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Ctl_Slider.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/Ctl_Slider.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Ctl_Text.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/Ctl_Text.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/CUG.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/CUG.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/CUG_with_patches.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/CUG_with_patches.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/DocOb.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/DocOb.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/FrameRateLogger.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/FrameRateLogger.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/FuzzyMatch.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/IGuiHost.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/imbedded_file.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/imbedded_file.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/InterfaceObject_editor.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/InterfaceObject_editor.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/it_doc_ob.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/it_doc_ob.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/it_doc_ob_recursive.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/it_doc_ob_recursive.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/it_plug_destinations.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/it_plug_destinations.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/legacyExternalApp.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/legacyExternalApp.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/MfcDocPresenter.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/MfcDocPresenter.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/ModuleBrowser.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/ModuleBrowser.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/PropertiesBrowser.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/PropertiesBrowser.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/ModuleDragAndDropManager.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/ModuleDragAndDropManager.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/ModuleFactory_Editor.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/ModuleFactory_Editor.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/PatchManager.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/PatchManager.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/PatchParameter.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/PatchParameter.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/PatchParameter_host_generated.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/PatchParameter_host_generated.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/platform_editor.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/Plug.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/plug4.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/Plug4.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/PlugDescriptionDecorator.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/PlugDescriptionDecorator.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/PlugIO4.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/PlugIO4.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Plug_decorator_autoduplicate.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/Plug_decorator_autoduplicate.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Plug_decorator_namable.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/Plug_decorator_namable.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Plug_decorator_sdk2.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/Plug_decorator_sdk2.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/Plug_decorator_vst.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/Plug_decorator_vst.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/SkinMgr.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/SkinMgr.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/SuspendDSP.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/SuspendDSP.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/SynthEditDocBase.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/SynthEditDocBase.h
     # ExportAsPlugin.{cpp,h} are deliberately NOT here (carve-out stage C1b).
     # The export implementation is the commercial boundary, and this source list
     # is destined for the public repo -- so each exporting app compiles it
@@ -198,31 +198,31 @@ add_library(EditorLib STATIC
     # only the declarations in CContainer.h and need nothing. Do not add the
     # .cpp to any library target -- executables only, or an app that links two
     # of them gets the definition twice.
-    ${SYNTHEDITLIB_DIR}/UG2.cpp
-    ${SYNTHEDITLIB_DIR}/UG2.h
-    ${SYNTHEDITLIB_DIR}/ui_msg_target.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/UG2.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/UG2.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/ui_msg_target.h
     
     # SynthEdit2 source files
-    ${SYNTHEDITLIB_DIR}/SynthEditDoc2.h
-    ${SYNTHEDITLIB_DIR}/SynthEditDoc2.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/SynthEditDoc2.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/SynthEditDoc2.cpp
 
     # App-level sources shared across SynthEdit2, SynthEditCL, and SynthEditMac.
     # SynthEditApp.{h,cpp} are NOT here — each consuming app compiles them directly
     # so it can choose its own SE_MOONBASE_SUPPORT setting without ODR conflicts.
-    ${SYNTHEDITLIB_DIR}/SynthEditAppBase.h
-    ${SYNTHEDITLIB_DIR}/SynthEditAppBase.cpp
-    ${SYNTHEDITLIB_DIR}/ApplySynthEditConfig.h
-    ${SYNTHEDITLIB_DIR}/ApplySynthEditConfig.cpp
-    ${SYNTHEDITLIB_DIR}/ThemeManager.h
-    ${SYNTHEDITLIB_DIR}/ThemeManager.cpp
-    ${SYNTHEDITLIB_DIR}/SynthRuntime_editor.h
-    ${SYNTHEDITLIB_DIR}/SynthRuntime_editor.cpp
-    ${SYNTHEDITLIB_DIR}/UIoManager.h
-    ${SYNTHEDITLIB_DIR}/UIoManager.cpp
-    ${SYNTHEDITLIB_DIR}/IO_base.h
-    ${SYNTHEDITLIB_DIR}/IO_base.cpp
-    ${SYNTHEDITLIB_DIR}/IO_None.h
-    ${SYNTHEDITLIB_DIR}/IO_None.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/SynthEditAppBase.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/SynthEditAppBase.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/ApplySynthEditConfig.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/ApplySynthEditConfig.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/ThemeManager.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/ThemeManager.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/SynthRuntime_editor.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/SynthRuntime_editor.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/UIoManager.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/UIoManager.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/IO_base.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/IO_base.cpp
+    ${SYNTHEDITLIB_DIR}/EditorLib/IO_None.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/IO_None.cpp
     ${SYNTHEDITLIB_DIR}/CancellationAnalyse.h
     ${SYNTHEDITLIB_DIR}/CancellationAnalyse.cpp
     ${SYNTHEDITLIB_DIR}/modules/se_sdk3_hosting/GmpiResourceManager_editor.h
@@ -253,6 +253,12 @@ endif()
 target_include_directories(EditorLib
     PUBLIC
         ${SYNTHEDITLIB_DIR}
+        # C10: the carve-out's editor sources moved from the repo root into
+        # EditorLib/. Consumers include them bare, so this dir propagates to
+        # every CMake target that links EditorLib. Non-CMake consumers carry
+        # their own copy of this line (SynthEdit2.vcxproj, SynthEditMac's
+        # xcconfigs).
+        ${SYNTHEDITLIB_DIR}/EditorLib
         ${VST3_SDK}
 # ALL of the private SE16 directories that used to be listed here are gone, and
 # as of C14 (2026-08-20) SE16 no longer re-adds one from its own root either.
