@@ -6,9 +6,9 @@
 #ifdef SE_EDIT_SUPPORT
 #include "../se_sdk3_hosting/ModuleView.h"
 #include "../se_sdk3_hosting/ViewBase.h"
-#include "MfcDocPresenter.h"
-#include "SynthEditDocBase.h"
-#include "SynthEditAppBase.h"
+#include "EditorLib/MfcDocPresenter.h"
+#include "EditorLib/SynthEditDocBase.h"
+#include "EditorLib/SynthEditAppBase.h"
 #endif
 
 SE_DECLARE_INIT_STATIC_FILE(CpuMeterGui);
