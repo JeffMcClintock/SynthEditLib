@@ -37,9 +37,24 @@ enum class CableType;
 	{
 		bool enabled = false;
 		gmpi::drawing::Point origin{}; // document coords of row 0, column 0
-		float hpWidth = 15.0f;         // one unit of horizontal pitch
-		float rowHeight = 380.0f;      // one rack row, rail to rail
-		float railHeight = 15.0f;      // mounting rail along each row's top and bottom edge
+		// hpWidth is the REAL Eurorack unit and is an external anchor: 1 HP =
+		// 0.2 in at 75 dpi = 15 DIPs, the same number VCV Rack's rack.hpp calls
+		// RACK_GRID_WIDTH. It governs what a rail LOOKS like -- one threaded
+		// hole per HP -- and must not be repurposed as the placement pitch.
+		float hpWidth = 15.0f;         // one HP: hole pitch, and the hole radius scales off it
+		// Placement pitch, deliberately NOT hpWidth. gcd(12, 15) = 3 is the
+		// coarsest snap on which BOTH land exactly: SynthEdit's preferred
+		// 12-DIP multiples, and every VCV module (all widths are multiples of
+		// 15). Snapping on 12 would misalign every VCV module that is not a
+		// multiple of 4 HP, by 3-9 DIPs; snapping on 15 would misalign
+		// SynthEdit's own. Ruled by Jeff 2026-08-21, BACKLOG E5.
+		float snapWidth = 3.0f;        // horizontal placement pitch
+		float rowHeight = 384.0f;      // one rack row, rail to rail. 32x12 and 8x48, and it
+		                               // clears a 380-DIP VCV panel by 4 DIPs (1.35 mm)
+		float railHeight = 15.0f;      // rail drawn along each row's top and bottom edge --
+		                               // BACKGROUND ONLY. A module panel is the full row
+		                               // height and covers it, as a real panel covers its
+		                               // rails; nothing subtracts this from the usable area
 	};
 
 	class IPresenter
