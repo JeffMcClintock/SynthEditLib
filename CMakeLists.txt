@@ -7,7 +7,19 @@ cmake_minimum_required(VERSION 3.30)
 
 # macOS 13.3 required for std::format (SubControls4)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS deployment version")
-set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for macOS" FORCE)
+# Universal stays the DEFAULT -- SynthEdit ships Intel, and this line is what
+# makes that true. What changed 2026-08-21 is that it no longer FORCEs: a
+# consumer that has already chosen an architecture keeps its choice instead of
+# having it silently overwritten. TIDE Rack chooses arm64.
+#
+# Measured before changing it: with FORCE in place, even
+# -DCMAKE_OSX_ARCHITECTURES=arm64 on the command line came back from the cache
+# as "x86_64;arm64". Under SynthEdit's own build nothing changes -- SE16's root
+# sets this variable before adding this subdirectory, so the guard skips and
+# the value is identical.
+if(NOT DEFINED CMAKE_OSX_ARCHITECTURES)
+    set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for macOS")
+endif()
 set(SE_GRAPHICS_SUPPORT TRUE CACHE BOOL "Support Graphics modules")
 set(CMAKE_CXX_STANDARD 20)
 
