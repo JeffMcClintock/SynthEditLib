@@ -1374,7 +1374,8 @@ namespace SE2
 	{
 		const auto rack = Presenter()->getRackLayout();
 
-		gmpi::drawing::Size grid{ rack.hpWidth, rack.rowHeight };
+		// snapWidth, not hpWidth -- see RackLayout. hpWidth stays the visual HP.
+		gmpi::drawing::Size grid{ rack.snapWidth, rack.rowHeight };
 		gmpi::drawing::Point origin = rack.origin;
 
 		if (!rack.enabled)
