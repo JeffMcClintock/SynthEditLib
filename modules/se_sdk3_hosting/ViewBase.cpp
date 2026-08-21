@@ -1305,6 +1305,21 @@ namespace SE2
 		invalidateRect();
 	}
 
+	gmpi::ReturnCode TopView::setHost(gmpi::api::IUnknown* phost)
+	{
+		const auto r = ViewBase::setHost(phost);
+
+		// A host can now report the real rasterization scale, so redo the
+		// DPI-quantised zoom -- see the declaration for why it was wrong.
+		// Cheap and idempotent: recomputing with an unchanged DPI produces the
+		// identical matrix, and the trailing invalidateRect() only queues a
+		// dirty rect (and no-ops while drawingHost is null).
+		if (phost)
+			calcViewTransform();
+
+		return r;
+	}
+
 	void TopView::onHScroll(double visibleLeft)
 	{
 		if (avoidRecusion)

@@ -293,6 +293,19 @@ bool isIteratingChildren = false;
 		{
 		}
 
+		// The view transform is QUANTISED AGAINST THE DISPLAY DPI, and the DPI
+		// comes from the host -- so a transform computed while drawingHost is
+		// still null silently used the 1.0 fallback in calcViewTransform().
+		//
+		// That is not hypothetical in the editor: DxDrawingFrameBase::attachClient
+		// calls sizeClientDips() (-> arrange -> calcViewTransform) BEFORE
+		// drawingClient->setHost(), and the Pile does not expose IEditor so the
+		// earlier "bind the host before the first paint" branch is skipped. At
+		// 150% DPI that fallback yields zoom 1.0 instead of 19.2/19.2's 1.05556,
+		// i.e. a whole-view scale error that persists until the next arrange.
+		// Recompute the moment a real host turns up.
+		gmpi::ReturnCode setHost(gmpi::api::IUnknown* phost) override;
+
 		std::string getSkinName() override
 		{
 			return skinName_;
