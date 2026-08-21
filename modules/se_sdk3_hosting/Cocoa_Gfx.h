@@ -354,8 +354,14 @@ namespace se
             
             inline void setNativeColor()
             {
-                nativec_ = factory_->toNative(color);
-                [nativec_ retain];
+                // toNative() hands back an autoreleased color, so it has to be retained.
+                // SetColor() can be called many times on the one brush (a module drawing
+                // hundreds of differently-coloured shapes per frame), so release the
+                // previous color or every call leaks one.
+                NSColor* nativeColor = factory_->toNative(color);
+                [nativeColor retain];
+                [nativec_ release];
+                nativec_ = nativeColor;
             }
             
 		public:
