@@ -2266,8 +2266,13 @@ return gmpi::MP_FAIL;
                 bytesPerRow : bytesPerRow
                 bitsPerPixel : bitsPerPixel];
                 
+            // Retagging returns a *separate* autoreleased rep (with its own pixel buffer) and
+            // does not consume the receiver, so initial_bitmap has to be released or every
+            // lock leaks a full NSBitmapImageRep. Retaining before releasing also covers the
+            // case where retagging hands back the receiver itself (same colour space).
             bitmap2 = [initial_bitmap bitmapImageRepByRetaggingWithColorSpace:NSColorSpace.sRGBColorSpace];
             [bitmap2 retain];
+            [initial_bitmap release];
 
             // Copy the image to the new imageRep (effectivly converts it to correct pixel format/brightness etc)
             if (0 != (flags & GmpiDrawing_API::MP1_BITMAP_LOCK_READ))
@@ -2347,19 +2352,28 @@ return gmpi::MP_FAIL;
                         ++source;
                         ++dest;
                     }
-                    seBitmap->additiveBitmap_ = [initial_bitmap bitmapImageRepByRetaggingWithColorSpace:NSColorSpace.sRGBColorSpace];
+                    NSBitmapImageRep* additive = [initial_bitmap bitmapImageRepByRetaggingWithColorSpace:NSColorSpace.sRGBColorSpace];
                     
-                    [seBitmap->additiveBitmap_ retain];
+                    [additive retain];
+                    [initial_bitmap release];
+
+                    // a bitmap can be locked repeatedly, so don't leak the previous additive bitmap.
+                    [seBitmap->additiveBitmap_ release];
+                    seBitmap->additiveBitmap_ = additive;
                 }
                 
                 // replace bitmap with a fresh one, and add pixels to it.
+                // Bitmap owns nativeBitmap_ (~Bitmap releases it), so release the image
+                // we're replacing here, else every write-lock leaks one.
+                NSImage* previousBitmap = *inBitmap_;
                 *inBitmap_ = [[NSImage alloc] init];
-                [*inBitmap_ addRepresentation:bitmap2];
+                [*inBitmap_ addRepresentation:bitmap2]; // NSImage retains the representation.
+                [previousBitmap release];
             }
-            else
-            {
-                [bitmap2 release];
-            }
+
+            // balance the retain in the constructor. On the write path the new NSImage
+            // holds its own reference to bitmap2 by now.
+            [bitmap2 release];
         }
 	} // namespace
 } // namespace
