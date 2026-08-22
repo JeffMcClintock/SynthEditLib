@@ -517,17 +517,34 @@ conversion.h
 conversion.cpp
 )
 
+# APPLE IS TRUE ON iOS AS WELL AS macOS, and most of what used to be in this
+# one block is AppKit: NSView subclasses and a native modal dialog, neither of
+# which exists on iOS. Compiling them for iOS fails on the very first line,
+# <Cocoa/Cocoa.h> and <AudioUnit/AUCocoaUIView.h> being macOS-only headers.
+#
+# Cocoa_Gfx.h / CocoaGfx.h are SHARED despite the name -- they are Core
+# Graphics and Core Text, which iOS has, and gmpi_ui's own iOS backend
+# includes CocoaGfx.h directly. Only the view and dialog layers are AppKit.
 IF(APPLE AND SE_GRAPHICS_SUPPORT)
 set(srcs ${srcs}
 modules/se_sdk3_hosting/Cocoa_Gfx.h
+modules/se_sdk3_hosting/gmpi_drawing_conversions.h
+${GMPI_UI_SDK}/backends/CocoaGfx.h
+)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+set(srcs ${srcs}
+${GMPI_UI_SDK}/backends/DrawingFrameIos.h
+${GMPI_UI_SDK}/backends/DrawingFrameIos.mm
+)
+else()
+set(srcs ${srcs}
 modules/se_sdk3_hosting/SynthEditCocoaView.mm # legacy IGuiHost2 adaptor - still used by SynthEdit se_vst3 (SEVSTGUIEditorMac) and SE2JUCE_Editor; migrate to gmpi DrawingFrameMac createNativeView to retire
 modules/se_sdk3_hosting/CocoaGuiHost.h
-modules/se_sdk3_hosting/gmpi_drawing_conversions.h
 modules/se_sdk3_hosting/AssignControllerDialogMac.mm
-${GMPI_UI_SDK}/backends/CocoaGfx.h
 ${GMPI_UI_SDK}/backends/DrawingFrameMac.h
 ${GMPI_UI_SDK}/backends/DrawingFrameMac.mm
 )
+endif()
 ENDIF()
 
 IF(SE_GRAPHICS_SUPPORT)
