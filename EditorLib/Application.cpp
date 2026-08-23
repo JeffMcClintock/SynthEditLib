@@ -178,8 +178,20 @@ folder_info* ApplicationBase::getFolderInfo(const std::wstring& p_extension)
 		}
 	}
 
+	// Entry 0 is "All Files", and an unrecognised type inherits its folder. That
+	// entry exists only once refreshFolderLocations() has run, which is not a
+	// given: TideApp::InitInstance replaces CSynthEditAppBase::InitInstance
+	// wholesale and never calls it, so m_folder_settings stays empty for the
+	// whole life of the app. Subscripting it here was then undefined behaviour
+	// -- measured 2026-08-24 as a reliable null deref, EXC_BAD_ACCESS at 0x0 in
+	// unique_ptr::operator->, reached from CSynthEditAppBase::ShortenFilename.
+	// BACKLOG S5.
+	const auto fallbackFolder = m_folder_settings.empty()
+		? std::wstring()
+		: m_folder_settings[0]->current_folder;
+
 	// not a recognized type, generate folder info.
-	m_folder_settings.push_back(std::unique_ptr<folder_info>(new folder_info{ { p_extension }, p_extension + std::wstring(L" Files"), m_folder_settings[0]->current_folder, m_folder_settings[0]->current_folder }));
+	m_folder_settings.push_back(std::unique_ptr<folder_info>(new folder_info{ { p_extension }, p_extension + std::wstring(L" Files"), fallbackFolder, fallbackFolder }));
 
 	return m_folder_settings.back().get();
 }
