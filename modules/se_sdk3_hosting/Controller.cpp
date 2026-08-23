@@ -1723,12 +1723,11 @@ int32_t MpController::resolveFilename(const wchar_t* shortFilename, int32_t maxC
 
     const bool isUrl = l_filename.find(L"://") != string::npos;
     
-    // Is this a relative or absolute filename?
-#ifdef _WIN32
-    const bool has_root_path = l_filename.find(L':') != string::npos;
-#else
-    const bool has_root_path = l_filename.size() > 0 && l_filename[0] == L'/';
-#endif
+    // Is this a relative or absolute filename? Both platforms' conventions count, not
+    // just the host's: a plugin exported from the Windows editor carries the author's
+    // Windows paths, and prefixing one of those with the bundle's Resources folder
+    // resolves to nothing.
+    const bool has_root_path = isAbsolutePathAnyPlatform(l_filename);
     
 	if (!has_root_path && !isUrl)
 	{

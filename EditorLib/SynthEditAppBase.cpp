@@ -187,8 +187,9 @@ std::wstring CSynthEditAppBase::ResolveFilename(const std::wstring& name, const 
 		filepath.replace_extension(extension);
 	}
 
-	// need to add path?
-	if (!filepath.is_absolute())
+	// need to add path? (a Windows-authored project opened on macOS still holds "C:\..."
+	// references, which is_absolute() alone would take for relative names)
+	if (!isAbsolutePathAnyPlatform(filepath.wstring()))
 	{
 		if (isSkinFile(fileType))
 		{

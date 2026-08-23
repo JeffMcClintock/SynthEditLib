@@ -109,7 +109,11 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 
 		const fs::path name(resourceNameL);
 
-		if (name.is_absolute())
+		// Deliberately not name.is_absolute(): a plugin exported from the Windows editor
+		// carries the author's Windows paths, and std::filesystem on macOS/Linux classes
+		// those as relative - which sent every full-path image reference down the
+		// partial-name branch, so it was never found on any non-Windows host.
+		if (isAbsolutePathAnyPlatform(resourceNameL))
 		{
 			// Plugin builds may have the resource baked into the bundle under one of two
 			// "encoded" forms of its full path. Try both, then fall back to the raw filesystem path.
@@ -251,8 +255,8 @@ se_fs::path GmpiResourceManager::ResolveResourceUri(const se_fs::path& filename,
 {
 	namespace fs = se_fs;
 
-	// Already absolute - return as-is
-	if (filename.is_absolute())
+	// Already absolute - return as-is. Windows-authored paths count, even on macOS.
+	if (isAbsolutePathAnyPlatform(filename.wstring()))
 		return filename;
 
 	// Build search folders list: projectSkinFolder, then skins/skinName, skins/default, skins/_fallback

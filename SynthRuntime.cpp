@@ -14,6 +14,7 @@
 #include "mfc_emulation.h"
 #include "SeException.h"
 #include "FeedbackTrace.h"
+#include "se_filesystem.h"
 
 using namespace std;
 using namespace gmpi::hosting;
@@ -480,12 +481,10 @@ std::wstring SynthRuntime::ResolveFilename(const std::wstring& name, const std::
 		l_filename += (L".") + extension;
 	}
 
-	// Is this a relative or absolute path?
-#ifdef _WIN32
-	if( l_filename.find(':') == string::npos )
-#else
-    if( l_filename.size() > 1 && l_filename[0] != '/' )
-#endif
+	// Is this a relative or absolute path? Test for both platforms' conventions, not just
+	// the host's: a plugin exported from the Windows editor carries the author's Windows
+	// paths, and prefixing one of those with the macOS resource folder resolves to nothing.
+	if( !isAbsolutePathAnyPlatform(l_filename) )
 	{
 		std::wstring default_path = getDefaultPath( fileType );
 		l_filename = combine_path_and_file( default_path, l_filename );

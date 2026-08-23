@@ -26,3 +26,37 @@
     #include <filesystem>
     namespace se_fs = std::filesystem;
 #endif
+
+#include <string>
+
+// A project is authored on one platform and exported to another, so the file references
+// stored inside it arrive in whichever form the author's machine used. se_fs::path::
+// is_absolute() only recognises the *host's* convention: on macOS and Linux it answers
+// false for "C:\skins\duck.png", and on Windows it answers false for "/Users/me/duck.png".
+//
+// Any code that classifies a path which came out of a document - rather than one it built
+// from the local filesystem - must use this instead. Mistaking a foreign absolute path for
+// a relative one silently appends it to a search folder, and the resource is never found.
+inline bool isAbsolutePathAnyPlatform(const std::wstring& path)
+{
+    if (path.empty())
+        return false;
+
+    const auto isDriveLetter = [](wchar_t c)
+        { return (c >= L'A' && c <= L'Z') || (c >= L'a' && c <= L'z'); };
+
+    // Windows, drive-qualified. "C:\skins\duck.png", "c:/skins/duck.png".
+    if (path.size() >= 2 && path[1] == L':' && isDriveLetter(path[0]))
+        return true;
+
+    // Windows, UNC. "\\server\share\duck.png", and the "\\?\" long-path prefix.
+    if (path.size() >= 2 && path[0] == L'\\' && path[1] == L'\\')
+        return true;
+
+    // POSIX. "/Users/me/duck.png".
+    if (path[0] == L'/')
+        return true;
+
+    // Whatever else the host itself calls absolute.
+    return se_fs::path(path).is_absolute();
+}
