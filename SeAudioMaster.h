@@ -393,7 +393,13 @@ public:
 	);
 #endif
 
-	void BuildDspGraph(
+	// Returns FALSE when the document could not be turned into a graph, and
+	// leaves main_container null in that case. E10: this used to return void,
+	// so SynthRuntime called OpenGenerator() regardless and SeAudioMaster::Open()
+	// dereferenced the null main_container one frame up -- a live host crash
+	// (EXC_BAD_ACCESS at 0x28 on a REAPER worker thread) from nothing worse than
+	// a saved chunk with no <Document> root.
+	bool BuildDspGraph(
 		class TiXmlDocument* doc,
 		std::vector< std::pair<int32_t, std::string> >& pendingPresets,
 		std::vector<int32_t>& mutedContainers

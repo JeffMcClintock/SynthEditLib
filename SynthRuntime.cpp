@@ -145,7 +145,21 @@ void SynthRuntime::prepareToPlay(
 		generator->setBlockSize(generator->CalcBlockSize(maxBlockSize));
 
 		std::vector<int32_t> mutedContainers; // unused at preset. (Waves thing).
-		generator->BuildDspGraph(&currentDspXml, pendingPresets, mutedContainers);
+		// E10. This used to be called for effect and the result ignored, because
+		// there was no result: BuildDspGraph returned void. On any early return it
+		// left main_container null, OpenGenerator() below ran anyway, and
+		// SeAudioMaster::Open() dereferenced the null -- a live host crash from a
+		// saved chunk with no <Document> root. Now it says so, and we stop.
+		if (!generator->BuildDspGraph(&currentDspXml, pendingPresets, mutedContainers))
+		{
+			// Deliberately NOT generator.reset(): modules register themselves with
+			// the master during the build, and destroying it here left those
+			// registrations dangling -- MidiIn then crashed on a freed module
+			// instead of on the null container, which is a worse bug than the one
+			// being fixed. Leaving the master constructed but unopened is the
+			// state the "unprepared" path upstream already knows how to handle.
+			return;
+		}
 
 #if 0
 		// Apply preset before Open(), else gets delayed by 1 block causing havok with BPM Clock (receives BPM=0 for 1st block).
@@ -233,7 +247,16 @@ void rebuildDsp(
 	{
 		// Send patch structure to process.
 		std::vector<int32_t> mutedContainers; // unused at present. (Waves thing).
-		generator->BuildDspGraph(currentDspXml, pendingPresets, mutedContainers);
+		// E10, second path. This signalled newDspReady unconditionally, so a
+		// document that produced no graph was published as if it had -- the same
+		// defect as the load path, one function along. The catch blocks below
+		// already have the vocabulary for this.
+		if (!generator->BuildDspGraph(currentDspXml, pendingPresets, mutedContainers))
+		{
+			_RPT0(0, "backGroundRebuildDsp:: BuildDspGraph failed\n");
+			runtimeState.store(eRuntimeState::newDspFailed, std::memory_order_release);
+			return;
+		}
 		// generator->ApplyPinDefaultChanges(extraPinDefaultChanges);
 
 		_RPT0(0, "backGroundRebuildDsp:: done\n");
