@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: ISC
 // Copyright 2007-2026 Jeff McClintock.
+#include "../shared/unicode_conversion.h"
 #include "helpers/GmpiPluginEditor.h"
 #include "helpers/ImageMetadata.h"
 #include "Extensions/EmbeddedFile.h"
@@ -10,8 +11,30 @@ using namespace gmpi::drawing;
 
 class LabelGui final : public PluginEditor
 {
-	Pin<std::string> pinText;
-	Pin<std::string> pinStyle;
+	// DT_TEXT ON THE WIRE, UTF-8 IN THE CODE -- and the two are NOT the same
+	// bytes, which is the whole of BACKLOG S45.
+	//
+	// `datatype="string"` in the XML below maps to DT_TEXT (conversion.cpp's
+	// datatypeInfo table), and ParseToRaw encodes DT_TEXT as raw wchar_t:
+	// `result.resize(sizeof(wchar_t) * s.size())` + memcpy. A Pin<std::string>
+	// then decodes it with valueFromData<std::string>, which is a verbatim byte
+	// copy -- so "MIDI-CV" arrived as 'M',0,0,0,'I',0,0,0,... and every NUL
+	// rendered as a .notdef box. Measured on Linux, where wchar_t is 4 bytes;
+	// Windows would give one NUL per character from the same code path.
+	//
+	// Declaring the pins as wide matches what the host actually sends
+	// (valueFromData<std::wstring> already divides by sizeof(wchar_t)), so the
+	// WIRE FORMAT IS UNCHANGED and no existing patch or connection is affected.
+	// The alternative -- switching the XML to datatype="string_utf8" -- would
+	// change the wire format of a pin that patches may already connect to, and
+	// that is a bigger decision than this defect needs.
+	Pin<std::wstring> pinText;
+	Pin<std::wstring> pinStyle;
+
+	// One place that converts, so the UTF-8 the drawing API wants is derived
+	// rather than assumed.
+	std::string textUtf8()  const { return JmUnicodeConversions::WStringToUtf8(pinText.value); }
+	std::string styleUtf8() const { return JmUnicodeConversions::WStringToUtf8(pinStyle.value); }
 	Pin<bool>        pinMultiline;
 	Pin<int32_t>     pinAlignment;
 
@@ -37,7 +60,7 @@ class LabelGui final : public PluginEditor
 
 	void rebuildTextFormat()
 	{
-		const auto* fm = skin.getFont(pinStyle.value);
+		const auto* fm = skin.getFont(styleUtf8());
 
 		std::vector<std::string_view> families(fm->faceFamilies_.begin(), fm->faceFamilies_.end());
 
@@ -83,7 +106,7 @@ class LabelGui final : public PluginEditor
 			return;
 		}
 		const float wrapWidth = pinMultiline.value ? getWidth(bounds) : 100000.0f;
-		cachedTextExtent = cachedTextFormat.getTextExtentU(pinText.value, wrapWidth);
+		cachedTextExtent = cachedTextFormat.getTextExtentU(textUtf8(), wrapWidth);
 	}
 
 	// Layout rect = bounds, expanded outward in the direction(s) the text would overflow,
@@ -176,7 +199,7 @@ public:
 			return ReturnCode::Ok;
 
 		auto brush = g.createSolidColorBrush(cachedTextColor);
-		g.drawTextU(pinText.value, cachedTextFormat, getLayoutRect(), brush);
+		g.drawTextU(textUtf8(), cachedTextFormat, getLayoutRect(), brush);
 
 		return ReturnCode::Ok;
 	}
