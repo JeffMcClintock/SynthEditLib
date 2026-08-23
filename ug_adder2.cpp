@@ -1,5 +1,6 @@
 
 #include <assert.h>
+#include <cstdio>
 #include "ug_adder2.h"
 
 #include "resource.h"
@@ -78,6 +79,19 @@ ug_adder2::~ug_adder2()
 
 void ug_adder2::NewConnection(UPlug* p_from)
 {
+	// plugs.back() on an empty vector is UB -- reads data[-1], address -8 for
+	// an 8-byte pointer element (BACKLOG S34, TideSynth; same class as
+	// ClassicControlGuiBase.cpp's widgets.back(), -16 for its 16-byte
+	// elements, U2d). Reachable whenever module descriptions fail to load, so
+	// the graph is built from a restored patch with no summing input plug to
+	// connect to. A host where that happens must not bring the whole process
+	// down. Loud, not silent, per U2d's rule.
+	if (plugs.empty())
+	{
+		fprintf(stderr, "SynthEdit: ug_adder2::NewConnection: no input plugs - connection dropped (check module scan)\n");
+		return;
+	}
+
 	auto p = plugs.back();
 
 	if (p->InUse())

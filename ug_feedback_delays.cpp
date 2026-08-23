@@ -4,6 +4,7 @@
 #include "module_register.h"
 #include "SeAudioMaster.h"
 #include <algorithm>
+#include <cstdio>
 
 SE_DECLARE_INIT_STATIC_FILE(ug_feedback_delays)
 
@@ -69,6 +70,15 @@ void ug_feedback_delay::BypassRedundentModules(int voice)
 
 void BypassFeedbackModule(ug_base* u, int voice)
 {
+	// u->plugs.back() on an empty vector is UB -- see ug_adder2::NewConnection
+	// for the class of bug and BACKLOG S34 (TideSynth) for the measurement.
+	// Loud, not silent, per U2d's rule.
+	if (u->plugs.empty())
+	{
+		fprintf(stderr, "SynthEdit: BypassFeedbackModule: no plugs on module - bypass check skipped (check module scan)\n");
+		return;
+	}
+
 	auto dummyPin = u->plugs.back();
 	if (dummyPin->connections.empty())
 	{
