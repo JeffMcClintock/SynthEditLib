@@ -163,6 +163,32 @@ std::string getPlatformPluginsFolder()
 #endif
 }
 
+// The USER-domain twin of getPlatformPluginsFolder(). VST3 and AU both search
+// user AND system domains; SynthEdit searched only system, so every locally
+// built module -- which is exactly where a developer build belongs -- installed
+// somewhere nothing read. S35.
+std::string getUserPluginsFolder()
+{
+#ifdef _WIN32
+    // No per-user equivalent of Common Files for plug-ins on Windows; the
+    // system domain is the only convention, so there is no second place to look.
+    return {};
+#elif defined(__APPLE__)
+    char path[PATH_MAX];
+    auto state = sysdir_start_search_path_enumeration(SYSDIR_DIRECTORY_LIBRARY,
+        SYSDIR_DOMAIN_MASK_USER);
+    if ((state = sysdir_get_next_search_path_enumeration(state, path)))
+    {
+        return expandTilde(path) + "/Audio/Plug-Ins/";
+    }
+    return {};
+#else
+    // Linux keeps everything under the per-user data dir already, so the system
+    // domain IS the user domain and a second scan would be the same folder.
+    return {};
+#endif
+}
+
 std::string getSettingsFolder()
 {
 #ifdef _WIN32

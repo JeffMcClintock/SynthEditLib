@@ -20,6 +20,9 @@ CFBundleRef CreatePluginBundleRef();
 std::string getSettingsFolder();
 std::string getPlatformPluginsFolder();
 
+// Empty when the platform has no user-domain plug-ins location (S35).
+std::string getUserPluginsFolder();
+
 class BundleInfo
 {
 public:

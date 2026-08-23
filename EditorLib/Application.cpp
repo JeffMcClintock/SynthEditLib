@@ -543,6 +543,31 @@ void ApplicationBase::RefreshModuleData(bool refresh_sems, bool refresh_vsts, bo
 
 		ScanFolder(getSettingString(L"ModulePath"), ".sem,.gmpi", L"");
 
+		// S35. Also scan the USER domain. VST3 and AU both search user and system
+		// locations; this searched only system, so every locally built module --
+		// which is where a developer build correctly lands -- installed somewhere
+		// nothing read. Measured on one mac: 7 modules in the system domain,
+		// 9 in the user domain, none of the 9 visible.
+		//
+		// Derived from ModulePath rather than hardcoded, so a user who has
+		// repointed it keeps one scan and does not silently gain a second folder:
+		// only the part BELOW the system plug-ins root is carried across.
+		{
+			const auto systemRoot = Utf8ToWstring(getPlatformPluginsFolder());
+			const auto userRoot = Utf8ToWstring(getUserPluginsFolder());
+			const auto modulePath = getSettingString(L"ModulePath");
+
+			if (!userRoot.empty() && !systemRoot.empty() && modulePath.rfind(systemRoot, 0) == 0)
+			{
+				const auto userModulePath = userRoot + modulePath.substr(systemRoot.size());
+
+				std::cout << "Scanning for 3rd-party SEMs in (user domain): "
+					<< WStringToUtf8(userModulePath) << std::endl;
+
+				ScanFolder(userModulePath, ".sem,.gmpi", L"");
+			}
+		}
+
 #ifdef _WIN32
 		// 3rd Party Mac SEMs (Windows)
 		{
