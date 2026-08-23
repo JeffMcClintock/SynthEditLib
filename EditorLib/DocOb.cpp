@@ -525,11 +525,21 @@ bool CDocOb::FlagRequiredModuleForExport(const std::wstring& moduleTypeId)
 		return true;
 	}
 
-	// A stock module every export depends on is missing from the module database, so the
-	// plugin scan was incomplete - e.g. a cache rebuilt without libControls.gmpi. The
-	// broken database is the problem to repair; the crash this used to be was only the
-	// symptom. Report once per module, not per export - the panel re-exports on every
-	// refresh.
+	// A stock module every export depends on is missing from the module database. The
+	// crash this used to be was only the symptom; the missing database entry is the
+	// problem to repair. Report once per module, not per export - the panel re-exports on
+	// every refresh.
+	//
+	// BACKLOG P11 (TideSynth): the message used to assert one specific cause -
+	// "this installation is broken" - which is wrong for the case that row measured. A
+	// tree built with only one of a multi-target plugin's targets (e.g. `TIDE_VST3` alone,
+	// skipping its sibling GMPI target) leaves that plugin's OWN module-database entry
+	// stale, and a stale-but-present library is indistinguishable, from here, from one the
+	// scan never found - see the header comment. Naming a *specific* stale file would need
+	// either hardcoding a product name into this shared, general-purpose path (SynthEditLib
+	// has no business knowing TIDE exists) or new provenance-tracking infrastructure this
+	// row did not ask for; what changed instead is that the message stops asserting the
+	// cause it cannot tell.
 	static std::set<std::wstring> reported;
 	if (reported.insert(moduleTypeId).second)
 	{
@@ -538,8 +548,12 @@ bool CDocOb::FlagRequiredModuleForExport(const std::wstring& moduleTypeId)
 		if (auto* doc = Document(); doc && doc->Application())
 			doc->Application()->SeMessageBoxAsync(
 				(L"Export failed: required module is missing from the module database:\n" + moduleTypeId +
-					L"\nThe module scan is incomplete - this installation is broken. "
-					L"Re-scan modules (or repair the modules folder), then export again.").c_str(),
+					L"\n\nEither the module scan is incomplete, or the plugin that provides this "
+					L"module was rebuilt from only one of its build targets and its module-database "
+					L"file (.sem/.gmpi) was never refreshed to match - a stale build looks identical "
+					L"to a broken installation from here.\n\n"
+					L"Re-scan modules. If a plugin build produced this, rebuild every one of its "
+					L"targets (not just one), then re-scan.").c_str(),
 				L"Export failed", MB_OK | MB_ICONSTOP);
 	}
 
