@@ -394,7 +394,7 @@ void SeAudioMaster::BuildDspGraph(
 }
 #endif
 
-void SeAudioMaster::BuildDspGraph(
+bool SeAudioMaster::BuildDspGraph(
 	TiXmlDocument* doc,
 	std::vector< std::pair<int32_t, std::string> >& pendingPresets,
 	std::vector<int32_t>& mutedContainers
@@ -407,23 +407,42 @@ void SeAudioMaster::BuildDspGraph(
 	// block: name
 	{
 		document_xml = hDoc.FirstChildElement("Document").Element();
+
+		// E10: a chunk with no <Document> root parses WITHOUT error -- "<Patch/>"
+		// is well-formed -- so RootElement() is non-null and the bundle fallback
+		// upstream is skipped. This deref was the crash.
+		if (!document_xml)
+			return false;
+
 		pElem = document_xml->FirstChildElement("DSP");
 
 		// should always have a valid root but handle gracefully if it does
 		if (!pElem)
-			return;
+			return false;
 	}
 
 	// block: DSP
 	{
-		// First element must be the Main Container.
+		// First element must be the Main Container. The asserts below were the
+		// only thing checking this, and they vanish in Release.
 		pElem = pElem->FirstChildElement();
-		assert(strcmp(pElem->Value(), "Module") == 0);
-		assert(strcmp(pElem->Attribute("Type"), "Container") == 0);
+		if (!pElem || !pElem->Value() || strcmp(pElem->Value(), "Module") != 0)
+			return false;
+
+		{
+			const char* containerType = pElem->Attribute("Type");
+			if (!containerType || strcmp(containerType, "Container") != 0)
+				return false;
+		}
 		auto moduleType = ModuleFactory()->GetById(L"Container");
 		assert(main_container == 0);
 		main_container = dynamic_cast<ug_container*>(moduleType->BuildSynthOb());
 		main_container->Setup(this, pElem);
+
+		// E10: a <Module> with no <PatchManager> reached ug_container.cpp and
+		// crashed there -- the "skeleton" case the probe reports as a KNOWN LIMIT.
+		if (!pElem->FirstChildElement("PatchManager"))
+			return false;
 
 		main_container->SetupPatchManager(pElem->FirstChildElement("PatchManager"), pendingPresets);
 		auto mc_patch_manager = main_container->get_patch_manager();
@@ -516,6 +535,8 @@ void SeAudioMaster::BuildDspGraph(
 		//todo		debugpoly();
 	}
 #endif
+
+	return true;
 }
 
 void SeAudioMaster::ApplyPinDefaultChanges(std::unordered_map<int64_t, std::string>& extraPinDefaultChanges)
