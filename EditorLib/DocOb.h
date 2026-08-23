@@ -56,11 +56,20 @@ public:
 
 	// The exporters substitute stock modules ("SE Slider", "SE Background Image", ...) that
 	// every export REQUIRES in the module database. They ship in external plugin libraries
-	// (e.g. libControls.gmpi), so an incomplete plugin scan can lose them - that is a broken
-	// installation, not an optional extra. Flags the module for serialisation; a missing one
-	// is reported loudly, naming the module and the broken module database, and returns
+	// (e.g. libControls.gmpi), so an incomplete plugin scan can lose them. Flags the module
+	// for serialisation; a missing one is reported loudly, naming the module, and returns
 	// false so the caller does not dereference null. The export is broken either way; the
 	// diagnostic points at what to repair.
+	//
+	// TWO DISTINCT causes produce the identical symptom, and the diagnostic used to name
+	// only one of them - BACKLOG P11 (TideSynth), found via TIDE_VST3 built without its
+	// sibling GMPI target: (1) a genuinely incomplete scan (the providing library was never
+	// found), and (2) the providing library WAS found and loaded, but is a STALE build that
+	// predates this module - e.g. one output target of a multi-target plugin build was
+	// refreshed and another, which alone supplies the module database entry, was not. Both
+	// look identical from here: GetById() returns null either way, and nothing in the
+	// currently-loaded module list can tell one apart from the other without re-scanning.
+	// The message says so rather than guessing which one this is.
 	bool FlagRequiredModuleForExport(const std::wstring& moduleTypeId);
 	virtual void OnHelp();
 	virtual void DoAboutBox();
