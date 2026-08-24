@@ -555,16 +555,44 @@ void ApplicationBase::RefreshModuleData(bool refresh_sems, bool refresh_vsts, bo
 
 		ScanFolder(getSettingString(L"ModulePath"), ".sem,.gmpi", L"");
 
-		// S35 REVERTED 2026-08-24: the user-domain scan landed here and made
-		// SynthEditCL segfault. Measured on this mac, same project, same command,
-		// only SynthEditLib differing: pre-S35 renders and exits 0; with the scan
-		// it hits 43 `Module FOUND TWICE!` collisions against the developer's own
-		// ~/Library/Audio/Plug-Ins/GMPI and dies with SIGSEGV, taking 41 extra
-		// dsp_tests down with it (2 failures -> 43). The feature is still wanted --
-		// locally built modules genuinely are invisible today -- but it needs a
-		// ruling on precedence when a user copy shadows a factory module, and it
-		// must not defeat -factorysemsfolder, which exists to make a test run
-		// deterministic. getUserPluginsFolder() is kept; only the scan is withdrawn.
+		// S35, re-landed. VST3 and AU both search the user domain as well as the
+		// system one; this searched only system, so a locally built module -- which
+		// is exactly where a developer build lands -- installed somewhere nothing
+		// read.
+		//
+		// The first attempt segfaulted SynthEditCL and was withdrawn. Neither cause
+		// was the scan itself, and both are now fixed: a .gmpi was being read for
+		// any .xml in its Resources, so TIDE's child-module xml (SDK3 files, read
+		// with the GMPI datatype table) retyped every wide-string pin and a broken
+		// converter recursed until the stack died; and the factory modules were
+		// installing copies of themselves into the user domain, which is what put
+		// 43 duplicates there to collide in the first place.
+		//
+		// Skipped when the sem folder was overridden, because that is the signal
+		// for a controlled run -- SynthEditCL's -factorysemsfolder, which exists to
+		// make a test deterministic. SemCacheName() already namespaces the cache on
+		// the same flag for the same reason. Without this, a test run would pick up
+		// whatever the developer happens to have installed.
+		//
+		// Derived from ModulePath rather than hardcoded, so a user who has repointed
+		// it keeps one scan and does not silently gain a second folder: only the
+		// part BELOW the system plug-ins root is carried across.
+		if (!BundleInfo::instance()->isSemFolderOverridden)
+		{
+			const auto systemRoot = Utf8ToWstring(getPlatformPluginsFolder());
+			const auto userRoot = Utf8ToWstring(getUserPluginsFolder());
+			const auto modulePath = getSettingString(L"ModulePath");
+
+			if (!userRoot.empty() && !systemRoot.empty() && modulePath.rfind(systemRoot, 0) == 0)
+			{
+				const auto userModulePath = userRoot + modulePath.substr(systemRoot.size());
+
+				std::cout << "Scanning for 3rd-party SEMs in (user domain): "
+					<< WStringToUtf8(userModulePath) << std::endl;
+
+				ScanFolder(userModulePath, ".sem,.gmpi", L"");
+			}
+		}
 
 
 #ifdef _WIN32
