@@ -4,9 +4,7 @@
 #include <map>
 #include <filesystem>
 
-#ifdef _WIN32
-#include "afxres.h"
-#endif
+#include "StandardCommandIds.h"
 
 #include "Application.h"
 #include "CContainer.h"

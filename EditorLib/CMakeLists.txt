@@ -184,6 +184,7 @@ add_library(EditorLib STATIC
     ${SYNTHEDITLIB_DIR}/EditorLib/Plug_decorator_vst.h
     ${SYNTHEDITLIB_DIR}/EditorLib/SkinMgr.cpp
     ${SYNTHEDITLIB_DIR}/EditorLib/SkinMgr.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/StandardCommandIds.h
     ${SYNTHEDITLIB_DIR}/EditorLib/SuspendDSP.cpp
     ${SYNTHEDITLIB_DIR}/EditorLib/SuspendDSP.h
     ${SYNTHEDITLIB_DIR}/EditorLib/SynthEditDocBase.cpp

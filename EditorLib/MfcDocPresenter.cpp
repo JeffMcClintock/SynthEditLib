@@ -1,8 +1,6 @@
 #include "resource.h"
 #include "ILicenseState.h"
-#ifdef _WIN32
-#include "afxres.h"
-#endif
+#include "StandardCommandIds.h"
 #include <fstream>
 #include <vector>
 #include <algorithm>
