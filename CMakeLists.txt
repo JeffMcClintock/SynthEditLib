@@ -579,6 +579,23 @@ modules/se_sdk3_hosting/Presenter.cpp
 ENDIF()
 
 
+# BACKLOG S8. EVERYTHING BELOW IS COMPILED INTO libSynthEditLib ONLY FOR JUCE
+# BUILDS. 79 .cpp files sit inside this block. A JUCE host cannot load external
+# modules, so they are linked in; every other build gets them as loadable
+# .sem/.gmpi instead, which is correct for SynthEdit because it scans for them
+# at runtime.
+#
+# It is NOT correct for an app that links statically and does NOT scan -- TIDE
+# (BACKLOG S1a). Such an app sees none of these modules no matter what it does,
+# and the failure is a link error naming a symbol that plainly exists in this
+# repo, which reads like a build bug rather than a deliberate gate. TIDE has to
+# compile any module it ships into its OWN target; E2c does exactly that for
+# "Oscillator HD".
+#
+# Measured 2026-08-24 (macos): with SE2JUCE off, libSynthEditLib.a holds 182
+# members and none of the 79 -- OscillatorNaive, Waveshapers, SoftDistortion,
+# NoteExpression and Inverter all confirmed absent by `ar -t`, against
+# MidiToCv2.cpp.o (outside this block) confirmed present.
 IF(SE2JUCE)
 
 # graphics modules
