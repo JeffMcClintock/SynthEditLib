@@ -1331,7 +1331,20 @@ void SplitSubMenuString(std::wstring sub_menu, vector< wstring >& subMenus)
 	}
 }
 
-void CSynthEditAppBase::ExportModules(std::list< std::wstring >& moduleList, bool includePrefabs)
+// BACKLOG V4. Changing the scope has to WAKE the browser: its only trigger was
+// ReloadMenu(), which fires when the module LIST changes, never when the view
+// does. Without this, switching rack<->structure left the old list on screen.
+void CSynthEditAppBase::setBrowserScope(ModuleScope scope)
+{
+	if (scope == m_browser_scope)
+		return;
+
+	m_browser_scope = scope;
+	NotifyFast(OM_UPDATE_MODULE_BROWSER);
+}
+
+void CSynthEditAppBase::ExportModules(std::list< std::wstring >& moduleList, bool includePrefabs,
+                                      ModuleScope scope)
 {
 	if (m_menu_to_module_map.empty())
 	{
@@ -1342,8 +1355,23 @@ void CSynthEditAppBase::ExportModules(std::list< std::wstring >& moduleList, boo
 
 	for (auto it = m_menu_to_module_map.begin(); it != m_menu_to_module_map.end(); ++it)
 	{
-		if (!includePrefabs && Left((*it).second.unique_id, 3) == (L"*P="))
+		const bool isPrefab = Left((*it).second.unique_id, 3) == (L"*P=");
+
+		if (!includePrefabs && isPrefab)
 			continue;
+
+		if (scope == ModuleScope::RackOnly)
+		{
+			// A rack item is a prefab, or a module whose category starts "Rack"
+			// -- Rack, Rack/VCV, Rack/Cardinal. Compared case-insensitively to
+			// match how group names are already compared a few lines below;
+			// "Rack" is the documented spelling, not the enforced one.
+			const bool rackCategory =
+				Lowercase(Left((*it).second.group, 4)) == L"rack";
+
+			if (!isPrefab && !rackCategory)
+				continue;
+		}
 
 		// split off sub dir names
 		std::wstring	sub_menu = (*it).second.group;

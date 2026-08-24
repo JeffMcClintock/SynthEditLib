@@ -54,7 +54,7 @@ void ModuleBrowser::OnNotify(Notifier* sender, int lHint, void* pHint)
     {
         moduleList.clear();
         const bool includePrefabs = true;
-        app->ExportModules(moduleList, includePrefabs);
+        app->ExportModules(moduleList, includePrefabs, app->browserScope());
 
         state.moduleGroups.moduleGroups.clear();
         state.formIsDirty = true;
@@ -97,7 +97,7 @@ void ModuleBrowser::Init()
     app->RegisterObserver(this);
 
     const bool includePrefabs = true;
-    app->ExportModules(moduleList, includePrefabs);
+    app->ExportModules(moduleList, includePrefabs, app->browserScope());
 
     renderVisuals();
 }

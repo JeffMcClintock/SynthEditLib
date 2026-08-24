@@ -165,6 +165,23 @@ struct ApplicationSettings
 	}
 };
 
+// BACKLOG V4. Which slice of the module list the browser should offer.
+//
+// Jeff's ruling 2026-08-24: in the rack view only rack modules are relevant --
+// "prefab from the rack folder, plus modules of a specific category", where the
+// category is anything starting "Rack" (so Rack, Rack/VCV, Rack/Cardinal).
+// Drilling into the structure view still offers everything.
+//
+// The TiDE category is deliberately NOT rack-relevant: Panel, knob and the two
+// patch points are the parts a rack module is BUILT FROM, not things that stand
+// alone in a rack. The two namespaces are disjoint on purpose, so a module never
+// has to choose between being a rack item and being usable inside one.
+enum class ModuleScope
+{
+	Everything,   // structure view -- every module and prefab, as before
+	RackOnly,     // rack view
+};
+
 class CSynthEditAppBase : public gmpi::hosting::interThreadQueUser, public ApplicationBase
 {
 	friend class SeAudioMaster;
@@ -283,7 +300,16 @@ public:
 	bool BuildSynth();
 	void DoHelp(std::wstring p_url, int p_cmd = 0) override; // HH_DISPLAY_TOPIC
 
-	void ExportModules(std::list< std::wstring >& moduleList, bool includePrefabs = true);
+	void ExportModules(std::list< std::wstring >& moduleList, bool includePrefabs = true,
+	                   ModuleScope scope = ModuleScope::Everything);
+
+	// BACKLOG V4. The browser is a single app-level observer, and viewType lives
+	// per-view on MfcDocPresenter -- so nothing told it which view was active, and
+	// nothing woke it when the view CHANGED (its only trigger was ReloadMenu(),
+	// i.e. the module list changing). Both gaps are why "just one filter" was not.
+	ModuleScope m_browser_scope = ModuleScope::Everything;
+	void setBrowserScope(ModuleScope scope);
+	ModuleScope browserScope() const { return m_browser_scope; }
 	void SetAudioOutput(const std::wstring& p_id);
 	void DoExit();
 	
