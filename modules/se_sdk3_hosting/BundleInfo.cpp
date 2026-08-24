@@ -70,13 +70,23 @@ CFBundleRef CreatePluginBundleRef()
 		return {};
 
 	// Walk up the path looking for a "Contents" component, indicating a bundle.
+	// Take the LAST one, not the first. A bundle can be NESTED inside another:
+	// an AUv3 lives at <host>.app/Contents/PlugIns/<plugin>.appex/Contents/MacOS/,
+	// which has two. Stopping at the first returned the HOST APP, whose Resources
+	// do not exist -- so every getResource()/getResourceFolder() lookup missed and
+	// TIDE's AUv3 aborted in LoadPrefab trying to seed its root MIDI-CV.
+	// For a .vst3/.component/.app there is exactly one "Contents", so last == first
+	// and this is a no-op for every non-nested bundle.
 	se_fs::path path(info.dli_fname);
 	se_fs::path bundleRoot;
-	for (auto it = path.begin(); it != path.end(); ++it)
 	{
-		if (it->filename() == "Contents")
-			break;
-		bundleRoot /= *it;
+		se_fs::path prefix;
+		for (auto it = path.begin(); it != path.end(); ++it)
+		{
+			if (it->filename() == "Contents")
+				bundleRoot = prefix;
+			prefix /= *it;
+		}
 	}
 
 	if (bundleRoot.empty() || bundleRoot == path.parent_path())
