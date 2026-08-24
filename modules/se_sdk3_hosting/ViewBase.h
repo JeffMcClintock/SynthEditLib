@@ -73,6 +73,21 @@ bool isIteratingChildren = false;
 		IViewChild* mouseOverObject = {};
 		IViewChild* modulePicker = {};
 
+		// The child a STRICT front-to-back hit test picks - i.e. mouseOverObject before
+		// calcMouseOverObject's selected-module tie-break promotes anything past it.
+		// The two differ exactly when the selection is being reached through something
+		// stacked in front of it. See clickThroughHandle.
+		IViewChild* frontMostHitObject = {};
+
+		// Module the press would have landed on under strict Z-order - what the user
+		// was actually pointing AT - latched for the duration of a press that reached
+		// past it to the selection underneath. -1 when the two agree, and cleared as
+		// soon as the pointer moves, because a press that moves is a drag of the
+		// selection, not a click on what covers it. onPointerUp selects whatever is
+		// still latched.
+		int32_t clickThroughHandle = -1;
+		gmpi::drawing::Point pointerDownPoint = {};
+
 		bool isDraggingModules = false;
 		IViewChild* DraggingObject = {};
 		gmpi::drawing::Size DraggingModulesOffset = {};
@@ -99,6 +114,7 @@ bool isIteratingChildren = false;
 		virtual ~ViewBase()
 		{
 			mouseOverObject = {};
+			frontMostHitObject = {};
 		}
 
 		void setDocument(SE2::IPresenter* presenter);

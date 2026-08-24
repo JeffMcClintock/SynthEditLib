@@ -211,6 +211,28 @@ namespace SE2
 		// account for objects appearing without mouse moving (e.g. show-on-parent changing on previous click).
 		calcMouseOverObject(flags);
 
+		// Did this press reach PAST something to the selection underneath? (Only
+		// calcMouseOverObject's selected-module tie-break does that.) If so the user was
+		// pointing at what covers it, and a click - a press that never moves - has to
+		// select that instead, or the object in front can never be reached by the mouse
+		// at all while the one behind stays selected.
+		//
+		// Latched here rather than in the module-drag block below because the press may
+		// never get that far: a panel-view widget captures the mouse from inside
+		// ModuleView::onPointerDown and the view hands the whole gesture to it.
+		//
+		// Left button only, and not while a modifier is held - those are building a
+		// multiple selection, which the press itself has already acted on.
+		pointerDownPoint = point;
+		clickThroughHandle = -1;
+		if((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0
+			&& (flags & (gmpi_gui_api::GG_POINTER_KEY_SHIFT | gmpi_gui_api::GG_POINTER_KEY_CONTROL)) == 0
+			&& mouseOverObject && frontMostHitObject && frontMostHitObject != mouseOverObject
+			&& frontMostHitObject->getModuleHandle() != mouseOverObject->getModuleHandle()) // e.g. the selection's own adorner
+		{
+			clickThroughHandle = frontMostHitObject->getModuleHandle();
+		}
+
 		IViewChild* hitObject = nullptr;
 		if(mouseOverObject)
 		{
@@ -326,6 +348,17 @@ namespace SE2
 		currentPointerPosAbsolute = point;
 		lastMovePoint = currentPointerPosAbsolute * inv_viewTransform;
 
+		// Pressed on the selection through something in front, and now moving: this is a
+		// drag of the selection, not a click on what covers it. Drop the latch. The
+		// tolerance keeps a shaky hand from turning a click into a drag.
+		if(clickThroughHandle >= 0)
+		{
+			constexpr float clickMovementTolerance = 3.0f;
+			const auto delta = lastMovePoint - pointerDownPoint;
+			if(fabsf(delta.width) > clickMovementTolerance || fabsf(delta.height) > clickMovementTolerance)
+				clickThroughHandle = -1;
+		}
+
 		seInputTrace("move: flags=0x%x captureObj=%d draggingModules=%d pt=[%.1f,%.1f]",
 			flags, mouseCaptureObject ? 1 : 0, isDraggingModules ? 1 : 0,
 			lastMovePoint.x, lastMovePoint.y);
@@ -421,7 +454,16 @@ namespace SE2
 				DraggingObject = {};
 			}
 		}
-		
+
+		// Still latched, so the press never moved: it was a click on whatever covers the
+		// selection. Select that - see onPointerDown. Left-button release only, matching
+		// the latch condition (a stray other-button up mid-gesture must not fire it).
+		if(clickThroughHandle >= 0 && (flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
+		{
+			Presenter()->ObjectClicked(clickThroughHandle, flags);
+			clickThroughHandle = -1;
+		}
+
 		return gmpi::ReturnCode::Ok;
 	}
 
@@ -956,6 +998,10 @@ namespace SE2
 		{
 			mouseOverObject = nullptr;
 		}
+		if (frontMostHitObject == child)
+		{
+			frontMostHitObject = nullptr;
+		}
 
 		for (auto it = children.begin(); it != children.end(); ++it)
 		{
@@ -1026,6 +1072,11 @@ namespace SE2
 		float bestScore = 25.0f;	// maximum distance from mouse pointer to be considered a 'hit' (e.g. for hitting pins slightly off-target).
 									// objects can impose a lower threshhold. e.g. structureview is 12 pixels max.
 
+		// The same contest WITHOUT the selected-module tie-break below: whatever the
+		// user sees on top at this point. Kept so a click can still reach it.
+		IViewChild* frontMost{};
+		float frontMostScore = bestScore;
+
 		isIteratingChildren = true;
 		for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 		{
@@ -1033,6 +1084,13 @@ namespace SE2
 #if DEBUG_MOUSEOVER
 #endif
 			auto score = m->hitTestFuzzy(flags, lastMovePoint);
+
+			// Strict Z-order: the front-most child to reach a given score keeps it.
+			if(score < frontMostScore)
+			{
+				frontMost = m.get();
+				frontMostScore = score;
+			}
 
 #if DEBUG_MOUSEOVER
 			if (score < 30.f)
@@ -1070,6 +1128,8 @@ namespace SE2
 		}
 		isIteratingChildren = false;
 
+		frontMostHitObject = frontMost;
+
 		if(hitObject != mouseOverObject)
 		{
 			if(mouseOverObject)
@@ -1087,6 +1147,10 @@ namespace SE2
 		if (mouseOverObject == childObject)
 		{
 			mouseOverObject = nullptr;
+		}
+		if (frontMostHitObject == childObject)
+		{
+			frontMostHitObject = nullptr;
 		}
 	}
 
@@ -1858,6 +1922,9 @@ namespace SE2
 		if (mouseOverObject && mouseOverObject->getModuleHandle() == handle)
 			mouseOverObject = nullptr;
 
+		if (frontMostHitObject && frontMostHitObject->getModuleHandle() == handle)
+			frontMostHitObject = nullptr;
+
 		assert(!isIteratingChildren);
 
 		// Call preDelete on the module before erasing it (adorner's preDelete is a no-op).
@@ -1985,6 +2052,8 @@ namespace SE2
                         
                         if (mouseOverObject == m.get())
                             mouseOverObject = {};
+                        if (frontMostHitObject == m.get())
+                            frontMostHitObject = {};
 
 						assert(!isIteratingChildren);
 						it = children.erase(it);
@@ -2039,6 +2108,7 @@ namespace SE2
 		// Clear out previous view.
 			assert(!isIteratingChildren);
 			mouseOverObject = nullptr;
+			frontMostHitObject = nullptr;
 			children.clear();
 		children_monodirectional.clear();
 		isDraggingModules = false;
@@ -2079,6 +2149,7 @@ namespace SE2
 		assert(!isIteratingChildren);
 
 		mouseOverObject = nullptr;
+		frontMostHitObject = nullptr;
 		isDraggingModules = false;
 		patchAutomatorWrapper_ = nullptr;
 
