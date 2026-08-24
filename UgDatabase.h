@@ -28,8 +28,13 @@ public:
 	static CModuleFactory* Instance();
 	gmpi::IMpUnknown* Create( int32_t subType, const std::wstring& uniqueId );
 	Module_Info* GetById( const std::wstring& p_id );
-	int32_t RegisterPlugin(int subType, const wchar_t* uniqueId, MP_CreateFunc2 create); // newest.
-	int32_t RegisterPluginWithXml(int subType, const char* xml, MP_CreateFunc2 create); // newest.
+	// `technology` records which SDK is registering (BACKLOG S46) -- MT_GMPI
+	// from gmpi::RegisterPlugin[WithXml], the MT_SDK3 default everywhere else.
+	// It decides how "string" pins in the module's XML are read (utf-8 vs wide),
+	// including XML that arrives later from a bundle's resources folder, so it
+	// must be stamped on the Module_Info3_internal BEFORE any XML is scanned.
+	int32_t RegisterPlugin(int subType, const wchar_t* uniqueId, MP_CreateFunc2 create, int technology = MT_SDK3); // newest.
+	int32_t RegisterPluginWithXml(int subType, const char* xml, MP_CreateFunc2 create, int technology = MT_SDK3); // newest.
 	bool RegisterModule( get_module_properties_func mod_func, get_pin_properties_func pin_func );
 	bool RegisterModule( module_description_internal& p_module_desc );
 	bool RegisterModule( module_description_dsp& p_module_desc );

@@ -200,11 +200,11 @@ namespace gmpi
 gmpi::ReturnCode RegisterPlugin(gmpi::api::PluginSubtype subType, const char* uniqueId, gmpi::CreatePluginPtr create)
 {
 	const auto uniqueIdW = Utf8ToWstring(uniqueId);
-	return (gmpi::ReturnCode) ModuleFactory()->RegisterPlugin((int) subType, uniqueIdW.c_str(), (MP_CreateFunc2)create);
+	return (gmpi::ReturnCode) ModuleFactory()->RegisterPlugin((int) subType, uniqueIdW.c_str(), (MP_CreateFunc2)create, MT_GMPI);
 }
 gmpi::ReturnCode RegisterPluginWithXml(gmpi::api::PluginSubtype subType, const char* xml, gmpi::CreatePluginPtr create)
 {
-	return (gmpi::ReturnCode) ModuleFactory()->RegisterPluginWithXml((int) subType, xml, (MP_CreateFunc2) create);
+	return (gmpi::ReturnCode) ModuleFactory()->RegisterPluginWithXml((int) subType, xml, (MP_CreateFunc2) create, MT_GMPI);
 }
 }
 
@@ -239,9 +239,13 @@ __attribute__((visibility("hidden")))
 	}
 }
 
-int32_t CModuleFactory::RegisterPlugin( int subType, const wchar_t* uniqueId, MP_CreateFunc2 create )
+int32_t CModuleFactory::RegisterPlugin( int subType, const wchar_t* uniqueId, MP_CreateFunc2 create, int technology )
 {
 	auto mi3 = FindOrCreateModuleInfo3(uniqueId);
+	// Stamp before returning: a host may enrich this module's pins from a
+	// resources-folder XML long after this call, and that scan asks
+	// ModuleTechnology() to decide what "string" means (see UgDatabase.h).
+	mi3->setModuleTechnology(technology);
 	return mi3->RegisterPluginConstructor( subType, create );
 }
 
@@ -264,7 +268,7 @@ std::wstring parseModuleId(tinyxml2::XMLDocument& doc, const char* xml)
 	return{};
 }
 
-int32_t CModuleFactory::RegisterPluginWithXml(int subType, const char* xml, MP_CreateFunc2 create)
+int32_t CModuleFactory::RegisterPluginWithXml(int subType, const char* xml, MP_CreateFunc2 create, int technology)
 {
 	tinyxml2::XMLDocument doc;
 	auto uniqueId = parseModuleId(doc, xml);
@@ -278,6 +282,7 @@ int32_t CModuleFactory::RegisterPluginWithXml(int subType, const char* xml, MP_C
 	}
 
 	auto mi3 = FindOrCreateModuleInfo3(uniqueId);
+	mi3->setModuleTechnology(technology); // must precede ScanXml: it decides how "string" pins are read.
 
 	tinyxml2::XMLNode* pluginList = doc.FirstChildElement("PluginList");
 
