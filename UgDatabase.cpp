@@ -41,12 +41,13 @@ using namespace gmpi_sdk;
 
 std::mutex RegisterExternalPluginsXmlOnce_lock;
 
-const IOFlags IO_flagNames[15] = {
+const IOFlags IO_flagNames[16] = {
 	{ ""	, IO_POLYPHONIC_ACTIVE			},
 	{ "ignorePatchChange"		, IO_IGNORE_PATCH_CHANGE	},
 	{ "autoRename"				, IO_RENAME					},
 	{ "autoDuplicate"			, IO_AUTODUPLICATE			},
 	{ "isFilename"				, IO_FILENAME				},
+	{ "isFilenameWritable"		, IO_FILENAME_WRITABLE		}, // qualifies isFilename: the module writes this file rather than reading it
 	{ "settableOutput"			, IO_SETABLE_OUTPUT			},
 //	{ ""						, IO_CUSTOMISABLE			}, // DEPRECATED
 	{ "isAdderInputPin"			, IO_ADDER					},

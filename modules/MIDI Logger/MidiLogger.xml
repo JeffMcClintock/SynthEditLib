@@ -3,7 +3,7 @@
 <PluginList>
 	<Plugin id="SE MIDI Logger" name="MIDI Logger" category="Diagnostic" graphicsApi="none" helpUrl="MidiLogger.htm">
 		<Audio>
-			<Pin id="0" name="File Name" direction="in" datatype="string" isFilename="true" default="midi-log.txt" metadata="txt"/>
+			<Pin id="0" name="File Name" direction="in" datatype="string" isFilename="true" isFilenameWritable="true" default="midi-log.txt" metadata="txt"/>
 			<Pin id="1" name="MIDI In" direction="in" datatype="midi"/>
 		</Audio>
 	</Plugin>

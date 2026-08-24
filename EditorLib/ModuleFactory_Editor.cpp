@@ -1681,6 +1681,10 @@ void SaveModuleInfoPinXml(InterfaceObject* pin, ExportFormatType format, tinyxml
 	{
 		pinXml->SetAttribute("isFilename", "true");
 	}
+	if ((pin->GetFlags() & IO_FILENAME_WRITABLE) != 0)
+	{
+		pinXml->SetAttribute("isFilenameWritable", "true");
+	}
 	if ((pin->GetFlags() & IO_SETABLE_OUTPUT) != 0)
 	{
 		pinXml->SetAttribute("settableOutput", "true");
@@ -1885,6 +1889,10 @@ tinyxml2::XMLElement* ExportModuleInfo(Module_Info* info, tinyxml2::XMLNode* ele
 			if ((param->flags & IO_FILENAME) != 0)
 			{
 				parameterXml->SetAttribute("isFilename", "true");
+			}
+			if ((param->flags & IO_FILENAME_WRITABLE) != 0)
+			{
+				parameterXml->SetAttribute("isFilenameWritable", "true");
 			}
 			if ((param->flags & IO_PAR_POLYPHONIC) != 0)
 			{

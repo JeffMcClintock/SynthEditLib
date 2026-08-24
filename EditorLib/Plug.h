@@ -117,6 +117,7 @@ public:
 		return !isMinimised() && !obsolete;
 	}
 	bool is_filename(){return info()->is_filename();}
+	bool is_filename_writable() { return info()->is_filename_writable(); }
 	bool isRenamable() { return info()->isRenamable(); }
 	bool isParameterPlug() { return info()->isParameterPlug(); }
 	bool isHostControlledPlug() { return info()->isHostControlledPlug(); }

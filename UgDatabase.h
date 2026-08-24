@@ -16,7 +16,7 @@ struct IOFlags
 	int32_t flag;
 };
 
-extern const IOFlags IO_flagNames[15];
+extern const IOFlags IO_flagNames[16];
 
 // this class is a singleton,
 // it's shared between all instances of the dll (in VST mode)

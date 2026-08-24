@@ -39,7 +39,7 @@ void ug_wave_recorder::ListInterface2(std::vector<class InterfaceObject*>& PList
 	// defid used to name a enum list or range of values
 	LIST_PIN2(L"Left (Mono)",input[0], DR_IN,L"",L"", IO_LINEAR_INPUT,L"");
 	LIST_PIN2( L"Right",input[1],  DR_IN, L"", L"", IO_LINEAR_INPUT,L"");
-	LIST_VAR3( L"File Name",FileName, DR_IN,DT_TEXT, L"Wavefile", L"wav", IO_FILENAME, L"Enter the .WAV filename.  Check the menu 'Audio - Preferences' for the default directory.");
+	LIST_VAR3( L"File Name",FileName, DR_IN,DT_TEXT, L"Wavefile", L"wav", IO_FILENAME | IO_FILENAME_WRITABLE, L"Enter the .WAV filename.  Check the menu 'Audio - Preferences' for the default directory.");
 	LIST_VAR3( L"Format", m_format, DR_IN, DT_ENUM   , L"0", L"16 bit, 32 bit float", IO_MINIMISED, L"Sets the file format");
 	LIST_VAR3( L"Time Limit", total_time, DR_IN, DT_DOUBLE, L"4", L"", IO_MINIMISED, L"Sets length of WAV file, in seconds");
 	LIST_VAR3( L"Play Wavefile", play_file, DR_IN, DT_BOOL, L"0", L"",IO_MINIMISED|IO_HIDE_PIN, L"Plays sound once it is written to file");

@@ -39,6 +39,11 @@ public:
 	{
 		return (GetFlags() & IO_FILENAME) != 0;
 	}
+	// Only meaningful on a filename pin: true if the module writes the file, false if it reads it.
+	bool is_filename_writable() const
+	{
+		return (GetFlags() & IO_FILENAME_WRITABLE) != 0;
+	}
 	bool isRenamable() const
 	{
 		return (GetFlags() & IO_RENAME) != 0;

@@ -76,6 +76,7 @@ PatchParameter_base::PatchParameter_base( CUG* p_module, parameter_description& 
 	,moduleParameterId_(descriptor.id)
 	,isPolyphonic_( (descriptor.flags& IO_PAR_POLYPHONIC ) != 0 )
 	,isPolyphonicGate_( (descriptor.flags& IO_PAR_POLYPHONIC_GATE ) != 0 )
+	,isFilenameWritable_( (descriptor.flags& IO_FILENAME_WRITABLE ) != 0 )
 {
 	initStates();
 }

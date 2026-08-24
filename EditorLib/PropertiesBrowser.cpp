@@ -1203,6 +1203,11 @@ void PropertiesBrowser::Body()
 
 						auto browseButton = std::make_unique<gmpi::ui::builder::FileBrowseButtonView>(gmpi::drawing::Rect{});
 
+						// A pin the module writes (e.g. Wave Recorder's output file) browses with a Save
+						// dialog, so a not-yet-existing name can be typed. One it only reads gets an Open
+						// dialog, which neither insists on a new name nor warns about overwriting.
+						browseButton->saveMode = pin->is_filename_writable();
+
 						browseButton->value.setSource(&converter2->to);
 						browseButton->validateAndSave = [pin](const std::string& fullPath) -> void
 							{
@@ -1353,6 +1358,10 @@ void PropertiesBrowser::Body()
 					auto state2 = std::make_unique< gmpi_forms::State<std::string> >(full_filename);
 
 					auto browseButton = std::make_unique<gmpi::ui::builder::FileBrowseButtonView>(gmpi::drawing::Rect{});
+
+					// see the pin browse button above: Save dialog for a file the module writes,
+					// Open dialog for one it only reads.
+					browseButton->saveMode = p->isFilenameWritable();
 
 					browseButton->value.setSource(state2.get());
 					browseButton->validateAndSave = [p, extension8](const std::string& fullPath) -> void

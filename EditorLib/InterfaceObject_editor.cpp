@@ -133,6 +133,10 @@ void InterfaceObject_editor::Export(class Json::Value& pins_json, ExportFormatTy
 		//pinXml->SetAttribute("isFilename", "true");
 		pin_json["isFilename"] = "true";
 	}
+	if (is_filename_writable())
+	{
+		pin_json["isFilenameWritable"] = "true";
+	}
 	if ((GetFlags() & IO_LINEAR_INPUT) != 0)
 	{
 		//pinXml->SetAttribute("linearInput", "true");

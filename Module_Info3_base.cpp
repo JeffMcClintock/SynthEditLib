@@ -470,6 +470,7 @@ void Module_Info::RegisterParameters(tinyxml2::XMLElement* parameters) // XML da
 		SetPinFlag(("ignorePatchChange"), IO_IGNORE_PATCH_CHANGE, pData2, pind->flags);
 		// isFilename don't appear to be used???? !!!!!
 		SetPinFlag(("isFilename"), IO_FILENAME, pData2, pind->flags);
+		SetPinFlag(("isFilenameWritable"), IO_FILENAME_WRITABLE, pData2, pind->flags);
 		SetPinFlag(("isPolyphonic"), IO_PAR_POLYPHONIC, pData2, pind->flags);
 		SetPinFlag(("isPolyphonicGate"), IO_PAR_POLYPHONIC_GATE, pData2, pind->flags);
 		// exception. default for 'persistant' is true (set in pind constructor).
@@ -613,6 +614,7 @@ void Module_Info::RegisterPin(TiXmlElement* pin, module_info_pins_t* pinlist, in
 		SetPinFlag("private", IO_HIDE_PIN, pin, testCorrectness);
 		SetPinFlag("autoRename", IO_RENAME, pin, testCorrectness);
 		SetPinFlag("isFilename", IO_FILENAME, pin, testCorrectness);
+		SetPinFlag("isFilenameWritable", IO_FILENAME_WRITABLE, pin, testCorrectness);
 		SetPinFlag("settableOutput", IO_SETABLE_OUTPUT, pin, testCorrectness);
 		SetPinFlag("linearInput", IO_LINEAR_INPUT, pin, testCorrectness);
 		SetPinFlag("ignorePatchChange", IO_IGNORE_PATCH_CHANGE, pin, testCorrectness);
@@ -967,6 +969,7 @@ void Module_Info::RegisterPin(tinyxml2::XMLElement* pin, module_info_pins_t* pin
 		SetPinFlag("private", IO_HIDE_PIN, pin, testCorrectness);
 		SetPinFlag("autoRename", IO_RENAME, pin, testCorrectness);
 		SetPinFlag("isFilename", IO_FILENAME, pin, testCorrectness);
+		SetPinFlag("isFilenameWritable", IO_FILENAME_WRITABLE, pin, testCorrectness);
 		SetPinFlag("settableOutput", IO_SETABLE_OUTPUT, pin, testCorrectness);
 		SetPinFlag("linearInput", IO_LINEAR_INPUT, pin, testCorrectness);
 		SetPinFlag("ignorePatchChange", IO_IGNORE_PATCH_CHANGE, pin, testCorrectness);

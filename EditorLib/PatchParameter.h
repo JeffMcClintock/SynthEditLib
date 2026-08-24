@@ -111,6 +111,7 @@ public:
 //		s("moduleParameterId", moduleParameterId_);
 		s("isPolyphonic", isPolyphonic_);
 		s("isPolyphonicGate", isPolyphonicGate_);
+		s("isFilenameWritable", isFilenameWritable_);
 		s("hint", hint);
 	}
 
@@ -173,6 +174,12 @@ public:
 	void setPolyphonicGate(bool value)
 	{
 		isPolyphonicGate_ = value;
+	}
+	// Only meaningful on a filename parameter (one with a file-extension): true if the
+	// module writes the file, false if it only reads it. See IO_FILENAME_WRITABLE.
+	bool isFilenameWritable() const
+	{
+		return isFilenameWritable_;
 	}
 	void setIgnoreProgramChange(bool value);
 	void onSetIgnoreProgramChange();
@@ -362,6 +369,7 @@ private:
 	int moduleParameterId_ = -1;
 	bool isPolyphonic_ = false;
 	bool isPolyphonicGate_ = false;
+	bool isFilenameWritable_ = false;
 	int vstParameterNumber_ = -1;
 	int vstDisplayType_ = 0;
 	float vstDisplayMin_ = 0;

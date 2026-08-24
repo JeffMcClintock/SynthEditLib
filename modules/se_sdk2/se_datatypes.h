@@ -113,4 +113,9 @@ enum ug_event_type {
 // Changes to this pin require re-drawing the whole module (Controls on Parent).
 #define IO_REDRAW_ON_CHANGE			0x8000000
 
+// Qualifies IO_FILENAME: names a file the module WRITES (e.g. Wave Recorder), rather than one it reads.
+// The editor browses for these with a 'Save' dialog, so a name that doesn't exist yet can be typed in.
+// Without it (the default) a filename pin is taken to be read-only, and gets an 'Open' dialog instead.
+#define IO_FILENAME_WRITABLE		0x10000000
+
 #endif
