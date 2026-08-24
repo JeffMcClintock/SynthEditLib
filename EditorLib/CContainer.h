@@ -14,10 +14,13 @@ class CSynthEditDocBase;
 
 typedef std::list<CDocOb*> DO_LIST;
 
-#ifndef _WIN32
-enum{ ID_EDIT_COPY = 0xe122, ID_EDIT_PASTE = 0xe125, ID_EDIT_CUT = 0xe123, ID_EDIT_SELECT_ALL = 0xe12A
-};
-#endif
+// P3 moved these ids into StandardCommandIds.h, which defines them as macros
+// on every platform. This file used to declare its own enum for them under
+// #ifndef _WIN32; once CContainer.cpp included StandardCommandIds.h first, the
+// macros expanded inside the enum and it stopped compiling off Windows --
+// "expected identifier". Windows never saw it because the enum was compiled
+// out there. Same four values, one definition now.
+#include "StandardCommandIds.h"
 
 // Forward declaration so the free-function export can be granted friend access.
 // Keep in step with ExportAsPlugin.h — the friend declaration below matches by
