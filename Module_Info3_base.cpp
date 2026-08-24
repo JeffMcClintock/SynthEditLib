@@ -740,9 +740,15 @@ void Module_Info::RegisterPin(TiXmlElement* pin, module_info_pins_t* pinlist, in
 					if (pin_datatype.size() > 7)
 						pind.classname = pin_datatype.substr(7);
 				}
-				else if (pind.datatype == DT_TEXT && GetExtension(Filename())== L"gmpi")
+				else if (pind.datatype == DT_TEXT && MT_GMPI == ModuleTechnology())
 				{
 					// by default GMPI uses UTF-8 encoding for strings. (SE uses UCS16)
+					// S46: was GetExtension(Filename()) == L"gmpi" -- the only one of
+					// the three sites doing this dance that sniffed the extension
+					// inline. ModuleTechnology() gives the same answer for a
+					// file-backed module (Module_Info3's override checks the extension,
+					// and the mac bundle path too), and the RECORDED answer for a
+					// statically-registered one, which has no file to sniff.
 					pind.datatype = DT_STRING_UTF8;
 				}
 			}
