@@ -481,8 +481,8 @@ void Module_Info::RegisterParameters(tinyxml2::XMLElement* parameters) // XML da
 			CLEAR_BITS(pind->flags, IO_PARAMETER_PERSISTANT);
 		}
 
-				// can't handle poly parameters with 128 patches, bogs down dsp_patch_parameter_base::getQueMessage()
-				// !! these are not really parameters anyhow, more like controlers (host genereated)
+		// can't handle poly parameters with 128 patches, bogs down dsp_patch_parameter_base::getQueMessage()
+		// !! these are not really parameters anyhow, more like controlers (host genereated)
 		if ((pind->flags & IO_PAR_POLYPHONIC) && (pind->flags & IO_IGNORE_PATCH_CHANGE) == 0)
 		{
 			std::wostringstream oss;
