@@ -60,13 +60,23 @@ protected:
 
 // True if this app keeps its skins in a USER-WRITABLE folder under the
 // documents directory, and expects the built-in set copied there on first
-// use. Full SynthEdit does. An app that ships its own look and must write
-// nothing outside its own container -- TIDE, per PLAN constraints 4 and 8 --
-// answers false and is pointed at its bundle instead. BACKLOG S7.
+// use. Full SynthEdit does.
 //
-// Runtime query rather than an #ifdef: EditorLib compiles once for every
-// app. Same shape, and the same reason, as GetLicenseState() (BACKLOG C11)
-// and AppHasModuleEditorDialogs() (BACKLOG S3g). Defined once per app.
+// TIDE does not. Jeff's ruling, 2026-08-24: "TIDE does not support
+// user-defined skins. The default Skin files should load from TIDE's own
+// private resource folder only." So it answers false, is pointed at its own
+// bundle, and nothing under the user's documents folder is created, copied or
+// stamped. PLAN constraints 4 and 8.
+//
+// That bundle folder may legitimately hold nothing. TIDE has exactly one
+// default look and is heading for hardcoded defaults with no skin files at
+// all, so an absent folder is an expected state rather than a missing asset:
+// ScanFiles() uses the error_code overload of directory_iterator, which yields
+// nothing for a path that does not exist, and it always pushes the "global"
+// SkinInfo first -- so getSkin() still returns a usable skin with zero files
+// on disk. TIDE has in fact been running with an empty skin folder all along;
+// before this change it was an empty folder in the USER'S HOME.
+
 bool AppUsesUserSkinsFolder();
 
 class SkinMgr;
