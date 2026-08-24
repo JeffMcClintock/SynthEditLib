@@ -725,10 +725,34 @@ std::filesystem::path firstFileIn(std::filesystem::path folder, std::string exte
 // plugin keeps several engine resources there (dsp.se.xml, parameters.se.xml, ...)
 // alongside its descriptor, so name the descriptor explicitly and never mistake one
 // of the '*.se.xml' resources for a module description.
-std::filesystem::path moduleXmlIn(const std::filesystem::path& resourcesFolder)
+std::filesystem::path moduleXmlIn(const std::filesystem::path& resourcesFolder, const std::string& bundleStem, bool isGmpi)
 {
 	if (const auto gmpiDescriptor = resourcesFolder / "plugin.gmpi.xml"; std::filesystem::exists(gmpiDescriptor))
 		return gmpiDescriptor;
+
+	// A .gmpi may ship its description as a resource, exactly as a .sem does. But
+	// a plug-in is also entitled to keep its OWN files here -- TIDE carries the XML
+	// of its child modules (Converters.xml, VaFilters.xml, ...) -- and those are
+	// private assets, not this bundle's description. Taking whichever .xml the
+	// directory iterator happened to yield first registered them as modules, and
+	// because they are SDK3 files read on the GMPI path, every datatype="string"
+	// pin (wide in SDK3) was recorded as the GMPI String (UTF-8). That silently
+	// retyped every std::wstring pin in the Converters module, so "SE TextToText8"
+	// arrived as Text8->Text8, converted nothing, and ug_base::connect inserted
+	// converters forever until the stack died.
+	//
+	// So for .gmpi the descriptor must be named after the bundle. Measured on one
+	// mac: of 64 installed bundles, 62 already ship only a self-named xml and 30
+	// ship none at all -- the only two that break the rule are the two at fault.
+	// .sem keeps its historic behaviour: the problem has never arisen there and the
+	// format is deprecated.
+	if (isGmpi)
+	{
+		if (const auto selfNamed = resourcesFolder / (bundleStem + ".xml"); std::filesystem::exists(selfNamed))
+			return selfNamed;
+
+		return {};
+	}
 
 	std::error_code ec;
 	for (const auto& entry : std::filesystem::directory_iterator(resourcesFolder, ec))
@@ -775,7 +799,7 @@ void ScanBundle(const std::wstring& group_name, const std::filesystem::path& bun
 	// if we can find an external XML file, we can use that without having to load the dll.
 	// scanning mac plugin on Windows will fail if they don't have discrete xml file
 	bool isShellPlugin = false;
-	if (auto xmlFile = moduleXmlIn(Contents / "Resources"); !xmlFile.empty())
+	if (auto xmlFile = moduleXmlIn(Contents / "Resources", bundle_path.stem().string(), FileExtension == ".gmpi"); !xmlFile.empty())
 	{
 		tinyxml2::XMLDocument doc;
 		doc.LoadFile(toString(xmlFile).c_str());
