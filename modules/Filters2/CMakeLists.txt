@@ -4,7 +4,7 @@ project(LowPass6dB)
 
 gmpi_plugin(
 	PROJECT_NAME ${PROJECT_NAME}
-	HAS_DSP
+	HAS_DSP IS_OFFICIAL_MODULE
 	SOURCE_FILES
 	  LowPass6dB.cpp
 	  LowPass6dB_stereo.cpp
@@ -13,7 +13,7 @@ gmpi_plugin(
 
 gmpi_plugin(
 	PROJECT_NAME SvfTpt
-	HAS_DSP
+	HAS_DSP IS_OFFICIAL_MODULE
 	SOURCE_FILES
 	  SvfTpt.cpp
 	  ${GMPI_SDK}/Helpers/FilterBase.h
@@ -21,7 +21,7 @@ gmpi_plugin(
 
 gmpi_plugin(
 	PROJECT_NAME OnePoleTpt
-	HAS_DSP
+	HAS_DSP IS_OFFICIAL_MODULE
 	SOURCE_FILES
 	  LowPassTpt.cpp
 	  HighPassTpt.cpp
@@ -31,7 +31,7 @@ gmpi_plugin(
 
 gmpi_plugin(
 	PROJECT_NAME SvfEq
-	HAS_DSP
+	HAS_DSP IS_OFFICIAL_MODULE
 	SOURCE_FILES
 	  LowShelfTpt.cpp
 	  HighShelfTpt.cpp
@@ -53,7 +53,7 @@ set(IIR1_SRC
 
 gmpi_plugin(
 	PROJECT_NAME IirFilters
-	HAS_DSP
+	HAS_DSP IS_OFFICIAL_MODULE
 	SOURCE_FILES
 	  Butterworth.cpp
 	  Chebyshev1.cpp

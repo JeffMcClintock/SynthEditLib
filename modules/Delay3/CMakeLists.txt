@@ -4,7 +4,7 @@ project(Delay3)
 
 gmpi_plugin(
 	PROJECT_NAME ${PROJECT_NAME}
-	HAS_DSP
+	HAS_DSP IS_OFFICIAL_MODULE
 	SOURCE_FILES
 	  Delay3.cpp
 )
