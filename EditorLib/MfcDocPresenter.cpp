@@ -29,6 +29,7 @@
 #include "SuspendDSP.h"
 #include "ModulePicker.h"
 #include "ModuleDragAndDropManager.h"
+#include "Dialogs_editor.h"   // BACKLOG S3g: AppHasModuleEditorDialogs()
 
 MfcDocPresenter::MfcDocPresenter(class CContainer* pcontainer, int view_flag, std::function<void(class CContainer*)> onContainerClosing_) : MfcDocPresenterBase(pcontainer)
 , viewDirty(true)
@@ -1320,14 +1321,23 @@ void MfcDocPresenter::populateContextMenu(gmpi::api::IContextItemSink* sink, gmp
 							menu.addItem("Selection to Prefab", [this, o](int32_t result) -> int32_t { this->DoModuleCommand(POPUP_MENU_TO_PREFAB, o); return gmpi::MP_OK; }, prefabFlags);
 						}
 						menu.addItem("Replace...", [this, o](int32_t result) -> int32_t { this->DoModuleCommand(POPUP_MENU_REPLACE, o); return gmpi::MP_OK; });
-						if (viewType == CF_STRUCTURE_VIEW)
-						{
-							menu.addItem("Connect...", [this, o](int32_t result) -> int32_t { this->DoModuleCommand(POPUP_MENU_CONNECT, o); return gmpi::MP_OK; });
-						}
+						// BACKLOG S3g: "Connect..." is a low-priority SynthEdit 1.5 feature that
+						// nothing implements yet -- every doDialogConnectUg, the WinUI3 one
+						// included, is an empty stub, and dlg_connect_ug exists nowhere. Menu
+						// entry commented out; the chain below stays for whenever SynthEdit
+						// (not TIDE) gets to it.
+						//if (viewType == CF_STRUCTURE_VIEW)
+						//{
+						//	menu.addItem("Connect...", [this, o](int32_t result) -> int32_t { this->DoModuleCommand(POPUP_MENU_CONNECT, o); return gmpi::MP_OK; });
+						//}
 
 						flags = o->Container() ? 0 : gmpi_gui::MP_PLATFORM_MENU_GRAYED;
 						menu.addItem("Goto Parent Container", [this, o](int32_t result) -> int32_t { this->DoModuleCommand(POPUP_MENU_LOCATE_CONTAINER, o); return gmpi::MP_OK; }, flags);
-						menu.addItem("Build Code Skeleton...", [this, o](int32_t result) -> int32_t { this->DoModuleCommand(POPUP_MENU_DEBUG_CODE, o); return gmpi::MP_OK; });
+						// BACKLOG S3g: SynthEdit only. OM_SHOW_CODE_SKELETON_DIALOG has exactly
+						// one handler, the WinUI3 app's MainWindow.xaml.cpp. TIDE registers none,
+						// so the notification was dropped and the entry did nothing.
+						if (AppHasModuleEditorDialogs())
+							menu.addItem("Build Code Skeleton...", [this, o](int32_t result) -> int32_t { this->DoModuleCommand(POPUP_MENU_DEBUG_CODE, o); return gmpi::MP_OK; });
 //#ifdef _DEBUG
 						menu.addItem("Don't Export", [this, o](int32_t result) -> int32_t { this->DoModuleCommand(POPUP_MENU_EXCLUDE_FROM_VST, o); return gmpi::MP_OK; },
 							o->excludeFromVst ? gmpi_gui::MP_PLATFORM_MENU_TICKED : 0
