@@ -58,6 +58,17 @@ protected:
 #define TTL_LIGHT					256
 #define TTL_ITALIC					512
 
+// True if this app keeps its skins in a USER-WRITABLE folder under the
+// documents directory, and expects the built-in set copied there on first
+// use. Full SynthEdit does. An app that ships its own look and must write
+// nothing outside its own container -- TIDE, per PLAN constraints 4 and 8 --
+// answers false and is pointed at its bundle instead. BACKLOG S7.
+//
+// Runtime query rather than an #ifdef: EditorLib compiles once for every
+// app. Same shape, and the same reason, as GetLicenseState() (BACKLOG C11)
+// and AppHasModuleEditorDialogs() (BACKLOG S3g). Defined once per app.
+bool AppUsesUserSkinsFolder();
+
 class SkinMgr;
 
 class SkinInfo

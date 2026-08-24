@@ -26,8 +26,17 @@ using namespace std;
 
 SkinMgr::SkinMgr()
 {
-    const auto commonDocuments = BundleInfo::instance()->getCommonDocumentFolder();
-    setSkinFolder( (commonDocuments / L"SynthEdit Projects" / "skins" / "").wstring() );
+	if (AppUsesUserSkinsFolder())
+	{
+		const auto commonDocuments = BundleInfo::instance()->getCommonDocumentFolder();
+		setSkinFolder( (commonDocuments / L"SynthEdit Projects" / "skins" / "").wstring() );
+	}
+	else
+	{
+		// BACKLOG S7. Read the look out of the bundle and never touch the
+		// user's documents folder.
+		setSkinFolder( (std::filesystem::path(BundleInfo::instance()->getResourceFolder()) / "skins" / "").wstring() );
+	}
 
 	ScanFiles();
 }
@@ -47,6 +56,19 @@ SkinMgr::~SkinMgr()
 void SkinMgr::setSkinFolder(const std::wstring& p_skin_folder)
 {
 	m_skin_folder = p_skin_folder;
+
+	// BACKLOG S7: populating a USER skins folder is a full-SynthEdit behaviour.
+	// Everything below writes into the documents directory, so an app that does
+	// not use one must not reach it.
+	//
+	// Measured on macOS before this guard: ONE TIDE launch rewrote
+	// <home>/SynthEdit Projects/.resource_version from SynthEdit's 192 to 0 --
+	// TIDE never defines SE_APP_BUILD_NUMBER, so se_version.h's fallback of 0
+	// wins, versionChanged is true against any real SynthEdit build, and the
+	// stamp is rewritten. That makes SynthEdit re-copy every skin on its next
+	// launch: the two apps were fighting over one version file.
+	if (!AppUsesUserSkinsFolder())
+		return;
 
 	// Ensure the user skin folder contains the built-in skins on first use.
 	// If not, copy them recursively from the application folder.
