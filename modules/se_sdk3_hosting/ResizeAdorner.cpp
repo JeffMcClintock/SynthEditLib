@@ -356,8 +356,18 @@ namespace SE2
 		return gmpi::ReturnCode::Ok;
 	}
 
-	gmpi::ReturnCode ResizeAdorner::onPointerDown(gmpi::drawing::Point point, int32_t)
+	gmpi::ReturnCode ResizeAdorner::onPointerDown(gmpi::drawing::Point point, int32_t flags)
 	{
+		// Right-click belongs to the module's context menu, not to a resize/move drag.
+		// Capturing here is fatal to it: ViewBase::onPointerDown returns Ok as soon as a
+		// child has taken capture, and the host only falls through to doContextMenu() when
+		// the click came back Unhandled - so right-clicking the selection outline, its resize
+		// handles or the gripper bar produced no menu at all (and armed a drag that the next
+		// mouse-move then acted on). Same contract ModuleView::onPointerDown already honours
+		// for right-clicks landing inside the module.
+		if((flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0)
+			return gmpi::ReturnCode::Unhandled;
+
 		pointPrev = point;
 		parent->setCapture(this);
 		parent->autoScrollStart();
@@ -468,8 +478,19 @@ namespace SE2
 	}
 
 	gmpi::ReturnCode ResizeAdorner::onMouseWheel(gmpi::drawing::Point, int32_t, int32_t) { return gmpi::ReturnCode::Unhandled; }
-	gmpi::ReturnCode ResizeAdorner::populateContextMenu(gmpi::drawing::Point, gmpi::api::IUnknown*) { return gmpi::ReturnCode::Unhandled; }
-	gmpi::ReturnCode ResizeAdorner::onContextMenu(int32_t) { return gmpi::ReturnCode::Unhandled; }
+
+	// The adorner is what the mouse is over whenever the pointer is on the selection outline,
+	// a resize handle, or the gripper - all of which read as "the module" to the user. Hand the
+	// menu to the module we adorn so right-clicking its highlight offers exactly what
+	// right-clicking the module itself does. (ViewBase::populateContextMenu already sources the
+	// document-level items from getModuleHandle(), which is the adorned module's handle; this
+	// adds the module's own items - the plugin's, in panel view - on top.)
+	gmpi::ReturnCode ResizeAdorner::populateContextMenu(gmpi::drawing::Point point, gmpi::api::IUnknown* contextMenuItemsSink)
+	{
+		return module->populateContextMenu(point, contextMenuItemsSink);
+	}
+
+	gmpi::ReturnCode ResizeAdorner::onContextMenu(int32_t idx) { return module->onContextMenu(idx); }
 	gmpi::ReturnCode ResizeAdorner::onKeyPress(wchar_t) { return gmpi::ReturnCode::Unhandled; }
 
 	int32_t ResizeAdorner::getModuleHandle()
