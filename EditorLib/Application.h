@@ -91,6 +91,12 @@ public:
 	// command-line tool) keep the historical 'straight' look via the false default.
 	virtual bool defaultLinesCurved() { return false; }
 
+	// Is the document's rack_mode flag the app's to decide rather than the user's?
+	// TIDE *is* a rack, so it forces rackMode on every document it creates or
+	// imports; offering the panel's "Rack Mode" toggle there would only let the
+	// user break it. Full SynthEdit leaves it a per-project choice.
+	virtual bool rackModeIsFixed() { return false; }
+
 	// Single source of truth for "user is dragging a new module from the browser".
 	// Implemented by full-featured apps (SynthEditApp); returns nullptr in lightweight
 	// apps that don't host the editor UI.

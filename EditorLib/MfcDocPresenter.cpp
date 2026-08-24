@@ -1206,7 +1206,8 @@ void MfcDocPresenter::populateContextMenu(gmpi::api::IContextItemSink* sink, gmp
 
 #if defined( _DEBUG )
 		// Whole-project setting, and only the top-level panel becomes the rack.
-		if (!container->Container())
+		// Apps that are themselves a rack pin the flag on - don't offer the toggle.
+		if (!container->Container() && !container->Application()->rackModeIsFixed())
 		{
 			auto document = container->Document();
 			menu.addItem("Rack Mode", [this, document](int32_t result) -> int32_t
