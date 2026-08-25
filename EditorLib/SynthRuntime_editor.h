@@ -126,6 +126,24 @@ public:
 	int32_t sendSdkMessageToAudio(int32_t handle, int32_t id, int32_t size, const void* messageData);
 
 	void serviceQueues();
+
+	// Feed DSP->GUI messages that came from OUTSIDE this runtime's own
+	// processor, and hand them to the app immediately.
+	//
+	// serviceQueues() above drains message_que_dsp_to_ui for the case this
+	// class was written for: the editor OWNS the running processor, both
+	// live in one object, and the processor writes into that queue directly.
+	// A PLUG-IN does not work that way -- its processor is a separate object,
+	// and under AUv3 a separate PROCESS -- so its parameter feedback ("ppc"
+	// messages: output parameters, meters, scope captures) arrives as bytes
+	// carried across by the wrapper, with nothing to put them into. This is
+	// that entry point: same queue, same framing, same reader, different
+	// source.
+	//
+	// `data` must be the raw framed bytes exactly as the processor's own
+	// queue produced them -- copy them verbatim, do not re-frame. Partial
+	// messages are fine: the queue reassembles across calls.
+	void receiveDspMessages(const unsigned char* data, int size);
 	bool SynthBuilt() const;
 	bool SynthRunning() const;
 	bool ProcessingCompleted() const;

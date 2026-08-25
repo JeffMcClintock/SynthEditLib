@@ -571,6 +571,21 @@ void SynthRuntime_editor::serviceQueues() // message-thread
 	message_que_dsp_to_ui.pollMessage(application);
 }
 
+// See the header for why a plug-in needs this and serviceQueues() does not
+// cover it. Push-then-Send-then-poll is the same three steps the VST3
+// wrapper's controller does with its own copy of this queue
+// (Controller_VST3::notify pushes and Sends, ::onTimer polls); doing all
+// three here keeps the caller from needing a timer of its own.
+void SynthRuntime_editor::receiveDspMessages(const unsigned char* data, int size)
+{
+	if (!data || size <= 0)
+		return;
+
+	message_que_dsp_to_ui.pushString(size, data);
+	message_que_dsp_to_ui.Send();
+	message_que_dsp_to_ui.pollMessage(application);
+}
+
 void SynthRuntime_editor::DoAsyncRestart()
 {
 //	_RPT0(_CRT_WARN, "FADE - SynthRuntime_editor::DoAsyncRestart()\n" );
