@@ -95,12 +95,29 @@ namespace SE2
 		renderChildrenLayer(g, -1); // shadows
 		renderChildrenLayer(g,  0); // normal
 		renderChildrenLayer(g,  1); // glow
+		renderChildrenLayer(g,  4); // editor guides (self-gating, see renderChildrenLayer)
 
+		return gmpi::ReturnCode::Ok;
+	}
+
+	void ViewBase::renderChildrenLayer(Graphics& g, int32_t layer)
+	{
 		// Editor guide: marks where an otherwise-invisible object sits (a patch point draws
 		// an orange outline around itself) so it can be seen and clicked while laying out a
-		// panel. editEnabled() is exactly the "we are editing this" test -- in the editor
-		// CContainer::EditEnabled() is !getLocked(), and the runtime presenter returns false
-		// outright -- so a locked panel and a shipped plugin both skip the pass.
+		// panel. Guides draw only when the modules in this view are editable, and that is
+		// always this view's OWN presenter's call. editEnabled() is exactly the "we are
+		// editing this" test -- in the editor CContainer::EditEnabled() is !getLocked(), the
+		// runtime presenter returns false outright, and an embedded sub-view ("Controls on
+		// Parent" / "Controls on Module") answers through its sub-presenter
+		// (MfcDocSubPresenter / JsonSubPresenter), which returns false unconditionally --
+		// the very mechanism that makes an embedded module non-draggable and non-selectable,
+		// because onPointerDown consults the same presenter. So a locked panel, a shipped
+		// plugin and an embedded sub-view all skip the pass.
+		// The gate lives here, not in render(), because layer 4 reaches a view by two
+		// routes: its own render() above, and hoisted from the enclosing view's layer-4
+		// pass via SubView::renderLayer(). Gating only render() left the hoisted route
+		// open -- an editable enclosing view drew guides inside its embedded sub-views,
+		// whose modules cannot be edited.
 		// The null test is load-bearing, not defensive habit. Every host attaches the view
 		// as a drawing client BEFORE handing it a document, so a paint can arrive while
 		// presenter is still null: EditorWindowHelper::tabChanged calls attachClient() 17
@@ -109,14 +126,9 @@ namespace SE2
 		// Dereferencing unguarded here crashed SynthEdit2 on startup. Skipping the pass
 		// costs nothing in that window -- children are only built by setDocument, so there
 		// is nothing to draw yet.
-		if(Presenter() && Presenter()->editEnabled())
-			renderChildrenLayer(g, 4);
+		if(layer == 4 && !(Presenter() && Presenter()->editEnabled()))
+			return;
 
-		return gmpi::ReturnCode::Ok;
-	}
-
-	void ViewBase::renderChildrenLayer(Graphics& g, int32_t layer)
-	{
 		// Restrict drawing to the overall clip-rect.
 		const auto cliprect = g.getAxisAlignedClip();
 		const Matrix3x2 originalTransform = g.getTransform();
