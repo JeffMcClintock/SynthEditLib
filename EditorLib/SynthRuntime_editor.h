@@ -6,6 +6,7 @@
 #include "tinyxml/tinyxml.h"
 #include "IO_base.h"
 #include "Hosting/message_queues.h"
+#include <vector>
 #include "FeedbackTrace.h"
 
 // manages Processor on behalf of the app
@@ -144,6 +145,22 @@ public:
 	// queue produced them -- copy them verbatim, do not re-frame. Partial
 	// messages are fine: the queue reassembles across calls.
 	void receiveDspMessages(const unsigned char* data, int size);
+
+	// The GUI->DSP MIRROR of receiveDspMessages, and the half S12 was missing.
+	//
+	// A parameter edit (a knob, a button) is already serialised into
+	// m_message_que_ui_to_dsp by the patch manager's waiters - in SynthEdit
+	// proper the DSP shares the process and polls that queue directly. A
+	// plug-in's processor does not: it is a separate object, and under AUv3 a
+	// separate process, so the bytes have to be carried. Without that carriage
+	// a parameter edit reached the DSP only by rebuilding the whole graph from
+	// a pushed document, which is both enormously expensive (one button press
+	// tore down and rebuilt every module in the rack) and, measured
+	// 2026-08-25, did not even work - the rebuilt engine kept its previous
+	// parameter values and ignored the pushed ones.
+	//
+	// Returns whole messages ready to ship, or false when there is nothing.
+	bool takeUiToDspMessages(std::vector<unsigned char>& out);
 	bool SynthBuilt() const;
 	bool SynthRunning() const;
 	bool ProcessingCompleted() const;
