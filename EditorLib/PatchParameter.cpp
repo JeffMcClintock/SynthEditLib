@@ -547,7 +547,21 @@ void PatchParameter_base::ExportXml(TiXmlElement* XmlParent, ExportFormatType ta
 		}
 
 		// don't work on VoiceActive if( instansiateDsp() ) // ignore host-generated parameters with no patch memory. Else generates screeds of unnesc XML.
-		if ((isStateful || SAT_SYNTHEDIT_DSP == targetType) && !isPolyphonic()) // 'isPolyphonic' is hack to avoid swathes of data on scope and voiceactive.
+		// Non-stateful parameters WITHOUT a host-control id contribute no
+		// patch-list, even for SAT_SYNTHEDIT_DSP. They are outputs - meters,
+		// scope captures, module lights - whose current value is meaningless
+		// to a freshly built DSP, and since TIDE's DSP->GUI return path made
+		// those values update continuously, including them put the LIVE VALUES
+		// in the exported document: TIDE's serviceDocumentSync() diffs the
+		// whole export every 500ms and pushed a FULL RACK REBUILD twice a
+		// second the moment anything animated (measured 2026-08-25 - "very
+		// sluggish GUI" with a blinking LFO light and a streaming Scope).
+		// Host controls keep their values regardless of statefulness: the
+		// patch-cable list (HC_PATCH_CABLES) is exactly such a value and the
+		// rack is unplayable without it. The isPolyphonic exclusion is the
+		// same swathes-of-data guard it always was.
+		const bool valueMatters = isStateful || hostControlId_ != HC_NONE;
+		if ((valueMatters && (isStateful || SAT_SYNTHEDIT_DSP == targetType)) && !isPolyphonic())
 		{
 			auto list_xml = new TiXmlElement("patch-list");
 			parameter_xml->LinkEndChild(list_xml);
