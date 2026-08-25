@@ -96,6 +96,14 @@ namespace SE2
 		renderChildrenLayer(g,  0); // normal
 		renderChildrenLayer(g,  1); // glow
 
+		// Editor guide: marks where an otherwise-invisible object sits (a patch point draws
+		// an orange outline around itself) so it can be seen and clicked while laying out a
+		// panel. editEnabled() is exactly the "we are editing this" test -- in the editor
+		// CContainer::EditEnabled() is !getLocked(), and the runtime presenter returns false
+		// outright -- so a locked panel and a shipped plugin both skip the pass.
+		if(Presenter()->editEnabled())
+			renderChildrenLayer(g, 4);
+
 		return gmpi::ReturnCode::Ok;
 	}
 
