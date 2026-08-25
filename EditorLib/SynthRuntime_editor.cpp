@@ -586,6 +586,28 @@ void SynthRuntime_editor::receiveDspMessages(const unsigned char* data, int size
 	message_que_dsp_to_ui.pollMessage(application);
 }
 
+// See the header. Service first, then take: the waiters hold the parameter
+// updates and only writing them into the queue makes them bytes.
+//
+// Everything ready is taken in one go, which keeps whole-message framing
+// intact - ServiceWaitersIncremental only ever Sends complete messages, so a
+// queue's ready bytes always end on a message boundary. That matters because
+// the caller ships these through a BLOB PARAMETER, which is last-writer-wins:
+// a torn message would desynchronise the receiving queue permanently, the
+// exact failure the DSP->GUI direction was fixed for on 2026-08-25.
+bool SynthRuntime_editor::takeUiToDspMessages(std::vector<unsigned char>& out)
+{
+	pendingProcessorQueueClients.ServiceWaitersIncremental(&m_message_que_ui_to_dsp, 100000);
+
+	const int ready = m_message_que_ui_to_dsp.readyBytes();
+	if (ready <= 0)
+		return false;
+
+	out.resize(static_cast<size_t>(ready));
+	m_message_que_ui_to_dsp.popString(ready, out.data());
+	return true;
+}
+
 void SynthRuntime_editor::DoAsyncRestart()
 {
 //	_RPT0(_CRT_WARN, "FADE - SynthRuntime_editor::DoAsyncRestart()\n" );

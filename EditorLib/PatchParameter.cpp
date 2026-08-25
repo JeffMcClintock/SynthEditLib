@@ -547,21 +547,32 @@ void PatchParameter_base::ExportXml(TiXmlElement* XmlParent, ExportFormatType ta
 		}
 
 		// don't work on VoiceActive if( instansiateDsp() ) // ignore host-generated parameters with no patch memory. Else generates screeds of unnesc XML.
-		// Non-stateful parameters WITHOUT a host-control id contribute no
-		// patch-list, even for SAT_SYNTHEDIT_DSP. They are outputs - meters,
-		// scope captures, module lights - whose current value is meaningless
-		// to a freshly built DSP, and since TIDE's DSP->GUI return path made
-		// those values update continuously, including them put the LIVE VALUES
-		// in the exported document: TIDE's serviceDocumentSync() diffs the
-		// whole export every 500ms and pushed a FULL RACK REBUILD twice a
-		// second the moment anything animated (measured 2026-08-25 - "very
-		// sluggish GUI" with a blinking LFO light and a streaming Scope).
-		// Host controls keep their values regardless of statefulness: the
+		// A VOLATILE parameter still gets its patch-list element, but with a
+		// BLANK value rather than its live one.
+		//
+		// Volatile means non-stateful and not a host control: outputs - meters,
+		// scope captures, module lights - whose current value means nothing to
+		// a freshly built DSP. Once TIDE's DSP->GUI return path made those
+		// values update continuously, writing them here put LIVE, CHURNING
+		// VALUES in the exported document, and TIDE's serviceDocumentSync()
+		// diffs that document every 500ms: one blinking LED rebuilt the whole
+		// rack twice a second ("very sluggish GUI", measured 2026-08-25).
+		//
+		// THE ELEMENT MUST STILL BE WRITTEN. Dropping it outright was the first
+		// attempt at this and it silently killed DSP->GUI feedback for every
+		// volatile parameter - the DSP builds its patch memory from these
+		// entries, so a parameter without one never transmits updates to the
+		// GUI at all. Measured the same day, by A/B: with the element absent
+		// the editor received 26 light updates and then nothing ever again;
+		// with it present, 123 and counting. Blanking the TEXT gets the
+		// stability without touching the structure - and blank is a shape this
+		// function already emits, for oversize values just below.
+		//
+		// Host controls keep their real values regardless of statefulness: the
 		// patch-cable list (HC_PATCH_CABLES) is exactly such a value and the
-		// rack is unplayable without it. The isPolyphonic exclusion is the
-		// same swathes-of-data guard it always was.
-		const bool valueMatters = isStateful || hostControlId_ != HC_NONE;
-		if ((valueMatters && (isStateful || SAT_SYNTHEDIT_DSP == targetType)) && !isPolyphonic())
+		// rack is unplayable without it.
+		const bool volatileValue = !isStateful && hostControlId_ == HC_NONE;
+		if ((isStateful || SAT_SYNTHEDIT_DSP == targetType) && !isPolyphonic())
 		{
 			auto list_xml = new TiXmlElement("patch-list");
 			parameter_xml->LinkEndChild(list_xml);
@@ -579,7 +590,7 @@ void PatchParameter_base::ExportXml(TiXmlElement* XmlParent, ExportFormatType ta
 					int repeat_count = 1;
 					TiXmlElement* patch_xml = {};
 
-					auto text = ToXmlStringSafe(voice, patch);
+					auto text = volatileValue ? std::string() : ToXmlStringSafe(voice, patch);
 					if (text.size() > maxXmlAttributeBytes)
 					{
 						// XML can't really handle HUGE data (like Wavetables). Hack to blank out those.
