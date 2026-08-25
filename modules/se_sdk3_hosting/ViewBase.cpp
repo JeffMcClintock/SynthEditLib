@@ -101,7 +101,15 @@ namespace SE2
 		// panel. editEnabled() is exactly the "we are editing this" test -- in the editor
 		// CContainer::EditEnabled() is !getLocked(), and the runtime presenter returns false
 		// outright -- so a locked panel and a shipped plugin both skip the pass.
-		if(Presenter()->editEnabled())
+		// The null test is load-bearing, not defensive habit. Every host attaches the view
+		// as a drawing client BEFORE handing it a document, so a paint can arrive while
+		// presenter is still null: EditorWindowHelper::tabChanged calls attachClient() 17
+		// lines before setDocument(), with a breadcrumb update and two view-transform
+		// changes in between, and SE2JUCE_Editor / SynthEditCocoaView have the same order.
+		// Dereferencing unguarded here crashed SynthEdit2 on startup. Skipping the pass
+		// costs nothing in that window -- children are only built by setDocument, so there
+		// is nothing to draw yet.
+		if(Presenter() && Presenter()->editEnabled())
 			renderChildrenLayer(g, 4);
 
 		return gmpi::ReturnCode::Ok;
