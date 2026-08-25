@@ -63,34 +63,62 @@ std::string settingsPath() {
 //static int openCount = 0;
 //CFBundleRef getBundleRef(){return (CFBundleRef) gBundleRef;};
 //------------------------------------------------------------------------
+// The bundle CONTAINING a given executable, identified by directory name rather
+// than by looking for a "Contents" component.
+//
+// "Contents" fails for two independent reasons:
+//
+//   NESTED bundles - an AUv3 lives at
+//       <host>.app/Contents/PlugIns/<plugin>.appex/Contents/MacOS/<exe>
+//   which has TWO, so taking the first returns the HOST APP. Its Resources do not
+//   exist, so every lookup missed and the AUv3 loaded completely empty - no pins,
+//   no prefabs, no MIDI jacks - while auval still passed it (BACKLOG M5, M7).
+//
+//   iOS has NONE. The layout is flat,
+//       <host>.app/PlugIns/<plugin>.appex/<exe>
+//   with the payload directly in the bundle root, so any rule phrased in terms of
+//   "Contents" cannot work there at all.
+//
+// The DEEPEST ancestor carrying a bundle suffix answers both: it picks the .appex
+// over its enclosing .app, and needs no "Contents" to exist. Checked against every
+// artifact this project builds - standalone, .gmpi, .vst3, the macOS appex and its
+// host app, and the iOS appex and its host app.
+static se_fs::path bundleRootOf(const se_fs::path& executablePath)
+{
+	static const char* const bundleSuffixes[] =
+		{ ".appex", ".app", ".vst3", ".component", ".gmpi", ".clap", ".bundle", ".framework" };
+
+	se_fs::path prefix;
+	se_fs::path bundleRoot;
+	for (const auto& component : executablePath)
+	{
+		prefix /= component;
+
+		const auto name = component.string();
+		for (const auto* suffix : bundleSuffixes)
+		{
+			const auto n = strlen(suffix);
+			if (name.size() > n && name.compare(name.size() - n, n, suffix) == 0)
+			{
+				bundleRoot = prefix; // deepest wins - keep looking
+				break;
+			}
+		}
+	}
+	return bundleRoot;
+}
+
 CFBundleRef CreatePluginBundleRef()
 {
 	Dl_info info;
 	if (!dladdr((const void*)CreatePluginBundleRef, &info) || !info.dli_fname)
 		return {};
 
-	// Walk up the path looking for a "Contents" component, indicating a bundle.
-	// Take the LAST one, not the first. A bundle can be NESTED inside another:
-	// an AUv3 lives at <host>.app/Contents/PlugIns/<plugin>.appex/Contents/MacOS/,
-	// which has two. Stopping at the first returned the HOST APP, whose Resources
-	// do not exist -- so every getResource()/getResourceFolder() lookup missed and
-	// TIDE's AUv3 aborted in LoadPrefab trying to seed its root MIDI-CV.
-	// For a .vst3/.component/.app there is exactly one "Contents", so last == first
-	// and this is a no-op for every non-nested bundle.
-	se_fs::path path(info.dli_fname);
-	se_fs::path bundleRoot;
-	{
-		se_fs::path prefix;
-		for (auto it = path.begin(); it != path.end(); ++it)
-		{
-			if (it->filename() == "Contents")
-				bundleRoot = prefix;
-			prefix /= *it;
-		}
-	}
+	const se_fs::path path(info.dli_fname);
+	const se_fs::path bundleRoot = bundleRootOf(path);
 
-	if (bundleRoot.empty() || bundleRoot == path.parent_path())
-		return {}; // no "Contents" found, not a bundle
+	if (bundleRoot.empty())
+		return {}; // not inside a bundle at all
 
 	auto bundleStr = bundleRoot.string();
 	CFURLRef bundleUrl = CFURLCreateFromFileSystemRepresentation(0, (const UInt8*)bundleStr.c_str(), bundleStr.length(), true);
@@ -223,33 +251,34 @@ std::string getSettingsFolder()
 
 se_fs::path BundleInfo::getPluginPath()
 {
-    se_fs::path path(gmpi_dynamic_linking::MP_GetDllFilename()); // get full path of executable (might be in a bundle)
+    se_fs::path path(gmpi_dynamic_linking::MP_GetDllFilename()); // full path of executable (might be in a bundle)
 
-    se_fs::path pluginRootPath;
-	for (auto it = path.begin(); it != path.end(); ++it)
-    {
-        if (it->filename() == "Contents")
-            break;
+    // Was: walk to the FIRST "Contents". For a nested appex that returned the
+    // enclosing HOST APP, and on iOS (no "Contents" at all) it returned the whole
+    // path including the executable. bundleRootOf answers both cases.
+    if (auto bundleRoot = bundleRootOf(path); !bundleRoot.empty())
+        return bundleRoot;
 
-        pluginRootPath /= *it;
-    }
-
-	return pluginRootPath;
+    return path.parent_path(); // not in a bundle (Windows, bare executable)
 }
 
 se_fs::path BundleInfo::getBundleContentsFolder()
 {
     se_fs::path path(gmpi_dynamic_linking::MP_GetDllFilename());
 
-    se_fs::path contentsPath;
-    for (auto it = path.begin(); it != path.end(); ++it)
+    // macOS keeps bundle payload under <bundle>/Contents; iOS is flat and has no
+    // such folder, so fall back to the bundle root there. Using bundleRootOf also
+    // makes a NESTED appex resolve to itself rather than to its host app.
+    if (auto bundleRoot = bundleRootOf(path); !bundleRoot.empty())
     {
-        contentsPath /= *it;
-        if (it->filename() == "Contents")
-            return contentsPath;
+        std::error_code ec;
+        if (auto contents = bundleRoot / "Contents"; se_fs::is_directory(contents, ec))
+            return contents;
+
+        return bundleRoot; // iOS: payload sits in the bundle root
     }
 
-	// we're not in a bundle, return the folder of the windows app. (mac app does have a Contents folder)
+    // not in a bundle, return the folder of the windows app.
     return path.parent_path();
 }
 
