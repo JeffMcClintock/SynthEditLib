@@ -11,6 +11,7 @@
 #include "conversion.h"
 #include "mfc_emulation.h"
 #include "SafeMessageBox.h"
+#include "XmlErrorReport.h"
 
 #include "Module_Info3_internal.h"
 #include "IPluginGui.h"
@@ -276,9 +277,14 @@ int32_t CModuleFactory::RegisterPluginWithXml(int subType, const char* xml, MP_C
 
 	if (uniqueId.empty())
 	{
-		std::wostringstream oss;
-		oss << L"Module XML Error: [SynthEdit.exe]" << doc.ErrorName() << L"." << doc.Value();
-		SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
+		// Two different failures land here: the XML did not parse, or it parsed
+		// but carries no plugin id. Reporting them the same way sent people
+		// hunting for a syntax error that was not there.
+		const auto message = doc.Error()
+			? formatXmlParseError(doc, xml, L"SynthEdit.exe", XmlSourceKind::synthEditItself)
+			: L"Module XML Error\n\nFile:    SynthEdit.exe\nProblem: <Plugin> has no 'id' attribute.\n\n" + Utf8ToWstring(xml);
+
+		SafeMessagebox(0, message.c_str(), L"SynthEdit", MB_OK | MB_ICONSTOP);
 		return gmpi::MP_FAIL;
 	}
 
@@ -504,19 +510,10 @@ void CModuleFactory::RegisterPluginsXml( const char* xml_data )
 
 	if ( doc.Error() )
 	{
-		std::wostringstream oss;
-		oss << L"Module XML Error: [SynthEdit.exe]" << doc.ErrorName() << L"." <<  doc.Value();
-		SafeMessagebox(0, oss.str().c_str(), L"", MB_OK|MB_ICONSTOP );
+		const auto message = formatXmlParseError(doc, xml_data, L"SynthEdit.exe", XmlSourceKind::synthEditItself);
+		SafeMessagebox(0, message.c_str(), L"SynthEdit", MB_OK | MB_ICONSTOP);
 
-#if defined( _DEBUG )
-		for( int i = doc.ErrorLineNum() - 5 ; i < doc.ErrorLineNum() + 5 ; ++i )
-		{
-			_RPT1(_CRT_WARN, "%c", xml_data[i] );
-		}
-		_RPT0(_CRT_WARN, "\n");
-		assert(false);
-#endif
-
+		assert(false && "built-in module XML does not parse - see the message for the line");
 		return;
 	}
 
@@ -659,10 +656,8 @@ Module_Info::Module_Info(class ug_base *(*ug_create)(), const char* xml) :
 
 	if (doc2.Error())
 	{
-		std::wostringstream oss;
-		oss << L"Module XML Error: [SynthEdit.exe]" << doc2.ErrorName() << L"." << doc2.Value();
-
-		SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
+		const auto message = formatXmlParseError(doc2, xml, L"SynthEdit.exe", XmlSourceKind::synthEditItself);
+		SafeMessagebox(0, message.c_str(), L"SynthEdit", MB_OK | MB_ICONSTOP);
 	}
 	else
 	{

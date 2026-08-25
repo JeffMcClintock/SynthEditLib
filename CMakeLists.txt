@@ -130,6 +130,8 @@ tinyxml/tinyxmlerror.cpp
 tinyxml/tinyxmlparser.cpp
 modules/tinyXml2/tinyxml2.h
 modules/tinyXml2/tinyxml2.cpp
+XmlErrorReport.h
+XmlErrorReport.cpp
 )
 
 set(srcs_modules_internal

@@ -6,6 +6,7 @@
 #include "./modules/se_sdk3/MpString.h"
 #include "GmpiSdkCommon.h"
 #include "SafeMessageBox.h"
+#include "XmlErrorReport.h"
 
 #if !defined( _WIN32 )
 // mac
@@ -200,9 +201,8 @@ bool Module_Info3::LoadDllOnDemand()
 						
 	if( doc2.Error() )
 	{
-		std::wostringstream oss;
-		oss << L"Module XML Error: [SynthEdit.exe]" << doc2.ErrorName() << L"." << doc2.Value();
-		SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
+		const auto message = formatXmlParseError(doc2, s.c_str(), holder.getPluginPath().wstring(), XmlSourceKind::moduleFactory);
+		SafeMessagebox(0, message.c_str(), L"SynthEdit", MB_OK | MB_ICONSTOP);
 		assert(false);
 		return false;
 	}

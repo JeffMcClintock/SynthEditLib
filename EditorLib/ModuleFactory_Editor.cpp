@@ -18,6 +18,7 @@
 #include "modules/shared/xp_dynamic_linking.h"
 #include "tinyxml/tinyxml.h"
 #include "SafeMessageBox.h"
+#include "XmlErrorReport.h"
 #include "midi_defs.h"
 
 #include "GmpiApiCommon.h"
@@ -527,9 +528,8 @@ std::pair<bool, bool> RegisterExternalPluginsXml2(
 {
 	if (doc.Error())
 	{
-		std::wostringstream oss;
-		oss << L"Module XML Error: [" << full_win_binary_path << L"]\n" << Utf8ToWstring(doc.ErrorName()) << L"." << Utf8ToWstring(doc.Value());
-		SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
+		const auto message = formatXmlParseError(doc, {}, full_win_binary_path, XmlSourceKind::moduleResource);
+		SafeMessagebox(0, message.c_str(), L"SynthEdit", MB_OK | MB_ICONSTOP);
 		return { false, false };
 	}
 
@@ -607,9 +607,8 @@ void ScanPluginBinary(
 
 				if (doc2.Error())
 				{
-					std::wostringstream oss;
-					oss << L"Module XML Error: [" << binary_path << L"]\n" << Utf8ToWstring(doc2.ErrorName()) << L"." << Utf8ToWstring(doc2.Value());
-					SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
+					const auto message = formatXmlParseError(doc2, s.c_str(), binary_path.wstring(), XmlSourceKind::moduleFactory);
+					SafeMessagebox(0, message.c_str(), L"SynthEdit", MB_OK | MB_ICONSTOP);
 					return;
 				}
 #ifdef _WIN32
@@ -675,9 +674,8 @@ void ScanStandaloneSem(
 
 		if (doc.Error())
 		{
-			std::wostringstream oss;
-			oss << L"Module XML Error: [" << binary_path << L"]\n" << Utf8ToWstring(doc.ErrorName()) << L"." << Utf8ToWstring(doc.Value());
-			SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
+			const auto message = formatXmlParseError(doc, xmlFile, binary_path.wstring(), XmlSourceKind::moduleResource);
+			SafeMessagebox(0, message.c_str(), L"SynthEdit", MB_OK | MB_ICONSTOP);
 			return;
 		}
 
@@ -806,9 +804,8 @@ void ScanBundle(const std::wstring& group_name, const std::filesystem::path& bun
 
 		if (doc.Error())
 		{
-			std::wostringstream oss;
-			oss << L"Module XML Error: [" << bundle_path << L"]\n" << Utf8ToWstring(doc.ErrorName()) << L"." << Utf8ToWstring(doc.Value());
-			SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
+			const auto message = formatXmlParseErrorFromFile(doc, xmlFile);
+			SafeMessagebox(0, message.c_str(), L"SynthEdit", MB_OK | MB_ICONSTOP);
 			return;
 		}
 
@@ -957,9 +954,8 @@ void ScanFile(
 
 				if (doc2.Error())
 				{
-					std::wostringstream oss;
-					oss << L"Module XML Error: [" << binary_path << L"]\n" << Utf8ToWstring(doc2.ErrorName()) << L"." << Utf8ToWstring(doc2.Value());
-					SafeMessagebox(0, oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
+					const auto message = formatXmlParseError(doc2, s.c_str(), binary_path.wstring(), XmlSourceKind::moduleFactory);
+					SafeMessagebox(0, message.c_str(), L"SynthEdit", MB_OK | MB_ICONSTOP);
 					return;
 				}
 #ifdef _WIN32
