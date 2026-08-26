@@ -1,6 +1,7 @@
 #pragma once
 
 #include <set>
+#include <utility>
 #include <vector>
 #include "CUG_with_patches.h"
 
@@ -25,7 +26,8 @@ typedef std::list<CDocOb*> DO_LIST;
 // Forward declaration so the free-function export can be granted friend access.
 // Keep in step with ExportAsPlugin.h — the friend declaration below matches by
 // signature, so a parameter added there silently withdraws the friendship.
-bool ExportAsPlugin(CSynthEditDocBase* doc, int autoSave, std::wstring presetsFolder, std::string* errorOut);
+bool ExportAsPlugin(CSynthEditDocBase* doc, int autoSave, std::wstring presetsFolder, std::string* errorOut,
+                    std::vector<std::pair<std::string, std::string>>* outputsOut);
 
 class CContainer : public CUG_with_patches
 {
@@ -34,7 +36,8 @@ class CContainer : public CUG_with_patches
 	friend class CSynthEditDocBase;
 	friend class dlg_connect_ug;
 	friend class CSynthEditDoc;
-	friend bool ::ExportAsPlugin(CSynthEditDocBase*, int, std::wstring, std::string*);
+	friend bool ::ExportAsPlugin(CSynthEditDocBase*, int, std::wstring, std::string*,
+	                             std::vector<std::pair<std::string, std::string>>*);
 
 #ifdef _DEBUG
 	friend class CLine2; // for extra checking code
