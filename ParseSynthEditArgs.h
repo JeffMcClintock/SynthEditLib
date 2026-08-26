@@ -125,7 +125,7 @@ namespace synthedit_args_detail
             "new", "load", "save-as", "dump", "list-modules", "add-module", "connect",
             "patch-cable", "select", "deselect-all", "set-pin", "render-audio",
             "delete", "pointer-down", "pointer-move", "pointer-up", "hover", "drag",
-            "key", "type", "get-param", "set-param", "containerise", "as", "script",
+            "move", "key", "type", "get-param", "set-param", "containerise", "as", "script",
             "ping", "rename", "start-audio", "stop-audio", "audio-state",
             "renderer", "profile-scroll", "set-plugin-info",
         };
@@ -628,6 +628,26 @@ inline SynthEditConfig ParseSynthEditArgs(std::vector<std::string_view>& args)
         if (flag == "hover" && i + 1 < args.size())
         {
             pushCmd("hover", {std::string(args[++i])});
+            cfg.jsonOutput = true;
+            continue;
+        }
+        // --move <handle> <x,y> [--view structure|panel]
+        // A module has two independent positions — one in the structure view,
+        // one on the panel — so the verb takes which one to move; structure is
+        // the default. Distinct from --drag, which is a panel input GESTURE
+        // (operating controls), not a model edit.
+        if (flag == "move" && i + 2 < args.size())
+        {
+            std::string handle = std::string(args[++i]);
+            std::string pos    = std::string(args[++i]);
+            std::string view   = "structure";
+            while (i + 1 < args.size() && isFlag(args[i + 1]))
+            {
+                std::string_view subFlag = stripFlagDashes(args[i + 1]);
+                if (subFlag == "view" && i + 2 < args.size()) { i += 2; view = std::string(args[i]); }
+                else break;
+            }
+            pushCmd("move", {std::move(handle), std::move(pos), std::move(view)});
             cfg.jsonOutput = true;
             continue;
         }
