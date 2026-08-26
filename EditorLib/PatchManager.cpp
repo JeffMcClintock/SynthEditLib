@@ -64,6 +64,7 @@
 #include "it_plug_destinations.h"
 #include <regex> 
 #include "../se_sdk3_hosting/GuiPatchAutomator3.h"
+#include "PropertiesBrowser.h"   // PropertiesViewModel -- see ~CPatchManager()
 
 using namespace std;
 
@@ -79,6 +80,38 @@ CPatchManager::CPatchManager(CContainer* p_container) :
 
 CPatchManager::~CPatchManager()
 {
+	// Registered GUIs must hear about this BEFORE the parameters (and the
+	// properties they expose) disappear, or they are left holding a dangling
+	// pointer. DeregisterAllGuiPatchAutomators() fixed exactly this shape once
+	// already, for GuiPatchAutomator3 -- but it has to be called by hand before
+	// each `delete m_patch_manager`, and only ONE of the three call sites in
+	// CContainer.cpp remembers to. This destructor is not one of them.
+	//
+	// Measured 2026-08-25: TIDE-Rack-2026-08-25-165939.ips, EXC_BAD_ACCESS in
+	// PmParameterIterator::First(). The container owning this patch manager
+	// was deleted while its properties were showing; PropertiesViewModel::
+	// currentPatchManager still pointed here, and the next repaint
+	// dereferenced it.
+	//
+	// Fixed HERE rather than at each caller, so no future delete site can
+	// forget it -- the class of bug DeregisterAllGuiPatchAutomators() already
+	// exists to prevent, closed for its blind spot rather than papered over
+	// with a fourth call site.
+	//
+	// NOT fixed by this: a LEAF module (no patch manager of its own) deleted
+	// while its OWN properties are showing. currentPatchManager survives that
+	// case untouched, but currentModule does not, and nothing here clears it.
+	// Different mechanism, same failure shape -- filed on the same row rather
+	// than assumed to be the same bug.
+	for (auto g : m_guis2)
+	{
+		if (auto* props = dynamic_cast<PropertiesViewModel*>(g); props && props->currentPatchManager == this)
+		{
+			props->currentModule = nullptr;
+			props->currentPatchManager = nullptr;
+		}
+	}
+
 	for( auto& p : m_parameters)
 	{
 		Container()->Document()->uniqueIdDatabase.Unregister( p );
