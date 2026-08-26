@@ -12,6 +12,7 @@
 #include "ModuleFactory_Editor.h"
 #include "Hosting/message_queues.h"
 #include "modules/se_sdk3_hosting/ProcessorWatchdog.h"
+#include "BrowserFontSize.h"
 
 class CSynthEditDocBase;
 namespace SE2
@@ -85,6 +86,10 @@ struct ApplicationSettings
 	std::string ThemePreference = "SystemDefault"; // "SystemDefault", "Light", or "Dark"
 	std::string DefaultLineStyle = "Straight"; // "Straight" or "Curved" — what a line's "Default" style resolves to
 
+	// Text size in the Module Browser and Properties Browser: "Default", "Large" or
+	// "Larger". One setting for both panes — see BrowserFontSize.h.
+	std::string BrowserFontSize = "Default";
+
 	std::vector<std::wstring> RecentFiles;
 
 	std::string CurrentMidiOutDev;
@@ -126,6 +131,9 @@ struct ApplicationSettings
 		s("SoftwareRenderer", SoftwareRenderer);
 		s("ThemePreference", ThemePreference);
 		s("DefaultLineStyle", DefaultLineStyle);
+		// 3-arg form: a settings file written before this attribute existed must restore
+		// "Default", not the empty string the 2-arg overload leaves behind.
+		s("BrowserFontSize", BrowserFontSize, std::string("Default"));
 
 		s("Registration", Registration);
 		s("Vendor4charCode", Vendor4charCode);
@@ -261,6 +269,11 @@ public:
 	// Re-export & redraw any open structure views (e.g. after the "Default Line Style"
 	// preference changes, so connector lines set to CLine2::DEFAULT_STYLE re-resolve).
 	void refreshAllStructureViews();
+
+	// Apply a new Browser Font Size preference: moves the global the two browser panes
+	// take their metrics from, records it in settings, and rebuilds the open panes
+	// (they size their rows in Body(), so a repaint alone would not pick it up).
+	void setBrowserFontSize(SynthEdit::BrowserFontSize size);
 
 	std::vector<class IO_output_info*> getAudioDriversInfo();
 

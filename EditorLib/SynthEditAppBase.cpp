@@ -1108,6 +1108,16 @@ void CSynthEditAppBase::refreshAllStructureViews()
 		Document()->MasterContainer->NotifyAllViews2(OM_REFRESH_PRESENTERS);
 }
 
+void CSynthEditAppBase::setBrowserFontSize(SynthEdit::BrowserFontSize size)
+{
+	SynthEdit::setBrowserFontSize(size);
+	settings.BrowserFontSize = SynthEdit::browserFontSizeToString(size);
+
+	// Both browser panes register as observers of the app, including the ones in
+	// torn-out windows, so this reaches every copy that is open.
+	NotifyFast(OM_BROWSER_FONT_SIZE_CHANGED);
+}
+
 void CSynthEditAppBase::DoHelp(std::wstring help_url, int p_cmd)
 {
 	help_url = GetHomeDir() + L"synthedit.chm::/" + help_url;

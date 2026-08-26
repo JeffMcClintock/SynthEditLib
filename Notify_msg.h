@@ -68,6 +68,7 @@
 #define OM_VIEW_PANORZOOM_CHANGED      74
 #define OM_INSERT_MODULE_AT_VIEW_CENTER 75 // pHint = module id (const char*); insert at active view's centre
 #define OM_OBJECT_NAME_CHANGED          76 // sent by CUG when its name changes (sender is the CUG)
+#define OM_BROWSER_FONT_SIZE_CHANGED    77 // the Browser Font Size preference changed; the two browser panes rebuild
 
 #define OM_USER_1						2000 // thru 3000. UG CAN USE THIS FOR ANYTHING IT WANTS
 

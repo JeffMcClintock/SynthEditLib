@@ -17,6 +17,7 @@
 #include <functional>
 #include "experimental/builders.h"
 #include "experimental/theme.h"
+#include "BrowserFontSize.h"
 #include <algorithm>
 #include "CContainer.h"
 
@@ -26,9 +27,13 @@ using namespace gmpi::drawing;
 
 namespace
 {
-	// shared layout metrics (used by both PropertiesBrowser::Body and createParameterFieldEditorView)
-	constexpr float rowHeight{ 16 };
-	constexpr float lineSpacing{ 3 };
+	// Shared layout metrics (used by both PropertiesBrowser::Body and createParameterFieldEditorView).
+	// The two text metrics follow the Browser Font Size preference, so they are read
+	// through functions rather than being constants: every use is inside Body(), which
+	// re-runs when the preference changes. The scrollbar and the panel's outer margin
+	// are chrome, not text, and stay put.
+	inline float rowHeight()   { return SynthEdit::browserRowHeight(); }
+	inline float lineSpacing() { return 3.0f * SynthEdit::browserFontScale(); }
 	constexpr float scrollBarWidth{ 12 };
 	constexpr float outerMargin{ 8 };
 
@@ -379,6 +384,14 @@ void PropertiesViewModel::OnNotify(Notifier* sender, int lHint, void* pHint)
 	}
 	break;
 
+	case OM_BROWSER_FONT_SIZE_CHANGED:
+	{
+		// Row heights and font sizes are chosen in Body(), so the new preference only
+		// reaches the screen through a rebuild.
+		invalidateView();
+	}
+	break;
+
 	case OM_ONCHANGE_CHILD_POSITION_PANEL:
 	{
 		// current module moved/resized on the panel (dragged in the editor, or a committed
@@ -722,7 +735,7 @@ gmpi::ui::builder::View* PropertiesBrowser::createParameterFieldEditorView(
 		// the square cell plus an empty filler that absorbs the rest of the column. (The grid
 		// maps one column track per child, so the filler is a real, if invisible, child.)
 		gmpi::ui::Grid boolCell(
-			  { .gap = lineSpacing, .auto_rows = rowHeight, .auto_flow = builder::ViewParent::eAutoFlow::columns, .column_widths = { rowHeight, builder::fr(1.0f) } }
+			  { .gap = lineSpacing(), .auto_rows = rowHeight(), .auto_flow = builder::ViewParent::eAutoFlow::columns, .column_widths = { rowHeight(), builder::fr(1.0f) } }
 			, {}
 		);
 		gmpi::ui::builder::ThreadLocalCurrentBuilder->push_back(std::move(tickBox));
@@ -806,7 +819,8 @@ void PropertiesBrowser::Body()
 	using gmpi::ui::builder::auto_size;
 	using eAutoFlow = gmpi::ui::builder::ViewParent::eAutoFlow;
 
-	constexpr float headingHeight = 14.f;
+	// Section headings ("LAYOUT", "PINS", ...) track the preference alongside the rows.
+	const float headingHeight = 14.f * SynthEdit::browserFontScale();
 
 	gmpi::drawing::Rect textArea = bounds;
 	textArea.right -= scrollBarWidth;
@@ -823,7 +837,7 @@ void PropertiesBrowser::Body()
 
 	// outer vertical Grid: each row's height comes from its child via auto_size.
 	gmpi::ui::Grid outer(
-		  { .gap = lineSpacing, .auto_flow = eAutoFlow::rows, .default_track_size = auto_size() }
+		  { .gap = lineSpacing(), .auto_flow = eAutoFlow::rows, .default_track_size = auto_size() }
 		, textArea
 	);
 
@@ -844,7 +858,7 @@ void PropertiesBrowser::Body()
 			mod->name
 			, [mod](const std::string& v) { mod->name.set(v); }
 		);
-		field.view->bounds = { 0, 0, 0, rowHeight }; // height is what the outer Grid reads via auto_size
+		field.view->bounds = { 0, 0, 0, rowHeight() }; // height is what the outer Grid reads via auto_size
 	}
 
 	// Layout section (panel view only): Figma-style X/Y/W/H editors for the object's panel
@@ -871,7 +885,7 @@ void PropertiesBrowser::Body()
 				, std::function<void(gmpi::drawing::RectL&, int)> mutate)
 			{
 				gmpi::ui::Grid row(
-					  { .gap = lineSpacing, .auto_rows = rowHeight, .auto_flow = eAutoFlow::columns, .column_widths = { labelColumnWidth, fr(1.0f) } }
+					  { .gap = lineSpacing(), .auto_rows = rowHeight(), .auto_flow = eAutoFlow::columns, .column_widths = { labelColumnWidth, fr(1.0f) } }
 					, {}
 				);
 				gmpi::ui::Label label(fieldLabel);
@@ -949,12 +963,12 @@ void PropertiesBrowser::Body()
 				if (isFilename)
 					return { labelColumnWidth, fr(1.0f), buttonWidth };
 				if (isColor)
-					return { labelColumnWidth, fr(1.0f), rowHeight }; // hex textbox + square swatch preview
+					return { labelColumnWidth, fr(1.0f), rowHeight() }; // hex textbox + square swatch preview
 				return { labelColumnWidth, fr(1.0f) };
 			}();
 
 			gmpi::ui::Grid grid(
-				  { .gap = lineSpacing, .auto_rows = rowHeight, .auto_flow = eAutoFlow::columns, .column_widths = std::move(pinColumns) }
+				  { .gap = lineSpacing(), .auto_rows = rowHeight(), .auto_flow = eAutoFlow::columns, .column_widths = std::move(pinColumns) }
 				, {}
 			);
 
@@ -1047,7 +1061,7 @@ void PropertiesBrowser::Body()
 					// the square cell plus an empty filler that absorbs the rest of the column. (The grid
 					// maps one column track per child, so the filler is a real, if invisible, child.)
 					gmpi::ui::Grid boolCell(
-						  { .gap = lineSpacing, .auto_rows = rowHeight, .auto_flow = eAutoFlow::columns, .column_widths = { rowHeight, fr(1.0f) } }
+						  { .gap = lineSpacing(), .auto_rows = rowHeight(), .auto_flow = eAutoFlow::columns, .column_widths = { rowHeight(), fr(1.0f) } }
 						, {}
 					);
 					gmpi::ui::builder::ThreadLocalCurrentBuilder->push_back(std::move(tickBox));
@@ -1269,7 +1283,7 @@ void PropertiesBrowser::Body()
 
 			// Each parameter is a vertical sub-Grid wrapping all of its rows.
 			gmpi::ui::Grid paramGroup(
-				  { .gap = lineSpacing, .auto_flow = eAutoFlow::rows, .default_track_size = auto_size() }
+				  { .gap = lineSpacing(), .auto_flow = eAutoFlow::rows, .default_track_size = auto_size() }
 				, {}
 			);
 
@@ -1277,17 +1291,17 @@ void PropertiesBrowser::Body()
 			// TODO !!! Placeholder Text - faint, italicized text inside the field (e.g., "e.g., john@example.com") that disappears upon clicking or typing.
 			if (p->can_rename())
 			{
-				createParameterFieldEditorView(p, ParameterFieldType::FT_SHORT_NAME, { 0, 0, 0, rowHeight });
+				createParameterFieldEditorView(p, ParameterFieldType::FT_SHORT_NAME, { 0, 0, 0, rowHeight() });
 			}
 			else
 			{
-				gmpi::ui::Label label(WStringToUtf8(p->GetName()), { 0, 0, 0, rowHeight });
+				gmpi::ui::Label label(WStringToUtf8(p->GetName()), { 0, 0, 0, rowHeight() });
 			}
 
 			// Hint row
 			{
 				gmpi::ui::Grid hintRow(
-					  { .gap = lineSpacing, .auto_rows = rowHeight, .auto_flow = eAutoFlow::columns, .column_widths = { labelColumnWidth, fr(1.0f) } }
+					  { .gap = lineSpacing(), .auto_rows = rowHeight(), .auto_flow = eAutoFlow::columns, .column_widths = { labelColumnWidth, fr(1.0f) } }
 					, {}
 				);
 				gmpi::ui::Label label("Hint");
@@ -1333,7 +1347,7 @@ void PropertiesBrowser::Body()
 				}();
 
 				gmpi::ui::Grid valueRow(
-					  { .gap = lineSpacing, .auto_rows = rowHeight, .auto_flow = eAutoFlow::columns, .column_widths = std::move(valueColumns) }
+					  { .gap = lineSpacing(), .auto_rows = rowHeight(), .auto_flow = eAutoFlow::columns, .column_widths = std::move(valueColumns) }
 					, {}
 				);
 
@@ -1393,7 +1407,7 @@ void PropertiesBrowser::Body()
 				for (int i = 0; i < 2; ++i)
 				{
 					gmpi::ui::Grid lowHighRow(
-						  { .gap = lineSpacing, .auto_rows = rowHeight, .auto_flow = eAutoFlow::columns, .column_widths = { labelColumnWidth, fr(1.0f) } }
+						  { .gap = lineSpacing(), .auto_rows = rowHeight(), .auto_flow = eAutoFlow::columns, .column_widths = { labelColumnWidth, fr(1.0f) } }
 						, {}
 					);
 					gmpi::ui::Label label(i ? "High" : "Low");
@@ -1408,7 +1422,7 @@ void PropertiesBrowser::Body()
 
 			// Toggle group (vertical Grid with 3 fixed-height rows)
 			{
-				gmpi::ui::Grid toggleGroup({ .gap = lineSpacing, .auto_rows = rowHeight }, {});
+				gmpi::ui::Grid toggleGroup({ .gap = lineSpacing(), .auto_rows = rowHeight() }, {});
 				gmpi::ui::ToggleSwitch t1("Ignore Program Change", p->m_ignoreProgramChange);
 				gmpi::ui::ToggleSwitch t2("Private"              , p->isPrivate            );
 				gmpi::ui::ToggleSwitch t3("Stateful"             , p->isStateful           );
@@ -1421,7 +1435,7 @@ void PropertiesBrowser::Body()
 			if (isNumeric((EPlugDataType)datatype))
 			{
 				gmpi::ui::Grid midiRow(
-					  { .gap = lineSpacing, .auto_rows = rowHeight, .auto_flow = eAutoFlow::columns, .column_widths = { labelColumnWidth, fr(1.0f) } }
+					  { .gap = lineSpacing(), .auto_rows = rowHeight(), .auto_flow = eAutoFlow::columns, .column_widths = { labelColumnWidth, fr(1.0f) } }
 					, {}
 				);
 				gmpi::ui::Label label("MIDI");
@@ -1476,7 +1490,7 @@ float PropertiesBrowser::dividerLineX() const
 	// fixed px = fraction * textArea width; the line sits in the centre of the column gap.
 	const float textAreaLeft = bounds.left + outerMargin;
 	const float labelColumnWidth = std::clamp(columnFraction, kMinColumnFraction, kMaxColumnFraction) * propertiesTextAreaWidth(bounds);
-	return textAreaLeft + labelColumnWidth + lineSpacing * 0.5f;
+	return textAreaLeft + labelColumnWidth + lineSpacing() * 0.5f;
 }
 
 bool PropertiesBrowser::columnsShown() const

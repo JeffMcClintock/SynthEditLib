@@ -5,6 +5,7 @@
 // through the EditorLib link.
 #include "SynthEditAppBase.h"
 #include "ModuleBrowser.h"
+#include "BrowserFontSize.h"
 #include "ModuleDragAndDropManager.h"
 #include "Notify_msg.h"
 #include "experimental/theme.h"
@@ -60,6 +61,14 @@ void ModuleBrowser::OnNotify(Notifier* sender, int lHint, void* pHint)
         state.formIsDirty = true;
 
         renderVisuals();
+    }
+
+    if (OM_BROWSER_FONT_SIZE_CHANGED == lHint)
+    {
+        // Row heights and font sizes are chosen while the visuals are built, so the new
+        // preference only reaches the screen through a rebuild.
+        renderVisuals();
+        return;
     }
 
     if (OM_DRAG_NEW_MODULE == lHint)
@@ -497,42 +506,54 @@ void ListView::Render(gmpi_forms::Environment* env, gmpi::forms::primitive::Canv
 {
  //   _RPTN(0, "\nListView::Render ================================\n");
 
-    constexpr float itemHeight = 13;
-    constexpr float itemMargin = 2;
-    constexpr auto lineHeight = itemHeight + itemMargin;
+    // Row pitch and font both come from the Browser Font Size preference, so the module
+    // list reads at the same size as the Properties Browser. It used to leave
+    // TextBoxStyle's default body height of 12 in place, which is why it looked smaller.
+    const float lineHeight = SynthEdit::browserRowHeight();
+    const float bodyHeight = SynthEdit::browserBodyHeight();
 
     gmpi::drawing::Rect textBoxArea = getBounds();
-    textBoxArea.bottom = textBoxArea.top + itemHeight;
+    textBoxArea.bottom = textBoxArea.top + lineHeight;
 
     // styles for text on list of modules (color-coded by type)
     const bool isDark = gmpi::ui::themeModeStorage() == gmpi::ui::ThemeMode::Dark;
     auto styleDsp = new gmpi::forms::primitive::TextBoxStyle(
         isDark ? colorFromHex(0xF2F2F2u) : colorFromHex(0x111111u), Colors::TransparentBlack);
-    styleDsp->setLineSpacing(itemHeight + itemMargin);
+    styleDsp->bodyHeight = bodyHeight;
+    styleDsp->setLineSpacing(lineHeight);
     canvas.add(styleDsp);
 
     auto styleGui = new gmpi::forms::primitive::TextBoxStyle(
         isDark ? colorFromHex(0xD5E0F2u) : colorFromHex(0x2B4070u), Colors::TransparentBlack);
-    styleGui->setLineSpacing(itemHeight + itemMargin);
+    styleGui->bodyHeight = bodyHeight;
+    styleGui->setLineSpacing(lineHeight);
     canvas.add(styleGui);
 
     auto styleControl = new gmpi::forms::primitive::TextBoxStyle(
         isDark ? colorFromHex(0xDBEFD5u) : colorFromHex(0x2B6020u), Colors::TransparentBlack);
-    styleControl->setLineSpacing(itemHeight + itemMargin);
+    styleControl->bodyHeight = bodyHeight;
+    styleControl->setLineSpacing(lineHeight);
     canvas.add(styleControl);
 
-    const float headerHeight = 8;
-    const float headerMargin = 2;
+    // Group headings stay deliberately smaller than the module names, and scale with them.
+    const float headerHeight = 8.0f * SynthEdit::browserFontScale();
+    const float headerMargin = 2.0f * SynthEdit::browserFontScale();
     const auto headerTotalHeight = headerHeight + headerMargin;
     auto groupHeaderStyle = new gmpi::forms::primitive::TextBoxStyle(gmpi::ui::currentTheme().labelText, Colors::TransparentBlack);
     groupHeaderStyle->bodyHeight = headerHeight;
     groupHeaderStyle->setLineSpacing(headerHeight + headerMargin);
     canvas.add(groupHeaderStyle);
 
+    // The hover and drag highlights are drawn OVER one row of an already-drawn chunk, so
+    // they take that chunk's metrics -- otherwise the name would shift as it lit up.
     auto styleHovered = new gmpi::forms::primitive::TextBoxStyle(Colors::White, Colors::DimGray);
+    styleHovered->bodyHeight = bodyHeight;
+    styleHovered->setLineSpacing(lineHeight);
     canvas.add(styleHovered);
 
     auto styleDragged = new gmpi::forms::primitive::TextBoxStyle(Colors::Black, Colors::Yellow);
+    styleDragged->bodyHeight = bodyHeight;
+    styleDragged->setLineSpacing(lineHeight);
     canvas.add(styleDragged);
 
     auto& canvas2 = canvas;
@@ -681,22 +702,27 @@ void ListView::Render(gmpi_forms::Environment* env, gmpi::forms::primitive::Canv
 
 void MbTreeView::Render(gmpi_forms::Environment* env, gmpi::forms::primitive::Canvas& canvas) const
 {
-    const float itemHeight = 13;
-    const float itemMargin = 2;
+    // Category rows share the module list's row height and font (see ListView::Render).
+    const float itemHeight = SynthEdit::browserRowHeight();
+    const float itemMargin = 2.0f * SynthEdit::browserFontScale();
+    const float bodyHeight = SynthEdit::browserBodyHeight();
     gmpi::drawing::Rect textBoxArea = getBounds();
     textBoxArea.bottom = textBoxArea.top + itemHeight;
 
     // default text style (use transparent background since the tree view has its own background rectangle)
     // setLineSpacing must not exceed itemHeight, otherwise CoreText can't fit a line in single-item bounds
     auto style = new gmpi::forms::primitive::TextBoxStyle(gmpi::ui::currentTheme().controlText, Colors::TransparentBlack);
+    style->bodyHeight = bodyHeight;
     style->setLineSpacing(itemHeight);
     canvas.add(style);
 
     auto styleSelected = new gmpi::forms::primitive::TextBoxStyle(Colors::White, Colors::DodgerBlue);
+    styleSelected->bodyHeight = bodyHeight;
     styleSelected->setLineSpacing(itemHeight);
     canvas.add(styleSelected);
 
     auto styleHovered = new gmpi::forms::primitive::TextBoxStyle(Colors::White, Colors::DimGray);
+    styleHovered->bodyHeight = bodyHeight;
     styleHovered->setLineSpacing(itemHeight);
     canvas.add(styleHovered);
 
@@ -787,9 +813,14 @@ void MbTreeView::Render(gmpi_forms::Environment* env, gmpi::forms::primitive::Ca
         {
             if (prefix)
             {
-                // expand toggle button
+                // expand toggle button. The triangle is a fixed 10px path, so it gets its
+                // own centred rect rather than riding the top of a taller row; the click
+                // target below stays the full row height.
                 auto toggleArea = textBoxArea;
                 toggleArea.right = toggleArea.left + 10;
+
+                auto glyphArea = toggleArea;
+                glyphArea.top += 0.5f * (itemHeight - 10.0f);
 
                 auto s = styleExpander;
                 if (index == model->hoveredIndex)
@@ -804,7 +835,7 @@ void MbTreeView::Render(gmpi_forms::Environment* env, gmpi::forms::primitive::Ca
                 }
 
                 canvas2.add(
-                    new gmpi::forms::primitive::Shape(p, s, toggleArea)
+                    new gmpi::forms::primitive::Shape(p, s, glyphArea)
                 );
 
                 // clicks expand treeview parent nodes.

@@ -152,6 +152,7 @@ add_library(EditorLib STATIC
     ${SYNTHEDITLIB_DIR}/EditorLib/legacyExternalApp.h
     ${SYNTHEDITLIB_DIR}/EditorLib/MfcDocPresenter.cpp
     ${SYNTHEDITLIB_DIR}/EditorLib/MfcDocPresenter.h
+    ${SYNTHEDITLIB_DIR}/EditorLib/BrowserFontSize.h
     ${SYNTHEDITLIB_DIR}/EditorLib/ModuleBrowser.cpp
     ${SYNTHEDITLIB_DIR}/EditorLib/ModuleBrowser.h
     ${SYNTHEDITLIB_DIR}/EditorLib/PropertiesBrowser.cpp
