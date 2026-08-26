@@ -1,6 +1,7 @@
 #ifndef __SynthRuntime_h__
 #define __SynthRuntime_h__
  
+#include <atomic>
 #include <stdint.h>
 #include <mutex>
 #include "./iseshelldsp.h"
@@ -34,6 +35,22 @@ class SynthRuntime : public SeShellDsp
 	bool restartDontRestorePresets{};
 	std::string pendingDocumentXml_; // guarded by generatorLock; see setDocumentXml
 	bool documentPending_ = false;   // guarded by generatorLock; forces the next prepareToPlay to rebuild
+
+	// DoAsyncRestart's plugin-runtime half. The standalone app restarts via
+	// the fade thread (TriggerRestart); a plugin has no such thread - the
+	// host drives every block - so the request is parked here and the block
+	// loop consumes it. See takePluginRestartRequest.
+	std::atomic<bool> pluginRestartRequested_{ false };
+
+	// True when the HOST drives every block and no fade thread exists to
+	// complete a TriggerRestart. Set explicitly by the embedding processor
+	// (TIDE), because nothing here can infer it: synth_thread_running is set
+	// unconditionally by prepareToPlay - the name lies, it means 'generator
+	// open' - so it cannot distinguish the standalone app from a plugin.
+	// Measured 2026-08-26: with this false in TIDE, a patch-cable edit's
+	// DoAsyncRestart entered the fade machinery, whose completion path never
+	// runs in a plugin, and the request silently died (TideSynth E28).
+	bool hostDrivenRestart_ = false;
 
 public:
 	SynthRuntime();
@@ -105,6 +122,18 @@ public:
 	virtual std::wstring getDefaultPath(const std::wstring& p_file_extension ) override;
 	virtual void GetRegistrationInfo(std::wstring& p_user_email, std::wstring& p_serial) override;
 	virtual void DoAsyncRestart() override;
+
+	// The plugin runtime's answer to DoAsyncRestart, polled by the host-driven
+	// block loop (TIDE checks it each subProcess). True at most once per
+	// request; consuming it arms documentPending_ WITHOUT touching the pending
+	// string, so the next prepareToPlay rebuilds from the cached currentDspXml
+	// - the document the DSP already holds, not another copy. Host controls in
+	// persistAcrossResets (the patch-cable list among them) survive the
+	// rebuild, which is the entire point: a re-cabling rebuilds the graph with
+	// the NEW cable list and the OLD document.
+	bool takePluginRestartRequest();
+	void setHostDrivenRestart(bool b) { hostDrivenRestart_ = b; }
+
 	void DoAsyncRestartCleanState();
 	void ClearDelaysUnsafe();
 	bool NeedsTempo( ){ return usingTempo_; }

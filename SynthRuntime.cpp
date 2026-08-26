@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <string>
 #include <fstream>
 #include <mutex>
@@ -551,10 +552,33 @@ void SynthRuntime::DoAsyncRestart()
 	// however it's not nesc to stall GUI by polling for the audio fade-out to complete.
 	// Step one is to trigger the fadeout, step two is wait for signal from DSP to call OnFadeOutComplete();
 
+	if (hostDrivenRestart_)
+	{
+		// Host-driven runtime: no fade thread exists, and this is called ON
+		// the audio thread (a host control like HC_PATCH_CABLES arriving
+		// mid-process). Restarting mid-block would tear the graph out from
+		// under the running process(); park the request, and the block loop
+		// rebuilds at the top of the NEXT block.
+		pluginRestartRequested_ = true;
+		return;
+	}
+
 	if (generator && generator->synth_thread_running)
 	{
 		generator->TriggerRestart();
+		return;
 	}
+
+}
+
+bool SynthRuntime::takePluginRestartRequest()
+{
+	if (!pluginRestartRequested_.exchange(false))
+		return false;
+
+	std::lock_guard<std::mutex> x(generatorLock);
+	documentPending_ = true; // rebuild from cached currentDspXml; see header
+	return true;
 }
 
 // restart the processor same as above, but don't attempt to restore it's state. Just stick with default state.
