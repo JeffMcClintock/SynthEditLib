@@ -1651,7 +1651,13 @@ void CContainer::Upgrade(int from_version)
 
 bool CContainer::getIgnoreProgramChange()
 {
-	return GetPlug(PN_IGNORE_PC)->GetDefault().compare(L"1") == 0 || (Container() && Container()->getIgnoreProgramChange());
+	// CUG::GetPlug returns nullptr by design when the index is out of range, and
+	// its own comment says callers that null-check "recover cleanly, and the rest
+	// fault at a known point". This was one of the rest. PN_IGNORE_PC is 3 and a
+	// container declares pins 0..3 with Ignore Program Change LAST, so a table
+	// short by even one entry lands here and nowhere else. Absent reads as false.
+	auto* ignorePc = GetPlug(PN_IGNORE_PC);
+	return (ignorePc && ignorePc->GetDefault().compare(L"1") == 0) || (Container() && Container()->getIgnoreProgramChange());
 }
 
 void CContainer::OnMenuCommand(int p_view_type, uint32_t p_command_id, gmpi::drawing::PointL mouse_pos )
