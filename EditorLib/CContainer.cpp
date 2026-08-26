@@ -480,20 +480,25 @@ void CContainer::OnEditPaste(gmpi::drawing::PointL point, int p_view_type, tinyx
 	int count_panel = 0;
 	gmpi::drawing::PointL struct_center{};
 	gmpi::drawing::PointL panel_center{};
-	gmpi::drawing::PointL struct_topleft{INT_MAX, INT_MAX};
-	gmpi::drawing::PointL panel_topleft{INT_MAX, INT_MAX};
 
 	for( auto& db : temp_container->BaseList)
 	{
 		const int object_flags = db->getType()->GetFlags();
 		gmpi::drawing::RectL temp = db->getViewObRect(CF_STRUCTURE_VIEW);
 
-		if( (object_flags & CF_STRUCTURE_VIEW) != 0 && !gmpi::drawing::empty(temp) ) // ignore lines (nullptr rect during load prefab)
+		// An object votes for the paste centroid only if it has a trustworthy position of
+		// its own here: the all-zero rect means it has none (wires before first display,
+		// never-placed objects) — but a zero-*size* rect with a real top-left still counts
+		// (e.g. a prefab whose top level is a single not-yet-laid-out Container) — and
+		// off-canvas positions are garbage some old documents carry; neither may steer
+		// where the good modules land.
+		const bool onCanvas = temp.left >= -100 && temp.left < 10000
+		                   && temp.top  >= -100 && temp.top  < 10000;
+
+		if( (object_flags & CF_STRUCTURE_VIEW) != 0 && temp != gmpi::drawing::RectL{} && onCanvas )
 		{
 			struct_center.x += temp.left;
 			struct_center.y += temp.top;
-			struct_topleft.x = min( struct_topleft.x, temp.left );
-			struct_topleft.y = min( struct_topleft.y, temp.top );
 			count_struct++;
 		}
 
@@ -509,8 +514,6 @@ void CContainer::OnEditPaste(gmpi::drawing::PointL point, int p_view_type, tinyx
 
 			panel_center.x += temp.left;
 			panel_center.y += temp.top;
-			panel_topleft.x = min( panel_topleft.x, temp.left );
-			panel_topleft.y = min( panel_topleft.y, temp.top );
 			count_panel++;
 		}
 
@@ -532,7 +535,7 @@ void CContainer::OnEditPaste(gmpi::drawing::PointL point, int p_view_type, tinyx
 	if( count_panel < 1 )
 	{
 		count_panel = 1;
-		panel_topleft.x = panel_topleft.y = 100;
+		panel_center.x = panel_center.y = 100;
 	}
 
 	if( count_struct < 1 )
