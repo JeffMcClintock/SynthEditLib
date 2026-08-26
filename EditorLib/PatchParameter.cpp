@@ -1294,7 +1294,12 @@ bool PatchParameter_base::ignoreProgramChange()
 {
 	//	return m_ignore_program_change || module()->Container()->getIgnoreProgramChange();
 	// module() may be nullptr during upgrade pre 1.1 files.
-	return m_ignoreProgramChange || (module() && module()->Container()->getIgnoreProgramChange());
+	// module()->Container() is DocOb::m_container, a plain member that is 0 on
+	// construction (DocOb.cpp:33) and stays null for the "Main" container -- see
+	// the special case DocOb.cpp:40 spells out. Guarding module() alone left this
+	// tail-calling CContainer::getIgnoreProgramChange with this==nullptr, which
+	// faults in CUG::GetPlug at [this+0x50]. That is TIDE BACKLOG E25.
+	return m_ignoreProgramChange || (module() && module()->Container() && module()->Container()->getIgnoreProgramChange());
 }
 
 void PatchParameter_base::SetProgram()
