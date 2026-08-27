@@ -9,6 +9,7 @@
 
 
 #include <algorithm>
+#include <iostream>              // the absent-module-handle report in InitModulePointers
 #include "Notify_msg.h"
 
 //#define _CRT_SECURE_NO_DEPRECATE // for affectx.h
@@ -1472,7 +1473,31 @@ void CPatchManager::InitModulePointers(std::map<int32_t, CUG*>& uniqueIds, std::
 	for(auto& mh : parameterModuleHandles)
 	{
 		auto it = uniqueIds.find(mh.second);
-		assert(it != uniqueIds.end());
+
+		// The assert was the ONLY guard, and a release build ships -DNDEBUG --
+		// so a document naming a module handle it does not contain dereferenced
+		// map::end() and stored whatever that read produced as the parameter's
+		// module pointer. Every later module()->... ran on it, including
+		// ignoreProgramChange() (TIDE BACKLOG E25). This is TIDE BACKLOG E46,
+		// and it is the same shape as CUG::GetPlug's own fix, whose comment
+		// says the assert "compiles out under NDEBUG ... so it can't be the
+		// only guard".
+		//
+		// Absent means module() stays nullptr -- its declared default
+		// (PatchParameter.h:368) -- so the parameter loads degraded rather than
+		// wild, and the callers that already null-check module() recover. Where
+		// a real miss comes from: a parameter whose module was deleted, or a
+		// chunk written by a different module set (a HetrickCV-enabled save
+		// opened by a stock build; TIDE ships both).
+		if (it == uniqueIds.end())
+		{
+			assert(false && "parameter names a module handle this document does not contain");
+			std::cerr
+				<< "SynthEdit: parameter names module handle " << mh.second
+				<< ", which this document does not contain -- parameter left with no module.\n";
+			continue;
+		}
+
 		mh.first->setModule((*it).second);
 	}
 }
