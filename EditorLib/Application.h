@@ -71,6 +71,13 @@ public:
 	// folder presets are filed under). Settable through the base so the export dialogs can offer
 	// it without knowing which concrete app they are talking to.
 	virtual bool SetRegistrationInfo(const std::wstring& /*p_vendor*/, const std::wstring& /*p_serial*/) { return false; }
+	// Vendor website and copyright, remembered per machine. The document keeps its own
+	// copy (that is what the exporters read); these are the remembered default the export
+	// dialogs pre-fill from, so one vendor's details are typed once rather than per project.
+	virtual std::wstring getVendorWebsite() { return {}; }
+	virtual void setVendorWebsite(const std::wstring& /*p_url*/) {}
+	virtual std::wstring getVendorCopyright() { return {}; }
+	virtual void setVendorCopyright(const std::wstring& /*p_text*/) {}
 	virtual int SnapPixels() { return 8; }
 	virtual void OnRunStop() {}
 	virtual bool IsRegisteredVersion() { return true; }

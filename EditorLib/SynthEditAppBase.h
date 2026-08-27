@@ -99,8 +99,12 @@ struct ApplicationSettings
 	int32_t AudioDriverBufferSizeMs{ 100 };
 	int32_t /*ElatencyContraintType*/ latencyCompensation{ (int32_t) ElatencyContraintType::Full };
 
+	// Vendor identity: who is shipping the plugin rather than what the plugin is.
+	// Remembered per machine so it does not have to be retyped for every project.
 	std::wstring Registration;
 	std::string Vendor4charCode;
+	std::wstring VendorWebsite;
+	std::wstring VendorCopyright;
 
 	std::wstring AudioPath;
 	std::wstring MidiPath;
@@ -137,6 +141,8 @@ struct ApplicationSettings
 
 		s("Registration", Registration);
 		s("Vendor4charCode", Vendor4charCode);
+		s("VendorWebsite", VendorWebsite);
+		s("VendorCopyright", VendorCopyright);
 		s("RecentFiles", RecentFiles);
 
 		s("AudioPath", AudioPath);
@@ -297,6 +303,10 @@ public:
 	std::string setVendor4charCodeSanitized(std::string p_code) override;
 	std::string getVendor4charCode() override;
 	bool SetRegistrationInfo(const std::wstring& p_vendor, const std::wstring& p_serial) override;
+	std::wstring getVendorWebsite() override { return settings.VendorWebsite; }
+	void setVendorWebsite(const std::wstring& p_url) override { settings.VendorWebsite = p_url; }
+	std::wstring getVendorCopyright() override { return settings.VendorCopyright; }
+	void setVendorCopyright(const std::wstring& p_text) override { settings.VendorCopyright = p_text; }
 	void setTemporaryRegistration(const std::wstring& p_vendor, const std::wstring& p_serial);
 	void UpdateUndoMenus(bool CanUndo, bool CanRedo, std::wstring undo_description, std::wstring redo_description);
 #ifdef _WIN32
