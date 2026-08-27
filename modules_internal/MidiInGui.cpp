@@ -121,6 +121,23 @@ namespace
 )XML");
 
 	auto r2 = sesdk::Register<MidiInGui>::withId(L"MIDI In");
+
+	// MIDI in without the LED
+	auto r3 = sesdk::Register<MidiIn>::withXml(R"XML(
+<?xml version="1.0" ?>
+<PluginList>
+  <Plugin id="MIDI In NL" name="MIDI In (no LED)" category="MIDI">
+    <Parameters>
+      <Parameter id="0" datatype="int" persistant="false" />
+    </Parameters>
+    <Audio>
+      <Pin name="MIDI Data" datatype="midi" direction="out" />
+      <Pin name="Activity" datatype="int" direction="out" parameterId="0" />
+      <Pin name="MPE Mode" datatype="bool" default="0"/>
+    </Audio>
+  </Plugin>
+</PluginList>
+)XML");
 }
 
 

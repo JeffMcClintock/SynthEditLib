@@ -8,4 +8,5 @@ gmpi_plugin(
 	SOURCE_FILES
 	  Converters2.cpp
 	  StringConcatGui.cpp
+          MIDIActivity.cpp
 )
