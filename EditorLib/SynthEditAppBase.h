@@ -296,7 +296,7 @@ public:
 	void GetRegistrationInfo(std::wstring& p_user_email, std::wstring& p_serial) override;
 	std::string setVendor4charCodeSanitized(std::string p_code) override;
 	std::string getVendor4charCode() override;
-	bool SetRegistrationInfo(const std::wstring& p_vendor, const std::wstring& p_serial);
+	bool SetRegistrationInfo(const std::wstring& p_vendor, const std::wstring& p_serial) override;
 	void setTemporaryRegistration(const std::wstring& p_vendor, const std::wstring& p_serial);
 	void UpdateUndoMenus(bool CanUndo, bool CanRedo, std::wstring undo_description, std::wstring redo_description);
 #ifdef _WIN32

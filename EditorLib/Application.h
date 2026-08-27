@@ -67,6 +67,10 @@ public:
 	virtual int32_t sendSdkMessageToAudio(int32_t /*handle*/, int32_t /*id*/, int32_t /*size*/, const void* /*messageData*/) { return 0; }
 	virtual bool OnTimer() { return true; }
 	virtual void GetRegistrationInfo(std::wstring& /*p_user_email*/, std::wstring& /*p_serial*/) {}
+	// The vendor name hosts show as the plugin's developer (VST3 PFactoryInfo::vendor, and the
+	// folder presets are filed under). Settable through the base so the export dialogs can offer
+	// it without knowing which concrete app they are talking to.
+	virtual bool SetRegistrationInfo(const std::wstring& /*p_vendor*/, const std::wstring& /*p_serial*/) { return false; }
 	virtual int SnapPixels() { return 8; }
 	virtual void OnRunStop() {}
 	virtual bool IsRegisteredVersion() { return true; }
