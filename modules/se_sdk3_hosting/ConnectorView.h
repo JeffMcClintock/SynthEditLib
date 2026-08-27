@@ -36,7 +36,6 @@ namespace SE2
 		bool endIsSnapped = false;
 		gmpi::drawing::Point from_;
 		gmpi::drawing::Point to_;
-		bool wasPickedUp = {};
 		inline static gmpi::drawing::Point startedDragAt_ = {};
 
 		CableType type = CableType::PatchCable;

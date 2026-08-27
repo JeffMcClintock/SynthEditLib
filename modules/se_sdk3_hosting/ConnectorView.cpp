@@ -322,7 +322,6 @@ namespace SE2
 */
 
 			// Left-click
-			wasPickedUp = true;
 			gmpi::drawing::Size delta = from_ - Point(point);
 			const float lengthSquared = delta.width * delta.width + delta.height * delta.height;
 			constexpr float hitRadiusSquared = mouseNearEndDist * mouseNearEndDist;
@@ -362,12 +361,25 @@ namespace SE2
 			if (abs(point.x - startedDragAt_.x) < dragThreshold && abs(point.y - startedDragAt_.y) < dragThreshold)
 				return gmpi::ReturnCode::Unhandled;
 
-			if(wasPickedUp)
-			{
-				wasPickedUp = false;
-				return gmpi::ReturnCode::Unhandled;
-			}
-
+			// A "wasPickedUp" flag used to swallow this release as well, so the
+			// FIRST release after picking up an existing cable end never ended
+			// the gesture, however far the pointer had travelled -- EndCableDrag
+			// never ran and the edit never reached the document. That is
+			// TIDE BACKLOG E34.
+			//
+			// It is gone rather than narrowed, because the two guards overlapped
+			// and the threshold above is the one that was doing the work. The
+			// click-then-move-then-click gesture does not need a flag here at
+			// all: its second click is a pointer-DOWN, and both subclasses end
+			// the drag from there (PatchCableView::onPointerDown and
+			// ConnectorView2::onPointerDown both open with the same
+			// imCaptured() -> EndCableDrag branch). So past the threshold the
+			// flag could only ever fire for press-drag-release, which is the
+			// gesture it was breaking.
+			//
+			// ConnectorView2 -- the STRUCTURE view cable -- never set the flag,
+			// which is why dragging a cable end there has always worked. This
+			// makes the patch cable behave the same way.
 			parent->autoScrollStop();
 			parent->releaseCapture();
 			parent->EndCableDrag(point, this, 0); // passsing zero flags on mouse-up, since alt key only relevant when clicking on pins while dragging.
