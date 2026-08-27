@@ -233,7 +233,7 @@ public:
 	{
 		// Inhibit blocking UI (e.g. dialogs). For automated scenarios.
 		quiet = true;
-		SeMessageBox(L"Logging dialogs to standard output.\n", L"", 0);
+		SeMessageBox(L"Logging dialogs to stderr, and keeping them for --dialogs.\n", L"", 0);
 	}
 	float GetSampleRate();
 	bool OnTimer() override;
