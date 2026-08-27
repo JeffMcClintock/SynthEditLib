@@ -1377,7 +1377,24 @@ namespace SE2
 		const float snappedGridPixels = std::round(zoomFactor * gridDips * dpiScale);
 		const float snappedZoom = snappedGridPixels / (gridDips * dpiScale);
 
-		const Point canvasCenter{ (drawingBounds.right - drawingBounds.left) * 0.5f, (drawingBounds.bottom - drawingBounds.top) * 0.5f };
+		// The pane's MIDPOINT, not half its SIZE. The transform below is consumed in
+		// WINDOW space, where this pane starts at drawingBounds.left -- so a half-size
+		// puts the stored centre exactly drawingBounds.left too far right.
+		//
+		// TIDE BACKLOG E42, measured: three runs, two zooms, one constant. Stored
+		// centre 1353 @ zoom 1.0 applied as 1593; 1253 @ 1.0 -> 1493; 940 @ 0.745 ->
+		// 1260. That is +240 DIP at zoom 1 and +320 at 0.745 -- a CONSTANT ~478 window
+		// pixels, independent of zoom, which is what rules out a document-space error
+		// and names this line. 240 DIP is exactly the two module-browser strips
+		// (SynthEditGui.cpp sets editorContentRect window-rooted from editorStrip.left).
+		//
+		// HARMLESS UNTIL E33. TIDE passed a hard-coded kRackViewDips / 2 and nobody
+		// could tell it was 240 out; E33 made the stored centre load-bearing, and the
+		// offset became visible the moment a saved framing had to be honoured.
+		//
+		// Origin-rooted panes (left == top == 0) are unaffected either way, which is
+		// every other view in this repo -- see the note on the sibling fix below.
+		const Point canvasCenter{ (drawingBounds.left + drawingBounds.right) * 0.5f, (drawingBounds.top + drawingBounds.bottom) * 0.5f };
 
 		// Derive scroll offset from center (doc coords) and snapped zoom.
 		float scrollX = canvasCenter.x - centerPos.x * snappedZoom;
