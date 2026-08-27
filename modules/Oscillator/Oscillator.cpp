@@ -29,6 +29,17 @@ misrepresented as being the original software.
 
 using namespace gmpi;
 
+// TU-LOCAL, and the collision that forced it was measured, not theoretical.
+// This file and modules/OscillatorHD/Oscillator.cpp both declare a global
+// `class Oscillator` with out-of-line virtual members. SynthEdit never links
+// the two into one image (OscillatorHD ships as a loadable module there), so
+// the clash was invisible until TIDE compiled both into one target and the
+// link failed on Oscillator::onSetPins (LNK2005, 2026-08-28, BACKLOG E48).
+// Everything here is self-registering (Register<>::withId at the bottom) and
+// Oscillator.h says "// not used", so nothing outside this TU names the class
+// -- internal linkage is what it always effectively had.
+namespace {
+
 const double TWO_PI = 2 * M_PI;
 
 template<typename T>
@@ -613,3 +624,5 @@ namespace
 {
 	auto r = Register<Oscillator>::withId(L"SE Oscillator");
 }
+
+} // anonymous namespace (see the comment above TWO_PI)
