@@ -404,41 +404,7 @@ void OpenWebPage(const std::wstring& p_web_url)
 int32_t ApplicationBase::SeMessageBox(const wchar_t* msg, const wchar_t* title, int flags)
 {
 	if (quiet)
-	{
-		// NARROW, deliberately. C streams take an orientation from their first
-		// use, and on glibc a wide write here silently poisons every later
-		// narrow write to the same stream — which cost the CLI its entire JSONL
-		// output on Linux (verbs ran, files were written, stdout was empty).
-		// SynthEditCL's protocol is UTF-8 JSON on stdout, so nothing may ever
-		// wide-orient it.
-		//
-		// Indent the continuation lines. A dialog is one message, but printed
-		// raw it arrives as several unrelated-looking lines, so a reader
-		// scraping this stream keeps the first and drops the rest — which is
-		// how "VST3 plugins folder not found:" reached the MCP client without
-		// the path that was the whole point of it. Leading whitespace is the
-		// convention that marks them as belonging to the line above.
-		auto text = WStringToUtf8(msg ? msg : L"");
-		while (!text.empty() && (text.back() == '\n' || text.back() == '\r'))
-			text.pop_back();
-
-		for (size_t pos = 0, line = 0; pos <= text.size(); ++line)
-		{
-			const auto eol = text.find('\n', pos);
-			const auto len = (eol == std::string::npos ? text.size() : eol) - pos;
-
-			// A blank separator line would carry no indent and so would break
-			// the run; the indent alone keeps the message together.
-			if (len > 0)
-				std::cout << (line == 0 ? "" : "  ") << text.substr(pos, len) << "\n";
-
-			if (eol == std::string::npos)
-				break;
-			pos = eol + 1;
-		}
-		std::cout << std::flush;
-		return MB_OK;
-	}
+		return divertPrompt(msg, title, flags);
 	else
 	{
 #ifdef _WIN32
@@ -462,15 +428,70 @@ int32_t ApplicationBase::SeMessageBox(const wchar_t* msg, const wchar_t* title, 
     }
 }
 
+// The single place a diverted prompt is recorded and reported. Both SeMessageBox
+// and SeMessageBoxAsync route here so the list and the log can never disagree.
+int32_t ApplicationBase::divertPrompt(const wchar_t* msg, const wchar_t* title, int flags)
+{
+	auto text = WStringToUtf8(msg ? msg : L"");
+	while (!text.empty() && (text.back() == '\n' || text.back() == '\r'))
+		text.pop_back();
+
+	// STDERR, NOT STDOUT, and this is a fix rather than a preference. SynthEditCL's
+	// protocol is UTF-8 JSON on stdout, and the screenshot verb turns quiet ON to
+	// get it -- so writing prose to stdout here corrupts the very output the flag
+	// exists to produce. stderr is also the one stream a shell-launched run always
+	// has, from the first instruction, long before the command channel.
+	//
+	// NARROW writes only. C streams take an orientation from their first use, and
+	// on glibc a wide write silently poisons every later narrow write to the same
+	// stream -- which once cost the CLI its entire JSONL output on Linux (verbs
+	// ran, files were written, stdout was empty).
+	//
+	// Continuation lines are INDENTED. A dialog is one message, but printed raw it
+	// arrives as several unrelated-looking lines, so a reader scraping this stream
+	// keeps the first and drops the rest -- which is how "VST3 plugins folder not
+	// found:" once reached the MCP client without the path that was the whole point
+	// of it. Leading whitespace marks a line as belonging to the one above.
+	for (size_t pos = 0, line = 0; pos <= text.size(); ++line)
+	{
+		const auto eol = text.find('\n', pos);
+		const auto len = (eol == std::string::npos ? text.size() : eol) - pos;
+
+		// A blank separator line would carry no indent and so would break the run;
+		// the indent alone keeps the message together.
+		if (len > 0)
+			std::cerr << (line == 0 ? "" : "  ") << text.substr(pos, len) << "\n";
+
+		if (eol == std::string::npos)
+			break;
+		pos = eol + 1;
+	}
+	std::cerr << std::flush;
+
+	// MB_OK for every prompt, which is what the non-quiet non-Windows path already
+	// does and for the reason it gives: of the ~58 call sites only ONE consumes the
+	// answer. Recording it alongside the text means a reader can see what the app
+	// was told, rather than having to know this rule.
+	constexpr int32_t answer = MB_OK;
+
+	divertedPrompts_.push_back({ WStringToUtf8(title ? title : L""), text, flags, answer });
+
+	return answer;
+}
+
+std::vector<ApplicationBase::DivertedPrompt> ApplicationBase::takeDivertedPrompts()
+{
+	return std::exchange(divertedPrompts_, {});
+}
+
 void ApplicationBase::SeMessageBoxAsync(const wchar_t* msg, const wchar_t* title, int flags,
                                         MessageBoxCompletion onComplete)
 {
 	if (quiet)
 	{
-		// narrow, deliberately - see the comment in SeMessageBox
-		std::cout << WStringToUtf8(msg ? msg : L"") << std::endl;
+		const auto answer = divertPrompt(msg, title, flags);
 		if (onComplete)
-			onComplete(MB_OK);
+			onComplete(answer);
 		return;
 	}
 
