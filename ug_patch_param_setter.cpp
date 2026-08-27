@@ -8,6 +8,8 @@
 #include "IDspPatchManager.h"
 #include "dsp_patch_parameter_base.h"
 
+#include <iostream>                  // the unresolved-parameter report in ConnectParameter
+
 SE_DECLARE_INIT_STATIC_FILE(ug_patch_param_setter)
 
 #if defined( _DEBUG )
@@ -172,6 +174,36 @@ void ug_patch_param_setter::ConnectHostParameter(dsp_patch_parameter_base* param
 void ug_patch_param_setter::ConnectParameter(int32_t moduleHandle, int moduleParameterId, UPlug* plug)
 {
 	auto parameter = parent_container->get_patch_manager()->GetParameter(moduleHandle, moduleParameterId);
+
+	// DspPatchManager::GetParameter returns nullptr by design when no parameter
+	// matches the (moduleHandle, moduleParameterId) PAIR, and the overload below
+	// dereferences its argument immediately -- HostControlisPolyphonic(
+	// parameter->getHostControlId()) -- guarded only by asserts, which compile
+	// out under NDEBUG.
+	//
+	// Measured 2026-08-27 on Windows: TIDE_Rack!ug_patch_param_setter::
+	// ConnectParameter+0x5e, c0000005 reading 0x64 -- an offset from NULL, not a
+	// wild pointer. That is TIDE BACKLOG E49. The call arrives from
+	// ug_base::HookUpParameters via BuildDspGraph, which runs on the AUDIO
+	// thread, so an unguarded miss kills the render thread instead of surfacing
+	// as a load error -- the whole rack goes silent with nothing logged.
+	//
+	// The module handle alone is not the discriminator: the crashing document
+	// had 25 handles defined and 13 referenced with none dangling, so the miss
+	// came from the parameter id on a module that does exist. Name both.
+	//
+	// stderr rather than _RPT: this fires only in the build where it matters.
+	// One line per miss, bounded by the document's pin count per graph build --
+	// the same reasoning as BundleInfo's factory.se.xml report.
+	if (!parameter)
+	{
+		std::cerr
+			<< "SynthEdit: no patch parameter for module " << moduleHandle
+			<< " parameter id " << moduleParameterId
+			<< " -- pin left unconnected rather than dereferenced.\n";
+		return;
+	}
+
 	ConnectParameter(parameter, plug);
 }
 

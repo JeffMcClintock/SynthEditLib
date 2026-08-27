@@ -436,6 +436,30 @@ void PropertiesViewModel::OnNotify(Notifier* sender, int lHint, void* pHint)
 		// ~Notifier's NotifySafe(OM_DELETE) loops until each observer removes itself.
 		if (sender == layoutContainer)
 		{
+			// currentModule lives INSIDE this container -- OM_SHOW_PROPERTIES sets the
+			// two together, layoutContainer = cug->Container() -- and it is about to be
+			// freed. ~CContainer sends this notify FIRST, then DeleteAll(), which frees
+			// each child with a bare `delete d` and never calls OnDelete(); so no child
+			// ever sends the OM_SHOW_PROPERTIES(nullptr) that clears the pane on the
+			// ordinary single-module delete path. This notify is the last moment
+			// currentModule is still valid.
+			//
+			// #59 closes this for a container that OWNS a patch manager, from
+			// ~CPatchManager. A container with none never reaches that line at all --
+			// `if (m_patch_manager) delete m_patch_manager;` -- and that leaf case is
+			// exactly what #59's comment says it does not fix. TIDE BACKLOG E47.
+			//
+			// Cleared, not invalidated: #59 does the same for the neighbouring case,
+			// and a repaint driven from inside a destructor is more than removing a
+			// dangling pointer requires.
+			currentModule = nullptr;
+
+			if (currentPatchManager)
+			{
+				currentPatchManager->UnRegisterGui2(static_cast<gmpi::api::IParameterObserver*>(this));
+				currentPatchManager = nullptr;
+			}
+
 			layoutContainer->UnRegisterObserver(this);
 			layoutContainer = nullptr;
 		}
