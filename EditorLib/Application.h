@@ -157,7 +157,46 @@ public:
 
 	void BuildCodeSkeleton(int32_t handle, const std::wstring moduleName);
 
+	// QUIET MODE. Set by -quiet (ParseSynthEditArgs -> ApplyConfigPreInit ->
+	// SetQuiet). A prompt raised while this is on never becomes a window: it is
+	// written to the log stream and KEPT, and the caller is answered MB_OK so
+	// nothing blocks.
+	//
+	// Keeping them is the point. Suppressing a dialog without recording it is
+	// how a real data loss goes unnoticed -- TIDE BACKLOG E48 lost 3,577 bytes
+	// of a document and we only know because the dialog BLOCKED and a human
+	// read it. Silence would have hidden that.
 	bool quiet = false;
+
+	// Every prompt diverted since launch, oldest first, in the order raised.
+	//
+	// A LIST RATHER THAN A CALLBACK, because the prompts that matter arrive
+	// BEFORE anything is listening: E48's fired during session restore, before
+	// the command channel existed. A callback registered later cannot be told
+	// what it missed; a list can be read whenever the reader turns up.
+	struct DivertedPrompt
+	{
+		std::string title;
+		std::string text;
+		int flags{};
+		int answered{}; // what the caller was told, so a reader can see what the app then did
+	};
+
+	// Read and clear. Draining rather than peeking keeps a long-running app
+	// from growing this without bound, and makes "what happened since I last
+	// asked" the natural question.
+	std::vector<DivertedPrompt> takeDivertedPrompts();
+
+private:
+	// Appends to divertedPrompts_ AND writes the message out. One function so
+	// the two halves cannot drift -- a prompt that is recorded but not printed
+	// is invisible to a shell-launched run, and one printed but not recorded is
+	// invisible to the command channel.
+	int32_t divertPrompt(const wchar_t* msg, const wchar_t* title, int flags);
+
+	std::vector<DivertedPrompt> divertedPrompts_;
+
+public:
 	bool rescanIncludesVsts = false;
 // on processor atm.	gmpi::hosting::QueuedUsers pendingQueueClients; // parameters waiting to be sent to Processor
 };
