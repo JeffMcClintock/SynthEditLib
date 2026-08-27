@@ -56,14 +56,28 @@ extern const char* se2juce_getNamedResource(const char* name, int& returnBytes);
 // over its enclosing .app, and needs no "Contents" to exist. Checked against every
 // artifact this project builds - standalone, .gmpi, .vst3, the macOS appex and its
 // host app, and the iOS appex and its host app.
+//
+// ANCESTORS ONLY - the executable's own filename is not a candidate. It reads like
+// a detail and is not: an exported plugin's binary is named after the bundle, WITH
+// the extension, on both platforms this matters on -
+//     <name>.vst3/Contents/MacOS/<name>.vst3        (SynthEdit's macOS export)
+//     <name>.vst3/Contents/x86_64-win/<name>.vst3   (every Windows VST3)
+// so a rule that considered the leaf picked the Mach-O/DLL as the bundle. CFBundle
+// over a Mach-O has no Resources, so getResource() returned nothing, the exported
+// plugin's VST3 class ids came back zeroed (countClasses() reports 2 either way),
+// and the VST3 wrapper registered wvVST3WRAP:0000... - the module then went
+// missing from any project using it, with no error anywhere. Found by the mac
+// export test, run 33016817363.
 static se_fs::path bundleRootOf(const se_fs::path& executablePath)
 {
 	static const char* const bundleSuffixes[] =
 		{ ".appex", ".app", ".vst3", ".component", ".gmpi", ".clap", ".bundle", ".framework" };
 
+	const se_fs::path containingFolders = executablePath.parent_path();
+
 	se_fs::path prefix;
 	se_fs::path bundleRoot;
-	for (const auto& component : executablePath)
+	for (const auto& component : containingFolders)
 	{
 		prefix /= component;
 
