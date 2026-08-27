@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <fstream>
+#include <iostream>
+#include <string>
 #include "se_filesystem.h"
 #include "tinyXml2/tinyxml2.h"
 #include "BundleInfo.h"
@@ -824,6 +826,23 @@ void BundleInfo::initPluginInfo()
 
     if (doc.Error())
     {
+        // The same silent failure the VST3 factory carried until now: with no
+        // factory XML, pluginName, vendorName and the ids below stay empty, every
+        // caller downstream treats those defaults as fact, and nothing anywhere
+        // reports a problem. Name the folder -- when a bundle-path change is the
+        // cause, that single line makes it obvious, which is precisely what was
+        // missing from SynthEdit run 33016817363.
+        //
+        // stderr, not a dialog: this can run during a host's plugin scan.
+        std::cerr
+            << "SynthEdit: could not read factory.se.xml -- this plugin has no identity.\n"
+            << "  looked in : " << WStringToUtf8(getResourceFolder()) << "\n"
+            << "  reason    : "
+            << (factoryXml.empty()
+                ? "the resource is missing or empty"
+                : std::string(doc.ErrorName()) + " (line " + std::to_string(doc.ErrorLineNum()) + ")")
+            << std::endl;
+
         assert(false);
         return; // initPluginInfoFromWrappedSem();
     }
