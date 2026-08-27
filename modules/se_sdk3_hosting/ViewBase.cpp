@@ -1523,6 +1523,32 @@ namespace SE2
 		cliprect.right  = (std::min)(cliprect.right,  (float)viewDimensions);
 		cliprect.bottom = (std::min)(cliprect.bottom, (float)viewDimensions);
 
+		// BACKLOG E39 -- THE RACK IS A WHOLE NUMBER OF ROWS, AND A PARTIAL ROW AT THE
+		// CANVAS EDGE IS NOT DRAWN AS RACK AT ALL.
+		//
+		// The rails are laid out from rack.origin, which is the panel rect's top-left
+		// and is an arbitrary document coordinate -- so the canvas edges at 0 and
+		// viewDimensions almost never land on a row boundary. The fill below covered
+		// the whole cliprect regardless, which left a strip of case interior with a
+		// rail on ONE side at the top of the canvas, and a much larger one at the
+		// bottom. Measured on macOS before this change, at 1.5x: 102 px (0.18 of a
+		// row) above the first rail and 452 px (0.78 of a row) below the last.
+		//
+		// A module dropped in either has nothing to seat against, and the top one is
+		// the region a fresh document opens onto -- the first thing a new user sees.
+		//
+		// The band is computed against the CANVAS, not against the cliprect: the
+		// cliprect is whatever dirty region is being repainted, so aligning to it
+		// would make the rack's extent depend on what happened to need redrawing.
+		// An earlier reading of this row blamed kRackViewDips for the same symptom;
+		// four screenshots at different scroll positions gave four different strip
+		// heights, which is what ruled a fixed canvas constant out.
+		const float bandTop    = rack.origin.y + ceilf ((0.0f                    - rack.origin.y) / rack.rowHeight) * rack.rowHeight;
+		const float bandBottom = rack.origin.y + floorf(((float)viewDimensions   - rack.origin.y) / rack.rowHeight) * rack.rowHeight;
+
+		cliprect.top    = (std::max)(cliprect.top,    bandTop);
+		cliprect.bottom = (std::min)(cliprect.bottom, bandBottom);
+
 		if (cliprect.right <= cliprect.left || cliprect.bottom <= cliprect.top)
 			return;
 
@@ -1535,8 +1561,13 @@ namespace SE2
 		const auto zoom = g.getTransform()._11;
 		const bool drawHoles = zoom > 0.5f; // too small to make out, and there are a lot of them
 
-		const int firstRow = static_cast<int>(floorf((cliprect.top    - rack.origin.y) / rack.rowHeight));
-		const int lastRow  = static_cast<int>(floorf((cliprect.bottom - rack.origin.y) / rack.rowHeight));
+		// Whole rows only, per the band above. bandLastRow is one short of the row
+		// that STARTS at bandBottom, because that row would run off the canvas.
+		const int bandFirstRow = static_cast<int>(lroundf((bandTop    - rack.origin.y) / rack.rowHeight));
+		const int bandLastRow  = static_cast<int>(lroundf((bandBottom - rack.origin.y) / rack.rowHeight)) - 1;
+
+		const int firstRow = (std::max)(bandFirstRow, static_cast<int>(floorf((cliprect.top    - rack.origin.y) / rack.rowHeight)));
+		const int lastRow  = (std::min)(bandLastRow,  static_cast<int>(floorf((cliprect.bottom - rack.origin.y) / rack.rowHeight)));
 		const int firstCol = static_cast<int>(floorf((cliprect.left   - rack.origin.x) / rack.hpWidth));
 		const int lastCol  = static_cast<int>(floorf((cliprect.right  - rack.origin.x) / rack.hpWidth));
 
