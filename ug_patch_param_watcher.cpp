@@ -1,5 +1,7 @@
 
 #include <vector>
+#include <atomic>                    // the once-latch on the E53 report below
+#include <iostream>                  // the unresolved-parameter report, on the audio thread
 #include "ug_patch_param_watcher.h"
 
 #include "./dsp_patch_parameter_base.h"
@@ -13,6 +15,31 @@ SE_DECLARE_INIT_STATIC_FILE(ug_patch_param_watcher)
 
 #define FIRST_PARAM_PLUG_IDX 3
 #define PN_VOICE_ID 2
+
+namespace
+{
+// BACKLOG E53 -- REPORTED ONCE PER PROCESS, BECAUSE THIS RUNS ON THE AUDIO THREAD.
+//
+// The sibling guard in ug_patch_param_setter.cpp (E49, #64) prints one line per
+// miss during graph build, which is bounded by the document's pin count. This
+// one sits in onSetPin, which fires per parameter event for the life of the
+// process -- an unbounded std::cerr there would be worse than the crash it
+// replaces. The cause is already named at build time ("no patch parameter for
+// module <h> parameter id <n>"); this only has to say the consequence was
+// survived, and say it once.
+void reportNullPatchParamOnce()
+{
+	static std::atomic<bool> reported{ false };
+	if (reported.exchange(true))
+		return;
+
+	std::cerr
+		<< "SynthEdit: patch parameter slot is null in ug_patch_param_watcher"
+		<< " -- output parameter update skipped rather than dereferenced."
+		<< " See the 'no patch parameter for module' lines above for which"
+		<< " module and parameter ids are missing. Reported once per process.\n";
+}
+}
 
 
 using namespace std;
@@ -142,6 +169,18 @@ void ug_patch_param_watcher::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug,
 			if( (plugs[i]->flags & PF_PPW_POLYPHONIC) != 0 )
 			{
 				size_t paramNumber = i - FIRST_PARAM_PLUG_IDX;
+
+				// E53. patchParams is push_back'd at :83 and :122 behind asserts only,
+				// so under NDEBUG a NULL is stored and arrives here intact. Bounds too,
+				// not just the pointer: paramNumber indexes plugs while patchParams is
+				// filled per created parameter plug, so a skipped push desynchronises
+				// the two.
+				if( paramNumber >= patchParams.size() || !patchParams[ paramNumber ] )
+				{
+					reportNullPatchParamOnce();
+					continue;
+				}
+
 				patchParams[ paramNumber ]->UpdateOutputParameter( voiceId_, plugs[i] );
 			}
 		}
@@ -157,7 +196,30 @@ void ug_patch_param_watcher::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug,
 		if( (p_to_plug->flags & PF_PPW_POLYPHONIC) == 0 )
 			effectiveVoice = 0;
 
+		// E53 -- THIS IS THE LINE THAT FAULTED. Measured 3/3 on macOS 2026-08-28:
+		// EXC_BAD_ACCESS, KERN_INVALID_ADDRESS at 0x51, on the CoreAudio render
+		// thread -- dsp_patch_parameter_base::UpdateOutputParameter+24 <-
+		// ug_base::HandleEvent <- ug_base::DoProcess <- SeAudioMaster::
+		// DoProcess_plugin <- SynthRuntime::process <- renderProc.
+		//
+		// The assert below was the ONLY thing standing here, and it compiles out
+		// under NDEBUG. #64 guarded three lookups of exactly this shape --
+		// PatchManager.cpp, PropertiesBrowser.cpp and ug_patch_param_setter.cpp --
+		// and this file was not among them.
+		//
+		// #64 did not create the null; it made it survivable at graph build,
+		// leaving the pin "unconnected rather than dereferenced". The slot in
+		// patchParams stays null and the audio thread reaches it later, so the
+		// document became loadable but not runnable. That is the whole of E53.
+		assert(paramNumber < (int) patchParams.size());
 		assert(patchParams[paramNumber]);
+
+		if( paramNumber >= (int) patchParams.size() || !patchParams[ paramNumber ] )
+		{
+			reportNullPatchParamOnce();
+			return;
+		}
+
 		patchParams[ paramNumber ]->UpdateOutputParameter( effectiveVoice, p_to_plug );
 	}
 }
