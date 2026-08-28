@@ -22,8 +22,10 @@ void ApplyConfigPreInit(CSynthEditAppBase& app, const SynthEditConfig& cfg)
     }
 
     // --rescan: drop the cache so InitInstance regenerates fresh module data.
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- no cache exists to clear
     if (cfg.rescanModules)
         ClearModuleDataCache();
+#endif // SE_NO_EXTERNAL_MODULES
 
     if (!cfg.overrideSamplesFolder.empty())
         app.overrideSamplesFolder = Utf8ToWstring(cfg.overrideSamplesFolder);

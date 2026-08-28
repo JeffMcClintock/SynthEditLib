@@ -13,9 +13,11 @@ namespace gmpi_dynamic_linking
 {
 	typedef intptr_t DLL_HANDLE;
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b
 	int32_t MP_DllLoad(DLL_HANDLE* dll_handle, const wchar_t* dll_filename);
 	int32_t MP_DllUnload(DLL_HANDLE dll_handle);
 	int32_t MP_DllSymbol(DLL_HANDLE dll_handle, const char* symbol_name, void** returnFunction);
+#endif // SE_NO_EXTERNAL_MODULES
 
     std::wstring MP_GetDllFilename();
 #if defined(_WIN32)

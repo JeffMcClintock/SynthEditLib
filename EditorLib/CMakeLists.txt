@@ -293,6 +293,35 @@ target_compile_definitions(EditorLib
         $<$<NOT:$<CONFIG:Debug>>:NDEBUG>
 )
 
+# BACKLOG S1b -- COMPILE THE THIRD-PARTY BINARY LOADER OUT.
+#
+# OFF by default: SynthEdit proper loads third-party .sem/.gmpi modules and
+# always will. TIDE sets it ON, on Jeff's 2026-08-26 ruling -- "3rd party module
+# compatibility is not important at this stage. We ship with only our own
+# modules" -- so the half being removed is exactly the third-party half.
+#
+# WHAT IT REMOVES: the binary loader. ScanBundle/ScanStandaloneSem/
+# ScanPluginBinary/ScanFile, LoadDllOnDemand/MP_DllLoad/UnloadDll/ReloadDll, and
+# the SEM-cache quartet (SemCacheName/LoadModuleData/StoreModuleData/
+# ClearModuleDataCache) -- the cache exists only to avoid rescanning binaries.
+# With them go the dlopen/dlsym/dlclose imports.
+#
+# WHAT IT KEEPS, and the distinction is the whole point: the PREFAB SCANNER.
+# ScanFolder still walks folders and still pushes .synthedit/.syntheditprefab/
+# .seprefab filenames onto PrefabFileNames -- CContainer::OnEditToPrefab rescans
+# that folder so a newly saved prefab appears in the browser, so this is live
+# code, not dead. Only ScanFolder's two binary arms are compiled out.
+#
+# dladdr STAYS and is NOT part of this: BundleInfo.cpp uses it to find the
+# plugin's own bundle. State the Accept as dlopen/dlsym/dlclose.
+option(SE_NO_EXTERNAL_MODULES
+    "Compile out loading of third-party binary modules (.sem/.gmpi). Keeps the prefab scanner."
+    OFF)
+
+if(SE_NO_EXTERNAL_MODULES)
+    target_compile_definitions(EditorLib PUBLIC SE_NO_EXTERNAL_MODULES)
+endif()
+
 # SE_MOONBASE_SUPPORT is intentionally not defined here. Moonbase (licensing)
 # lives in SynthEditApp.cpp, which is compiled directly by each consuming app
 # (SynthEditMac Xcode project, SynthEdit2.vcxproj, SynthEditCL CMakeLists.txt).

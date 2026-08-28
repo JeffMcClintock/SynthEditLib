@@ -25,10 +25,13 @@ void DeleteTemporaryModuleDescriptions(void);
 void RetainMissingModuleDescriptions(void);
 
 void ScanFolder(const std::filesystem::path& p_path, const std::string& p_extension, const std::wstring& sub_menu = {}, bool scanShellPlugins = false);
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- the binary loader; ScanFolder above stays
 void ScanBundle(const std::wstring& group_name, const std::filesystem::path& bundle_path, bool scanShellPlugins = false);
 void ScanFile(const std::wstring& group_name, const std::filesystem::path& binary_path);
+#endif // SE_NO_EXTERNAL_MODULES
 
 void ExportModuleData(tinyxml2::XMLElement* doc, ExportFormatType format);
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- SEM cache + dll load/unload
 void StoreModuleData();
 bool LoadModuleData();
 
@@ -36,6 +39,7 @@ std::wstring UnloadDll(std::wstring dllShortName);
 void ReloadDll(std::filesystem::path dllPath);
 
 bool ClearModuleDataCache();
+#endif // SE_NO_EXTERNAL_MODULES
 void ImportModuleInfo(tinyxml2::XMLElement* documentE, ExportFormatType targetType, int fileFormatVersion);
 void RegisterExternalPluginsXml(
 	  tinyxml2::XMLDocument* doc
