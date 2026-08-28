@@ -1229,20 +1229,14 @@ namespace SE2
 			const float dpiScale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
 			const float snappedZoom = std::round(zoomFactor * gridDips * dpiScale) / (gridDips * dpiScale);
 
-			// The pane's MIDPOINT, not half its SIZE -- the same distinction
-			// calcViewTransform documents at ITS canvasCenter (TIDE BACKLOG E42),
-			// and this line had the half-size. The two agree only for an
-			// origin-rooted pane; TIDE's editor pane starts at drawingBounds.left
-			// (the browser strips), so the recomputed centre was short by
-			// left/snappedZoom (and top/snappedZoom) -- the document TRANSLATED
-			// under the cursor on every zoom step while the zoom itself was
-			// right. Solving view = (doc - centerPos)*zoom + canvasCenter for
-			// the centre that keeps mouseDocPos under the cursor gives
-			// canvasCenter here, matching calcViewTransform term for term
-			// (TIDE BACKLOG E67).
-			const Point canvasCenter{ (drawingBounds.left + drawingBounds.right) * 0.5f, (drawingBounds.top + drawingBounds.bottom) * 0.5f };
-			centerPos.x = mouseDocPos.x + (canvasCenter.x - currentPointerPosAbsolute.x) / snappedZoom;
-			centerPos.y = mouseDocPos.y + (canvasCenter.y - currentPointerPosAbsolute.y) / snappedZoom;
+			// Solving view = (doc - centerPos)*zoom + canvasCenter() for the
+			// centre that keeps mouseDocPos under the cursor. canvasCenter()
+			// (the helper) is the pane's MIDPOINT -- its comment carries the
+			// half-size trap this line shipped with (TIDE BACKLOG E67, E42's
+			// defect one function from where E42 fixed it).
+			const auto center = canvasCenter();
+			centerPos.x = mouseDocPos.x + (center.x - currentPointerPosAbsolute.x) / snappedZoom;
+			centerPos.y = mouseDocPos.y + (center.y - currentPointerPosAbsolute.y) / snappedZoom;
 
 			Presenter()->SetPanZoom(centerPos, zoomFactor);
 		}
@@ -1387,28 +1381,15 @@ namespace SE2
 		const float snappedGridPixels = std::round(zoomFactor * gridDips * dpiScale);
 		const float snappedZoom = snappedGridPixels / (gridDips * dpiScale);
 
-		// The pane's MIDPOINT, not half its SIZE. The transform below is consumed in
-		// WINDOW space, where this pane starts at drawingBounds.left -- so a half-size
-		// puts the stored centre exactly drawingBounds.left too far right.
-		//
-		// TIDE BACKLOG E42, measured: three runs, two zooms, one constant. Stored
-		// centre 1353 @ zoom 1.0 applied as 1593; 1253 @ 1.0 -> 1493; 940 @ 0.745 ->
-		// 1260. That is +240 DIP at zoom 1 and +320 at 0.745 -- a CONSTANT ~478 window
-		// pixels, independent of zoom, which is what rules out a document-space error
-		// and names this line. 240 DIP is exactly the two module-browser strips
-		// (SynthEditGui.cpp sets editorContentRect window-rooted from editorStrip.left).
-		//
-		// HARMLESS UNTIL E33. TIDE passed a hard-coded kRackViewDips / 2 and nobody
-		// could tell it was 240 out; E33 made the stored centre load-bearing, and the
-		// offset became visible the moment a saved framing had to be honoured.
-		//
-		// Origin-rooted panes (left == top == 0) are unaffected either way, which is
-		// every other view in this repo -- see the note on the sibling fix below.
-		const Point canvasCenter{ (drawingBounds.left + drawingBounds.right) * 0.5f, (drawingBounds.top + drawingBounds.bottom) * 0.5f };
+		// canvasCenter() is the pane's MIDPOINT, not half its SIZE -- the
+		// full story (TIDE BACKLOG E42: three runs, two zooms, one constant
+		// +240 DIP; and E67, the same defect in onMouseWheel) lives on the
+		// helper's declaration, which is now the quantity's ONE owner.
+		const Point center = canvasCenter();
 
 		// Derive scroll offset from center (doc coords) and snapped zoom.
-		float scrollX = canvasCenter.x - centerPos.x * snappedZoom;
-		float scrollY = canvasCenter.y - centerPos.y * snappedZoom;
+		float scrollX = center.x - centerPos.x * snappedZoom;
+		float scrollY = center.y - centerPos.y * snappedZoom;
 
 		// Snap scroll to physical pixels so grid lines land exactly on pixel boundaries.
 		scrollX = std::round(scrollX * dpiScale) / dpiScale;
