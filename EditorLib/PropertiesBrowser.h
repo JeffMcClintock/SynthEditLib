@@ -162,6 +162,42 @@ class PropertiesBrowser : public gmpi::ui::Form, public gmpi_forms::IObserver
 {
 	PropertiesViewModel viewModel;
 
+	// BACKLOG E61 -- HAS THE MODULE A Body() LAMBDA CAPTURED OUTLIVED THE PANE'S
+	// VIEW OF IT?
+	//
+	// Body()'s commit lambdas capture the module (or one of its pins) as a RAW
+	// POINTER, and a native text edit can outlive both. On macOS
+	// GMPI_MAC_TextEdit::showAsync calls addRef() on ITSELF -- "self-extend
+	// lifetime" -- and ~GMPI_MAC_TextEdit only removes the NSTextField from its
+	// superview; it never calls dismissTextField. So tearing this pane's widgets
+	// down does NOT dismiss an open field. It keeps first responder, and when the
+	// user clicks away Cocoa sends textDidEndEditing, which commits into a lambda
+	// whose captured module was freed some time earlier.
+	//
+	// That is the crash Jeff hit: delete a container while its child's pin-name
+	// field is open, then finish the edit --
+	//   PropertiesBrowser::Body()::$_13 <- GMPI_MAC_TextEdit::dismissTextField
+	//   <- -[NSTextField textDidEndEditing:]
+	// EXC_BAD_ACCESS with a pointer-authentication failure, which is the
+	// signature of a call through freed memory rather than through a null.
+	//
+	// COMPARING IS SAFE WHERE DEREFERENCING IS NOT. This only ever compares
+	// addresses; it never touches `captured`. OM_DELETE sets currentModule to
+	// nullptr at the last moment the module is still valid (SynthEditLib#64), so
+	// a freed module can no longer equal it and every commit lambda declines.
+	// #64's guard and this one are the same fix seen from two ends, which is why
+	// "the pane still shows the dead child" was never merely cosmetic.
+	//
+	// THE RESIDUAL, STATED BECAUSE IT IS REAL: if the allocator hands the same
+	// address to a NEW module and that module becomes the one on show, this would
+	// wrongly allow the commit. Closing that needs a re-resolvable handle rather
+	// than a pointer, and EditorLib has no handle->module lookup today. Recorded
+	// on E61 rather than left implicit.
+	bool moduleStillShown(const void* captured) const
+	{
+		return captured && static_cast<const void*>(viewModel.currentModule) == captured;
+	}
+
 	gmpi::drawing::Rect bounds = {};
 
 	// Tracks which module was last rendered, so OnModelWillChange can reset

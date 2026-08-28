@@ -880,7 +880,7 @@ void PropertiesBrowser::Body()
 		// (modified flag, presenter refresh). Routed through validateAndSave since StateRef is read-only.
 		gmpi::ui::TextEdit field(
 			mod->name
-			, [mod](const std::string& v) { mod->name.set(v); }
+			, [this, mod](const std::string& v) { if (!moduleStillShown(mod)) return; mod->name.set(v); }   // E61
 		);
 		field.view->bounds = { 0, 0, 0, rowHeight() }; // height is what the outer Grid reads via auto_size
 	}
@@ -916,8 +916,9 @@ void PropertiesBrowser::Body()
 
 				gmpi::ui::TextEdit field(
 					state
-					, [mod, extract, mutate, statePtr = &state](const std::string& v)
+					, [this, mod, extract, mutate, statePtr = &state](const std::string& v)
 					{
+						if (!moduleStillShown(mod)) return;   // E61
 						auto r = mod->getViewObRect(CF_PANEL_VIEW);
 						mutate(r, atoi(v.c_str()));
 						// setViewObRect no-ops if unchanged, else sets the modified flag, repaints
@@ -1008,8 +1009,9 @@ void PropertiesBrowser::Body()
 				gmpi::ui::TextEdit textbox(
 					state
 					// changes from UI to model.
-					, [pin](const std::string& val) -> void
+					, [this, mod, pin](const std::string& val) -> void
 						{
+							if (!moduleStillShown(mod)) return;   // E61 -- the reported crash
 							pin->setName(Utf8ToWstring(val));
 						}
 				);
@@ -1110,8 +1112,9 @@ void PropertiesBrowser::Body()
 
 					// we don't want any two-way bindings. we want a monodirectional round-trip.
 					// this lambda validates the entered value, and only then updates the model, avoiding notification and callback churn.
-					, [pin](const std::string& val) -> void
+					, [this, mod, pin](const std::string& val) -> void
 						{
+							if (!moduleStillShown(mod)) return;   // E61
 							const auto currentDefault = pin->GetDefault();
 
 							// only update the default if the user made a meaningful change. e.g. "0" -> "0.0" = NO change.
@@ -1145,8 +1148,9 @@ void PropertiesBrowser::Body()
 					// we don't want any two-way bindings. we want a monodirectional round-trip.
 					// this lambda validates the entered value, and only then updates the model, avoiding notification and callback churn.
 					// otherwise entering say "A" in a float value text-entry that is already 0.0 leaves "A" showing since "A' translates to 0.0 and that "not a change"
-					, [pin](const std::string& val) -> void
+					, [this, mod, pin](const std::string& val) -> void
 						{
+							if (!moduleStillShown(mod)) return;   // E61
 							const auto currentDefault = pin->GetDefault();
 
 							// only update the default if the user made a meaningful change. e.g. "0" -> "0.0" = NO change.
@@ -1176,8 +1180,9 @@ void PropertiesBrowser::Body()
 
 					gmpi::ui::TextEdit textbox(
 						converter->to
-						, [pin](const std::string& val) -> void
+						, [this, mod, pin](const std::string& val) -> void
 							{
+								if (!moduleStillShown(mod)) return;   // E61
 								const auto hex = normalizeHexColor(val);
 								if (hex.empty())
 									return; // not valid hex — leave the stored value unchanged
@@ -1216,8 +1221,9 @@ void PropertiesBrowser::Body()
 					gmpi::ui::TextEdit textbox(
 						converter->to
 						// one-way (model -> UI) binding; the edit is saved via the back-channel.
-						, [pin](const std::string& val) -> void
+						, [this, mod, pin](const std::string& val) -> void
 							{
+								if (!moduleStillShown(mod)) return;   // E61
 								pin->SetDefault(Utf8ToWstring(val));
 							}
 					);
