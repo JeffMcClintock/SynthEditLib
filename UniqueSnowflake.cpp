@@ -145,17 +145,26 @@ int UniqueSnowflakeOwner::GenerateUniqueHandleValue(bool temporaryHandle)
 
 		// This is useful for Host Controlled Parameters which get created during project load. Using the same ID every time ensures resulting DSP XML is 
 		// consistant and comparable each run.
-		for(auto it = m_unique_objects.begin(); it != m_unique_objects.end(); ++it)
-		{
-			assert( (*it).first >= key ); // ensure no one trys ID = -1
-
-			if( (*it).first != key )
-				return key;
-
-			assert( (*it).first == key ); // check objects are in order
-
-			key++;
-		}
+		// The loop this replaces iterated m_unique_objects expecting SORTED order --
+		// its own second assert said "check objects are in order" -- but
+		// unique_object_map_t is std::unordered_map, whose iteration order is
+		// arbitrary. The first iterated element was virtually never handle 0, so
+		// the early-out returned 0 even when 0 was TAKEN, and every temporary-
+		// handle request after the first collided in Register() and fell back to
+		// a fresh RANDOM handle -- per load. Measured (TIDE BACKLOG E56): the
+		// second host-control parameter created at load carried a different
+		// handle on every run, so the serialized document never round-tripped
+		// byte-identical, which is the exact property the comment above says
+		// these sequential IDs exist to provide. Neither assert could fire: the
+		// >= passes for any non-negative handle, and the != returns before the
+		// == is reached.
+		//
+		// Ask the map directly for the smallest free non-negative key instead.
+		// O(taken-sequential-slots) per call, and only a handful of host-control
+		// parameters ever take this branch.
+		while(m_unique_objects.find(key) != m_unique_objects.end())
+			++key;
+		return key;
 	}
 	else
 	{
