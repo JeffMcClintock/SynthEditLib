@@ -73,6 +73,12 @@ enum class CableType;
 		virtual void SetPanZoom(gmpi::drawing::Point center, float zoomFactor) = 0;
 		virtual float GetZoomFactor() = 0;
 		virtual int GetSnapSize() = 0;
+		// Delete the current selection, if this view allows editing. Returns false
+		// when it declined, so a key handler can fall through rather than swallow
+		// the key. DEFAULTED, like getRackLayout below: the plugin-side presenters
+		// have no document to delete from and must not be forced to implement it.
+		// TIDE BACKLOG E57.
+		virtual bool DeleteSelection() { return false; }
 		// Disabled everywhere except a rack-mode project's top-level panel view.
 		virtual RackLayout getRackLayout() { return {}; }
 		virtual SE2::ModuleView* HandleToObject(int handle) = 0; // Seems out-of-place, because can have two objects w same handle (module + adorner).
