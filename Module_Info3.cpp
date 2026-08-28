@@ -17,6 +17,7 @@ using namespace gmpi;
 using namespace gmpi_sdk;
 using namespace gmpi_dynamic_linking;
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b
 void PluginHolder::load()
 {
 	if (dllHandle || pluginPath.empty())
@@ -85,7 +86,14 @@ void PluginHolder::load()
 	}
 #endif
 }
+#else
+void PluginHolder::load()
+{
+	// BACKLOG S1b -- no loader: the handle stays null and isLoaded() stays false.
+}
+#endif // SE_NO_EXTERNAL_MODULES
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b
 gmpi::MP_DllEntry PluginHolder::getFactory()
 {
 	if (!dllHandle)
@@ -101,7 +109,14 @@ gmpi::MP_DllEntry PluginHolder::getFactory()
 	return dll_entry_point;
 #endif
 }
+#else
+gmpi::MP_DllEntry PluginHolder::getFactory()
+{
+	return nullptr; // BACKLOG S1b -- nothing was ever loaded.
+}
+#endif // SE_NO_EXTERNAL_MODULES
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b
 void PluginHolder::unload()
 {
 	if (dllHandle)
@@ -115,6 +130,12 @@ void PluginHolder::unload()
 		dllHandle = {};
 	}
 }
+#else
+void PluginHolder::unload()
+{
+	// BACKLOG S1b -- nothing to unload; the handle was never set.
+}
+#endif // SE_NO_EXTERNAL_MODULES
 
 PluginHolder::~PluginHolder()
 {
@@ -165,6 +186,7 @@ void Module_Info3::ReLoadDll()
 }
 
 // returns false if dll not available
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- the symbol itself is part of the Accept
 bool Module_Info3::LoadDllOnDemand()
 {
 	// if we are loading a project with incompatible modules. Don't attempt to load dll until it's upgraded. Editor-only
@@ -227,6 +249,7 @@ bool Module_Info3::LoadDllOnDemand()
 
 	return true;
 }
+#endif // SE_NO_EXTERNAL_MODULES
 
 #if 0
 void Module_Info3::LoadDll_old()
@@ -362,6 +385,9 @@ void Module_Info3::Unload()
 
 gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> Module_Info3::getFactory2()
 {
+#ifdef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b
+	return {};
+#else
 	if (!LoadDllOnDemand())
 		return {};
 
@@ -376,10 +402,14 @@ gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> Module_Info3::getFactory2()
 	r = dll_entry_point(factory.asIMpUnknownPtr());
 
 	return factory;
+#endif // SE_NO_EXTERNAL_MODULES
 }
 
 gmpi::IMpUnknown* Module_Info3::Build( int subType, bool quietFail )
 {
+#ifdef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b
+	return {};
+#else
 	auto com_object = getFactory2();
 
 	if(!com_object)
@@ -435,10 +465,14 @@ gmpi::IMpUnknown* Module_Info3::Build( int subType, bool quietFail )
 	// STEP 7: Unload DLL
 	// r = MP_DllUnload( &dll_handle );
 	return 0;
+#endif // SE_NO_EXTERNAL_MODULES
 }
 
 ug_base* Module_Info3::BuildSynthOb()
 {
+#ifdef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- no loader, so an external module can never build
+	return 0;
+#else
 	if( !LoadDllOnDemand() || !m_dsp_registered )
 	{
 		return 0;
@@ -577,4 +611,5 @@ ug_base* Module_Info3::BuildSynthOb()
 	//	r = MP_DllUnload( &dll_handle );
 
 	return 0;
+#endif // SE_NO_EXTERNAL_MODULES
 }

@@ -57,7 +57,11 @@ public:
 
 	bool OnDemandLoad() override
 	{
+#ifdef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- no loader, so on-demand load always fails
+		return false;
+#else
 		return LoadDllOnDemand();
+#endif
 	}
 	bool isSummary() override // for VST2 plugins held as name-only.
 	{
@@ -77,7 +81,9 @@ public:
 
 	bool fromExternalDll() override { return true;};
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b
 	bool LoadDllOnDemand();
+#endif
 	int getClassType() override { return 0; } // 0 - Module_Info3, 1 - Module_Info, 2 - Module_Info3_internal, 3 - Module_Info_Plugin
     int ModuleTechnology() override;
 

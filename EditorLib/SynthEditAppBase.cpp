@@ -575,7 +575,11 @@ void CSynthEditAppBase::UpdateLiveModules()
 		const auto sourceFilename = stagingDir / filename;
 
 		// Unload existing sem
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- live-update of third-party binaries
 		fs::path destPath = UnloadDll(filename.wstring());
+#else
+		fs::path destPath;
+#endif // SE_NO_EXTERNAL_MODULES
 
 		if (destPath.empty())
 			destPath = fs::path(getSettingString(L"ModulePath")) / filename;
@@ -591,7 +595,9 @@ void CSynthEditAppBase::UpdateLiveModules()
 
 		// set aside the old module descriptions, then rescan the new dll into the database.
 		SetAsidePluginData(destPath);
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b
 		ScanFile(L"", destPath);
+#endif // SE_NO_EXTERNAL_MODULES
 	}
 
 	// keep any old descriptions possibly needed by current project.
@@ -630,7 +636,9 @@ void CSynthEditAppBase::UpdateLiveModules()
 
 	// module descriptions may have changed: rebuild the module browser menu and refresh the on-disk cache.
 	ReloadMenu();
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- no cache to refresh
 	StoreModuleData();
+#endif // SE_NO_EXTERNAL_MODULES
 
 	if(processorRunning)
 		OnRunPlay();

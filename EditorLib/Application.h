@@ -153,7 +153,9 @@ public:
 		return &m_command_manager;
 	}
 	void RefreshModuleData(bool refresh_sems, bool refresh_vsts, bool refresh_prefabs);
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b
 	bool LoadOrScanModuleData();
+#endif
 
 	void BuildCodeSkeleton(int32_t handle, const std::wstring moduleName);
 

@@ -173,6 +173,7 @@ extern void initialise_synthedit_extra_modules(bool passFalse)
 	// here to satisfy linker
 }
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- SEM cache
 std::wstring SemCacheName()
 {
 	std::wostringstream oss;
@@ -196,6 +197,7 @@ std::wstring SemCacheName()
 
 	return oss.str();
 }
+#endif // SE_NO_EXTERNAL_MODULES
 
 // construct object
 CDocOb* CreateDocObject(std::wstring p_module_id)
@@ -216,11 +218,13 @@ CDocOb* CreateDocObject(Module_Info* p_module_info)
 	{
 		if (auto mi3 = dynamic_cast<Module_Info3*>(p_module_info); mi3)
 		{
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b
 			// Shell plugs scan only the name. Load and do a proper scan.
 			if (mi3->isShellPlugin())
 			{
 				mi3->LoadDllOnDemand(); // perform a full scan.
 			}
+#endif // SE_NO_EXTERNAL_MODULES
 		}
 
 		return new CUG2(p_module_info);
@@ -544,6 +548,7 @@ std::pair<bool, bool> RegisterExternalPluginsXml2(
 }
 #endif
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- binary loader
 void ScanPluginBinary(
 	  PluginHolder& holder
 	, const std::wstring& group_name
@@ -625,8 +630,10 @@ void ScanPluginBinary(
         std::cout << "EXCEPTION SCANNING MODULE: " << holder.getPluginPath().string() << std::endl;
 	}
 }
+#endif // SE_NO_EXTERNAL_MODULES
 
 #ifdef _WIN32
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- binary loader (windows arm)
 void ScanStandaloneSem(
 	  const std::wstring& group_name
 	, std::filesystem::path binary_path
@@ -694,6 +701,7 @@ void ScanStandaloneSem(
 	// we need to scan binary because it's either a shell plugin, or a regular plugin with no XML resource.
 	ScanPluginBinary(holder, group_name, isShellPlugin);
 }
+#endif // SE_NO_EXTERNAL_MODULES
 #endif
 
 std::filesystem::path firstFileIn(std::filesystem::path folder, std::string extension)
@@ -770,6 +778,7 @@ std::filesystem::path moduleXmlIn(const std::filesystem::path& resourcesFolder, 
 	return {};
 }
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- binary loader
 void ScanBundle(const std::wstring& group_name, const std::filesystem::path& bundle_path, bool scanVstsOnly)
 {
 	const auto FileExtension = bundle_path.extension().string();
@@ -839,8 +848,10 @@ void ScanBundle(const std::wstring& group_name, const std::filesystem::path& bun
 
 	ScanPluginBinary(holder, group_name, isShellPlugin);
 }
+#endif // SE_NO_EXTERNAL_MODULES
 
 #if 0
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- binary loader
 void ScanFile(
 	  const std::wstring& group_name
 	, std::filesystem::path binary_path
@@ -971,8 +982,10 @@ void ScanFile(
 		return;
 	}
 }
+#endif // SE_NO_EXTERNAL_MODULES
 #endif
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- binary loader (non-windows arms)
 #ifndef _WIN32
 #if defined(__APPLE__)
 // Standalone (non-bundled) SEMs only exist on Windows and Linux. No-op stub on
@@ -1023,6 +1036,7 @@ static void ScanStandaloneSem(
 }
 #endif
 #endif
+#endif // SE_NO_EXTERNAL_MODULES
 
 void ScanFolder(const std::filesystem::path& p_path, const std::string& p_extensions, const std::wstring& sub_menu, bool scanVstsOnly)
 {
@@ -1046,17 +1060,21 @@ void ScanFolder(const std::filesystem::path& p_path, const std::string& p_extens
 				const auto prefab = std::filesystem::path(sub_menu) / entryPath.filename();
 				ModuleFactory()->PrefabFileNames.push_back(prefab.wstring());
 			}
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- the binary arm; the prefab arm above stays
 			else
 			{
 				// non-bundled SEMs only supported on Windows for historic reasons; stub on other platforms.
 				ScanStandaloneSem(sub_menu, entryPath, scanVstsOnly);
 			}
+#endif // SE_NO_EXTERNAL_MODULES
 		}
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- a DIRECTORY named *.sem/*.gmpi/*.synthedit
 		else if (isTargetExt)
 		{
 			// bundle (.sem / .gmpi) — treated as a single unit.
 			ScanBundle(sub_menu, entryPath, scanVstsOnly);
 		}
+#endif // SE_NO_EXTERNAL_MODULES
 		else
 		{
 			// regular sub-folder: descend, extending the menu hierarchy.
@@ -1068,6 +1086,7 @@ void ScanFolder(const std::filesystem::path& p_path, const std::string& p_extens
 
 // Scan a single module (e.g. one just arrived via live-update) and register its
 // module descriptions with the factory. Single-file companion to ScanFolder.
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- binary loader
 void ScanFile(const std::wstring& group_name, const std::filesystem::path& binary_path)
 {
 	if (std::filesystem::is_directory(binary_path))
@@ -1085,7 +1104,9 @@ void ScanFile(const std::wstring& group_name, const std::filesystem::path& binar
 		ScanStandaloneSem(group_name, binary_path, false);
 	}
 }
+#endif // SE_NO_EXTERNAL_MODULES
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- binary loader
 std::wstring UnloadDll(std::wstring dllShortName)
 {
 	std::filesystem::path fullFilename;
@@ -1108,7 +1129,9 @@ std::wstring UnloadDll(std::wstring dllShortName)
 	}
 	return fullFilename.wstring();
 }
+#endif // SE_NO_EXTERNAL_MODULES
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- binary loader
 void ReloadDll(std::filesystem::path dllPath)
 {
 	for (auto& m : ModuleFactory()->module_list)
@@ -1122,6 +1145,7 @@ void ReloadDll(std::filesystem::path dllPath)
 			dllinfo.load();
 	}
 }
+#endif // SE_NO_EXTERNAL_MODULES
 
 void ExportModuleData(tinyxml2::XMLElement* doc, ExportFormatType format)
 {
@@ -1137,6 +1161,7 @@ void ExportModuleData(tinyxml2::XMLElement* doc, ExportFormatType format)
 	}
 }
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- SEM cache
 void StoreModuleData()
 {
 	// Modules only to be cached if dll present on disk.
@@ -1182,7 +1207,9 @@ void StoreModuleData()
 	_RPTW1(_CRT_WARN, L"Serialized prefabs, %d\n", ModuleFactory()->PrefabFileNames.size());
 	CSynthEditDocBase::serializingMode = SERT_UNSET;
 }
+#endif // SE_NO_EXTERNAL_MODULES
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- SEM cache
 bool ClearModuleDataCache()
 {
 	std::filesystem::path cacheFilename = std::filesystem::path(getSettingsFolder()) / L"SynthEdit" / SemCacheName();
@@ -1194,7 +1221,9 @@ bool ClearModuleDataCache()
 	}
 	return true; // file doesn't exist, so 'cleared'
 }
+#endif // SE_NO_EXTERNAL_MODULES
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- the SEM cache exists only to avoid rescanning binaries
 bool LoadModuleData()
 {
 	CSynthEditDocBase::serializingMode = SERT_SEM_CACHE;
@@ -1255,6 +1284,7 @@ bool LoadModuleData()
 
 	return true;
 }
+#endif // SE_NO_EXTERNAL_MODULES
 
 bool initializedFromXml = {};
 

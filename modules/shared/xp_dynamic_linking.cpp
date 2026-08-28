@@ -24,6 +24,9 @@ namespace gmpi_dynamic_linking
 	typedef void* MP_DllHandle;
 #endif
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- these three are the dlopen/dlsym/dlclose
+	// importers, and the Accept is that a Release TIDE binary imports none of them.
+	// dladdr (below, in the bundle-path helper) is NOT part of this and stays.
 	int32_t MP_DllLoad(DLL_HANDLE* dll_handle, const wchar_t* dll_filename)
 	{
 #if defined( _WIN32)
@@ -57,6 +60,7 @@ namespace gmpi_dynamic_linking
 #endif
 		return *returnFunction == 0;
 	}
+#endif // SE_NO_EXTERNAL_MODULES
 
     // Provide a static function to allow GetModuleHandleExA() to find dll name.
     void localFuncWithUNlikelyName3456()

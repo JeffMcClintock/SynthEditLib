@@ -550,21 +550,27 @@ void ApplicationBase::SeMessageBoxAsync(const wchar_t* msg, const wchar_t* title
 		onComplete(result);
 }
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- no caller in TIDE (measured, S1b note 2:
+// TideAppStubs replaces SynthEditApp.cpp and never calls it). SynthEdit proper keeps it.
 bool ApplicationBase::LoadOrScanModuleData()
 {
 //	_RPT0(_CRT_WARN, "LoadOrScanModuleData\n");
 	CopyInitialPrefabs();
 
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- with no binary loader there is no SEM cache to consult; the
+	// prefabs copied above are the whole of what this call still does.
 	if (!LoadModuleData())
 	{
 		// no cache so, re-generate.
 		RefreshModuleData(true, rescanIncludesVsts, true);
 	}
+#endif // SE_NO_EXTERNAL_MODULES
 
 	ReloadMenu();
 
 	return true;
 }
+#endif // SE_NO_EXTERNAL_MODULES
 
 // add prefabs/ vst plugins
 void ApplicationBase::RefreshModuleData(bool refresh_sems, bool refresh_vsts, bool refresh_prefabs)
@@ -672,7 +678,9 @@ void ApplicationBase::RefreshModuleData(bool refresh_sems, bool refresh_vsts, bo
 	// update menu module map. Next time menu used.
 	ReloadMenu();
 	
+#ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- no cache to refresh
 	StoreModuleData();
+#endif // SE_NO_EXTERNAL_MODULES
 
 	std::cout << "RESCAN: end." << std::endl;
 }

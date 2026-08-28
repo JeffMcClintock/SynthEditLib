@@ -817,6 +817,14 @@ endif()
 
 add_library(${PROJECT_NAME} STATIC ${sdk_srcs} ${srcs} ${srcs_json} ${srcs_modules_internal} ${srcs_xml} ${srcs_gmpi_forms} $<TARGET_OBJECTS:dspfilters_objs>)
 
+# BACKLOG S1b -- see EditorLib/CMakeLists.txt for the full rationale. The option
+# is declared there; this target compiles Module_Info3.cpp and
+# xp_dynamic_linking.cpp, so the define has to reach here too. PUBLIC so every
+# consumer of this library (EditorLib included) agrees on the class layout.
+if(SE_NO_EXTERNAL_MODULES)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC SE_NO_EXTERNAL_MODULES)
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE 
   $<$<CONFIG:Debug>:_DEBUG>
   $<$<CONFIG:Release>:NDEBUG>
