@@ -2831,6 +2831,23 @@ namespace SE2
 			}
 			break;
 
+		// TIDE BACKLOG E57 -- delete the selection.
+		//
+		// THREE codes, because three producers reach here and all three were
+		// observed arriving: macOS sends 0x08 for the key labelled "delete" and
+		// 0x7F for fn+delete; the mac backend maps NSDeleteFunctionKey (a PC
+		// keyboard's forward-delete) to 0x2E; and SynthEdit's own HostedView
+		// translates VK_DELETE to 0x7F before passing it down.
+		//
+		// Unhandled when the presenter declines -- a locked panel -- so the key is
+		// not silently swallowed and the system can still beep for it.
+		case 0x08: // backspace, the macOS "delete" key
+		case 0x2E: // VK_DELETE
+		case 0x7F: // forward delete
+			if (Presenter()->DeleteSelection())
+				return gmpi::ReturnCode::Handled;
+			break;
+
 		case 'n': // new module picker
 		case 'N':
 			//if (pointerPosOrNull)

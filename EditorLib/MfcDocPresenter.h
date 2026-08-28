@@ -325,6 +325,7 @@ public:
 	}
 
 	SE2::RackLayout getRackLayout() override;
+	bool DeleteSelection() override;
 
 	SE2::ModuleView* HandleToObject(int handle) override
 	{

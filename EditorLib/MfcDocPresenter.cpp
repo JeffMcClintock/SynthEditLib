@@ -1481,6 +1481,24 @@ void MfcDocSubPresenter::ResizeSubView()
 	* /
 }
 */
+// TIDE BACKLOG E57. The SAME guard the context menu's Delete item uses a few
+// hundred lines below -- container->EditEnabled() || viewType != CF_PANEL_VIEW --
+// deliberately written once per call rather than cached, so the key and the menu
+// item cannot drift apart. Returning false when editing is disabled lets the key
+// fall through instead of being silently swallowed on a locked panel.
+bool MfcDocPresenter::DeleteSelection()
+{
+	if (!container)
+		return false;
+
+	const bool editEnabled = container->EditEnabled() || viewType != CF_PANEL_VIEW;
+	if (!editEnabled)
+		return false;
+
+	container->OnEditDelete();
+	return true;
+}
+
 SE2::RackLayout MfcDocPresenter::getRackLayout()
 {
 	SE2::RackLayout rack;
