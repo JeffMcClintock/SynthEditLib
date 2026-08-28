@@ -1523,6 +1523,30 @@ namespace SE2
 		cliprect.right  = (std::min)(cliprect.right,  (float)viewDimensions);
 		cliprect.bottom = (std::min)(cliprect.bottom, (float)viewDimensions);
 
+		if (cliprect.right <= cliprect.left || cliprect.bottom <= cliprect.top)
+			return;
+
+		// BACKLOG E58 -- FILL THE WHOLE EDITING AREA FIRST, BEFORE ANY BAND CLAMPING.
+		//
+		// THIS FUNCTION OWNS THE FILL of the editing area: its call site is commented
+		// "fill the drawing area" and the non-rack branch beside it fills the same
+		// bounds with LightGray. E39 clamped cliprect to the row-aligned band BEFORE
+		// the fill below, so the partial row at the canvas edge received no fill from
+		// anything and showed stale framebuffer -- reported as "the area above the top
+		// rail is drawing garbage, smears of the real content".
+		//
+		// It was invisible in a screenshot because a fresh launch has a black buffer,
+		// so an unpainted hole and a deliberate black background look identical. It
+		// only shows once something has been drawn there and scrolled away.
+		//
+		// 0x555555 is the SAME colour ContainerView fills outside editingBounds with,
+		// so the region beyond the rack reads the same whether it is above, below or
+		// beside it -- rather than a fourth colour invented here. E39's Accept is
+		// still met: the partial region is not drawn AS RACK. It is drawn as surround,
+		// which is what "not drawn as rack at all" was always meant to mean.
+		auto brush = g.createSolidColorBrush(colorFromHex(0x555555u));
+		g.fillRectangle(cliprect, brush);
+
 		// BACKLOG E39 -- THE RACK IS A WHOLE NUMBER OF ROWS, AND A PARTIAL ROW AT THE
 		// CANVAS EDGE IS NOT DRAWN AS RACK AT ALL.
 		//
@@ -1549,11 +1573,13 @@ namespace SE2
 		cliprect.top    = (std::max)(cliprect.top,    bandTop);
 		cliprect.bottom = (std::min)(cliprect.bottom, bandBottom);
 
+		// Nothing of the rack proper falls in this dirty region -- the surround above
+		// is already painted, so there is nothing further to do.
 		if (cliprect.right <= cliprect.left || cliprect.bottom <= cliprect.top)
 			return;
 
-		// The case interior, seen through empty slots.
-		auto brush = g.createSolidColorBrush(colorFromHex(0x1B1B1Du));
+		// The case interior, seen through empty slots. Band only, per E39.
+		brush.setColor(colorFromHex(0x1B1B1Du));
 		g.fillRectangle(cliprect, brush);
 
 		pixelSnapper2 snap(g.getTransform(), drawingHost->getRasterizationScale());
