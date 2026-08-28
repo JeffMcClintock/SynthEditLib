@@ -468,11 +468,28 @@ int32_t ApplicationBase::divertPrompt(const wchar_t* msg, const wchar_t* title, 
 	}
 	std::cerr << std::flush;
 
-	// MB_OK for every prompt, which is what the non-quiet non-Windows path already
-	// does and for the reason it gives: of the ~58 call sites only ONE consumes the
-	// answer. Recording it alongside the text means a reader can see what the app
-	// was told, rather than having to know this rule.
-	constexpr int32_t answer = MB_OK;
+	// THE ANSWER IS A RESPONSE CONSTANT FOR THE PROMPT'S OWN BUTTON SET -- never
+	// MB_OK, which this used to return. MB_OK is a FLAGS constant, and what it is
+	// numerically depends on which header won: 0 everywhere, but IDOK is 1 in
+	// <winuser.h> and 0 in SafeMessageBox.h's shim. So "answer = MB_OK" read as
+	// IDOK on mac and as no known response on Windows -- the same diverted prompt
+	// answered differently per platform. TIDE BACKLOG E51.
+	//
+	// Per set, chosen to keep today's behaviour at every consumer:
+	//  * YESNO -> IDNO. The census found exactly one consumer of any diverted
+	//    answer, CContainer::ReplaceModuleAsync, which tests == IDYES and treats
+	//    anything else as the ordinary Replace -- the same branch the old 0 took
+	//    on both platforms. IDNO keeps that, and is actually one of the buttons.
+	//  * YESNOCANCEL -> IDCANCEL, the conservative dismissal (its one caller,
+	//    ExportAsPlugin's "Save Changes First?", is not reachable in TIDE).
+	//  * everything else -> IDOK: OK is the only button such a prompt has.
+	//
+	// The type is the low nibble of flags, as in Win32 (MB_TYPEMASK).
+	const auto buttonSet = flags & 0x0F;
+	const int32_t answer =
+		  buttonSet == MB_YESNO       ? IDNO
+		: buttonSet == MB_YESNOCANCEL ? IDCANCEL
+		:                               IDOK;
 
 	divertedPrompts_.push_back({ WStringToUtf8(title ? title : L""), text, flags, answer });
 
