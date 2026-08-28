@@ -462,6 +462,27 @@ void PropertiesViewModel::OnNotify(Notifier* sender, int lHint, void* pHint)
 
 			layoutContainer->UnRegisterObserver(this);
 			layoutContainer = nullptr;
+
+			// BACKLOG E61 -- AND STOP SHOWING IT. #64 stopped at the pointer, saying
+			// "a repaint driven from inside a destructor is more than removing a
+			// dangling pointer requires", and the pane went on rendering the dead
+			// module's fields -- Jeff: "why are we even showing the deleted modules
+			// properties in the first place?". That stale display is what handed the
+			// user a live text edit over freed memory (the E61 crash, reproduced
+			// 2026-08-28 and stopped by the moduleStillShown guards).
+			//
+			// The caution turns out to be answerable, not wrong: invalidateView()
+			// synchronously runs only OnModelWillChange -- clear() plus redraw() --
+			// and Body() does NOT re-run here. It reruns at the NEXT PAINT, after
+			// this destructor has finished, sees currentModule == nullptr, and
+			// returns before building anything: the blank pane is its ordinary
+			// launch state. clear() destroys only the pane's own widgets, which
+			// reference the pane's own States, not the dying container; and E61
+			// established the one thing teardown does NOT do -- dismiss a live
+			// native field -- which is exactly why the commit guards must stay even
+			// with this repaint in place. The two are one fix: the guard makes a
+			// stale commit safe, this makes the stale display not exist.
+			invalidateView();
 		}
 	}
 	break;
