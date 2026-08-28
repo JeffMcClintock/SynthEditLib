@@ -1229,10 +1229,20 @@ namespace SE2
 			const float dpiScale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
 			const float snappedZoom = std::round(zoomFactor * gridDips * dpiScale) / (gridDips * dpiScale);
 
-			const float viewWidth  = drawingBounds.right  - drawingBounds.left;
-			const float viewHeight = drawingBounds.bottom - drawingBounds.top;
-			centerPos.x = mouseDocPos.x + (viewWidth  * 0.5f - currentPointerPosAbsolute.x) / snappedZoom;
-			centerPos.y = mouseDocPos.y + (viewHeight * 0.5f - currentPointerPosAbsolute.y) / snappedZoom;
+			// The pane's MIDPOINT, not half its SIZE -- the same distinction
+			// calcViewTransform documents at ITS canvasCenter (TIDE BACKLOG E42),
+			// and this line had the half-size. The two agree only for an
+			// origin-rooted pane; TIDE's editor pane starts at drawingBounds.left
+			// (the browser strips), so the recomputed centre was short by
+			// left/snappedZoom (and top/snappedZoom) -- the document TRANSLATED
+			// under the cursor on every zoom step while the zoom itself was
+			// right. Solving view = (doc - centerPos)*zoom + canvasCenter for
+			// the centre that keeps mouseDocPos under the cursor gives
+			// canvasCenter here, matching calcViewTransform term for term
+			// (TIDE BACKLOG E67).
+			const Point canvasCenter{ (drawingBounds.left + drawingBounds.right) * 0.5f, (drawingBounds.top + drawingBounds.bottom) * 0.5f };
+			centerPos.x = mouseDocPos.x + (canvasCenter.x - currentPointerPosAbsolute.x) / snappedZoom;
+			centerPos.y = mouseDocPos.y + (canvasCenter.y - currentPointerPosAbsolute.y) / snappedZoom;
 
 			Presenter()->SetPanZoom(centerPos, zoomFactor);
 		}
