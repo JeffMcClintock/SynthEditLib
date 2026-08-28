@@ -304,6 +304,20 @@ bool isIteratingChildren = false;
 
 		void calcViewTransform();
 
+		// The pane's MIDPOINT in window space -- deliberately NOT half its
+		// size. The transform is consumed in WINDOW space, where this pane
+		// starts at drawingBounds.left/top (TIDE's browser strips), so
+		// half-size is short by exactly (left, top). The two agree only for
+		// an origin-rooted pane, which is what let the same defect ship
+		// twice: E42 measured it in calcViewTransform (+240 DIP, three runs,
+		// two zooms, one constant), fixed it there, and the identical
+		// half-size expression sat thirty lines away in onMouseWheel's zoom
+		// anchor until E67. One owner now; do not open-code this quantity.
+		gmpi::drawing::Point canvasCenter() const
+		{
+			return { (drawingBounds.left + drawingBounds.right) * 0.5f, (drawingBounds.top + drawingBounds.bottom) * 0.5f };
+		}
+
 	public:
 		TopView(gmpi::drawing::Size size) : ViewBase(size)
 		{
