@@ -153,6 +153,12 @@ public:
 		return &m_command_manager;
 	}
 	void RefreshModuleData(bool refresh_sems, bool refresh_vsts, bool refresh_prefabs);
+
+	// End-of-scan handling for the message boxes RefreshModuleData held back: writes
+	// the full report to the settings folder and raises ONE dialog naming the modules
+	// involved. Public alongside RefreshModuleData because the two are one operation --
+	// see ModuleScanReport.h for why the individual dialogs are batched at all.
+	void finishModuleScanReport();
 #ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b
 	bool LoadOrScanModuleData();
 #endif

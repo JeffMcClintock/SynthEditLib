@@ -12,6 +12,7 @@
 #include "xp_dynamic_linking.h"
 #include "it_enum_list.h"
 #include "ModuleFactory_Editor.h"
+#include "ModuleScanReport.h"
 #include "BundleInfo.h"
 #include "SynthEditDocBase.h"
 #include "SynthEditDoc2.h"
@@ -403,8 +404,20 @@ void OpenWebPage(const std::wstring& p_web_url)
 
 int32_t ApplicationBase::SeMessageBox(const wchar_t* msg, const wchar_t* title, int flags)
 {
+	// Held back for the end-of-scan summary. BEFORE the quiet check, so that a
+	// command-line rescan still gets the report file written for it; the two sinks
+	// do not compete, because quiet mode feeds a stream and this feeds a dialog,
+	// and divertPrompt below still records and prints every prompt exactly as it
+	// always did -- that list is a tested contract for the command-line tool.
+	const bool heldForScanReport = ModuleScanReporter::instance().collect(msg, title, flags);
+
 	if (quiet)
 		return divertPrompt(msg, title, flags);
+	else if (heldForScanReport)
+	{
+		// IDOK is the only answer an OK-only prompt has, and collect() takes nothing else.
+		return IDOK;
+	}
 	else
 	{
 #ifdef _WIN32
@@ -504,11 +517,22 @@ std::vector<ApplicationBase::DivertedPrompt> ApplicationBase::takeDivertedPrompt
 void ApplicationBase::SeMessageBoxAsync(const wchar_t* msg, const wchar_t* title, int flags,
                                         MessageBoxCompletion onComplete)
 {
+	// Same batching as the blocking form -- see SeMessageBox. Only OK-only prompts
+	// are taken, so a caller that actually reads its answer is never short-circuited.
+	const bool heldForScanReport = ModuleScanReporter::instance().collect(msg, title, flags);
+
 	if (quiet)
 	{
 		const auto answer = divertPrompt(msg, title, flags);
 		if (onComplete)
 			onComplete(answer);
+		return;
+	}
+
+	if (heldForScanReport)
+	{
+		if (onComplete)
+			onComplete(IDOK);
 		return;
 	}
 
@@ -576,6 +600,10 @@ bool ApplicationBase::LoadOrScanModuleData()
 void ApplicationBase::RefreshModuleData(bool refresh_sems, bool refresh_vsts, bool refresh_prefabs)
 {
 	std::cout << "RESCAN: start..." << std::endl;
+
+	// From here to finishModuleScanReport() below, every informational message box
+	// raised anywhere under the scan is held rather than shown. See ModuleScanReport.h.
+	ModuleScanReporter::instance().begin();
 
 	if (refresh_vsts)
 	{
@@ -683,6 +711,117 @@ void ApplicationBase::RefreshModuleData(bool refresh_sems, bool refresh_vsts, bo
 #endif // SE_NO_EXTERNAL_MODULES
 
 	std::cout << "RESCAN: end." << std::endl;
+
+	// LAST, after the cache is written. The summary dialog blocks on Windows, and a
+	// user who leaves it sitting there must not be holding up the module database
+	// the rest of the app is about to read.
+	finishModuleScanReport();
+}
+
+// gmpi::open_url() goes through NSURL URLWithString: on macOS, which returns nil for
+// a bare filesystem path -- the report would silently never open. Windows and Linux
+// take a file:// URL just as happily as a path, so build one on every platform.
+static std::wstring toFileUrl(const std::filesystem::path& file)
+{
+	auto path = file.generic_string(); // forward slashes, as a URL wants
+
+	// POSIX paths already start with the separator that follows "file://".
+	if (!path.empty() && path.front() == '/')
+		path.erase(0, 1);
+
+	std::string url = "file:///";
+	for (const unsigned char c : path)
+	{
+		if (isalnum(c) || nullptr != strchr("-_.~/:", c))
+		{
+			url.push_back(static_cast<char>(c));
+		}
+		else
+		{
+			// Percent-encode the rest byte-by-byte. A user folder with a space in it
+			// is the common case; a non-ASCII one arrives here as UTF-8 bytes, which
+			// is exactly what a URL wants each of them escaped as.
+			char escape[4]{};
+			snprintf(escape, sizeof(escape), "%%%02X", c);
+			url += escape;
+		}
+	}
+
+	return Utf8ToWstring(url);
+}
+
+// The whole point of the batching: one dialog, naming the modules, with the detail
+// a click away rather than forty clicks deep.
+void ApplicationBase::finishModuleScanReport()
+{
+	const auto problems = ModuleScanReporter::instance().end();
+
+	if (problems.empty())
+		return;
+
+	// Write the report BEFORE the dialog offers to open it. The dialog blocks on
+	// Windows, so a file written afterwards would not exist when the user clicks.
+	auto reportFile = std::filesystem::path(getSettingsFolder()) / L"SynthEdit";
+	CreateFolderRecursive(reportFile.generic_wstring());
+	reportFile /= L"ModuleScanReport.txt";
+
+	const auto report = formatModuleScanReport(problems);
+
+	bool written = false;
+	{
+		std::ofstream f(reportFile, std::ios::binary | std::ios::trunc);
+		if (f)
+		{
+			auto utf8 = WStringToUtf8(report);
+
+#ifdef _WIN32
+			// CRLF, because this file is opened by whatever the user has associated
+			// with .txt, and some of those still render a lone LF as one long line.
+			for (size_t pos = utf8.find('\n'); pos != std::string::npos; pos = utf8.find('\n', pos + 2))
+				utf8.insert(pos, 1, '\r');
+#endif
+			// BOM: a .txt has no other way to declare its encoding, and module names
+			// and file paths are not all ASCII.
+			f << "\xEF\xBB\xBF" << utf8;
+			written = f.good();
+		}
+	}
+
+	// NO DIALOG IN QUIET MODE. There is nobody to read it, every one of these
+	// messages has already gone to stderr through divertPrompt, and raising one
+	// here would add an entry to divertedPrompts_ that the command-line tool's
+	// callers do not expect. The report file is written above either way -- that
+	// is the useful half of this for an unattended run.
+	if (quiet)
+		return;
+
+	auto summary = formatModuleScanSummary(problems);
+
+	if (!written)
+	{
+		// Nowhere to put the detail, so do not lose it: stdout is where the rest of
+		// the scan already reports itself.
+		std::cout << WStringToUtf8(report) << std::endl;
+
+		summary += L"\n\nThe full report could not be written to\n";
+		summary += reportFile.wstring();
+
+		SeMessageBoxAsync(summary.c_str(), L"SynthEdit Module Scan", MB_OK | MB_ICONEXCLAMATION, {});
+		return;
+	}
+
+	summary += L"\n\nOpen the full report?";
+
+	SeMessageBoxAsync(
+		  summary.c_str()
+		, L"SynthEdit Module Scan"
+		, MB_YESNO | MB_ICONEXCLAMATION
+		, [reportFile](int32_t answer)
+		{
+			if (answer == IDYES)
+				OpenWebPage(toFileUrl(reportFile));
+		}
+	);
 }
 
 void ApplicationBase::setHoverScopePin(int32_t moduleHandle_watched, int32_t moduleHandle_original, int32_t dspHoverPinIdx)

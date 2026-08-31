@@ -19,6 +19,7 @@
 #include "tinyxml/tinyxml.h"
 #include "SafeMessageBox.h"
 #include "XmlErrorReport.h"
+#include "ModuleScanReport.h"
 #include "midi_defs.h"
 
 #include "GmpiApiCommon.h"
@@ -471,6 +472,11 @@ void RegisterExternalPluginsXml(
 					{
 						auto plugin_name = Utf8ToWstring(PluginElement->Attribute("name"));
 						reportedDuplicateModule = true;
+
+						// A shell plugin's sub-plugins are not named after the bundle holding
+						// them, and it is the plugin the user has two of, not the file.
+						ModuleScanReporter::SubjectScope subject(plugin_name, platformBinaryPath);
+
 						std::wostringstream oss;
 						if(platformBinaryPath == sdk3Module->Filename())
 						{
@@ -1063,6 +1069,11 @@ void ScanFolder(const std::filesystem::path& p_path, const std::string& p_extens
 #ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- the binary arm; the prefab arm above stays
 			else
 			{
+				// Everything raised while this one file is scanned is attributed to it.
+				// Set HERE rather than inside the scan functions because ScanStandaloneSem
+				// has three arms (windows / mac stub / linux) and would need it in each.
+				ModuleScanReporter::SubjectScope subject(entryPath);
+
 				// non-bundled SEMs only supported on Windows for historic reasons; stub on other platforms.
 				ScanStandaloneSem(sub_menu, entryPath, scanVstsOnly);
 			}
@@ -1071,6 +1082,8 @@ void ScanFolder(const std::filesystem::path& p_path, const std::string& p_extens
 #ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- a DIRECTORY named *.sem/*.gmpi/*.synthedit
 		else if (isTargetExt)
 		{
+			ModuleScanReporter::SubjectScope subject(entryPath);
+
 			// bundle (.sem / .gmpi) — treated as a single unit.
 			ScanBundle(sub_menu, entryPath, scanVstsOnly);
 		}
@@ -1089,6 +1102,8 @@ void ScanFolder(const std::filesystem::path& p_path, const std::string& p_extens
 #ifndef SE_NO_EXTERNAL_MODULES   // BACKLOG S1b -- binary loader
 void ScanFile(const std::wstring& group_name, const std::filesystem::path& binary_path)
 {
+	ModuleScanReporter::SubjectScope subject(binary_path);
+
 	if (std::filesystem::is_directory(binary_path))
 	{
 		// bundle (.sem / .gmpi) — treated as a single unit.

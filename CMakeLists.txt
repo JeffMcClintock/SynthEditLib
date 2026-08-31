@@ -132,6 +132,8 @@ modules/tinyXml2/tinyxml2.h
 modules/tinyXml2/tinyxml2.cpp
 XmlErrorReport.h
 XmlErrorReport.cpp
+ModuleScanReport.h
+ModuleScanReport.cpp
 )
 
 set(srcs_modules_internal
