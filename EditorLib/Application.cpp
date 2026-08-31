@@ -563,6 +563,11 @@ void ApplicationBase::SeMessageBoxAsync(const wchar_t* msg, const wchar_t* title
 		{
 			auto* cb = new StockDialogCompletionCallback(std::move(onComplete));
 			dialog->showAsync(static_cast<gmpi::api::IStockDialogCallback*>(cb));
+
+			// showAsync() took its own reference; drop ours, exactly as the file
+			// dialog above does. GMPI_REFCOUNT starts at 1, so without this the
+			// callback outlives the dialog that owns it and is never freed.
+			cb->release();
 			return;
 		}
 	}
