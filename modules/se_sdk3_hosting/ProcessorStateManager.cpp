@@ -121,6 +121,7 @@ DawPreset::DawPreset(const std::map<int32_t, paramInfo>& parametersInfo, std::st
 	if (doc.Error())
 	{
 		_RPT0(0, "warning: failed to parse preset. setting parameters to defaults.\n");
+		se_logger::log("DawPreset: failed to parse preset XML, setting parameters to defaults.\n");
 		doc.Parse("");
 	}
 
@@ -140,6 +141,7 @@ void DawPreset::initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, 
 		3) Presets/Preset/Param.val
 		4)     Parameters/Param.val
 		5)         Preset/Param.val
+		6)        Presets/Param.val  (legacy saved-state, no inner Preset element)
 	*/
 
 	tinyxml2::XMLNode* presetXml = nullptr;
@@ -152,6 +154,16 @@ void DawPreset::initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, 
 			presetXml = node;
 			if (presetIndex++ >= presetIdx)
 				break;
+		}
+
+		// Format 6. Legacy saved-state puts the Param elements directly under "Presets",
+		// with no intervening "Preset". Treat "Presets" itself as the parameter container.
+		if (!presetXml && presetsXml->FirstChildElement("Param"))
+		{
+			_RPT0(0, "DawPreset: \"Presets\" has no \"Preset\" child, reading Params directly from it (legacy format).\n");
+			se_logger::log("DawPreset: legacy \"Presets/Param\" format, reading Params directly from \"Presets\".\n");
+
+			presetXml = presetsXml;
 		}
 	}
 	else
@@ -193,7 +205,13 @@ void DawPreset::initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, 
 	}
 
 	if (parametersE == nullptr)
-		return;
+	{
+		// Unrecognised format. Deliberately no early-out: falling through populates every
+		// parameter with its default and, crucially, still calls calcHash(). Returning here
+		// left hash at 0, which callers treat as "empty preset" and assert on.
+		_RPT0(0, "DawPreset: unrecognised preset format, setting all parameters to defaults.\n");
+		se_logger::log("DawPreset: unrecognised preset format, setting all parameters to defaults.\n");
+	}
 
 	if (presetXml)
 	{
