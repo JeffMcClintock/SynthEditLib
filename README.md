@@ -4,13 +4,13 @@
 SE2JUCE supports exporting SynthEdit projects to C++ JUCE projects.
 
 JUCE Projects
-* Can target more plugin formats than SynthEdit alone, like AAX, Standalone, VST2 and CLAP etc.
+* Can target plugin formats SynthEdit doesn't build itself. Out of the box you get VST3 and Standalone, plus AU on macOS. AAX and VST2 can be switched on (see Optional, below). CLAP is possible via clap-juce-extensions, but isn't set up for you.
 * Hide all resources and SEMs inside a single binary file.
-* Can display the GUI you created in SynthEdit, or a custom GUI made with JUCE.
+* Can display the GUI you created in SynthEdit (set SE_GRAPHICS_SUPPORT=ON), or a custom GUI made with JUCE.
 
 (SynthEdit GUIs are supported on macOS and Windows, but not Linux or IOS)
 
-Note that using SynthEditlib with JUCE is a complex, advanced proceedure that involves programming in C++ and having an understanding of CMake and JUCE.
+Note that using SynthEditLib with JUCE is a complex, advanced procedure that involves programming in C++ and having an understanding of CMake and JUCE.
 You need to have access to the source-code of any SEMs you wish to use. This may not be possible in some cases,
  especially with 3rd-party modules. 3rd-party module creators have no obligation to share their source-code.
 
@@ -20,14 +20,20 @@ Install SynthEdit 1.6 https://synthedit.com/downloads/?url=/downloads
 
 Install Visual Studio or your IDE of choice. https://visualstudio.microsoft.com/vs/
 
-Install CMake. https://cmake.org/download/
+Install CMake, version 3.30 or later. https://cmake.org/download/
+
+JUCE is fetched automatically by CMake, so there's no need to download it yourself. (https://juce.com/get-juce/download)
 
 # Getting Started
 Move your synthedit project file into a folder structure like /MyProject/SE_Project/MyProject.synthedit
 
 In SynthEdit open project from /MyProject/SE_Project/MyProject.synthedit
 
-Choose menu "File/Export Juce" This will copy the project and its skin to the '/MyProject/Resources' folder of the JUCE project.
+Choose menu "File/Export Juce". This compiles your project into '/MyProject/Resources' - dsp.se.xml, gui.se.json, parameters.h, the module database and your skin - and scaffolds the JUCE project around it: CMakeLists.txt, Source/ and pipelines/.
+
+Your .synthedit file is not copied. It stays in SE_Project and remains the source of truth - re-export whenever you change it.
+
+An existing /MyProject/CMakeLists.txt is never overwritten, so any edits you make to it survive a re-export. The flip side: if an export fails partway through, delete /MyProject/CMakeLists.txt before trying again, or the scaffolding step is skipped and you get an incomplete project.
 
 close SE
 
@@ -47,11 +53,17 @@ click 'open project' (your IDE should open)
 
 build and try out the plugin
 
-get JUCE. https://juce.com/get-juce/download
-
 Optional:
-* add VST2 headers to JUCE if you need to make VST2 plugins.
-* get AAX SDK if you need it. https://www.avid.com/alliance-partner-program/aax-connectivity-toolkit
+* VST2 and AAX are not built by default. To enable either, supply the SDK, uncomment the matching line in the generated /MyProject/CMakeLists.txt, and add the format to PLUGIN_FORMATS.
+* VST2 headers: https://forum.juce.com/t/how-to-offer-vst2-plugins-now/39195
+* AAX SDK: https://www.avid.com/alliance-partner-program/aax-connectivity-toolkit
+
+# CMake options
+
+* SE_GRAPHICS_SUPPORT - build the GUI you designed in SynthEdit. OFF by default, which gives you a JUCE GUI or none.
+* AAX_FOLDER - path to the AAX SDK.
+* SYNTHEDITLIB_FOLDER_OVERRIDE - build against a local SynthEditLib checkout instead of fetching it from GitHub.
+* SE_LOCAL_BUILD - extra build steps for developing SynthEditLib itself. Also adds a RelWithDebInfo configuration.
 
 # Azure pipelines (advanced)
 SynthEdit will create some scripts in the pipelines folder for building your plugin on Azure devops.
@@ -59,9 +71,9 @@ You will need an Azure devops account to do this.
 You will need your code stored online in a git repo.
 
 On the Azure website, go to 'pipelines' and create a new pipeline. Choose your git repo and select the 'Existing Azure Pipelines YAML file' option.
-Select 'MyPlugin/pipelines/P_00.yml' as the script file.
+Select 'MyProject/pipelines/P_00.yml' as the script file.
 From the 'Run' dropdown select "Save".
-Next to "Run Pipeline", click the 3 vertical dots at the right 'Rename' it to e.g. "00 MyPlugin Start Build"
+Next to "Run Pipeline", click the 3 vertical dots at the right 'Rename' it to e.g. "00 MyProject Start Build"
 
 Repeat these steps for each of the 5 pipeline scripts.
 
@@ -70,7 +82,7 @@ When you run the pipelines they will complain about "TODO inset UUID of overall 
 You need to find the UUID and number of the previous pipeline and insert that. The easiest way is to use the task wizard at right
  to insert a 'Download Artifacts' task and copy the values off that.
 
-The macOS build will expect a user guide to be in teh main folder /MyPlugin/MyPluginUserGuide.pdf
+The macOS build will expect a user guide to be in the main folder /MyProject/MyProjectUserGuide.pdf
 
 
 # Missing modules
@@ -91,12 +103,12 @@ In the example above, its the 'SE Keyboard (MIDI)' that is missing from the buil
 
 # Adding an additional module
 
-To add an extra module to the build you will need access to its source code. In the case of the keyboard, the code is in the *SE2JUCE\SE_DSP_CORE\modules\ControlsXp* folder, but not actually included in the build yet.
+To add an extra module to the build you will need access to its source code. In the case of the keyboard, the code is in SynthEditLib's *modules\ControlsXp* folder, but not actually included in the build yet.
 
-Open the *SE2JUCE_Plugins\PD303\CMakeLists.txt* file, look for the part that mentions 'Adsr4.cpp'. Add an additional reference to the new module you want to include. If the module has both GUI and DSP parts, add both.
+Open your project's *CMakeLists.txt* (the one the export wrote to /MyProject) and find the `# EXTRA-MODULES?` comment inside `target_sources`. Add a reference to the module you want to include, following the commented-out example just below it. If the module has both GUI and DSP parts, add both.
 <img src="Docs/Images/SE2JUCE_AddModule1.png"/>
 
-Now open the file *SE2JUCE_Plugins/PD303/Source/ExtraModules.cpp* and add lines like the following.
+Now open *MyProject/Source/ExtraModules.cpp* and add lines like the following.
 <img src="Docs/Images/SE2JUCE_AddModule2.png"/>
 
 Finally, add the *SE_DECLARE_INIT_STATIC_FILE* macro line to each module file (if not already done)
