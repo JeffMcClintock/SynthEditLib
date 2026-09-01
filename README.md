@@ -23,9 +23,9 @@ Install Visual Studio or your IDE of choice. https://visualstudio.microsoft.com/
 Install CMake. https://cmake.org/download/
 
 # Getting Started
-Move your synthedit project file into a folder structure like /MyProject/SE_Project/MyProject.se1
+Move your synthedit project file into a folder structure like /MyProject/SE_Project/MyProject.synthedit
 
-In SynthEdit open project from /MyProject/SE_Project/MyProject.se1
+In SynthEdit open project from /MyProject/SE_Project/MyProject.synthedit
 
 Choose menu "File/Export Juce" This will copy the project and its skin to the '/MyProject/Resources' folder of the JUCE project.
 
