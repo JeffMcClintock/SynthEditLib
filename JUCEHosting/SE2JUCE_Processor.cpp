@@ -194,6 +194,14 @@ SE2JUCE_Processor::SE2JUCE_Processor(
         }
 	};
 
+    // Use Synthedit Editor by default
+#if SE_GRAPHICS_SUPPORT
+	createEditorFunction = [this]()
+		{
+			return new SynthEditEditor(*this, *controller.get());
+		}; 
+#endif
+
     se_logger::log("SE2JUCE_Processor::SE2JUCE_Processor() END\n");
 }
 
