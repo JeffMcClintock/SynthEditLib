@@ -86,24 +86,29 @@ void SynthEditEditor::parentHierarchyChanged()
 		const int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
 		::ReleaseDC(parentHwnd, hdc);
 
-		GmpiDrawing_API::MP1_SIZE_L overrideSize{ (r.getWidth() * dpi) / 96, (r.getHeight() * dpi) / 96 };
+		const gmpi::drawing::SizeL overrideSize{ (r.getWidth() * dpi) / 96, (r.getHeight() * dpi) / 96 };
 
 		drawingframe.open(
 			parentHwnd,
-			&overrideSize
+			(const gmpi::drawing::SizeL*) &overrideSize
 		);
 
 		auto presenter = new JsonDocPresenter(dynamic_cast<IGuiHost2*>(&controller));
 
 		{
-			auto cv =
-				new SE2::ContainerViewPanel(
-					GmpiDrawing::Size(static_cast<float>(drawingframe.swapChainSize.width), static_cast<float>(drawingframe.swapChainSize.height)));
+			// The view is sized in DIPs - the size the JSON declares - while open() above got
+			// physical pixels. The frame's rasterization scale (DPI * pluginUIScale) bridges the
+			// two. Same split as se_vst3's SEVSTGUIEditorWin, the other plugin-side editor.
+			const gmpi::drawing::Size viewSize{ static_cast<float>(baseWidth), static_cast<float>(baseHeight) };
 
-            gmpi_sdk::mp_shared_ptr<gmpi_gui_api::IMpGraphics3> gfx;
-            gfx.Attach(cv);
+			auto cv = new SE2::ContainerViewPanel(viewSize);
+			cv->setCenter({ 0.5f * viewSize.width, 0.5f * viewSize.height }); // center scrolling. needed for plugin but screws with editor.
 
-            drawingframe.attachClient(gfx);
+			// take ownership, so its refcount gets released correctly.
+			gmpi::shared_ptr<gmpi::api::IDrawingClient> gfx;
+			gfx.attach(cv);
+
+			drawingframe.attachClient(gfx);
 
 			cv->setDocument(presenter);
 		}
