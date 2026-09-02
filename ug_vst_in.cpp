@@ -141,11 +141,13 @@ void ug_vst_in::setIoBuffers( const float* const* p_inputs, int numChannels)
 
 void ug_vst_in::setInputSilent(int input, bool isSilent)
 {
+	const auto pinIndex = input + 1; // skip MIDI Out pin
+	if(pinIndex < 0 || pinIndex >= plugs.size())
+		return;
+
 	auto p = GetPlug(input + 1);
 	const auto newState = isSilent ? ST_STATIC : ST_RUN;
 
 	if (p->getState() != newState)
-	{
 		OutputChange(SampleClock(), p, newState);
-	}
 }
