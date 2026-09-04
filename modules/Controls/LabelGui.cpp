@@ -8,6 +8,8 @@ using namespace gmpi;
 using namespace gmpi::editor;
 using namespace gmpi::drawing;
 
+SE_DECLARE_INIT_STATIC_FILE(LabelGui);
+
 class LabelGui final : public PluginEditor
 {
 	Pin<std::string> pinText;

@@ -11,6 +11,8 @@ using namespace gmpi;
 using namespace gmpi::drawing;
 using namespace gmpi::editor;
 
+SE_DECLARE_INIT_STATIC_FILE(PlainImageGui2);
+
 class PlainImageGui final : public PluginEditor, public gmpi::api::IDrawingLayer, gmpi_helper::ImageCacheClient
 {
 	Pin<std::string> pinFilename;

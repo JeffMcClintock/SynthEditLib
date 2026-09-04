@@ -6,19 +6,19 @@ using namespace std;
 using namespace gmpi;
 using namespace GmpiDrawing;
 
-GMPI_REGISTER_GUI(MP_SUB_TYPE_GUI2, PlainImageGui, L"SE Plain Image" );
+GMPI_REGISTER_GUI(MP_SUB_TYPE_GUI2, PlainImageGui_legacy, L"SE Plain Image" );
 SE_DECLARE_INIT_STATIC_FILE(PlainImage_Gui);
 
 #define USE_BITMAP_BRUSH 1
 
-PlainImageGui::PlainImageGui()
+PlainImageGui_legacy::PlainImageGui_legacy()
 {
 	// initialise pins.
-	initializePin( pinFilename, static_cast<MpGuiBaseMemberPtr2>(&PlainImageGui::onSetFilename) );
-	initializePin( pinStretchMode, static_cast<MpGuiBaseMemberPtr2>(&PlainImageGui::onSetMode) );
+	initializePin( pinFilename, static_cast<MpGuiBaseMemberPtr2>(&PlainImageGui_legacy::onSetFilename) );
+	initializePin( pinStretchMode, static_cast<MpGuiBaseMemberPtr2>(&PlainImageGui_legacy::onSetMode) );
 }
 
-void PlainImageGui::onSetFilename()
+void PlainImageGui_legacy::onSetFilename()
 {
 	bitmap_ = nullptr;
 
@@ -32,12 +32,12 @@ void PlainImageGui::onSetFilename()
 	invalidateRect();
 }
 
-void PlainImageGui::onSetMode()
+void PlainImageGui_legacy::onSetMode()
 {
 	invalidateMeasure();
 }
 
-int32_t PlainImageGui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
+int32_t PlainImageGui_legacy::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 {
 #if 0 // dead code
 	// Create tiled image (need to be arranged first in order to know module dimensions).
@@ -156,7 +156,7 @@ int32_t PlainImageGui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContex
 	return gmpi::MP_OK;
 }
 
-int32_t PlainImageGui::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_API::MP1_SIZE* returnDesiredSize)
+int32_t PlainImageGui_legacy::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_API::MP1_SIZE* returnDesiredSize)
 {
 	switch (pinStretchMode)
 	{
@@ -180,7 +180,7 @@ int32_t PlainImageGui::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDraw
 	return gmpi::MP_OK;
 }
 
-int32_t PlainImageGui::arrange(GmpiDrawing_API::MP1_RECT finalRect)
+int32_t PlainImageGui_legacy::arrange(GmpiDrawing_API::MP1_RECT finalRect)
 {
 	auto r = gmpi_gui::MpGuiGfxBase::arrange(finalRect);
 

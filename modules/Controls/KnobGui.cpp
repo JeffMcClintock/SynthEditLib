@@ -3,6 +3,8 @@
 
 #include "ControlsBase.h"
 
+SE_DECLARE_INIT_STATIC_FILE(KnobGui);
+
 class KnobGui final : public ValueControlBase, public gmpi::api::IDrawingLayer
 {
 	float getShadowExtent() const

@@ -606,6 +606,9 @@ IF(SE2JUCE)
 IF(SE_GRAPHICS_SUPPORT)
 set(srcs
 ${srcs}
+modules/Controls/KnobGui.cpp
+modules/Controls/LabelGui.cpp
+modules/Controls/PlainImageGui.cpp
 modules/Converters/FloatScaler2Gui.cpp
 modules/PatchMemory/PatchMemoryBoolGui.h
 modules/PatchMemory/PatchMemoryFloatGui.h

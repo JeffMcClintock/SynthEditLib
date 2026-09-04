@@ -5,10 +5,10 @@
 #include "../shared/ImageCache.h"
 #include "../se_sdk3/Drawing.h"
 
-class PlainImageGui : public gmpi_gui::MpGuiGfxBase, ImageCacheClient
+class PlainImageGui_legacy : public gmpi_gui::MpGuiGfxBase, ImageCacheClient
 {
 public:
-	PlainImageGui();
+	PlainImageGui_legacy();
 
 	// overrides.
 	int32_t OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext) override;

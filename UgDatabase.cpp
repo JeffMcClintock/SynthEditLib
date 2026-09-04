@@ -1130,6 +1130,9 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 
 	// when the UI is defined in JUCE, not SynthEdit, we don't include GUI modules
 #if SE_GRAPHICS_SUPPORT
+	INIT_STATIC_FILE(LabelGui);
+	INIT_STATIC_FILE(KnobGui);
+	INIT_STATIC_FILE(PlainImageGui2);
 	INIT_STATIC_FILE(UserSettingText_Gui);
 	INIT_STATIC_FILE(Converters_GUI)
 	INIT_STATIC_FILE(FloatScaler2Gui);

@@ -2,6 +2,7 @@
 #include "../shared/xplatform.h"
 
 REGISTER_PLUGIN ( SvFilter2, L"SE SV Filter2" );
+INIT_STATIC_FILE(SvFilter2);
 
 #define MAX_VOLTS ( 10.f )
 #define FSampleToVoltage(s) ( (float) (s) * (float) MAX_VOLTS)
