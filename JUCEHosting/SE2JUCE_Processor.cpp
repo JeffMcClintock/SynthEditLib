@@ -19,7 +19,13 @@ SE2JUCE_Processor::SE2JUCE_Processor(
 #if SE_GRAPHICS_SUPPORT
    , createEditorFunction([this]()
         {
-                return new SynthEditEditor(*this, *controller.get());
+            return new SynthEditEditor(*this, *controller.get());
+			
+        })
+#else
+    , createEditorFunction([this]()
+        {
+            return new juce::GenericAudioProcessorEditor(*this);
         })
 #endif
 
@@ -43,16 +49,8 @@ SE2JUCE_Processor::SE2JUCE_Processor(
                        )
 #endif
 {
-#if 0
     {
-		const auto documentFolder = BundleInfo::instance()->getUserDocumentFolder(); // ensure folder exists.
-		const auto logFilePath = ::WStringToUtf8(documentFolder) + "/" + JucePlugin_Name + ".log";
-        se_logger::set_log_filename(logFilePath);
-    }
-#endif
-    
-    {
-		std::string msg = "SE2JUCE_Processor::SE2JUCE_Processor() START. Optimus V";
+		std::string msg = "SE2JUCE_Processor::SE2JUCE_Processor() START. V";
         msg += JucePlugin_VersionString;
         msg += "\n";
         se_logger::log(msg);
