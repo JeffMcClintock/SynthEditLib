@@ -19,7 +19,7 @@
 // Every UniversalFactory calls this, so all four backends - DirectX, Cocoa, JUCE
 // and CPU - resolve the same face.
 
-#include <filesystem>
+#include "../se_filesystem.h"
 
 #include "helpers/BundledFonts.h"
 #include "../modules/se_sdk3_hosting/BundleInfo.h"
@@ -35,8 +35,8 @@ inline void registerBundledFonts()
         return;
     done = true;
 
-    const std::filesystem::path fonts =
-        std::filesystem::path(BundleInfo::instance()->getBundleContentsFolder()) / "Resources" / "fonts";
+    const se_fs::path fonts =
+        se_fs::path(BundleInfo::instance()->getBundleContentsFolder()) / "Resources" / "fonts";
 
     using gmpi::drawing::FontWeight;
     using gmpi::drawing::FontStyle;
