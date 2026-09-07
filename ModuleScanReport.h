@@ -1,6 +1,6 @@
 #pragma once
 
-#include <filesystem>
+#include "se_filesystem.h"
 #include <string>
 #include <vector>
 
@@ -62,7 +62,7 @@ public:
 	{
 	public:
 		// The usual case: the file being scanned. Its stem is the module's name.
-		explicit SubjectScope(const std::filesystem::path& file);
+		explicit SubjectScope(const se_fs::path& file);
 
 		// For when the scan has read a better name out of the module's own XML --
 		// a shell plugin's sub-plugins are not named after the bundle holding them.

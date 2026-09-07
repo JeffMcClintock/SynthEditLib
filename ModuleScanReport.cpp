@@ -14,7 +14,7 @@ namespace
 	// The name to show for a module identified only by the file it lives in.
 	// "Ambience.sem" and "Ambience.gmpi" are both the module 'Ambience' to a user
 	// looking for something to remove or repair.
-	std::wstring nameFromPath(const std::filesystem::path& file)
+	std::wstring nameFromPath(const se_fs::path& file)
 	{
 		auto stem = file.stem().wstring();
 		return stem.empty() ? file.wstring() : stem;
@@ -64,7 +64,7 @@ bool ModuleScanReporter::collect(const wchar_t* text, const wchar_t* title, int 
 	return true;
 }
 
-ModuleScanReporter::SubjectScope::SubjectScope(const std::filesystem::path& file)
+ModuleScanReporter::SubjectScope::SubjectScope(const se_fs::path& file)
 	: SubjectScope(nameFromPath(file), file.wstring())
 {
 }

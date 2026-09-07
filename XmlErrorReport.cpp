@@ -513,7 +513,7 @@ void appendExcerpt(std::ostringstream& out, std::string_view xml, int errorLine)
 	}
 }
 
-std::string readFileAsText(const std::filesystem::path& path)
+std::string readFileAsText(const se_fs::path& path)
 {
 	std::ifstream file(path, std::ios::binary);
 	if (!file)
@@ -647,7 +647,7 @@ std::wstring formatXmlParseError(
 
 std::wstring formatXmlParseErrorFromFile(
 	  const XMLDocument& doc
-	, const std::filesystem::path& xmlFile
+	, const se_fs::path& xmlFile
 )
 {
 	// A file tinyxml2 could not open or read has nothing to excerpt, and reading

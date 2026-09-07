@@ -1,6 +1,6 @@
 #pragma once
 
-#include <filesystem>
+#include "se_filesystem.h"
 #include <string>
 #include <string_view>
 
@@ -41,5 +41,5 @@ std::wstring formatXmlParseError(
 // any enclosing bundle is its own parent folder.
 std::wstring formatXmlParseErrorFromFile(
 	  const tinyxml2::XMLDocument& doc
-	, const std::filesystem::path& xmlFile
+	, const se_fs::path& xmlFile
 );
