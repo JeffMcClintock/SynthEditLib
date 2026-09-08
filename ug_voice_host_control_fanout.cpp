@@ -134,6 +134,15 @@ void ug_voice_host_control_fanout::ConnectDirectPathHostControl(ug_container* vo
 		}
 	}
 
+	// BenderRange bypasses patch_manager, so the parameter's 2.0 default (PatchManager.cpp,
+	// HC_BENDER_RANGE case) never reaches this pin. Without an explicit default the buffer
+	// starts at 0 and the pitch wheel does nothing until the host sends RPN 0. Match the
+	// MIDI convention (and the parameter): ±2 semitones.
+	if (HC_BENDER_RANGE == hostConnect)
+	{
+		fromPin->SetBufferValue("2");
+	}
+
 	connections_.push_back({ hostConnect });
 
 	connect_oversampler_safe(fromPin, toPlug);
