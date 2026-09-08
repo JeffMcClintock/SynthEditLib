@@ -368,6 +368,21 @@ void dsp_patch_parameter_base::SendValuePt2( timestamp_t unadjusted_timestamp, V
 			}
 			fromPin->Transmit( timestamp, size, data );
 		}
+
+		// BenderRange is a direct-path host-control (isDirectPathHostControl): the voice modules'
+		// pins hang off ug_voice_host_control_fanout, so this parameter has no setter pin and the
+		// loop above reaches nothing. Forward the parameter here so the GUI (Polyphony Control),
+		// presets and DAW automation still set the range. Initial values are sent after every
+		// module has opened, so a preset value lands after the fanout's 2-semitone default and
+		// wins. MIDI RPN 0 (ug_container::OnMidi) shares the same fanout pin, so the two sources
+		// simply interleave in time order.
+		if (hostControlId_ == HC_BENDER_RANGE)
+		{
+			if (auto voiceContainer = getVoiceContainer())
+			{
+				voiceContainer->sendDirectPathValue(HC_BENDER_RANGE, unadjusted_timestamp, myContainer, 0, size, const_cast<void*>(data));
+			}
+		}
 	}
 
 	if (!isInitialUpdate)
