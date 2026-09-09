@@ -3447,13 +3447,11 @@ R"XML(
 				s += L"auto r = Register<" + destinationClassName + L"Gui>::withXml(R\"XML(\n";
 				s += ToWstring(pluginXML);
 				s += L")XML\");\n";
-
-				s += L"}\n";
 			}
 #else
 			s += L"\tauto r = sesdk::Register<" + destinationClassName + L"Gui>::withId(L\"" + MakeModuleId(plugin_name) + L"\");\n";
 #endif
-			s += L"}\n";
+			s += L"}\n"; // namespace
 		}
 
 		if (useHeader)
