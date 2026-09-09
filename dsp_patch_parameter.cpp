@@ -369,19 +369,36 @@ void dsp_patch_parameter_base::SendValuePt2( timestamp_t unadjusted_timestamp, V
 			fromPin->Transmit( timestamp, size, data );
 		}
 
-		// BenderRange is a direct-path host-control (isDirectPathHostControl): the voice modules'
-		// pins hang off ug_voice_host_control_fanout, so this parameter has no setter pin and the
-		// loop above reaches nothing. Forward the parameter here so the GUI (Polyphony Control),
-		// presets and DAW automation still set the range. Initial values are sent after every
-		// module has opened, so a preset value lands after the fanout's 2-semitone default and
-		// wins. MIDI RPN 0 (ug_container::OnMidi) shares the same fanout pin, so the two sources
-		// simply interleave in time order.
-		if (hostControlId_ == HC_BENDER_RANGE)
+		// Mono direct-path host-controls (isDirectPathHostControl) have no setter pin: the voice
+		// modules' inputs hang off ug_voice_host_control_fanout, so the loop above reaches nothing.
+		// Forward the parameter so the GUI (Polyphony Control, on-screen bender/hold controls),
+		// presets and DAW automation still reach MidiToCv2. Values are already in pin units: Bender
+		// -1..1, ChannelPressure 0..1, HoldPedal and BenderRange as the legacy setter sent them
+		// (volts, semitones). Initial values are sent after every module has opened, so a preset
+		// value lands after the fanout's Open() default and wins. MIDI (ug_container::OnMidi)
+		// shares the same fanout pin, so the two sources interleave in time order.
+		switch (hostControlId_)
 		{
+		case HC_HOLD_PEDAL:
+			// Mirror the CC64 case in ug_container::OnMidi: the note-monitor state too.
+			assert(size == sizeof(float));
 			if (auto voiceContainer = getVoiceContainer())
 			{
-				voiceContainer->sendDirectPathValue(HC_BENDER_RANGE, unadjusted_timestamp, myContainer, 0, size, const_cast<void*>(data));
+				voiceContainer->SetHoldPedalState(*static_cast<const float*>(data) >= 5.0f);
 			}
+			[[fallthrough]];
+
+		case HC_PITCH_BENDER:
+		case HC_CHANNEL_PRESSURE:
+		case HC_BENDER_RANGE:
+			if (auto voiceContainer = getVoiceContainer())
+			{
+				voiceContainer->sendDirectPathValue(hostControlId_, unadjusted_timestamp, myContainer, 0, size, const_cast<void*>(data));
+			}
+			break;
+
+		default:
+			break;
 		}
 	}
 
