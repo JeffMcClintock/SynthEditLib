@@ -23,10 +23,12 @@ struct LegacyOkCancelDialogAdapter : gmpi_gui::legacy::IMpOkCancelDialog
     std::string title;
     std::string text;
 
+    // Lifetime rules as for LegacyTextEditAdapter: oldCb is a member of the legacy
+    // caller and dies with it, so it is forgotten once the caller's ref on us goes.
     struct CompletionBridge : gmpi::api::IStockDialogCallback
     {
-        LegacyOkCancelDialogAdapter* adapter;
-        gmpi_gui::ICompletionCallback* oldCb;
+        LegacyOkCancelDialogAdapter* adapter;   // null once completion has been delivered
+        gmpi_gui::ICompletionCallback* oldCb;   // null once the legacy caller has let go
         int32_t refCount_ = 1;
 
         CompletionBridge(LegacyOkCancelDialogAdapter* a, gmpi_gui::ICompletionCallback* cb)
@@ -34,8 +36,18 @@ struct LegacyOkCancelDialogAdapter : gmpi_gui::legacy::IMpOkCancelDialog
 
         void onComplete(gmpi::api::StockDialogButton button) override
         {
-            oldCb->OnComplete(button == gmpi::api::StockDialogButton::Ok ? gmpi::MP_OK : gmpi::MP_CANCEL);
-            adapter->release(); // balance the addRef in ShowAsync
+            auto* a = adapter;
+            if (!a)
+                return; // already delivered
+            adapter = nullptr;
+            if (a->activeBridge == this)
+                a->activeBridge = nullptr;
+
+            if (oldCb)
+                oldCb->OnComplete(button == gmpi::api::StockDialogButton::Ok ? gmpi::MP_OK : gmpi::MP_CANCEL);
+            oldCb = nullptr;
+
+            a->release(); // balance the addRef in ShowAsync
         }
 
         gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** r) override
@@ -52,16 +64,30 @@ struct LegacyOkCancelDialogAdapter : gmpi_gui::legacy::IMpOkCancelDialog
         int32_t addRef() override { return ++refCount_; }
         int32_t release() override
         {
-            if (--refCount_ == 0) { delete this; return 0; }
+            if (--refCount_ == 0)
+            {
+                if (adapter && adapter->activeBridge == this) // dropped without completing
+                    adapter->activeBridge = nullptr;
+                delete this;
+                return 0;
+            }
             return refCount_;
         }
     };
+
+    CompletionBridge* activeBridge{}; // the open dialog's bridge, if any (non-owning)
 
     // dialogType is intentionally ignored: the legacy IMpOkCancelDialog contract is
     // always a two-button OK/Cancel dialog (enforced in ShowAsync). Kept in the
     // signature so existing call sites need no change.
     LegacyOkCancelDialogAdapter(int32_t /*dialogType*/, Builder b)
         : builder(std::move(b)) {}
+
+    ~LegacyOkCancelDialogAdapter()
+    {
+        if (activeBridge)
+            activeBridge->adapter = nullptr;
+    }
 
     int32_t MP_STDCALL SetTitle(const char* t) override
     {
@@ -85,6 +111,7 @@ struct LegacyOkCancelDialogAdapter : gmpi_gui::legacy::IMpOkCancelDialog
         // restores the historical two-button behaviour. Other button sets use createStockDialog.
         auto* inner = builder(static_cast<int32_t>(gmpi::api::StockDialogType::OkCancel), title.c_str(), text.c_str());
         auto* bridge = new CompletionBridge(this, cb); // refCount_ = 1
+        activeBridge = bridge; // before showAsync: a modal platform completes synchronously
         inner->showAsync(static_cast<gmpi::api::IUnknown*>(bridge));
         bridge->release(); // release our creation ref; inner holds its QI ref
         inner->release();
@@ -102,5 +129,17 @@ struct LegacyOkCancelDialogAdapter : gmpi_gui::legacy::IMpOkCancelDialog
         }
         return gmpi::ReturnCode::NoSupport;
     }
-    GMPI_REFCOUNT
+    int refCount2_ = 1;
+    int32_t addRef() override { return ++refCount2_; }
+    int32_t release() override
+    {
+        if (--refCount2_ == 0) { delete this; return 0; }
+        // Only ShowAsync's self-ref left while the dialog is open: the legacy caller has
+        // let go (typically its module was destroyed with the view). Its callback lives
+        // inside it, so it must never be called again; the dialog runs to completion on
+        // its own and the result is discarded.
+        if (refCount2_ == 1 && activeBridge)
+            activeBridge->oldCb = nullptr;
+        return refCount2_;
+    }
 };

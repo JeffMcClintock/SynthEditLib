@@ -7,6 +7,7 @@
 #include "../se_sdk3/legacy_sdk_gui2.h"
 #include "helpers/NativeUi.h"
 #include "RefCountMacros.h"
+#include "GmpiSdkCommon.h" // gmpi::shared_ptr
 
 // Implements the old IMpFileDialog interface by delegating to a new-API IFileDialog.
 // All platform file-dialog implementations expose only IFileDialog; callers that need
@@ -17,10 +18,12 @@ struct LegacyFileDialogAdapter : gmpi_gui::legacy::IMpFileDialog
     std::string selectedFilename;
 
     // Heap-allocated bridge with independent lifecycle from adapter.
+    // Lifetime rules as for LegacyTextEditAdapter: oldCb is a member of the legacy
+    // caller and dies with it, so it is forgotten once the caller's ref on us goes.
     struct CompletionBridge : gmpi::api::IFileDialogCallback
     {
-        LegacyFileDialogAdapter* adapter;
-        gmpi_gui::ICompletionCallback* oldCb;
+        LegacyFileDialogAdapter* adapter;       // null once completion has been delivered
+        gmpi_gui::ICompletionCallback* oldCb;   // null once the legacy caller has let go
         int32_t refCount_ = 1;
 
         CompletionBridge(LegacyFileDialogAdapter* a, gmpi_gui::ICompletionCallback* cb)
@@ -28,9 +31,19 @@ struct LegacyFileDialogAdapter : gmpi_gui::legacy::IMpFileDialog
 
         void onComplete(gmpi::ReturnCode result, const char* selectedPath) override
         {
-            adapter->selectedFilename = selectedPath ? selectedPath : "";
-            oldCb->OnComplete(result == gmpi::ReturnCode::Ok ? gmpi::MP_OK : gmpi::MP_CANCEL);
-            adapter->release(); // balance the addRef in ShowAsync
+            auto* a = adapter;
+            if (!a)
+                return; // already delivered
+            adapter = nullptr;
+            if (a->activeBridge == this)
+                a->activeBridge = nullptr;
+
+            a->selectedFilename = selectedPath ? selectedPath : "";
+            if (oldCb)
+                oldCb->OnComplete(result == gmpi::ReturnCode::Ok ? gmpi::MP_OK : gmpi::MP_CANCEL);
+            oldCb = nullptr;
+
+            a->release(); // balance the addRef in ShowAsync
         }
 
         gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** r) override
@@ -47,14 +60,28 @@ struct LegacyFileDialogAdapter : gmpi_gui::legacy::IMpFileDialog
         int32_t addRef() override { return ++refCount_; }
         int32_t release() override
         {
-            if (--refCount_ == 0) { delete this; return 0; }
+            if (--refCount_ == 0)
+            {
+                if (adapter && adapter->activeBridge == this) // dropped without completing
+                    adapter->activeBridge = nullptr;
+                delete this;
+                return 0;
+            }
             return refCount_;
         }
     };
 
+    CompletionBridge* activeBridge{}; // the open dialog's bridge, if any (non-owning)
+
     explicit LegacyFileDialogAdapter(gmpi::api::IFileDialog* dialog)
     {
         inner.attach(dialog); // caller transfers ownership (refcount already incremented by caller)
+    }
+
+    ~LegacyFileDialogAdapter()
+    {
+        if (activeBridge)
+            activeBridge->adapter = nullptr;
     }
 
     int32_t MP_STDCALL AddExtension(const char* extension, const char* description = "") override
@@ -90,6 +117,7 @@ struct LegacyFileDialogAdapter : gmpi_gui::legacy::IMpFileDialog
         addRef(); // keep adapter alive until bridge fires onComplete
 
         auto* bridge = new CompletionBridge(this, cb); // refCount_ = 1
+        activeBridge = bridge; // before showAsync: a modal platform completes synchronously
         inner->showAsync(nullptr, static_cast<gmpi::api::IFileDialogCallback*>(bridge));
         bridge->release(); // release our creation ref; platform holds its QI ref
         return gmpi::MP_OK;
@@ -115,5 +143,17 @@ struct LegacyFileDialogAdapter : gmpi_gui::legacy::IMpFileDialog
         }
         return gmpi::ReturnCode::NoSupport;
     }
-    GMPI_REFCOUNT
+    int refCount2_ = 1;
+    int32_t addRef() override { return ++refCount2_; }
+    int32_t release() override
+    {
+        if (--refCount2_ == 0) { delete this; return 0; }
+        // Only ShowAsync's self-ref left while the dialog is open: the legacy caller has
+        // let go (typically its module was destroyed with the view). Its callback lives
+        // inside it, so it must never be called again; the dialog runs to completion on
+        // its own and the result is discarded.
+        if (refCount2_ == 1 && activeBridge)
+            activeBridge->oldCb = nullptr;
+        return refCount2_;
+    }
 };
