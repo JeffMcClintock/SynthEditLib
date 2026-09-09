@@ -155,6 +155,7 @@ void DspPatchManager::vst_Automation(ug_container* voiceControlContainer, timest
 		// They should get MIDI only from patch-automator.
 		const bool usedByMidiCv =
 				lookupController == (ControllerType::Bender << 24)     // Bender
+			|| lookupController == (ControllerType::ChannelPressure << 24)
 			|| lookupController == ((ControllerType::CC << 24) | 64)  // HoldPedal
 			|| lookupController == ((ControllerType::CC << 24) | 69); // HoldPedal 2
 
@@ -201,6 +202,9 @@ namespace midi_2_0
 // NOT handled here any more. Those are dispatched directly by the voice container's fanout via
 // ug_container::OnMidi — usually called from a MIDI-CV module. Patch Automator only reaches this
 // function for parameter automation: CC → parameter, RPN/NRPN, SysEx, program change (future).
+// Pitch-bend and channel-pressure ARE still dispatched here, but only as automation sources for
+// ordinary parameters that learned them (ControllerType::Bender / ChannelPressure) — never to the
+// MIDI-CV host-control parameters, which the container's direct path owns.
 //
 // User contract: wire your MIDI source to a Patch-Automator for parameter automation, wire it to a
 // MIDI-CV for performance. The same CC (e.g. CC#74) can legitimately be used for both purposes on
@@ -256,6 +260,10 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 								continue;
 							vst_Automation(voiceState->voiceControlContainer_, timestamp, (ControllerType::CC << 24) | controller_id, 0.0f);
 						}
+
+						// Parameters that learned Bender / Channel Pressure reset too (centre / zero).
+						vst_Automation(voiceState->voiceControlContainer_, timestamp, ControllerType::Bender << 24, 0.5f, false, true);
+						vst_Automation(voiceState->voiceControlContainer_, timestamp, ControllerType::ChannelPressure << 24, 0.0f, false, true);
 					}
 				}
 				break;
@@ -276,9 +284,29 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 				}
 				break;
 
-				// PitchBend, ChannelPressue, NoteOn, NoteOff, PolyControlChange, PolyBender,
-				// PolyAfterTouch, ProgramChange, PolyNoteManagement are all performance events —
-				// handled in ug_container::OnMidi, not here.
+				case gmpi::midi_2_0::PitchBend:
+				{
+					// Automation source for parameters that learned 'Bender'. Not sent to the
+					// HC_PITCH_BENDER parameter (sendToMidiCv = false): the container's direct path
+					// already delivers the live bend to MIDI-CV, and a preset should not follow it.
+					constexpr int automation_id = ControllerType::Bender << 24;
+					const auto normalized = gmpi::midi_2_0::decodeController(msg).value;
+					vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalized, false, true);
+				}
+				break;
+
+				case gmpi::midi_2_0::ChannelPressue:
+				{
+					// Same deal for parameters that learned 'Channel Pressure'.
+					constexpr int automation_id = ControllerType::ChannelPressure << 24;
+					const auto normalized = gmpi::midi_2_0::decodeController(msg).value;
+					vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalized, false, true);
+				}
+				break;
+
+				// NoteOn, NoteOff, PolyControlChange, PolyBender, PolyAfterTouch, ProgramChange,
+				// PolyNoteManagement are all performance events — handled in ug_container::OnMidi,
+				// not here.
 			}
 		} // ChannelVoice64
 	}
@@ -569,8 +597,25 @@ void DspPatchManager::OnMidi(VoiceControlState* voiceState, timestamp_t timestam
 		} // case CONTROL_CHANGE
 		break;
 
-		// POLY_AFTERTOUCH, CHANNEL_PRESSURE, PITCHBEND removed — performance events now handled
-		// by ug_container::OnMidi.
+		case CHANNEL_PRESSURE:
+		{
+			// Automation source for parameters that learned 'Channel Pressure' (see the MIDI 2.0 case).
+			constexpr int automation_id = ControllerType::ChannelPressure << 24;
+			const float normalised = (float)byte1 / 127.0f;
+			vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalised, false, true);
+		}
+		break;
+
+		case PITCHBEND:
+		{
+			// Automation source for parameters that learned 'Bender' (see the MIDI 2.0 case).
+			const auto normalized = gmpi::midi::utils::bipoler14bitToNormalized(static_cast<uint8_t>(byte2), static_cast<uint8_t>(byte1));
+			constexpr int automation_id = ControllerType::Bender << 24;
+			vst_Automation(voiceState->voiceControlContainer_, timestamp, automation_id, normalized, false, true);
+		}
+		break;
+
+		// POLY_AFTERTOUCH removed — performance event, handled by ug_container::OnMidi.
 		};
 	}
 }
