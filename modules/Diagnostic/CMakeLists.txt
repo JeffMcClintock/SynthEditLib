@@ -10,5 +10,4 @@ build_gmpi_plugin(
 	  BadVoltage.cpp
 	  BlobOverloaderGUI.cpp
 	  BlobOverloaderDSP.cpp
-	  ParametersQueryGui.cpp
 )

@@ -68,6 +68,7 @@ add_subdirectory(Waveshapers)
 
 # GMPI plugins
 add_subdirectory(SubControls4)
+add_subdirectory(Diagnostics2)
 add_subdirectory(PathEditor)
 
 # Aggregate target so app bundles can depend on "all factory modules built"
