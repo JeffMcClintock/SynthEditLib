@@ -5,6 +5,7 @@
 #include "IPluginGui.h"
 #include "Core/GmpiSdkCommon.h"
 #include "Core/GmpiApiEditor.h"
+#include "Extensions/ParameterIterator.h"
 
 class ControllerIterator_SE :
 	public gmpi::IMpControllerIterator, gmpi::IMpControllerIteratorItem
@@ -42,7 +43,7 @@ public:
 	GMPI_REFCOUNT
 };
 
-class ControllerHostHelper : public gmpi::api::IControllerHost
+class ControllerHostHelper : public gmpi::api::IControllerHost, public synthedit::IParameterIterator
 {
 	class CUG2* plugin{};
 
@@ -52,7 +53,17 @@ public:
 	// IControllerHost
 	gmpi::ReturnCode setParameter(int32_t parameterIndex, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override;
 
-	GMPI_QUERYINTERFACE_METHOD(gmpi::api::IControllerHost);
+	// IParameterIterator
+	void listParameters(gmpi::api::IUnknown* callback) override;
+
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+	{
+		*returnInterface = {};
+		GMPI_QUERYINTERFACE(gmpi::api::IControllerHost);
+		GMPI_QUERYINTERFACE(synthedit::IParameterIterator);
+
+		return gmpi::ReturnCode::NoSupport;
+	}
 	GMPI_REFCOUNT_NO_DELETE;
 };
 

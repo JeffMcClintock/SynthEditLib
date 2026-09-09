@@ -95,6 +95,9 @@ public:
 	// IGuiHost interface
 	int32_t GetParameterIterator( int subPathNodehandle, class IGuiHostParameterIterator** returnValue);
 
+	// IParameterIterator
+	void listParameters(gmpi::api::IUnknown* callback);
+
 	// IGuiHost2. New simplified way. No iterator crap.
 	virtual int32_t RegisterGui2(gmpi::api::IParameterObserver* gui) override;
 	void DeregisterAllGuiPatchAutomators();

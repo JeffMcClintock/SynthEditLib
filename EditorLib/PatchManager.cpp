@@ -1784,6 +1784,23 @@ int32_t CPatchManager::GetParameterIterator( int subPathNodehandle, class IGuiHo
 	return 0;
 }
 
+void CPatchManager::listParameters(gmpi::api::IUnknown* callback)
+{
+	gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+	unknown = callback; // assign assuming ownership is already managed from caller.
+
+	auto plugin_callback = unknown.as<synthedit::IParameterCallback>();
+	if(plugin_callback.isNull())
+		return;
+
+	for(auto& p : m_parameters)
+	{
+		int32_t dt{};
+		p->GetDatatype(FT_VALUE, &dt);
+		plugin_callback->onParameter(p->Handle(), (gmpi::PinDatatype)dt);
+	}
+}
+
 // IGuiHost2
 void CPatchManager::setParameterValue(RawView value, int32_t parameterHandle, gmpi::FieldType moduleFieldId, int32_t voice)
 {

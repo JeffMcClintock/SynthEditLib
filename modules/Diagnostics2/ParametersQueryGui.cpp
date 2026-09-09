@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: ISC
 // Copyright 2007-2026 Jeff McClintock.
 #include "helpers/GmpiPluginEditor.h"
+#include "Extensions/ParameterIterator.h"
 
 using namespace gmpi;
 using namespace gmpi::editor;
@@ -44,7 +45,7 @@ class ParametersQueryController final : public gmpi::api::IController
 	int32_t handle{};
 	gmpi::shared_ptr<gmpi::api::IControllerHost> host;
 
-	Pin<std::string> pinText;
+//	Pin<std::string> pinText;
 
 	void onSetText()
 	{
@@ -53,6 +54,9 @@ class ParametersQueryController final : public gmpi::api::IController
 	}
 
 public:
+
+	inline static gmpi::api::IController* constructingInstance{};
+
 	ParametersQueryController()
 	{
 //		pinText.onUpdate = [this](PinBase* p) { onSetText(); };
@@ -64,11 +68,22 @@ public:
 		handle = phandle;
 		phost->queryInterface(&gmpi::api::IControllerHost::guid, host.put_void());
 
-		// todo: some kind of iterateParameters() to get all parameters and their values, and build a string to display in the GUI.
 		// todo: sign up to notifications about parameters add/remove/change, and update the GUI string accordingly. perhaps sighing up causes the callback to init all params without the need for a special iterateParameters() call.
+		synthedit::ParameterInformation info(phost);
+
+		std::string infoText;
+		for(auto& param : info.parameters)
+		{
+			infoText += "Parameter handle: " + std::to_string(param.handle) + ", datatype: " + std::to_string(static_cast<int>(param.datatype)) + "\n";
+		}
+
+//		pinText = infoText;
+		constexpr int32_t voice{};
+		host->setParameter(0, gmpi::Field::Value, voice, infoText.size(), (const uint8_t*) infoText.data());
 
 		return ReturnCode::Ok;
 	}
+	ReturnCode syncState() override {return ReturnCode::Ok;}
 
 	// IParameterObserver
 	ReturnCode setParameter(int32_t parameterIndex, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override
@@ -100,5 +115,7 @@ auto r = Register<ParametersQueryGui>::withXml(R"XML(
     <Controller/>
 </Plugin>
 )XML");
+
+auto rc = Register<ParametersQueryController>::withId("SE Parameters Query");
 }
 

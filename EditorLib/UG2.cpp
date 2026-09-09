@@ -26,6 +26,10 @@ gmpi::ReturnCode ControllerHostHelper::setParameter(int32_t parameterIndex, gmpi
 	return gmpi::ReturnCode::Fail;
 }
 
+void ControllerHostHelper::listParameters(gmpi::api::IUnknown* callback)
+{
+	plugin->get_patch_manager()->listParameters(callback);
+}
 
 CUG2::CUG2(Module_Info* p_type) : CUG(p_type)
 	,m_rect(0,0,0,0)
@@ -238,7 +242,6 @@ int32_t CUG2::getParameterModuleAndParamId(int32_t parameterHandle, int32_t* ret
 	return get_patch_manager()->getParameterModuleAndParamId(parameterHandle, returnModuleHandle, returnModuleParameterId);
 }
 
-
 void CUG2::Initialise(bool loaded_from_file)
 {
 	CUG::Initialise(loaded_from_file);
@@ -254,7 +257,7 @@ void CUG2::Initialise(bool loaded_from_file)
 			obj->queryInterface(*(const gmpi::MpGuid*)(&gmpi::api::IController::guid), controller2_.put_void());
 			if (controller2_)
 			{
-				controller2_->initialize(&controllerHostHelper, Handle());
+				controller2_->initialize(static_cast<gmpi::api::IControllerHost*>(&controllerHostHelper), Handle());
 
 				// init parameters.
 				auto patch_manager = get_patch_manager();
