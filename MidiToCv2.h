@@ -40,7 +40,7 @@ private:
 	FloatInPin pinGlideStartPitch;
 	IntInPin pinVoiceAllocationMode;
 	FloatInPin pinPortamento;
-
+	BoolInPin pinDisableBender;
 	RampGenerator pitchInterpolator_;
 	RampGeneratorAdaptive benderInterpolator_;
 

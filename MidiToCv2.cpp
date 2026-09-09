@@ -40,6 +40,7 @@ R"XML(
 			<Pin name="Voice/Aftertouch" datatype="float" private="true" isPolyphonic="true" hostConnect="Voice/Aftertouch"/>
 			<Pin name="ChannelPressure" datatype="float" private="true" isPolyphonic="true" hostConnect="Channel Pressure"/>
 			<Pin name="Voice/Bender" datatype="float" private="true" isPolyphonic="true" hostConnect="Voice/Bender"/>
+			<Pin name="Disable Bender" datatype="bool" isMinimised="true"/>
 		</Audio>
 	</Plugin>
 </PluginList>
@@ -108,6 +109,7 @@ previousGate_(0.0f)
 	initializePin(pinVoiceAftertouch);
 	initializePin(pinChannelPressure);
 	initializePin(pinVoiceBender);
+	initializePin(pinDisableBender);
 }
 
 int32_t MidiToCv2::open()
@@ -237,7 +239,8 @@ void MidiToCv2::onSetPins()
 
 	// PITCH.
 	bool pitchUpdated = false;
-	if (pinVoiceBender.isUpdated() || pinBender.isUpdated() || pinBenderRange.isUpdated())
+	const bool ignoreBender = pinDisableBender.getValue();
+	if (pinVoiceBender.isUpdated() || (!ignoreBender && (pinBender.isUpdated() || pinBenderRange.isUpdated())))
 	{
 #if 0 // _DEBUG
 		_RPTN(_CRT_WARN, "V%2d MidiToCv2::onSetPins Bender=%f\n\n", debugVoice, pinBender.getValue());
@@ -250,7 +253,7 @@ void MidiToCv2::onSetPins()
 
 		constexpr float benderRangeScale = 1.0f / 120.0f;
 		// voice bender is hard-coded to 48 semitones (for MPE)
-		const float totalBend = pinVoiceBender * 0.05f + pinBender * pinBenderRange * benderRangeScale;
+		const float totalBend = pinVoiceBender * 0.05f + (ignoreBender ? 0.0f : pinBender * pinBenderRange * benderRangeScale);
 		benderInterpolator_.setTarget(totalBend);
 		pitchUpdated = true;
 	}
