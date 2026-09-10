@@ -881,7 +881,12 @@ if(pluginGraphics)
 				{
 					// last gasp
 					// CAN'T/SHOULDN"T DYNAMIC CAST INTO DLL!!!! (but we have to support old 3rd-party modules)
-					auto oldSchool = dynamic_cast<IoldSchoolInitialisation*>(object.get());
+					// The cast MUST start from an SDK3 type (gmpi::IMpUserInterface). MSVC's dynamic_cast
+					// on a multiple-inheritance object locates the *source* type in the DLL's RTTI hierarchy
+					// by name, and an old module built against SDK3 has never heard of gmpi::api::IUnknown -
+					// casting from that silently returns null, setHost() is never called, and the module's
+					// first pinTransmit() dereferences a null host (ROY_MPACK_LTE RoyFixedValueGuiString).
+					auto oldSchool = pluginParametersLegacy.isNull() ? nullptr : dynamic_cast<IoldSchoolInitialisation*>(pluginParametersLegacy.get());
 					if(oldSchool)
 						oldSchool->setHost(static_cast<IMpUserInterfaceHost*>(sdk3Helper.get()));
 				}
