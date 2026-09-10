@@ -45,7 +45,6 @@ public:
 	}
 	virtual void onSetPins() override
 	{
-		_RPTN(0, "OsRate::onSetPins(%d)\n", pinHostControl.getValue());
 		pinValueOut = pinHostControl;
 	}
 
