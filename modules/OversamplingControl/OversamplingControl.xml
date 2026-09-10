@@ -28,11 +28,17 @@
       <Pin name="Signal Out" datatype="float" rate="audio" direction="out" />
     </Audio>
   </Plugin>
-  
-  <Plugin id="SE Latency Test2" name="Latency (compensated) (20 samps)" category="Diagnostic" >
-    <Audio latency="20">
-      <Pin name="Signal In" datatype="float" rate="audio" linearInput="true" />
-      <Pin name="Signal Out" datatype="float" rate="audio" direction="out" />
-    </Audio>
-  </Plugin> 
+
+    <Plugin id="SE Latency Test2" name="Latency (compensated) (20 samps)" category="Diagnostic" >
+        <Audio latency="20">
+            <Pin name="Signal In" datatype="float" rate="audio" linearInput="true" />
+            <Pin name="Signal Out" datatype="float" rate="audio" direction="out" />
+        </Audio>
+    </Plugin>
+    <Plugin id="SE OS RATE" name="Oversample Rate" category="Diagnostic" >
+        <Audio latency="20">
+            <Pin name="Signal In" datatype="int" hostConnect="Oversampling/Rate" />
+            <Pin name="Signal Out" datatype="int" direction="out" />
+        </Audio>
+    </Plugin>
 </PluginList>

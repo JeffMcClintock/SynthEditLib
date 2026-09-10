@@ -915,7 +915,15 @@ void ug_oversampler_in::HandleEvent(SynthEditEvent* e)
 		case UET_EVENT_SETPIN:
 		case UET_EVENT_MIDI:
 		{
-			plugs[e->parm1]->Transmit( e->timeStamp + latencySamples, e->parm2, e->Data() );
+			// Events are delayed by the upsampling filter's latency so that control changes stay
+			// phase-aligned with the audio passing through the filter. Timestamp 0 is the exception:
+			// it is graph start
+			// and the events there are the initial parameter/pin values. Delaying those left every
+			// event-only module inside the oversampler sitting on TransmitInitialPinValues()'s
+			// placeholder zero for latencySamples (13 x the oversampling factor) before it saw its
+			// real value. Deliver them immediately instead.
+			const timestamp_t delay = e->timeStamp == 0 ? 0 : latencySamples;
+			plugs[e->parm1]->Transmit( e->timeStamp + delay, e->parm2, e->Data() );
 		}
 		break;
 

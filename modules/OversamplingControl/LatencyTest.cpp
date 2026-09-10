@@ -34,3 +34,24 @@ void LatencyTest::onSetPins()
 	// Set state of output audio pins.
 	pinSignalOut.setStreaming(pinSignalIn.isStreaming());
 }
+
+class OsRate : public MpBase2
+{
+public:
+	OsRate()
+	{
+		initializePin(pinHostControl);
+		initializePin(pinValueOut);
+	}
+	virtual void onSetPins() override
+	{
+		_RPTN(0, "OsRate::onSetPins(%d)\n", pinHostControl.getValue());
+		pinValueOut = pinHostControl;
+	}
+
+protected:
+	IntInPin pinHostControl;
+	IntOutPin pinValueOut;
+};
+
+REGISTER_PLUGIN2(OsRate, L"SE OS RATE");
