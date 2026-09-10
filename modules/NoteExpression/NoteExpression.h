@@ -14,8 +14,8 @@ public:
 	void onSetPins() override;
 
 private:
-	FloatInPin inPins[8];
-	SmartAudioPin outPins[8];
+	FloatInPin inPins[9];
+	SmartAudioPin outPins[9];
 };
 
 #endif

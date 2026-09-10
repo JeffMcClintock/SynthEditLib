@@ -11,7 +11,10 @@
 			<Pin name="Pan" datatype="float" direction="out" />
 			<Pin name="Brightness" datatype="float" direction="out" />
 			<Pin name="Pressure" datatype="float" direction="out" />
-		</Audio>
+
+      <Pin name="Bender" datatype="float" direction="in" private="true" hostConnect="Voice/Bender" />
+      <Pin name="Bender" datatype="float" direction="out" />
+    </Audio>
 	</Plugin>
 	<Plugin id="SE Note Expression" name="Note Expression" category="Old" polyphonicSource="true" cloned="true" graphicsApi="none">
     <Audio>

@@ -16,6 +16,8 @@ class NoteExpression2 final : public MpBase2
 	FloatOutPin pinPanOut;
 	FloatOutPin pinBrightnessOut;
 	FloatOutPin pinPressureOut;
+	FloatInPin pinBender;
+	FloatOutPin pinBenderOut;
 
 public:
 	NoteExpression2()
@@ -27,7 +29,9 @@ public:
 		initializePin( pinVolumeOut );
 		initializePin( pinPanOut );
 		initializePin( pinBrightnessOut );
-		initializePin( pinPressureOut );
+		initializePin(pinPressureOut);
+		initializePin(pinBender);
+		initializePin(pinBenderOut);
 	}
 
 	void onSetPins() override
@@ -48,6 +52,10 @@ public:
 		if( pinPressure.isUpdated() )
 		{
 			pinPressureOut = pinPressure;
+		}
+		if(pinBender.isUpdated())
+		{
+			pinBenderOut = pinBender;
 		}
 	}
 };
