@@ -692,6 +692,17 @@ void CPatchManager::TransferPatchData(CPatchManager* destPatchManager)
 
 		if(new_pm && new_pm != this && p->hostControlId_ != HC_PATCH_CABLES)	// if wrong, transfer patch data. note: we already did patch-cables above.
 		{
+			// A module-owned host-control (oversampling rate/filter, user shared-parameter)
+			// carries a module_ back-pointer to its OWNING CONTAINER, not to a module. When
+			// this parameter is created inside a temporary paste container and then moved to
+			// the real destination (Containerize does exactly this via OnEditPaste), that
+			// back-pointer would be left dangling once the temp container is deleted, and the
+			// next serialise / Properties-browser repaint dereferences it -> ModuleHandle()
+			// assert, then a crash. Re-home the pointer to the destination container, mirroring
+			// ChangeParametersAttachedContainer() on the un-containerize path.
+			if (p->module() == Container())
+				p->setModule(new_pm->Container());
+
 			new_pm->AddParameter(p);
 			// and ensure it's set to correct program
 			p->SetProgram();
