@@ -104,6 +104,7 @@ bool isIteratingChildren = false;
 
 		class ModuleViewPanel* patchAutomatorWrapper_ = {};
 
+		void initializeGmpiModulePins(const Json::Value& element);
 		void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
 		class ModuleViewPanel* getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap);
 		void preGraphicsRedraw() override;

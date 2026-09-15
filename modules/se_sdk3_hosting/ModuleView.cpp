@@ -1379,8 +1379,14 @@ if(pluginGraphics)
 			// Notify my module.
 			if (pluginParameters_GMPI)
 			{
-				pluginParameters_GMPI->setPin(pinIndex, voice, size, (const uint8_t*) data);
-				
+				// A GMPI editor rejects a value for a pin it has not created (auto-duplicated
+				// pins only exist after initialize()). The value is lost - never partly
+				// applied - so this must not happen after initializeGmpiModulePins has run.
+				if (pluginParameters_GMPI->setPin(pinIndex, voice, size, (const uint8_t*) data) != gmpi::ReturnCode::Ok)
+				{
+					_RPTN(_CRT_WARN, "ModuleView[%S]::setPin: GMPI module rejected pin %d (not created yet?) - value dropped\n", moduleInfo->UniqueId().c_str(), pinIndex);
+				}
+
 				if (isMonoDirectional()) // monodirection method, mark as dirty, notify entire module later.
 					parent->markDirtyChild(this);
 				else // classic method, notify pin immediatly.

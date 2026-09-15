@@ -660,6 +660,67 @@ namespace SE2
 		return patchAutomatorWrapper_;
 	}
 
+	// Resolve a connection's pin ID to its GUI pin description.
+	//
+	// The connection JSON carries each end's plug-description ID. For an
+	// auto-duplicated pin that is the artificial ID the document assigned (2, 3, ...
+	// past the declared pins), which Module_Info::gui_plugs does not hold, so a plain
+	// lookup found nothing and the wire was connected with no type converter: a
+	// wide (UTF-16) string from 'Fixed Values (text)' landed byte-for-byte in a
+	// UTF-8 input of 'String Concat GUI'. Only the first wire, to the declared pin,
+	// got its 'SE TextToText8Gui'. Resolve such IDs the way ModuleView::listGuiPins
+	// does: every pin past the declared ones is a copy of the last declared pin,
+	// when that pin auto-duplicates.
+	static InterfaceObject* guiPinDescriptionForConnection(Module_Info* moduleInfo, int pinId)
+	{
+		if (auto* desc = moduleInfo->getGuiPinDescriptionById(pinId))
+			return desc;
+
+		if (moduleInfo->gui_plugs.empty())
+			return nullptr;
+
+		const auto& [lastId, lastDeclared] = *moduleInfo->gui_plugs.rbegin();
+		if (pinId > lastId && lastDeclared->autoDuplicate())
+			return lastDeclared;
+
+		return nullptr;
+	}
+
+	// Initialise every GMPI editor in the tree BEFORE ConnectModules pushes a single
+	// pin default.
+	//
+	// A GMPI editor creates its auto-duplicated pins in initialize() - it cannot know
+	// the count until the host has told it (setTotalPins) - and the SDK helper drops
+	// a value for a pin that does not exist yet. initialize() used to be called from
+	// ConnectModules' default-setting loop, per module in document order, which only
+	// protected a module from its OWN defaults: 'Fixed Values (text)', earlier in the
+	// list, set its outputs while 'String Concat GUI' further down was still pinless,
+	// and those strings were silently lost (setPin returned Fail, nobody looked).
+	// Values that arrive later - a parameter from the patch manager, a control the
+	// user moves - were fine, which is why only fixed values and defaults went missing.
+	void ViewBase::initializeGmpiModulePins(const Json::Value& context)
+	{
+		for (const auto& module_element : context["modules"])
+		{
+			if (module_element["type"].asString() == "Container")
+			{
+				initializeGmpiModulePins(module_element);
+				continue;
+			}
+
+			auto wrapper = Presenter()->HandleToObject(module_element["handle"].asInt());
+			if (!wrapper || !wrapper->pluginParameters_GMPI)
+				continue;
+
+			// -1 not recorded/relevant. Only for auto-duplicating.
+			const auto& pins_count = module_element["PinCount"];
+			if (!pins_count.isNull())
+				wrapper->setTotalPins(pins_count.asInt());
+
+			wrapper->pluginParameters_GMPI->initialize();
+		}
+	}
+
 	void ViewBase::ConnectModules(const Json::Value& context, std::map<int, class ModuleView*>& guiObjectMap)//, ModuleView* patchAutomatorWrapper)
 	{
 		const int32_t containerHandle = context["handle"].asInt();
@@ -694,8 +755,8 @@ namespace SE2
 					&& fromModuleInfo->GuiPlugCount() > 0
 					&& toModuleInfo->GuiPlugCount() > 0)
 				{
-					auto fromPinDesc = fromModuleInfo->getGuiPinDescriptionById(fromPinIndex);
-					auto toPinDesc = toModuleInfo->getGuiPinDescriptionById(toPinIndex);
+					auto fromPinDesc = guiPinDescriptionForConnection(fromModuleInfo, fromPinIndex);
+					auto toPinDesc = guiPinDescriptionForConnection(toModuleInfo, toPinIndex);
 
 					if (fromPinDesc && toPinDesc)
 					{
@@ -923,8 +984,11 @@ namespace SE2
 						*/
 					}
 
-					// module now knows its pin count. Support GMPI-GUI modules with auto-duplicating pins.
-					if(wrapper->pluginParameters_GMPI)
+					// GMPI editors were initialised (pins created) in initializeGmpiModulePins,
+					// before any of the defaults above were pushed. A sub-container's wrapper is
+					// the exception: its "editor" is the SubView, whose initialize() initialises
+					// the children, so it stays here - after they are connected - as it always has.
+					if (pluginType == "ContainerX" && wrapper->pluginParameters_GMPI)
 						wrapper->pluginParameters_GMPI->initialize();
 				}
 			}
@@ -2262,6 +2326,7 @@ namespace SE2
 
 		BuildModules(context, guiObjectMap);
 		BuildPatchCableNotifier(guiObjectMap);
+		initializeGmpiModulePins(*context);
 		ConnectModules(*context, guiObjectMap);
 
 		initMonoDirectionalModules(guiObjectMap);
