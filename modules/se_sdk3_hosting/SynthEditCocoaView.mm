@@ -234,8 +234,19 @@ public:
             CGContextRef cgCtx2 = [[NSGraphicsContext currentContext] CGContext];
             se::cocoa::UniversalGraphicsContext context(frame, &drawingFactory.gmpiFactory, &drawingFactory.sdk3Factory, cgCtx2);
 
+            // Render only the rects queued so far, from a private copy. A client may call
+            // invalidateRect() from inside render() (a module that lazily creates a resource on
+            // its first draw and asks to be repainted). Iterating dirtyRects.rects directly let
+            // that call's merge-on-add erase/push_back the vector mid-iteration, which skipped a
+            // sibling's rect (a container switched in alongside the invalidating one was never
+            // painted); the clear() that followed then dropped the requested repaint entirely.
+            // Swapping the queue out leaves in-render invalidations queued for the next pass,
+            // which AppKit has already scheduled via setNeedsDisplayInRect:.
+            std::vector<GmpiDrawing::Rect> rendering;
+            rendering.swap(dirtyRects.rects);
+
             // draw the absolute minimum.
-            for( auto& r : dirtyRects.rects )
+            for( auto& r : rendering )
             {
                 context.pushAxisAlignedClip((const gmpi::drawing::Rect*)&r);
 
@@ -277,8 +288,21 @@ public:
         // blit back buffer onto screen.
         [backBuffer drawInRect:[view bounds]]; // copes with DPI
 #endif
-
-        dirtyRects.rects.clear();
+        // dirtyRects now holds only what was invalidated during this render (see above).
+        // Those calls already went through setNeedsDisplayInRect:, but AppKit does not act on
+        // that while it is inside drawRect: (observed: a module invalidating itself from
+        // render() was never drawn again). Re-issue the request once this pass has returned,
+        // so the next display cycle renders them - the same "another WM_PAINT" behaviour the
+        // Windows frame gets for free from InvalidateRect().
+        if (!dirtyRects.rects.empty())
+        {
+            NSView* v = view;
+            const std::vector<GmpiDrawing::Rect> pending = dirtyRects.rects;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                for (const auto& r : pending)
+                    [v setNeedsDisplayInRect: GmpiGuiHosting::gmpiRectToViewRect(v.bounds, r)];
+            });
+        }
     }
     
     // Inherited via IMpUserInterfaceHost2
