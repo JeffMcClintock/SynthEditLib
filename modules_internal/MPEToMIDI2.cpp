@@ -218,20 +218,18 @@ public:
 		{
 			channelPressure[header.channel] = midi::utils::U7ToFloat(msg[1]);
 
-			// find whatever note is playing on this channel. Assumption is only held notes can receive benders etc.
-			// might not hold true for DAW automation which is drawn-on after note-off time
-			for (auto& info : noteIds)
+			// Pressure applies to every note still held on this channel, plus the note most
+			// recently started on it even after its Note-Off: the release tail keeps following
+			// the controller until the channel is reused. See forEachExpressionTarget().
+			forEachExpressionTarget(header.channel, [&](const NoteInfo& info)
 			{
-				if (/*info.held &&*/ header.channel == (info.noteId >> 7))
-				{
 //					_RPTN(0, "MPE: Pressure %d %f\n", info.MidiKeyNumber, normalised);
-					const auto out = gmpi::midi_2_0::makePolyPressure(
-						info.MidiKeyNumber,
-						channelPressure[header.channel]
-					);
-					pinMIDIOut.send((const unsigned char*)&out, sizeof(out));
-				}
-			}
+				const auto out = gmpi::midi_2_0::makePolyPressure(
+					info.MidiKeyNumber,
+					channelPressure[header.channel]
+				);
+				pinMIDIOut.send((const unsigned char*)&out, sizeof(out));
+			});
 		}
 		break;
 
@@ -245,22 +243,20 @@ public:
 
 			channelBrightness[header.channel] = midi::utils::U7ToFloat(msg[2]);
 
-			// find whatever note is playing on this channel. Assumption is only held notes can receive benders etc.
-			// might not hold true for DAW automation which is drawn-on after note-off time
-			for (auto& info : noteIds)
+			// Brightness applies to every note still held on this channel, plus the note most
+			// recently started on it even after its Note-Off: the release tail keeps following
+			// the controller until the channel is reused. See forEachExpressionTarget().
+			forEachExpressionTarget(header.channel, [&](const NoteInfo& info)
 			{
-				if (/*info.held &&*/ header.channel == (info.noteId >> 7))
-				{
-					const auto out = gmpi::midi_2_0::makePolyController(
-						info.MidiKeyNumber,
-						gmpi::midi_2_0::PolySoundController5, // Brightness
-						channelBrightness[header.channel]
-					);
-					pinMIDIOut.send((const unsigned char*)&out, sizeof(out));
+				const auto out = gmpi::midi_2_0::makePolyController(
+					info.MidiKeyNumber,
+					gmpi::midi_2_0::PolySoundController5, // Brightness
+					channelBrightness[header.channel]
+				);
+				pinMIDIOut.send((const unsigned char*)&out, sizeof(out));
 
 //					_RPTN(0, "MPE: Brightness %d %f (%d)\n", info.MidiKeyNumber, channelBrightness[header.channel], msg[2]);
-				}
-			}
+			});
 		}
 		break;
 		}
