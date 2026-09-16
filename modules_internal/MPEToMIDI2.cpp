@@ -68,6 +68,21 @@ public:
 
 		const auto header = midi_1_0::decodeHeader(msg);
 
+		// All Notes Off / All Sound Off end every note this module allocated a key for: on a
+		// Master Channel the whole Zone, on a Member Channel that channel only. The Note-Offs
+		// are emitted here because the keys handed out are not the keys played.
+		if (midi_1_0::status_type::ControlChange == header.status && impliesAllNotesOff(msg[1]))
+		{
+			const bool wholeZone = header.channel == lowerZoneMasterChannel || header.channel == upperZoneMasterChannel;
+			releaseHeldNotes(
+				[&](int channel) { return wholeZone || channel == header.channel; },
+				[&](const NoteInfo& info)
+				{
+					const auto out = gmpi::midi_2_0::makeNoteOffMessage(info.MidiKeyNumber, 0.0f);
+					pinMIDIOut.send((const unsigned char*)&out, sizeof(out));
+				});
+		}
+
 		// 'Master' MIDI Channels are reserved for conveying messages that apply to the entire Zone.
 		if (header.channel == lowerZoneMasterChannel || header.channel == upperZoneMasterChannel)
 		{

@@ -818,11 +818,17 @@ namespace gmpi
 					noteIds[i].MidiKeyNumber = static_cast<uint8_t>(i);
 			}
 
+			// Only a held slot owns its noteId. After Note-Off the id is deliberately left in place
+			// (FatMpeConverter routes release-tail pressure/brightness by channel with it), so a
+			// released slot must never be matched by id: a substitute key that once took a second
+			// finger on the same key would otherwise capture every later single press of that key
+			// arriving on the same MPE channel, until the plugin was reset.
+			// https://github.com/JeffMcClintock/SynthEdit-Tracking/issues/2
 			NoteInfo* findNote(int noteId)
 			{
 				for (int i = 0; i < 128; ++i)
 				{
-					if (noteIds[i].noteId == noteId)
+					if (noteIds[i].noteId == noteId && noteIds[i].held)
 					{
 						// _RPTN(0, "MPE found note %d\n", i);
 						return &noteIds[i];
@@ -837,7 +843,7 @@ namespace gmpi
 				int res = -1;
 				for (int i = 0; i < 128; ++i)
 				{
-					if (noteIds[i].noteId == noteId)
+					if (noteIds[i].noteId == noteId && noteIds[i].held)
 					{
 						res = i;
 						break;
@@ -868,6 +874,31 @@ namespace gmpi
 				noteIds[res].held = true;
 				noteIds[res].noteId = noteId;
 				return noteIds[res];
+			}
+
+			// Channel Mode messages that end every note on a channel: All Sound Off (120) and
+			// All Notes Off (123).
+			static bool impliesAllNotesOff(int controllerNumber)
+			{
+				return controllerNumber == 120 || controllerNumber == 123;
+			}
+
+			// Release every held slot whose MPE channel satisfies inScope(channel), calling
+			// onRelease(slot) for each so the caller can emit the matching Note-Off. Without this
+			// a note whose Note-Off never arrives (All Notes Off from the host, a dropped message)
+			// keeps its natural key held forever, and every later press of that key is rotated
+			// onto a substitute key.
+			template <typename ChannelPredicate, typename OnRelease>
+			void releaseHeldNotes(ChannelPredicate inScope, OnRelease onRelease)
+			{
+				for (auto& info : noteIds)
+				{
+					if (info.held && inScope(info.noteId >> 7))
+					{
+						info.held = false;
+						onRelease(info);
+					}
+				}
 			}
 		};
 
@@ -1260,13 +1291,30 @@ namespace gmpi
 
 			void processMidi(const midi::message_view msg, int timestamp)
 			{
-				// MIDI 2.0 messages need no conversion
+				// MIDI 2.0 messages need no conversion. Return here, else the bytes would also be
+				// decoded as MIDI 1.0 below and, on group 0, forwarded a second time.
 				if (gmpi::midi_2_0::isMidi2Message(msg))
 				{
-					// no conversion.
 					sink(msg, timestamp);
+					return;
 				}
 				const auto header = midi_1_0::decodeHeader(msg);
+
+				// All Notes Off / All Sound Off end every note this converter allocated a key for:
+				// on a Master Channel the whole Zone, on a Member Channel that channel only. The
+				// Note-Offs are emitted here because the keys handed out are not the keys played,
+				// so a receiver cannot derive them from the pass-through message.
+				if (midi_1_0::status_type::ControlChange == header.status && impliesAllNotesOff(msg[1]))
+				{
+					const bool wholeZone = header.channel == lowerZoneMasterChannel || header.channel == upperZoneMasterChannel;
+					releaseHeldNotes(
+						[&](int channel) { return wholeZone || channel == header.channel; },
+						[&](const NoteInfo& info)
+						{
+							const auto msgout = gmpi::midi_2_0::makeNoteOffMessage(info.MidiKeyNumber, 0.0f);
+							sink({ msgout.m }, timestamp);
+						});
+				}
 
 				// 'Master' MIDI Channels are reserved for conveying messages that apply to the entire Zone.
 				// Just convert to MIDI 2.0 and pass them though unchanged.
@@ -1538,6 +1586,29 @@ namespace gmpi
 						// Setting both Zones on the Manager Channels to use no Channels, shall deactivate the MPE Mode.
 						MpeModeDetected = lower_zone_size || upper_zone_size;
 					}
+				}
+
+				// All Notes Off / All Sound Off end every note this converter allocated a key for:
+				// on a Master Channel the whole Zone, on a Member Channel that channel only. The
+				// Note-Offs are emitted here because the keys handed out are not the keys played,
+				// so a receiver cannot derive them from the pass-through message.
+				if (gmpi::midi_2_0::Status::ControlChange == header.status && impliesAllNotesOff(gmpi::midi_2_0::decodeController(msg).type))
+				{
+					const int channel = header.channel;
+					releaseHeldNotes(
+						[&](int noteChannel)
+						{
+							if (channel == lowerZoneMasterChannel)
+								return lower_zone_size > 0 && noteChannel <= lower_zone_size;
+							if (channel == upperZoneMasterChannel)
+								return upper_zone_size > 0 && noteChannel >= 15 - upper_zone_size;
+							return noteChannel == channel;
+						},
+						[&](const NoteInfo& info)
+						{
+							const auto msgout = gmpi::midi_2_0::makeNoteOffMessage(info.MidiKeyNumber, 0.0f);
+							sink({ msgout.m }, timestamp);
+						});
 				}
 
 				// 'Master' MIDI Channels are reserved for conveying messages that apply to the entire Zone.
