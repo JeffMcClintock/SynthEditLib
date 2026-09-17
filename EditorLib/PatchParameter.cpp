@@ -996,6 +996,28 @@ int32_t PatchParameter_base::GetDatatype(enum ParameterFieldType field, int* ret
 	return gmpi::MP_OK;
 }
 
+// IParameter (GMPI SDK)
+gmpi::ReturnCode PatchParameter_base::getValue(gmpi::Field field, int32_t voice, synthedit::IVariant* returnValue)
+{
+	// Field::Handle only in GMPI SDK
+	if(gmpi::Field::Handle == field)
+	{
+		const int32_t h = Handle();
+		returnValue->setData(gmpi::PinDatatype::Int32, (const uint8_t*)&h, sizeof(h));
+		return gmpi::ReturnCode::Ok;
+	}
+
+	// EPlugDataType and gmpi::PinDatatype share the same numbering.
+	int datatype = {};
+	GetDatatype((ParameterFieldType) field, &datatype);
+
+	auto raw = GetValueImpl((ParameterFieldType) field, voice);
+
+	returnValue->setData((gmpi::PinDatatype) datatype, (const uint8_t*) raw.data(), (int32_t) raw.size());
+
+	return gmpi::ReturnCode::Ok;
+}
+
 std::wstring PatchParameter_base::fullPath()
 {
 	std::wstring fullpath;

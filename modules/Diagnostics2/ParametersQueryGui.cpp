@@ -77,6 +77,7 @@ public:
 			infoText += "Parameter handle: " + std::to_string(param.handle) + ", datatype: " + std::to_string(static_cast<int>(param.datatype)) + "\n";
 		}
 
+		// set my own parameter
 //		pinText = infoText;
 		constexpr int32_t voice{};
 		host->setParameter(0, gmpi::Field::Value, voice, infoText.size(), (const uint8_t*) infoText.data());

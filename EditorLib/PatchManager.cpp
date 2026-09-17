@@ -1805,11 +1805,7 @@ void CPatchManager::listParameters(gmpi::api::IUnknown* callback)
 		return;
 
 	for(auto& p : m_parameters)
-	{
-		int32_t dt{};
-		p->GetDatatype(FT_VALUE, &dt);
-		plugin_callback->onParameter(p->Handle(), (gmpi::PinDatatype)dt);
-	}
+		plugin_callback->onParameter(p);
 }
 
 // IGuiHost2

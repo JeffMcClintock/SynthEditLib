@@ -22,9 +22,10 @@
 #include "TypeToEDatatype.h"
 #include "UgDatabase.h"
 #include "modules/se_sdk3/TimerManager.h"
+#include "Extensions/ParameterIterator.h"
 
 
-class PatchParameter_base : public ui_msg_target, public gmpi::hosting::QueClient, public se_sdk::TimerClient
+class PatchParameter_base : public ui_msg_target, public gmpi::hosting::QueClient, public se_sdk::TimerClient, public synthedit::IParameter
 {
 	friend class CPatchManager;
 
@@ -86,6 +87,9 @@ public:
 	{
 		return GetValueImpl(field, voice, patch);
 	}
+
+	// IParameter (GMPI SDK)
+	gmpi::ReturnCode getValue(gmpi::Field field, int32_t voice, synthedit::IVariant* returnValue) override;
 
 	virtual int32_t RegisterWatcher(IPluginGui*);
 	virtual int32_t UnRegisterWatcher( IPluginGui* );
@@ -360,6 +364,10 @@ protected:
 	int m_grabbed_by_MIDI_timer = 0;
 	bool m_value_being_set_from_dsp = false; // so don't send it back to DSP
 	std::vector<class PatchStorageBase*> patchMemory;
+
+	// gmpi
+	GMPI_QUERYINTERFACE_METHOD(synthedit::IParameter);
+	GMPI_REFCOUNT;
 
 protected:
 	std::string GetRaw2TemporaryStorage_;
