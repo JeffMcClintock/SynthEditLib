@@ -13,6 +13,12 @@
 using namespace gmpi::hosting;
 using namespace std;
 
+ControllerHostHelper::~ControllerHostHelper()
+{
+	if(clientSubscribed)
+		plugin->get_patch_manager()->UnRegisterGui2(plugin->getController2());
+}
+
 gmpi::ReturnCode ControllerHostHelper::setParameter(int32_t parameterIndex, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
 {
 	const auto parameterHandle = plugin->get_patch_manager()->getParameterHandle(plugin->Handle(), parameterIndex);
@@ -24,6 +30,13 @@ gmpi::ReturnCode ControllerHostHelper::setParameter(int32_t parameterIndex, gmpi
 	}
 
 	return gmpi::ReturnCode::Fail;
+}
+
+gmpi::ReturnCode ControllerHostHelper::subscribe()
+{
+	plugin->get_patch_manager()->RegisterGui2(plugin->getController2());
+	clientSubscribed = true;
+	return gmpi::ReturnCode::Ok;
 }
 
 void ControllerHostHelper::listParameters(gmpi::api::IUnknown* callback)

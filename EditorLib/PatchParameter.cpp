@@ -996,6 +996,29 @@ int32_t PatchParameter_base::GetDatatype(enum ParameterFieldType field, int* ret
 	return gmpi::MP_OK;
 }
 
+namespace
+{
+// Fields that describe the parameter, as opposed to holding its value. These are wide strings
+// in SynthEdit, but are handed to GMPI plugins as UTF-8. Value/Default/RangeLo/RangeHi are
+// excluded - they take the parameter's own datatype and must be passed through untouched.
+bool isDescriptiveField(ParameterFieldType field)
+{
+	switch(field)
+	{
+	case FT_SHORT_NAME:
+	case FT_LONG_NAME:
+	case FT_MENU_ITEMS:
+	case FT_ENUM_LIST:
+	case FT_FILE_EXTENSION:
+	case FT_AUTOMATION_SYSEX:
+		return true;
+
+	default:
+		return false;
+	};
+}
+}
+
 // IParameter (GMPI SDK)
 gmpi::ReturnCode PatchParameter_base::getValue(gmpi::Field field, int32_t voice, synthedit::IVariant* returnValue)
 {
@@ -1012,6 +1035,17 @@ gmpi::ReturnCode PatchParameter_base::getValue(gmpi::Field field, int32_t voice,
 	GetDatatype((ParameterFieldType) field, &datatype);
 
 	auto raw = GetValueImpl((ParameterFieldType) field, voice);
+
+	// The descriptive fields are stored as wide strings, but GMPI plugins deal in UTF-8.
+	// Convert on the way out, so the plugin never sees a wchar_t (which isn't even the same
+	// size on every platform). The parameter's *value* is not converted - a 'text' parameter
+	// really is a wide string as far as the plugin is concerned.
+	if(DT_TEXT == datatype && isDescriptiveField((ParameterFieldType) field))
+	{
+		const auto utf8 = WStringToUtf8((std::wstring) raw);
+		returnValue->setData(gmpi::PinDatatype::String, (const uint8_t*) utf8.data(), (int32_t) utf8.size());
+		return gmpi::ReturnCode::Ok;
+	}
 
 	returnValue->setData((gmpi::PinDatatype) datatype, (const uint8_t*) raw.data(), (int32_t) raw.size());
 

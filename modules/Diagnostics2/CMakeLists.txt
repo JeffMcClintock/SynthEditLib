@@ -8,4 +8,5 @@ gmpi_plugin(
     FORMATS_LIST GMPI
     SOURCE_FILES
         ParametersQueryGui.cpp
+        ${GMPI_UI_SDK}/helpers/Timer.cpp
 )

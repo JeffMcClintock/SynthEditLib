@@ -1,12 +1,38 @@
 // SPDX-License-Identifier: ISC
 // Copyright 2007-2026 Jeff McClintock.
 #include "helpers/GmpiPluginEditor.h"
+#include "helpers/Timer.h"
 #include "Extensions/ParameterIterator.h"
 
 using namespace gmpi;
 using namespace gmpi::editor;
 using namespace gmpi::editor;
 using namespace gmpi::drawing;
+
+namespace
+{
+// for display only. c.f. the 'datatype' attribute of a Parameter in the module's XML.
+const char* datatypeName(gmpi::PinDatatype datatype)
+{
+	switch(datatype)
+	{
+	case gmpi::PinDatatype::Enum:       return "enum";
+	case gmpi::PinDatatype::WideString: return "text";
+	case gmpi::PinDatatype::Midi:       return "midi";
+	case gmpi::PinDatatype::Float64:    return "double";
+	case gmpi::PinDatatype::Bool:       return "bool";
+	case gmpi::PinDatatype::Audio:      return "audio";
+	case gmpi::PinDatatype::Float32:    return "float";
+	case gmpi::PinDatatype::Int32:      return "int";
+	case gmpi::PinDatatype::Int64:      return "int64";
+	case gmpi::PinDatatype::Blob:       return "blob";
+	case gmpi::PinDatatype::Struct:     return "struct";
+	case gmpi::PinDatatype::String:     return "string_utf8";
+	case gmpi::PinDatatype::Object:     return "object";
+	default:                            return "?";
+	};
+}
+}
 
 class ParametersQueryGui final : public PluginEditor
 {
@@ -40,11 +66,11 @@ public:
 	}
 };
 
-class ParametersQueryController final : public gmpi::api::IController
+class ParametersQueryController final : public gmpi::api::IController, public TimerClient
 {
 	int32_t handle{};
 	gmpi::shared_ptr<gmpi::api::IControllerHost> host;
-
+	bool parametersDirty{};
 //	Pin<std::string> pinText;
 
 	void onSetText()
@@ -68,27 +94,49 @@ public:
 		handle = phandle;
 		phost->queryInterface(&gmpi::api::IControllerHost::guid, host.put_void());
 
-		// todo: sign up to notifications about parameters add/remove/change, and update the GUI string accordingly. perhaps sighing up causes the callback to init all params without the need for a special iterateParameters() call.
-		synthedit::ParameterInformation info(phost);
+		// subscribe to parameter add/remove/change notifications. (not implemented yet)
+		host->subscribe();
 
-		std::string infoText;
-		for(auto& param : info.parameters)
-		{
-			infoText += "Parameter handle: " + std::to_string(param.handle) + ", datatype: " + std::to_string(static_cast<int>(param.datatype)) + "\n";
-		}
+		refreshParams();
 
-		// set my own parameter
-//		pinText = infoText;
-		constexpr int32_t voice{};
-		host->setParameter(0, gmpi::Field::Value, voice, infoText.size(), (const uint8_t*) infoText.data());
+		startTimerHz(4);
 
 		return ReturnCode::Ok;
 	}
 	ReturnCode syncState() override {return ReturnCode::Ok;}
 
+	bool onTimer() override
+	{
+		if(parametersDirty)
+		{
+			parametersDirty = false;
+			refreshParams();
+		}
+		return true; // keep timer running.
+	}
+
+	void refreshParams()
+	{
+		synthedit::ParameterInformation info(host.get());
+
+		std::string infoText;
+		for(auto& param : info.parameters)
+		{
+			infoText += param.longName;
+			infoText += " [" + std::string(datatypeName(param.datatype)) + "]";
+			infoText += " handle: " + std::to_string(param.handle) + "\n";
+		}
+
+		// set my own parameter
+//		pinText = infoText;
+		constexpr int32_t voice{};
+		host->setParameter(0, gmpi::Field::Value, voice, infoText.size(), (const uint8_t*)infoText.data());
+	}
+
 	// IParameterObserver
 	ReturnCode setParameter(int32_t parameterIndex, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override
 	{
+		parametersDirty = true; // debounce updates.
 		return ReturnCode::Ok;
 	}
 
@@ -100,7 +148,6 @@ public:
 	}
 	GMPI_REFCOUNT;
 };
-
 
 namespace
 {
