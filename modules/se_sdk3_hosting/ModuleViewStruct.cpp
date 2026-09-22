@@ -438,9 +438,9 @@ namespace SE2
 			r = unionRect(r, clientClipArea);
 		}
 
-		if (showCpu())
+		if (cpuMeter.isShown())
 		{
-			auto cpur = GetCpuRect();
+			auto cpur = CpuMeter::getRect(bounds_);
 			cpur = offsetRect(cpur, { bounds_.left, bounds_.top });
 			r = unionRect(r, cpur);
 		}
@@ -487,10 +487,10 @@ namespace SE2
 		headerTextLayout = factory.createTextLayout(name, resources->tf_header, getWidth(headerRect), getHeight(headerRect));
 	}
 
-	gmpi::drawing::Rect ModuleViewStruct::GetCpuRect()
+	gmpi::drawing::Rect CpuMeter::getRect(gmpi::drawing::Rect moduleBounds)
 	{
 		gmpi::drawing::Rect r{0.f, 0.f, 101.f, 100.f};
-		const float dx = (getWidth(bounds_) - getWidth(r)) * 0.5f;
+		const float dx = (getWidth(moduleBounds) - getWidth(r)) * 0.5f;
 		r = offsetRect(r, { dx, -12.f - getHeight(r) });
 		return r;
 	}
@@ -859,7 +859,7 @@ namespace SE2
 
 	bool ModuleViewStruct::hasRenderLayers() const
 	{
-		return pluginDrawingLayer_GMPI != nullptr || cpuInfo != nullptr || hasHoverScope();
+		return pluginDrawingLayer_GMPI != nullptr || cpuMeter.isShown() || hasHoverScope();
 	}
 
 	void ModuleViewStruct::renderPluginLayer(Graphics& g, int32_t layer)
@@ -879,17 +879,17 @@ namespace SE2
 		// Diagnostic overlays draw on top of neighboring modules.
 		if (layer == 1)
 		{
-			if (showCpu())
-				RenderCpu(g);
+			if (cpuMeter.isShown())
+				cpuMeter.render(g, bounds_);
 
 			if (hasHoverScope())
 				RenderHoverScope(g);
 		}
 	}
 
-	void ModuleViewStruct::RenderCpu(Graphics& g)
+	void CpuMeter::render(Graphics& g, Rect moduleBounds) const
 	{
-		const auto child_rect = GetCpuRect();
+		const auto child_rect = getRect(moduleBounds);
 		g.pushAxisAlignedClip(child_rect);
 
 		const auto rectBottom = child_rect.bottom;
@@ -2043,10 +2043,46 @@ namespace SE2
 
 	void ModuleViewStruct::OnCpuUpdate(cpu_accumulator* pCpuInfo)
 	{
-		auto r = offsetRect(GetCpuRect(), { bounds_.left, bounds_.top });
+		auto r = offsetRect(CpuMeter::getRect(bounds_), { bounds_.left, bounds_.top });
 		parent->ChildInvalidateRect(r);
 
-		cpuInfo = pCpuInfo;
+		cpuMeter.setCpuInfo(pCpuInfo);
+	}
+
+	Rect ModuleViewStructBase::getClipArea()
+	{
+		auto r = ModuleViewPanel::getClipArea();
+
+		if (cpuMeter.isShown())
+		{
+			auto cpur = offsetRect(CpuMeter::getRect(bounds_), { bounds_.left, bounds_.top });
+			r = unionRect(r, cpur);
+		}
+
+		return r;
+	}
+
+	bool ModuleViewStructBase::hasRenderLayers() const
+	{
+		return cpuMeter.isShown() || ModuleViewPanel::hasRenderLayers();
+	}
+
+	void ModuleViewStructBase::renderPluginLayer(Graphics& g, int32_t layer)
+	{
+		ModuleViewPanel::renderPluginLayer(g, layer);
+
+		// Diagnostic overlay, drawn on top of neighboring modules - the same
+		// layer ModuleViewStruct draws its meter on.
+		if (layer == 1 && cpuMeter.isShown())
+			cpuMeter.render(g, bounds_);
+	}
+
+	void ModuleViewStructBase::OnCpuUpdate(cpu_accumulator* pCpuInfo)
+	{
+		auto r = offsetRect(CpuMeter::getRect(bounds_), { bounds_.left, bounds_.top });
+		parent->ChildInvalidateRect(r);
+
+		cpuMeter.setCpuInfo(pCpuInfo);
 	}
 
 #if 0 // TODO

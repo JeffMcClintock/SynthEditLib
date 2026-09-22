@@ -56,7 +56,7 @@ namespace SE2
 				auto moduleInfo = moduleDb.GetById(JmUnicodeConversions::Utf8ToWstring(typeName));
 
 				if (moduleInfo && !moduleInfo->hasVisiblePins() ) //typeName == "SE Structure Group2")
-					module = std::make_unique<ModuleViewPanel>(&module_json, this, guiObjectMap);
+					module = std::make_unique<ModuleViewStructBase>(&module_json, this, guiObjectMap); // ModuleViewPanel + the structure view's CPU meter
 				else
 					module = std::make_unique<ModuleViewStruct>(&module_json, this, guiObjectMap);
 			}

@@ -14,6 +14,42 @@ struct pinHit
 	bool hitCircle;
 };
 
+// The CPU-usage meter a module view draws over itself: the moving average/peak
+// graph, the per-voice activity dots and the percentage readout.
+//
+// Nothing about it is specific to the structure view - it is positioned from
+// the module's bounds and drawn from the cpu_accumulator alone - so it is a
+// class of its own rather than a member of ModuleViewStruct. Any ModuleView
+// subclass (ModuleViewPanel included) can hold one and draw it the same way:
+//
+//	if (cpuMeter.isShown())			// in render()/renderPluginLayer()
+//		cpuMeter.render(g, bounds_);
+//
+// The owning view keeps the housekeeping, since only it knows its parent view:
+// setCpuInfo() from OnCpuUpdate(), and getRect() unioned into getClipArea().
+class CpuMeter
+{
+	cpu_accumulator* cpuInfo = {};
+
+public:
+	// The meter's rect in the module's own (local) coordinates - the same
+	// space render() draws in. Only the module's width is used: the meter is
+	// centered on it and sits just above its top edge.
+	static gmpi::drawing::Rect getRect(gmpi::drawing::Rect moduleBounds);
+
+	bool isShown() const
+	{
+		return cpuInfo != nullptr;
+	}
+
+	void setCpuInfo(cpu_accumulator* pCpuInfo)
+	{
+		cpuInfo = pCpuInfo;
+	}
+
+	void render(gmpi::drawing::Graphics& g, gmpi::drawing::Rect moduleBounds) const;
+};
+
 class ModuleViewStruct : public ModuleView, public gmpi::TimerClient
 {
 	std::string lPlugNames;
@@ -90,14 +126,8 @@ class ModuleViewStruct : public ModuleView, public gmpi::TimerClient
 	}
 #endif
 
-	gmpi::drawing::Rect GetCpuRect();
-	void RenderCpu(gmpi::drawing::Graphics& g);
 	void RenderHoverScope(gmpi::drawing::Graphics& g);
-	bool showCpu()
-	{
-		return cpuInfo != nullptr;
-	}
-	cpu_accumulator* cpuInfo = {};
+	CpuMeter cpuMeter;
 	// retains current pin value for displaying on hoverscopes. need to add some way of getting both pin index and pin ID
 	// indexed on pin ID
 	std::unique_ptr < std::map<int, std::vector<uint8_t> >> editorPinValues;
@@ -157,5 +187,31 @@ public:
 
 	void invalidateRect(gmpi::drawing::Rect* r = nullptr) {};// todo
 	void invalidateMyRect(gmpi::drawing::Rect localRect);
+};
+
+// A module with no visible pins is drawn on the structure view by
+// ModuleViewPanel - its own GUI, rather than the pin-and-header box that
+// ModuleViewStruct draws (ContainerViewStruct::BuildModules picks between
+// them). That is the right body, but ModuleViewPanel knows nothing of the
+// structure view's diagnostic overlays, so those modules showed no CPU meter
+// while every other module on the same view did.
+//
+// This subclass adds only the meter. It lives here, not in ModuleViewPanel,
+// because the meter is editor-only: cpu_accumulator and CpuMeter's code are
+// both EditorLib, while ModuleView.cpp compiles into SynthEditLib, which ships
+// inside every plugin. Being structure-view-only is also what makes the meter
+// correct without asking which view it is on - the panel view builds a plain
+// ModuleViewPanel, and the presenter sends OM_CPU_UPDATE to both views.
+class ModuleViewStructBase : public ModuleViewPanel
+{
+	CpuMeter cpuMeter;
+
+public:
+	using ModuleViewPanel::ModuleViewPanel;
+
+	gmpi::drawing::Rect getClipArea() override;
+	bool hasRenderLayers() const override;
+	void renderPluginLayer(gmpi::drawing::Graphics& g, int32_t layer) override;
+	void OnCpuUpdate(class cpu_accumulator* cpuInfo) override;
 };
 }
