@@ -37,7 +37,15 @@ void FreqAnalyserGui::onModeChanged()
 	onValueChanged();
 }
 
-#define USE_CACHED_BACKGROUND 1
+// 0 = draw the background straight onto the context each frame.
+//
+// The cached path sized its CreateCompatibleRenderTarget from the rect in DIPs,
+// ignoring the display's rasterization scale, so the module painted a fixed
+// 1 pixel per DIP and filled only 1/scale of its rect, anchored top-left.
+// Measured on the identical bug in Scope3Gui: ratio 1.000 at 1x, 0.667 at 1.5x
+// (a 150% display), 0.500 at 2x. The cache was also stale across a move to a
+// different-DPI monitor, which changes the scale without triggering arrange().
+#define USE_CACHED_BACKGROUND 0
 
 float calcTopFrequency(float samplerate)
 {

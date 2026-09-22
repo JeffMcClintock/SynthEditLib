@@ -302,36 +302,43 @@ int32_t Scope3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 	float scale = height * 0.46f;;
 	float mid_y = floorf(0.5f + height * 0.5f);
 
-#if 1
-	if (cachedBackground_.isNull())
+	// GRATICULE -- background, centre cross, voltage ticks and labels.
+	//
+	// Drawn straight onto the context every frame. This used to render once into a
+	// CreateCompatibleRenderTarget bitmap and blit the cache, which ignored the
+	// display's rasterization scale: the texture was sized from `r` in DIPs, so the
+	// scope painted a fixed 1 pixel per DIP and occupied only 1/scale of its rect,
+	// anchored top-left, with the remainder left unpainted. Measured before the
+	// change: 100x100 px painted at every scale -- ratio 1.000 at 1x, 0.667 at 1.5x
+	// (a 150% display), 0.500 at 2x.
+	//
+	// Sizing the cache by getRasterizationScale() would fix the size but not the
+	// staleness: arrange() drops the cache on resize, yet dragging the window to a
+	// different-DPI monitor changes the scale without an arrange. Drawing directly
+	// removes both problems and is cheap -- a handful of lines plus five labels, at
+	// most ~10 times a second. Same call this module already made for Scope4:
+	// see Scope4Gui.cpp drawGraticule().
 	{
-		float mid_x = floorf(0.5f + width * 0.5f);
+		const float mid_x = floorf(0.5f + width * 0.5f);
 
-        GmpiDrawing::Size mysize(r.getWidth(), r.getHeight());
-		auto dc = g.CreateCompatibleRenderTarget(mysize);
-		dc.BeginDraw();
-
-		if (true) // fontInfo_.colorBackground >= 0 ) // -1 indicates transparent background
-		{
-			// Fill in solid background black
-			auto background_brush = dc.CreateSolidColorBrush(typeface_->getBackgroundColor());
-			dc.FillRectangle(r, background_brush);
-		}
+		// Fill in solid background black
+		auto background_brush = g.CreateSolidColorBrush(typeface_->getBackgroundColor());
+		g.FillRectangle(r, background_brush);
 
 		auto darked_col = typeface_->getColor();
 		darked_col.r *= 0.5f;
 		darked_col.g *= 0.5f;
 		darked_col.b *= 0.5f;
 
-		auto brush2 = dc.CreateSolidColorBrush(darked_col);
+		auto brush2 = g.CreateSolidColorBrush(darked_col);
 
 		// BACKGROUND LINES
 		// horizontal line
-		float penWidth = 1.0f;
-		dc.DrawLine(GmpiDrawing::Point(0, mid_y + snapToPixelOffset), GmpiDrawing::Point(width, mid_y + snapToPixelOffset), brush2, penWidth);
+		const float penWidth = 1.0f;
+		g.DrawLine(GmpiDrawing::Point(0, mid_y + snapToPixelOffset), GmpiDrawing::Point(width, mid_y + snapToPixelOffset), brush2, penWidth);
 
 		// vertical line
-		dc.DrawLine(GmpiDrawing::Point(mid_x + snapToPixelOffset, 0), GmpiDrawing::Point(mid_x + snapToPixelOffset, height), brush2, penWidth);
+		g.DrawLine(GmpiDrawing::Point(mid_x + snapToPixelOffset, 0), GmpiDrawing::Point(mid_x + snapToPixelOffset, height), brush2, penWidth);
 
 		// voltage ticks
 		int tick_width = 2;
@@ -348,7 +355,7 @@ int32_t Scope3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 			else
 				tick_width = 2;
 
-			dc.DrawLine(GmpiDrawing::Point(mid_x - tick_width, mid_y + y), GmpiDrawing::Point(mid_x + tick_width, mid_y + y), brush2, penWidth);
+			g.DrawLine(GmpiDrawing::Point(mid_x - tick_width, mid_y + y), GmpiDrawing::Point(mid_x + tick_width, mid_y + y), brush2, penWidth);
 		}
 
 		// labels
@@ -378,20 +385,10 @@ int32_t Scope3Gui::OnRender(GmpiDrawing_API::IMpDeviceContext* drawingContext)
 				float tx = mid_x + tick_width;
 				float ty = mid_y - (int)y + yOffset;
 				GmpiDrawing::Rect textRect(tx, ty, tx + 100, ty + fontBoxSize);
-				dc.DrawTextU(txt, dtextFormat, textRect, brush2);
+				g.DrawTextU(txt, dtextFormat, textRect, brush2);
 			}
 		}
-
-		dc.EndDraw();
-
-		cachedBackground_ = dc.GetBitmap();
 	}
-
-	g.DrawBitmap(cachedBackground_, GmpiDrawing::Point(0, 0), r);
-#else
-    auto background_brush = g.CreateSolidColorBrush(typeface_->getBackgroundColor());
-    g.FillRectangle(r, background_brush);
-#endif
     
 	// traces
 #ifdef DRAW_LINES_ON_BITMAP
@@ -581,7 +578,6 @@ int32_t Scope3Gui::measure(GmpiDrawing_API::MP1_SIZE availableSize, GmpiDrawing_
 
 int32_t Scope3Gui::arrange(GmpiDrawing_API::MP1_RECT finalRect)
 {
-	cachedBackground_.setNull();
 #ifdef DRAW_LINES_ON_BITMAP
 	foreground_.setNull();
 #endif
