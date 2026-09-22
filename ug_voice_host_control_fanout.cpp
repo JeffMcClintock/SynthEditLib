@@ -79,10 +79,41 @@ FeedbackTrace* ug_voice_host_control_fanout::PropagatePolyphonicDownstream()
 	// (MidiToCv2, VoiceSplitter, etc.) detect the upstream polyphonic source and get
 	// voice-cloned. Without this, VoiceSplitter stays mono and an auto-inserted poly→mono
 	// adder sums every voice's pitch CV instead of routing one voice per splitter clone.
-	for (auto p : plugs)
+	// The two dummy MIDI plugs come first; connections_ runs parallel to plugs from there.
+	constexpr size_t firstHostControlPin = 2;
+
+	for (size_t pinIndex = 0; pinIndex < plugs.size(); ++pinIndex)
 	{
+		auto p = plugs[pinIndex];
+
 		if (p->Direction != DR_OUT) continue;
 		if (!p->GetFlag(PF_POLYPHONIC_SOURCE)) continue;
+
+		// Voice/Active tells a module that a polyphonic voice is WATCHING it (Scope3's
+		// VoiceActive pin, SE Oscillator's); it must not make that module polyphonic
+		// itself. ConnectDirectPathHostControl below deliberately withholds
+		// PF_POLYPHONIC_SOURCE for it -- but it then hands the pin to
+		// HostVoiceControl::ConnectPin, which sets that flag on every pin it is given,
+		// so the distinction is already lost by the time we get here. Recover it from
+		// connections_ rather than fighting over the flag, which is load-bearing for
+		// latency-compensator cloning.
+		//
+		// 1.5 had the same over-flagging in ConnectPin and was unaffected, because
+		// nothing walked these pins: its only propagator,
+		// DspPatchManager::InitSetDownstream, iterates patch-manager parameters, and
+		// voice host-controls are registered there with a null parameter. This walker is
+		// new, which is why an unconnected Voice/Active turns a module polyphonic in 1.6
+		// and not in 1.5.
+		if (pinIndex >= firstHostControlPin)
+		{
+			const size_t hcIndex = pinIndex - firstHostControlPin;
+			if (hcIndex < connections_.size()
+				&& connections_[hcIndex].hostConnect == HC_VOICE_ACTIVE)
+			{
+				continue;
+			}
+		}
+
 		for (auto to_plug : p->connections)
 		{
 			if (auto fb = to_plug->PPSetDownstream())
