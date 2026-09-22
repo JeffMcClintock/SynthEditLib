@@ -2504,26 +2504,18 @@ void AudioMasterBase::CpuFunc()
 
 	// include active modules's CPU in parent containers.
 	for (auto it = activeModules.inclusiveBegin(); it != activeModules.inclusiveEnd(); ++it)
-	{
 		((ug_base*)*it)->SumCpu(cpu_block_rate_f);
-	}
 
 	for (auto m : nonExecutingModules)
-	{
 		m->SumCpu(cpu_block_rate_f);
-	}
 
 	// pass container's CPU to any parent. Containers are never on active list.
 	for (auto ug : m_cpu_parents)
-	{
 		ug->OnCpuMeasure(cpu_block_rate_f);
-	}
 
 	// Debug Windows.
 	for (auto debugger : m_debuggers)
-	{
 		debugger->CpuToGui();
-	}
 }
 
 void SeAudioMaster::CpuFunc()
