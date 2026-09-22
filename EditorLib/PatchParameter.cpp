@@ -667,8 +667,11 @@ tinyxml2::XMLElement* PatchParameter_base::Export(tinyxml2::XMLElement* paramete
 #endif
 	
 	assert(targetType == SAT_SYNTHEDIT_DOCUMENT); // preset format is DIFFERENT and incompatible in project files
-	assert(hostControlId_ != HC_NONE || ModuleHandle() != 0);
+	assert(hostControlId_ != HC_NONE || ModuleHandle() != -1);
 	assert(module_ || hostControlId_ != HC_NONE);
+
+	if(!module_ && hostControlId_ == HC_NONE)
+		return {};
 
 	if(!is_saved_in_project() || (CDocOb::serialise_copy_mode && !IsCopyTagged()))
 	{
