@@ -195,7 +195,7 @@ TiXmlElement* CUG2::ExportXml(TiXmlElement* XmlParent, ExportFormatType targetTy
 
 	if (targetType == SAT_VST3_CONTROLERS )
 	{
-		if (controller_) // TODO: not great, relies on SEM being present to detect controller, better to flag it during XML scan like GUI and Audio categories. i.e. getType()->hasController();
+		if (controller_ || controller2_) // TODO: not great, relies on SEM being present to detect controller, better to flag it during XML scan like GUI and Audio categories. i.e. getType()->hasController();
 		{
 			auto element = new TiXmlElement("ChildController");
 			XmlParent->LinkEndChild(element);

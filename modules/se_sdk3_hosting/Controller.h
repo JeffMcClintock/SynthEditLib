@@ -27,6 +27,7 @@ class ControllerManager : public gmpi::api::IParameterObserver
 {
 public:
 	std::vector< std::pair<int32_t, std::unique_ptr<ControllerHost> > > childPluginControllers;
+	std::vector< std::unique_ptr<GmpiControllerHost> > gmpiControllers; // GMPI (gmpi::api::IController) controllers.
 	IGuiHost2* patchManager;
 
     virtual ~ControllerManager(){}
@@ -45,7 +46,24 @@ public:
 			}
 		}
 
+		// GMPI controllers identify parameters by handle, and can subscribe to all parameters.
+		for (auto& c : gmpiControllers)
+		{
+			if (c->initialized && (c->subscribed || c->moduleHandle == moduleHandle))
+			{
+				c->controller->setParameter(parameterHandle, fieldId, voice, size, data);
+			}
+		}
+
 		return gmpi::ReturnCode::Ok;
+	}
+
+	void addGmpiController(int32_t handle, gmpi::shared_ptr<gmpi::api::IController> controller, class MpController* mpController)
+	{
+		auto& chost = gmpiControllers.emplace_back(std::make_unique<GmpiControllerHost>());
+		chost->controller = controller;
+		chost->moduleHandle = handle;
+		chost->patchManager = mpController;
 	}
 
 	void addController(int32_t handle, gmpi_sdk::mp_shared_ptr<gmpi::IMpController> controller)
@@ -221,6 +239,9 @@ public:
 	void initSemControllers();
 
 	int32_t getController(int32_t moduleHandle, gmpi::IMpController ** returnController) override;
+
+	// for GMPI controllers. c.f. CPatchManager::listParameters
+	void listParameters(gmpi::api::IUnknown* callback);
 
 	void setMainPresenter(SE2::IPresenter* presenter) override
 	{

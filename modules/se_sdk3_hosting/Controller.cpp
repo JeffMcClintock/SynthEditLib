@@ -486,6 +486,18 @@ void MpController::Initialize()
 
 			if (obj)
 			{
+				// GMPI controller. Initialized later, by initSemControllers().
+				gmpi::shared_ptr<gmpi::api::IController> controller2;
+				obj->queryInterface(*(const gmpi::MpGuid*)(&gmpi::api::IController::guid), controller2.put_void());
+
+				if (controller2)
+				{
+					int32_t handle = 0;
+					childE->QueryIntAttribute("Handle", &(handle));
+					semControllers.addGmpiController(handle, controller2, this);
+					continue;
+				}
+
 				gmpi_sdk::mp_shared_ptr<gmpi::IMpController> controller;
 				/*auto r = */ obj->queryInterface(gmpi::MP_IID_CONTROLLER, controller.asIMpUnknownPtr());
 
@@ -577,8 +589,158 @@ void MpController::initSemControllers()
 			cp.second->controller_->open();
 		}
 
+		for (auto& chost : semControllers.gmpiControllers)
+		{
+			chost->controller->initialize(static_cast<gmpi::api::IControllerHost*>(chost.get()), chost->moduleHandle);
+			chost->initialized = true;
+
+			// send the initial value of the module's own parameters. c.f. CUG2::Initialise()
+			for (auto& p : parameters_)
+			{
+				if (p->ModuleHandle() != chost->moduleHandle)
+					continue;
+
+				constexpr int32_t voice = 0;
+				const auto raw = p->getValueRaw(gmpi::MP_FT_VALUE, voice);
+				chost->controller->setParameter(p->parameterHandle_, gmpi::Field::Value, voice, static_cast<int32_t>(raw.size()), (const uint8_t*)raw.data());
+			}
+		}
+
 		isSemControllersInitialised = true;
 	}
+}
+
+namespace
+{
+// presents a plugin parameter to GMPI controllers. c.f. PatchParameter_base::getValue() in the editor.
+struct MpParameterAdaptor final : public synthedit::IParameter
+{
+	MpParameter* param;
+
+	explicit MpParameterAdaptor(MpParameter* pparam) : param(pparam) {}
+
+	gmpi::ReturnCode getValue(gmpi::Field field, int32_t voice, synthedit::IVariant* returnValue) override
+	{
+		auto setInt = [returnValue](int32_t value)
+		{
+			returnValue->setData(gmpi::PinDatatype::Int32, (const uint8_t*)&value, sizeof(value));
+		};
+		auto setBool = [returnValue](bool value)
+		{
+			returnValue->setData(gmpi::PinDatatype::Bool, (const uint8_t*)&value, sizeof(value));
+		};
+		// descriptive text fields are UTF-8, as in the editor.
+		auto setText = [returnValue](const std::string& utf8)
+		{
+			returnValue->setData(gmpi::PinDatatype::String, (const uint8_t*)utf8.data(), static_cast<int32_t>(utf8.size()));
+		};
+
+		switch(field)
+		{
+		case gmpi::Field::Value:
+		case gmpi::Field::Default:
+		{
+			const auto raw = param->getValueRaw(static_cast<gmpi::FieldType>(field), voice);
+			returnValue->setData(static_cast<gmpi::PinDatatype>(param->datatype_), (const uint8_t*)raw.data(), static_cast<int32_t>(raw.size()));
+		}
+		break;
+
+		case gmpi::Field::Normalized:
+		{
+			const float normalized = param->getNormalized();
+			returnValue->setData(gmpi::PinDatatype::Float32, (const uint8_t*)&normalized, sizeof(normalized));
+		}
+		break;
+
+		case gmpi::Field::Handle:
+			setInt(param->parameterHandle_);
+			break;
+
+		case gmpi::Field::HostControl:
+			setInt(param->getHostControl());
+			break;
+
+		case gmpi::Field::ShortName:
+		case gmpi::Field::LongName:
+			setText(JmUnicodeConversions::WStringToUtf8(param->name_));
+			break;
+
+		case gmpi::Field::Hint:
+			setText(param->hint_);
+			break;
+
+		case gmpi::Field::EnumList:
+		case gmpi::Field::FileExtension:
+			setText(JmUnicodeConversions::WStringToUtf8(param->enumList_));
+			break;
+
+		case gmpi::Field::Automation:
+			setInt(param->MidiAutomation);
+			break;
+
+		case gmpi::Field::Grab:
+			setBool(param->isGrabbed());
+			break;
+
+		case gmpi::Field::Stateful:
+			setBool(param->stateful_ != 0);
+			break;
+
+		case gmpi::Field::IgnoreProgramChange:
+			setBool(param->ignorePc_);
+			break;
+
+		default:
+			return gmpi::ReturnCode::NoSupport;
+		}
+
+		return gmpi::ReturnCode::Ok;
+	}
+
+	GMPI_QUERYINTERFACE_METHOD(synthedit::IParameter);
+	GMPI_REFCOUNT_NO_DELETE;
+};
+}
+
+void MpController::listParameters(gmpi::api::IUnknown* callback)
+{
+	gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+	unknown = callback;
+
+	auto parameterCallback = unknown.as<synthedit::IParameterCallback>();
+	if(parameterCallback.isNull())
+		return;
+
+	for(auto& p : parameters_)
+	{
+		MpParameterAdaptor adaptor(p.get());
+		parameterCallback->onParameter(&adaptor);
+	}
+}
+
+gmpi::ReturnCode GmpiControllerHost::setParameter(int32_t parameterIndex, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
+{
+	int32_t parameterHandle = -1;
+	parameterSetter.getParameterHandle(parameterIndex, parameterHandle);
+
+	return parameterSetter.setParameter(parameterHandle, fieldId, voice, size, data);
+}
+
+void GmpiControllerHost::listParameters(gmpi::api::IUnknown* callback)
+{
+	patchManager->listParameters(callback);
+}
+
+gmpi::ReturnCode GmpiControllerHost::ParameterSetter::getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle)
+{
+	returnHandle = host.patchManager->getParameterHandle(host.moduleHandle, moduleParameterId);
+	return returnHandle == -1 ? gmpi::ReturnCode::Fail : gmpi::ReturnCode::Ok;
+}
+
+gmpi::ReturnCode GmpiControllerHost::ParameterSetter::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
+{
+	host.patchManager->setParameterValue({ data, static_cast<size_t>(size) }, parameterHandle, static_cast<gmpi::FieldType>(fieldId), voice);
+	return gmpi::ReturnCode::Ok;
 }
 
 int32_t MpController::getController(int32_t moduleHandle, gmpi::IMpController** returnController)

@@ -4,6 +4,7 @@
 */
 #include "../se_sdk3/mp_sdk_common.h"
 #include "IGuiHost2.h"
+#include "Extensions/ParameterIterator.h"
 
 class ControllerIterator :
 	public gmpi::IMpControllerIterator
@@ -122,5 +123,58 @@ public:
 	class IGuiHost2* patchManager;
 
 	GMPI_QUERYINTERFACE1(gmpi::MP_IID_CONTROLLER_HOST, gmpi::IMpControllerHost);
+	GMPI_REFCOUNT_NO_DELETE;
+};
+
+// Acts as host for a GMPI controller (gmpi::api::IController) of a module. c.f. ControllerHostHelper in the editor.
+class GmpiControllerHost final : public gmpi::api::IControllerHost, public synthedit::IParameterIterator
+{
+	// IParameterSetter::setParameter() has the same signature as IControllerHost::setParameter()
+	// but takes a parameter handle, not a module parameter index. So it needs its own object.
+	class ParameterSetter final : public gmpi::api::IParameterSetter
+	{
+		GmpiControllerHost& host;
+
+	public:
+		ParameterSetter(GmpiControllerHost& phost) : host(phost) {}
+
+		gmpi::ReturnCode getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle) override;
+		gmpi::ReturnCode setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override;
+
+		GMPI_QUERYINTERFACE_METHOD(gmpi::api::IParameterSetter);
+		GMPI_REFCOUNT_NO_DELETE;
+	};
+
+	ParameterSetter parameterSetter{ *this };
+
+public:
+	gmpi::shared_ptr<gmpi::api::IController> controller;
+	int32_t moduleHandle = -1;
+	bool subscribed = false; // receives updates to all parameters, not just the module's own.
+	bool initialized = false; // no updates until the controller has been initialized.
+	class MpController* patchManager = nullptr;
+
+	// IControllerHost
+	gmpi::ReturnCode setParameter(int32_t parameterIndex, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override;
+	gmpi::ReturnCode subscribe() override
+	{
+		subscribed = true;
+		return gmpi::ReturnCode::Ok;
+	}
+
+	// IParameterIterator
+	void listParameters(gmpi::api::IUnknown* callback) override;
+
+	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+	{
+		*returnInterface = {};
+		GMPI_QUERYINTERFACE(gmpi::api::IControllerHost);
+		GMPI_QUERYINTERFACE(synthedit::IParameterIterator);
+
+		if((*iid) == gmpi::api::IParameterSetter::guid)
+			return parameterSetter.queryInterface(iid, returnInterface);
+
+		return gmpi::ReturnCode::NoSupport;
+	}
 	GMPI_REFCOUNT_NO_DELETE;
 };
