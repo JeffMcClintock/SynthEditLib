@@ -37,7 +37,10 @@ class GmpiUiTest : public gmpi::editor::PluginEditor, public NumberEditClient
 
 	void updateTextFromValue()
 	{
-        const auto s = std::format("{:.2f}", value);
+        // snprintf, not std::format: floating-point std::format needs macOS 13.3 and
+        // plugins deploy to 10.15.
+        char s[64];
+        snprintf(s, sizeof(s), "%.2f", value);
         numberEdit.setText(s);
 	}
 
@@ -1203,8 +1206,11 @@ struct Float2Text final : public PluginEditorNoGui
                         decimals = 0;
         }
 
-        // Format using C++20 std::format.
-        auto output = std::format("{:.{}f}", static_cast<double>(pinValue_in.value), decimals);
+        // snprintf, not std::format: floating-point std::format needs macOS 13.3 and
+        // plugins deploy to 10.15.
+        char buf[64];
+        snprintf(buf, sizeof(buf), "%.*f", decimals, static_cast<double>(pinValue_in.value));
+        std::string output = buf;
 
         // Replace -0.0 with 0.0 (same for -0.00 and -0.000 etc).
         // deliberate 'feature' of printf/format is to round small negative numbers to -0.0
