@@ -62,6 +62,7 @@ public:
 	void release() { dispatch_semaphore_signal(s_); }
 	void acquire() { dispatch_semaphore_wait(s_, DISPATCH_TIME_FOREVER); }
 #else
+	WorkSemaphore() = default;
 	void release() { s_.release(); }
 	void acquire() { s_.acquire(); }
 #endif
