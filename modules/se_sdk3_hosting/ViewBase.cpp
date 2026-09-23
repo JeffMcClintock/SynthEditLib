@@ -760,7 +760,8 @@ namespace SE2
 
 					if (fromPinDesc && toPinDesc)
 					{
-						if (auto converterId = getGuiConverterId(fromPinDesc->GetDatatype(), toPinDesc->GetDatatype()))
+						// one converter, or two chained via wide text (e.g. float -> text -> UTF-8).
+						for (auto converterId : getGuiConverterChain(fromPinDesc->GetDatatype(), toPinDesc->GetDatatype()))
 						{
 							auto converterModule = std::make_unique<ModuleViewPanel>(
 								converterId, this, Presenter()->GenerateTemporaryHandle());
@@ -769,14 +770,49 @@ namespace SE2
 							assert(!isIteratingChildren);
 							children.push_back(std::move(converterModule));
 
-							// Wire from[fromPinIndex] ↔ converter[0] (input side).
-							from->AddConnection(fromPinIndex, converterRaw, 0);
-							converterRaw->AddConnection(0, from, fromPinIndex);
-							connectedInputs.push_back({converterRaw, 0});
+							// Most converters are pin 0 in, pin 1 out, but not all ('Float To Text' has
+							// 'Decimal Places' at pin 1). Use the converter's first input and first output.
+							int converterIn = 0;
+							int converterOut = 1;
+							if (auto converterInfo = converterRaw->getModuleType())
+							{
+								int firstIn = -1;
+								int firstOut = -1;
+								for (auto& [id, pinDesc] : converterInfo->gui_plugs)
+								{
+									auto& first = pinDesc->GetDirection() == DR_OUT ? firstOut : firstIn;
+									if (first == -1)
+										first = id;
+								}
+								if (firstIn != -1)
+									converterIn = firstIn;
+								if (firstOut != -1)
+									converterOut = firstOut;
 
-							// Let the normal connect below wire converter[1] ↔ to[toPinIndex].
+								// The converter is not in the document, so STEP 2 won't set its defaults. Set them on
+								// any other inputs (e.g. 'Decimal Places' = -1, automatic), else they'd be zero.
+								for (auto& [id, pinDesc] : converterInfo->gui_plugs)
+								{
+									if (id == converterIn || pinDesc->GetDirection() != DR_IN)
+										continue;
+
+									auto dt = pinDesc->GetDatatype();
+									if (dt == DT_ENUM)
+										dt = DT_INT;
+
+									const auto raw = ParseToRaw(dt, pinDesc->GetDefaultVal(), pinDesc->getClassName());
+									converterRaw->setPin(0, 0, id, 0, (int32_t)raw.size(), (void*)raw.data());
+								}
+							}
+
+							// Wire from[fromPinIndex] ↔ converter[in] (input side).
+							from->AddConnection(fromPinIndex, converterRaw, converterIn);
+							converterRaw->AddConnection(converterIn, from, fromPinIndex);
+							connectedInputs.push_back({converterRaw, converterIn});
+
+							// The next converter, or the normal connect below, wires on from converter[out].
 							from = converterRaw;
-							fromPinIndex = 1;
+							fromPinIndex = converterOut;
 						}
 					}
 				}

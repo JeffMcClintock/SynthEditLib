@@ -70,6 +70,11 @@ bool AreCompatible( EPlugDataType d1, EPlugDataType d2 );
 // if no converter exists. d1 == d2 also returns nullptr (no converter needed).
 const wchar_t* getGuiConverterId(EPlugDataType from, EPlugDataType to);
 
+// The GUI converter modules to insert, in order, between pins of these datatypes. A single
+// converter where one exists, else two via wide text (e.g. float -> text -> UTF-8). Empty if
+// the datatypes are the same, or no conversion exists.
+std::vector<const wchar_t*> getGuiConverterChain(EPlugDataType from, EPlugDataType to);
+
 // Safe preferred option.
 inline uint32_t idToInt32(std::string id)
 {

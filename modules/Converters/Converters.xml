@@ -112,7 +112,7 @@
     </GUI>
   </Plugin>
 
-  <Plugin id="SE FloatToText GUI" name="Float To Text" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm">
+  <Plugin id="SE FloatToText GUI" name="Float To Text" category="Sub-Controls/Conversion" helpUrl="Sub-control-converters.htm" alwaysExport="true">
     <GUI>
       <Pin id="0" name="Float Val" direction="in" datatype="float"/>
       <Pin id="1" name="Decimal Places" direction="in" datatype="int" default="-1"/>

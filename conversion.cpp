@@ -661,7 +661,8 @@ const wchar_t* getGuiConverterId(EPlugDataType from, EPlugDataType to)
 		return nullptr;
 
 	// Map of available GUI-side converter modules. Keep in sync with the
-	// REGISTER_GUI_PLUGIN entries in modules/Converters/ConvertersGui.cpp.
+	// REGISTER_GUI_PLUGIN entries in modules/Converters/ConvertersGui.cpp (and FloatToText.cpp).
+	// Each needs alwaysExport="true" in Converters.xml, since plugins insert them too.
 	static const std::map<std::pair<EPlugDataType, EPlugDataType>, const wchar_t*> converterIds = {
 		{{DT_INT,    DT_BOOL},   L"SE IntToBool GUI"},
 		{{DT_INT,    DT_FLOAT},  L"SE IntToFloat GUI"},
@@ -670,6 +671,7 @@ const wchar_t* getGuiConverterId(EPlugDataType from, EPlugDataType to)
 		{{DT_INT64,  DT_INT},    L"SE Int64ToIntGui"},
 		{{DT_FLOAT,  DT_INT},    L"SE FloatToInt GUI"},
 		{{DT_FLOAT,  DT_BOOL},   L"SE FloatToBool GUI"},
+		{{DT_FLOAT,  DT_TEXT},   L"SE FloatToText GUI"}, // output is pin 2 (pin 1 is 'Decimal Places').
 		{{DT_FLOAT,  DT_DOUBLE}, L"SE FloatToFloat64Gui"},
 		{{DT_DOUBLE, DT_FLOAT},  L"SE Float64ToFloatGui"},
 		{{DT_BOOL,   DT_INT},    L"SE BoolToInt GUI"},
@@ -686,6 +688,23 @@ const wchar_t* getGuiConverterId(EPlugDataType from, EPlugDataType to)
 
 	auto it = converterIds.find({from, to});
 	return it == converterIds.end() ? nullptr : it->second;
+}
+
+std::vector<const wchar_t*> getGuiConverterChain(EPlugDataType from, EPlugDataType to)
+{
+	if (auto direct = getGuiConverterId(from, to))
+		return { direct };
+
+	// Only wide text converts to/from UTF-8, so go via wide text.
+	if (from != DT_TEXT && to != DT_TEXT)
+	{
+		auto first = getGuiConverterId(from, DT_TEXT);
+		auto second = getGuiConverterId(DT_TEXT, to);
+		if (first && second)
+			return { first, second };
+	}
+
+	return {};
 }
 
 int SampleToMs( timestamp_t s, int sample_rate)   // being carefull to avoid numeric overflow

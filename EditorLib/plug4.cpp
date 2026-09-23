@@ -410,9 +410,9 @@ bool canConnectplugs(IPlug* p_from, IPlug* p_to, std::wstring& p_error_msg )
 				result = from_datatype == DT_FLOAT;
 			}
 
-			// GUI pins of different datatypes can connect if a GUI converter module exists
+			// GUI pins of different datatypes can connect if GUI converter modules exist
 			// (auto-inserted by ViewBase::ConnectModules at load time).
-			if (!result && getGuiConverterId(from_datatype, to_datatype) != nullptr)
+			if (!result && !getGuiConverterChain(from_datatype, to_datatype).empty())
 			{
 				result = true;
 			}
