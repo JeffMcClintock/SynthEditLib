@@ -1033,6 +1033,14 @@ gmpi::ReturnCode PatchParameter_base::getValue(gmpi::Field field, int32_t voice,
 		return gmpi::ReturnCode::Ok;
 	}
 
+	// Field::HostControl only in GMPI SDK
+	if(gmpi::Field::HostControl == field)
+	{
+		const int32_t hc = hostControlId_;
+		returnValue->setData(gmpi::PinDatatype::Int32, (const uint8_t*)&hc, sizeof(hc));
+		return gmpi::ReturnCode::Ok;
+	}
+
 	// EPlugDataType and gmpi::PinDatatype share the same numbering.
 	int datatype = {};
 	GetDatatype((ParameterFieldType) field, &datatype);

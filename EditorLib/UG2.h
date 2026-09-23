@@ -43,13 +43,30 @@ public:
 	GMPI_REFCOUNT
 };
 
+// IParameterSetter can set any parameter (by handle). Its setParameter() has the same signature as
+// IControllerHost::setParameter() (by module parameter index), so it needs its own object.
+class ControllerParameterSetter : public gmpi::api::IParameterSetter
+{
+	class CUG2* plugin{};
+
+public:
+	ControllerParameterSetter(CUG2* plugin) : plugin(plugin) {}
+
+	gmpi::ReturnCode getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle) override;
+	gmpi::ReturnCode setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override;
+
+	GMPI_QUERYINTERFACE_METHOD(gmpi::api::IParameterSetter);
+	GMPI_REFCOUNT_NO_DELETE;
+};
+
 class ControllerHostHelper : public gmpi::api::IControllerHost, public synthedit::IParameterIterator
 {
 	class CUG2* plugin{};
 	bool clientSubscribed{ false };
+	ControllerParameterSetter parameterSetter;
 
 public:
-	ControllerHostHelper(CUG2* plugin) : plugin(plugin) {}
+	ControllerHostHelper(CUG2* plugin) : plugin(plugin), parameterSetter(plugin) {}
 	~ControllerHostHelper();
 
 	// IControllerHost
@@ -64,6 +81,9 @@ public:
 		*returnInterface = {};
 		GMPI_QUERYINTERFACE(gmpi::api::IControllerHost);
 		GMPI_QUERYINTERFACE(synthedit::IParameterIterator);
+
+		if((*iid) == gmpi::api::IParameterSetter::guid)
+			return parameterSetter.queryInterface(iid, returnInterface);
 
 		return gmpi::ReturnCode::NoSupport;
 	}

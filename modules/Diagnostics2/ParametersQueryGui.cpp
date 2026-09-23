@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: ISC
 // Copyright 2007-2026 Jeff McClintock.
 #include "helpers/GmpiPluginEditor.h"
+#include "helpers/GmpiPluginController.h"
 #include "helpers/Timer.h"
 #include "Extensions/ParameterIterator.h"
 
 using namespace gmpi;
-using namespace gmpi::editor;
 using namespace gmpi::editor;
 using namespace gmpi::drawing;
 
@@ -66,33 +66,16 @@ public:
 	}
 };
 
-class ParametersQueryController final : public gmpi::api::IController, public TimerClient
+class ParametersQueryController final : public gmpi::controller::ControllerBase, public TimerClient
 {
-	int32_t handle{};
-	gmpi::shared_ptr<gmpi::api::IControllerHost> host;
+	Pin<std::string> pinText;
 	bool parametersDirty{};
-//	Pin<std::string> pinText;
-
-	void onSetText()
-	{
-		// pinText changed
-//		drawingHost->invalidateRect(&bounds);
-	}
 
 public:
-
-	inline static gmpi::api::IController* constructingInstance{};
-
-	ParametersQueryController()
-	{
-//		pinText.onUpdate = [this](PinBase* p) { onSetText(); };
-	}
-
 	// IController
 	ReturnCode initialize(gmpi::api::IUnknown* phost, int32_t phandle) override
 	{
-		handle = phandle;
-		phost->queryInterface(&gmpi::api::IControllerHost::guid, host.put_void());
+		ControllerBase::initialize(phost, phandle);
 
 		// subscribe to parameter add/remove/change notifications. (not implemented yet)
 		host->subscribe();
@@ -103,7 +86,6 @@ public:
 
 		return ReturnCode::Ok;
 	}
-	ReturnCode syncState() override {return ReturnCode::Ok;}
 
 	bool onTimer() override
 	{
@@ -127,26 +109,13 @@ public:
 			infoText += " handle: " + std::to_string(param.handle) + "\n";
 		}
 
-		// set my own parameter
-//		pinText = infoText;
-		constexpr int32_t voice{};
-		host->setParameter(0, gmpi::Field::Value, voice, infoText.size(), (const uint8_t*)infoText.data());
+		pinText = infoText;
 	}
 
-	// IParameterObserver
-	ReturnCode setParameter(int32_t parameterIndex, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data) override
+	void onParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, std::span<const uint8_t> data) override
 	{
 		parametersDirty = true; // debounce updates.
-		return ReturnCode::Ok;
 	}
-
-	ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
-	{
-		GMPI_QUERYINTERFACE(gmpi::api::IController);
-		GMPI_QUERYINTERFACE(gmpi::api::IParameterObserver);
-		return ReturnCode::NoSupport;
-	}
-	GMPI_REFCOUNT;
 };
 
 namespace

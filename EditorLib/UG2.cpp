@@ -32,6 +32,18 @@ gmpi::ReturnCode ControllerHostHelper::setParameter(int32_t parameterIndex, gmpi
 	return gmpi::ReturnCode::Fail;
 }
 
+gmpi::ReturnCode ControllerParameterSetter::getParameterHandle(int32_t moduleParameterId, int32_t& returnHandle)
+{
+	returnHandle = plugin->get_patch_manager()->getParameterHandle(plugin->Handle(), moduleParameterId);
+	return gmpi::ReturnCode::Ok;
+}
+
+gmpi::ReturnCode ControllerParameterSetter::setParameter(int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, int32_t size, const uint8_t* data)
+{
+	plugin->get_patch_manager()->setParameterValue({ data, static_cast<size_t>(size) }, parameterHandle, (gmpi::FieldType)fieldId, voice);
+	return gmpi::ReturnCode::Ok;
+}
+
 gmpi::ReturnCode ControllerHostHelper::subscribe()
 {
 	plugin->get_patch_manager()->RegisterGui2(plugin->getController2());
@@ -283,7 +295,8 @@ void CUG2::Initialise(bool loaded_from_file)
 					constexpr auto field = gmpi::Field::Value;
 					const auto raw = param->GetValue();
 
-					controller2_->setParameter(parameterIndex, field, voice, static_cast<int32_t>(raw.size()), (const uint8_t*) raw.data());
+					// identify the parameter by handle, same as subsequent updates (OnParamUpdateFromHost).
+					controller2_->setParameter(param->Handle(), field, voice, static_cast<int32_t>(raw.size()), (const uint8_t*) raw.data());
 				}
 			}
 
