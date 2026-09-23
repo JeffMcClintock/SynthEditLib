@@ -2,7 +2,11 @@
 
 #include <atomic>
 #include <memory>
+#if defined(__APPLE__)
+#include <dispatch/dispatch.h>
+#else
 #include <semaphore>
+#endif
 #include <string>
 #include <thread>
 
@@ -39,6 +43,39 @@ struct WavetableLoadRequest
 	std::shared_ptr<WavetableLoadRequest> self;
 };
 
+// Counting semaphore for the loader's work signal. std::counting_semaphore's acquire/release
+// are "introduced in macOS 11.0" in Apple's libc++ (they sit on the atomic-wait runtime), and
+// exported plugins deploy to 10.15, so macOS uses a GCD semaphore instead. Both signal
+// without blocking and without a lock on the uncontended path, which is what enqueue()
+// needs on the audio thread.
+class WorkSemaphore
+{
+public:
+#if defined(__APPLE__)
+	WorkSemaphore() : s_(dispatch_semaphore_create(0)) {}
+	~WorkSemaphore()
+	{
+#if !__has_feature(objc_arc)
+		dispatch_release(s_);
+#endif
+	}
+	void release() { dispatch_semaphore_signal(s_); }
+	void acquire() { dispatch_semaphore_wait(s_, DISPATCH_TIME_FOREVER); }
+#else
+	void release() { s_.release(); }
+	void acquire() { s_.acquire(); }
+#endif
+	WorkSemaphore(const WorkSemaphore&) = delete;
+	WorkSemaphore& operator=(const WorkSemaphore&) = delete;
+
+private:
+#if defined(__APPLE__)
+	dispatch_semaphore_t s_;
+#else
+	std::counting_semaphore<> s_{0};
+#endif
+};
+
 // Background loader: one worker thread draining a lock-free FIFO of requests. Shared between
 // every WavetableOsc instance via wavetableLoader(); the worker is joined when the last
 // referencing instance releases its shared_ptr - during normal plugin teardown, NOT during
@@ -66,7 +103,7 @@ private:
 	void run();
 
 	std::atomic<WavetableLoadRequest*> queueHead_{nullptr}; // LIFO; worker reverses to FIFO.
-	std::counting_semaphore<>          workAvailable_{0};
+	WorkSemaphore                      workAvailable_;
 	std::atomic<bool>                  stop_{false};
 	std::thread                        worker_;
 };
