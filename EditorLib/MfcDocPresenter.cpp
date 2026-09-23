@@ -692,12 +692,20 @@ int32_t MfcDocPresenter::OnCommand(PresenterCommand c, int32_t moduleHandle)
 		container->OnEditSelectAll();
 		break;
 
+	// Both are guarded because neither CommandMgr entry point checks itself:
+	// Undo() dereferences m_history_position with no end() test, and Redo()
+	// decrements it with no begin() test. CanUndo()/CanRedo() exist for exactly
+	// this. It went unnoticed while nothing called these -- they had no menu item
+	// and no key -- but Ctrl+Y on a document with nothing to redo now reaches
+	// them, and would otherwise walk off the front of the history.
 	case PresenterCommand::Undo:
-		container->Document()->Application()->CommandManager()->Undo();
+		if (container->Document()->Application()->CommandManager()->CanUndo())
+			container->Document()->Application()->CommandManager()->Undo();
 		break;
 
 	case PresenterCommand::Redo:
-		container->Document()->Application()->CommandManager()->Redo();
+		if (container->Document()->Application()->CommandManager()->CanRedo())
+			container->Document()->Application()->CommandManager()->Redo();
 		break;
 
 	case PresenterCommand::Cut:

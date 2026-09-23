@@ -2955,6 +2955,26 @@ namespace SE2
 			Presenter()->OnCommand(PresenterCommand::Paste);
 			return gmpi::ReturnCode::Handled;
 
+		case 0x01: // Ctrl+A -- select all
+			Presenter()->OnCommand(PresenterCommand::SelectAll);
+			return gmpi::ReturnCode::Handled;
+
+		case 0x1A: // Ctrl+Z -- undo
+			Presenter()->OnCommand(PresenterCommand::Undo);
+			return gmpi::ReturnCode::Handled;
+
+		case 0x19: // Ctrl+Y -- redo
+			Presenter()->OnCommand(PresenterCommand::Redo);
+			return gmpi::ReturnCode::Handled;
+
+		// Ctrl+Shift+Z is deliberately absent: Shift does not alter the control
+		// code, so it arrives as 0x1A and is indistinguishable from plain Ctrl+Z.
+		// Telling them apart needs modifier flags, which onKeyPress() does not carry.
+
+		case 0x04: // Ctrl+D -- attach the debugger (CPU meter) to the selection
+			Presenter()->OnCommand(PresenterCommand::Debug);
+			return gmpi::ReturnCode::Handled;
+
 		case 'n': // new module picker
 		case 'N':
 			//if (pointerPosOrNull)
