@@ -122,7 +122,7 @@ namespace
 {
 auto r = Register<ParametersQueryGui>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
-<Plugin id="SE Parameters Query" name="Parameters Query" category="Sub-Controls">
+<Plugin id="SE Parameters Query" name="Parameters Query" category="SDK Examples">
     <Parameters>
       <Parameter id="0" datatype="string_utf8" name="Results" private="true" ignorePatchChange="true" persistant="false" />
     </Parameters>

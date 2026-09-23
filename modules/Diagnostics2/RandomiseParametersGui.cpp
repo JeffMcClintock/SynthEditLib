@@ -120,7 +120,7 @@ namespace
 {
 auto r = Register<RandomiseParametersGui>::withXml(R"XML(
 <?xml version="1.0" encoding="UTF-8"?>
-<Plugin id="SE Randomise Parameters" name="Randomise Parameters" category="Sub-Controls">
+<Plugin id="SE Randomise Parameters" name="Randomise Parameters" category="SDK Examples">
     <Parameters>
       <Parameter id="0" datatype="bool" name="Trigger" private="true" ignorePatchChange="true" persistant="false" />
     </Parameters>

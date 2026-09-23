@@ -9,5 +9,6 @@ gmpi_plugin(
     SOURCE_FILES
         ParametersQueryGui.cpp
         RandomiseParametersGui.cpp
+        LastParameterUpdateGui.cpp
         ${GMPI_UI_SDK}/helpers/Timer.cpp
 )
