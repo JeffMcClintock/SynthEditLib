@@ -2930,6 +2930,31 @@ namespace SE2
 				return gmpi::ReturnCode::Handled;
 			break;
 
+		// CLIPBOARD SHORTCUTS.
+		//
+		// Ctrl+letter arrives here already encoded as an ASCII control code --
+		// TranslateMessage turns Ctrl+A..Ctrl+Z into WM_CHAR 0x01..0x1A -- so unlike
+		// Delete (not a character key, and therefore needing its own WM_KEYDOWN entry
+		// in the frame) these need no host-side change at all. The control code also
+		// carries the Ctrl state implicitly, which matters because onKeyPress() hands
+		// us a bare wchar_t with no modifier flags.
+		//
+		// Paste goes to the command's default position, matching the Edit menu's
+		// Paste (ID_EDIT_PASTE). The context menu's "paste here" is the variant that
+		// drops the clipboard at the mouse (POPUP_MENU_PASTE) -- deliberately not
+		// what a keyboard shortcut does, since the pointer may be anywhere.
+		case 0x18: // Ctrl+X
+			Presenter()->OnCommand(PresenterCommand::Cut);
+			return gmpi::ReturnCode::Handled;
+
+		case 0x03: // Ctrl+C
+			Presenter()->OnCommand(PresenterCommand::Copy);
+			return gmpi::ReturnCode::Handled;
+
+		case 0x16: // Ctrl+V
+			Presenter()->OnCommand(PresenterCommand::Paste);
+			return gmpi::ReturnCode::Handled;
+
 		case 'n': // new module picker
 		case 'N':
 			//if (pointerPosOrNull)
