@@ -305,7 +305,7 @@ namespace SE2
 			hitNodeX = hitNodeY = -1;
 		}
 
-		// destance inside rect
+		// distance inside rect
 		const auto distanceInside = std::min(std::min(point.x - nodeRect.left, nodeRect.right - point.x), std::min(point.y - nodeRect.top, nodeRect.bottom - point.y));
 
 		if(distanceInside >= 0.0f && distanceInside < best) // negative distance are not inside. ignore.
