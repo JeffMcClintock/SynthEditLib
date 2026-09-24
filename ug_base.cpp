@@ -2026,8 +2026,8 @@ void ug_base::OnUiNotify2( int p_msg_id, my_input_stream& p_stream )
 				// Store the default value in the AudioMaster for use if the DSP is restarted (e.g. oversampling change).
 				const int64_t handleAndPinIdx = (int64_t)Handle() << 32 | pinIdx;
 
-				auto& extraPinDefaultChanges = *AudioMaster()->getShell()->getExtraPinDefaultChanges();
-				extraPinDefaultChanges[handleAndPinIdx] = valueUtf8;
+				if (auto extraPinDefaultChanges = AudioMaster()->getShell()->getExtraPinDefaultChanges(); extraPinDefaultChanges) // null outside the editor (e.g. TIDE)
+					(*extraPinDefaultChanges)[handleAndPinIdx] = valueUtf8;
 
 				GetPlug(pinIdx)->SetDefault2(valueUtf8.c_str());
 			}
