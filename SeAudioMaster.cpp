@@ -517,7 +517,6 @@ bool SeAudioMaster::BuildDspGraph(
 			/* to add your own module:
 				1. in CmakeLists.txt, add the .cpp file to the list of source files. (look for "EXTRA-MODULES?")
 				2. in Extramodules.cpp add e.g. INIT_STATIC_FILE(SVFilter4);
-			
 			*/
 		}
 #endif

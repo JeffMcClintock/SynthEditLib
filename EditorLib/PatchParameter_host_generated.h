@@ -58,6 +58,11 @@ public:
 		return DatatypeToId< dsp_patch_parameter< T, MetaDataPolicy> >::DataTypeId();
 	}
 
+	bool hasNormalised() const override
+	{
+		return metadata_.hasNormalised;
+	}
+
 	void setValueNormalised(float p_normalised, bool applyDawAjustment) override
 	{
 		assert(false); // not implemented

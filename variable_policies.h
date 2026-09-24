@@ -84,6 +84,8 @@ struct MetaData_none // standard variable, no extra data
 	void Import(tinyxml2::XMLElement* /*parameter_xml*/, ExportFormatType /*targetType*/)
 	{
 	}
+
+	inline static bool hasNormalised = false;
 };
 
 struct MetaData_enum // enum, provides list-of-values
@@ -150,6 +152,8 @@ struct MetaData_enum // enum, provides list-of-values
 		parameter_xml->QueryStringAttribute("MetaData", &s);
 		m_enum_list = Utf8ToWstring(s);
 	}
+
+	inline static bool hasNormalised = true;
 
 private:
 	std::wstring m_enum_list;
@@ -232,6 +236,7 @@ struct MetaData_filename // text, provides file optional extension
 		parameter_xml->QueryStringAttribute("MetaData", &s);
 		m_file_ext = Utf8ToWstring(s);
 	}
+	inline static bool hasNormalised = false;
 
 private:
 	std::wstring m_file_ext;
@@ -313,6 +318,7 @@ struct MetaData_filename8 // text (UTF-8), provides file optional extension
 		parameter_xml->QueryStringAttribute("MetaData", &s);
 		m_file_ext = s;
 	}
+	inline static bool hasNormalised = false;
 
 private:
 	std::string m_file_ext;
@@ -501,6 +507,8 @@ struct MetaData_ranged // provides hi/lo range
 		parameter_xml->QueryAttribute("RangeMinimum", &m_lo);
 		parameter_xml->QueryAttribute("RangeMaximum", &m_hi);
 	}
+
+	inline static bool hasNormalised = true;
 
 private:
 	T m_hi;

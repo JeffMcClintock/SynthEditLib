@@ -30,7 +30,6 @@ class PatchParameter_base : public ui_msg_target, public gmpi::hosting::QueClien
 	friend class CPatchManager;
 
 	void setDocModified();
-//	void setPresetModified();
 	void initStates();
 
 public:
@@ -48,6 +47,9 @@ public:
 	{
 		return 0;
 	} // todo, full ref counting etc.
+
+	virtual bool hasNormalised() const = 0;
+
 	virtual int32_t CanAutomate( bool* returnValue)
 	{
 		*returnValue = can_automate() && !is_private();
@@ -428,6 +430,11 @@ public:
 		};
 
 		return gmpi::MP_OK;
+	}
+
+	bool hasNormalised() const override
+	{
+		return metadata_.hasNormalised;
 	}
 
 	void setValueNormalised(float p_normalised, bool applyDawAjustment) override

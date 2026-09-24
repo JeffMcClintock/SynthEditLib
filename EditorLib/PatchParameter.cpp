@@ -1672,7 +1672,7 @@ void PatchParameter_base::dsp_SerialiseValue(my_input_stream& p_stream)
 
 	// Emulate Mouse down when automated from MIDI/Processor
 	const int timerResetValue = 4;
-	if (!m_grabbed)
+	if (hasNormalised() && !m_grabbed)
 	{
 		m_grabbed = true;
 		m_grabbed_by_MIDI_timer = timerResetValue;
