@@ -277,9 +277,19 @@ namespace SE2
 		if(pointInClientArea && hitNodeX == -1)
 			return { 1000.0f, -1, -1 }; // not-hit.
 
+		// direct hit on outline?
+		{
+			const auto outlineOuter = inflateRect(nodeRect, strokeWidth * 0.5f);
+			if(pointInRect(point, outlineOuter))
+			{
+				const auto outlineInner = inflateRect(nodeRect, -strokeWidth * 0.5f);
+				if(!pointInRect(point, outlineInner))
+					return { 0.0f, -1, -1 };
+			}
+		}
 		if(hasGripper) // hit gripper?
 		{
-			gmpi::drawing::Rect dragArea(nodeRect);
+			auto dragArea = inflateRect(nodeRect, strokeWidth * 0.5f);
 			dragArea.bottom = dragArea.top + DragAreaheight;
 
 			if(pointInRect(point, dragArea) && best > 1.0f) // slightly lower priority than direct hit on node.
