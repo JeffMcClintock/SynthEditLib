@@ -68,6 +68,7 @@ void SynthRuntime::prepareToPlay(
 				currentDspXml.Clear();
 				currentDspXml.Parse(pendingDocumentXml_.c_str());
 				pendingDocumentXml_.clear();
+				extraPinDefaultChanges.clear(); // a fresh document already carries them
 			}
 			documentPending_ = false;
 		}
@@ -213,6 +214,7 @@ void SynthRuntime::checkLatency()
 void SynthRuntime::OpenGenerator()
 {
 	generator->Open();
+	generator->ApplyPinDefaultChanges(extraPinDefaultChanges); // after Open(): before it, audio pins have no pooled buffer yet
 // editor only	generator->CpuFunc();
 
 	/* TODO ensure this happens
@@ -391,6 +393,7 @@ void SynthRuntime::process(
 					currentDspXml.Clear();
 					currentDspXml.Parse(pendingDocumentXml_.c_str());
 					pendingDocumentXml_.clear();
+					extraPinDefaultChanges.clear(); // a fresh document already carries them
 					documentReplaced = true;
 				}
 			}

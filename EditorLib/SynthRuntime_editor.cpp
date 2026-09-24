@@ -97,6 +97,7 @@ bool SynthRuntime_editor::buildFailed()
 void SynthRuntime_editor::OpenGenerator()
 {
 	generator->Open();
+	generator->ApplyPinDefaultChanges(extraPinDefaultChanges); // after Open(): before it, audio pins have no pooled buffer yet
 //	generator->CpuFunc();
 
 	// InitialMusicTimeUpdate()
@@ -281,7 +282,6 @@ void rebuildDsp(
 	, std::vector< std::pair<int32_t, std::string> >& pendingPresets
 	, std::atomic<eRuntimeState>& runtimeState
 	, FeedbackTrace& returnFeedbackError
-	, std::unordered_map<int64_t, std::string>& extraPinDefaultChanges
 )
 {
 //	_RPT0(0, "backGroundRebuildDsp:: start\n");
@@ -291,7 +291,6 @@ void rebuildDsp(
 		// Send patch structure to process.
 		std::vector<int32_t> mutedContainers; // unused at present. (Waves thing).
 		generator->BuildDspGraph(currentDspXml, pendingPresets, mutedContainers);
-		generator->ApplyPinDefaultChanges(extraPinDefaultChanges);
 
 //		_RPT0(0, "backGroundRebuildDsp:: done\n");
 //		_RPT0(0, "eRuntimeState::newDspReady\n");
@@ -428,7 +427,6 @@ void SynthRuntime_editor::process(int sampleFrames, const float** inputs, float*
 						, pendingPresets
 						, runtimeState
 						, feedbackTrace
-						, extraPinDefaultChanges
 					);
 				}
 				);
@@ -442,7 +440,6 @@ void SynthRuntime_editor::process(int sampleFrames, const float** inputs, float*
 					, pendingPresets
 					, runtimeState
 					, feedbackTrace
-					, extraPinDefaultChanges
 				);
 			}
 		}

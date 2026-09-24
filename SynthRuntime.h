@@ -122,6 +122,7 @@ public:
 	virtual std::wstring getDefaultPath(const std::wstring& p_file_extension ) override;
 	virtual void GetRegistrationInfo(std::wstring& p_user_email, std::wstring& p_serial) override;
 	virtual void DoAsyncRestart() override;
+	std::unordered_map<int64_t, std::string>* getExtraPinDefaultChanges() override { return &extraPinDefaultChanges; }
 
 	// The plugin runtime's answer to DoAsyncRestart, polled by the host-driven
 	// block loop (TIDE checks it each subProcess). True at most once per
@@ -225,6 +226,7 @@ private:
 	std::mutex generatorLock;
 	bool runsRealtimeCurrent = true;
 	TiXmlDocument currentDspXml;
+	std::unordered_map<int64_t, std::string> extraPinDefaultChanges; // "setd" edits newer than currentDspXml, replayed after each rebuild
 	int32_t sampleRate{};
 	int32_t maxBlockSize{};
 };

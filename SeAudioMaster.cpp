@@ -551,8 +551,11 @@ void SeAudioMaster::ApplyPinDefaultChanges(std::unordered_map<int64_t, std::stri
 		const auto pinIdx = static_cast<int32_t>(p.first & 0xFFFFFFFF);
 		const auto& value = p.second;
 
-		auto module = dynamic_cast<ug_base*>(m_handle_map[handle]);
-		module->GetPlug(pinIdx)->SetDefault2(value.c_str());
+		// the rebuilt graph may lack the module (e.g. culled after a re-cabling)
+		const auto it = m_handle_map.find(handle);
+		auto module = it == m_handle_map.end() ? nullptr : dynamic_cast<ug_base*>(it->second);
+		if (module && pinIdx >= 0 && pinIdx < static_cast<int32_t>(module->plugs.size()))
+			module->GetPlug(pinIdx)->SetDefault2(value.c_str());
 	}
 }
 
