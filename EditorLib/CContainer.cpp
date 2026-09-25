@@ -480,6 +480,7 @@ void CContainer::OnEditPaste(gmpi::drawing::PointL point, int p_view_type, tinyx
 	int count_panel = 0;
 	gmpi::drawing::PointL struct_center{};
 	gmpi::drawing::PointL panel_center{};
+	std::vector<CDocOb*> pastedModules;
 
 	for( auto& db : temp_container->BaseList)
 	{
@@ -517,10 +518,17 @@ void CContainer::OnEditPaste(gmpi::drawing::PointL point, int p_view_type, tinyx
 			count_panel++;
 		}
 
-		AddSorted(db); // put in my list
+		if (dynamic_cast<CLine2*>(db))
+			AddSorted(db);
+		else
+			pastedModules.push_back(db);
 
 		// bit hacky, need to detect addition of patch selector via paste			db->OnAdded( this );
 	}
+
+	// AddSorted prepends modules, so add them back-to-front to keep their z-order.
+	for (auto it = pastedModules.rbegin(); it != pastedModules.rend(); ++it)
+		AddSorted(*it);
 
 	// all objects now copied into my baselist (also still in temp_container list)
 	// set all the parent pointers

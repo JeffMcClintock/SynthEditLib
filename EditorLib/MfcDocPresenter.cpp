@@ -158,13 +158,7 @@ std::vector<int32_t> MfcDocPresenter::AddPrefab(const wchar_t* uniqueid, gmpi::d
 			created.push_back(h);
 	}
 
-	// CContainer::AddSorted PREPENDS modules (and appends lines), so iteration
-	// is reverse-insertion order. Reverse it so a caller reading created[0] gets
-	// the prefab's first module rather than its last -- which for a single-module
-	// prefab is the same thing, and for a multi-module one is the difference
-	// between a stable contract and a coin toss.
-	std::reverse(created.begin(), created.end());
-
+	// Paste keeps the prefab's module order, so created[0] is its first module.
 	return created;
 }
 
