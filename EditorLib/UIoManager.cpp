@@ -20,6 +20,13 @@ int UIoManager::m_inhibit_midi_in_warning = 0;
 UIoManager::UIoManager() :
 	realtime_flag(false)
 	,m_audio_driver_prepared(false)
+	,midiOutputConverter(
+		[this](const gmpi::midi::message_view& msg, int ms_offset)
+		{
+			if (m_midi_driver)
+				m_midi_driver->Output(ms_offset, static_cast<int>(msg.size()), msg.begin());
+		}
+	)
 {
 }
 
@@ -225,6 +232,12 @@ int UIoManager::MIDISetup()
 
 	midi_time_correction = m_midi_driver->GetMidiTimeCorrection();
 
+	// Setup() streamed the first buffer; rotate the rest from here.
+	if (m_midi_driver->IsMidiOutInUse() && m_midi_driver->GetBufferSwitchPeriod() > 0)
+	{
+		RunAt(m_midi_driver->GetBufferSwitchPeriod(), static_cast<io_func>(&UIoManager::play_midi_buffer));
+	}
+
 	return 0;
 }
 
@@ -402,11 +415,8 @@ void UIoManager::RegisterMidiInput(MidiIn* ug)
 void UIoManager::RegisterMidiOutput(ug_midi_out* ug)
 {
 	ug->midiOutCallback = [this](timestamp_t p_sample_clock, int msg_size, const unsigned char* midi_bytes) {
-		if (m_midi_driver)
-		{
-			const int ms = SampleToMs(p_sample_clock, (int)AudioDriver()->getSampleRate());
-			m_midi_driver->Output(ms, msg_size, midi_bytes);
-		}
+		const int ms = SampleToMs(p_sample_clock, (int)AudioDriver()->getSampleRate());
+		midiOutputConverter.processMidi({ midi_bytes, msg_size }, ms);
 	};
 
 	realtime_flag = true;

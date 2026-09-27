@@ -12,6 +12,7 @@
 #include <functional>
 #include "EventProcessor.h"
 #include "IMidiDriver.h"
+#include "mp_midi.h"
 
 class UIoManager;
 class IO_base;
@@ -102,6 +103,9 @@ public:
 
 	// MIDI driver abstraction (not owned; lifetime managed by the application)
 	IMidiDriver* m_midi_driver{};
+
+	// MIDI drivers accept MIDI 1.0 only; the MIDI Out module may send MIDI 2.0.
+	gmpi::midi_2_0::MidiConverter1 midiOutputConverter;
 
 private:
 	void RunAt( timestamp_t p_sampleclock, io_func p_func );
