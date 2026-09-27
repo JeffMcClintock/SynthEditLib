@@ -710,6 +710,13 @@ void dsp_patch_parameter_base::setAutomation(int controller_id, bool notifyUI)
 	m_controller_id = controller_id;
 	m_patch_mgr->vst_setAutomationId(this, m_controller_id);
 
+	// update the preset state manager (null while the patch is being built). 'Learn' is a mode, not an assignment.
+	if (shellDsp_ && m_controller_id != ControllerType::Learn)
+	{
+		shellDsp_->onSetParameter(Handle(), gmpi::FieldType::MP_FT_AUTOMATION_SYSEX, RawView(m_controller_sysex), 0);
+		shellDsp_->onSetParameter(Handle(), gmpi::FieldType::MP_FT_AUTOMATION, RawView(m_controller_id), 0);
+	}
+
 	if(notifyUI)
 	{
 		// send new controller ID to UI.

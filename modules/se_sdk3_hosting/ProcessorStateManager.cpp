@@ -5,6 +5,7 @@
 #include "PresetReader.h"
 #include "modules/tinyXml2/tinyxml2.h"
 #include "HostControls.h"
+#include "midi_defs.h"
 #include "Shared/se_logger.h"
 
 #ifndef GMPI_VST3_WRAPPER
@@ -289,7 +290,7 @@ void DawPreset::initFromXML(const std::map<int32_t, paramInfo>& parametersInfo, 
 
 				//ParamElement->QueryStringAttribute("MIDI_SYSEX", &sysexU);
 				const char* temp{};
-				if (tinyxml2::XML_SUCCESS != ParamElement->QueryStringAttribute("MIDI_SYSEX", &temp))
+				if (tinyxml2::XML_SUCCESS == ParamElement->QueryStringAttribute("MIDI_SYSEX", &temp))
 				{
 					values.MidiAutomationSysex = Utf8ToWstring(temp);
 				}
@@ -721,7 +722,7 @@ void ProcessorStateMgrVst3::setPresetRespectingIpc(DawPreset* preset)
 		}
 
 		// replace the current preset.
-		presetMutable = *preset;
+		replacePresetMutable(*preset);
 		currentPreset.store(preset, std::memory_order_release);
 
 		// empty the FIFOs otherwise it might apply stale changes to the new preset.
@@ -749,12 +750,32 @@ void ProcessorStateMgrVst3::setPreset(DawPreset const* preset)
 		messageQueFromProcessor.clear();
 		messageQueFromController.clear();
 
-		presetMutable = *preset;
+		replacePresetMutable(*preset);
 
 		currentPreset.store(preset, std::memory_order_release);
 	}
 
 	ProcessorStateMgr::setPreset(preset);
+}
+
+// must be called under presetMutex lock. A preset without a MIDI assignment keeps the current one, as the DSP and controller do.
+void ProcessorStateMgrVst3::replacePresetMutable(const DawPreset& preset)
+{
+	auto previous = std::move(presetMutable.params);
+	presetMutable = preset;
+
+	for (auto& [handle, value] : presetMutable.params)
+	{
+		if (value.MidiAutomation > ControllerType::None)
+			continue;
+
+		if (auto it = previous.find(handle); it != previous.end() && it->second.MidiAutomation > ControllerType::None)
+		{
+			value.MidiAutomation = it->second.MidiAutomation;
+			value.MidiAutomationSysex = std::move(it->second.MidiAutomationSysex);
+			presetDirty = true; // currentPreset lacks the kept assignment.
+		}
+	}
 }
 
 void ProcessorStateMgr::setPreset(DawPreset const* preset)

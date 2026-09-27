@@ -93,7 +93,7 @@ public:
 	{
 		return m_controller_id;
 	}
-	std::wstring getAutomationSysex()
+	const std::wstring& getAutomationSysex() const
 	{
 		return m_controller_sysex;
 	}

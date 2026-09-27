@@ -1202,6 +1202,13 @@ void DspPatchManager::setPreset(DawPreset const* preset)
 	{
 		if (auto parameter = GetParameter(handle); parameter)
 		{
+			// MIDI learn. A preset without an assignment leaves the current one alone (as setPresetState() does).
+			if (val.MidiAutomation > ControllerType::None && (val.MidiAutomation != parameter->UnifiedControllerId() || val.MidiAutomationSysex != parameter->getAutomationSysex()))
+			{
+				parameter->setAutomationSysex(val.MidiAutomationSysex);
+				parameter->setAutomation(val.MidiAutomation);
+			}
+
 			if (parameter->ignorePatchChange() && preset->ignoreProgramChangeActive && !preset->isInitPreset)
 				continue;
 

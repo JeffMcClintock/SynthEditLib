@@ -2199,6 +2199,14 @@ void MpController::setPreset(DawPreset const* preset)
 		if (parameter->datatype_ != (int)val.dataType)
 			continue;
 
+		// MIDI learn. A preset without an assignment leaves the current one alone (as the DSP does).
+		if (val.MidiAutomation > ControllerType::None && (val.MidiAutomation != parameter->MidiAutomation || val.MidiAutomationSysex != parameter->MidiAutomationSysex))
+		{
+			parameter->MidiAutomation = val.MidiAutomation;
+			parameter->MidiAutomationSysex = val.MidiAutomationSysex;
+			updateGuis(parameter, gmpi::MP_FT_AUTOMATION);
+		}
+
 		if (parameter->ignorePc_ && preset->ignoreProgramChangeActive && !preset->isInitPreset)
 			continue;
 

@@ -124,6 +124,7 @@ class ProcessorStateMgrVst3 : public ProcessorStateMgr, public se_sdk::TimerClie
 
 	bool OnTimer() override;
 	void serviceQueue(gmpi::hosting::lock_free_fifo& fifo);
+	void replacePresetMutable(const DawPreset& preset);
 
 protected:
 	void setPreset(DawPreset const* preset) override;
