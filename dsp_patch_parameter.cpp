@@ -768,18 +768,11 @@ void dsp_patch_parameter_base::vst_automate2(timestamp_t timestamp, int voice, c
 			UpdateUI(false, patchMemoryVoice);
 		}
 
-#if 0 // disabled because: I needed to get rid of macro, and outputting MIDI CC is propably not needed in a plugin these days.
-#if defined( SE_TARGET_PLU GIN )
-		// In SE we don't re-transmit MIDI when parameter changed in response to MIDI. Only when User moves knob.
-		// There is no way of distinguishing in VST3 processor if change came from user, or from automation.
-		// So we send MIDI controllers regardless. MIDI output is kind of pointless in VST3 anyhow.
-		outputMidiAutomation(voice);
-#else
-
-		// lastMidiValue_ represents the *previous* value of the parameter, we need to clear it otherwise a change back to the prev value will fail to send MIDI.
-		lastMidiValue_[voice] = INT_MAX;
-#endif
-#endif
+		// Echo to MIDI out, but not a change that itself came from MIDI. (Host can't tell a knob from automation, so both send.)
+		if (flags & kIsMidiMappedAutomation)
+			lastMidiValue_[patchMemoryVoice] = INT_MAX; // else a later change back to the previous value would not send.
+		else
+			outputMidiAutomation(voice);
 
 		OnValueChanged(voice, timestamp);
 	}

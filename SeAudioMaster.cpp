@@ -2723,7 +2723,7 @@ bool SeAudioMaster::sendsMidi()
 
 class MidiBuffer3* SeAudioMaster::getMidiOutputBuffer()
 {
-	return audioOutModule->getMidiOutputBuffer();
+	return audioOutModule ? audioOutModule->getMidiOutputBuffer() : nullptr;
 }
 
 void SeAudioMaster::RegisterBypassableModule(ug_base* m)

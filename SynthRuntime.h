@@ -179,8 +179,13 @@ public:
 		return generator->sendsMidi();
 	}
 
+	// null while an async restart builds the new DSP on another thread.
 	class MidiBuffer3* getMidiOutputBuffer()
 	{
+		const auto state = runtimeState.load(std::memory_order_acquire);
+		if (state != eRuntimeState::running && state != eRuntimeState::resetting)
+			return {};
+
 		return generator->getMidiOutputBuffer();
 	}
 
