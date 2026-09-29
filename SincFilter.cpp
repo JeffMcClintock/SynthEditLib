@@ -28,7 +28,7 @@
 
 */
 
-float SincFilter::ProcessIISingle_pt2(const float* __restrict pSignal, const float* __restrict pCoefs_f, int todo, int histSize) const
+float SincFilter::ProcessIISingle_pt2(const float* __restrict pSignal, const float* __restrict pCoefs_f, int todo, int histSize, int numCoefs) const
 {
 	// Operate on as many as we can up to end of buffer (but no more than num coefs)
 	float sum[4]{};
@@ -45,7 +45,7 @@ float SincFilter::ProcessIISingle_pt2(const float* __restrict pSignal, const flo
 
 	// Process any leftover from start of hist buffer. (wrap).
 	pSignal -= histSize - sseCount;
-	for (int remain = coefs->numCoefs_ - todo; remain > 0; remain -= 4)
+	for (int remain = numCoefs - todo; remain > 0; remain -= 4)
 	{
 		sum[0] += pSignal[0] * pCoefs_f[0];
 		sum[1] += pSignal[1] * pCoefs_f[1];

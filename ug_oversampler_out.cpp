@@ -47,11 +47,8 @@ int ug_oversampler_out::calcFirPredelay(int tapCount, int oversampleFactor)
 {
 	int firLatency = tapCount / 2;
 	int currentLatency = firLatency + oversampler_->oversampler_in->latencySamples;
-	// Calulate how many extra samples needed to round-up to multiple of oversample factor.
-	//return 1 + oversampleFactor_ - (currentLatency % oversampleFactor_) % oversampleFactor_;
-// second % seems redundant
-assert(oversampleFactor_ - (currentLatency % oversampleFactor_) % oversampleFactor_ == oversampleFactor_ - (currentLatency % oversampleFactor_));
-	return oversampleFactor_ - (currentLatency % oversampleFactor_) % oversampleFactor_;
+	// Calulate how many extra samples needed to round-up to multiple of oversample factor (none if already a multiple).
+	return (oversampleFactor_ - currentLatency % oversampleFactor_) % oversampleFactor_;
 }
 
 void ug_oversampler_out::calcLatency(int filterType, int oversampleFactor)
@@ -121,8 +118,10 @@ int ug_oversampler_out::Open()
 			gausTaps.InitCoefsGausian(cuttoff);
 		}
 
+		sincTaps.useAllCoefs();
+		gausTaps.skipNegligibleCoefs(); // the gaussian is far narrower than the table.
+
 		// To avoid fractional latency, ensure total latency of downsampling filter is multiple of oversampleFactor.
-		// This assume even number of taps, which is slightly asymetrical, hence +1 in formula.
 		int predelay = calcFirPredelay(tapCount, oversampleFactor_);
 
 		Filters3_.resize(plugs.size());
@@ -787,63 +786,83 @@ void ug_oversampler_out::subProcessFirFilter(int start_pos, int sampleframes)
 }
 ///////////////////////////////////////////////////////////
 
+// FIR quality settings get image rejection to match their downsampler (-64/-79/-96/-111 dB). Others keep the original 16-tap filter.
+ug_oversampler_in::Design ug_oversampler_in::upsamplerDesign(int filterSetting)
+{
+	switch (filterSetting)
+	{
+	case 13: return { 44, 6.20 };	// FIR-Low
+	case 14: return { 56, 7.86 };	// FIR-Med
+	case 15: return { 68, 9.62 };	// FIR-Hi
+	case 16: return { 80, 11.38 };	// FIR-Ultra
+	default: return { 16, 0.0 };
+	}
+}
+
+void ug_oversampler_in::calcLatency(int factor)
+{
+	latencySamples = InterpolatorType::calcLatency(upsamplerDesign(oversampler_->filterSetting()).taps, factor);
+}
+
 int ug_oversampler_in::Open()
 {
 	auto r = ug_oversampler_io::Open();
 
+	const auto design = upsamplerDesign(oversampler_->filterSetting());
+
 	// Init upsampling interpolators.
 	{
-		int memsize = InterpolatorType::calcCoefsMemoryBytes(oversampleFactor_);
+		int memsize = InterpolatorType::calcCoefsMemoryBytes(design.taps, oversampleFactor_);
 
 		if (memsize > 0)
 		{
 			{
 				wchar_t name[40];
-				swprintf(name, 40, L"OversamplerIn-SINC %d fac x%d", sincSize, oversampleFactor_);
+				swprintf(name, 40, L"OversamplerIn-SINC %d fac x%d", design.taps, oversampleFactor_);
 
 				int32_t needInitialize;
 				allocateSharedMemory(name, (void**)&InterpolatorCoefs, -1, memsize, needInitialize, SLS_ALL_MODULES);
 				if (needInitialize)
 				{
-					InterpolatorType::initCoefs(oversampleFactor_, InterpolatorCoefs);
+					InterpolatorType::initCoefs(design.taps, oversampleFactor_, InterpolatorCoefs, design.kaiserBeta);
 				}
 			}
 
 			// gausian smoother for control signals.
 			{
 				wchar_t name[40];
-				swprintf(name, 40, L"OversamplerIn-GAUS %d fac x%d", sincSize, oversampleFactor_);
+				swprintf(name, 40, L"OversamplerIn-GAUS %d fac x%d", design.taps, oversampleFactor_);
 
 				int32_t needInitialize;
 				allocateSharedMemory(name, (void**)&InterpolatorCoefs_gaussian, -1, memsize, needInitialize, SLS_ALL_MODULES);
 				if (needInitialize)
 				{
-					InterpolatorType::initCoefs_gaussian(oversampleFactor_, InterpolatorCoefs_gaussian);
+					InterpolatorType::initCoefs_gaussian(design.taps, oversampleFactor_, InterpolatorCoefs_gaussian);
 				}
 			}
 
 #if 0
 			// Print filters.
 			_RPT0(_CRT_WARN, "SINC");
-			for (int i = 0; i < sincSize; ++i)
+			for (int i = 0; i < design.taps; ++i)
 			{
 				for (int j = 0; j < oversampleFactor_ ; ++j)
 				{
-					_RPT1(_CRT_WARN, ", %f", InterpolatorCoefs[i + (oversampleFactor_ - 1 - j) * sincSize]);
+					_RPT1(_CRT_WARN, ", %f", InterpolatorCoefs[i + (oversampleFactor_ - 1 - j) * design.taps]);
 				}
 			}
-			
+
 			_RPT0(_CRT_WARN, "\n");
 
 			_RPT0(_CRT_WARN, "GAUS");
-			for (int i = 0; i < sincSize; ++i)
+			for (int i = 0; i < design.taps; ++i)
 			{
 				for (int j = 0; j < oversampleFactor_ ; ++j)
 				{
-					_RPT1(_CRT_WARN, ", %f", InterpolatorCoefs_gaussian[i + (oversampleFactor_ - 1 - j) * sincSize]);
+					_RPT1(_CRT_WARN, ", %f", InterpolatorCoefs_gaussian[i + (oversampleFactor_ - 1 - j) * design.taps]);
 				}
 			}
-			
+
 			_RPT0(_CRT_WARN, "\n");
 #endif
 		}
@@ -861,7 +880,7 @@ int ug_oversampler_in::Open()
 		const bool isControlSignal = plugs[i]->GetFlag(PF_CV_HINT);
 		const float* coefs = isControlSignal ? InterpolatorCoefs_gaussian : InterpolatorCoefs;
 
-		filterThroughDelay = filter.Init(sincSize, oversampler_->BlockSize(), coefs);
+		filterThroughDelay = filter.Init(design.taps, oversampler_->BlockSize(), coefs, oversampleFactor_);
 		++i;
 	}
 

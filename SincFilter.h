@@ -61,10 +61,56 @@ inline void calcWindowedSinc( double cutoff, int sincTapCount, float* returnSinc
 #endif
 }
 
+// Span of taps [first, first + count) outside which the kernels (numCoefs taps x 'phases') total under 1e-9. SSE-aligned.
+inline void significantTaps(const float* coefs, int numCoefs, int phases, int& first, int& count)
+{
+	constexpr double negligible = 1e-9;
+	int lo = numCoefs;
+	int hi = 0;
+	for (int p = 0; p < phases; ++p)
+	{
+		const float* c = coefs + p * numCoefs;
+
+		int a = 0;
+		double dropped = 0.0;
+		while (a < numCoefs && dropped + fabs(c[a]) < negligible)
+			dropped += fabs(c[a++]);
+
+		int b = numCoefs;
+		dropped = 0.0;
+		while (b > a && dropped + fabs(c[b - 1]) < negligible)
+			dropped += fabs(c[--b]);
+
+		lo = (std::min)(lo, a);
+		hi = (std::max)(hi, b);
+	}
+
+	first = lo & ~3;
+	count = (hi - first + 3) & ~3;
+	if (count <= 0)
+	{
+		first = 0;
+		count = numCoefs;
+	}
+}
+
 struct SincFilterCoefs
 {
 	int numCoefs_ = {};
 	float* coefs_ = {};
+	int firstCoef_ = {};	// convolution skips the negligible tails outside [firstCoef_, firstCoef_ + activeCoefs_)
+	int activeCoefs_ = {};
+
+	void useAllCoefs()
+	{
+		firstCoef_ = 0;
+		activeCoefs_ = numCoefs_;
+	}
+
+	void skipNegligibleCoefs()
+	{
+		significantTaps(coefs_, numCoefs_, 1, firstCoef_, activeCoefs_);
+	}
 
 	void InitCoefs(double cuttoff)
 	{
@@ -192,7 +238,7 @@ public:
 		}
     }
 
-	float ProcessIISingle_pt2(const float* __restrict pSignal, const float* __restrict pCoefs_f, int todo, int histSize) const;
+	float ProcessIISingle_pt2(const float* __restrict pSignal, const float* __restrict pCoefs_f, int todo, int histSize, int numCoefs) const;
 
 	// Process single sample returning filter output.
 	inline float ProcessIISingle(const int oversampleFactor_)
@@ -201,13 +247,19 @@ public:
 
 		// convolution.
 		// Auto-vectorized C++.
-		const int numCoefs = coefs->numCoefs_;
+		const int numCoefs = coefs->activeCoefs_;
 		assert((numCoefs & 0x03) == 0); // factor of 4?
 
-		const float* pCoefs_f = coefs->coefs_;
-		const float* pSignal = &(hist_[readIndex_]);
+		const float* pCoefs_f = coefs->coefs_ + coefs->firstCoef_;
 
-		const int todo = (std::min)(numCoefs, histSize - readIndex_) & 0xfffffffc;
+		int start = readIndex_ + coefs->firstCoef_;
+		if (start >= histSize)
+		{
+			start -= histSize - sseCount;
+		}
+		const float* pSignal = &(hist_[start]);
+
+		const int todo = (std::min)(numCoefs, histSize - start) & 0xfffffffc;
 
 		readIndex_ += oversampleFactor_;
 		if (readIndex_ >= histSize)
@@ -215,7 +267,7 @@ public:
 			readIndex_ -= histSize - sseCount;
 		}
 
-		return ProcessIISingle_pt2(pSignal, pCoefs_f, todo, histSize);
+		return ProcessIISingle_pt2(pSignal, pCoefs_f, todo, histSize, numCoefs);
 	}
 
 	int Init(int numCoefs, int /*oversampleFactor*/, int maxBufferSize, int preadahead, const SincFilterCoefs* pcoefs)

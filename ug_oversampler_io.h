@@ -4,6 +4,7 @@
 #include <math.h>
 #include "ug_base.h"
 #include "conversion.h"
+#include "SincFilter.h"
 
 class UpsamplingInterpolator // cubic.
 {
@@ -105,25 +106,41 @@ public:
 	}
 };
 
-template <int sincSize>
 class UpsamplingInterpolator3 // sinc SSE
 {
 	static constexpr int sseCount = 4; // allocate a few entries off end for SSE.
 	std::vector<float> hist_;
 	int writeIndex_ = {};
 	int readIndex_ = {};
+	int sincSize = {};
+	int firstTap_ = {};		// convolution skips the negligible tails outside [firstTap_, firstTap_ + activeTaps_)
+	int activeTaps_ = {};
 	const float* coefs = {};
 
+	static double bessel0(double x)
+	{
+		double sum = 1.0;
+		double term = 1.0;
+		for (int k = 1; k < 60 && term > sum * 1e-17; ++k)
+		{
+			term *= (x / (2.0 * k)) * (x / (2.0 * k));
+			sum += term;
+		}
+		return sum;
+	}
+
 public:
-	static int calcLatency(int factor)
+	static int calcLatency(int sincSize, int factor)
 	{
 		return (sincSize / 2 + 5) * factor; // sincsize/2 is latency due to convolution, 5 is likly SSEsize + 1
 	}
 
 	// Need enough room to copy incoming samples, plus enough to run coefs over historic samples, plus readahead (latency compensation)
-	int Init(int numCoefs, int maxBufferSize, const float* pcoefs)
+	int Init(int numCoefs, int maxBufferSize, const float* pcoefs, int oversampleFactor)
 	{
+		sincSize = numCoefs;
 		coefs = pcoefs;
+		significantTaps(pcoefs, numCoefs, oversampleFactor, firstTap_, activeTaps_);
 
 		int bufferSize = maxBufferSize + numCoefs + sseCount; // enough to ensure input does not overwrite tail before it is filtered.
 
@@ -135,12 +152,13 @@ public:
 		return numCoefs + sseCount; // return through-delay
 	}
 
-	static int calcCoefsMemoryBytes(int factor)
+	static int calcCoefsMemoryBytes(int sincSize, int factor)
 	{
 		return sizeof(float) * sincSize * factor;
 	}
 
-	static void initCoefs(int factor, float* coefs)
+	// kaiserBeta 0 = the original squared-Hann window.
+	static void initCoefs(int sincSize, int factor, float* coefs, double kaiserBeta = 0.0)
 	{
 		float* dest = coefs;
 
@@ -173,8 +191,18 @@ public:
 				double sinc = sin(M_PI * o) / (M_PI * o);
 
 				// apply tailing function
-				double hanning = cos(0.5 * M_PI * o / (double)tableWidth);
-				float windowed_sinc = (float)(sinc * hanning * hanning);
+				double windowed;
+				if (kaiserBeta > 0.0)
+				{
+					const double r = o / tableWidth;
+					windowed = sinc * bessel0(kaiserBeta * sqrt((std::max)(0.0, 1.0 - r * r))) / bessel0(kaiserBeta);
+				}
+				else
+				{
+					double hanning = cos(0.5 * M_PI * o / (double)tableWidth);
+					windowed = sinc * hanning * hanning;
+				}
+				float windowed_sinc = (float)windowed;
 
 				*dest++ = windowed_sinc;
 				fir_sum += windowed_sinc;
@@ -195,8 +223,10 @@ public:
 		}
 	}
 
-	static void initCoefs_gaussian(int factor, float* coefs)
+	// window stays the original 16-tap width at any table size, so the control-signal response never changes.
+	static void initCoefs_gaussian(int sincSize, int factor, float* coefs)
 	{
+		constexpr double windowWidth = 8.0;
 		float* dest = coefs;
 
 		// Subsequent tables
@@ -214,7 +244,7 @@ public:
 				double gaussian = exp(-(o * o)) / M_PI;
 
 				// apply tailing function
-				double hanning = cos(0.5 * M_PI * o / (double)tableWidth);
+				double hanning = fabs(o) < windowWidth ? cos(0.5 * M_PI * o / windowWidth) : 0.0;
 				float windowed = (float)(gaussian * hanning * hanning);
 
 				*dest++ = static_cast<float>(windowed);
@@ -337,14 +367,20 @@ public:
 
 #else
 			// Auto-vectorized C++.
-			const int numCoefs = sincSize;
+			const int numCoefs = activeTaps_;
 			assert((numCoefs & 0x03) == 0); // factor of 4?
 
-			const float* __restrict pCoefs_f = filter;
-			const float* __restrict pSignal = &(hist_[readIndex_]);
+			const float* __restrict pCoefs_f = filter + firstTap_;
+
+			int start = readIndex_ + firstTap_;
+			if (start >= histSize)
+			{
+				start -= histSize - sseCount;
+			}
+			const float* __restrict pSignal = &(hist_[start]);
 
 			// Operate on as many as we can up to end of buffer (but no more than num coefs)
-			int todo = (std::min)(numCoefs, histSize - readIndex_) & 0xfffffffc;
+			int todo = (std::min)(numCoefs, histSize - start) & 0xfffffffc;
 
 			float sum1_f[4]{};
 			for (int i = todo; i > 0; i -= 4)
