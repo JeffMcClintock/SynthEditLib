@@ -761,9 +761,7 @@ void dsp_patch_parameter_base::vst_automate2(timestamp_t timestamp, int voice, c
 		// In VST3, GUI is notified of automation by Host independantly. Don't double-up.
 		// Exception is MIDI Messages internally mapped to Parameter.
 		// (With SE.exe we must always notify GUI).
-//#if defined( SE_TARGET_PLU GIN )
 		if( flags & (kIsMidiMappedAutomation | kMustUpdateUi) )
-//#endif
 		{
 			UpdateUI(false, patchMemoryVoice);
 		}
