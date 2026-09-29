@@ -84,6 +84,7 @@ public:
 
 	bool hasAudioInput = false;
 	bool hasAudioOutput = false;
+	bool hasMidiOutput = false;
 
 	// list of midi-in devices to inform of MIDI data
 	MidiIn* MidiInUg{};

@@ -37,8 +37,8 @@ public:
 	}
 
 private:
-	int n_channels;
-	int latency;
+	int n_channels{};
+	int latency{};
 	std::chrono::steady_clock::time_point m_start_clock;
 	int m_offset;
 	int64_t elapsed_sample_time = 0;

@@ -2671,6 +2671,12 @@ void CUG::GetTimingRequirements( int& p_flags )
 		p_flags |= SER_REALTIME;
 	}
 
+	// a change forces a full restart, which is what opens or closes the MIDI Out device
+	if( module_type_id == (L"MIDI Out") )
+	{
+		p_flags |= SER_MIDI_OUT;
+	}
+
 	if( module_type_id == L"Wave Recorder" )
 	{
 		p_flags |= SER_FILE;

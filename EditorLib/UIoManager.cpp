@@ -70,7 +70,7 @@ bool UIoManager::Initialise(class SynthRuntime_editor* pclient, IO_base* p_audio
 
 void UIoManager::OnRebuildDsp()
 {
-	hasAudioOutput = hasAudioInput = false;
+	hasAudioOutput = hasAudioInput = hasMidiOutput = false;
 	MidiInUg = {};
 }
 
@@ -211,7 +211,10 @@ int UIoManager::MIDISetup()
 		};
 	}
 
-	int result = m_midi_driver->Setup(CurrentMidiInDevs, CurrentMidiOutDev, m_audio_driver, std::move(onMidiInput));
+	// Open the MIDI Out device only if a MIDI Out module is registered
+	const std::string midiOutDev = hasMidiOutput ? CurrentMidiOutDev : std::string{};
+
+	int result = m_midi_driver->Setup(CurrentMidiInDevs, midiOutDev, m_audio_driver, std::move(onMidiInput));
 
 	if (result != 0)
 	{
@@ -419,7 +422,7 @@ void UIoManager::RegisterMidiOutput(ug_midi_out* ug)
 		midiOutputConverter.processMidi({ midi_bytes, msg_size }, ms);
 	};
 
-	realtime_flag = true;
+	hasMidiOutput = realtime_flag = true;
 }
 
 int32_t UIoManager::RegisterIoModule(ISpecialIoModule* m)

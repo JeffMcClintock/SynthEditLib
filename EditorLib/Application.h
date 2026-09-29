@@ -22,7 +22,7 @@ namespace SE2{struct feedbackPinUi;}
 namespace gmpi { namespace api { struct IDialogHost; } }
 namespace gmpi { namespace hosting{class IWriteableQue;}}
 
-enum se_realtime_flags { SER_FILE = 1, SER_REALTIME = 2, SER_SOUNDCARD_IN = 4, SER_SOUNDCARD_OUT = 8 };
+enum se_realtime_flags { SER_FILE = 1, SER_REALTIME = 2, SER_SOUNDCARD_IN = 4, SER_SOUNDCARD_OUT = 8, SER_MIDI_OUT = 16 };
 
 struct folder_info
 {
