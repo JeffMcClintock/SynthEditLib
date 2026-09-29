@@ -158,6 +158,8 @@ void MpParameter_base::updateFromDsp(int recievingMessageId, my_input_stream & s
 		bool vst_inhibit_send_automation;
 		strm >> vst_inhibit_send_automation;
 
+		bool changed = false;
+
 		int voice;
 		strm >> voice;
 
@@ -176,8 +178,10 @@ void MpParameter_base::updateFromDsp(int recievingMessageId, my_input_stream & s
 			}
 
 			assert(rawValues_.size() > voice);
-			rawValues_[voice].resize(size);
-			strm.Read(rawValues_[voice].data(), size);
+			std::string raw(size, '\0');
+			strm.Read(raw.data(), size);
+			changed |= raw != rawValues_[voice];
+			rawValues_[voice] = std::move(raw);
 
 			controller_->updateGuis(this, voice);
 			
@@ -187,6 +191,10 @@ void MpParameter_base::updateFromDsp(int recievingMessageId, my_input_stream & s
 			// next? (-1 signifies end)
 			strm >> voice;
 		}
+
+		// e.g. PatchMemory In/Out storing a signal, or a MIDI-learned CC. Output-only params are non-stateful.
+		if (changed && stateful_)
+			controller_->notifyDawStateChanged();
 	}
 	break;
 	}
@@ -200,6 +208,7 @@ void MpParameter::updateFromDsp(int recievingMessageId, my_input_stream & strm)
 	{
 		strm >> MidiAutomation;
 		controller_->updateGuis(this, gmpi::MP_FT_AUTOMATION);
+		controller_->notifyDawStateChanged();
 	}
 	break;
 	}

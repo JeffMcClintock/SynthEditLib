@@ -409,6 +409,7 @@ public:
 	virtual void OnStartPresetChange() {}
 	virtual void OnEndPresetChange();
 	virtual void notifyDawLatencyChanged() {} // called on the Controller (foreground) thread to notify the DAW of a latency change.
+	virtual void notifyDawStateChanged() {} // foreground thread. saved state changed in a way the DAW can't see (private param, preset, MIDI learn).
 	virtual MpParameter_native* makeNativeParameter(int ParameterTag, bool isInverted = false) = 0;
 };
 

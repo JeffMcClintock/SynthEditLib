@@ -3,7 +3,7 @@
 <PluginList>
   <Plugin id="SynthEdit QueLoader"  name="QueLoader" category="Diagnostic" graphicsApi="HWND">
     <Parameters>
-      <Parameter id="0" name="DSP to GUI" datatype="blob" private="true" ignorePatchChange="true" />
+      <Parameter id="0" name="DSP to GUI" datatype="blob" private="true" ignorePatchChange="true" persistant="false" />
       <Parameter id="1" name="GUI to DSP" datatype="blob" private="true" ignorePatchChange="true" />
     </Parameters>
     <Audio>

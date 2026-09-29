@@ -990,6 +990,9 @@ void MpController::setParameterValue(RawView value, int32_t parameterHandle, gmp
 			{
 				cc = ControllerType::None;
 
+				if (seParameter->MidiAutomation != cc)
+					notifyDawStateChanged();
+
 				// set automation on GUI to 'none'
 				seParameter->MidiAutomation = cc;
 				updateGuis(seParameter, gmpi::MP_FT_AUTOMATION);
@@ -1566,6 +1569,9 @@ void MpController::ParamToDsp(MpParameter* param, int32_t voice)
 		stream << (int32_t)-1; // voice data terminator.
 
 	stream.Send();
+
+	if (param->stateful_)
+		notifyDawStateChanged();
 }
 
 void MpController::UpdateProgramCategoriesHc(MpParameter* param)
@@ -2809,6 +2815,7 @@ void MpController::setParameterMidiAssignment(MpParameter* param, int32_t automa
 	}
 
 	updateGuis(param, gmpi::MP_FT_AUTOMATION);
+	notifyDawStateChanged();
 }
 
 void MpController::setModified(bool presetIsModified)
