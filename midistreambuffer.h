@@ -19,6 +19,7 @@ public:
 	MidiStreamBuffer(int nothing = 0);
 	// copy constructor. supports use in standard containers.
 	MidiStreamBuffer( const MidiStreamBuffer& other );
+	MidiStreamBuffer& operator=(const MidiStreamBuffer&) = delete; // would share 'events', then double-delete it
 	~MidiStreamBuffer();
 	void SetInput()
 	{
