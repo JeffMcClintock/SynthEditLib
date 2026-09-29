@@ -18,9 +18,7 @@ TiXmlElement* Ctl_Combo::ExportXml(TiXmlElement* XmlParent, ExportFormatType tar
 	TiXmlElement* module_element = CUG::ExportXml(XmlParent, targetType );
 
 	if (module_element == nullptr || targetType != SAT_SUBCONTROLS_GUI)
-	{
 		return module_element;
-	}
 
 	// new (under development).
 	module_element->SetAttribute("Type", "SE List Entry");

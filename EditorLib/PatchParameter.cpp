@@ -1178,7 +1178,7 @@ RawView PatchParameter_base::GetValueImpl( ParameterFieldType field, int voice, 
 
 void PatchParameter_base::SetValueRaw(ParameterFieldType field, const void* data, int size, int voice, int patch )
 {
-	bool isStateFull = is_stateful();
+	bool affectsDocument = is_stateful();
 	bool notifiedPatchManager = false;
 	bool changed = true;
 
@@ -1244,7 +1244,7 @@ void PatchParameter_base::SetValueRaw(ParameterFieldType field, const void* data
 
 	case FT_MENU_SELECTION:
 		OnPopupParameterMenu( RawToValue<int>(data, size) );
-		isStateFull = false;
+		affectsDocument = false;
 		break;
 
 	case FT_IGNORE_PROGRAM_CHANGE:
@@ -1281,7 +1281,7 @@ void PatchParameter_base::SetValueRaw(ParameterFieldType field, const void* data
 
 	case FT_GRAB:
 		{
-			isStateFull = false;
+			affectsDocument = false;
 
 			bool oldVal = m_grabbed;
 			m_grabbed = RawToValue<bool>(data, size);
@@ -1299,7 +1299,7 @@ void PatchParameter_base::SetValueRaw(ParameterFieldType field, const void* data
 
 	case FT_NORMALIZED:
 		// recursive. Calls back here with FT_VALUE. no need to set changed flag etc.
-		isStateFull = false; // to prevent setting document changed flag.
+		affectsDocument = false; // to prevent setting document changed flag.
 		setValueNormalised( RawToValue<float>( data, size ), false );
 		break;
 
@@ -1337,7 +1337,7 @@ void PatchParameter_base::SetValueRaw(ParameterFieldType field, const void* data
 		m_patch_mgr->OnParameterUpdate( this, field, voice, data, size );
 	}
 
-	if( isStateFull && changed)
+	if( affectsDocument && changed)
 	{
 		getPatchManager()->Container()->Document()->SetModified();
 	}

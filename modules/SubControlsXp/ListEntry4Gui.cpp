@@ -113,9 +113,7 @@ std::string ListEntry4Gui::getDisplayText()
 			}
 
 			if (i == 4) // First 4 chars the same? Ignore.
-			{
 				continue;
-			}
 		}
 
 		return WStringToUtf8(txt);
