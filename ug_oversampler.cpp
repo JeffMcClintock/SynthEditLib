@@ -918,8 +918,8 @@ int ug_oversampler::calcDelayCompensation()
 	}
 
 	// NOTE: ug_oversampler_out::calcLatency pads the boundary FILTERS' latency up to a multiple of
-	// oversampleFactor_, so for a filter-only inner graph this division is exact (remainder 0; a
-	// FIR-Med oversampler contributes exactly 97). A latency-DECLARING
+	// oversampleFactor_, so for a filter-only inner graph this division is exact (remainder 0; e.g.
+	// FIR-Med at 2x contributes exactly 97). A latency-DECLARING
 	// module inside the container (a Lookahead2, a SEM calling SetModuleLatency) can make the inner
 	// cumulative a non-multiple, and this division then truncates - long-standing behaviour, kept:
 	// changing it would move every pad this pass inserts. The report pass below rounds instead.

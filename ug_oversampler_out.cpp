@@ -43,12 +43,53 @@ UPlug* ug_oversampler_io::GetProxyPlug(int i, UPlug* p)
 	return op;
 }
 
-int ug_oversampler_out::calcFirPredelay(int tapCount, int oversampleFactor)
+// FIR quality settings above 2x decimate in half-band stages down to 2x, then apply the 2x sinc: same response, far fewer taps.
+// Each half-band is flat to the top of the sinc's transition band and rejects what would fold onto it by 140 dB.
+static const struct { int halfLength; double kaiserBeta; } halfbandDesigns[4] = { // stage input rate 4x, 8x, 16x, 32x+
+	{ 21, 14.90 },
+	{ 13, 15.05 },
+	{ 11, 14.70 },
+	{  9, 13.55 },
+};
+
+ug_oversampler_out::FirPlan ug_oversampler_out::planFir(int filterSetting) const
 {
-	int firLatency = tapCount / 2;
-	int currentLatency = firLatency + oversampler_->oversampler_in->latencySamples;
-	// Calulate how many extra samples needed to round-up to multiple of oversample factor (none if already a multiple).
-	return (oversampleFactor_ - currentLatency % oversampleFactor_) % oversampleFactor_;
+	const int F = oversampleFactor_;
+	FirPlan p{};
+
+	const bool halfbands = filterSetting >= 13 && filterSetting <= 16 && F >= 4 && (F & (F - 1)) == 0;
+	p.sincFactor = halfbands ? 2 : F;
+	p.sincTaps = calcTapCount2(filterSetting, p.sincFactor);
+
+	int latency = 0;
+	int settle = 0;
+	int span = 1; // input samples per sample at the current stage's rate
+	if (halfbands)
+	{
+		for (int r = F; r > 2; r /= 2)
+		{
+			const int design = r >= 32 ? 3 : (r >= 16 ? 2 : (r >= 8 ? 1 : 0));
+			const int M = halfbandDesigns[design].halfLength;
+			p.halfbands.push_back(design);
+			latency += (M + 1) * span;
+			settle += (halfbandTapCount(M) + 2) * span;
+			span *= 2;
+		}
+	}
+	latency += (p.sincTaps / 2) * span;
+	settle += (p.sincTaps + p.sincFactor) * span;
+
+	// To avoid fractional latency, pad the total (with the upsampler) to a multiple of the oversampling factor.
+	const int inLatency = oversampler_->oversampler_in->latencySamples;
+	p.predelay = (F - (latency + inLatency) % F) % F;
+	p.latency = latency + p.predelay;
+
+	// control signals use a single-stage gaussian, delayed to line up with the audio path.
+	p.gaussTaps = calcTapCount2(filterSetting, F);
+	p.gaussPredelay = p.latency - p.gaussTaps / 2;
+
+	p.settle = (std::max)(p.predelay + settle, p.gaussPredelay + p.gaussTaps + F);
+	return p;
 }
 
 void ug_oversampler_out::calcLatency(int filterType, int oversampleFactor)
@@ -56,10 +97,9 @@ void ug_oversampler_out::calcLatency(int filterType, int oversampleFactor)
 	// total latency of oversampler.
 	if (filterType > 10) // FIR Filter on output.
 	{
-		const auto taps = calcTapCount2(filterType, oversampleFactor);
-		const int predelay = calcFirPredelay(taps, oversampleFactor);
-		latencySamples = predelay + taps / 2; // downsampler latency.
-		staticSettleSamples = predelay + taps + oversampleFactor;
+		const auto plan = planFir(filterType);
+		latencySamples = plan.latency; // downsampler latency.
+		staticSettleSamples = plan.settle;
 
 		assert(latencySamples % oversampleFactor == 0);
 
@@ -93,46 +133,73 @@ int ug_oversampler_out::Open()
 
 	if( firMode )
 	{
-		const int tapCount = calcTapCount2(filterSetting, oversampleFactor_);
-		sincTaps.numCoefs_ = tapCount;
-		gausTaps.numCoefs_ = tapCount;
+		const auto plan = planFir(filterSetting);
+
+		const double transitionBand = (std::min)(10, (std::max)(1, (17 - filterSetting))) * 0.01;
+		const double transitionAdjust = 1.0 - transitionBand;
 
 		wchar_t name[40];
-		swprintf( name, 40, L"Oversampler-SINC %d taps x%d", tapCount, oversampleFactor_ );
-
 		int32_t needInitialize;
-		allocateSharedMemory( name, (void**) &sincTaps.coefs_, -1, tapCount * sizeof(float), needInitialize, SLS_ALL_MODULES );
-
-		swprintf( name, 40, L"Oversampler-GAUS %d taps x%d", tapCount, oversampleFactor_ );
-		allocateSharedMemory( name, (void**) &gausTaps.coefs_, -1, tapCount * sizeof(float), needInitialize, SLS_ALL_MODULES );
 
 		// Fill lookup tables if not done already
+		sincTaps.numCoefs_ = plan.sincTaps;
+		swprintf( name, 40, L"Oversampler-SINC %d taps x%d", plan.sincTaps, plan.sincFactor );
+		allocateSharedMemory( name, (void**) &sincTaps.coefs_, -1, plan.sincTaps * sizeof(float), needInitialize, SLS_ALL_MODULES );
 		if( needInitialize )
 		{
-			const double transitionBand = (std::min)(10, (std::max)(1, (17 - filterSetting))) * 0.01;
-			const double transitionAdjust = 1.0 - transitionBand;
-			auto cuttoff = transitionAdjust * 0.5 / oversampleFactor_;
+			sincTaps.InitCoefs(transitionAdjust * 0.5 / plan.sincFactor);
+		}
 
-			sincTaps.InitCoefs(cuttoff);
-
-			gausTaps.InitCoefsGausian(cuttoff);
+		gausTaps.numCoefs_ = plan.gaussTaps;
+		swprintf( name, 40, L"Oversampler-GAUS %d taps x%d", plan.gaussTaps, oversampleFactor_ );
+		allocateSharedMemory( name, (void**) &gausTaps.coefs_, -1, plan.gaussTaps * sizeof(float), needInitialize, SLS_ALL_MODULES );
+		if( needInitialize )
+		{
+			gausTaps.InitCoefsGausian(transitionAdjust * 0.5 / oversampleFactor_);
 		}
 
 		sincTaps.useAllCoefs();
 		gausTaps.skipNegligibleCoefs(); // the gaussian is far narrower than the table.
 
-		// To avoid fractional latency, ensure total latency of downsampling filter is multiple of oversampleFactor.
-		int predelay = calcFirPredelay(tapCount, oversampleFactor_);
+		// audio: half-band stages (if any) then the sinc.
+		const int halfbandCount = static_cast<int>(plan.halfbands.size());
+		halfbandCoefData.resize(halfbandCount);
+		halfbandTaps.resize(halfbandCount);
+
+		std::vector<const SincFilterCoefs*> stageCoefs;
+		std::vector<int> stageFactors;
+		for (int s = 0; s < halfbandCount; ++s)
+		{
+			const auto& design = halfbandDesigns[plan.halfbands[s]];
+			const int M = design.halfLength;
+			halfbandCoefData[s].resize(halfbandTapCount(M));
+			calcHalfband(M, design.kaiserBeta, halfbandCoefData[s].data());
+
+			halfbandTaps[s].numCoefs_ = halfbandTapCount(M);
+			halfbandTaps[s].coefs_ = halfbandCoefData[s].data();
+			halfbandTaps[s].useAllCoefs();
+
+			stageCoefs.push_back(&halfbandTaps[s]);
+			stageFactors.push_back(2);
+		}
+		stageCoefs.push_back(&sincTaps);
+		stageFactors.push_back(plan.sincFactor);
+
+		const SincFilterCoefs* gaussCoefs = &gausTaps;
 
 		Filters3_.resize(plugs.size());
 
 		int i = 0;
 		for( auto& filter : Filters3_)
 		{
-			const bool isControlSignal = plugs[i]->GetFlag(PF_CV_HINT);
-			const SincFilterCoefs* coefs = isControlSignal ? &gausTaps : &sincTaps;
-
-			filter.Init(tapCount, oversampleFactor_, AudioMaster()->BlockSize(), predelay, coefs);
+			if (plugs[i]->GetFlag(PF_CV_HINT))
+			{
+				filter.Init(&gaussCoefs, &oversampleFactor_, 1, AudioMaster()->BlockSize(), plan.gaussPredelay);
+			}
+			else
+			{
+				filter.Init(stageCoefs.data(), stageFactors.data(), static_cast<int>(stageCoefs.size()), AudioMaster()->BlockSize(), plan.predelay);
+			}
 
 			++i;
 		}
@@ -698,12 +765,8 @@ void ug_oversampler_out::subProcessFirFilter(int start_pos, int sampleframes)
 
 			//_RPT4(_CRT_WARN, "r%3d w%3d offset%3d/%3d ", Filters3_[x].readIndex_, Filters3_[x].writeIndex_, (Filters3_[x].hist_.size() + Filters3_[x].writeIndex_ - Filters3_[x].readIndex_ ) % Filters3_[x].hist_.size(), Filters3_[x].hist_.size());
 			//_RPT2(_CRT_WARN, "sampleframes %d downsampledSampleframes %3d\n", sampleframes, downsampledSampleframes);
-			Filters3_[x].pushHistory(from, sampleframes);
-
-			for (int s = downsampledSampleframes; s > 0; --s)
-			{
-				*to++ = Filters3_[x].ProcessIISingle(oversampleFactor_);
-			}
+			[[maybe_unused]] const int written = Filters3_[x].process(from, sampleframes, to);
+			assert(written == downsampledSampleframes);
 
 #ifdef _DEBUG
 			if (OSP_StaticCount == states[x])
@@ -777,7 +840,7 @@ void ug_oversampler_out::subProcessFirFilter(int start_pos, int sampleframes)
 		}
 		else
 		{
-			Filters3_[x].Skip(sampleframes, downsampledSampleframes, oversampleFactor_);
+			Filters3_[x].Skip(sampleframes);
 		}
 	}
 

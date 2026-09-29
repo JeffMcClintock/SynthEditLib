@@ -59,4 +59,30 @@ float SincFilter::ProcessIISingle_pt2(const float* __restrict pSignal, const flo
 	return sum[0] + sum[1] + sum[2] + sum[3];
 }
 
+// Same as calling ProcessIISingle() 'count' times, without the per-sample call overhead (matters for short filters).
+void SincFilter::ProcessBlock(float* __restrict out, int count, int oversampleFactor)
+{
+	const int histSize = (int)hist_.size();
+	const int numCoefs = coefs->activeCoefs_;
+	const float* pCoefs_f = coefs->coefs_ + coefs->firstCoef_;
+
+	for (int k = 0; k < count; ++k)
+	{
+		int start = readIndex_ + coefs->firstCoef_;
+		if (start >= histSize)
+		{
+			start -= histSize - sseCount;
+		}
+
+		const int todo = (std::min)(numCoefs, histSize - start) & 0xfffffffc;
+
+		readIndex_ += oversampleFactor;
+		if (readIndex_ >= histSize)
+		{
+			readIndex_ -= histSize - sseCount;
+		}
+
+		out[k] = ProcessIISingle_pt2(&(hist_[start]), pCoefs_f, todo, histSize, numCoefs);
+	}
+}
 

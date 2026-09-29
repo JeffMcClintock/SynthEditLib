@@ -239,6 +239,7 @@ public:
     }
 
 	float ProcessIISingle_pt2(const float* __restrict pSignal, const float* __restrict pCoefs_f, int todo, int histSize, int numCoefs) const;
+	void ProcessBlock(float* __restrict out, int count, int oversampleFactor);
 
 	// Process single sample returning filter output.
 	inline float ProcessIISingle(const int oversampleFactor_)
@@ -294,6 +295,107 @@ const int debugSize = (writeIndex_ - readIndex_ + effectiveBufferSize ) % effect
 */
 		// return the number of samples that need to be fed in to clear buffer.
 		return numCoefs + preadahead;
+	}
+};
+
+inline double kaiserBessel0(double x)
+{
+	double sum = 1.0;
+	double term = 1.0;
+	for (int k = 1; k < 60 && term > sum * 1e-17; ++k)
+	{
+		term *= (x / (2.0 * k)) * (x / (2.0 * k));
+		sum += term;
+	}
+	return sum;
+}
+
+inline int halfbandTapCount(int halfLength)
+{
+	return (2 * halfLength + 1 + 3) & ~3;
+}
+
+// Kaiser half-band lowpass (cutoff at a quarter of its input rate), 2*halfLength+1 taps, zero-padded at the front to a multiple of 4. Unity DC gain.
+inline void calcHalfband(int halfLength, double beta, float* coefs)
+{
+	const int M = halfLength;
+	const int pad = halfbandTapCount(M) - (2 * M + 1);
+
+	std::vector<double> c(2 * M + 1);
+	double sum = 0.0;
+	for (int k = -M; k <= M; ++k)
+	{
+		const double x = 0.5 * M_PI * k;
+		const double sinc = (k % 2 == 0) ? (k == 0 ? 1.0 : 0.0) : sin(x) / x;
+		const double r = k / (M + 1.0);
+		c[M + k] = sinc * kaiserBessel0(beta * sqrt(1.0 - r * r)) / kaiserBessel0(beta);
+		sum += c[M + k];
+	}
+
+	for (int i = 0; i < pad; ++i)
+		coefs[i] = 0.0f;
+
+	for (int k = 0; k <= 2 * M; ++k)
+		coefs[pad + k] = static_cast<float>(c[k] / sum);
+}
+
+// Decimating FIR stages in series; stage 0 runs at the input rate.
+class DecimatorCascade
+{
+	struct Stage
+	{
+		SincFilter filter;
+		int factor = 1;
+		int phase = 0;
+	};
+	std::vector<Stage> stages_;
+	std::vector<float> scratch_;
+
+public:
+	void Init(const SincFilterCoefs* const* coefs, const int* factors, int stageCount, int maxBufferSize, int predelay)
+	{
+		stages_.assign(stageCount, {});
+		int maxIn = maxBufferSize;
+		for (int i = 0; i < stageCount; ++i)
+		{
+			auto& s = stages_[i];
+			s.factor = factors[i];
+			s.filter.Init(coefs[i]->numCoefs_, s.factor, maxIn + s.factor, i == 0 ? predelay : 0, coefs[i]);
+			maxIn = maxIn / s.factor + 1;
+		}
+		scratch_.assign(maxBufferSize + 4, 0.0f);
+	}
+
+	// returns the number of samples written to 'to'.
+	int process(const float* from, int count, float* to)
+	{
+		const float* in = from;
+		for (size_t i = 0; i < stages_.size(); ++i)
+		{
+			auto& s = stages_[i];
+			s.filter.pushHistory(in, count); // copies 'in', so the scratch buffer can be reused for this stage's output.
+
+			const int outs = (count + s.phase) / s.factor;
+			s.phase = (s.phase + count) % s.factor;
+
+			float* out = i + 1 == stages_.size() ? to : scratch_.data();
+			s.filter.ProcessBlock(out, outs, s.factor);
+
+			in = out;
+			count = outs;
+		}
+		return count;
+	}
+
+	void Skip(int count)
+	{
+		for (auto& s : stages_)
+		{
+			const int outs = (count + s.phase) / s.factor;
+			s.filter.Skip(count, outs, s.factor);
+			s.phase = (s.phase + count) % s.factor;
+			count = outs;
+		}
 	}
 };
 
