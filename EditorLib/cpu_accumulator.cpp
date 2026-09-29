@@ -26,11 +26,13 @@ cpu_accumulator::cpu_accumulator() :
 void cpu_accumulator::staticUpdate(cpu_accumulator* cpu_meter, my_input_stream& p_stream)
 {
 	float cpu, peak;
+	int32_t newEngine;
 	int voiceCount;
 	char ModulesActive_[128];
 
 	p_stream >> cpu;
 	p_stream >> peak;
+	p_stream >> newEngine;
 	p_stream >> voiceCount;
 	assert(voiceCount < sizeof(ModulesActive_));
 	p_stream.Read( ModulesActive_, voiceCount );
@@ -41,33 +43,44 @@ void cpu_accumulator::staticUpdate(cpu_accumulator* cpu_meter, my_input_stream& 
 	cpu_meter->Update(
 		cpu,
 		peak,
+		newEngine != 0,
 		voiceCount,
 		ModulesActive_
 		);
 }
 
-void cpu_accumulator::Update(float cpu, float peak, int voiceCount, char* ModulesActive)
+void cpu_accumulator::Update(float cpu, float peak, bool newEngine, int voiceCount, char* ModulesActive)
 {
 	std::copy(ModulesActive, ModulesActive + voiceCount, ModulesActive_);
 	ModulesActive_[voiceCount] = -1;
 
-	// On first sample, jump to a good estimate.
-	if(cpuRunningAverage < 0.0f )
+	// DSP was rebuilt (e.g. oversampling changed), the old readings no longer apply.
+	if (newEngine)
 	{
-		cpuRunningAverage = cpu;
-		cpuRunningMedian = cpuRunningMedianSlow = cpu;
+		cpuRunningAverage = -1.0f;
+		cpuRunningMedian = cpuRunningMedianSlow = 0.0f;
 	}
 
-	//	Average medians to give a slower changing text readout.
-	const float smoothing = 0.95f;
-	cpuRunningAverage = smoothing * cpuRunningAverage + cpu * (1.0f - smoothing);
+	if (cpuRunningAverage < 0.0f)
+	{
+		// On first real sample, jump to a good estimate.
+		if (cpu > 0.0f)
+			cpuRunningAverage = cpuRunningMedian = cpuRunningMedianSlow = cpu;
+	}
+	else
+	{
+		//	Average medians to give a slower changing text readout.
+		const float smoothing = 0.95f;
+		cpuRunningAverage = smoothing * cpuRunningAverage + cpu * (1.0f - smoothing);
 
-	const auto stepSize = (std::min)((std::max)(0.00001f, cpuRunningAverage * 0.04f), fabsf(cpu - cpuRunningMedian));
-	cpuRunningMedian += copysignf(stepSize, cpu - cpuRunningMedian);
+		// steps scale with the median too, else it falls very slowly once the average has dropped.
+		const auto stepSize = (std::min)((std::max)(0.00001f, (std::max)(cpuRunningAverage, cpuRunningMedian) * 0.04f), fabsf(cpu - cpuRunningMedian));
+		cpuRunningMedian += copysignf(stepSize, cpu - cpuRunningMedian);
 
-	// more smoothing for text readout
-	const auto stepSize2 = (std::min)((std::max)(0.000001f, cpuRunningAverage * 0.005f), fabsf(cpu - cpuRunningMedianSlow));
-	cpuRunningMedianSlow += copysignf(stepSize2, cpu - cpuRunningMedianSlow);
+		// more smoothing for text readout
+		const auto stepSize2 = (std::min)((std::max)(0.000001f, (std::max)(cpuRunningAverage, cpuRunningMedianSlow) * 0.005f), fabsf(cpu - cpuRunningMedianSlow));
+		cpuRunningMedianSlow += copysignf(stepSize2, cpu - cpuRunningMedianSlow);
+	}
 
 	next_val++;
 	next_val %= CPU_HISTORY_COUNT;

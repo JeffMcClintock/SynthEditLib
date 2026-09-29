@@ -187,7 +187,10 @@ void UgDebugInfo::CpuToGui()
 //	_RPTN(0, "     CpuToGui %f\n", cpuMeasuedCycles);
 
 	const float cpu = cpuMeasuedCycles * ug_base::cpu_conversion_const;
-	const float peakCpu = cpuPeak * ug_base::cpu_conversion_const2;
+
+	// peak is per DoProcess() call, whose real-time budget shrinks by the oversampling factor.
+	auto audioMaster = m_module->AudioMaster();
+	const float peakCpu = cpuPeak * audioMaster->SampleRate() / (static_cast<float>(audioMaster->BlockSize()) * 1.0e9f);
 
 	int voiceCount = 0;
 	ug_base* clone = m_module;
@@ -200,9 +203,11 @@ void UgDebugInfo::CpuToGui()
 	voiceCount = (std::min)(voiceCount, 128); // most reciever can handle.
 
 	my_msg_que_output_stream strm( m_module->AudioMaster()->getShell()->MessageQueToGui(), m_module->Handle(), "cpu" );
-	strm << (int32_t) (sizeof(float) + sizeof(float) + sizeof(int) + voiceCount ); // message length.
+	strm << (int32_t) (sizeof(float) + sizeof(float) + sizeof(int32_t) + sizeof(int) + voiceCount ); // message length.
 	strm << cpu;
 	strm << peakCpu;
+	strm << static_cast<int32_t>(newEngine);
+	newEngine = false;
 
 	strm << voiceCount;
 

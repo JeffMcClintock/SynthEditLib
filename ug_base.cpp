@@ -37,7 +37,6 @@ float* ug_base::trash_sample_ptr;
 ULookup* ug_base::m_shared_interpolation_table;
 
 float ug_base::cpu_conversion_const;
-float ug_base::cpu_conversion_const2;
 
 void ug_base::ListPin(std::vector<class InterfaceObject*>& PList, void* addr, const wchar_t* p_name, EDirection p_direction, EPlugDataType p_datatype, const wchar_t* def_val, const wchar_t* unused , int flags, const wchar_t* p_comment, float** p_sample_ptr )
 {

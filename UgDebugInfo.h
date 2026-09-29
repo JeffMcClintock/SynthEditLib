@@ -24,4 +24,5 @@ private:
 	std::vector<int> bufferEndValue;
 	float cpuMeasuedCycles;
 	float cpuPeak = 0.0f;
+	bool newEngine = true; // first report tells the GUI to drop the previous engine's history.
 };

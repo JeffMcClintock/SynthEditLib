@@ -1198,7 +1198,8 @@ void AudioMasterBase::BuildModules(
 					// re-route from container to oversampler in/out modules.
 					if( oversampleFactor )
 					{
-						oversampler->BuildModules( child_container, child_patch_control_container, pElem, oversampler, pendingPresets, mutedContainers);
+						// cpu_parent is the container, not the oversampler, whose own timing already includes these modules.
+						oversampler->BuildModules( child_container, child_patch_control_container, pElem, child_container, pendingPresets, mutedContainers);
 						oversampler->Setup2(true);
 					}
 					else
@@ -1268,7 +1269,7 @@ void SeAudioMaster::end_run()
 
 void SeAudioMaster::UpdateCpu(int64_t nanosecondsElapsed)
 {
-	cpuConsumption[cpuConsumptionIndex] = static_cast<uint16_t>(nanosecondsElapsed);
+	cpuConsumption[cpuConsumptionIndex] = static_cast<uint32_t>(nanosecondsElapsed);
 
 	if (++cpuConsumptionIndex == CPU_BATCH_SIZE)
 	{

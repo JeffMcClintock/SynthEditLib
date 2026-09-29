@@ -1164,7 +1164,7 @@ void CSynthEditAppBase::OnDspMsg(int p_msg_id, my_input_stream& p_stream)
 
 	case code_to_long('c', 'p', 'u', 't'): // "cput" (total CPU).
 	{
-		uint16_t cpuConsumption[CPU_BATCH_SIZE]; // per block
+		uint32_t cpuConsumption[CPU_BATCH_SIZE]; // nanoseconds per host buffer
 		p_stream.Read(&cpuConsumption, sizeof(cpuConsumption));
 
 		// leave peak CPU until meter reads it, then we can reset it.
@@ -1181,7 +1181,7 @@ void CSynthEditAppBase::OnDspMsg(int p_msg_id, my_input_stream& p_stream)
 			peakCpu = (std::max)(cpu, peakCpu);
 
 			cpuRunningAverage += (cpu - cpuRunningAverage) * 0.1f; // rough running average.
-			medianCpu += (float)copysign(cpuRunningAverage * 0.005f, cpu - medianCpu);
+			medianCpu += (float)copysign((std::max)(cpuRunningAverage, medianCpu) * 0.005f, cpu - medianCpu); // scale by median too, else it falls very slowly.
 		}
 	}
 	break;

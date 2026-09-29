@@ -631,7 +631,7 @@ private:
 	::MidiIn* midiInModule = {};
 
 	// typically editor-only
-	uint16_t cpuConsumption[CPU_BATCH_SIZE]; // per block
+	uint32_t cpuConsumption[CPU_BATCH_SIZE]; // nanoseconds per host buffer
 	int cpuConsumptionIndex = 0;
 	std::atomic<bool> interrupt_getchunk_ = {};
 	std::atomic<bool> interrupt_setchunk_ = {};

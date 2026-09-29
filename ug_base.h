@@ -264,7 +264,6 @@ public:
 	// Only used in editor, but remains in plugin so we can share the lib
 	ug_base* cpuParent;
 	static float cpu_conversion_const;
-	static float cpu_conversion_const2;
 
 #if defined( _DEBUG )
 	std::wstring debug_name;

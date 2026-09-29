@@ -74,7 +74,6 @@ bool SynthRuntime_editor::prepareToPlay()
 
 	// regular (per-module) CPU measurement
 	const float cpu_clock_rate = 1000000000.f; // aka nanoseconds.
-	ug_base::cpu_conversion_const2 = sampleRate / ((float)generator->BlockSize() * cpu_clock_rate); // per block
 	ug_base::cpu_conversion_const = sampleRate / ((float)generator->BlockSize() * cpu_clock_rate * generator->cpu_block_rate);
 
 	// Send patch structure to process.
