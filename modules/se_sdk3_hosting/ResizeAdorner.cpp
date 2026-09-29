@@ -277,7 +277,11 @@ namespace SE2
 		if(pointInClientArea && hitNodeX == -1)
 			return { 1000.0f, -1, -1 }; // not-hit.
 
-		// direct hit on outline?
+		// direct hit on node?
+		if(hitNodeX != -1 && best <= 0.0f)
+			return { best, hitNodeX, hitNodeY };
+
+		// hit on outline?
 		{
 			const auto outlineOuter = inflateRect(nodeRect, strokeWidth * 0.5f);
 			if(pointInRect(point, outlineOuter))
@@ -299,6 +303,7 @@ namespace SE2
 		// distance outside rect.
 		const auto distanceOutside = std::max(std::max(nodeRect.left - point.x, point.x - nodeRect.right), std::max(nodeRect.top - point.y, point.y - nodeRect.bottom));
 
+		// outline more direct than node
 		if(distanceOutside > 0.0f && distanceOutside < best)
 		{
 			best = distanceOutside;
