@@ -264,6 +264,7 @@ VoiceList::VoiceList( ) :
 	for (int i = 0; i < 128; ++i)
 	{
 		pendingNoteVelocity_[i] = 0.5f; // reasonable default until a real NoteOn arrives for this key
+		pendingGlideStart_[i] = noGlideStart;
 	}
 	
 	#if defined( DEBUG_VOICE_ALLOCATION )
@@ -333,6 +334,10 @@ void VoiceList::VoiceAllocationNoteOn(timestamp_t timestamp, /*int midiChannel,*
 				break;
 			};
 		}
+
+		// A requested voice that is still sounding starts muting now, so a chord waits for one fade, not one per note.
+		if (auto v = requestedVoice(usePhysicalVoice))
+			claimRequestedVoice(timestamp, v, MidiKeyNumber, lVoiceAllocationMode);
 	}
 
 	noteStack.push(timestamp, MidiKeyNumber, usePhysicalVoice);
@@ -390,25 +395,7 @@ bool VoiceList::AttemptNoteOn(timestamp_t timestamp, int MidiKeyNumber, int useP
 	assert(MidiKeyNumber >= 0 && MidiKeyNumber < maxVoiceId);
 	const bool sendTrigger = !monoMode || voice_allocation::isMonoRetrigger(lVoiceAllocationMode) || monoNotePlaying_ == -1;
 
-	Voice* voice{};
-
-	if (usePhysicalVoice >= 0) // drum mode.
-	{
-		// When using drum-trigger, voice may not exist...
-		// when output connected only to Volt-Meter AND annother output connected to same voltmeter.
-		if (usePhysicalVoice < (int)size())
-		{
-			voice = at(usePhysicalVoice);
-		}
-		else
-		{
-			voice = back(); // hack to allow drum-trigger to send trigger signal. Might wake wrong voice.
-		}
-	}
-	else
-	{
-		voice = allocateVoice(timestamp, /*channel,*/ MidiKeyNumber, lVoiceAllocationMode, steal);
-	}
+	auto voice = allocateVoice(timestamp, /*channel,*/ MidiKeyNumber, lVoiceAllocationMode, steal, usePhysicalVoice);
 
 	if (!voice)
 		return false;
@@ -1475,7 +1462,39 @@ bool isAvailable(Voice* v)
 	return v->IsSuspended() || v->IsRefreshing();
 }
 
-Voice* VoiceList::allocateVoice( timestamp_t timestamp, /*int channel,*/ int voiceId, int voiceAllocationMode, bool steal)
+// The physical voice a note-on asked for, or nullptr for normal allocation (-1, out of range, or mono mode).
+Voice* VoiceList::requestedVoice(int usePhysicalVoice)
+{
+	const int lVoiceAllocationMode = overridingVoiceAllocationMode_ != -1 ? overridingVoiceAllocationMode_ : voiceAllocationMode_;
+	if (voice_allocation::isMonoMode(lVoiceAllocationMode) || usePhysicalVoice < 1 || usePhysicalVoice >= static_cast<int>(size()))
+		return nullptr;
+
+	return at(usePhysicalVoice);
+}
+
+// True if a note-on can take its requested voice now, else a sounding voice is fast-muted so the held-back note gets it once suspended.
+bool VoiceList::claimRequestedVoice(timestamp_t timestamp, Voice* voice, int voiceId, int voiceAllocationMode)
+{
+	if (isAvailable(voice))
+		return true;
+
+	if (voice->voiceState_ != VS_ACTIVE) // already muting.
+		return false;
+
+	// soft mode re-uses a voice already playing this key.
+	if ((voiceAllocationMode & 0x07) == VA_POLY_SOFT && voice->NoteNum == voiceId)
+		return true;
+
+	// voice-active signals on the same timestamp would cancel.
+	if (voice->NoteOnTime == timestamp)
+		++timestamp;
+
+	voice->NoteMute(timestamp);
+	DoNoteOff(timestamp, voice, -1.0f);
+	return false;
+}
+
+Voice* VoiceList::allocateVoice( timestamp_t timestamp, /*int channel,*/ int voiceId, int voiceAllocationMode, bool steal, int usePhysicalVoice)
 {
 	/*
 	When benchwarmer (reserve voices) exausted - when Voice Stealing occurs the new note is "Held back"
@@ -1528,9 +1547,18 @@ Voice* VoiceList::allocateVoice( timestamp_t timestamp, /*int channel,*/ int voi
 			nextCyclicVoice_ = 1; // voice 0 reserved for mono modules.
 
 		auto ncv = at(nextCyclicVoice_);
-		
+		const auto rv = requestedVoice(usePhysicalVoice);
+
+		// RULE 0: Allocate the voice the note-on requested, holding the note back while that voice mutes.
+		if (rv)
+		{
+			if (!claimRequestedVoice(timestamp, rv, voiceId, voiceAllocationMode))
+				return nullptr;
+
+			allocatedVoice = rv;
+		}
 		// RULE 1: Allocate next cyclic voice (if available)
-		if ( isAvailable(ncv) )
+		else if ( isAvailable(ncv) )
 		{
 			allocatedVoice = ncv;
 
@@ -1568,11 +1596,11 @@ Voice* VoiceList::allocateVoice( timestamp_t timestamp, /*int channel,*/ int voi
 			}
 #endif
 
-			if (v->NoteNum == voiceId && v->voiceState_ == VS_ACTIVE)
+			if (v != allocatedVoice && v->NoteNum == voiceId && v->voiceState_ == VS_ACTIVE)
 			{
 				const auto mode = voiceAllocationMode & 0x07;
 				
-				if (mode == VA_POLY_SOFT)
+				if (mode == VA_POLY_SOFT && !rv)
 				{
 					// RULE 3: In poly-soft mode, allocate any playing voice with same note number
 					allocatedVoice = v;
@@ -1580,9 +1608,9 @@ Voice* VoiceList::allocateVoice( timestamp_t timestamp, /*int channel,*/ int voi
 					debugAllocateReason << " [softsteal same note]";
 #endif
 				}
-				else if (mode == VA_POLY_OVERLAP)
+				else if (mode == VA_POLY_OVERLAP || mode == VA_POLY_SOFT)
 				{
-					// In standard overlap mode, old voice is forced to release, but with a gradual rate
+					// In standard overlap mode (or soft mode with a requested voice), old voice is forced to release, but with a gradual rate
 					
 					if (v->isHeld()) // Not likely two same keys held unless receiving on two channels.
 					{
@@ -2016,8 +2044,14 @@ void VoiceList::DoNoteOn(timestamp_t timestamp, Voice* voice, int voiceId, bool 
 	// Fire GlideStartPitch using mrnPitch (computed above): for autoGlide this is the previous
 	// note's pitch / current glide position; for non-autoGlide it equals the current note's pitch
 	// (so MidiToCv2's pitchInterpolator jumps to the new pitch instantly).
+	// A per-note glide start sent ahead of the note-on overrides it.
 	{
 		float gStartVolts = mrnPitch;
+		if (pendingGlideStart_[voiceId7] != noGlideStart)
+		{
+			gStartVolts = pendingGlideStart_[voiceId7];
+			pendingGlideStart_[voiceId7] = noGlideStart;
+		}
 		sendDirectPathValue(HC_GLIDE_START_PITCH, timestamp, thisContainer, voice->m_voice_number,
 			sizeof(gStartVolts), &gStartVolts);
 	}
@@ -2068,6 +2102,7 @@ void VoiceList::VoiceAllocationNoteOff( timestamp_t timestamp, /*int channel,*/ 
 
 	// cancel any held-back notes on this note-number.
 	noteStack.erase(voiceId);
+	pendingGlideStart_[voiceId & 0x7f] = noGlideStart;
 
 	// handle mono-note priority
 	if( note_status[voiceId] )

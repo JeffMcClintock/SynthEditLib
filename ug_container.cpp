@@ -1218,7 +1218,23 @@ void ug_container::dispatchMidi2(timestamp_t timestamp, gmpi::midi::message_view
 			// Mono-last replacement reads this same cache (keyed by note number) when it re-assigns a held
 			// key's original velocity to the voice.
 			pendingNoteVelocity_[note.noteNumber & 0x7f] = note.velocity;
-			VoiceAllocationNoteOn(timestamp, note.noteNumber);
+
+			// A Manufacturer Specific attribute requests a physical voice, as a signed 16-bit value (-1 = no override).
+			int physicalVoice = -1;
+			if (gmpi::midi_2_0::attribute_type::ManufacturerSpecific == note.attributeType)
+				physicalVoice = static_cast<int16_t>((msg[6] << 8) | msg[7]);
+
+			VoiceAllocationNoteOn(timestamp, note.noteNumber, physicalVoice);
+		}
+		break;
+
+		case gmpi::midi_2_0::PolyAssignableControlChange:
+		{
+			// Glide start for the key's next note-on, absolute pitch in the same format as PolyPitch. Must arrive before the note-on.
+			constexpr uint8_t glideStartController = 84; // after MIDI 1.0 CC 84 Portamento Control.
+			const auto pc = gmpi::midi_2_0::decodePolyController(msg);
+			if (pc.type == glideStartController)
+				pendingGlideStart_[pc.noteNumber & 0x7f] = gmpi::midi_2_0::decodeNotePitch(msg) * (1.0f / 12.0f) - 0.75f;
 		}
 		break;
 

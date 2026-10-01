@@ -240,7 +240,9 @@ public:
 	void PlayWaitingNotes(timestamp_t timestamp);
 	bool AttemptNoteOn(timestamp_t timestamp, int MidiKeyNumber, int usePhysicalVoice, bool steal);
 	void VoiceAllocationNoteOff(timestamp_t timestamp, /*int channel,*/ int voiceId);// , int voiceAllocationMode );
-	Voice* allocateVoice( timestamp_t timestamp/*, int channel*/, int voiceId, int voiceAllocationMode, bool steal);
+	Voice* allocateVoice( timestamp_t timestamp/*, int channel*/, int voiceId, int voiceAllocationMode, bool steal, int usePhysicalVoice = -1);
+	Voice* requestedVoice(int usePhysicalVoice);
+	bool claimRequestedVoice(timestamp_t timestamp, Voice* voice, int voiceId, int voiceAllocationMode);
 
 	int voiceReserveCount() const;
 	void setVoiceCount(int c);
@@ -312,6 +314,10 @@ protected:
 	// allocating a voice (including mono-last-note replacement, where we need the original velocity of
 	// the held key that's being re-assigned to the voice).
 	float pendingNoteVelocity_[128];
+
+	// Per-note glide start (volts) sent ahead of a note-on, used once by DoNoteOn in place of mrnPitch.
+	static constexpr float noGlideStart = -1000.0f;
+	float pendingGlideStart_[128];
 
 	// Trigger pulse counter — incremented on each voice activation that wants a retrigger, fired as
 	// the HC_VOICE_TRIGGER direct-path value. Voice modules (envelopes etc.) detect the change in value.

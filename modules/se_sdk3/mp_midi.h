@@ -340,6 +340,7 @@ namespace gmpi
 		enum Status //: unsigned char
 		{
 			PolyControlChange = 0x00,
+			PolyAssignableControlChange = 0x01,
 			RPN = 0x02,
 			NRPN = 0x03,
 			PolyBender = 0x06,
