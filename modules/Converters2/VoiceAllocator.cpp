@@ -4,6 +4,11 @@
 #include <vector>
 #include "Processor.h"
 
+// Unfinished, so not registered. Same switch as the engine side in CVoiceList.h: define it project-wide to enable both.
+#ifndef SE_DIRECT_VOICE_CONTROL
+#define SE_DIRECT_VOICE_CONTROL 0
+#endif
+
 using namespace gmpi;
 
 // Voice Allocator: an example of choosing SynthEdit's physical voices from MIDI.
@@ -190,6 +195,7 @@ struct VoiceAllocator final : public Processor
 	}
 };
 
+#if SE_DIRECT_VOICE_CONTROL
 namespace
 {
 auto r = Register<VoiceAllocator>::withXml(R"XML(
@@ -205,3 +211,4 @@ auto r = Register<VoiceAllocator>::withXml(R"XML(
 </Plugin>
 )XML");
 }
+#endif

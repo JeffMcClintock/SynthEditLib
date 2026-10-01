@@ -20,6 +20,12 @@
 // #define DEBUG_VOICE_ALLOCATION
 #endif
 
+// MIDI 2.0 direct control of physical voices (voice-request attribute, per-note glide start, steal NRPN). Unfinished, so off.
+// The SE Voice Allocator module has its own copy of this switch: define it project-wide to enable both.
+#ifndef SE_DIRECT_VOICE_CONTROL
+#define SE_DIRECT_VOICE_CONTROL 0
+#endif
+
 class SeAudioMaster;
 
 #define MCV_NOTE_MEM_SIZE 16

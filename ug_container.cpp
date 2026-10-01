@@ -1219,15 +1219,18 @@ void ug_container::dispatchMidi2(timestamp_t timestamp, gmpi::midi::message_view
 			// key's original velocity to the voice.
 			pendingNoteVelocity_[note.noteNumber & 0x7f] = note.velocity;
 
-			// A Manufacturer Specific attribute requests a physical voice, as a signed 16-bit value (-1 = no override).
 			int physicalVoice = -1;
+#if SE_DIRECT_VOICE_CONTROL
+			// A Manufacturer Specific attribute requests a physical voice, as a signed 16-bit value (-1 = no override).
 			if (gmpi::midi_2_0::attribute_type::ManufacturerSpecific == note.attributeType)
 				physicalVoice = static_cast<int16_t>((msg[6] << 8) | msg[7]);
+#endif
 
 			VoiceAllocationNoteOn(timestamp, note.noteNumber, physicalVoice);
 		}
 		break;
 
+#if SE_DIRECT_VOICE_CONTROL
 		case gmpi::midi_2_0::PolyAssignableControlChange:
 		{
 			// Glide start for the key's next note-on, absolute pitch in the same format as PolyPitch. Must arrive before the note-on.
@@ -1247,6 +1250,7 @@ void ug_container::dispatchMidi2(timestamp_t timestamp, gmpi::midi::message_view
 				stealPhysicalVoice(timestamp, static_cast<int>(nrpn.value >> 7));
 		}
 		break;
+#endif
 
 		case gmpi::midi_2_0::NoteOff:
 		{
