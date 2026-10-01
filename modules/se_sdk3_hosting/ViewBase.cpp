@@ -1013,11 +1013,17 @@ namespace SE2
 					{
 						wrapper->setTotalPins(pins_count.asInt());
 
-						// Might be needed on input pins for correct feedback behavior.
-						/* something like, for each pin.
-						if (pinInfo.GetDirection() == DR_IN)
-							wrapper->inputPinIds.push_back(pinId);
-						*/
+						// Auto-duplicated inputs are inputs too, else the mono-directional sort never looks upstream of them.
+						if (!moduleInfo->gui_plugs.empty())
+						{
+							const auto& [lastId, lastDeclared] = *moduleInfo->gui_plugs.rbegin();
+							if (lastDeclared->autoDuplicate() && lastDeclared->GetDirection() == DR_IN)
+							{
+								const int duplicates = pins_count.asInt() - static_cast<int>(moduleInfo->gui_plugs.size());
+								for (int i = 1; i <= duplicates; ++i)
+									wrapper->inputPinIds.push_back(lastId + i);
+							}
+						}
 					}
 
 					// GMPI editors were initialised (pins created) in initializeGmpiModulePins,
