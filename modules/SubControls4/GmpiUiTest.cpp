@@ -19,6 +19,7 @@
 #include "helpers/SvgParser.h"
 #include "NumberEditClient.h"
 #include "Extensions/EmbeddedFile.h"
+#include "Extensions/PinCount.h"
 #include "../shared/unicode_conversion.h"
 #include "mfc_emulation.h"
 
@@ -1528,6 +1529,93 @@ auto r41 = gmpi::Register<ArcGeometry>::withXml(R"XML(
       <Pin name="Start (turns)" datatype="float" default="0.3"/>
       <Pin name="Sweep (turns)" datatype="float" default="0.75"/>
       <Pin name="Path" datatype="object:path" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+struct PointFromXY final : public PluginEditorNoGui
+{
+    In<float> pinX;
+    In<float> pinY;
+    Out<Point> pinPoint;
+
+    ReturnCode process() override
+    {
+        pinPoint = Point{ pinX.value, pinY.value };
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r42 = gmpi::Register<PointFromXY>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Point" name="Point" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="X" datatype="float"/>
+      <Pin name="Y" datatype="float"/>
+      <Pin name="Point" datatype="struct:point" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// An open path through its points, in pin order. One auto-duplicated input per point.
+struct Multiline final : public GraphicsProcessor
+{
+    ObjectOut<drawing::api::IPathGeometry> pinPath;
+    std::vector<std::unique_ptr<In<Point>>> pinPoints;
+
+    gmpi::drawing::PathGeometry geometry;
+
+    ReturnCode initialize() override
+    {
+        synthedit::PinInformation info(editorHost.get());
+        const auto pointCount = static_cast<int>(info.pins.size()) - 1;
+
+        // a pin registers with the editor under construction, which is no longer this one.
+        constructingInstance = this;
+        for (int i = 0; i < pointCount; ++i)
+            pinPoints.push_back(std::make_unique<In<Point>>());
+        constructingInstance = nullptr;
+
+        return GraphicsProcessor::initialize();
+    }
+
+    ReturnCode process() override
+    {
+        geometry = drawingFactory.createPathGeometry();
+        auto sink = geometry.open();
+
+        if (pinPoints.size() > 1)
+        {
+            sink.beginFigure(pinPoints.front()->value, FigureBegin::Hollow);
+            for (size_t i = 1; i < pinPoints.size(); ++i)
+                sink.addLine(pinPoints[i]->value);
+            sink.endFigure(FigureEnd::Open);
+        }
+
+        sink.close();
+        pinPath = AccessPtr::get(geometry);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r43 = gmpi::Register<Multiline>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Multiline" name="Multiline" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Path" datatype="object:path" direction="out"/>
+      <Pin name="Point" datatype="struct:point" autoDuplicate="true"/>
     </GUI>
   </Plugin>
 </PluginList>
