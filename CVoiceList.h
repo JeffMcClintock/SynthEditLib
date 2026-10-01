@@ -243,6 +243,8 @@ public:
 	Voice* allocateVoice( timestamp_t timestamp/*, int channel*/, int voiceId, int voiceAllocationMode, bool steal, int usePhysicalVoice = -1);
 	Voice* requestedVoice(int usePhysicalVoice);
 	bool claimRequestedVoice(timestamp_t timestamp, Voice* voice, int voiceId, int voiceAllocationMode);
+	void stealPhysicalVoice(timestamp_t timestamp, int usePhysicalVoice);
+	void muteVoice(timestamp_t timestamp, Voice* voice, float voiceActive);
 
 	int voiceReserveCount() const;
 	void setVoiceCount(int c);

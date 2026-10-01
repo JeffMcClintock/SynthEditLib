@@ -1485,13 +1485,27 @@ bool VoiceList::claimRequestedVoice(timestamp_t timestamp, Voice* voice, int voi
 	if ((voiceAllocationMode & 0x07) == VA_POLY_SOFT && voice->NoteNum == voiceId)
 		return true;
 
+	muteVoice(timestamp, voice, -1.0f);
+	return false;
+}
+
+// An external allocator stole this voice: fade it out (20ms) as the built-in allocator does when a reserve voice takes the new note.
+void VoiceList::stealPhysicalVoice(timestamp_t timestamp, int usePhysicalVoice)
+{
+	auto voice = requestedVoice(usePhysicalVoice);
+	if (voice && voice->voiceState_ == VS_ACTIVE && !voice->IsRefreshing())
+		muteVoice(timestamp, voice, 0.0f);
+}
+
+// voiceActive 0 fades the voice out over 20ms, -1 over 5ms. It suspends once silent.
+void VoiceList::muteVoice(timestamp_t timestamp, Voice* voice, float voiceActive)
+{
 	// voice-active signals on the same timestamp would cancel.
 	if (voice->NoteOnTime == timestamp)
 		++timestamp;
 
 	voice->NoteMute(timestamp);
-	DoNoteOff(timestamp, voice, -1.0f);
-	return false;
+	DoNoteOff(timestamp, voice, voiceActive);
 }
 
 Voice* VoiceList::allocateVoice( timestamp_t timestamp, /*int channel,*/ int voiceId, int voiceAllocationMode, bool steal, int usePhysicalVoice)

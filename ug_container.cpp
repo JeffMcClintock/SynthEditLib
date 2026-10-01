@@ -1238,6 +1238,16 @@ void ug_container::dispatchMidi2(timestamp_t timestamp, gmpi::midi::message_view
 		}
 		break;
 
+		case gmpi::midi_2_0::NRPN:
+		{
+			// Steals a physical voice (20ms fade), the voice number in the Data Entry MSB (top 7 bits of a MIDI 2.0 value).
+			constexpr uint16_t stealVoiceNrpn = 120; // bank 0, after MIDI 1.0 CC 120 All Sound Off.
+			const auto nrpn = gmpi::midi_2_0::decodeRpn(msg);
+			if (nrpn.rpn == stealVoiceNrpn)
+				stealPhysicalVoice(timestamp, static_cast<int>(nrpn.value >> 7));
+		}
+		break;
+
 		case gmpi::midi_2_0::NoteOff:
 		{
 			const auto note = gmpi::midi_2_0::decodeNote(msg);
