@@ -692,6 +692,12 @@ const wchar_t* getGuiConverterId(EPlugDataType from, EPlugDataType to)
 
 std::vector<const wchar_t*> getGuiConverterChain(EPlugDataType from, EPlugDataType to)
 {
+	// Same type needs no converter (getGuiConverterId returns null for it too, which must not mean 'go via text').
+	if (from == DT_ENUM) from = DT_INT;
+	if (to   == DT_ENUM) to   = DT_INT;
+	if (from == to)
+		return {};
+
 	if (auto direct = getGuiConverterId(from, to))
 		return { direct };
 
