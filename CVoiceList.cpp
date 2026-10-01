@@ -1841,9 +1841,7 @@ Voice* VoiceList::allocateVoice( timestamp_t timestamp, /*int channel,*/ int voi
 					timestamp_t ts = timestamp;
 
 					if (stealVoice->NoteOnTime == ts)
-					{
 						++ts;
-					}
 
 					// Set voice state to muting.
 					stealVoice->NoteMute(ts);
