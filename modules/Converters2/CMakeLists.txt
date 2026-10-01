@@ -6,7 +6,8 @@ gmpi_plugin(
 	PROJECT_NAME ${PROJECT_NAME}
 	HAS_DSP HAS_GUI IS_OFFICIAL_MODULE
 	SOURCE_FILES
-	  Converters2.cpp
-	  StringConcatGui.cpp
-          MIDIActivity.cpp
+		Converters2.cpp
+		StringConcatGui.cpp
+		MIDIActivity.cpp
+		VoiceAllocator.cpp
 )
