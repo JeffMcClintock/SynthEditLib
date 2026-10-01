@@ -397,6 +397,10 @@ namespace SE2
 		// While connections are being made, note which pins already sent data.
 		std::vector<int> alreadySentDataPins_;
 
+		// Values sent before the pin was wired (e.g. from initialize()). ConnectModules STEP 3 delivers them.
+		struct UndeliveredValue { int pinIndex; int voice; std::vector<uint8_t> data; };
+		std::vector<UndeliveredValue> undeliveredValues_;
+
 		bool mouseCaptured = false;
 		bool dirty{ true };
 		virtual bool isRackModule() = 0;

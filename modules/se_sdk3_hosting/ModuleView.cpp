@@ -449,6 +449,12 @@ namespace SE2
 		if (!initialised_)
 		{
 			alreadySentDataPins_.push_back(pinIndex);
+
+			if (connections_.find(pinIndex) == connections_.end())
+			{
+				const auto bytes = static_cast<const uint8_t*>(data);
+				undeliveredValues_.push_back({ pinIndex, voice, { bytes, bytes + size } });
+			}
 		}
 
 		if (recursionStopper_ < 10)
@@ -908,6 +914,7 @@ if(pluginGraphics)
 		initialised_ = true;
 		// outputValues_ is only needed while connecting modules. could be centralised further to view.
 		std::vector<int>().swap(alreadySentDataPins_);
+		std::vector<UndeliveredValue>().swap(undeliveredValues_);
 	}
 
 	void ModuleView::CreateGraphicsResources()

@@ -1050,7 +1050,19 @@ namespace SE2
 				// Has that module already output a value on the outgoing pin?
 				// If so, pass it on.
 				assert(!from->initialised_);
-				if(from->alreadySentDataPins_.end() == std::find(from->alreadySentDataPins_.begin(), from->alreadySentDataPins_.end(), fromPinIndex))
+
+				// Sent before this wire existed (initializeGmpiModulePins runs before Step 1), so it went nowhere.
+				bool delivered = false;
+				for(const auto& value : from->undeliveredValues_)
+				{
+					if(value.pinIndex == fromPinIndex)
+					{
+						to->setPin(from, fromPinIndex, toPinIndex, value.voice, (int32_t)value.data.size(), value.data.data());
+						delivered = true;
+					}
+				}
+
+				if(!delivered && from->alreadySentDataPins_.end() == std::find(from->alreadySentDataPins_.begin(), from->alreadySentDataPins_.end(), fromPinIndex))
 				{
 					// Module hasn't sent anything yet.
 					// When output pin is the default value (0), module won't ever send anything (then to-pin NEVER gets updated).
