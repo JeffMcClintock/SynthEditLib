@@ -15,6 +15,7 @@
 #include "helpers/GmpiPluginEditor2.h"
 #include "../shared/MonoDirectionalPins.h" // In<T> / Out<T> / ObjectIn<T> / ObjectOut<T>
 #include "helpers/CachedBlur.h"
+#include "helpers/BitmapMask.h"
 #include "helpers/AnimatedBitmap.h"
 #include "helpers/SvgParser.h"
 #include "NumberEditClient.h"
@@ -3160,113 +3161,108 @@ auto r23 = gmpi::Register<RenderText2Bitmap>::withXml(R"XML(
 )XML");
 }
 
-// 8-bit mask image to 32-bit bitmap.
+// A mask (or any image's alpha channel) to a 32-bit sRGB bitmap.
 struct Mask2Bitmap final : public GraphicsProcessor
 {
     ObjectIn<drawing::api::IBitmap>  pinInput;
     ObjectOut<drawing::api::IBitmap> pinOutput;
 
     drawing::Color tint = drawing::colorFromHex(0xffffffu);
-    Bitmap blurredBitmap;
+    Bitmap outputBitmap;
+
+    // coverage 0-255 of one pixel, or -1 for a pixel format it doesn't know.
+    static int coverage(int32_t format, const uint8_t* pixel)
+    {
+        using Pixels = drawing::api::IBitmapPixels;
+        const auto toByte = [](float a) { return static_cast<int>(std::clamp(a, 0.0f, 1.0f) * 255.0f + 0.5f); };
+
+        switch (format)
+        {
+        case Pixels::Alpha_8i:
+            return pixel[0];
+
+        case Pixels::BGRA_sRGB_8i:
+        case Pixels::RGBA_sRGB_8i:
+            return pixel[3];
+
+        case Pixels::RGBA_16i:
+        {
+            uint16_t a;
+            std::memcpy(&a, pixel + 6, sizeof(a));
+            return a >> 8;
+        }
+
+        case Pixels::RGBA_16f:
+        {
+            uint16_t a;
+            std::memcpy(&a, pixel + 6, sizeof(a));
+            return toByte(drawing::detail::halfToFloat(a));
+        }
+
+        case Pixels::RGBA_32f:
+        {
+            float a;
+            std::memcpy(&a, pixel + 12, sizeof(a));
+            return toByte(a);
+        }
+        }
+        return -1;
+    }
 
     ReturnCode process() override
     {
         if (!pinInput)
             return ReturnCode::Ok;
 
-        auto unknown = pinInput.value.get();
-
-        Bitmap bitmap;
-
-        if (ReturnCode::Ok != unknown->queryInterface(&drawing::api::IBitmap::guid, AccessPtr::put_void(bitmap)))
+        Bitmap input;
+        if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IBitmap::guid, AccessPtr::put_void(input)))
             return ReturnCode::Fail;
 
-        auto size = bitmap.getSize();
-        const Rect rect{ 0, 0, static_cast<float>(size.width), static_cast<float>(size.height) };
+        const auto size = input.getSize();
+        auto src = input.lockPixels();
+        const auto format = src.getPixelFormat();
+        if (coverage(format, src.getAddress()) < 0)
+            return ReturnCode::Fail;
 
-        // copy the mask bitmap to working RAM.
-        std::vector<uint8_t> workingArea;
+        outputBitmap = drawingFactory.createImage(size, (int32_t)drawing::BitmapRenderTargetFlags::SRGBPixels | (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
         {
-            auto data = bitmap.lockPixels();
+            auto dst = outputBitmap.lockPixels(drawing::BitmapLockFlags::Write);
+            if (dst.getBytesPerPixel() != 4)
+                return ReturnCode::Fail;
 
-            const auto stride = data.getBytesPerRow();
-            const auto format = data.getPixelFormat();
+            // rows may be padded, so step by each bitmap's own stride.
+            const auto srcStride = src.getBytesPerRow();
+            const auto srcPixelSize = src.getBytesPerPixel();
+            const auto dstStride = dst.getBytesPerRow();
+            const float tintf[3] = { tint.r, tint.g, tint.b };
+            constexpr float inv255 = 1.0f / 255.0f;
 
-            constexpr int pixelSize = 1; // 8 bytes per pixel for half-float,1 byte for mask.
-            const int totalPixels = (int)size.height * stride / pixelSize;
-
-            const uint8_t* pixel = data.getAddress();
-
-            // could switch on format here
-            workingArea.resize(totalPixels);
-            for (int i = 0; i < totalPixels; ++i)
+            for (uint32_t y = 0; y < size.height; ++y)
             {
-                workingArea[i] = *pixel++;//[i * pixelSize + 3]; // alpha channel
-            }
-        }
-        // modify the buffer
-        {
-            // modify pixels here (or don't)
+                const uint8_t* srcRow = src.getAddress() + static_cast<size_t>(y) * srcStride;
+                uint8_t* dstRow = dst.getAddress() + static_cast<size_t>(y) * dstStride;
 
-            // get drawingFactory
-            Factory factory;
-            {
-                gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
-                drawingHost->getDrawingFactory(unknown.put());
-                unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory));
-            }
-
-            // create bitmap
-          blurredBitmap = factory.createImage(size, (int32_t)drawing::BitmapRenderTargetFlags::SRGBPixels | (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
-            {
-                auto destdata = blurredBitmap.lockPixels(drawing::BitmapLockFlags::Write);
-                constexpr int pixelSize = 4; // 8 bytes per pixel for half-float, 4 for 8-bit
-                auto stride = destdata.getBytesPerRow();
-                auto format = destdata.getPixelFormat();
-                const int totalPixels = (int)size.height * stride / pixelSize;
-
-                const int pixelSizeTest = stride / size.width; // 8 for half-float RGB, 4 for 8-bit sRGB, 1 for alpha mask
-
-                auto pixelsrc = workingArea.data(); // data.getAddress();
-                //   auto pixeldest = (half*)destdata.getAddress();
-                auto pixeldest = destdata.getAddress();
-
-                float tintf[4] = { tint.r, tint.g, tint.b, tint.a };
-
-                constexpr float inv255 = 1.0f / 255.0f;
-
-                for (int i = 0; i < totalPixels; ++i)
+                for (uint32_t x = 0; x < size.width; ++x)
                 {
-                    const auto alpha = *pixelsrc;
+                    const int alpha = coverage(format, srcRow + x * srcPixelSize);
+                    uint8_t* pixel = dstRow + x * 4;
+
                     if (alpha == 0)
                     {
-                        pixeldest[0] = pixeldest[1] = pixeldest[2] = pixeldest[3] = {};
-                    }
-                    else
-                    {
-                        const float AlphaNorm = alpha * inv255;
-                        for (int j = 0; j < 3; ++j)
-                        {
-                            // To linear
-                            auto cf = tintf[j];
-
-                            // pre-multiply in linear space.
-                            cf *= AlphaNorm;
-
-                            // back to SRGB
-                            pixeldest[j] = drawing::linearPixelToSRGB(cf);
-                        }
-                        pixeldest[3] = alpha;
+                        pixel[0] = pixel[1] = pixel[2] = pixel[3] = 0;
+                        continue;
                     }
 
-                    pixelsrc++;
-                    pixeldest += 4;
+                    // pre-multiply in linear space, then back to sRGB.
+                    const float alphaNorm = alpha * inv255;
+                    for (int j = 0; j < 3; ++j)
+                        pixel[j] = drawing::linearPixelToSRGB(tintf[j] * alphaNorm);
+                    pixel[3] = static_cast<uint8_t>(alpha);
                 }
             }
         }
 
-        pinOutput = AccessPtr::get(blurredBitmap);
-
+        pinOutput = AccessPtr::get(outputBitmap);
         return ReturnCode::Ok;
     }
 };
