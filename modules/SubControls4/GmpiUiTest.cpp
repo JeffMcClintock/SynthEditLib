@@ -186,7 +186,7 @@ auto r = gmpi::Register<GmpiUiTest>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: GmpiUiTest" name="GMPI-UI Test" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: GmpiUiTest" name="GMPI-UI Test" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI graphicsApi="GmpiGui"/>
   </Plugin>
 </PluginList>
@@ -255,7 +255,7 @@ auto r2 = gmpi::Register<PatchMemSet>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: PatchMemSet" name="Value Set" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: PatchMemSet" name="Value Set" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="ID" datatype="int"/>
       <Pin name="Normalized" datatype="float"/>
@@ -294,7 +294,7 @@ auto r6 = gmpi::Register<PatchMemSetFloat>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: PatchMemSetFloat" name="Value Set- Float" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: PatchMemSetFloat" name="Value Set- Float" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="ID" datatype="int"/>
       <Pin name="Value" datatype="float"/>
@@ -343,7 +343,7 @@ auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: PatchMemGet" name="Value" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: PatchMemGet" name="Value" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <Parameters>
       <Parameter id="0" datatype="float" />
     </Parameters>
@@ -388,7 +388,7 @@ auto r44 = gmpi::Register<PatchMemMeter>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: PatchMemMeter" name="Meter Value" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: PatchMemMeter" name="Meter Value" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <Parameters>
       <Parameter id="0" datatype="float" persistant="false" ignorePatchChange="true"/>
     </Parameters>
@@ -441,7 +441,7 @@ auto r4 = gmpi::Register<PatchMemUpdateFloatText>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: PatchMemUpdateFloatText" name="PatchMemUpdateFloatText" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: PatchMemUpdateFloatText" name="PatchMemUpdateFloatText" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Original Text" datatype="string"/>
       <Pin name="Modified Text" datatype="string"/>
@@ -473,7 +473,7 @@ auto r5 = gmpi::Register<OneWayFloat>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: OneWayFloat" name="OneWayFloat" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: OneWayFloat" name="OneWayFloat" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Value" datatype="float"/>
       <Pin name="Value" datatype="float" direction="out"/>
@@ -502,7 +502,7 @@ auto r7 = gmpi::Register<OneWayText>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: OneWayText" name="OneWayText" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: OneWayText" name="OneWayText" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Value" datatype="string"/>
       <Pin name="Value" datatype="string" direction="out"/>
@@ -652,7 +652,7 @@ auto r8 = gmpi::Register<Image4Gui>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Image4" name="Image4" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Image4" name="Image4" category="Experimental/Cadmium" vendor="Jeff McClintock">
 	<GUI graphicsApi="GmpiGui">
 		<Pin name="Filename" datatype="string_utf8" default="knob_sm" isFilename="true" metadata="bmp" />
 		<Pin name="Animation Position" datatype="float" default="-1" />
@@ -769,7 +769,7 @@ auto r8B = gmpi::Register<TextEntry4Gui>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: TextEntry4Gui" name="Text Entry" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: TextEntry4Gui" name="Text Entry" category="Experimental/Cadmium" vendor="Jeff McClintock">
 	<GUI graphicsApi="GmpiGui">
 		<Pin name="Value" datatype="string_utf8" />
 		<Pin name="Value" datatype="string_utf8" direction="out" />
@@ -956,7 +956,7 @@ auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: NumberEntry" name="Number Entry" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: NumberEntry" name="Number Entry" category="Experimental/Cadmium" vendor="Jeff McClintock">
 	<GUI graphicsApi="GmpiGui">
 		<Pin name="Value" datatype="float" />
 		<Pin name="Units" datatype="string_utf8" />
@@ -1079,7 +1079,7 @@ auto r9 = gmpi::Register<MouseTarget>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: MouseTarget" name="MouseTarget" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: MouseTarget" name="MouseTarget" category="Experimental/Cadmium" vendor="Jeff McClintock">
 	<GUI graphicsApi="GmpiGui">
         <Pin name="Hover" datatype="bool" direction="out"/>
         <Pin name="Left Click" datatype="bool" direction="out"/>
@@ -1124,7 +1124,7 @@ auto r10 = gmpi::Register<Delta>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Delta" name="Delta" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Delta" name="Delta" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Value" datatype="float"/>
       <Pin name="Value" datatype="float" direction="out"/>
@@ -1154,7 +1154,7 @@ auto r11 = gmpi::Register<Add>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Add" name="Add" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Add" name="Add" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Value" datatype="float"/>
       <Pin name="Value" datatype="float"/>
@@ -1184,7 +1184,7 @@ auto r12 = gmpi::Register<Multiply>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Multiply" name="Multiply" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Multiply" name="Multiply" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Value" datatype="float"/>
       <Pin name="Value" datatype="float"/>
@@ -1213,7 +1213,7 @@ auto r13 = gmpi::Register<Bool2Float>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Bool2Float" name="Bool2Float" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Bool2Float" name="Bool2Float" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Value" datatype="bool"/>
       <Pin name="Value" datatype="float" direction="out"/>
@@ -1290,7 +1290,7 @@ auto r14 = gmpi::Register<Float2Text>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Float2Text" name="Float2Text" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Float2Text" name="Float2Text" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Value" datatype="float"/>
       <Pin name="Decimal Places" datatype="int" default="-1"/>
@@ -1395,7 +1395,7 @@ auto r17a = gmpi::Register<ObjectTester>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: ObjectTester" name="ObjectTester" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: ObjectTester" name="ObjectTester" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="In" datatype="object:test"/>
       <Pin name="Out" datatype="object:test" direction="out"/>
@@ -1450,7 +1450,7 @@ auto r17 = gmpi::Register<CircleGeometry>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: CircleGeometry" name="CircleGeometry" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: CircleGeometry" name="CircleGeometry" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Radius" datatype="float" default="10"/>
       <Pin name="Path" datatype="object:path" direction="out"/>
@@ -1513,7 +1513,7 @@ auto r41 = gmpi::Register<ArcGeometry>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: ArcGeometry" name="Arc Geometry" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: ArcGeometry" name="Arc Geometry" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Radius" datatype="float" default="10"/>
       <Pin name="Start (turns)" datatype="float" default="0.3"/>
@@ -1544,7 +1544,7 @@ auto r42 = gmpi::Register<PointFromXY>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Point" name="Point" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Point" name="Point" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="X" datatype="float"/>
       <Pin name="Y" datatype="float"/>
@@ -1602,7 +1602,7 @@ auto r43 = gmpi::Register<Multiline>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Multiline" name="Multiline" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Multiline" name="Multiline" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Path" datatype="object:path" direction="out"/>
       <Pin name="Point" datatype="struct:point" autoDuplicate="true"/>
@@ -1656,7 +1656,7 @@ auto r17b = gmpi::Register<SvgGeometry>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: SvgGeometry" name="Svg Geometry" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: SvgGeometry" name="Svg Geometry" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
 	  <Pin name="SVG File" datatype="string_utf8" isFilename="true" metadata="svg"/>
       <Pin name="Path" datatype="object:path" direction="out"/>
@@ -1689,7 +1689,7 @@ auto r25 = gmpi::Register<ColorFromRGBA>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: ColorFromRGBA" name="Color (RGBA)" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: ColorFromRGBA" name="Color (RGBA)" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Red" datatype="float"/>
       <Pin name="Green" datatype="float"/>
@@ -1727,7 +1727,7 @@ auto r27 = gmpi::Register<Rotation>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Rotation" name="Rotation" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Rotation" name="Rotation" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Angle (turns)" datatype="float"/>
       <Pin name="Transform" datatype="struct:transform" direction="out"/>
@@ -1757,7 +1757,7 @@ auto r28 = gmpi::Register<Translation>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Translation" name="Translation" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Translation" name="Translation" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="X" datatype="float"/>
       <Pin name="Y" datatype="float"/>
@@ -1788,7 +1788,7 @@ auto r29 = gmpi::Register<Scale>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Scale" name="Scale" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Scale" name="Scale" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="X" datatype="float" default="1"/>
       <Pin name="Y" datatype="float" default="1"/>
@@ -1819,7 +1819,7 @@ auto r30 = gmpi::Register<CombineTransforms>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: CombineTransforms" name="Combine Transforms" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: CombineTransforms" name="Combine Transforms" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="A" datatype="struct:transform"/>
       <Pin name="B" datatype="struct:transform"/>
@@ -1887,7 +1887,7 @@ auto r26 = gmpi::Register<StyleBuilder>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: StyleBuilder" name="Style" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: StyleBuilder" name="Style" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Fill" datatype="struct:color"/>
       <Pin name="Stroke" datatype="struct:color"/>
@@ -1967,7 +1967,7 @@ auto r18 = gmpi::Register<RenderGeometry>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: RenderGeometry" name="Render" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: RenderGeometry" name="Render" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Path" datatype="object:path"/>
       <Pin name="Style" datatype="object:style"/>
@@ -2047,7 +2047,7 @@ auto r31 = gmpi::Register<RingOfTransforms>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: RingOfTransforms" name="Ring of Transforms" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: RingOfTransforms" name="Ring of Transforms" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Count" datatype="int" default="12"/>
       <Pin name="Radius" datatype="float" default="40"/>
@@ -2125,7 +2125,7 @@ auto r34 = gmpi::Register<Series>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Series" name="Series" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Series" name="Series" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Count" datatype="int" default="12"/>
       <Pin name="Start" datatype="float" default="0"/>
@@ -2189,7 +2189,7 @@ auto r35 = gmpi::Register<NumberMath>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: NumberMath" name="Number Math" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: NumberMath" name="Number Math" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Op" datatype="enum" default="0" metadata="Multiply,Add,Cos (turns),Sin (turns)"/>
       <Pin name="K" datatype="float" default="1"/>
@@ -2240,7 +2240,7 @@ auto r36 = gmpi::Register<TranslateXY>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: TranslateXY" name="Translate XY" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: TranslateXY" name="Translate XY" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="X" datatype="object:numberlist"/>
       <Pin name="Y" datatype="object:numberlist"/>
@@ -2295,7 +2295,7 @@ auto r33 = gmpi::Register<TransformEach>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: TransformEach" name="Transform Each" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: TransformEach" name="Transform Each" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Transform" datatype="struct:transform"/>
       <Pin name="Transforms" datatype="object:transformlist"/>
@@ -2348,7 +2348,7 @@ auto r37 = gmpi::Register<ScaleXY>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: ScaleXY" name="Scale XY" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: ScaleXY" name="Scale XY" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="X" datatype="object:numberlist"/>
       <Pin name="Y" datatype="object:numberlist"/>
@@ -2399,7 +2399,7 @@ auto r38 = gmpi::Register<CombineEach>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: CombineEach" name="Combine Each" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: CombineEach" name="Combine Each" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="A" datatype="object:transformlist"/>
       <Pin name="B" datatype="object:transformlist"/>
@@ -2490,7 +2490,7 @@ auto r32 = gmpi::Register<RenderInstances>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: RenderInstances" name="Render Instances" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: RenderInstances" name="Render Instances" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Path" datatype="object:path"/>
       <Pin name="Transforms" datatype="object:transformlist"/>
@@ -2589,7 +2589,7 @@ auto r39 = gmpi::Register<Circles>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Circles" name="Circles" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Circles" name="Circles" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Radius" datatype="object:numberlist"/>
       <Pin name="Paths" datatype="object:pathlist" direction="out"/>
@@ -2677,7 +2677,7 @@ auto r40 = gmpi::Register<RenderEach>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: RenderEach" name="Render Each" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: RenderEach" name="Render Each" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Paths" datatype="object:pathlist"/>
       <Pin name="Transforms" datatype="object:transformlist"/>
@@ -2743,7 +2743,7 @@ auto r19 = gmpi::Register<Render2Bitmap>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Render2Bitmap" name="Render2Bitmap" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Render2Bitmap" name="Render2Bitmap" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Path" datatype="object:path"/>
       <Pin name="Bitmap" datatype="object:bitmap" direction="out"/>
@@ -2804,7 +2804,7 @@ auto r20 = gmpi::Register<RenderBitmap>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: RenderBitmap" name="RenderBitmap" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: RenderBitmap" name="RenderBitmap" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Bitmap" datatype="object:bitmap"/>
       <Pin name="Offset X" datatype="float"/>
@@ -2829,7 +2829,7 @@ auto r20 = gmpi::Register<RenderBitmap>::withXml(R"XML(
 struct BlurBitmap final : public GraphicsProcessor
 {
     ObjectIn<drawing::api::IPathGeometry> pinPath;
-    ObjectIn<IStyle>          pinStyle;
+    ObjectIn<IStyle>         pinStyle;
     In<float>                pinBlurRadius;   // in DIPs
     In<bool>                 pinDownsample;
     In<int32_t>              pinMode;         // 0 Glow, 1 Drop Shadow, 2 Outer Glow, 3 Inner Shadow
@@ -2996,7 +2996,7 @@ auto r21 = gmpi::Register<BlurBitmap>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: BlurBitmap" name="Blur" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: BlurBitmap" name="Blur" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Path" datatype="object:path"/>
       <Pin name="Style" datatype="object:style"/>
@@ -3035,7 +3035,7 @@ auto r22 = gmpi::Register<TextFormatNode>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: TextFormat" name="TextFormat" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: TextFormat" name="TextFormat" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Font" datatype="object:font" direction="out"/>
     </GUI>
@@ -3148,7 +3148,7 @@ auto r23 = gmpi::Register<RenderText2Bitmap>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: RenderText2Bitmap" name="RenderText2Bitmap" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: RenderText2Bitmap" name="RenderText2Bitmap" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Font" datatype="object:font"/>
       <Pin name="Text" datatype="string_utf8"/>
@@ -3277,7 +3277,7 @@ auto r24 = gmpi::Register<Mask2Bitmap>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Mask2Bitmap" name="Mask2Bitmap" category="Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: Mask2Bitmap" name="Mask2Bitmap" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Bitmap8" datatype="object:bitmap"/>
       <Pin name="Bitmap24" datatype="object:bitmap" direction="out"/>
