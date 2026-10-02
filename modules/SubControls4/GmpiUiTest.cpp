@@ -3281,6 +3281,7 @@ struct TextToMask final : public GraphicsProcessor
 {
     ObjectIn<drawing::api::ITextFormat> pinFont;
     In<std::string>                     pinText;
+    In<bool>                            pinX2; // twice the DPI
     ObjectOut<drawing::api::IBitmap>    pinOutput;
 
     Bitmap bitmap;
@@ -3294,7 +3295,7 @@ struct TextToMask final : public GraphicsProcessor
         if (ReturnCode::Ok != pinFont.value->queryInterface(&drawing::api::ITextFormat::guid, AccessPtr::put_void(textFormat)))
             return ReturnCode::Fail;
 
-        const float scale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
+        const float scale = (drawingHost ? drawingHost->getRasterizationScale() : 1.0f) * (pinX2.value ? 2.0f : 1.0f);
 
         // measure the text (DIPs), pad a little, size symmetric about the origin.
         const Size ext = textFormat.getTextExtentU(pinText.value);
@@ -3329,6 +3330,7 @@ auto r45 = gmpi::Register<TextToMask>::withXml(R"XML(
     <GUI>
       <Pin name="Font" datatype="object:font"/>
       <Pin name="Text" datatype="string_utf8"/>
+      <Pin name="x2" datatype="bool"/>
       <Pin name="Bitmap8" datatype="object:bitmap" direction="out"/>
     </GUI>
   </Plugin>
