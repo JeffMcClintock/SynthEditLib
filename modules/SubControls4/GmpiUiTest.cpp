@@ -2997,7 +2997,7 @@ auto r21 = gmpi::Register<BlurBitmap>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: BlurBitmap" name="Blur" category="Experimental/Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: BlurBitmap" name="Blur" category="Debug/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Path" datatype="object:path"/>
       <Pin name="Style" datatype="object:style"/>
@@ -3337,6 +3337,93 @@ auto r24 = gmpi::Register<Mask2Bitmap>::withXml(R"XML(
     <GUI>
       <Pin name="Bitmap8" datatype="object:bitmap"/>
       <Pin name="Bitmap24" datatype="object:bitmap" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Blurs an 8-bit mask (or any image's alpha channel) into an 8-bit mask. The output grows by the
+// radius on every side so the blur can fade out, and keeps the input's centre.
+struct Blur2 final : public GraphicsProcessor
+{
+    ObjectIn<drawing::api::IBitmap>  pinInput;
+    In<float>                        pinBlurRadius; // in DIPs
+    ObjectOut<drawing::api::IBitmap> pinOutput;
+
+    Bitmap blurredBitmap;
+
+    Blur2()
+    {
+        pinBlurRadius.value = 8.0f;
+    }
+
+    ReturnCode process() override
+    {
+        if (!pinInput)
+            return ReturnCode::Ok;
+
+        Bitmap input;
+        if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IBitmap::guid, AccessPtr::put_void(input)))
+            return ReturnCode::Fail;
+
+        const float scale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
+        const int radius = std::clamp(static_cast<int>(pinBlurRadius.value * scale + 0.5f), 0, 254);
+
+        const auto inSize = input.getSize();
+        const int w = static_cast<int>(inSize.width) + 2 * radius;
+        const int h = static_cast<int>(inSize.height) + 2 * radius;
+        if (w <= 0 || h <= 0)
+            return ReturnCode::Ok;
+
+        std::vector<uint8_t> mask(static_cast<size_t>(w) * h, 0);
+        {
+            auto src = input.lockPixels();
+            const auto format = src.getPixelFormat();
+            if (Mask2Bitmap::coverage(format, src.getAddress()) < 0)
+                return ReturnCode::Fail;
+
+            const auto stride = src.getBytesPerRow();
+            const auto pixelSize = src.getBytesPerPixel();
+            for (uint32_t y = 0; y < inSize.height; ++y)
+            {
+                const uint8_t* srcRow = src.getAddress() + static_cast<size_t>(y) * stride;
+                uint8_t* maskRow = &mask[static_cast<size_t>(y + radius) * w + radius];
+                for (uint32_t x = 0; x < inSize.width; ++x)
+                    maskRow[x] = static_cast<uint8_t>(Mask2Bitmap::coverage(format, srcRow + x * pixelSize));
+            }
+        }
+
+        if (radius > 0)
+            ginSingleChannel(mask.data(), w, h, radius);
+
+        blurredBitmap = drawingFactory.createImage(w, h, (int32_t)drawing::BitmapRenderTargetFlags::Mask | (int32_t)drawing::BitmapRenderTargetFlags::CpuReadable);
+        {
+            auto dst = blurredBitmap.lockPixels(drawing::BitmapLockFlags::Write);
+            if (dst.getBytesPerPixel() != 1)
+                return ReturnCode::Fail;
+
+            const auto stride = dst.getBytesPerRow();
+            for (int y = 0; y < h; ++y)
+                std::memcpy(dst.getAddress() + static_cast<size_t>(y) * stride, &mask[static_cast<size_t>(y) * w], w);
+        }
+
+        pinOutput = AccessPtr::get(blurredBitmap);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r46 = gmpi::Register<Blur2>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Blur2" name="Blur2" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Bitmap8" datatype="object:bitmap"/>
+      <Pin name="Blur Radius" datatype="float" default="8"/>
+      <Pin name="Bitmap8" datatype="object:bitmap" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
