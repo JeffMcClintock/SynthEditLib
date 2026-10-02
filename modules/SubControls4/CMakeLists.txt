@@ -15,6 +15,7 @@ gmpi_plugin(
         ${CMAKE_CURRENT_SOURCE_DIR}/../PluginUIScale/PluginUIScaleGui.cpp
         GmpiUiTest.cpp
         PatchMemGet.cpp
+        PatchMemMeter.cpp
         IntToBoolsGui.cpp
         DialogGui.cpp
         DirectoryDialogGui.cpp

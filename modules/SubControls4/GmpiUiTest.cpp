@@ -365,6 +365,48 @@ auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
 )XML");
 }
 
+// A value the DSP drives, for meters. The parameter is neither saved nor changed by presets.
+struct PatchMemMeter final : public PluginEditorNoGui
+{
+    In<float> pinNormalized_in;
+    In<float> pinValue_in;
+
+    Out<float> pinNormalized;
+    Out<float> pinValue;
+
+    ReturnCode process() override
+    {
+        pinNormalized = pinNormalized_in.value;
+        pinValue = pinValue_in.value;
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r44 = gmpi::Register<PatchMemMeter>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: PatchMemMeter" name="Meter Value" category="GMPI/SDK Examples" vendor="Jeff McClintock">
+    <Parameters>
+      <Parameter id="0" datatype="float" persistant="false" ignorePatchChange="true"/>
+    </Parameters>
+    <Audio>
+      <Pin name="Value" datatype="float"/>
+      <Pin name="Value-out" datatype="float" direction="out" private="true" parameterId="0"/>
+    </Audio>
+    <GUI>
+      <Pin name="Normalized-in" datatype="float" parameterId="0" parameterField="Normalized"/>
+      <Pin name="Value-in" datatype="float" parameterId="0" parameterField="Value"/>
+      <Pin name="Normalized" datatype="float" direction="out"/>
+      <Pin name="Value" datatype="float" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 
 struct PatchMemUpdateFloatText final : public PluginEditorNoGui
 {
