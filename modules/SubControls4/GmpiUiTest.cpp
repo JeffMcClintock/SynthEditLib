@@ -474,7 +474,7 @@ auto r5 = gmpi::Register<OneWayFloat>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: OneWayFloat" name="OneWayFloat" category="Experimental/Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: OneWayFloat" name="OneWayFloat" category="Debug/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Value" datatype="float"/>
       <Pin name="Value" datatype="float" direction="out"/>
@@ -503,7 +503,7 @@ auto r7 = gmpi::Register<OneWayText>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: OneWayText" name="OneWayText" category="Experimental/Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: OneWayText" name="OneWayText" category="Debug/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Value" datatype="string"/>
       <Pin name="Value" datatype="string" direction="out"/>
