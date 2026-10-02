@@ -3338,6 +3338,91 @@ auto r45 = gmpi::Register<TextToMask>::withXml(R"XML(
 )XML");
 }
 
+// A path rendered to an 8-bit mask, centred on the origin. The Style picks fill and/or stroke as
+// Render does (default a 1px stroke); only whether each is drawn matters, not its colour.
+struct PathToMask final : public GraphicsProcessor
+{
+    ObjectIn<drawing::api::IPathGeometry> pinPath;
+    ObjectIn<IStyle>                      pinStyle;
+    In<bool>                              pinX2; // twice the DPI
+    ObjectOut<drawing::api::IBitmap>      pinOutput;
+
+    Bitmap bitmap;
+
+    ReturnCode process() override
+    {
+        if (!pinPath)
+            return ReturnCode::Ok;
+
+        PathGeometry geometry;
+        if (ReturnCode::Ok != pinPath.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
+            return ReturnCode::Fail;
+
+        gmpi::drawing::Color fill{};
+        gmpi::drawing::Color stroke = Colors::White;
+        float strokeWidth = 1.0f;
+        int32_t cap = 0;
+        if (auto* style = pinStyle.value.get())
+        {
+            style->getFillColor(&fill);
+            style->getStrokeColor(&stroke);
+            style->getStrokeWidth(&strokeWidth);
+            cap = style->getStrokeCap();
+        }
+        const bool doFill = fill.a > 0.0f;
+        const bool doStroke = stroke.a > 0.0f && strokeWidth > 0.0f;
+        if (!doFill && !doStroke)
+            return ReturnCode::Ok;
+
+        const float scale = (drawingHost ? drawingHost->getRasterizationScale() : 1.0f) * (pinX2.value ? 2.0f : 1.0f);
+
+        auto strokeStyle = drawingFactory.createStrokeStyle(static_cast<CapStyle>(cap));
+        const Rect extent = geometry.getWidenedBounds(doStroke ? strokeWidth : 0.0f, strokeStyle);
+        if (!std::isfinite(extent.left) || !std::isfinite(extent.right) || !std::isfinite(extent.top) || !std::isfinite(extent.bottom))
+            return ReturnCode::Ok; // empty path
+
+        // size symmetric about the origin, padded a little for antialiasing.
+        const float halfW = (std::max)(std::fabs(extent.left), std::fabs(extent.right)) + 1.0f;
+        const float halfH = (std::max)(std::fabs(extent.top), std::fabs(extent.bottom)) + 1.0f;
+        const SizeU size{
+            static_cast<uint32_t>((std::max)(1, static_cast<int>(2.0f * halfW * scale + 0.5f))),
+            static_cast<uint32_t>((std::max)(1, static_cast<int>(2.0f * halfH * scale + 0.5f)))
+        };
+
+        auto rt = drawingFactory.createCpuRenderTarget(size, (int32_t)BitmapRenderTargetFlags::Mask | (int32_t)BitmapRenderTargetFlags::CpuReadable);
+        rt.beginDraw();
+        rt.setTransform(makeTranslation(halfW, halfH) * makeScale(scale));
+        auto brush = rt.createSolidColorBrush(Colors::White);
+        if (doFill)
+            rt.fillGeometry(geometry, brush);
+        if (doStroke)
+            rt.drawGeometry(geometry, brush, strokeWidth, strokeStyle);
+        rt.endDraw();
+
+        bitmap = rt.getBitmap();
+        pinOutput = AccessPtr::get(bitmap);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r47 = gmpi::Register<PathToMask>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: PathToMask" name="Path to Mask" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Path" datatype="object:path"/>
+      <Pin name="Style" datatype="object:style"/>
+      <Pin name="x2" datatype="bool"/>
+      <Pin name="Bitmap8" datatype="object:bitmap" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 // A mask (or any image's alpha channel) to a 32-bit sRGB bitmap.
 struct Mask2Bitmap final : public GraphicsProcessor
 {
