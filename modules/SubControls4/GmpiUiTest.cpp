@@ -1255,62 +1255,6 @@ auto r14 = gmpi::Register<Float2Text>::withXml(R"XML(
 )XML");
 }
 
-struct Utf82Wide final : public PluginEditorNoGui
-{
-    In<std::string> pinValue_in;
-    Out<std::wstring> pinOutput;
-
-    ReturnCode process() override
-    {
-        pinOutput = JmUnicodeConversions::Utf8ToWstring(pinValue_in.value);
-        return ReturnCode::Ok;
-    }
-};
-
-namespace
-{
-auto r15 = gmpi::Register<Utf82Wide>::withXml(R"XML(
-<?xml version="1.0" encoding="utf-8" ?>
-
-<PluginList>
-  <Plugin id="SE: Utf82Wide" name="Utf82Wide" category="GMPI/SDK Examples" vendor="Jeff McClintock">
-    <GUI>
-      <Pin name="Value" datatype="string_utf8"/>
-      <Pin name="Value" datatype="string" direction="out"/>
-    </GUI>
-  </Plugin>
-</PluginList>
-)XML");
-}
-
-struct Wide2Utf8 final : public PluginEditorNoGui
-{
-    In<std::wstring> pinValue_in;
-    Out<std::string> pinOutput;
-
-    ReturnCode process() override
-    {
-        pinOutput = JmUnicodeConversions::WStringToUtf8(pinValue_in.value);
-        return ReturnCode::Ok;
-    }
-};
-
-namespace
-{
-auto r16 = gmpi::Register<Wide2Utf8>::withXml(R"XML(
-<?xml version="1.0" encoding="utf-8" ?>
-
-<PluginList>
-  <Plugin id="SE: Wide2Utf8" name="Wide2Utf8" category="GMPI/SDK Examples" vendor="Jeff McClintock">
-    <GUI>
-      <Pin name="Value" datatype="string"/>
-      <Pin name="Value" datatype="string_utf8" direction="out"/>
-    </GUI>
-  </Plugin>
-</PluginList>
-)XML");
-}
-
 struct GraphicsProcessor : public PluginEditorNoGui
 {
     gmpi::shared_ptr<gmpi::api::IDrawingHost> drawingHost;
