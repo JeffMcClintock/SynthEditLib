@@ -3161,6 +3161,66 @@ auto r23 = gmpi::Register<RenderText2Bitmap>::withXml(R"XML(
 )XML");
 }
 
+// Text rendered to an 8-bit mask, centred on the origin.
+struct TextToMask final : public GraphicsProcessor
+{
+    ObjectIn<drawing::api::ITextFormat> pinFont;
+    In<std::string>                     pinText;
+    ObjectOut<drawing::api::IBitmap>    pinOutput;
+
+    Bitmap bitmap;
+
+    ReturnCode process() override
+    {
+        if (!pinFont || pinText.value.empty())
+            return ReturnCode::Ok;
+
+        TextFormat textFormat;
+        if (ReturnCode::Ok != pinFont.value->queryInterface(&drawing::api::ITextFormat::guid, AccessPtr::put_void(textFormat)))
+            return ReturnCode::Fail;
+
+        const float scale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
+
+        // measure the text (DIPs), pad a little, size symmetric about the origin.
+        const Size ext = textFormat.getTextExtentU(pinText.value);
+        const float halfW = ext.width * 0.5f + 2.0f;
+        const float halfH = ext.height * 0.5f + 2.0f;
+        const SizeU size{
+            static_cast<uint32_t>((std::max)(1, static_cast<int>(2.0f * halfW * scale + 0.5f))),
+            static_cast<uint32_t>((std::max)(1, static_cast<int>(2.0f * halfH * scale + 0.5f)))
+        };
+
+        auto rt = drawingFactory.createCpuRenderTarget(size, (int32_t)BitmapRenderTargetFlags::Mask | (int32_t)BitmapRenderTargetFlags::CpuReadable);
+        rt.beginDraw();
+        rt.setTransform(makeTranslation(halfW, halfH) * makeScale(scale));
+        auto brush = rt.createSolidColorBrush(Colors::White);
+        rt.drawTextU(pinText.value, textFormat,
+            Rect{ -ext.width * 0.5f, -ext.height * 0.5f, ext.width * 0.5f, ext.height * 0.5f }, brush);
+        rt.endDraw();
+
+        bitmap = rt.getBitmap();
+        pinOutput = AccessPtr::get(bitmap);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r45 = gmpi::Register<TextToMask>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: TextToMask" name="Text to Mask" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Font" datatype="object:font"/>
+      <Pin name="Text" datatype="string_utf8"/>
+      <Pin name="Bitmap8" datatype="object:bitmap" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 // A mask (or any image's alpha channel) to a 32-bit sRGB bitmap.
 struct Mask2Bitmap final : public GraphicsProcessor
 {
