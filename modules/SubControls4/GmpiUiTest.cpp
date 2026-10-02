@@ -347,6 +347,10 @@ auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
     <Parameters>
       <Parameter id="0" datatype="float" />
     </Parameters>
+    <Audio>
+      <Pin name="Value-in" datatype="float" private="true" parameterId="0"/>
+      <Pin name="Value" datatype="float" direction="out"/>
+    </Audio>
     <GUI>
       <Pin name="Normalized-in" datatype="float" parameterId="0" parameterField="Normalized"/>
       <Pin name="MouseDown-in" datatype="bool" parameterId="0" parameterField="Grab"/>

@@ -7,12 +7,14 @@ set(TINYXML2_DIR "${TINYXML2_PARENT_DIR}/tinyXml2")
 
 gmpi_plugin(
     PROJECT_NAME ${PROJECT_NAME}
+    HAS_DSP
     HAS_GUI
     IS_OFFICIAL_MODULE
     FORMATS_LIST GMPI
     SOURCE_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/../PluginUIScale/PluginUIScaleGui.cpp
         GmpiUiTest.cpp
+        PatchMemGet.cpp
         IntToBoolsGui.cpp
         DialogGui.cpp
         DirectoryDialogGui.cpp
