@@ -454,6 +454,7 @@ auto r4 = gmpi::Register<PatchMemUpdateFloatText>::withXml(R"XML(
 )XML");
 }
 
+#if 0
 // just to help with simulating mono-directional system
 struct OneWayFloat final : public PluginEditorNoGui
 {
@@ -512,6 +513,7 @@ auto r7 = gmpi::Register<OneWayText>::withXml(R"XML(
 </PluginList>
 )XML");
 }
+#endif
 
 struct Image4Gui : public PluginEditor
 {
@@ -646,7 +648,6 @@ struct Image4Gui : public PluginEditor
 };
 
 // Register the GUI
-//SE_DECLARE_INIT_STATIC_FILE(Image4_Gui);
 namespace
 {
 auto r8 = gmpi::Register<Image4Gui>::withXml(R"XML(
@@ -687,8 +688,9 @@ class TextEntry4Gui : public PluginEditor
 {
 protected:
     In<std::string> pinValueIn;
-    Out<std::string> pinValueOut;
     ObjectIn<IStyle> pinStyle;
+    In<bool> pinShow;
+    Out<std::string> pinValueOut;
 
     sdk::TextEditCallback callback;
 
@@ -699,6 +701,9 @@ public:
             {
                 pinValueOut = text;
             };
+
+		pinShow.onUpdate = [this](PinBase*) { if(pinShow.value) show(); };
+		pinValueIn.onUpdate = [this](PinBase*) { drawingHost->invalidateRect({}); };
     }
 
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
@@ -726,7 +731,7 @@ public:
         g.drawTextU(pinValueIn.value, textFormat, textRect, textBrush);
         return ReturnCode::Ok;
     }
-
+    
     ReturnCode process() override
     {
         pinValueOut = pinValueIn.value;
@@ -735,16 +740,7 @@ public:
         return ReturnCode::Ok;
     }
 
-    ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
-    {
-        return ReturnCode::Ok;
-    }
-    gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
-    {
-		inputHost->setCapture();
-        return ReturnCode::Unhandled;
-    }
-    gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
+    void show()
     {
         inputHost->releaseCapture();
 
@@ -758,8 +754,6 @@ public:
             textEdit->setText(pinValueIn.value.c_str());
             textEdit->showAsync(&callback);
         }
-
-        return ReturnCode::Unhandled;
     }
 };
 
@@ -773,8 +767,9 @@ auto r8B = gmpi::Register<TextEntry4Gui>::withXml(R"XML(
   <Plugin id="SE: TextEntry4Gui" name="Text Entry" category="Experimental/Cadmium" vendor="Jeff McClintock">
 	<GUI graphicsApi="GmpiGui">
 		<Pin name="Value" datatype="string_utf8" />
-		<Pin name="Value" datatype="string_utf8" direction="out" />
 		<Pin name="Style" datatype="object:style" />
+		<Pin name="Trigger" datatype="bool" />
+		<Pin name="Value" datatype="string_utf8" direction="out" />
 	</GUI>
   </Plugin>
 </PluginList>
@@ -972,7 +967,7 @@ auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
 )XML");
 }
 
-class MouseTarget : public PluginEditor
+class MouseTarget : public PluginEditor, public gmpi::api::IDrawingLayer
 {
 protected:
     Out<bool>  pinHover;             // 0
@@ -1069,6 +1064,49 @@ public:
         pinHover = isMouseOverMe;
 
         return gmpi::ReturnCode::Unhandled;
+    }
+
+    // Layer 4 = editor guide: a dotted outline shows where this invisible target is, in the editor only.
+    ReturnCode renderLayer(gmpi::drawing::api::IDeviceContext* drawingContext, int32_t layer) override
+    {
+        if (layer != 4)
+            return ReturnCode::NoSupport;
+
+        Graphics g(drawingContext);
+
+        StrokeStyleProperties strokeStyleProperties{};
+        strokeStyleProperties.lineCap = CapStyle::Round; // Flat caps don't draw dots on Windows.
+        strokeStyleProperties.dashStyle = DashStyle::Dot;
+        auto dottedStroke = g.getFactory().createStrokeStyle(strokeStyleProperties);
+
+        const Rect outline{ bounds.left + 0.5f, bounds.top + 0.5f, bounds.right - 0.5f, bounds.bottom - 0.5f };
+        g.drawRectangle(outline, g.createSolidColorBrush(Colors::Orange), 1.0f, dottedStroke);
+
+        return ReturnCode::Ok;
+    }
+
+    int32_t addRef() override
+    {
+        return PluginEditor::addRef();
+    }
+
+    int32_t release() override
+    {
+        return PluginEditor::release();
+    }
+
+    ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+    {
+        *returnInterface = {};
+
+        if ((*iid) == gmpi::api::IDrawingLayer::guid)
+        {
+            *returnInterface = static_cast<gmpi::api::IDrawingLayer*>(this);
+            PluginEditor::addRef();
+            return ReturnCode::Ok;
+        }
+
+        return PluginEditor::queryInterface(iid, returnInterface);
     }
 };
 
@@ -1656,7 +1694,7 @@ auto r48 = gmpi::Register<BitsToInt>::withXml(R"XML(
   <Plugin id="SE: BitsToInt" name="Bits To Int" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Value" datatype="int" direction="out"/>
-      <Pin name="Bit" datatype="bool" autoDuplicate="true"/>
+      <Pin name="Bit" datatype="bool" autoDuplicate="true" autoRename="true"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -1709,7 +1747,7 @@ auto r49 = gmpi::Register<StyleSwitch>::withXml(R"XML(
     <GUI>
       <Pin name="Choice" datatype="int"/>
       <Pin name="Style" datatype="object:style" direction="out"/>
-      <Pin name="Style" datatype="object:style" autoDuplicate="true"/>
+      <Pin name="Style" datatype="object:style" autoDuplicate="true" autoRename="true"/>
     </GUI>
   </Plugin>
 </PluginList>

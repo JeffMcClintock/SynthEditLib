@@ -1807,7 +1807,8 @@ namespace SE2
 		if ((flags & gmpi_gui_api::GG_POINTER_FLAG_FIRSTBUTTON) != 0)
 		{
 			// Handle double-click on module. (only if didn't click on a child control)
-			if ((flags & gmpi_gui_api::GG_POINTER_FLAG_DOUBLE) != 0)
+			// ALT leaves the double-click to the module's own GUI (e.g. a MouseTarget in an embedded sub-view).
+			if ((flags & gmpi_gui_api::GG_POINTER_FLAG_DOUBLE) != 0 && (flags & gmpi_gui_api::GG_POINTER_KEY_ALT) == 0)
 			{
 				auto res2 = (gmpi::ReturnCode) OnDoubleClicked(point, flags);
 
