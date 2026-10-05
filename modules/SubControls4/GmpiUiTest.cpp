@@ -1613,6 +1613,56 @@ auto r43 = gmpi::Register<Multiline>::withXml(R"XML(
 )XML");
 }
 
+// Bools to an integer, one bit each: the first input is bit 0. Inputs past bit 31 are ignored.
+struct BitsToInt final : public PluginEditorNoGui
+{
+    Out<int32_t> pinValue;
+    std::vector<std::unique_ptr<In<bool>>> pinBits;
+
+    ReturnCode initialize() override
+    {
+        synthedit::PinInformation info(editorHost.get());
+        const auto bitCount = static_cast<int>(info.pins.size()) - 1;
+
+        // a pin registers with the editor under construction, which is no longer this one.
+        constructingInstance = this;
+        for (int i = 0; i < bitCount; ++i)
+            pinBits.push_back(std::make_unique<In<bool>>());
+        constructingInstance = nullptr;
+
+        return PluginEditorNoGui::initialize();
+    }
+
+    ReturnCode process() override
+    {
+        uint32_t value{};
+        for (size_t i = 0; i < (std::min)(pinBits.size(), size_t{ 32 }); ++i)
+        {
+            if (pinBits[i]->value)
+                value |= 1u << i;
+        }
+
+        pinValue = static_cast<int32_t>(value);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r48 = gmpi::Register<BitsToInt>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: BitsToInt" name="Bits To Int" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Value" datatype="int" direction="out"/>
+      <Pin name="Bit" datatype="bool" autoDuplicate="true"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 struct SvgGeometry final : public GraphicsProcessor
 {
     In<std::string> pinFilename;
