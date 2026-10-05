@@ -1663,6 +1663,59 @@ auto r48 = gmpi::Register<BitsToInt>::withXml(R"XML(
 )XML");
 }
 
+// Passes on the Style that Choice selects (0 = the first). Choice is clamped to the inputs there are.
+struct StyleSwitch final : public PluginEditorNoGui
+{
+    In<int32_t> pinChoice;
+    ObjectOut<IStyle> pinStyle;
+    std::vector<std::unique_ptr<ObjectIn<IStyle>>> pinStyles;
+
+    ReturnCode initialize() override
+    {
+        synthedit::PinInformation info(editorHost.get());
+        const auto styleCount = static_cast<int>(info.pins.size()) - 2;
+
+        // a pin registers with the editor under construction, which is no longer this one.
+        constructingInstance = this;
+        for (int i = 0; i < styleCount; ++i)
+            pinStyles.push_back(std::make_unique<ObjectIn<IStyle>>());
+        constructingInstance = nullptr;
+
+        return PluginEditorNoGui::initialize();
+    }
+
+    ReturnCode process() override
+    {
+        // re-send even when unchanged: a Style object can change in place.
+        if (pinStyles.empty())
+        {
+            pinStyle = nullptr;
+            return ReturnCode::Ok;
+        }
+
+        const auto choice = std::clamp(pinChoice.value, 0, static_cast<int32_t>(pinStyles.size()) - 1);
+        pinStyle = pinStyles[choice]->value.get();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r49 = gmpi::Register<StyleSwitch>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: StyleSwitch" name="Style Switch" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Choice" datatype="int"/>
+      <Pin name="Style" datatype="object:style" direction="out"/>
+      <Pin name="Style" datatype="object:style" autoDuplicate="true"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 struct SvgGeometry final : public GraphicsProcessor
 {
     In<std::string> pinFilename;
