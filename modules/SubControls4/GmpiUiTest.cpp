@@ -776,6 +776,159 @@ auto r8B = gmpi::Register<TextEntry4Gui>::withXml(R"XML(
 )XML");
 }
 
+// An invisible platform text-edit over this module's area, opened by a rising edge on Trigger
+// (e.g. MouseTarget's Double Click). Value passes through until an edit is committed.
+class TextEdit final : public PluginEditor, public gmpi::api::IDrawingLayer
+{
+    In<std::string>  pinValueIn;
+    In<bool>         pinTrigger;
+    Out<std::string> pinValueOut;
+
+    sdk::TextEditCallback callback;
+    bool editing = false;
+
+public:
+    TextEdit()
+    {
+        callback.onSuccess = [this](const std::string& text) { editing = false; pinValueOut = text; };
+        callback.onCancel = [this]() { editing = false; };
+
+        pinValueIn.onUpdate = [this](PinBase*) { pinValueOut = pinValueIn.value; };
+        // rising edge only: the host also pushes the initial value at load.
+        pinTrigger.onUpdate = [this](PinBase*) { if (pinTrigger.value) show(); };
+    }
+
+    void show()
+    {
+        if (editing || !dialogHost)
+            return;
+
+        gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+        dialogHost->createTextEdit(&bounds, unknown.put());
+
+        if (auto textEdit = unknown.as<gmpi::api::ITextEdit>(); textEdit)
+        {
+            editing = true;
+            textEdit->setText(pinValueIn.value.c_str());
+            textEdit->showAsync(&callback);
+        }
+    }
+
+    // Layer 4 = editor guide: a dotted outline shows where this invisible box is, in the editor only.
+    ReturnCode renderLayer(gmpi::drawing::api::IDeviceContext* drawingContext, int32_t layer) override
+    {
+        if (layer != 4)
+            return ReturnCode::NoSupport;
+
+        Graphics g(drawingContext);
+
+        StrokeStyleProperties strokeStyleProperties{};
+        strokeStyleProperties.lineCap = CapStyle::Round; // Flat caps don't draw dots on Windows.
+        strokeStyleProperties.dashStyle = DashStyle::Dot;
+        auto dottedStroke = g.getFactory().createStrokeStyle(strokeStyleProperties);
+
+        const Rect outline{ bounds.left + 0.5f, bounds.top + 0.5f, bounds.right - 0.5f, bounds.bottom - 0.5f };
+        g.drawRectangle(outline, g.createSolidColorBrush(Colors::Orange), 1.0f, dottedStroke);
+
+        return ReturnCode::Ok;
+    }
+
+    int32_t addRef() override
+    {
+        return PluginEditor::addRef();
+    }
+
+    int32_t release() override
+    {
+        return PluginEditor::release();
+    }
+
+    ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+    {
+        *returnInterface = {};
+
+        if ((*iid) == gmpi::api::IDrawingLayer::guid)
+        {
+            *returnInterface = static_cast<gmpi::api::IDrawingLayer*>(this);
+            PluginEditor::addRef();
+            return ReturnCode::Ok;
+        }
+
+        return PluginEditor::queryInterface(iid, returnInterface);
+    }
+};
+
+namespace
+{
+auto r50 = gmpi::Register<TextEdit>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: TextEdit" name="Text Edit" category="Experimental/Cadmium" vendor="Jeff McClintock">
+	<GUI graphicsApi="GmpiGui">
+		<Pin name="Value" datatype="string_utf8" />
+		<Pin name="Trigger" datatype="bool" />
+		<Pin name="Value" datatype="string_utf8" direction="out" />
+	</GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Draws Text centred in this module, sized to its height, in the Style's fill colour (default white).
+class TextRender final : public PluginEditor
+{
+    In<std::string>  pinText;
+    ObjectIn<IStyle> pinStyle;
+
+public:
+    TextRender()
+    {
+        auto invalidate = [this](PinBase*) { if (drawingHost) drawingHost->invalidateRect({}); };
+        pinText.onUpdate = invalidate;
+        pinStyle.onUpdate = invalidate;
+    }
+
+    ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
+    {
+        Graphics g(drawingContext);
+        ClipDrawingToBounds _(g, bounds);
+
+        gmpi::drawing::Color textColor = Colors::White;
+        if (auto* style = pinStyle.value.get())
+            style->getFillColor(&textColor);
+
+        auto textRect = bounds;
+        textRect.left += 2;
+        textRect.top += 2;
+        textRect.right -= 2;
+        textRect.bottom -= 2;
+
+        auto textFormat = g.getFactory().createTextFormat(getHeight(textRect));
+        textFormat.setTextAlignment(gmpi::drawing::TextAlignment::Center);
+        textFormat.setParagraphAlignment(gmpi::drawing::ParagraphAlignment::Center);
+
+        g.drawTextU(pinText.value, textFormat, textRect, g.createSolidColorBrush(textColor));
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r51 = gmpi::Register<TextRender>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: TextRender" name="Text Render" category="Experimental/Cadmium" vendor="Jeff McClintock">
+	<GUI graphicsApi="GmpiGui">
+		<Pin name="Text" datatype="string_utf8" />
+		<Pin name="Style" datatype="object:style" />
+	</GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 // A click-to-edit numeric readout. Folds the format + edit + parse into one module (no
 // Float2Text / PatchMemUpdateFloatText plumbing): it shows the Value pin formatted to Decimal
 // Places, with an optional non-editable Units suffix ("dB" -> "6.00 dB"). On commit it parses the
