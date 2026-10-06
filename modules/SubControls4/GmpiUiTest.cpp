@@ -228,23 +228,41 @@ struct PatchMemSet final : public PluginEditorNoGui
     ReturnCode initialize() override
     {
         paramHost = editorHost.as<gmpi::api::IParameterSetter>();
+
+        if(paramHost)
+        {
+			pinMouseDown.onUpdate = [this](PinBase* pin)
+				{
+					paramHost->setParameter(pinId.value, gmpi::Field::Grab, 0, sizeof(bool), (const uint8_t*)&pinMouseDown.value);
+				};
+			pinNormalized.onUpdate = [this](PinBase* pin)
+				{
+					const float safeValue = std::clamp(pinNormalized.value, 0.0f, 1.0f);
+					paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), (const uint8_t*)&safeValue);
+				};
+        }
+
+
 		return PluginEditorBase::initialize();
     }
 
     ReturnCode process() override
     {
-        if (paramHost)
-        {
-            // Only push Normalized while grabbed (dragging). Writing it every block would clobber
-            // other writers (a Number Entry editing the Value field, host automation) the instant
-            // they change the parameter - then nothing typed would ever stick.
-            if (pinMouseDown.value)
-            {
-                const float safeValue = std::clamp(pinNormalized.value, 0.0f, 1.0f);
-                paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), (const uint8_t*) &safeValue);
-            }
-            paramHost->setParameter(pinId.value, gmpi::Field::Grab, 0, sizeof(bool), (const uint8_t*) &pinMouseDown.value);
-        }
+        //if(!paramHost)
+        //    return;
+
+        //if(pinMouseDown.is)
+        //{
+        //    // Only push Normalized while grabbed (dragging). Writing it every block would clobber
+        //    // other writers (a Number Entry editing the Value field, host automation) the instant
+        //    // they change the parameter - then nothing typed would ever stick.
+        //    if (pinMouseDown.value)
+        //    {
+        //        const float safeValue = std::clamp(pinNormalized.value, 0.0f, 1.0f);
+        //        paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), (const uint8_t*) &safeValue);
+        //    }
+        //    paramHost->setParameter(pinId.value, gmpi::Field::Grab, 0, sizeof(bool), (const uint8_t*) &pinMouseDown.value);
+        //}
 
         return ReturnCode::Ok;
     }
@@ -1253,19 +1271,19 @@ public:
 
     ReturnCode hitTest(gmpi::drawing::Point point, int32_t flags) override
     {
-        return ReturnCode::Ok;
+        return editing ? ReturnCode::Ok : ReturnCode::Unhandled;
     }
+
     gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
     {
-        if (editing)
-        {
-            // a click inside an active edit positions the caret (like a platform text editor).
-            numberEdit.moveCursorToX(point.x);
-            return ReturnCode::Handled;
-        }
+        if(!editing)
+            return ReturnCode::Unhandled;
 
         inputHost->setCapture();
-        return ReturnCode::Unhandled;
+
+        // a click inside an active edit positions the caret (like a platform text editor).
+        numberEdit.moveCursorToX(point.x);
+        return ReturnCode::Handled;
     }
     gmpi::ReturnCode onPointerUp(gmpi::drawing::Point point, int32_t flags) override
     {
@@ -1417,7 +1435,8 @@ public:
 
     gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override
     {
-        pendingWheel += delta / 120.0f; // 120 per notch
+		_RPTN(0, "MouseTarget::onMouseWheel %d\n", delta);
+        pendingWheel = delta / 120.0f; // 120 per notch
         editorHost2->setDirty(); // process() emits it
         return gmpi::ReturnCode::Ok;
     }
