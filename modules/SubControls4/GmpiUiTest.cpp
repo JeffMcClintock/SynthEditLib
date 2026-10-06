@@ -678,6 +678,7 @@ struct DECLSPEC_NOVTABLE IStyle : gmpi::api::IUnknown
     virtual gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* returnColor) = 0;
     virtual gmpi::ReturnCode getStrokeWidth(float* returnWidth) = 0;
     virtual int32_t getStrokeCap() = 0; // gmpi::drawing::CapStyle as int (Flat / Square / Round)
+    virtual gmpi::ReturnCode getGlowRadius(float* returnRadius) = 0; // DIPs, 0 = no glow
 
     // {5D4686F8-97A7-4A55-AFFC-6B7CB6BA4505}
     inline static const gmpi::api::Guid guid =
@@ -2132,11 +2133,13 @@ struct StyleObject final : public IStyle
     gmpi::drawing::Color strokeColor{ 0, 0, 0, 1 };   // opaque black
     float strokeWidth = 1.0f;
     int32_t strokeCap = 0;                            // CapStyle::Flat
+    float glowRadius = 0.0f;                          // no glow
 
     gmpi::ReturnCode getFillColor(gmpi::drawing::Color* c) override { *c = fillColor; return gmpi::ReturnCode::Ok; }
     gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* c) override { *c = strokeColor; return gmpi::ReturnCode::Ok; }
     gmpi::ReturnCode getStrokeWidth(float* w) override { *w = strokeWidth; return gmpi::ReturnCode::Ok; }
     int32_t getStrokeCap() override { return strokeCap; }
+    gmpi::ReturnCode getGlowRadius(float* r) override { *r = glowRadius; return gmpi::ReturnCode::Ok; }
 
     GMPI_QUERYINTERFACE_METHOD(IStyle);
     GMPI_REFCOUNT
@@ -2151,6 +2154,7 @@ struct StyleBuilder final : public PluginEditorNoGui
     In<float>                pinStrokeWidth;
     In<int32_t>              pinCap;
     ObjectOut<IStyle>         pinStyle;
+    In<float>                pinGlowRadius; // after the output, so saved wires to Style keep their pin
 
     StyleBuilder()
     {
@@ -2170,6 +2174,7 @@ struct StyleBuilder final : public PluginEditorNoGui
         s->strokeColor = pinStroke.value;
         s->strokeWidth = pinStrokeWidth.value;
         s->strokeCap   = pinCap.value;
+        s->glowRadius  = (std::max)(0.0f, pinGlowRadius.value);
 
         pinStyle.send();
         return ReturnCode::Ok;
@@ -2189,6 +2194,7 @@ auto r26 = gmpi::Register<StyleBuilder>::withXml(R"XML(
       <Pin name="Stroke Width" datatype="float" default="1"/>
       <Pin name="Cap" datatype="enum" default="0" metadata="Flat,Square,Round"/>
       <Pin name="Style" datatype="object:style" direction="out"/>
+      <Pin name="Glow Radius" datatype="float"/>
     </GUI>
   </Plugin>
 </PluginList>
