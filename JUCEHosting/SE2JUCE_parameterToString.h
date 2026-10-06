@@ -32,7 +32,7 @@ inline juce::String displayPercentageWithSignD(double value)
 inline juce::String displaydB(float value, int /*maxLen*/)
 {
     // real number with a 1 decimal places
-    char txt[12];
+    char txt[20];
 
 #if defined(_MSC_VER)
     sprintf_s(txt, "%2.1f dB", value);
@@ -46,7 +46,7 @@ inline juce::String displaydB(float value, int /*maxLen*/)
 inline juce::String displaydBD(double value)
 {
     // real number with a 1 decimal places
-    char txt[12];
+    char txt[20];
 
 #if defined(_MSC_VER)
     sprintf_s(txt, "%2.1f dB", value);
@@ -60,7 +60,7 @@ inline juce::String displaydBD(double value)
 inline juce::String displaydBD2(double value)
 {
     // real number with a sensible number of decimal places
-    char txt[12];
+    char txt[20];
 
     if (fabs(value) < 10.)
     {
@@ -85,7 +85,7 @@ inline juce::String displaydBD2(double value)
 inline juce::String displayRealNumber(float value, int /*maxLen*/)
 {
     // real number with a sensible number of decimal places
-    char txt[12];
+    char txt[20];
     if (fabsf(value) < 20.f)
     {
 #if defined(_MSC_VER)
@@ -110,7 +110,7 @@ inline juce::String displayRealNumber(float value, int /*maxLen*/)
 inline juce::String displayRealNumberD(double value)
 {
     // real number with a sensible number of decimal places
-    char txt[12];
+    char txt[20];
     if (fabs(value) < 20.)
     {
 #if defined(_MSC_VER)
@@ -135,7 +135,7 @@ inline juce::String displayRealNumberD(double value)
 inline juce::String displayRealNumberD2(double value)
 {
     // real number with a sensible number of decimal places
-    char txt[12];
+    char txt[20];
     if (fabs(value) < 10.)
     {
 #if defined(_MSC_VER)
@@ -168,7 +168,7 @@ inline juce::String displayRealNumber2(float value, int /*maxLen*/)
 // 110
 inline juce::String displayRealNumberD3(double value)
 {
-    char txt[12];
+    char txt[20];
     if (fabs(value) < 10.)
     {
 #if defined(_MSC_VER)
