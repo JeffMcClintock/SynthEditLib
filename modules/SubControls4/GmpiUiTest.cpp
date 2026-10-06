@@ -1082,10 +1082,21 @@ protected:
     NumberEdit numberEdit;
     bool editing = false;
 
+    GlowImage numberGlow;
+    GlowImage unitGlow;
+    bool glowDirty = true;
+    std::string glowText;  // what the glows were made from
+    std::string glowUnits;
+    Rect glowBounds;
+
 public:
     NumberEntry() : numberEdit(*this)
     {
         pinDecimalPlaces.value = 2;
+
+        auto styleChanged = [this](PinBase*) { glowDirty = true; if (drawingHost) drawingHost->invalidateRect({}); };
+        pinStyle.onUpdate = styleChanged;
+        pinUnitStyle.onUpdate = styleChanged;
         // Open the in-place editor on a rising edge only (value==true). The host also pushes the pin's
         // initial value at load, which must NOT open the editor.
         pinTrigger.onUpdate = [this](PinBase*) { if (pinTrigger.value) startEditing(); };
@@ -1161,19 +1172,53 @@ public:
 
         Rect numberBounds = bounds;
         numberBounds.right -= unitW;
+
+        // where NumberEdit will centre the number.
+        const std::string text = numberEdit.unsavedText();
+        const auto numSize = numberFormat.getTextExtentU(text);
+        const float numLeft = 0.5f * (numberBounds.left + numberBounds.right - numSize.width);
+        const float numTop  = 0.5f * (bounds.top + bounds.bottom - numSize.height);
+
+        // Align the (smaller) units' baseline with the number's baseline.
+        const float numBaseline = numTop + numberFormat.getFontMetrics().ascent;
+        const float unitTop     = numBaseline - unitFormat.getFontMetrics().ascent;
+        const Rect unitRect{ numLeft + numSize.width, unitTop, bounds.right, bounds.bottom };
+
+        // glows, behind the text: the units' from their own Style, else the number's.
+        if (glowDirty || text != glowText || units != glowUnits || bounds != glowBounds)
+        {
+            const float scale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
+            auto glowOf = [&](IStyle* style, gmpi::drawing::Color color, auto drawText) -> GlowImage
+            {
+                float radius{};
+                if (!style || ReturnCode::Ok != style->getGlowRadius(&radius) || radius <= 0.0f || color.a <= 0.0f)
+                    return {};
+                return makeGlowImage(g.getFactory(), bounds, radius, color, scale, drawText);
+            };
+
+            numberGlow = glowOf(pinStyle.value.get(), textColor,
+                [&](Graphics& mask, const IHasBrush& brush) { mask.drawTextU(text, numberFormat, Rect{ numLeft, numTop, numberBounds.right, bounds.bottom }, brush); });
+
+            unitGlow = {};
+            if (!units.empty())
+            {
+                auto* unitGlowStyle = pinUnitStyle.value ? pinUnitStyle.value.get() : pinStyle.value.get();
+                unitGlow = glowOf(unitGlowStyle, unitColor,
+                    [&](Graphics& mask, const IHasBrush& brush) { mask.drawTextU(units, unitFormat, unitRect, brush); });
+            }
+
+            glowText = text;
+            glowUnits = units;
+            glowBounds = bounds;
+            glowDirty = false;
+        }
+        numberGlow.draw(g);
+        unitGlow.draw(g);
+
         numberEdit.render(g, numberFormat, numberBounds, textColor); // the editable number, in our style
 
         if (!units.empty())
         {
-            const auto numSize = numberFormat.getTextExtentU(numberEdit.unsavedText());
-            const float numLeft = 0.5f * (numberBounds.left + numberBounds.right - numSize.width);
-            const float numTop  = 0.5f * (bounds.top + bounds.bottom - numSize.height);
-
-            // Align the (smaller) units' baseline with the number's baseline.
-            const float numBaseline = numTop + numberFormat.getFontMetrics().ascent;
-            const float unitTop     = numBaseline - unitFormat.getFontMetrics().ascent;
-
-            const Rect unitRect{ numLeft + numSize.width, unitTop, bounds.right, bounds.bottom };
             auto brush = g.createSolidColorBrush(unitColor);
             g.drawTextU(units, unitFormat, unitRect, brush);
         }
