@@ -1091,6 +1091,14 @@ public:
         pinTrigger.onUpdate = [this](PinBase*) { if (pinTrigger.value) startEditing(); };
     }
 
+    ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override
+    {
+        if (getHeight(*finalRect) != getHeight(bounds))
+            numberEdit.clearLayout(); // the font is sized to our height
+
+        return PluginEditor::arrange(finalRect);
+    }
+
     void startEditing()
     {
         if (editing)

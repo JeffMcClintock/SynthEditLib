@@ -29,6 +29,12 @@ public:
 	std::string text_utf8;
     std::vector<Glyph> glyphs;
 
+    // the glyphs were measured in the old font; re-measure them all at the next render.
+    void clearLayout()
+    {
+        glyphs.clear();
+    }
+
 #if 0
     void init(std::string_view s, gmpi::drawing::TextFormat& textFormat)
     {
@@ -129,6 +135,12 @@ class NumberEdit : public gmpi::TimerClient, public gmpi::api::IKeyListenerCallb
 public:
     NumberEdit(NumberEditClient& pclient) : client(pclient)
     {
+    }
+
+    // call when the font changes (e.g. it's sized to the control and the control was resized).
+    void clearLayout()
+    {
+        numberEditGlyfs.clearLayout();
     }
 
     std::string unsavedText() const
