@@ -685,6 +685,112 @@ struct DECLSPEC_NOVTABLE IStyle : gmpi::api::IUnknown
     { 0x5d4686f8, 0x97a7, 0x4a55, { 0xaf, 0xfc, 0x6b, 0x7c, 0xb6, 0xba, 0x45, 0x05 } };
 };
 
+// A soft glow, drawn behind whatever it was made from.
+struct GlowImage
+{
+    Bitmap bitmap;
+    Rect dest;   // DIPs, in the coordinates it was made in
+    Rect source; // pixels
+
+    void draw(Graphics& g)
+    {
+        if (bitmap)
+            g.drawBitmap(bitmap, dest, source);
+    }
+};
+
+// A glow: whatever drawShape paints (in white, over 'area' in DIPs) blurred by radius and tinted.
+static GlowImage makeGlowImage(Factory factory, Rect area, float radius, gmpi::drawing::Color tint, float scale, const std::function<void(Graphics&, const IHasBrush&)>& drawShape)
+{
+    // room for the blur to fade out.
+    const Rect padded{ area.left - radius - 1.0f, area.top - radius - 1.0f, area.right + radius + 1.0f, area.bottom + radius + 1.0f };
+    const int w = (std::max)(1, static_cast<int>(getWidth(padded) * scale + 0.5f));
+    const int h = (std::max)(1, static_cast<int>(getHeight(padded) * scale + 0.5f));
+
+    std::vector<uint8_t> mask(static_cast<size_t>(w) * h, 0);
+    {
+        auto rt = factory.createCpuRenderTarget(SizeU{ static_cast<uint32_t>(w), static_cast<uint32_t>(h) },
+            (int32_t)BitmapRenderTargetFlags::Mask | (int32_t)BitmapRenderTargetFlags::CpuReadable);
+        rt.beginDraw();
+        rt.setTransform(makeTranslation(-padded.left, -padded.top) * makeScale(scale));
+        auto brush = rt.createSolidColorBrush(Colors::White);
+        drawShape(rt, brush);
+        rt.endDraw();
+
+        auto maskBitmap = rt.getBitmap();
+        auto pixels = maskBitmap.lockPixels();
+        const auto stride = pixels.getBytesPerRow();
+        for (int y = 0; y < h; ++y)
+            std::memcpy(&mask[static_cast<size_t>(y) * w], pixels.getAddress() + static_cast<size_t>(y) * stride, w);
+    }
+
+    ginSingleChannel(mask.data(), w, h, static_cast<unsigned>(std::clamp(radius * scale + 0.5f, 1.0f, 254.0f)));
+
+    GlowImage glow;
+    glow.bitmap = factory.createImage(w, h, (int32_t)BitmapRenderTargetFlags::SRGBPixels | (int32_t)BitmapRenderTargetFlags::CpuReadable);
+    {
+        auto pixels = glow.bitmap.lockPixels(BitmapLockFlags::Write);
+        if (pixels.getBytesPerPixel() != 4)
+            return {};
+
+        const auto stride = pixels.getBytesPerRow();
+        constexpr float inv255 = 1.0f / 255.0f;
+        for (int y = 0; y < h; ++y)
+        {
+            uint8_t* row = pixels.getAddress() + static_cast<size_t>(y) * stride;
+            for (int x = 0; x < w; ++x)
+            {
+                const float alpha = mask[static_cast<size_t>(y) * w + x] * inv255 * tint.a;
+
+                // pre-multiplied in linear space, then to sRGB, in the bitmap's own channel order.
+                const uint32_t pixel = pixels.rgBytesToPixel(
+                    drawing::linearPixelToSRGB(tint.r * alpha),
+                    drawing::linearPixelToSRGB(tint.g * alpha),
+                    drawing::linearPixelToSRGB(tint.b * alpha),
+                    static_cast<uint8_t>(255.0f * alpha + 0.5f));
+                std::memcpy(row + x * 4, &pixel, sizeof(pixel));
+            }
+        }
+    }
+
+    glow.dest = padded;
+    glow.source = Rect{ 0, 0, static_cast<float>(w), static_cast<float>(h) };
+    return glow;
+}
+
+// A path's glow: the shape the Style draws, tinted with the stroke colour (or the fill's when there's no stroke).
+static GlowImage makeGlow(Factory factory, PathGeometry& geometry, IStyle* style, float scale)
+{
+    float radius{};
+    if (!style || ReturnCode::Ok != style->getGlowRadius(&radius) || radius <= 0.0f)
+        return {};
+
+    gmpi::drawing::Color fill{};
+    gmpi::drawing::Color stroke = Colors::White;
+    float strokeWidth = 1.0f;
+    style->getFillColor(&fill);
+    style->getStrokeColor(&stroke);
+    style->getStrokeWidth(&strokeWidth);
+    const bool doFill = fill.a > 0.0f;
+    const bool doStroke = stroke.a > 0.0f && strokeWidth > 0.0f;
+    if (!doFill && !doStroke)
+        return {};
+
+    auto strokeStyle = factory.createStrokeStyle(static_cast<CapStyle>(style->getStrokeCap()));
+    const Rect extent = geometry.getWidenedBounds(doStroke ? strokeWidth : 0.0f, strokeStyle);
+    if (!std::isfinite(extent.left) || !std::isfinite(extent.right) || !std::isfinite(extent.top) || !std::isfinite(extent.bottom))
+        return {};
+
+    return makeGlowImage(factory, extent, radius, doStroke ? stroke : fill, scale,
+        [&](Graphics& g, const IHasBrush& brush)
+        {
+            if (doFill)
+                g.fillGeometry(geometry, brush);
+            if (doStroke)
+                g.drawGeometry(geometry, brush, strokeWidth, strokeStyle);
+        });
+}
+
 class TextEntry4Gui : public PluginEditor
 {
 protected:
@@ -876,18 +982,28 @@ auto r50 = gmpi::Register<TextEdit>::withXml(R"XML(
 )XML");
 }
 
-// Draws Text centred in this module, sized to its height, in the Style's fill colour (default white).
+// Draws Text centred in this module, sized to its height, in the Style's fill colour (default white),
+// with the Style's glow in the same colour.
 class TextRender final : public PluginEditor
 {
     In<std::string>  pinText;
     ObjectIn<IStyle> pinStyle;
 
+    GlowImage glow;
+    bool glowDirty = true;
+
 public:
     TextRender()
     {
-        auto invalidate = [this](PinBase*) { if (drawingHost) drawingHost->invalidateRect({}); };
+        auto invalidate = [this](PinBase*) { glowDirty = true; if (drawingHost) drawingHost->invalidateRect({}); };
         pinText.onUpdate = invalidate;
         pinStyle.onUpdate = invalidate;
+    }
+
+    ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override
+    {
+        glowDirty = true; // the text is sized to the module
+        return PluginEditor::arrange(finalRect);
     }
 
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
@@ -908,6 +1024,19 @@ public:
         auto textFormat = g.getFactory().createTextFormat(getHeight(textRect));
         textFormat.setTextAlignment(gmpi::drawing::TextAlignment::Center);
         textFormat.setParagraphAlignment(gmpi::drawing::ParagraphAlignment::Center);
+
+        if (glowDirty)
+        {
+            glow = {};
+            float radius{};
+            if (auto* style = pinStyle.value.get(); style && ReturnCode::Ok == style->getGlowRadius(&radius) && radius > 0.0f && textColor.a > 0.0f)
+            {
+                glow = makeGlowImage(g.getFactory(), textRect, radius, textColor, drawingHost ? drawingHost->getRasterizationScale() : 1.0f,
+                    [&](Graphics& mask, const IHasBrush& brush) { mask.drawTextU(pinText.value, textFormat, textRect, brush); });
+            }
+            glowDirty = false;
+        }
+        glow.draw(g); // behind the text
 
         g.drawTextU(pinText.value, textFormat, textRect, g.createSolidColorBrush(textColor));
         return ReturnCode::Ok;
@@ -2206,10 +2335,13 @@ struct RenderGeometry final : public PluginEditor
     ObjectIn<drawing::api::IPathGeometry> pinInput;
     ObjectIn<IStyle>                      pinStyle;
 
+    GlowImage glow;
+    bool glowDirty = true;
+
     RenderGeometry()
     {
         // redraw whenever the geometry or its style changes.
-        auto invalidate = [this](PinBase*) { if (drawingHost) drawingHost->invalidateRect({}); };
+        auto invalidate = [this](PinBase*) { glowDirty = true; if (drawingHost) drawingHost->invalidateRect({}); };
         pinInput.onUpdate = invalidate;
         pinStyle.onUpdate = invalidate;
     }
@@ -2242,8 +2374,16 @@ struct RenderGeometry final : public PluginEditor
         }
 
 
+        if (glowDirty)
+        {
+            glow = makeGlow(g.getFactory(), geometry, pinStyle.value.get(), drawingHost ? drawingHost->getRasterizationScale() : 1.0f);
+            glowDirty = false;
+        }
+
         // origin at the widget centre (geometry is authored centred on origin).
         TempTransform tt(g, makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f));
+
+        glow.draw(g); // behind the shape
 
         // fill the interior, then stroke the outline (alpha 0 / zero width = skip).
         if (fill.a > 0.0f)
@@ -2719,9 +2859,12 @@ struct RenderInstances final : public PluginEditor
     ObjectIn<ITransformList>              pinTransforms;
     ObjectIn<IStyle>                      pinStyle;
 
+    GlowImage glow; // of the template, drawn under every instance
+    bool glowDirty = true;
+
     RenderInstances()
     {
-        auto invalidate = [this](PinBase*) { if (drawingHost) drawingHost->invalidateRect({}); };
+        auto invalidate = [this](PinBase*) { glowDirty = true; if (drawingHost) drawingHost->invalidateRect({}); };
         pinTemplate.onUpdate = invalidate;
         pinTransforms.onUpdate = invalidate;
         pinStyle.onUpdate = invalidate;
@@ -2766,6 +2909,25 @@ struct RenderInstances final : public PluginEditor
         const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * originalTransform;
 
         const int count = list->getCount();
+
+        if (glowDirty)
+        {
+            glow = makeGlow(g.getFactory(), geometry, pinStyle.value.get(), drawingHost ? drawingHost->getRasterizationScale() : 1.0f);
+            glowDirty = false;
+        }
+        if (glow.bitmap) // every glow first, so none lands on top of a neighbouring shape.
+        {
+            for (int i = 0; i < count; ++i)
+            {
+                gmpi::drawing::Matrix3x2 t;
+                if (ReturnCode::Ok != list->getTransform(i, &t))
+                    continue;
+
+                g.setTransform(t * base);
+                glow.draw(g);
+            }
+        }
+
         for (int i = 0; i < count; ++i)
         {
             gmpi::drawing::Matrix3x2 t;
@@ -2909,9 +3071,12 @@ struct RenderEach final : public PluginEditor
     ObjectIn<ITransformList> pinTransforms;
     ObjectIn<IStyle>         pinStyle;
 
+    std::vector<GlowImage> glows; // one per path
+    bool glowDirty = true;
+
     RenderEach()
     {
-        auto invalidate = [this](PinBase*) { if (drawingHost) drawingHost->invalidateRect({}); };
+        auto invalidate = [this](PinBase*) { glowDirty = true; if (drawingHost) drawingHost->invalidateRect({}); };
         pinPaths.onUpdate = invalidate;
         pinTransforms.onUpdate = invalidate;
         pinStyle.onUpdate = invalidate;
@@ -2948,6 +3113,36 @@ struct RenderEach final : public PluginEditor
 		const auto originalTransform = g.getTransform();
         const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * originalTransform;
         const int n = (std::min)(paths->getCount(), xforms->getCount());
+
+        if (glowDirty)
+        {
+            const float scale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
+            glows.assign(n, {});
+            for (int i = 0; i < n; ++i)
+            {
+                drawing::api::IPathGeometry* raw{};
+                if (ReturnCode::Ok != paths->getPath(i, &raw) || !raw)
+                    continue;
+
+                PathGeometry geometry;
+                raw->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry));
+                glows[i] = makeGlow(g.getFactory(), geometry, pinStyle.value.get(), scale);
+            }
+            glowDirty = false;
+        }
+
+        // every glow first, so none lands on top of a neighbouring shape.
+        for (int i = 0; i < (std::min)(n, static_cast<int>(glows.size())); ++i)
+        {
+            if (!glows[i].bitmap)
+                continue;
+
+            gmpi::drawing::Matrix3x2 t;
+            xforms->getTransform(i, &t);
+            g.setTransform(t * base);
+            glows[i].draw(g);
+        }
+
         for (int i = 0; i < n; ++i)
         {
             drawing::api::IPathGeometry* raw{};
