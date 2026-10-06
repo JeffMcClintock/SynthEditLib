@@ -1330,6 +1330,9 @@ protected:
     Out<float> pinY;                 // 6
     Out<float> pinDx;                // 7  movement delta since the last move (returns to zero next pass)
     Out<float> pinDy;                // 8
+    Out<float> pinWheel;             // 9  wheel movement in notches (returns to zero next pass, like dX)
+
+    float pendingWheel = 0.0f;        // notches since the last process()
 
     // Movement deltas. We emit them from process() (not onPointerMove) so they behave exactly like
     // the Delta module: the delta is emitted in one process() pass and zeroed in the NEXT. Emitting
@@ -1405,8 +1408,17 @@ public:
         pinDx = curPoint.x - prevPoint.x;
         pinDy = curPoint.y - prevPoint.y;
         prevPoint = curPoint;
-        if (pinDx.value != 0.0f || pinDy.value != 0.0f)
+        pinWheel = pendingWheel;
+        pendingWheel = 0.0f;
+        if (pinDx.value != 0.0f || pinDy.value != 0.0f || pinWheel.value != 0.0f)
             editorHost2->setDirty(); // schedule one more pass to emit the zero
+        return gmpi::ReturnCode::Ok;
+    }
+
+    gmpi::ReturnCode onMouseWheel(gmpi::drawing::Point point, int32_t flags, int32_t delta) override
+    {
+        pendingWheel += delta / 120.0f; // 120 per notch
+        editorHost2->setDirty(); // process() emits it
         return gmpi::ReturnCode::Ok;
     }
 
@@ -1480,6 +1492,7 @@ auto r9 = gmpi::Register<MouseTarget>::withXml(R"XML(
         <Pin name="Y" datatype="float" direction="out"/>
         <Pin name="dX" datatype="float" direction="out"/>
         <Pin name="dY" datatype="float" direction="out"/>
+        <Pin name="Wheel" datatype="float" direction="out"/>
 	</GUI>
   </Plugin>
 </PluginList>
