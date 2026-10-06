@@ -1075,7 +1075,8 @@ protected:
     In<std::string>  pinUnits;
     In<int32_t>      pinDecimalPlaces;
     ObjectIn<IStyle> pinStyle;
-    ObjectIn<IStyle> pinUnitStyle;
+	ObjectIn<IStyle> pinEditStyle; // the number while it's being edited (default: Style)
+	ObjectIn<IStyle> pinUnitStyle;
     Out<float>       pinValueOut;
     In<bool>         pinTrigger; // rising edge starts keyboard entry (e.g. wired to MouseTarget's Double Click)
 
@@ -1088,6 +1089,7 @@ protected:
     std::string glowText;  // what the glows were made from
     std::string glowUnits;
     Rect glowBounds;
+    bool glowEditing = false;
 
 public:
     NumberEntry() : numberEdit(*this)
@@ -1097,6 +1099,7 @@ public:
         auto styleChanged = [this](PinBase*) { glowDirty = true; if (drawingHost) drawingHost->invalidateRect({}); };
         pinStyle.onUpdate = styleChanged;
         pinUnitStyle.onUpdate = styleChanged;
+        pinEditStyle.onUpdate = styleChanged;
         // Open the in-place editor on a rising edge only (value==true). The host also pushes the pin's
         // initial value at load, which must NOT open the editor.
         pinTrigger.onUpdate = [this](PinBase*) { if (pinTrigger.value) startEditing(); };
@@ -1160,6 +1163,14 @@ public:
         if (auto* us = pinUnitStyle.value.get())
             us->getFillColor(&unitColor);
 
+        // while editing, the number takes the Edit Style (if any).
+        IStyle* numberStyle = pinStyle.value.get();
+        if (editing && pinEditStyle.value)
+        {
+            numberStyle = pinEditStyle.value.get();
+            numberStyle->getFillColor(&textColor);
+        }
+
         // top-left text formats - NumberEdit does its own centring (and draws the cursor/selection).
         // The units are drawn ~2/3 the number's height (like the JUCE readout).
         const float numberHeight = getHeight(bounds);
@@ -1185,7 +1196,7 @@ public:
         const Rect unitRect{ numLeft + numSize.width, unitTop, bounds.right, bounds.bottom };
 
         // glows, behind the text: the units' from their own Style, else the number's.
-        if (glowDirty || text != glowText || units != glowUnits || bounds != glowBounds)
+        if (glowDirty || text != glowText || units != glowUnits || bounds != glowBounds || editing != glowEditing)
         {
             const float scale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
             auto glowOf = [&](IStyle* style, gmpi::drawing::Color color, auto drawText) -> GlowImage
@@ -1196,7 +1207,7 @@ public:
                 return makeGlowImage(g.getFactory(), bounds, radius, color, scale, drawText);
             };
 
-            numberGlow = glowOf(pinStyle.value.get(), textColor,
+            numberGlow = glowOf(numberStyle, textColor,
                 [&](Graphics& mask, const IHasBrush& brush) { mask.drawTextU(text, numberFormat, Rect{ numLeft, numTop, numberBounds.right, bounds.bottom }, brush); });
 
             unitGlow = {};
@@ -1210,6 +1221,7 @@ public:
             glowText = text;
             glowUnits = units;
             glowBounds = bounds;
+            glowEditing = editing;
             glowDirty = false;
         }
         numberGlow.draw(g);
@@ -1279,6 +1291,8 @@ public:
     void endEditValue() override
     {
         editing = false;
+        if (drawingHost)
+            drawingHost->invalidateRect({}); // back to the normal Style
     }
 };
 
@@ -1294,6 +1308,7 @@ auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
 		<Pin name="Units" datatype="string_utf8" />
 		<Pin name="Decimal Places" datatype="int" default="2" />
 		<Pin name="Style" datatype="object:style" />
+		<Pin name="Edit Style" datatype="object:style" />
 		<Pin name="Units Style" datatype="object:style" />
 		<Pin name="Value" datatype="float" direction="out" />
 		<Pin name="Trigger" datatype="bool" />
