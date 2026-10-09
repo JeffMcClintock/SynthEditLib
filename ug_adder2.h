@@ -44,7 +44,6 @@ class ug_poly_to_monoB :
 	public ug_adder2
 {
 	int currentActiveVoiceNumber;
-	std::vector<timestamp_t> physicalVoicesActive;
 
 public:
 	ug_poly_to_monoB() :
@@ -123,46 +122,14 @@ public:
 		}
 	}
 
-	void OnVoiceUpdate(int voice, bool active, timestamp_t p_clock)
+	// Helper reports the voice that just took Voice/Focus.
+	void OnFocusVoice(int voice, timestamp_t p_clock)
 	{
-		bool isMonophonic = physicalVoicesActive.size() == 1;
+		if (voice == currentActiveVoiceNumber)
+			return;
 
-		int previousActiveVoiceNumber = currentActiveVoiceNumber;
-
-		if (active || isMonophonic)
-		{
-			currentActiveVoiceNumber = voice;
-			physicalVoicesActive[voice] = p_clock;
-		}
-		else // voice off
-		{
-			physicalVoicesActive[voice] = 0;
-
-			if (currentActiveVoiceNumber == voice)
-			{
-				currentActiveVoiceNumber = -1; // no voice.
-				timestamp_t bestReplacementTime = 0;
-
-				// implement last-note-priority.
-				for (int i = 0; i < physicalVoicesActive.size(); ++i)
-				{
-					if (physicalVoicesActive[i] > bestReplacementTime)
-					{
-						bestReplacementTime = physicalVoicesActive[i];
-						currentActiveVoiceNumber = i;
-					}
-				}
-			}
-		}
-
-		//bool streaming = currentActiveVoiceNumber >= 0 ? plugs[2 + currentActiveVoiceNumber]->isStreaming() : false;
-		//if (GetPlug(0)->isStreaming() != streaming)
-		//{
-		//	GetPlug(0)->setStreamingA(streaming, p_clock);
-		//}
-
-		if(previousActiveVoiceNumber != currentActiveVoiceNumber)
-			UpdateOutputStatus(p_clock);
+		currentActiveVoiceNumber = voice;
+		UpdateOutputStatus(p_clock);
 	}
 
 	void UpdateOutputStatus(timestamp_t p_clock)
@@ -209,9 +176,6 @@ public:
 
 	int Open() override
 	{
-		// determine number of physical voices from number of connections.
-		physicalVoicesActive.assign(GetPlug(1)->connections.size(), 0);
-
 		RUN_AT(SampleClock(), &ug_poly_to_monoB::OnFirstSample);
 //		setSubProcess(&ug_poly_to_monoB::sub_process);
 
@@ -235,7 +199,7 @@ public:
 			assert(e->parm2 <= sizeof(int));
 			auto midiData = (const unsigned char*) &(e->parm3);
 
-			OnVoiceUpdate(midiData[1], midiData[2] > 0, e->timeStamp);
+			OnFocusVoice(midiData[1], e->timeStamp);
 		}
 		break;
 

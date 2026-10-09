@@ -156,7 +156,6 @@ class Scope4Gui final : public PluginEditor, public gmpi::TimerClient
 
 	int newestVoice_ = 0;
 	clock::time_point voiceLastUpdated_[kVoiceCount];
-	float voiceStatus_[kVoiceCount] = {};
 	clock::time_point latestUpdate_{}; // most recent capture across all voices (drives the fade timer)
 
 	// Phosphor persistence, accumulated in LINEAR light with HDR headroom (values
@@ -191,18 +190,8 @@ class Scope4Gui final : public PluginEditor, public gmpi::TimerClient
 	{
 		voiceLastUpdated_[voiceId] = latestUpdate_ = clock::now();
 
-		const float beforeStatus = voiceStatus_[voiceId];
-		if (pinSamplesA.byteSize(voiceId) == kCaptureBytes)
-		{
-			const float* capturedata = pinSamplesA.asFloats(voiceId);
-			voiceStatus_[voiceId] = capturedata[SCOPE_BUFFER_SIZE - 1]; // last entry is voice-active
-		}
-		else
-		{
-			voiceStatus_[voiceId] = 0.0f;
-		}
-
-		if (beforeStatus != voiceStatus_[voiceId] && voiceStatus_[voiceId] > 0.0f)
+		// last entry is Voice/Focus.
+		if (pinSamplesA.byteSize(voiceId) == kCaptureBytes && pinSamplesA.asFloats(voiceId)[SCOPE_BUFFER_SIZE - 1] > 0.0f)
 			newestVoice_ = voiceId;
 
 		redraw();
@@ -755,7 +744,7 @@ auto rScope4 = gmpi::Register<Scope4Gui>::withXml(R"XML(
     <Audio>
         <Pin name="Signal A" datatype="float" rate="audio"/>
         <Pin name="Signal B" datatype="float" rate="audio"/>
-        <Pin name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true"/>
+        <Pin name="VoiceFocus" hostConnect="Voice/Focus" datatype="bool" isPolyphonic="true"/>
         <Pin name="Capture Data A" direction="out" datatype="blob" parameterId="0" private="true" isPolyphonic="true"/>
         <Pin name="Capture Data B" direction="out" datatype="blob" parameterId="1" private="true" isPolyphonic="true"/>
         <Pin name="polydetect" direction="out" datatype="bool" parameterId="2"/>
@@ -784,7 +773,7 @@ auto rTrigScope4 = gmpi::Register<Scope4Gui>::withXml(R"XML(
     <Audio>
         <Pin name="Signal A" datatype="float" rate="audio"/>
         <Pin name="Signal B" datatype="float" rate="audio"/>
-        <Pin name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true"/>
+        <Pin name="VoiceFocus" hostConnect="Voice/Focus" datatype="bool" isPolyphonic="true"/>
         <Pin name="Capture Data A" direction="out" datatype="blob" parameterId="0" private="true" isPolyphonic="true"/>
         <Pin name="Capture Data B" direction="out" datatype="blob" parameterId="1" private="true" isPolyphonic="true"/>
         <Pin name="polydetect" direction="out" datatype="bool" parameterId="2"/>

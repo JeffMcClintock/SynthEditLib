@@ -44,7 +44,7 @@ protected:
 	// pins (member declaration order MUST match the XML <Audio> pin order)
 	AudioInPin  pinSignalA;
 	AudioInPin  pinSignalB;
-	FloatInPin  pinVoiceActive;
+	BoolInPin   pinVoiceFocus;
 	BlobOutPin  pinSamplesA;
 	BlobOutPin  pinSamplesB;
 	BoolOutPin  pinPolyDetect;
@@ -196,7 +196,7 @@ void Scope4::sendResultToGui(int block_offset)
 
 	if (channelsleepCount_[0] > 0)
 	{
-		resultsA_[captureSamples - 1] = pinVoiceActive.getValue(); // last entry is voice-active
+		resultsA_[captureSamples - 1] = pinVoiceFocus.getValue() ? 1.0f : 0.0f; // last entry is Voice/Focus
 		pinSamplesA.setRaw({ reinterpret_cast<const uint8_t*>(resultsA_), static_cast<size_t>(datasize) });
 		pinSamplesA.sendPinUpdate(block_offset);
 	}
@@ -240,24 +240,6 @@ void Scope4::onSetPins() // one or more pins updated. Check pin update flags to 
 	if (getSubProcess() == &Scope4::subProcessNothing)
 	{
 		setSubProcess(&Scope4::subProcess);
-	}
-
-	if (pinVoiceActive.isUpdated())
-	{
-		int32_t isPolyphonic = 0;
-		// TODO: the GMPI IProcessorHost has no isCloned() yet.
-
-		if (pinVoiceActive <= 0.0f && isPolyphonic != 0)
-		{
-			// send blank capture to indicate voice muted.
-			pinSamplesA.setRaw({});
-			pinSamplesA.sendPinUpdate();
-			pinSamplesB.setRaw({});
-			pinSamplesB.sendPinUpdate();
-
-			// do nothing.
-			setSubProcess(&Scope4::subProcessNothing);
-		}
 	}
 
 	setSleep(false);
