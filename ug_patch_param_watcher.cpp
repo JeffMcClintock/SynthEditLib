@@ -13,8 +13,9 @@
 
 SE_DECLARE_INIT_STATIC_FILE(ug_patch_param_watcher)
 
-#define FIRST_PARAM_PLUG_IDX 3
+#define FIRST_PARAM_PLUG_IDX 4
 #define PN_VOICE_ID 2
+#define PN_FOCUS 3
 
 namespace
 {
@@ -52,6 +53,7 @@ void ug_patch_param_watcher::ListInterface2(std::vector<class InterfaceObject*>&
 	LIST_VAR3N(L"MIDI Out", DR_OUT, DT_MIDI2 , L"", L"", IO_DISABLE_IF_POS, L"");
 	// provide VoiceId, attached to outgoing poly automation.
 	LIST_VAR3( L"Voice/VirtualVoiceId", voiceId_, DR_IN, DT_INT , L"", L"", IO_HOST_CONTROL|IO_PAR_POLYPHONIC, L"");
+	LIST_VAR3( L"Voice/Focus", focus_, DR_IN, DT_BOOL , L"", L"", IO_HOST_CONTROL|IO_PAR_POLYPHONIC, L"");
 }
 
 namespace
@@ -157,13 +159,9 @@ void ug_patch_param_watcher::SetupDynamicPlugs()
 
 void ug_patch_param_watcher::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug, state_type /*p_state*/)
 {
-	/*
-	Problem: With polyphonic signals there's no priority system. Parameter value will reflect most recent update from any voice (could jump arround). Ideally the most-recent-note would override others.
-	Would probly require a Host-Control - MonoNoteId. To reflect current 'last' note following current note-priority rules.
-	*/
-	if( p_to_plug->getPlugIndex() == PN_VOICE_ID )
+	// New note-number, or this voice just took focus: bring patch-mem up-to-speed for polyphonic signals.
+	if( p_to_plug->getPlugIndex() == PN_VOICE_ID || (p_to_plug->getPlugIndex() == PN_FOCUS && focus_) )
 	{
-		// This voice allocated to a new note-number, bring patch-mem up-to-speed for polyphonic signals.
 		for( size_t i = FIRST_PARAM_PLUG_IDX ; i < plugs.size() ; ++i )
 		{
 			if( (plugs[i]->flags & PF_PPW_POLYPHONIC) != 0 )
@@ -181,7 +179,8 @@ void ug_patch_param_watcher::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug,
 					continue;
 				}
 
-				patchParams[ paramNumber ]->UpdateOutputParameter( voiceId_, plugs[i] );
+				if( shouldUpdate( plugs[i], patchParams[ paramNumber ] ) )
+					patchParams[ paramNumber ]->UpdateOutputParameter( voiceId_, plugs[i] );
 			}
 		}
 	}
@@ -220,8 +219,15 @@ void ug_patch_param_watcher::onSetPin(timestamp_t /*p_clock*/, UPlug* p_to_plug,
 			return;
 		}
 
-		patchParams[ paramNumber ]->UpdateOutputParameter( effectiveVoice, p_to_plug );
+		if( shouldUpdate( p_to_plug, patchParams[ paramNumber ] ) )
+			patchParams[ paramNumber ]->UpdateOutputParameter( effectiveVoice, p_to_plug );
 	}
+}
+
+// A mono parameter fed by every voice shows only the focus voice, else it jumps between voices.
+bool ug_patch_param_watcher::shouldUpdate(UPlug* pin, dsp_patch_parameter_base* param) const
+{
+	return (pin->flags & PF_PPW_POLYPHONIC) == 0 || param->isPolyphonic() || focus_;
 }
 
 ug_base* ug_patch_param_watcher::Clone( CUGLookupList& UGLookupList )

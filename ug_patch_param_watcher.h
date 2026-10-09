@@ -17,7 +17,10 @@ public:
 
 	void RemoveDuplicateConnections();
 
+	bool shouldUpdate(UPlug* pin, class dsp_patch_parameter_base* param) const;
+
 private:
 	std::vector<class dsp_patch_parameter_base*> patchParams;
 	int voiceId_;
+	bool focus_ = false;
 };
