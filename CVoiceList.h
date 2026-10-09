@@ -234,6 +234,8 @@ public:
 	void DoNoteOff(timestamp_t timestamp, Voice* voice, float voiceActive = -10.0f);
 	void setFocusVoice(timestamp_t timestamp, Voice* voice);
 	void onVoiceReleased(timestamp_t timestamp, Voice* voice);
+	void addFocusListener(class ug_base* listener);
+	void removeFocusListener(class ug_base* listener);
 	void NoteOff(timestamp_t p_clock, /*short chan,*/ short note_num);
 	void killVoice(timestamp_t timestamp, /*int channel,*/ int voiceId);
 	void suspendVoice(timestamp_t timestamp, int physicalVoice);
@@ -307,6 +309,7 @@ protected:
 	// only used with new-style Keyboard2 voice-allocation.  Must be nullptr when using MIDI-CV etc else side-by-side MIDI-CVs won't work.
 	int monoNotePlaying_;
 	int focusVoiceNumber_ = -1; // physical voice a mono display should follow (Voice/Focus)
+	std::vector<class ug_base*> focusListeners_; // mono modules sent UET_VOICE_FOCUS, e.g. Poly to Mono
 	bool note_status[maxVoiceId];
 	SENoteStack noteStack;
 	char note_memory[MCV_NOTE_MEM_SIZE];

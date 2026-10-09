@@ -44,6 +44,7 @@ class ug_poly_to_monoB :
 	public ug_adder2
 {
 	int currentActiveVoiceNumber;
+	class ug_container* voiceContainer_ = nullptr; // sends us UET_VOICE_FOCUS
 
 public:
 	ug_poly_to_monoB() :
@@ -51,12 +52,6 @@ public:
 	{
 		SetFlag(UGF_POLYPHONIC_AGREGATOR| UGF_VOICE_MON_IGNORE);
 	}
-
-	void BuildHelperModule() override;
-
-	// These are overriden to provide opertunity to make unconventional connections to helper.
-	struct FeedbackTrace* PPSetDownstream() override;
-//	bool PPGetActiveFlag() override;
 
 	void sub_process_static_silence(int start_pos, int sampleframes)
 	{
@@ -122,7 +117,6 @@ public:
 		}
 	}
 
-	// Helper reports the voice that just took Voice/Focus.
 	void OnFocusVoice(int voice, timestamp_t p_clock)
 	{
 		if (voice == currentActiveVoiceNumber)
@@ -174,13 +168,8 @@ public:
 		}
 	}
 
-	int Open() override
-	{
-		RUN_AT(SampleClock(), &ug_poly_to_monoB::OnFirstSample);
-//		setSubProcess(&ug_poly_to_monoB::sub_process);
-
-		return ug_adder2::Open();
-	}
+	int Open() override;
+	int Close() override;
 
 	void OnFirstSample()
 	{
@@ -188,24 +177,6 @@ public:
 		UpdateOutputStatus(0);
 	}
 
-	void HandleEvent(SynthEditEvent* e) override
-	{
-		// send event to ug
-		switch (e->eventType)
-		{
-		case UET_EVENT_MIDI:
-		{
-			// Not real MIDI, just a convinient way to pass message from helper PolyToMonoA (ug_voice_splitter.cpp).
-			assert(e->parm2 <= sizeof(int));
-			auto midiData = (const unsigned char*) &(e->parm3);
-
-			OnFocusVoice(midiData[1], e->timeStamp);
-		}
-		break;
-
-		default:
-			ug_base::HandleEvent(e);
-		};
-	}
+	void HandleEvent(SynthEditEvent* e) override;
 };
 

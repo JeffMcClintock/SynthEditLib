@@ -24,7 +24,6 @@ REGISTER_MODULE_1(L"Voice Combiner", IDS_MN_VOICE_COMBINER,IDS_MG_SPECIAL,ug_voi
 
 namespace
 {
-	// see also "SE Poly to MonoA" (ug_voice_splitter.cpp)
 	auto r2 = internalSdk::Register<ug_poly_to_monoB>::withXml(
 		(R"XML(
 <?xml version="1.0" ?>
@@ -32,7 +31,7 @@ namespace
   <Plugin id="SE Poly to Mono" name="Poly to Mono" category="Special" >
     <Audio>
 		<Pin name="Output" datatype="float" rate="audio" direction="out" />
-		<Pin name="LastVoice" datatype="midi" direction="in" private="true" />
+		<Pin name="LastVoice" datatype="midi" direction="in" private="true" /> <!-- unused, keeps Input at pin 2 -->
 		<Pin name="Input" datatype="float" rate="audio" isAdderInputPin="true" />
     </Audio>
   </Plugin>
@@ -458,48 +457,52 @@ int ug_adder2::Open()
 	return 0;
 }
 
-void ug_poly_to_monoB::BuildHelperModule()
+int ug_poly_to_monoB::Open()
 {
-	auto helper = ModuleFactory()->GetById(L"SE Poly to MonoA")->BuildSynthOb();
-	parent_container->AddUG(helper);
-	helper->patch_control_container = patch_control_container;
-	helper->SetupWithoutCug();
+	RUN_AT(SampleClock(), &ug_poly_to_monoB::OnFirstSample);
 
-	connect(helper->GetPlug(1), GetPlug(1)); // Helper.LastVoice -> this.LastVoice (MIDI)
-
-	// defensive default connection to helper input, in case it's never connected to anything.
-	helper->GetPlug(0)->SetDefault("0");
-
-	helper->cpuParent = cpuParent;
-}
-
-// Don't work at all if patch isn't polyphonic.
-struct FeedbackTrace* ug_poly_to_monoB::PPSetDownstream()
-{
-	auto helper = GetPlug(1)->connections.front()->UG;
-
-	// remove unnesc default connection to helper audio input.
-	auto oldfrom = helper->GetPlug(0)->connections.front();
-	oldfrom->DeleteConnection(helper->GetPlug(0));
-
-	// Duplicate audio connection to helper, so it is sorted in correct order.
-	connect(GetPlug(2)->connections.front(), helper->GetPlug(0));
-
-	return ug_base::PPSetDownstream();
-}
-/*
-// Don't work at all if patch isn't polyphonic.
-bool ug_poly_to_monoB::PPGetActiveFlag()
-{
-	// in the monophonic case, helper will not be connected during PPSetDownstream(), so connect it now.
-	auto helper = GetPlug(1)->connections.front()->UG;
-	
-	if (helper->GetPlug(0)->connections.empty())
+	// Inputs connect straight to the voice clones (no voice-mute), so their voice container tells us which voice has focus.
+	auto& inputs = GetPlug(2)->connections;
+	if (!inputs.empty() && inputs.front()->UG->GetPolyphonic())
 	{
-		connect(GetPlug(2)->connections.front(), helper->GetPlug(0));
-		currentActiveVoiceNumber = 0;
+		voiceContainer_ = inputs.front()->UG->parent_container->getVoiceControlContainer();
+		voiceContainer_->addFocusListener(this);
+	}
+	else
+	{
+		currentActiveVoiceNumber = 0; // monophonic, pass the only input straight through.
 	}
 
-	return ug_base::PPGetActiveFlag();
+	return ug_adder2::Open();
 }
-*/
+
+int ug_poly_to_monoB::Close()
+{
+	if (voiceContainer_)
+	{
+		voiceContainer_->removeFocusListener(this);
+		voiceContainer_ = nullptr;
+	}
+
+	return ug_adder2::Close();
+}
+
+void ug_poly_to_monoB::HandleEvent(SynthEditEvent* e)
+{
+	if (e->eventType != UET_VOICE_FOCUS)
+	{
+		ug_base::HandleEvent(e);
+		return;
+	}
+
+	// parm1 is a physical voice; find the input fed from that voice's clone.
+	for (int i = 2; i < static_cast<int>(plugs.size()); ++i)
+	{
+		auto& from = plugs[i]->connections;
+		if (!from.empty() && from.front()->UG->pp_voice_num == e->parm1)
+		{
+			OnFocusVoice(i - 2, e->timeStamp);
+			break;
+		}
+	}
+}

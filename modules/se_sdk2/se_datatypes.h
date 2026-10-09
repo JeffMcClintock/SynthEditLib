@@ -42,6 +42,7 @@ enum ug_event_type {
 	, UET_PLAY_WAITING_NOTES
 	, UET_VOICE_LEVEL
 	, UET_VOICE_DONE_CHECK
+	, UET_VOICE_FOCUS	// parm1 = physical voice that took Voice/Focus
 
 	// BELOW HERE. Only events published in SDK, must match events in MP_API.h
 	, UET_EVENT_SETPIN = 100

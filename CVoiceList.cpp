@@ -2115,6 +2115,26 @@ void VoiceList::setFocusVoice(timestamp_t timestamp, Voice* voice)
 	focusVoiceNumber_ = voice->m_voice_number;
 	bool on = true;
 	sendDirectPathValue(HC_VOICE_FOCUS, timestamp, container, focusVoiceNumber_, sizeof(on), &on);
+
+	for (auto u : focusListeners_)
+	{
+		const auto ts = u->ParentContainer()->CalculateOversampledTimestamp(container, timestamp);
+#if defined( SE_FIXED_POOL_MEMORY_ALLOCATION )
+		u->AddEvent(u->AudioMaster()->AllocateMessage(ts, UET_VOICE_FOCUS, focusVoiceNumber_, 0));
+#else
+		u->AddEvent(new SynthEditEvent(ts, UET_VOICE_FOCUS, focusVoiceNumber_, 0));
+#endif
+	}
+}
+
+void VoiceList::addFocusListener(ug_base* listener)
+{
+	focusListeners_.push_back(listener);
+}
+
+void VoiceList::removeFocusListener(ug_base* listener)
+{
+	std::erase(focusListeners_, listener);
 }
 
 // Focus key released: move to the newest key still held, else stay so the release tail stays visible.

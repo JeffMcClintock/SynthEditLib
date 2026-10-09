@@ -5,8 +5,6 @@
 #include "resource.h"
 #include "module_register.h"
 
-#include "modules/se_sdk3/mp_sdk_audio.h"
-
 SE_DECLARE_INIT_STATIC_FILE(ug_voice_splitter);
 
 namespace
@@ -133,97 +131,3 @@ void ug_voice_splitter::OnNewSetting()
 	}
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-using namespace gmpi;
-
-namespace {
-
-	// see also "SE Poly to Mono" (ug_adder2.cpp)
-	int32_t r = RegisterPluginXml(
-		R"XML(
-<?xml version="1.0" ?>
-<PluginList>
-  <Plugin id="SE Poly to MonoA" name="Poly to Mono helper" category="Debug" >
-    <Audio>
-		<Pin name="Input" datatype="float" rate="audio" linearInput="false" />
-		<Pin name="LastVoice" datatype="midi" direction="out" private="true" />
-		<Pin name="VoiceFocus" hostConnect="Voice/Focus" datatype="bool" isPolyphonic="true" />
-    </Audio>
-  </Plugin>
-</PluginList>
-)XML"
-);
-}
-
-class PolyToMonoA : public MpBase2
-{
-	AudioInPin pinInput;
-	BoolInPin pinVoiceFocus;
-	MidiOutPin pinLastVoice;
-
-	int m_voice_number{};
-
-public:
-	PolyToMonoA()
-	{
-		initializePin(pinInput);
-		initializePin(pinLastVoice);
-		initializePin(pinVoiceFocus);
-	}
-
-	int32_t setHost(IMpUnknown* phost) override
-	{
-		// Manually set flag not supported by XML.
-		auto ug = dynamic_cast<ug_base*>(phost);
-		ug->SetFlag(UGF_HAS_HELPER_MODULE); // could be done in XML?
-
-		return MpBase2::setHost(phost);
-	}
-
-	int32_t open() override
-	{
-		MpBase2::open();	// always call the base class
-
-		// Determine voice number.
-		m_voice_number = 0;
-		gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> com_object;
-		int32_t res = getHost()->createCloneIterator(com_object.asIMpUnknownPtr());
-
-		gmpi_sdk::mp_shared_ptr<gmpi::IMpCloneIterator> cloneIterator;
-		res = com_object->queryInterface(gmpi::MP_IID_CLONE_ITERATOR, cloneIterator.asIMpUnknownPtr());
-
-		gmpi::IMpUnknown* object = nullptr;
-		cloneIterator->first();
-		while (cloneIterator->next(&object) == gmpi::MP_OK)
-		{
-			auto clone = dynamic_cast<PolyToMonoA*>(object);
-			if (clone == this)
-			{
-				break;
-			}
-			++m_voice_number;
-		}
-
-		setSubProcess(&PolyToMonoA::subProcessNothing);
-
-		return gmpi::MP_OK;
-	}
-
-	void onSetPins() override
-	{
-		if (pinVoiceFocus.isUpdated() && pinVoiceFocus)
-		{
-			// Notify helper of voice status
-			unsigned char midiMessage2[] = { 0xF0, 0x7f, 0x7f };
-			midiMessage2[1] = static_cast<unsigned char>(m_voice_number);
-			midiMessage2[2] = 1;
-			pinLastVoice.send(midiMessage2, sizeof(midiMessage2));
-		}
-	}
-};
-
-namespace
-{
-	auto r2 = sesdk::Register<PolyToMonoA>::withId(L"SE Poly to MonoA");
-}
