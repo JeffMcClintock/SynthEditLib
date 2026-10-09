@@ -61,6 +61,7 @@ void SynthRuntime::prepareToPlay(
 	{
 		// TIDE: a runtime-supplied document takes precedence over (and normally
 		// replaces entirely) the baked bundle resource below.
+		bool documentReplaced = false; // not takePluginRestartRequest's rebuild, which must keep live values
 		{
 			std::lock_guard<std::mutex> x(generatorLock);
 			if (!pendingDocumentXml_.empty())
@@ -69,6 +70,7 @@ void SynthRuntime::prepareToPlay(
 				currentDspXml.Parse(pendingDocumentXml_.c_str());
 				pendingDocumentXml_.clear();
 				extraPinDefaultChanges.clear(); // a fresh document already carries them
+				documentReplaced = true;
 			}
 			documentPending_ = false;
 		}
@@ -131,8 +133,12 @@ void SynthRuntime::prepareToPlay(
 
 			// assert(!generator->interrupt_setchunk_);
 
-			const bool saveExtraState = true;
-			generator->getPresetsState(pendingPresets, saveExtraState);
+			// TIDE: not into a new document - its handles can mean different parameters, and it carries its own values.
+			if (!documentReplaced)
+			{
+				const bool saveExtraState = true;
+				generator->getPresetsState(pendingPresets, saveExtraState);
+			}
 
 			generator->Close();
 
