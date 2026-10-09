@@ -148,7 +148,7 @@ namespace {
     <Audio>
 		<Pin name="Input" datatype="float" rate="audio" linearInput="false" />
 		<Pin name="LastVoice" datatype="midi" direction="out" private="true" />
-		<Pin name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" />
+		<Pin name="VoiceFocus" hostConnect="Voice/Focus" datatype="bool" isPolyphonic="true" />
     </Audio>
   </Plugin>
 </PluginList>
@@ -159,7 +159,7 @@ namespace {
 class PolyToMonoA : public MpBase2
 {
 	AudioInPin pinInput;
-	FloatInPin pinVoiceActive;
+	BoolInPin pinVoiceFocus;
 	MidiOutPin pinLastVoice;
 
 	int m_voice_number{};
@@ -169,7 +169,7 @@ public:
 	{
 		initializePin(pinInput);
 		initializePin(pinLastVoice);
-		initializePin(pinVoiceActive);
+		initializePin(pinVoiceFocus);
 	}
 
 	int32_t setHost(IMpUnknown* phost) override
@@ -212,21 +212,13 @@ public:
 
 	void onSetPins() override
 	{
-		// !! only goes not-active when stolen, faded-out voice is simply stopped dead.
-		// does recieve a fresh update at 1.0 on new notes somehow, despite never getting a zero.
-		if (pinVoiceActive.isUpdated())
+		if (pinVoiceFocus.isUpdated() && pinVoiceFocus)
 		{
-			// _RPTW2(_CRT_WARN, L"V%d  ACTIVE %f)\n", m_voice_number, pinVoiceActive.getValue());
-			if (pinVoiceActive == 1.0f)
-			{
-				constexpr bool activeState = true;
-
-				// Notify helper of voice status
-				unsigned char midiMessage2[] = { 0xF0, 0x7f, 0x7f };
-				midiMessage2[1] = static_cast<unsigned char>(m_voice_number);
-				midiMessage2[2] = (unsigned char) activeState;
-				pinLastVoice.send(midiMessage2, sizeof(midiMessage2));
-			}
+			// Notify helper of voice status
+			unsigned char midiMessage2[] = { 0xF0, 0x7f, 0x7f };
+			midiMessage2[1] = static_cast<unsigned char>(m_voice_number);
+			midiMessage2[2] = 1;
+			pinLastVoice.send(midiMessage2, sizeof(midiMessage2));
 		}
 	}
 };

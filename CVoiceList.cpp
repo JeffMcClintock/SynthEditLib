@@ -119,6 +119,7 @@ void Voice::activate( timestamp_t p_clock/*, int channel*/, int voiceId )
 void Voice::deactivate(timestamp_t timestamp) // entering release phase
 {
 	NoteOffTime = timestamp; // use time from master notesource
+	container_->onVoiceReleased(timestamp, this);
 }
 
 void Voice::reassignVoiceId( short noteNumber )
@@ -1938,6 +1939,7 @@ void VoiceList::DoNoteOn(timestamp_t timestamp, Voice* voice, int voiceId, bool 
 
 	voice->NoteNum = static_cast<short>(voiceId);
 	voice->activate(timestamp, /*channel,*/ voiceId);
+	setFocusVoice(timestamp, voice);
 
 	auto thisContainer = static_cast<ug_container*>( this );
 
@@ -2096,6 +2098,44 @@ void VoiceList::DoNoteOff( timestamp_t timestamp, Voice* voice, float voiceActiv
 	SetVoiceParameters( timestamp, voice, voiceActive );
     
 	voice->NoteOff( timestamp );
+}
+
+void VoiceList::setFocusVoice(timestamp_t timestamp, Voice* voice)
+{
+	if (voice->m_voice_number == focusVoiceNumber_)
+		return;
+
+	auto container = static_cast<ug_container*>(this);
+	if (focusVoiceNumber_ >= 0)
+	{
+		bool off = false;
+		sendDirectPathValue(HC_VOICE_FOCUS, timestamp, container, focusVoiceNumber_, sizeof(off), &off);
+	}
+
+	focusVoiceNumber_ = voice->m_voice_number;
+	bool on = true;
+	sendDirectPathValue(HC_VOICE_FOCUS, timestamp, container, focusVoiceNumber_, sizeof(on), &on);
+}
+
+// Focus key released: move to the newest key still held, else stay so the release tail stays visible.
+void VoiceList::onVoiceReleased(timestamp_t timestamp, Voice* voice)
+{
+	if (voice->m_voice_number != focusVoiceNumber_)
+		return;
+
+	Voice* newest = {};
+	for (auto it = begin() + 1; it != end(); ++it)
+	{
+		auto v = *it;
+		if (v != voice && v->voiceState_ == VS_ACTIVE && v->isHeld() && !v->IsRefreshing()
+			&& (!newest || v->NoteOnTime > newest->NoteOnTime))
+		{
+			newest = v;
+		}
+	}
+
+	if (newest)
+		setFocusVoice(timestamp, newest);
 }
 
 void VoiceList::VoiceAllocationNoteOff( timestamp_t timestamp, /*int channel,*/ int voiceId)//, int voiceAllocationMode )

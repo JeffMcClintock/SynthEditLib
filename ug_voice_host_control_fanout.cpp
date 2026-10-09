@@ -108,7 +108,7 @@ FeedbackTrace* ug_voice_host_control_fanout::PropagatePolyphonicDownstream()
 		{
 			const size_t hcIndex = pinIndex - firstHostControlPin;
 			if (hcIndex < connections_.size()
-				&& connections_[hcIndex].hostConnect == HC_VOICE_ACTIVE)
+				&& (connections_[hcIndex].hostConnect == HC_VOICE_ACTIVE || connections_[hcIndex].hostConnect == HC_VOICE_FOCUS))
 			{
 				continue;
 			}
@@ -154,7 +154,7 @@ void ug_voice_host_control_fanout::ConnectDirectPathHostControl(ug_container* vo
 	// Poly HCs generally need to make downstream modules polyphonic (same rule as the legacy
 	// setter path). Exception: HC_VOICE_ACTIVE is used by modules like Scope3 to *monitor*
 	// polyphony status, not to become polyphonic themselves — so don't flag it.
-	if (HostControlisPolyphonic(hostConnect) && hostConnect != HC_VOICE_ACTIVE)
+	if (HostControlisPolyphonic(hostConnect) && hostConnect != HC_VOICE_ACTIVE && hostConnect != HC_VOICE_FOCUS)
 	{
 		fromPin->SetFlag(PF_POLYPHONIC_SOURCE);
 		// HC_VOICE_PITCH idle default is Middle-A (5 V) so the voice's pitch CV output sits at

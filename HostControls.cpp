@@ -135,6 +135,8 @@ static const HostControlStruct lookup[] =
 
 	{(L"SostenutoPedal")		,HC_SOSTENUTO_PEDAL				, DT_FLOAT, (ControllerType::CC << 24) | 66}, // CC 66 = Sostenuto. Per-voice: only voices held at pedal-down time see this go high.
 
+	{L"Voice/Focus"				,HC_VOICE_FOCUS					, DT_BOOL, ControllerType::None},
+
 	// MAINTAIN ORDER TO PRESERVE OLDER WAVES EXPORTS DSP.XML consistency
 };
 
@@ -262,6 +264,7 @@ bool AttachesToVoiceContainer( HostControls hostControlId )
 		case HC_VOICE_AFTERTOUCH:
 		case HC_VOICE_VIRTUAL_VOICE_ID:
 		case HC_VOICE_ACTIVE:
+		case HC_VOICE_FOCUS:
 		case HC_VOICE_ALLOCATION_MODE:
 		case HC_PITCH_BENDER:
 		case HC_HOLD_PEDAL:
@@ -305,6 +308,7 @@ bool HostControlisPolyphonic(HostControls hostControlId)
 	case HC_VOICE_AFTERTOUCH:
 	case HC_VOICE_VIRTUAL_VOICE_ID:
 	case HC_VOICE_ACTIVE:
+	case HC_VOICE_FOCUS:
 	case HC_VOICE_PORTAMENTO_ENABLE:
 	case HC_VOICE_VOLUME:
 	case HC_VOICE_PAN:
@@ -365,6 +369,7 @@ bool isDirectPathHostControl(HostControls hostControlId)
 	// is still at zero. The envelope would attack with near-zero Overall Level, producing
 	// ~1/36 amplitude audio in OS_Synth_no_PA.
 	case HC_VOICE_ACTIVE:
+	case HC_VOICE_FOCUS:
 
 	// Mono performance
 	case HC_PITCH_BENDER:
