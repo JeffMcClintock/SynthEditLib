@@ -120,7 +120,7 @@ public:
 	}
 };
 
-class NumberEdit : public gmpi::TimerClient, public gmpi::api::IKeyListenerCallback // juce::Component, public juce::Timer, public juce::ModalComponentManager::Callback
+class NumberEdit : public gmpi::TimerClient, public gmpi::api::IKeyListenerCallback
 {
     NumberEditClient& client;
     int timerCounter = 0;
@@ -239,14 +239,10 @@ public:
     bool onTimer() override
     {
         if (timerCounter++ > 10)
-        {
             timerCounter = 0;
-        }
 
         if (timerCounter == 6 || timerCounter == 0)
-        {
             client.repaintText();
-        }
 
         return true;
     }
