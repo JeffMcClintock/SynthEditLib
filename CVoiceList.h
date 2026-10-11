@@ -212,8 +212,6 @@ public:
 	void ExportUgs(std::list<class ug_base*>& ugs);
 
 	// new way. Voicelist does polyphonic note management.
-	void xNoteOff( timestamp_t p_clock, /*int midiChannel, */int MidiKeyNumber, float velocity, int voiceAllocationMode );
-	void xAllNotesOff( timestamp_t p_clock );
 	bool HoldPedalState() // only really valid at end of block. For note-monitor only!
 	{
 		return holdPedalState_;
