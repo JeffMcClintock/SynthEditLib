@@ -225,6 +225,9 @@ struct PatchMemSet final : public PluginEditorNoGui
 
 	gmpi::shared_ptr <gmpi::api::IParameterSetter> paramHost;
 
+	// -1 until PatchMemGet supplies the handle. 0 is a real handle (Time/BPM), so writing before then clobbers the tempo.
+	PatchMemSet() { pinId.value = -1; }
+
     ReturnCode initialize() override
     {
         paramHost = editorHost.as<gmpi::api::IParameterSetter>();
@@ -233,10 +236,14 @@ struct PatchMemSet final : public PluginEditorNoGui
         {
 			pinMouseDown.onUpdate = [this](PinBase* pin)
 				{
+					if (pinId.value < 0)
+						return;
 					paramHost->setParameter(pinId.value, gmpi::Field::Grab, 0, sizeof(bool), (const uint8_t*)&pinMouseDown.value);
 				};
 			pinNormalized.onUpdate = [this](PinBase* pin)
 				{
+					if (pinId.value < 0)
+						return;
 					const float safeValue = std::clamp(pinNormalized.value, 0.0f, 1.0f);
 					paramHost->setParameter(pinId.value, gmpi::Field::Normalized, 0, sizeof(float), (const uint8_t*)&safeValue);
 				};
@@ -276,7 +283,7 @@ auto r2 = gmpi::Register<PatchMemSet>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: PatchMemSet" name="Value Set" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="ID" datatype="int"/>
+      <Pin name="ID" datatype="int" default="-1"/>
       <Pin name="Normalized" datatype="float"/>
       <Pin name="MouseDown" datatype="bool"/>
     </GUI>
@@ -292,6 +299,8 @@ struct PatchMemSetFloat final : public PluginEditorNoGui
 
     gmpi::shared_ptr <gmpi::api::IParameterSetter> paramHost;
 
+	PatchMemSetFloat() { pinId.value = -1; } // see PatchMemSet
+
     ReturnCode initialize() override
     {
         paramHost = editorHost.as<gmpi::api::IParameterSetter>();
@@ -300,7 +309,7 @@ struct PatchMemSetFloat final : public PluginEditorNoGui
 
     ReturnCode process() override
     {
-        if (paramHost)
+        if (paramHost && pinId.value >= 0)
             paramHost->setParameter(pinId.value, gmpi::Field::Value, 0, sizeof(float), (const uint8_t*) &pinValue.value);
 
         return ReturnCode::Ok;
@@ -315,7 +324,7 @@ auto r6 = gmpi::Register<PatchMemSetFloat>::withXml(R"XML(
 <PluginList>
   <Plugin id="SE: PatchMemSetFloat" name="Value Set- Float" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="ID" datatype="int"/>
+      <Pin name="ID" datatype="int" default="-1"/>
       <Pin name="Value" datatype="float"/>
     </GUI>
   </Plugin>
@@ -334,11 +343,13 @@ struct PatchMemGet final : public PluginEditorNoGui
     Out<bool> pinMouseDown;
     Out<float> pinValue;
 
+	PatchMemGet() { pinId.value = -1; } // so a failed lookup never publishes handle 0
+
     ReturnCode initialize() override
     {
         if (auto paramHost = editorHost.as<gmpi::api::IParameterSetter>(); paramHost)
         {
-            int32_t paramHandle{};
+            int32_t paramHandle = -1;
             paramHost->getParameterHandle(0, paramHandle);
             pinId = paramHandle;
         }
@@ -374,7 +385,7 @@ auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
       <Pin name="Normalized-in" datatype="float" parameterId="0" parameterField="Normalized"/>
       <Pin name="MouseDown-in" datatype="bool" parameterId="0" parameterField="Grab"/>
       <Pin name="Value-in" datatype="float" parameterId="0" parameterField="Value"/>
-      <Pin name="ID" datatype="int" direction="out"/>
+      <Pin name="ID" datatype="int" direction="out" default="-1"/>
       <Pin name="Normalized" datatype="float" direction="out"/>
       <Pin name="MouseDown" datatype="bool" direction="out"/>
       <Pin name="Value" datatype="float" direction="out"/>
