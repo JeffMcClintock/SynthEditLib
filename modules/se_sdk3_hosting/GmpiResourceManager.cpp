@@ -3,6 +3,10 @@
 #include "se_filesystem.h"
 #include <string>
 #include <string_view>
+#include <algorithm>
+#include <cwctype>
+#include <iostream>
+#include <system_error>
 #include "conversion.h"
 #include "BundleInfo.h"
 #include "ProtectedFile.h"
@@ -16,6 +20,44 @@ namespace fs = se_fs;
 bool ResourceExists(const std::wstring& path)
 {
 	return BundleInfo::instance()->ResourceExists(JmUnicodeConversions::WStringToUtf8(path).c_str());
+}
+
+// An exact-case lookup for 'wantedPath' just failed. On Windows/macOS that's conclusive -
+// their default filesystems are case-insensitive, so if the file were there under any
+// casing, FileExists() would already have found it. Linux's ext4 is case-sensitive, so a
+// resource pack with a casing slip between an image and its sidecar (e.g. "knob_med.png"
+// authored next to "Knob_med.txt") silently vanishes on Linux only - RegisterResourceUri
+// just returns "not found" with no hint why. This scans the directory once, case-insensitively,
+// as a safety net - and warns, because the right permanent fix is renaming the asset, not
+// relying on this fallback forever.
+std::wstring FindCaseInsensitive(const std::wstring& wantedPath)
+{
+	fs::path candidate(wantedPath);
+	std::error_code ec;
+	if (!fs::is_directory(candidate.parent_path(), ec) || ec)
+		return {};
+
+	const auto wantedName = candidate.filename().wstring();
+
+	for (const auto& entry : fs::directory_iterator(candidate.parent_path(), ec))
+	{
+		if (ec)
+			break;
+
+		const auto entryName = entry.path().filename().wstring();
+		if (entryName.size() == wantedName.size() &&
+			std::equal(entryName.begin(), entryName.end(), wantedName.begin(),
+				[](wchar_t a, wchar_t b) { return std::towlower(a) == std::towlower(b); }))
+		{
+			std::cerr << "WARNING: resource '" << JmUnicodeConversions::WStringToUtf8(wantedName)
+				<< "' not found, but matched '" << JmUnicodeConversions::WStringToUtf8(entryName)
+				<< "' by case-insensitive fallback in " << JmUnicodeConversions::WStringToUtf8(candidate.parent_path().wstring())
+				<< " - Windows/macOS tolerate this via their default case-insensitive filesystem; rename the file so its case matches exactly.\n";
+			return entry.path().wstring();
+		}
+	}
+
+	return {};
 }
 
 int32_t GmpiResourceManager::FindResourceU(int32_t moduleHandle, const std::string skinName, const char* resourceName, const char* resourceType, gmpi::IString* returnString)
@@ -93,6 +135,11 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 				if (ResourceExists(ws))
 				{
 					returnUri = JmUnicodeConversions::Utf8ToWstring(BundleInfo::resourceTypeScheme) + ws;
+					return true;
+				}
+				if (auto found = FindCaseInsensitive(ws); !found.empty())
+				{
+					returnUri = found;
 					return true;
 				}
 				return false;
