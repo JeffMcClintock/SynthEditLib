@@ -1894,6 +1894,7 @@ void CUG::OnPlugDefaultChange(IPlug* plug)
 	// inform generator of change
 	if( // Application()->SynthRunning() &&
 		!plug->isUiPlug()
+		&& !plug->isUnusedSpare() // the DSP has no such pin, and wiring it rebuilds the DSP anyway
 		&& (plug->isSettableOutput()
 			|| (!plug->HasActiveConnections() && plug->GetDirection() == DR_IN))
 		)
