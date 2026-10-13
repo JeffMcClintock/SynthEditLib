@@ -29,3 +29,13 @@ public:
 	virtual void undoTransanctionStart() = 0;
 	virtual void undoTransanctionEnd() = 0;
 };
+
+// Hacky back-channel (same idiom as Processor_VST3.cpp's "dataptr" for MIDI-to-host): the GMPI
+// plugin factory's createInstance(id, PluginSubtype::Editor) takes no context parameter, so a
+// VST3 Controller_VST3 (which IS an IGuiHost2 via MpController) has no other way to hand itself
+// to the SeGmpiEditor it's about to construct one call later. Set immediately before that
+// createInstance call, read (and left alone - NOT cleared, next creation overwrites it) by the
+// editor's constructor. Single-threaded and non-reentrant: one editor is under construction at
+// a time. Null when there's no such controller to hand over (e.g. the Standalone wrapper), in
+// which case the reader falls back to a self-contained host.
+extern IGuiHost2* g_pendingEditorGuiHost;
