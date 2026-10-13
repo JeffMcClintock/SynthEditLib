@@ -1311,6 +1311,7 @@ namespace SE2
 		const auto result = ViewBase::arrange(finalRect);
 		// drawingBounds has been updated; recompute pan/zoom mapping from centerPos+zoom.
 		calcViewTransform();
+
 		return result;
 	}
 
@@ -2546,12 +2547,19 @@ namespace SE2
 		for (auto& c : children)
 			c->measure(veryLarge, &notused);
 
+		if(!parentSizeClients.empty()) // not working
+			*returnDesiredSize = *availableSize;
+
 		return gmpi::ReturnCode::Ok;
 	}
 
 	gmpi::ReturnCode ViewBase::arrange(const gmpi::drawing::Rect* finalRect)
 	{
 		drawingBounds = *finalRect;
+
+		// support for Cadmium-style parent-size notification.
+		for(auto client : parentSizeClients)
+			client->onParentSize(getWidth(*finalRect), getHeight(*finalRect));
 
 		// Modules first, then lines (which rely on module position being finalized).
 		for (auto& m : children)
@@ -2699,6 +2707,7 @@ namespace SE2
 		}
 
 		isArranged = true;
+
 		return gmpi::ReturnCode::Ok;
 	}
 
@@ -3094,6 +3103,7 @@ namespace SE2
 
 		return nullptr;
 	}
+
 gmpi::ReturnCode ViewBase::setHost(gmpi::api::IUnknown* phost)
 {
 	const auto r = gmpi::editor::PluginEditor::setHost(phost);
@@ -3114,6 +3124,11 @@ gmpi::ReturnCode ViewBase::setHost(gmpi::api::IUnknown* phost)
 	}
 
 	return r;
+}
+
+void ViewBase::registerParentSizeClient(synthedit::IParentSizeClient* client)
+{
+	parentSizeClients.push_back(client);
 }
 
 }// namespace

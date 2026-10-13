@@ -312,6 +312,11 @@ gmpi::ReturnCode SubView::measure(const gmpi::drawing::Size* availableSize, gmpi
 	returnDesiredSize->width = (std::max)(0.0f, getWidth(viewBounds));
 	returnDesiredSize->height = (std::max)(0.0f, getHeight(viewBounds));
 
+	// A size-aware module (e.g. Control Size) is present: echo the offered size back so the
+	// panel reads as resizable. Otherwise stay fixed at the children's bounding box.
+	if (!parentSizeClients.empty())
+		*returnDesiredSize = *availableSize;
+
 	// Re-align pan to the current children's bbox so the children's top-left
 	// maps to the SubView's plugin-local origin. Recomputing on every
 	// measure (rather than only the first) handles layout cascades — e.g.

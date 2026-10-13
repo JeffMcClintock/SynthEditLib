@@ -208,6 +208,17 @@ namespace SE2
 		moduleview.listGuiPins(plugin_callback.get());
 	}
 
+	void GmpiHelper::relayParentSize(synthedit::IParentSizeClient* client)
+	{
+		if (!client || !moduleview.parent)
+			return;
+
+		// Registers only - the parent's size isn't necessarily final yet (e.g. called from
+		// setHost(), before layout has run). Notified later, from ModuleViewPanel::arrange(),
+		// once the containing panel has actually set its wrapped view's size.
+		moduleview.parent->registerParentSizeClient(client);
+	}
+
 	void ModuleView::listGuiPins(synthedit::IPinsCallback* callback)
 	{
 		if (!moduleInfo)
@@ -1167,7 +1178,7 @@ if(pluginGraphics)
 		{
 			pluginGraphicsPos = gmpi::drawing::Rect(0, 0, finalRect.right - finalRect.left, finalRect.bottom - finalRect.top);
 			drawing::Rect gmpiRect{ 0, 0, pluginGraphicsPos.right, pluginGraphicsPos.bottom };
-			pluginGraphics_GMPI->arrange(&gmpiRect);
+			pluginGraphics_GMPI->arrange(&gmpiRect); // ViewBase::arrange notifies parentSizeClients
 		}
 		else if (pluginGraphics)
 		{

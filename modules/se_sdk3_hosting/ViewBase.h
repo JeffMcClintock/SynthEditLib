@@ -9,6 +9,7 @@
 #include "helpers/Timer.h"
 #include "helpers/NativeUi.h"
 #include "../se_sdk3/Drawing_API.h"
+#include "Extensions/ParentSize.h"
 
 namespace GmpiGuiHosting
 {
@@ -69,6 +70,14 @@ bool isIteratingChildren = false;
 		std::unique_ptr<IPresenter> presenter;
 
 		gmpi::drawing::Rect drawingBounds;
+
+		// Modules registered via GmpiHelper::relayParentSize(), wanting to know this view's size.
+		// Not called back immediately on registration (the size may not be final yet) - notified
+		// once the containing ModuleViewPanel::arrange() has actually set it.
+		std::vector<synthedit::IParentSizeClient*> parentSizeClients;
+
+		void registerParentSizeClient(synthedit::IParentSizeClient* client);
+
 		IViewChild* mouseCaptureObject = {};
 		IViewChild* mouseOverObject = {};
 		IViewChild* modulePicker = {};

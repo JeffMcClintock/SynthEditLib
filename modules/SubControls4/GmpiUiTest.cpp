@@ -21,6 +21,7 @@
 #include "NumberEditClient.h"
 #include "Extensions/EmbeddedFile.h"
 #include "Extensions/PinCount.h"
+#include "Extensions/ParentSize.h"
 #include "../shared/unicode_conversion.h"
 #include "mfc_emulation.h"
 
@@ -385,7 +386,7 @@ auto r3 = gmpi::Register<PatchMemGet>::withXml(R"XML(
       <Pin name="Normalized-in" datatype="float" parameterId="0" parameterField="Normalized"/>
       <Pin name="MouseDown-in" datatype="bool" parameterId="0" parameterField="Grab"/>
       <Pin name="Value-in" datatype="float" parameterId="0" parameterField="Value"/>
-      <Pin name="ID" datatype="int" direction="out" default="-1"/>
+      <Pin name="ID" datatype="int" direction="out"/>
       <Pin name="Normalized" datatype="float" direction="out"/>
       <Pin name="MouseDown" datatype="bool" direction="out"/>
       <Pin name="Value" datatype="float" direction="out"/>
@@ -4153,6 +4154,163 @@ auto r46 = gmpi::Register<Blur2>::withXml(R"XML(
       <Pin name="Bitmap8" datatype="object:bitmap"/>
       <Pin name="Blur Radius" datatype="float" default="8"/>
       <Pin name="Bitmap8" datatype="object:bitmap" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+#if 0
+// Three diagnostics for the measure()/arrange() layout protocol (see PluginEditor::measure's
+// comment for the protocol itself). No rendering - these are invisible, probed only via their pins.
+
+// The 'desired size' measure() reports (its OUT parameter) is driven directly by the Width/Height
+// pins, ignoring whatever availableSize the host offers - a patch-settable fixed size.
+class SizeMeasureIn final : public PluginEditor
+{
+    In<float> pinWidth;
+    In<float> pinHeight;
+
+public:
+    SizeMeasureIn()
+    {
+        pinWidth.value = 100.0f;
+        pinHeight.value = 100.0f;
+
+        auto invalidate = [this](PinBase*) { if (drawingHost) drawingHost->invalidateMeasure(); };
+        pinWidth.onUpdate = invalidate;
+        pinHeight.onUpdate = invalidate;
+    }
+
+    ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override
+    {
+        returnDesiredSize->width = pinWidth.value;
+        returnDesiredSize->height = pinHeight.value;
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r52 = gmpi::Register<SizeMeasureIn>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: SizeMeasureIn" name="Size Measure In" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI graphicsApi="GmpiGui">
+      <Pin name="Width" datatype="float" default="100"/>
+      <Pin name="Height" datatype="float" default="100"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// The Width/Height pins override the 'allowed size' measure() is given (its IN parameter,
+// availableSize) before delegating to the normal echo-back behaviour - so the value returned to
+// whoever called measure() on this module is whatever that (overridden) call produces, including
+// the zero-size guard.
+class SizeMeasureOut final : public PluginEditor
+{
+    In<float> pinWidth;
+    In<float> pinHeight;
+
+public:
+    SizeMeasureOut()
+    {
+        pinWidth.value = 100.0f;
+        pinHeight.value = 100.0f;
+
+        auto invalidate = [this](PinBase*) { if (drawingHost) drawingHost->invalidateMeasure(); };
+        pinWidth.onUpdate = invalidate;
+        pinHeight.onUpdate = invalidate;
+    }
+
+    ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override
+    {
+        gmpi::drawing::Size overriddenAvailable{ pinWidth.value, pinHeight.value };
+        return PluginEditor::measure(&overriddenAvailable, returnDesiredSize);
+    }
+};
+
+namespace
+{
+auto r53 = gmpi::Register<SizeMeasureOut>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: SizeMeasureOut" name="Size Measure Out" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI graphicsApi="GmpiGui">
+      <Pin name="Width" datatype="float" default="100"/>
+      <Pin name="Height" datatype="float" default="100"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+#endif
+
+// Reports the size of whatever hosts this module (its immediate parent view/panel), out through
+// the Width/Height pins - via IParentSize, not by being measured/arranged itself.
+class ControlSize final : public PluginEditorNoGui, public synthedit::IParentSizeClient
+{
+    Out<float> pinWidth;
+    Out<float> pinHeight;
+
+public:
+    ReturnCode setHost(gmpi::api::IUnknown* phost) override
+    {
+        auto result = PluginEditorNoGui::setHost(phost);
+
+        if (auto parentSize = editorHost.as<synthedit::IParentSize>(); parentSize)
+            parentSize->relayParentSize(this);
+
+        return result;
+    }
+
+    // IParentSizeClient
+    gmpi::ReturnCode onParentSize(float width, float height) override
+    {
+        pinWidth = width;
+        pinHeight = height;
+        return ReturnCode::Ok;
+    }
+
+    int32_t addRef() override
+    {
+        return PluginEditorNoGui::addRef();
+    }
+
+    int32_t release() override
+    {
+        return PluginEditorNoGui::release();
+    }
+
+    ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+    {
+        *returnInterface = {};
+
+        if ((*iid) == synthedit::IParentSizeClient::guid)
+        {
+            *returnInterface = static_cast<synthedit::IParentSizeClient*>(this);
+            PluginEditorNoGui::addRef();
+            return ReturnCode::Ok;
+        }
+
+        return PluginEditorNoGui::queryInterface(iid, returnInterface);
+    }
+};
+
+namespace
+{
+auto r54 = gmpi::Register<ControlSize>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: ControlSize" name="Control Size" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Width" datatype="float" direction="out"/>
+      <Pin name="Height" datatype="float" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>

@@ -8,6 +8,7 @@
 #include "mp_sdk_gui2.h"
 #include "Extensions/EmbeddedFile.h"
 #include "Extensions/PinCount.h"
+#include "Extensions/ParentSize.h"
 
 #include "Core/GmpiSdkCommon.h"
 #include "Core/GmpiApiEditor.h"
@@ -95,6 +96,7 @@ namespace SE2
 		, public gmpi::api::IParameterSetter
 		, public synthedit::IEmbeddedFileSupport
 		, public synthedit::IPinCount
+		, public synthedit::IParentSize
 	{
 		class ModuleView& moduleview;
 	public:
@@ -138,17 +140,21 @@ namespace SE2
 		int32_t getAutoduplicatePinCount_deprecated() override;
 		void listPins(gmpi::api::IUnknown* callback) override;
 
+		// IParentSize
+		void relayParentSize(synthedit::IParentSizeClient* client) override;
+
 		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
 			*returnInterface = {};
 			GMPI_QUERYINTERFACE(gmpi::api::IInputHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost);
-			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost2);		
+			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost2);
 			GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IParameterSetter);
 			GMPI_QUERYINTERFACE(synthedit::IEmbeddedFileSupport);
 			GMPI_QUERYINTERFACE(synthedit::IPinCount);
+			GMPI_QUERYINTERFACE(synthedit::IParentSize);
 			return gmpi::ReturnCode::NoSupport;
 		}
         GMPI_REFCOUNT_NO_DELETE
