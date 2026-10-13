@@ -710,6 +710,17 @@ void CContainer::ExportMain(Json::Value& object_json, ExportFormatType targetTyp
 	// CUG::Export(object_json, targetType);
 	object_json["handle"] = Handle(); // this is all we need.
 
+	if (targetType == SAT_SUBCONTROLS_GUI) // export to VST3, save skin bitmap.
+	{
+		// hack: out-of-band pass skin name for legacy crap (Ctl_Slider/Ctl_Text/Ctl_Combo's
+		// own Export() still resolve their bitmaps via this global, same as CContainer::ExportXml's
+		// legacy sibling - but that function is never called by this JSON/GMPI export path, so
+		// without this the global stays at its empty default and every such control's bitmap
+		// silently falls back to the default skin). Must run before ExportChildren below, which
+		// is what actually triggers those controls' own Export() calls.
+		CControl::currentVst3SkinName = WStringToUtf8(getSkin()->Name);
+	}
+
 	ExportChildren(object_json, targetType);
 
 	if (targetType == SAT_SUBCONTROLS_GUI ) // export to VST3, save skin bitmap.
