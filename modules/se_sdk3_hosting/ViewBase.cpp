@@ -2322,6 +2322,7 @@ namespace SE2
 			mouseOverObject = nullptr;
 			frontMostHitObject = nullptr;
 			children.clear();
+		parentSizeClients.clear(); // they were children
 		children_monodirectional.clear();
 		isDraggingModules = false;
 		patchAutomatorWrapper_ = nullptr;
@@ -2366,6 +2367,7 @@ namespace SE2
 		patchAutomatorWrapper_ = nullptr;
 
 		children.clear();
+		parentSizeClients.clear(); // they were children; the rebuild re-registers
 
 		if (mouseCaptureObject)
 		{
