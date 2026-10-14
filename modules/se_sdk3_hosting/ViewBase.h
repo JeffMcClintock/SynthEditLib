@@ -317,6 +317,8 @@ bool isIteratingChildren = false;
 
 		void calcViewTransform();
 
+		gmpi::drawing::Size sizeForParentSizeClients(const gmpi::drawing::Rect& finalRect) const override;
+
 		// The pane's MIDPOINT in window space -- deliberately NOT half its
 		// size. The transform is consumed in WINDOW space, where this pane
 		// starts at drawingBounds.left/top (TIDE's browser strips), so

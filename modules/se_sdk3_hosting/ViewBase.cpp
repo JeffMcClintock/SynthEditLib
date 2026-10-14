@@ -1306,6 +1306,15 @@ namespace SE2
 		return false;
 	}
 
+	// in an exported plugin the top-level panel is the plugin window, a size worth knowing (in panel units, so unzoomed).
+	gmpi::drawing::Size TopView::sizeForParentSizeClients(const gmpi::drawing::Rect& finalRect) const
+	{
+		if (BundleInfo::instance()->isEditor)
+			return ViewBase::sizeForParentSizeClients(finalRect);
+
+		return { getWidth(finalRect) / zoomFactor, getHeight(finalRect) / zoomFactor };
+	}
+
 	gmpi::ReturnCode TopView::arrange(const gmpi::drawing::Rect* finalRect)
 	{
 		const auto result = ViewBase::arrange(finalRect);
