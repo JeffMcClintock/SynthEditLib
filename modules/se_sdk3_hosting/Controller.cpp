@@ -282,255 +282,258 @@ void MpController::Initialize()
 	{
 		const auto xml = BundleInfo::instance()->getResource("parameters.se.xml");
 		doc.Parse(xml.c_str());
-		assert(!doc.Error());
+		assert(xml.empty() || !doc.Error());
 	}
 
 	auto controllerE = doc.FirstChildElement("Controller");
-	assert(controllerE);
-
-	auto patchManagerE = controllerE->FirstChildElement();
-	assert(strcmp(patchManagerE->Value(), "PatchManager") == 0);
-
-	auto parameters_xml = patchManagerE->FirstChildElement("Parameters");
-
-	::init(parametersInfo, parameters_xml); // for parsing presets
-
-	for (auto parameter_xml = parameters_xml->FirstChildElement("Parameter"); parameter_xml; parameter_xml = parameter_xml->NextSiblingElement("Parameter"))
+	// No parameters.se.xml: the plugin builds its patch at runtime (e.g. TIDE Rack), so there are
+	// no exported parameters or SEM controllers to declare here.
+	if (controllerE)
 	{
-		int dataType = DT_FLOAT;
-		int ParameterTag = -1;
-		int ParameterHandle = -1;
-		int Private = 0;
+		auto patchManagerE = controllerE->FirstChildElement();
+		assert(strcmp(patchManagerE->Value(), "PatchManager") == 0);
 
-		std::string Name = parameter_xml->Attribute("Name");
-		const auto hint_ptr = parameter_xml->Attribute("hint");
-		parameter_xml->QueryIntAttribute("ValueType", &dataType);
-		parameter_xml->QueryIntAttribute("Index", &ParameterTag);
-		parameter_xml->QueryIntAttribute("Handle", &ParameterHandle);
-		parameter_xml->QueryIntAttribute("Private", &Private);
+		auto parameters_xml = patchManagerE->FirstChildElement("Parameters");
 
-		if (dataType == DT_STRING_UTF8 || dataType == DT_TEXT || dataType == DT_BLOB || dataType == DT_OBJECT)
+		::init(parametersInfo, parameters_xml); // for parsing presets
+
+		for (auto parameter_xml = parameters_xml->FirstChildElement("Parameter"); parameter_xml; parameter_xml = parameter_xml->NextSiblingElement("Parameter"))
 		{
-			Private = 1; // VST and AU can't handle this type of parameter.
-		}
+			int dataType = DT_FLOAT;
+			int ParameterTag = -1;
+			int ParameterHandle = -1;
+			int Private = 0;
 
-		if (Private == 0)
-		{
-			// Check parameter is numeric and a valid type.
-			assert(dataType == DT_ENUM || dataType == DT_DOUBLE || dataType == DT_BOOL || dataType == DT_FLOAT || dataType == DT_INT || dataType == DT_INT64);
-		}
+			std::string Name = parameter_xml->Attribute("Name");
+			const auto hint_ptr = parameter_xml->Attribute("hint");
+			parameter_xml->QueryIntAttribute("ValueType", &dataType);
+			parameter_xml->QueryIntAttribute("Index", &ParameterTag);
+			parameter_xml->QueryIntAttribute("Handle", &ParameterHandle);
+			parameter_xml->QueryIntAttribute("Private", &Private);
 
-		int stateful_ = 1;
-		parameter_xml->QueryIntAttribute("persistant", &stateful_);
-		int hostControl = -1;
-		parameter_xml->QueryIntAttribute("HostControl", &hostControl);
-		int ignorePc = 0;
-		parameter_xml->QueryIntAttribute("ignoreProgramChange", &ignorePc);
-
-		double pminimum = 0.0;
-		double pmaximum = 10.0;
-
-		parameter_xml->QueryDoubleAttribute("RangeMinimum", &pminimum);
-		parameter_xml->QueryDoubleAttribute("RangeMaximum", &pmaximum);
-
-		int moduleHandle_ = -1;
-		int moduleParamId_ = 0;
-		bool isPolyphonic_ = false;
-		wstring enumList_;
-
-		parameter_xml->QueryIntAttribute("Module", &(moduleHandle_));
-		parameter_xml->QueryIntAttribute("ModuleParamId", &(moduleParamId_));
-		parameter_xml->QueryBoolAttribute("isPolyphonic", &(isPolyphonic_));
-
-		if (dataType == DT_INT || dataType == DT_TEXT /*|| dataType == DT_ENUM */)
-		{
-			auto s = parameter_xml->Attribute("MetaData");
-			if (s)
-				enumList_ = JmUnicodeConversions::Utf8ToWstring(s);
-		}
-
-		MpParameter_base* seParameter = nullptr;
-
-		if (Private == 0)
-		{
-			assert(ParameterTag >= 0);
-			seParameter = makeNativeParameter(ParameterTag, pminimum > pmaximum);
-		}
-		else
-		{
-			auto param = new MpParameter_private(this);
-			seParameter = param;
-			param->isPolyphonic_ = isPolyphonic_;
-		}
-
-		seParameter->hostControl_ = hostControl;
-		seParameter->minimum = pminimum;
-		seParameter->maximum = pmaximum;
-
-		parameter_xml->QueryIntAttribute("MIDI", &(seParameter->MidiAutomation));
-		if (seParameter->MidiAutomation != -1)
-		{
-			const char* temp{};
-			parameter_xml->QueryStringAttribute("MIDI_SYSEX", &temp);
-			seParameter->MidiAutomationSysex = Utf8ToWstring(temp);
-		}
-
-		// Preset values from patch list.
-		ParseXmlPreset(
-			parameter_xml,
-			[seParameter, dataType](int voiceId, int preset, const char* xmlvalue)
+			if (dataType == DT_STRING_UTF8 || dataType == DT_TEXT || dataType == DT_BLOB || dataType == DT_OBJECT)
 			{
-				seParameter->rawValues_.push_back(ParseToRaw(dataType, xmlvalue));
+				Private = 1; // VST and AU can't handle this type of parameter.
 			}
-		);
 
-		// no patch-list?, init to zero.
-		if (!parameter_xml->FirstChildElement("patch-list"))
-		{
-			assert(!stateful_);
-
-			// Special case HC_VOICE_PITCH needs to be initialized to standard western scale
-			if (HC_VOICE_PITCH == hostControl)
+			if (Private == 0)
 			{
-				const int middleA = 69;
-				constexpr float invNotesPerOctave = 1.0f / 12.0f;
-				seParameter->rawValues_.reserve(128);
-				for (float key = 0; key < 128; ++key)
-				{
-					const float pitch = 5.0f + static_cast<float>(key - middleA) * invNotesPerOctave;
-					std::string raw((const char*) &pitch, sizeof(pitch));
-					seParameter->rawValues_.push_back(raw);
-				}
+				// Check parameter is numeric and a valid type.
+				assert(dataType == DT_ENUM || dataType == DT_DOUBLE || dataType == DT_BOOL || dataType == DT_FLOAT || dataType == DT_INT || dataType == DT_INT64);
+			}
+
+			int stateful_ = 1;
+			parameter_xml->QueryIntAttribute("persistant", &stateful_);
+			int hostControl = -1;
+			parameter_xml->QueryIntAttribute("HostControl", &hostControl);
+			int ignorePc = 0;
+			parameter_xml->QueryIntAttribute("ignoreProgramChange", &ignorePc);
+
+			double pminimum = 0.0;
+			double pmaximum = 10.0;
+
+			parameter_xml->QueryDoubleAttribute("RangeMinimum", &pminimum);
+			parameter_xml->QueryDoubleAttribute("RangeMaximum", &pmaximum);
+
+			int moduleHandle_ = -1;
+			int moduleParamId_ = 0;
+			bool isPolyphonic_ = false;
+			wstring enumList_;
+
+			parameter_xml->QueryIntAttribute("Module", &(moduleHandle_));
+			parameter_xml->QueryIntAttribute("ModuleParamId", &(moduleParamId_));
+			parameter_xml->QueryBoolAttribute("isPolyphonic", &(isPolyphonic_));
+
+			if (dataType == DT_INT || dataType == DT_TEXT /*|| dataType == DT_ENUM */)
+			{
+				auto s = parameter_xml->Attribute("MetaData");
+				if (s)
+					enumList_ = JmUnicodeConversions::Utf8ToWstring(s);
+			}
+
+			MpParameter_base* seParameter = nullptr;
+
+			if (Private == 0)
+			{
+				assert(ParameterTag >= 0);
+				seParameter = makeNativeParameter(ParameterTag, pminimum > pmaximum);
 			}
 			else
 			{
-				// init to zero
-				const char* nothing = "\0\0\0\0\0\0\0\0";
-				std::string raw(nothing, getDataTypeSize(dataType));
-				seParameter->rawValues_.push_back(raw);
+				auto param = new MpParameter_private(this);
+				seParameter = param;
+				param->isPolyphonic_ = isPolyphonic_;
 			}
-		}
 
-		seParameter->parameterHandle_ = ParameterHandle;
-		seParameter->datatype_ = dataType;
-		seParameter->moduleHandle_ = moduleHandle_;
-		seParameter->moduleParamId_ = moduleParamId_;
-		seParameter->stateful_ = stateful_;
-		seParameter->name_ = JmUnicodeConversions::Utf8ToWstring(Name);
-		seParameter->hint_ = hint_ptr ? hint_ptr : "";
-		seParameter->enumList_ = enumList_;
-		seParameter->ignorePc_ = ignorePc != 0;
+			seParameter->hostControl_ = hostControl;
+			seParameter->minimum = pminimum;
+			seParameter->maximum = pmaximum;
 
-		parameters_.push_back(std::unique_ptr<MpParameter>(seParameter));
-		ParameterHandleIndex.insert({ ParameterHandle, seParameter });
-		moduleParameterIndex.insert({ {moduleHandle_, moduleParamId_}, ParameterHandle });
-        
-        // Ensure host queries return correct value.
-        seParameter->upDateImmediateValue();
+			parameter_xml->QueryIntAttribute("MIDI", &(seParameter->MidiAutomation));
+			if (seParameter->MidiAutomation != -1)
+			{
+				const char* temp{};
+				parameter_xml->QueryStringAttribute("MIDI_SYSEX", &temp);
+				seParameter->MidiAutomationSysex = Utf8ToWstring(temp);
+			}
 
-		if (seParameter->hostControl_ == HC_PROGRAM_NAME)
-		{
-			// The reset/default preset is consistently named kDefaultPresetName ("Init")
-			// across the controller, processor and export, so the read-only guard keys off it.
-			full_reset_preset_name = kDefaultPresetName;
-		}
-		if(seParameter->hostControl_ == HC_PLUGIN_UI_SCALE)
-		{
-			const float savedScale = getStoredUIScale();
-
-			seParameter->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, sizeof(savedScale), &savedScale);
-
-			const auto handle = seParameter->parameterHandle_;
-			parameterAttachments[handle] = gmpi::shared_ptr<ParameterAttachment>(new ParameterAttachment());
-			parameterAttachments[handle]->callback = (
-				[this](int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, RawView value)
+			// Preset values from patch list.
+			ParseXmlPreset(
+				parameter_xml,
+				[seParameter, dataType](int voiceId, int preset, const char* xmlvalue)
 				{
-					if(fieldId != gmpi::Field::Value)
-						return;
-
-					const auto newScale = (float)value;
-					storeUIScale(newScale);
-
-					if(onPluginUIScaleChanged)
-						onPluginUIScaleChanged(newScale);
+					seParameter->rawValues_.push_back(ParseToRaw(dataType, xmlvalue));
 				}
 			);
-		}
 
-		// populate default value from initial value.
-		for(auto& param : parameters_)
-		{
-			auto raw = param->getValueRaw(gmpi::FieldType::MP_FT_VALUE, 0);
-			param->setParameterRaw(gmpi::FieldType::MP_FT_DEFAULT, raw);
-		}
-	}
-
-	// SEM Controllers.
-	{
-		assert(controllerE);
-
-		auto childPluginsE = controllerE->FirstChildElement("ChildControllers");
-		for (auto childE = childPluginsE->FirstChildElement("ChildController"); childE; childE = childE->NextSiblingElement("ChildController"))
-		{
-			std::string typeId = childE->Attribute("Type");
-
-			auto mi = ModuleFactory()->GetById(Utf8ToWstring(typeId));
-
-			if (!mi)
+			// no patch-list?, init to zero.
+			if (!parameter_xml->FirstChildElement("patch-list"))
 			{
-				continue;
+				assert(!stateful_);
+
+				// Special case HC_VOICE_PITCH needs to be initialized to standard western scale
+				if (HC_VOICE_PITCH == hostControl)
+				{
+					const int middleA = 69;
+					constexpr float invNotesPerOctave = 1.0f / 12.0f;
+					seParameter->rawValues_.reserve(128);
+					for (float key = 0; key < 128; ++key)
+					{
+						const float pitch = 5.0f + static_cast<float>(key - middleA) * invNotesPerOctave;
+						std::string raw((const char*) &pitch, sizeof(pitch));
+						seParameter->rawValues_.push_back(raw);
+					}
+				}
+				else
+				{
+					// init to zero
+					const char* nothing = "\0\0\0\0\0\0\0\0";
+					std::string raw(nothing, getDataTypeSize(dataType));
+					seParameter->rawValues_.push_back(raw);
+				}
 			}
 
-			gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> obj;
-			obj.Attach(mi->Build(gmpi::MP_SUB_TYPE_CONTROLLER, true));
+			seParameter->parameterHandle_ = ParameterHandle;
+			seParameter->datatype_ = dataType;
+			seParameter->moduleHandle_ = moduleHandle_;
+			seParameter->moduleParamId_ = moduleParamId_;
+			seParameter->stateful_ = stateful_;
+			seParameter->name_ = JmUnicodeConversions::Utf8ToWstring(Name);
+			seParameter->hint_ = hint_ptr ? hint_ptr : "";
+			seParameter->enumList_ = enumList_;
+			seParameter->ignorePc_ = ignorePc != 0;
 
-			if (obj)
+			parameters_.push_back(std::unique_ptr<MpParameter>(seParameter));
+			ParameterHandleIndex.insert({ ParameterHandle, seParameter });
+			moduleParameterIndex.insert({ {moduleHandle_, moduleParamId_}, ParameterHandle });
+        
+	        // Ensure host queries return correct value.
+	        seParameter->upDateImmediateValue();
+
+			if (seParameter->hostControl_ == HC_PROGRAM_NAME)
 			{
-				// GMPI controller. Initialized later, by initSemControllers().
-				gmpi::shared_ptr<gmpi::api::IController> controller2;
-				obj->queryInterface(*(const gmpi::MpGuid*)(&gmpi::api::IController::guid), controller2.put_void());
+				// The reset/default preset is consistently named kDefaultPresetName ("Init")
+				// across the controller, processor and export, so the read-only guard keys off it.
+				full_reset_preset_name = kDefaultPresetName;
+			}
+			if(seParameter->hostControl_ == HC_PLUGIN_UI_SCALE)
+			{
+				const float savedScale = getStoredUIScale();
 
-				if (controller2)
+				seParameter->setParameterRaw(gmpi::FieldType::MP_FT_VALUE, sizeof(savedScale), &savedScale);
+
+				const auto handle = seParameter->parameterHandle_;
+				parameterAttachments[handle] = gmpi::shared_ptr<ParameterAttachment>(new ParameterAttachment());
+				parameterAttachments[handle]->callback = (
+					[this](int32_t parameterHandle, gmpi::Field fieldId, int32_t voice, RawView value)
+					{
+						if(fieldId != gmpi::Field::Value)
+							return;
+
+						const auto newScale = (float)value;
+						storeUIScale(newScale);
+
+						if(onPluginUIScaleChanged)
+							onPluginUIScaleChanged(newScale);
+					}
+				);
+			}
+
+			// populate default value from initial value.
+			for(auto& param : parameters_)
+			{
+				auto raw = param->getValueRaw(gmpi::FieldType::MP_FT_VALUE, 0);
+				param->setParameterRaw(gmpi::FieldType::MP_FT_DEFAULT, raw);
+			}
+		}
+
+		// SEM Controllers.
+		{
+			assert(controllerE);
+
+			auto childPluginsE = controllerE->FirstChildElement("ChildControllers");
+			for (auto childE = childPluginsE->FirstChildElement("ChildController"); childE; childE = childE->NextSiblingElement("ChildController"))
+			{
+				std::string typeId = childE->Attribute("Type");
+
+				auto mi = ModuleFactory()->GetById(Utf8ToWstring(typeId));
+
+				if (!mi)
 				{
-					int32_t handle = 0;
-					childE->QueryIntAttribute("Handle", &(handle));
-					semControllers.addGmpiController(handle, controller2, this);
 					continue;
 				}
 
-				gmpi_sdk::mp_shared_ptr<gmpi::IMpController> controller;
-				/*auto r = */ obj->queryInterface(gmpi::MP_IID_CONTROLLER, controller.asIMpUnknownPtr());
+				gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> obj;
+				obj.Attach(mi->Build(gmpi::MP_SUB_TYPE_CONTROLLER, true));
 
-				if (controller)
+				if (obj)
 				{
-					int32_t handle = 0;
-					childE->QueryIntAttribute("Handle", &(handle));
-					semControllers.addController(handle, controller);
+					// GMPI controller. Initialized later, by initSemControllers().
+					gmpi::shared_ptr<gmpi::api::IController> controller2;
+					obj->queryInterface(*(const gmpi::MpGuid*)(&gmpi::api::IController::guid), controller2.put_void());
 
-					// Duplicating all the pins and defaults seems a bit redundant, they may not even be needed.
-					// Perhaps controller needs own dedicated pins????
-
-					// Create IO and autoduplicating Plugs. Set defaults.
-					auto plugsElement = childE->FirstChildElement("Pins");
-
-					if (plugsElement)
+					if (controller2)
 					{
-						int32_t i = 0;
-						for (auto plugElement = plugsElement->FirstChildElement(); plugElement; plugElement = plugElement->NextSiblingElement())
+						int32_t handle = 0;
+						childE->QueryIntAttribute("Handle", &(handle));
+						semControllers.addGmpiController(handle, controller2, this);
+						continue;
+					}
+
+					gmpi_sdk::mp_shared_ptr<gmpi::IMpController> controller;
+					/*auto r = */ obj->queryInterface(gmpi::MP_IID_CONTROLLER, controller.asIMpUnknownPtr());
+
+					if (controller)
+					{
+						int32_t handle = 0;
+						childE->QueryIntAttribute("Handle", &(handle));
+						semControllers.addController(handle, controller);
+
+						// Duplicating all the pins and defaults seems a bit redundant, they may not even be needed.
+						// Perhaps controller needs own dedicated pins????
+
+						// Create IO and autoduplicating Plugs. Set defaults.
+						auto plugsElement = childE->FirstChildElement("Pins");
+
+						if (plugsElement)
 						{
-							assert(strcmp(plugElement->Value(), "Pin") == 0);
+							int32_t i = 0;
+							for (auto plugElement = plugsElement->FirstChildElement(); plugElement; plugElement = plugElement->NextSiblingElement())
+							{
+								assert(strcmp(plugElement->Value(), "Pin") == 0);
 
-							plugElement->QueryIntAttribute("idx", &i);
-							int32_t pinType = 0;
-							plugElement->QueryIntAttribute("type", &pinType);
-							auto d = plugElement->Attribute("default");
+								plugElement->QueryIntAttribute("idx", &i);
+								int32_t pinType = 0;
+								plugElement->QueryIntAttribute("type", &pinType);
+								auto d = plugElement->Attribute("default");
 
-							if (!d)
-								d = "";
+								if (!d)
+									d = "";
 
-							controller->setPinDefault(pinType, i, d);
+								controller->setPinDefault(pinType, i, d);
 
-							++i;
+								++i;
+							}
 						}
 					}
 				}
