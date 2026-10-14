@@ -22,6 +22,7 @@
 #include "Extensions/EmbeddedFile.h"
 #include "Extensions/PinCount.h"
 #include "Extensions/ParentSize.h"
+#include "Extensions/DrawsInParent.h"
 #include "../shared/unicode_conversion.h"
 #include "mfc_emulation.h"
 
@@ -1989,6 +1990,40 @@ auto r42 = gmpi::Register<PointFromXY>::withXml(R"XML(
 )XML");
 }
 
+struct RectFromXYWH final : public PluginEditorNoGui
+{
+    In<float> pinTop;
+    In<float> pinLeft;
+    In<float> pinWidth;
+    In<float> pinHeight;
+    Out<Rect> pinRect;
+
+    ReturnCode process() override
+    {
+        pinRect = Rect{ pinLeft.value, pinTop.value, pinLeft.value + pinWidth.value, pinTop.value + pinHeight.value };
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r55 = gmpi::Register<RectFromXYWH>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Rect" name="Rect" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Top" datatype="float"/>
+      <Pin name="Left" datatype="float"/>
+      <Pin name="Width" datatype="float"/>
+      <Pin name="Height" datatype="float"/>
+      <Pin name="Rect" datatype="struct:rect" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 // An open path through its points, in pin order. One auto-duplicated input per point.
 struct Multiline final : public GraphicsProcessor
 {
@@ -2446,16 +2481,62 @@ struct RenderGeometry final : public PluginEditor
 {
     ObjectIn<drawing::api::IPathGeometry> pinInput;
     ObjectIn<IStyle>                      pinStyle;
+    In<gmpi::drawing::Rect>               pinPanelRect; // where to render on the parent panel (panel sub-view only).
 
     GlowImage glow;
     bool glowDirty = true;
+    gmpi::shared_ptr<synthedit::IDrawsInParent> drawsInParent;
+    gmpi::drawing::Rect drawnRect{}; // last area drawn, so a moved Panel Rect also erases the old spot.
 
     RenderGeometry()
     {
         // redraw whenever the geometry or its style changes.
-        auto invalidate = [this](PinBase*) { glowDirty = true; if (drawingHost) drawingHost->invalidateRect({}); };
+        auto invalidate = [this](PinBase*) { glowDirty = true; invalidateDrawing(); };
         pinInput.onUpdate = invalidate;
         pinStyle.onUpdate = invalidate;
+        pinPanelRect.onUpdate = [this](PinBase*) { invalidateDrawing(); };
+    }
+
+    // in a panel sub-view the Panel Rect (parent coords, mapped to local) stands in for our bounds.
+    gmpi::drawing::Rect drawingBounds()
+    {
+        if (!drawsInParent)
+            return bounds;
+
+        float x{}, y{};
+        drawsInParent->getPositionInParent(&x, &y);
+        return offsetRect(pinPanelRect.value, { -x, -y });
+    }
+
+    void invalidateDrawing()
+    {
+        if (!drawingHost)
+            return;
+
+        if (!drawsInParent)
+        {
+            drawingHost->invalidateRect({});
+            return;
+        }
+
+        drawingHost->invalidateRect(&drawnRect);
+        drawnRect = drawingBounds();
+        drawingHost->invalidateRect(&drawnRect);
+    }
+
+    ReturnCode setHost(gmpi::api::IUnknown* phost) override
+    {
+        drawsInParent = nullptr;
+        if (phost)
+            phost->queryInterface(&synthedit::IDrawsInParent::guid, drawsInParent.put_void());
+
+		return PluginEditor::setHost(phost);
+    }
+
+    ReturnCode getClipArea(drawing::Rect* returnRect) override
+    {
+        *returnRect = drawingBounds();
+        return ReturnCode::Ok;
     }
 
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
@@ -2463,8 +2544,11 @@ struct RenderGeometry final : public PluginEditor
 		if (!pinInput)
 			return ReturnCode::Ok;
 
+        const auto area = drawingBounds();
+        drawnRect = area;
+
         Graphics g(drawingContext);
-        ClipDrawingToBounds _(g, bounds);
+        ClipDrawingToBounds _(g, area);
 
         // wrap the incoming interface so we can draw it.
         PathGeometry geometry;
@@ -2493,7 +2577,7 @@ struct RenderGeometry final : public PluginEditor
         }
 
         // origin at the widget centre (geometry is authored centred on origin).
-        TempTransform tt(g, makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f));
+        TempTransform tt(g, makeTranslation((area.left + area.right) * 0.5f, (area.top + area.bottom) * 0.5f));
 
         glow.draw(g); // behind the shape
 
@@ -2524,6 +2608,7 @@ auto r18 = gmpi::Register<RenderGeometry>::withXml(R"XML(
     <GUI>
       <Pin name="Path" datatype="object:path"/>
       <Pin name="Style" datatype="object:style"/>
+      <Pin name="Panel Rect" datatype="struct:rect"/>
     </GUI>
   </Plugin>
 </PluginList>

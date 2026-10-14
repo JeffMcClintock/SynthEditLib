@@ -9,6 +9,7 @@
 #include "Extensions/EmbeddedFile.h"
 #include "Extensions/PinCount.h"
 #include "Extensions/ParentSize.h"
+#include "Extensions/DrawsInParent.h"
 
 #include "Core/GmpiSdkCommon.h"
 #include "Core/GmpiApiEditor.h"
@@ -97,6 +98,7 @@ namespace SE2
 		, public synthedit::IEmbeddedFileSupport
 		, public synthedit::IPinCount
 		, public synthedit::IParentSize
+		, public synthedit::IDrawsInParent
 	{
 		class ModuleView& moduleview;
 	public:
@@ -143,9 +145,20 @@ namespace SE2
 		// IParentSize
 		void relayParentSize(synthedit::IParentSizeClient* client) override;
 
+		// IDrawsInParent
+		gmpi::ReturnCode getPositionInParent(float* returnX, float* returnY) override;
+		bool isInPanelSubView() const;
+
 		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
 			*returnInterface = {};
+			// only offered inside a panel sub-view; fixed for our lifetime because the module's parent never changes.
+			if (*iid == synthedit::IDrawsInParent::guid && isInPanelSubView())
+			{
+				*returnInterface = static_cast<synthedit::IDrawsInParent*>(this);
+				addRef();
+				return gmpi::ReturnCode::Ok;
+			}
 			GMPI_QUERYINTERFACE(gmpi::api::IInputHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
 			GMPI_QUERYINTERFACE(gmpi::api::IEditorHost);

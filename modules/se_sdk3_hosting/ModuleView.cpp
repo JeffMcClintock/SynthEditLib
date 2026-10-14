@@ -219,6 +219,21 @@ namespace SE2
 		moduleview.parent->registerParentSizeClient(client);
 	}
 
+	bool GmpiHelper::isInPanelSubView() const
+	{
+		return dynamic_cast<SubView*>(moduleview.parent) != nullptr;
+	}
+
+	gmpi::ReturnCode GmpiHelper::getPositionInParent(float* returnX, float* returnY)
+	{
+		// through the sub-view's pan, into the same space as the sub-view's size (as reported by IParentSize).
+		const gmpi::drawing::Point modulePos{ moduleview.bounds_.left + moduleview.pluginGraphicsPos.left, moduleview.bounds_.top + moduleview.pluginGraphicsPos.top };
+		const auto p = modulePos * moduleview.parent->viewTransform;
+		*returnX = p.x;
+		*returnY = p.y;
+		return gmpi::ReturnCode::Ok;
+	}
+
 	void ModuleView::listGuiPins(synthedit::IPinsCallback* callback)
 	{
 		if (!moduleInfo)
