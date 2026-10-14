@@ -245,6 +245,7 @@ Shared/AuPreset.h
 Shared/AuPreset.cpp
 
 ${se_sdk_hosting_folder}/IGuiHost2.h
+${se_sdk_hosting_folder}/IGuiHost2.cpp
 ${se_sdk_hosting_folder}/Controller.h
 ${se_sdk_hosting_folder}/Controller.cpp
 ${se_sdk_hosting_folder}/MpParameter.h
