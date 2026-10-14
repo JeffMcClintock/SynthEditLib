@@ -914,7 +914,7 @@ auto r8B = gmpi::Register<TextEntry4Gui>::withXml(R"XML(
 )XML");
 }
 
-// An invisible platform text-edit over this module's area, opened by a rising edge on Trigger
+// An invisible platform text-edit over this module's area, opened by a falling edge on Trigger
 // (e.g. MouseTarget's Double Click). Value passes through until an edit is committed.
 class TextEdit final : public PluginEditor, public gmpi::api::IDrawingLayer
 {
@@ -924,6 +924,7 @@ class TextEdit final : public PluginEditor, public gmpi::api::IDrawingLayer
 
     sdk::TextEditCallback callback;
     bool editing = false;
+    bool prevTrigger = false;
 
 public:
     TextEdit()
@@ -932,8 +933,13 @@ public:
         callback.onCancel = [this]() { editing = false; };
 
         pinValueIn.onUpdate = [this](PinBase*) { pinValueOut = pinValueIn.value; };
-        // rising edge only: the host also pushes the initial value at load.
-        pinTrigger.onUpdate = [this](PinBase*) { if (pinTrigger.value) show(); };
+        // Open on the falling edge (mouse-up): grabbing focus mid-click loses it to the release.
+        pinTrigger.onUpdate = [this](PinBase*)
+        {
+            if (prevTrigger && !pinTrigger.value)
+                show();
+            prevTrigger = pinTrigger.value;
+        };
     }
 
     void show()
@@ -1109,10 +1115,11 @@ protected:
 	ObjectIn<IStyle> pinEditStyle; // the number while it's being edited (default: Style)
 	ObjectIn<IStyle> pinUnitStyle;
     Out<float>       pinValueOut;
-    In<bool>         pinTrigger; // rising edge starts keyboard entry (e.g. wired to MouseTarget's Double Click)
+    In<bool>         pinTrigger; // falling edge starts keyboard entry (e.g. wired to MouseTarget's Double Click)
 
     NumberEdit numberEdit;
     bool editing = false;
+    bool prevTrigger = false;
 
     GlowImage numberGlow;
     GlowImage unitGlow;
@@ -1131,9 +1138,13 @@ public:
         pinStyle.onUpdate = styleChanged;
         pinUnitStyle.onUpdate = styleChanged;
         pinEditStyle.onUpdate = styleChanged;
-        // Open the in-place editor on a rising edge only (value==true). The host also pushes the pin's
-        // initial value at load, which must NOT open the editor.
-        pinTrigger.onUpdate = [this](PinBase*) { if (pinTrigger.value) startEditing(); };
+        // Open on the falling edge (mouse-up): grabbing focus mid-click loses it to the release.
+        pinTrigger.onUpdate = [this](PinBase*)
+        {
+            if (prevTrigger && !pinTrigger.value)
+                startEditing();
+            prevTrigger = pinTrigger.value;
+        };
     }
 
     ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override
@@ -1372,7 +1383,6 @@ protected:
     gmpi::drawing::Point curPoint{};  // latest position from onPointerMove
     gmpi::drawing::Point prevPoint{}; // position at the previous delta emission
     bool primed = false;              // seed prevPoint on the first move (no giant initial delta)
-    bool wasDouble = false;
 
     static constexpr int32_t kFirst  = static_cast<int32_t>(gmpi::api::PointerFlags::FirstButton);
     static constexpr int32_t kSecond = static_cast<int32_t>(gmpi::api::PointerFlags::SecondButton);
@@ -1391,9 +1401,8 @@ public:
         if (flags & kSecond) pinRClick = true;
         if (flags & kThird)  pinCClick = true;
 
-        // The OS sets Double on the second down; report it (cleared on the 2nd up below).
-        wasDouble = flags & kDouble; // remember double-click on down.
-        pinDoubleClick = false;
+        // The OS sets Double on the second down; held until the 2nd up (consumers act on that falling edge).
+        pinDoubleClick = (flags & kDouble) != 0;
 
         return gmpi::ReturnCode::Ok;
     }
@@ -1427,7 +1436,7 @@ public:
             pinCClick = false;
         }
 
-        pinDoubleClick = wasDouble; // Set on the (2nd) up
+        pinDoubleClick = false;
 
         return gmpi::ReturnCode::Ok;
     }
