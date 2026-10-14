@@ -82,6 +82,7 @@ public:
 	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override;
 	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
 	gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override;
+	gmpi::drawing::Size sizeForParentSizeClients(const gmpi::drawing::Rect& finalRect) const override { return { getWidth(finalRect), getHeight(finalRect) }; }
 	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
 
 	// IDrawingLayer — lets the enclosing view hoist this sub-view's layers (shadows,

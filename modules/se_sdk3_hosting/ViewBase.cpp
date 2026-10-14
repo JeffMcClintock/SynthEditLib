@@ -2560,8 +2560,9 @@ namespace SE2
 		drawingBounds = *finalRect;
 
 		// support for Cadmium-style parent-size notification.
+		const auto size = sizeForParentSizeClients(*finalRect);
 		for(auto client : parentSizeClients)
-			client->onParentSize(getWidth(*finalRect), getHeight(*finalRect));
+			client->onParentSize(size.width, size.height);
 
 		// Modules first, then lines (which rely on module position being finalized).
 		for (auto& m : children)

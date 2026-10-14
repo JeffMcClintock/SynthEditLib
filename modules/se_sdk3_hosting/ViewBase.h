@@ -78,6 +78,9 @@ bool isIteratingChildren = false;
 
 		void registerParentSizeClient(synthedit::IParentSizeClient* client);
 
+		// size reported to parentSizeClients. Only a panel sub-view's size means anything to a control; other views give a nominal one.
+		virtual gmpi::drawing::Size sizeForParentSizeClients(const gmpi::drawing::Rect& finalRect) const { return { 100.0f, 100.0f }; }
+
 		IViewChild* mouseCaptureObject = {};
 		IViewChild* mouseOverObject = {};
 		IViewChild* modulePicker = {};
