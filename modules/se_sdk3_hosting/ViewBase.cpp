@@ -17,6 +17,7 @@
 #include "IPluginGui.h"
 #include "mfc_emulation.h"
 #include "IGuiHost2.h"
+#include "BundleInfo.h"
 #include "InterfaceObject.h"
 #include "modules/se_sdk3_hosting/PresenterCommands.h"
 #include "helpers/PixelSnapper.h"
