@@ -2635,4 +2635,11 @@ void CPatchManager::setModified(bool presetIsModified)
 	{
 		pb->SetValue(RawView(presetIsModified)); //> setValueNormalised(1.f, false);
 	}
+
+	// a container still being built (document load) has no document yet, and nothing to report.
+	if (presetIsModified && m_container && m_container->Document())
+	{
+		if (auto app = m_container->Document()->Application(); app)
+			app->onSavedStateChanged();
+	}
 }

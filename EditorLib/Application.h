@@ -90,6 +90,8 @@ public:
 	virtual bool ApplyHighlights(int /*flags*/, std::vector<class CUG*>* /*modules*/) { return false; }
 	virtual gmpi::api::IDialogHost* getCurrentDialogHost() { return {}; }
 	virtual void onDocumentChanged() {}
+	// A saved (stateful) parameter changed, so the document no longer matches its last save. A plug-in app (TideApp) tells its DAW.
+	virtual void onSavedStateChanged() {}
 
 #ifdef _WIN32
 	virtual HWND MainWindowhandle() { return {}; }
