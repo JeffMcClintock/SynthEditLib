@@ -255,6 +255,35 @@ void MpController::storeUIScale(float scale)
 	SettingsFile::SetValue(product, L"PluginUIScale", std::to_wstring(scale));
 }
 
+// Stage 1 (TideSynth docs/state-management-consolidation-plan.md): the one
+// parameters.se.xml description per process. See SeParameterInfo.h.
+const std::map<int32_t, paramInfo>& seParameterInfo()
+{
+	static const std::map<int32_t, paramInfo> info = []
+	{
+		std::map<int32_t, paramInfo> m;
+
+		const auto xml = BundleInfo::instance()->getResource("parameters.se.xml");
+		if (xml.empty())
+			return m; // no resource: the plugin builds its patch at runtime (e.g. TIDE Rack).
+
+		tinyxml2::XMLDocument doc;
+		doc.Parse(xml.c_str());
+		assert(!doc.Error());
+		if (doc.Error())
+			return m;
+
+		if (auto controllerE = doc.FirstChildElement("Controller"); controllerE)
+			if (auto patchManagerE = controllerE->FirstChildElement("PatchManager"); patchManagerE)
+				if (auto parameters_xml = patchManagerE->FirstChildElement("Parameters"); parameters_xml)
+					::init(m, parameters_xml);
+
+		return m;
+	}();
+
+	return info;
+}
+
 void MpController::Initialize()
 {
     if(isInitialized)
@@ -295,7 +324,29 @@ void MpController::Initialize()
 
 		auto parameters_xml = patchManagerE->FirstChildElement("Parameters");
 
-		::init(parametersInfo, parameters_xml); // for parsing presets
+		// parametersInfo is the per-process shared description (seParameterInfo) since
+		// Stage 1 of TideSynth docs/state-management-consolidation-plan.md; this function
+		// no longer builds its own. In debug builds, prove the shared one reads exactly
+		// what this function used to build for itself from the same element.
+#ifdef _DEBUG
+		{
+			std::map<int32_t, paramInfo> legacy;
+			::init(legacy, parameters_xml);
+			assert(legacy.size() == parametersInfo.size());
+			for (const auto& [handle, a] : legacy)
+			{
+				const auto it = parametersInfo.find(handle);
+				assert(it != parametersInfo.end());
+				if (it == parametersInfo.end())
+					continue;
+				const auto& b = it->second;
+				assert(a.dataType == b.dataType && a.defaultRaw == b.defaultRaw && a.minimum == b.minimum && a.maximum == b.maximum
+					&& a.meta == b.meta && a.private_ == b.private_ && a.ignoreProgramChange == b.ignoreProgramChange
+					&& a.hostControl == b.hostControl && a.tag == b.tag && a.midiAutomation == b.midiAutomation
+					&& a.midiAutomationSysex == b.midiAutomationSysex);
+			}
+		}
+#endif
 
 		for (auto parameter_xml = parameters_xml->FirstChildElement("Parameter"); parameter_xml; parameter_xml = parameter_xml->NextSiblingElement("Parameter"))
 		{
