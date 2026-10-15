@@ -16,6 +16,7 @@
 #include "MpParameter.h"
 #include "ControllerHost.h"
 #include "ProcessorStateManager.h"
+#include "SeParameterInfo.h"
 #include "ProcessorWatchdog.h"
 #include "Shared/se_logger.h"
 #include "Hosting/message_queues.h"
@@ -183,7 +184,7 @@ private:
 	bool presetsFolderChanged = false;
 
 protected:
-	std::map<int32_t, paramInfo> parametersInfo;		// for parsing xml presets
+	const std::map<int32_t, paramInfo>& parametersInfo;	// the plugin's parameters.se.xml, one shared copy per process (seParameterInfo); for parsing xml presets
 	std::string full_reset_preset_name;
 	::UndoManager undoManager;
 
@@ -216,6 +217,7 @@ protected:
 public:
 
 	MpController() :
+		parametersInfo(seParameterInfo()),
 		message_que_dsp_to_ui(UI_MESSAGE_QUE_SIZE2)
 	{
 		semControllers.patchManager = this;
