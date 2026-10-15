@@ -1514,7 +1514,7 @@ namespace SE2
 		// full story (TIDE BACKLOG E42: three runs, two zooms, one constant
 		// +240 DIP; and E67, the same defect in onMouseWheel) lives on the
 		// helper's declaration, which is now the quantity's ONE owner.
-		const Point center = canvasCenter();
+		const gmpi::drawing::Point center = canvasCenter();
 
 		// Derive scroll offset from center (doc coords) and snapped zoom.
 		float scrollX = center.x - centerPos.x * snappedZoom;
@@ -1637,7 +1637,7 @@ namespace SE2
 
 	void TopView::renderRack(Graphics& g, const RackLayout& rack)
 	{
-		Rect cliprect = g.getAxisAlignedClip();
+		gmpi::drawing::Rect cliprect = g.getAxisAlignedClip();
 		cliprect.left   = (std::max)(cliprect.left,   0.0f);
 		cliprect.top    = (std::max)(cliprect.top,    0.0f);
 		cliprect.right  = (std::min)(cliprect.right,  (float)viewDimensions);
@@ -1782,7 +1782,7 @@ namespace SE2
 
 		const auto drawFinegrid = zoom > 0.6f;
 
-		Rect cliprect = g.getAxisAlignedClip();
+		gmpi::drawing::Rect cliprect = g.getAxisAlignedClip();
 		cliprect.left   = (std::max)(cliprect.left,   0.0f);
 		cliprect.top    = (std::max)(cliprect.top,    0.0f);
 		cliprect.right  = (std::min)(cliprect.right,  (float)viewDimensions);
@@ -1860,7 +1860,7 @@ namespace SE2
 
 		// outline entire grid to clean up 4 corners.
 		g.drawRectangle(
-			Rect{
+			gmpi::drawing::Rect{
 				gridSize * 2 - 0.5f, gridSize * 2 - 0.5f,
 				(float)viewDimensions - gridSize * 2 - 0.5f, (float)viewDimensions - gridSize * 2 - 0.5f
 			}
@@ -1870,7 +1870,7 @@ namespace SE2
 	}
 
 	// dragStartPoint is the center of the pin we are dragging from, mousePoint is where the mouse is (usually very near)
-	int32_t ViewBase::StartCableDrag(CableType type, IViewChild* fromModule, int fromPin, Point dragStartPoint, gmpi::drawing::Point mousePoint)
+	int32_t ViewBase::StartCableDrag(CableType type, IViewChild* fromModule, int fromPin, gmpi::drawing::Point dragStartPoint, gmpi::drawing::Point mousePoint)
 	{
 		auto fromPoint = dragStartPoint;
 
