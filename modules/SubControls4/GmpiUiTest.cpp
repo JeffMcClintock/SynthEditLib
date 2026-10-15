@@ -2046,7 +2046,7 @@ struct Multiline final : public GraphicsProcessor
         synthedit::PinInformation info(editorHost.get());
         const auto pointCount = static_cast<int>(info.pins.size()) - 1;
 
-        // a pin registers with the editor under construction, which is no longer this one.
+        // a normally pin registers with the editor under construction, do so manually instead.
         constructingInstance = this;
         for (int i = 0; i < pointCount; ++i)
             pinPoints.push_back(std::make_unique<In<Point>>());
