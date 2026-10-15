@@ -27,7 +27,7 @@ typedef std::list<CDocOb*> DO_LIST;
 // Keep in step with ExportAsPlugin.h — the friend declaration below matches by
 // signature, so a parameter added there silently withdraws the friendship.
 bool ExportAsPlugin(CSynthEditDocBase* doc, int autoSave, std::wstring presetsFolder, std::string* errorOut,
-                    std::vector<std::pair<std::string, std::string>>* outputsOut);
+                    std::vector<std::pair<std::string, std::string>>* outputsOut, bool useGmpiWrappers);
 
 class CContainer : public CUG_with_patches
 {
@@ -37,7 +37,7 @@ class CContainer : public CUG_with_patches
 	friend class dlg_connect_ug;
 	friend class CSynthEditDoc;
 	friend bool ::ExportAsPlugin(CSynthEditDocBase*, int, std::wstring, std::string*,
-	                             std::vector<std::pair<std::string, std::string>>*);
+	                             std::vector<std::pair<std::string, std::string>>*, bool);
 
 #ifdef _DEBUG
 	friend class CLine2; // for extra checking code
