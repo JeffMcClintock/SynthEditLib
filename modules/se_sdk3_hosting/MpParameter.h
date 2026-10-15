@@ -78,6 +78,7 @@ public:
 
 	virtual float getNormalized() const = 0;
 	virtual double getValueReal() const = 0;
+	virtual double getDefaultNormalized() const = 0; // where the DAW's 'reset to default' goes
 	virtual std::wstring normalisedToString(double normalized) const = 0;
 	virtual double stringToNormalised(const std::wstring& string) const = 0;
 	virtual double normalisedToReal(double normalized) const = 0;
@@ -136,6 +137,8 @@ public:
 	}
 
 	virtual double getValueReal() const override;
+	double getDefaultNormalized() const override { return RealToNormalized(rawToReal(defaultValue)); }
+	double rawToReal(const std::string& raw) const; // a raw value of this parameter's datatype, as getValueReal reads it
 	virtual std::wstring normalisedToString(double normalized) const override;
 	virtual double stringToNormalised(const std::wstring& string) const override;
 	virtual double normalisedToReal(double normalized) const override;

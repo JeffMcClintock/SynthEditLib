@@ -398,41 +398,45 @@ RawView MpParameter_base::getValueRaw(gmpi::FieldType paramField, int32_t voice)
 
 double MpParameter_base::getValueReal() const
 {
-	const int voiceId = 0;
+	return rawToReal(rawValues_[0]);
+}
+
+double MpParameter_base::rawToReal(const std::string& raw) const
+{
 	switch (datatype_)
 	{
 	case DT_FLOAT:
 	{
-		if (rawValues_[voiceId].size() == sizeof(float))
+		if (raw.size() == sizeof(float))
 		{
-			return static_cast<double>( RawToValue<float>(rawValues_[voiceId].data()) );
+			return static_cast<double>( RawToValue<float>(raw.data()) );
 		}
 	}
 	break;
 
 	case DT_DOUBLE:
 	{
-		if (rawValues_[voiceId].size() == sizeof(double))
+		if (raw.size() == sizeof(double))
 		{
-			return static_cast<double>(RawToValue<double>(rawValues_[voiceId].data()));
+			return static_cast<double>(RawToValue<double>(raw.data()));
 		}
 	}
 	break;
 
 	case DT_BOOL:
 	{
-		if (rawValues_[voiceId].size() == sizeof(bool))
+		if (raw.size() == sizeof(bool))
 		{
-			return static_cast<double>(RawToValue<bool>(rawValues_[voiceId].data()));
+			return static_cast<double>(RawToValue<bool>(raw.data()));
 		}
 	}
 	break;
 
 	case DT_INT:
 	{
-		if (rawValues_[voiceId].size() == sizeof(int32_t))
+		if (raw.size() == sizeof(int32_t))
 		{
-            const auto v = RawToValue<int32_t>(rawValues_[voiceId].data());
+            const auto v = RawToValue<int32_t>(raw.data());
             if (enumList_.empty())
             {
                 return static_cast<double>(v);
@@ -453,9 +457,9 @@ double MpParameter_base::getValueReal() const
 
 	case DT_INT64:
 	{
-		if (rawValues_[voiceId].size() == sizeof(int64_t))
+		if (raw.size() == sizeof(int64_t))
 		{
-			return static_cast<double>(RawToValue<int64_t>(rawValues_[voiceId].data()));
+			return static_cast<double>(RawToValue<int64_t>(raw.data()));
 		}
 	}
 	break;
