@@ -344,7 +344,7 @@ void ApplicationBase::FileDialogAsync(bool load_or_save, std::vector<std::wstrin
 		: std::wstring{};
 
 	auto* cb = new FileDialogCompletionCallback(
-		[this, primaryExtension, absolutePath, filename = std::move(filename), onComplete = std::move(onComplete)](int result, std::wstring callbackFilename) mutable
+		[this, load_or_save, primaryExtension, absolutePath, filename = std::move(filename), onComplete = std::move(onComplete)](int result, std::wstring callbackFilename) mutable
 		{
 			if (result != IDOK)
 			{
@@ -354,6 +354,15 @@ void ApplicationBase::FileDialogAsync(bool load_or_save, std::vector<std::wstrin
 			}
 
 			filename = std::move(callbackFilename);
+
+			// The Windows and macOS pickers add the default extension to a bare name;
+			// the Linux portal returns what was typed, and a project saved without
+			// ".synthedit" then can't be opened.
+			if (!load_or_save && !primaryExtension.empty()
+				&& std::filesystem::path(filename).extension().empty())
+			{
+				filename += L"." + primaryExtension;
+			}
 
 			folder_info* completedFolderInfo = primaryExtension.empty() ? nullptr : getFolderInfo(primaryExtension);
 
