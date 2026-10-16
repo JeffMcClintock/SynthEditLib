@@ -748,6 +748,7 @@ void BundleInfo::initPluginInfo()
             filename.find(L"SynthEdit2.exe") != std::string::npos ||
             filename == L"SynthEdit" || // mac app
             filename.find(L"SynthEditCL") != std::string::npos ||
+            filename.find(L"SynthEditWayland") != std::string::npos ||
             filename.find(L"SynthEdit.") != std::string::npos ||
             filename.find(L"_tests") != std::string::npos ||
             filename.find(L"TIDE") == 0;
