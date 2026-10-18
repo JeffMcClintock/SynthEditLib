@@ -320,6 +320,9 @@ public:
     // OnPaint with the GDI dirty-region body. Forward through here so the
     // virtual dispatch reaches the HWND impl.
     void OnPaint() override { DxDrawingFrameHwnd::OnPaint(); }
+
+    // Presented 1:1; the SwapChainPanel transform would shrink this frame's composition swap chain by the DPI scale.
+    void OnSwapChainCreated() override {}
 };
 
 // This is used in VST3. Native HWND window frame, owned by this.
