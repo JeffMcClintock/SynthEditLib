@@ -266,7 +266,7 @@ namespace SE2
 
 		ModuleView(const wchar_t* typeId, ViewBase* pParent, int handle);
 		ModuleView(Json::Value* context, ViewBase* pParent);
-		~ModuleView() = default;
+		~ModuleView();
 
 		Module_Info* getModuleType()
 		{
@@ -424,6 +424,7 @@ namespace SE2
 		bool dirty{ true };
 		virtual bool isRackModule() = 0;
 		void preDelete() override;
+		void disconnectAll();
 	};
 
 	struct pinViewInfo

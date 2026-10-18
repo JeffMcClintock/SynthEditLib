@@ -1496,24 +1496,37 @@ if(pluginGraphics)
 	// remove all connection to prevent crashes when module tries to send data to already deleted module.
 	void ModuleView::preDelete()
 	{
-		for (auto& it : connections_)
-		{
-			auto& connector = it.second;
-			auto& other = *(connector.otherModule_);
-			auto otherPinIdx = connector.otherModulePinIndex_;
+		disconnectAll();
+	}
 
-			for (auto it = other.connections_.begin(); it != other.connections_.end(); ++it)
+	// A sub-container's modules are destroyed with it, never seeing RemoveModule, while modules outside still hold wires to them.
+	ModuleView::~ModuleView()
+	{
+		disconnectAll();
+	}
+
+	// Remove the far end of every connection, so no other module keeps a pointer to this one.
+	void ModuleView::disconnectAll()
+	{
+		auto connections = std::move(connections_);
+		connections_.clear();
+
+		for (auto& [myPinIndex, connector] : connections)
+		{
+			auto other = connector.otherModule_;
+			if (other == this)
+				continue;
+
+			auto [first, last] = other->connections_.equal_range(connector.otherModulePinIndex_);
+			for (auto it = first; it != last; ++it)
 			{
-				auto& connection = (*it).second;
-				if (connection.otherModule_ == this && connection.otherModulePinIndex_ == connector.myPinIndex_)
+				if (it->second.otherModule_ == this && it->second.otherModulePinIndex_ == myPinIndex)
 				{
-					it = other.connections_.erase(it);
+					other->connections_.erase(it);
 					break;
 				}
 			}
 		}
-
-		connections_.clear();
 	}
 
 	std::string ModuleView::getToolTip(gmpi::drawing::Point point)
