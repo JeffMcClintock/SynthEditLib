@@ -64,6 +64,11 @@ public:
     // by a dev/test run, and so repeat runs against the same override folder
     // share one cache (e.g. a 20-test sweep scans once, not 20 times).
     bool isSemFolderOverridden = false;
+    // True in SynthEditCL. SemCacheName() gives it a Plugin-Cache of its own:
+    // it shares the editor's version number, so without this a SynthEditCL
+    // whose factory folder differs from the installed editor's (e.g. a dev
+    // build with no PlugIns folder) overwrites the editor's module cache.
+    bool isCommandLine = false;
     
     static BundleInfo* instance();
     

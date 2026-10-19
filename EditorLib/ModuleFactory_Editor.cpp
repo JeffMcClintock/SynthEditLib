@@ -188,6 +188,11 @@ std::wstring SemCacheName()
 	// suffix; ClearModuleDataCache() routes through SemCacheName() too, so
 	// `-rescan -factorysemsfolder X` deletes/rebuilds the right file.
 	const auto& bi = *BundleInfo::instance();
+
+	// SynthEditCL never shares the editor's cache. See BundleInfo::isCommandLine.
+	if (bi.isCommandLine)
+		oss << L"-CL";
+
 	if (bi.isSemFolderOverridden)
 	{
 		const auto hash = std::hash<std::wstring>{}(bi.semFolder);

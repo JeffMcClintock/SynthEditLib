@@ -752,6 +752,8 @@ void BundleInfo::initPluginInfo()
             filename.find(L"SynthEdit.") != std::string::npos ||
             filename.find(L"_tests") != std::string::npos ||
             filename.find(L"TIDE") == 0;
+
+        isCommandLine = filename.find(L"SynthEditCL") != std::string::npos;
     }
 
     // are we in a bundle? path contains "/Contents/" and it's parent folder has an extension (.app, .vst3, .component)
