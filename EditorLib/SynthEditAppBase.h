@@ -348,9 +348,13 @@ public:
 
 	int Run();  // Bring the noise!
 
-	SynthRuntime_editor synthRuntime;
+	// Drivers BEFORE the runtime: members are destroyed in reverse, and the
+	// runtime's UIoManager calls Stop()/Cleanup() on its driver as it dies. In
+	// the other order a runtime still holding its io manager at exit (engine
+	// that never finished stopping) called into an already-destroyed driver.
 	std::vector<std::unique_ptr<IO_base>> m_audio_drivers;
 	std::unique_ptr<IMidiDriver> m_midi_driver;
+	SynthRuntime_editor synthRuntime;
 
 	std::vector<driverInfo> getMidiDriversInfo();
 
