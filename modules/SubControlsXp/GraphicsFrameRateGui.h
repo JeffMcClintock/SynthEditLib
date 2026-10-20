@@ -8,7 +8,9 @@
 
 class GraphicsFrameRateGui : public gmpi_gui::MpGuiGfxBase, public TimerClient
 {
-	std::chrono::steady_clock::time_point lastDrawTime;
+	std::chrono::steady_clock::time_point measureStart = std::chrono::steady_clock::now();
+	int frameCount = 0;
+	bool tickPending = false;
 	char text[20];
 
 	GmpiDrawing::TextFormat textFormat;
