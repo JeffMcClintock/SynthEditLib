@@ -186,15 +186,36 @@ std::string NiceDoubleToString(double value)
 	}
 
 	const auto absValue = std::fabs(value);
-	const int precision = absValue < 0.001 ? 1 : absValue < 1.0 ? 3 : absValue < 10.0 ? 2 : absValue < 100.0 ? 1 : 0;
 
-	#if SE_USE_STD_FORMAT_FLOAT
-	return std::format("{:.{}f}", value, precision);
-	#else
-	std::ostringstream oss;
-	oss << std::fixed << std::setprecision(precision) << value;
-	return oss.str();
-	#endif
+	auto fixed = [value](int precision) -> std::string
+	{
+		#if SE_USE_STD_FORMAT_FLOAT
+		return std::format("{:.{}f}", value, precision);
+		#else
+		std::ostringstream oss;
+		oss << std::fixed << std::setprecision(precision) << value;
+		return oss.str();
+		#endif
+	};
+
+	// tiny but non-zero: 3 significant digits rather than rounding to "0.0".
+	if (absValue > 0.0 && absValue < 0.001)
+	{
+		const int precision = 2 - static_cast<int>(std::floor(std::log10(absValue)));
+		if (precision > 9) // e.g. "1.23e-12"
+		{
+			#if SE_USE_STD_FORMAT_FLOAT
+			return std::format("{:.3g}", value);
+			#else
+			std::ostringstream oss;
+			oss << std::setprecision(3) << value;
+			return oss.str();
+			#endif
+		}
+		return stripRedundantTrailingZeros(fixed(precision));
+	}
+
+	return fixed(absValue == 0.0 ? 1 : absValue < 1.0 ? 3 : absValue < 10.0 ? 2 : absValue < 100.0 ? 1 : 0);
 }
 
 std::string stripRedundantTrailingZeros(std::string val)
