@@ -12,6 +12,7 @@
 #include "midi_defs.h" // ControllerType
 #include "CLine2.h"
 #include <cmath>
+#include <charconv>
 #include <format>
 #include <cwctype>
 #include <functional>
@@ -50,6 +51,21 @@ namespace
 
 	// Half-width (px) of the divider's grab zone near its line.
 	constexpr float kDividerGrabHalfWidth{ 4.0f };
+
+	// a float edit is a no-op when it parses to the stored value, or to the rounded text that was displayed.
+	template<typename T>
+	bool isUnchangedEdit(T stored, T typed)
+	{
+		return typed == stored || typed == static_cast<T>(atof(NiceDoubleToString(stored).c_str()));
+	}
+
+	// shortest decimal that round-trips, with no exponent, for the saved default.
+	std::string fullPrecisionString(double v)
+	{
+		char buf[400]; // fixed notation of a tiny double is long
+		const auto r = std::to_chars(buf, buf + sizeof buf, v, std::chars_format::fixed);
+		return { buf, r.ptr };
+	}
 
 	// Invisible mouse target for the column divider. Emits only a RectangleMouseTarget (the
 	// visible line is drawn separately in PropertiesBrowser::render). Added to the Form BEFORE
@@ -600,38 +616,23 @@ std::function<void(const std::string&)> bindParameterToTextBox(
 	case DT_FLOAT:
 		return [p, fieldType](const std::string& val)
 			{
-				// avoid updating value by using the simpler display text unless the user made a significant change.
-				const auto dispText = NiceDoubleToString((float)p->GetValue(fieldType));
-				const auto newVal = atof(val.c_str());
-				const auto newText = NiceDoubleToString(newVal);
+				const auto newVal = static_cast<float>(atof(val.c_str()));
 
-				/* 99% correct, except when patch value is 0.999 => "1.000" => 1.0 => "1.00" (two zeros)
-				if (dispText == newText)
-					return; // no change.
-				*/
-
-				if(atof(dispText.c_str()) == atof(newText.c_str()))
+				if (isUnchangedEdit((float)p->GetValue(fieldType), newVal))
 				{
-					// no change to the model, so no notification will fire — refresh the display
-					// with the clean formatted value ourselves (e.g. user-entered "7.000" -> "7.00").
-					p->UpdateGui(fieldType);
+					p->UpdateGui(fieldType); // no notification will fire — re-format the display ourselves (e.g. "7.000" -> "7.00")
 					return;
 				}
 
-				p->SetValue(RawView(static_cast<float>(newVal)), fieldType);
+				p->SetValue(RawView(newVal), fieldType);
 			};
 
 	case DT_DOUBLE:
 		return [p, fieldType](const std::string& val)
 			{
-				// avoid updating value by using the simpler display text unless the user made a significant change.
-				const auto dispText = NiceDoubleToString((double)p->GetValue(fieldType));
 				const auto newVal = atof(val.c_str());
-				const auto newText = NiceDoubleToString(newVal);
 
-				//if (dispText == newText)
-				//	return; // no change.
-				if(atof(dispText.c_str()) == atof(newText.c_str()))
+				if (isUnchangedEdit((double)p->GetValue(fieldType), newVal))
 				{
 					p->UpdateGui(fieldType); // no notification will fire — re-format the display ourselves
 					return;
@@ -1172,14 +1173,11 @@ void PropertiesBrowser::Body()
 					, [this, mod, pin](const std::string& val) -> void
 						{
 							if (!moduleStillShown(mod)) return;   // E61
-							const auto currentDefault = pin->GetDefault();
+							const auto stored = atof(WStringToUtf8(pin->GetDefault()).c_str());
+							const auto newVal = atof(val.c_str());
 
-							// only update the default if the user made a meaningful change. e.g. "0" -> "0.0" = NO change.
-							const auto prevText = NiceDoubleToString(atof(WStringToUtf8(currentDefault).c_str()));
-							const auto newText = NiceDoubleToString(atof(val.c_str()));
-
-							if(atof(prevText.c_str()) != atof(newText.c_str()))
-								pin->SetDefault(Utf8ToWstring(stripRedundantTrailingZeros(newText))); // change.
+							if (!isUnchangedEdit(stored, newVal))
+								pin->SetDefault(Utf8ToWstring(fullPrecisionString(newVal))); // full precision, the display rounds.
 						}
 					);
 
