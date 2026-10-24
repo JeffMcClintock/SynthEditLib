@@ -70,6 +70,7 @@ add_subdirectory(Waveshapers)
 add_subdirectory(SubControls4)
 add_subdirectory(Diagnostics2)
 add_subdirectory(PathEditor)
+add_subdirectory(GpuFx)
 
 # Aggregate target so app bundles can depend on "all factory modules built"
 # before their POST_BUILD copy fires. Without this, parallel generators (Xcode)

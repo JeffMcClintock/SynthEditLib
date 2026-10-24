@@ -100,12 +100,25 @@ void PluginHolder::load()
 void pumpExternalModuleTimers(int elapsedMs)
 {
 #if !defined(_WIN32) && !defined(__APPLE__)
+	static const bool debug = getenv("SE_PUMP_DEBUG") != nullptr;
+	static size_t lastLoaded = 0;
+	size_t loaded = 0;
 	for (auto& [id, info] : CModuleFactory::Instance()->module_list)
 	{
 		// Only Module_Info3 (class type 0) wraps an external binary.
 		if (info && info->getClassType() == 0)
-			static_cast<Module_Info3*>(info)->pumpTimers(elapsedMs);
+		{
+			auto* m3 = static_cast<Module_Info3*>(info);
+			if (debug && m3->isLoaded())
+			{
+				++loaded;
+				if (loaded > lastLoaded)
+					fprintf(stderr, "[pump] %ls loaded, pumps gmpi=%d sdk3=%d\n", id.c_str(), int(m3->hasGmpiPump()), int(m3->hasSdk3Pump()));
+			}
+			m3->pumpTimers(elapsedMs);
+		}
 	}
+	if (debug) lastLoaded = loaded;
 #endif
 }
 #else

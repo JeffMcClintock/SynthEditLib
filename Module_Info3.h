@@ -53,6 +53,8 @@ public:
 		if (pumpGmpi) pumpGmpi(elapsedMs);
 		if (pumpSdk3) pumpSdk3(elapsedMs);
 	}
+	bool hasGmpiPump() const { return pumpGmpi != nullptr; }
+	bool hasSdk3Pump() const { return pumpSdk3 != nullptr; }
 
 private:
 	// Looked up once at load(): gmpi_pump_timers / se_sdk3_pump_timers, which
@@ -98,6 +100,9 @@ public:
 	gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> getFactory2();
 
 	void pumpTimers(int elapsedMs) { holder.pumpTimers(elapsedMs); }
+	bool isLoaded() const { return holder.isLoaded(); }
+	bool hasGmpiPump() const { return holder.hasGmpiPump(); }
+	bool hasSdk3Pump() const { return holder.hasSdk3Pump(); }
 
 	ug_base* BuildSynthOb() override;
 	gmpi::IMpUnknown* Build(int subType, bool quietFail) override;
