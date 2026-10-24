@@ -46,7 +46,28 @@ public:
 		return dllHandle;
 	}
 	gmpi::MP_DllEntry getFactory();
+
+	// Linux: drive the module's own timer managers (see pumpExternalModuleTimers).
+	void pumpTimers(int elapsedMs)
+	{
+		if (pumpGmpi) pumpGmpi(elapsedMs);
+		if (pumpSdk3) pumpSdk3(elapsedMs);
+	}
+
+private:
+	// Looked up once at load(): gmpi_pump_timers / se_sdk3_pump_timers, which
+	// the two timer frameworks export on Linux. Null when the module has none.
+	typedef void (*PumpFunc)(int);
+	PumpFunc pumpGmpi = {};
+	PumpFunc pumpSdk3 = {};
 };
+
+// Linux only (a no-op elsewhere). Neither timer framework has a native source
+// there, so the host's tick pumps the app's managers - but those are
+// function-local statics, and a dlopen'd module carries its OWN copy that the
+// app's pump never reaches. This walks the loaded external modules and pumps
+// each one's. Call it beside the app's two pumps, every tick.
+void pumpExternalModuleTimers(int elapsedMs);
 
 class Module_Info3 : public Module_Info3_base
 {
@@ -75,6 +96,8 @@ public:
 	}
 
 	gmpi_sdk::mp_shared_ptr<gmpi::IMpUnknown> getFactory2();
+
+	void pumpTimers(int elapsedMs) { holder.pumpTimers(elapsedMs); }
 
 	ug_base* BuildSynthOb() override;
 	gmpi::IMpUnknown* Build(int subType, bool quietFail) override;

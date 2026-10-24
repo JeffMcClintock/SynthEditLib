@@ -291,3 +291,15 @@ se_sdk::TimerClient::~TimerClient()
 {
 	StopTimer();
 }
+
+#if !defined(_WIN32) && !defined(__APPLE__)
+// The Linux pump, reachable from OUTSIDE this binary. Same reasoning as
+// gmpi_pump_timers in gmpi_ui/helpers/Timer.cpp: Instance() is a static per
+// shared object, so a dlopen'd module's timers are only driven if the host
+// finds this symbol with dlsym and calls it on its tick.
+extern "C" __attribute__((visibility("default")))
+void se_sdk3_pump_timers(int elapsedMs)
+{
+	TimerManager::Instance()->Pump(elapsedMs);
+}
+#endif

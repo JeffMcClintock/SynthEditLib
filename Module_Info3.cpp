@@ -1,5 +1,6 @@
 #include <sstream>
 #include "Module_Info3.h"
+#include "UgDatabase.h"
 #include "ug_plugin3.h"
 #include "ug_gmpi.h"
 #include "BundleInfo.h"
@@ -83,6 +84,27 @@ void PluginHolder::load()
 		const auto bundleFilepath = pluginPath / L"Contents/x86_64-linux" / pluginPath.filename();
 		if (MP_DllLoad(&dllHandle, bundleFilepath.wstring().c_str()))
 			dllHandle = {};
+	}
+
+	// The module's timer pumps, if it has either framework compiled in. A
+	// module without timers simply lacks the symbols; that is not an error.
+	pumpGmpi = pumpSdk3 = {};
+	if (dllHandle)
+	{
+		gmpi_dynamic_linking::MP_DllSymbol(dllHandle, "gmpi_pump_timers", (void**)&pumpGmpi);
+		gmpi_dynamic_linking::MP_DllSymbol(dllHandle, "se_sdk3_pump_timers", (void**)&pumpSdk3);
+	}
+#endif
+}
+
+void pumpExternalModuleTimers(int elapsedMs)
+{
+#if !defined(_WIN32) && !defined(__APPLE__)
+	for (auto& [id, info] : CModuleFactory::Instance()->module_list)
+	{
+		// Only Module_Info3 (class type 0) wraps an external binary.
+		if (info && info->getClassType() == 0)
+			static_cast<Module_Info3*>(info)->pumpTimers(elapsedMs);
 	}
 #endif
 }
