@@ -958,7 +958,7 @@ public:
 		ID2D1Brush* opacityBrushNative;
 		if (opacityBrush)
 		{
-			opacityBrushNative = ((Brush*)brush)->nativeBrush();
+			opacityBrushNative = ((Brush*)opacityBrush)->nativeBrush();
 		}
 		else
 		{
