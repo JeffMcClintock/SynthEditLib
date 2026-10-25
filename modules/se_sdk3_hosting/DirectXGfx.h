@@ -965,7 +965,47 @@ public:
 			opacityBrushNative = {};
 		}
 
-		context_->FillGeometry(d2d_geometry, ((Brush*)brush)->nativeBrush(), opacityBrushNative);
+		ID2D1Brush* fillBrushNative = ((Brush*)brush)->nativeBrush();
+
+		if (!opacityBrushNative)
+		{
+			context_->FillGeometry(d2d_geometry, fillBrushNative, nullptr);
+			return;
+		}
+
+		// Direct2D draws nothing at all, and says nothing, unless the opacity mask is a
+		// bitmap brush, the fill is a bitmap brush, both clamp, and the target is aliased.
+		// Clamp them for this call and put everything back.
+		struct ClampedBrush
+		{
+			ID2D1BitmapBrush* brush{};
+			D2D1_EXTEND_MODE x{}, y{};
+			explicit ClampedBrush(ID2D1Brush* native)
+			{
+				if (native && SUCCEEDED(native->QueryInterface(__uuidof(ID2D1BitmapBrush), reinterpret_cast<void**>(&brush))))
+				{
+					x = brush->GetExtendModeX();
+					y = brush->GetExtendModeY();
+					brush->SetExtendModeX(D2D1_EXTEND_MODE_CLAMP);
+					brush->SetExtendModeY(D2D1_EXTEND_MODE_CLAMP);
+				}
+			}
+			~ClampedBrush()
+			{
+				if (brush)
+				{
+					brush->SetExtendModeX(x);
+					brush->SetExtendModeY(y);
+					brush->Release();
+				}
+			}
+		};
+		ClampedBrush clampFill(fillBrushNative), clampMask(opacityBrushNative);
+
+		const auto antialiasMode = context_->GetAntialiasMode();
+		context_->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
+		context_->FillGeometry(d2d_geometry, fillBrushNative, opacityBrushNative);
+		context_->SetAntialiasMode(antialiasMode);
 	}
 
 	void DrawTextU(const char* utf8String, int32_t stringLength, const GmpiDrawing_API::IMpTextFormat* textFormat, const GmpiDrawing_API::MP1_RECT* layoutRect, const GmpiDrawing_API::IMpBrush* brush, int32_t flags) override;
