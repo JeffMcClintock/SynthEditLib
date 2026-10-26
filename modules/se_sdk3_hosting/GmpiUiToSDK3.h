@@ -913,22 +913,36 @@ inline int32_t MP_STDCALL GmpiToSDK3Factory::CreateTextFormat(const char* fontFa
 	*textFormat = nullptr;
 
 	gmpi::shared_ptr<gmpi::drawing::api::ITextFormat> b;
-	auto hr = native->createTextFormat(
-		fontFamilyName,
-		(gmpi::drawing::FontWeight) fontWeight,
-		(gmpi::drawing::FontStyle) fontStyle,
-		(gmpi::drawing::FontStretch) fontStretch,
-		fontSize,
-		// SDK3's CreateTextFormat has never had a size-mode parameter: its
-		// fontSize has always meant the raw size the OS interprets. Say so
-		// EXPLICITLY rather than passing 0, because 0 is FontFlags::BodyHeight
-		// and body-height scaling is being repaired — a literal 0 here would
-		// silently resize the text of every legacy module, including
-		// third-party .sem binaries that cannot be recompiled.
-		// No-op today: neither 0 nor SystemHeight scales anything.
-		(int32_t) gmpi::drawing::FontFlags::SystemHeight,
-		b.put()
-	);
+	auto create = [&](const char* family)
+	{
+		return native->createTextFormat(
+			family,
+			(gmpi::drawing::FontWeight) fontWeight,
+			(gmpi::drawing::FontStyle) fontStyle,
+			(gmpi::drawing::FontStretch) fontStretch,
+			fontSize,
+			// SDK3's CreateTextFormat has never had a size-mode parameter: its
+			// fontSize has always meant the raw size the OS interprets. Say so
+			// EXPLICITLY rather than passing 0, because 0 is FontFlags::BodyHeight
+			// and body-height scaling is being repaired — a literal 0 here would
+			// silently resize the text of every legacy module, including
+			// third-party .sem binaries that cannot be recompiled.
+			// No-op today: neither 0 nor SystemHeight scales anything.
+			(int32_t) gmpi::drawing::FontFlags::SystemHeight,
+			b.put()
+		);
+	};
+	auto hr = create(fontFamilyName);
+
+	// SDK3's CreateTextFormat never failed for a family the machine lacks: Direct2D substitutes Arial
+	// (DirectXGfx.cpp), and modules use the result unchecked (ControlsXp's FontCache, asking for a skin's
+	// "MS Sans Serif", crashed). The CPU font lookup fails honestly instead, so substitute here.
+	for (const char* fallback : { "Arial", "system-ui" })
+	{
+		if (hr == gmpi::ReturnCode::Ok)
+			break;
+		hr = create(fallback);
+	}
 
 	if (hr == gmpi::ReturnCode::Ok)
 	{
