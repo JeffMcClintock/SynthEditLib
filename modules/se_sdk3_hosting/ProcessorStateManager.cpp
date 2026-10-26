@@ -850,7 +850,8 @@ void init(std::map<int32_t, paramInfo>& parametersInfo, tinyxml2::XMLNode* param
 
 
 #ifdef _DEBUG
-		p.name = parameter_xml->Attribute("Name");
+		if (const auto name = parameter_xml->Attribute("Name")) // optional: null when absent
+			p.name = name;
 #endif
 		{
 			int temp{ (int)gmpi::PinDatatype::Float32 };

@@ -934,7 +934,7 @@ bool CSynthEditAppBase::OnTimer()
 				CModuleFactory::Instance()->ClearSerialiseFlags();
 				Document()->MasterContainer->ExportXml(element, SAT_SYNTHEDIT_DSP);
 
-				synthRuntime.pendingDspXml = std::move(doc2);
+				synthRuntime.setPendingDspXml(std::move(doc2));
 
 				synthRuntime.DoAsyncRestart();
 			}
@@ -1200,15 +1200,6 @@ void CSynthEditAppBase::OnDspMsg(int p_msg_id, my_input_stream& p_stream)
 	}
 	break;
 
-	case code_to_long('r', 'e', 'f', 'r'): // "refr"
-	{
-		if (synthRuntime.ProcessingCompleted())
-		{
-			synthRuntime.OnSynthThreadExit();
-		}
-	}
-	break;
-
 	case id_to_long2("wdog"): // watchdog ping
 		break;
 
@@ -1283,7 +1274,7 @@ bool CSynthEditAppBase::BuildSynth()
 
 		synthRuntime.Clear(); // resets persistant host controls, so they don't override changes to oversampling made when engine off.
 
-		synthRuntime.pendingDspXml = std::move(doc2);
+		synthRuntime.setPendingDspXml(std::move(doc2));
 
 		audio_driver->setPreferredSampleRate(static_cast<int>(GetSampleRate()));
 

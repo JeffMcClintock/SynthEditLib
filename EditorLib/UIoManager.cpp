@@ -87,6 +87,15 @@ UIoManager::~UIoManager()
 
 		m_audio_driver->Cleanup();
 	}
+
+	// Events still queued when rendering stopped (StartStream schedules one
+	// RunAt ahead) are never processed, so free them here.
+	while (!events.empty())
+	{
+		auto e = events.front();
+		events.pop_front();
+		delete_SynthEditEvent(e);
+	}
 }
 
 bool UIoManager::StartSoundcard()

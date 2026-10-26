@@ -587,7 +587,6 @@ public:
 	std::atomic<audioMasterState> processingState = audioMasterState::Stopped;
 
 protected:
-	void UpdateUI();
 
 	ISeShellDsp* m_shell;
 	my_VstTimeInfo m_vst_time_info;

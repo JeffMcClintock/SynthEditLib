@@ -12,6 +12,7 @@ SE_DECLARE_INIT_STATIC_FILE(OscillatorNaive);
 OscillatorNaive::OscillatorNaive( ) :
 	accumulator(5)
 	,pitchTable(0)
+	,syncState(false)
 	,prevPhase(0)
 {
 	// Register pins.

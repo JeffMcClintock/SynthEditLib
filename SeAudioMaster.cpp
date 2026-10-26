@@ -2369,13 +2369,6 @@ int SeAudioMaster::Open( )
 	return 0;
 }
 
-void SeAudioMaster::UpdateUI()
-{
-	my_msg_que_output_stream strm( getShell()->MessageQueToGui(), Handle(), "refr");
-	strm << (int32_t) 0; // message length.
-	strm.Send();
-}
-
 void SeAudioMaster::Close()
 {
 	if (main_container)

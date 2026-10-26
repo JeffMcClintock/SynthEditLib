@@ -23,7 +23,8 @@ public:
 	void onInputChanged()
 	{
 		// Prevent visual jitter/sticking with floating point outputs.
-		if (inputValue == currentValue && !currentValueNull)
+		// currentValueNull first: until then currentValue is uninitialised.
+		if (!currentValueNull && inputValue == currentValue)
 			return;
 
 		currentValue = inputValue;

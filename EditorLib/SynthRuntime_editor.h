@@ -49,12 +49,13 @@ protected:
 	enum : uint8_t { requestRestart = 1, requestShutdown = 2 };
 	std::atomic<uint8_t> pendingRequests = 0;
 
+	std::atomic<TiXmlDocument*> pendingDspXml = nullptr; // owned; see setPendingDspXml()
+
 public:
 	class IO_base* audio_driver = {};
 	bool cancellationMode = false;
 
 	std::unique_ptr<TiXmlDocument> currentDspXml;
-	std::unique_ptr<TiXmlDocument> pendingDspXml;
 	std::unordered_map<int64_t, std::string> extraPinDefaultChanges;
 
 	int realtime_flags = {};
@@ -66,8 +67,19 @@ public:
 	void Clear() override
 	{
 		SeShellDsp::Clear();
-		pendingDspXml = {};
+		takePendingDspXml();
 		currentDspXml = {};
+	}
+
+	// The next DSP graph, UI -> render thread. A document the engine has not
+	// taken yet is replaced (and freed) by the UI; one it has taken is its own.
+	void setPendingDspXml(std::unique_ptr<TiXmlDocument> doc)
+	{
+		delete pendingDspXml.exchange(doc.release(), std::memory_order_acq_rel);
+	}
+	std::unique_ptr<TiXmlDocument> takePendingDspXml()
+	{
+		return std::unique_ptr<TiXmlDocument>(pendingDspXml.exchange(nullptr, std::memory_order_acq_rel));
 	}
 
 	void Init(
@@ -182,7 +194,6 @@ public:
 	// Returns whole messages ready to ship, or false when there is nothing.
 	bool takeUiToDspMessages(std::vector<unsigned char>& out);
 	bool SynthRunning() const;
-	bool ProcessingCompleted() const;
 	void OnSynthThreadExit();
 
 	// for audio driver

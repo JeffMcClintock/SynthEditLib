@@ -79,7 +79,8 @@ bool PatchStorageVariableSize::SetValue( const void* data, size_t size, int patc
 		dest = patchMemory_[patch].second = new char[size];
 	}
 
-	memcpy( dest, data, size );
+	if( size ) // an empty value may come with a null data pointer
+		memcpy( dest, data, size );
 	return isChanged;
 };
 

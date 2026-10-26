@@ -35,7 +35,7 @@ private:
 	bool play_file;
 	double total_time;
 	bool debug;
-	char buffer[BUF_SIZE];
+	alignas(16) char buffer[BUF_SIZE]; // written as short and float samples
 
 	std::wstring FileName;
 	FILE* fileHandle = {};

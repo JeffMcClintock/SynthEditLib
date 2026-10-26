@@ -633,7 +633,8 @@ protected:
 		// new. Don't create temporary variable (wasteful for large blobs).
 		if( size == variableRawSize(value_) )
 		{
-			if( memcmp( variableRawData(value_), data, static_cast<size_t>(size)) == 0 )
+			// size 0: both empty, and either pointer may be null, which memcmp forbids.
+			if( size == 0 || memcmp( variableRawData(value_), data, static_cast<size_t>(size)) == 0 )
 			{
 				return false;
 			}
@@ -806,7 +807,8 @@ public:
 		// new: Don't create temporary variable (wasteful for large blobs).
 		if( size == variableRawSize(value_[index]) )
 		{
-			if( memcmp( variableRawData(value_[index]), data, size ) == 0 )
+			// size 0: both empty, and either pointer may be null, which memcmp forbids.
+			if( size == 0 || memcmp( variableRawData(value_[index]), data, size ) == 0 )
 			{
 				return false;
 			}

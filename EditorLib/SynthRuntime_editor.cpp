@@ -31,6 +31,8 @@ SynthRuntime_editor::~SynthRuntime_editor()
 	// Destroying a joinable std::thread calls std::terminate.
 	if (renderThread.joinable())
 		renderThread.detach();
+
+	takePendingDspXml(); // free one nobody took
 }
 
 // this should happen one-time-only in plugin.
@@ -88,7 +90,7 @@ bool SynthRuntime_editor::prepareToPlay()
 	ug_base::cpu_conversion_const = sampleRate / ((float)generator->BlockSize() * cpu_clock_rate * generator->cpu_block_rate);
 
 	// Send patch structure to process.
-	currentDspXml = std::move(pendingDspXml);
+	currentDspXml = takePendingDspXml();
 
 	std::vector<int32_t> mutedContainers; // unused at present. (Waves thing).
 	generator->BuildDspGraph(currentDspXml.get(), pendingPresets, mutedContainers);
@@ -163,7 +165,7 @@ void SynthRuntime_editor::RunGenerator()
 
 	generator = {};
 
-	pendingDspXml = {};
+	takePendingDspXml(); // one that arrived too late to be used
 	currentDspXml = {};
 
 	// Signal to GUI thread, that DSP has exited.
@@ -415,9 +417,9 @@ void SynthRuntime_editor::process(int sampleFrames, const float** inputs, float*
 
 		if (generatorStateWas == audioMasterState::AsyncRestart)
 		{
-			if (pendingDspXml)
+			if (auto newDspXml = takePendingDspXml())
 			{
-				currentDspXml = std::move(pendingDspXml);
+				currentDspXml = std::move(newDspXml);
 //					if (!isReinit)
 				// document may have been altered/loaded since last run. ensure no 'hanging' modules or old data in here.
 				// but if we're restarting due a latency change, then we need to KEEP the latency table.
@@ -674,7 +676,3 @@ bool SynthRuntime_editor::SynthRunning() const
 	return engineOpen.load(std::memory_order_acquire);
 }
 
-bool SynthRuntime_editor::ProcessingCompleted() const
-{
-	return !SynthRunning();// && !user_shutdown_flag;
-}
