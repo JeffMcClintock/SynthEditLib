@@ -32,6 +32,7 @@
 #include "CancellationAnalyse.h"
 #include "backends/DrawingFrameWin.h"
 #include "Shared/SoftwareRendererOption.h"
+#include "Shared/GpuRendererOption.h"
 #include "Hosting/message_queues.h"
 #include "PatchParameter.h"
 #include "PresenterCommands.h"
@@ -848,6 +849,11 @@ void CSynthEditAppBase::SetSoftwareRenderer(bool enabled)
 	// Cross-platform by construction: se::setSoftwareRendererEnabled is an empty
 	// inline in release, so no #ifdef _WIN32 dance like the two setters above.
 	se::setSoftwareRendererEnabled(enabled);
+}
+
+void CSynthEditAppBase::SetGpuRenderer(bool enabled)
+{
+	se::setGpuRendererEnabled(enabled);
 }
 
 void CSynthEditAppBase::OnSynthStopped()

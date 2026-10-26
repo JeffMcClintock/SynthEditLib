@@ -83,6 +83,9 @@ struct ApplicationSettings
 	// Direct2D / CoreGraphics. Serialized in every build, honoured only in debug —
 	// see Shared/SoftwareRendererOption.h.
 	bool SoftwareRenderer = false;
+	// Debug-only, and only when built with SE_GPU_RENDERER: draw with gmpi_ui's GPU backend.
+	// Takes precedence over SoftwareRenderer. See Shared/GpuRendererOption.h.
+	bool GpuRenderer = false;
 	std::string ThemePreference = "SystemDefault"; // "SystemDefault", "Light", or "Dark"
 	std::string DefaultLineStyle = "Straight"; // "Straight" or "Curved" — what a line's "Default" style resolves to
 
@@ -133,6 +136,7 @@ struct ApplicationSettings
 		s("GpuDisabled", GpuDisabled);
 		s("DeepColorDisabled", DeepColorDisabled);
 		s("SoftwareRenderer", SoftwareRenderer);
+		s("GpuRenderer", GpuRenderer);
 		s("ThemePreference", ThemePreference);
 		s("DefaultLineStyle", DefaultLineStyle);
 		// 3-arg form: a settings file written before this attribute existed must restore
@@ -272,6 +276,8 @@ public:
 	void SetDeepColorDisabled(bool disabled);
 	// No-op in release: the software renderer isn't compiled in there.
 	void SetSoftwareRenderer(bool enabled);
+	// No-op unless built with SE_GPU_RENDERER (Debug).
+	void SetGpuRenderer(bool enabled);
 	// Re-export & redraw any open structure views (e.g. after the "Default Line Style"
 	// preference changes, so connector lines set to CLine2::DEFAULT_STYLE re-resolve).
 	void refreshAllStructureViews();

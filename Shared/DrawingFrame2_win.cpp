@@ -201,6 +201,13 @@ bool DrawingFrameBase2::canPaint(std::span<gmpi::drawing::RectL> dirtyRects)
 // renderInDeviceContext below).
 void DrawingFrameBase2::renderInDeviceContext(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects)
 {
+#if SE_GPU_RENDERER_OPTION
+    if (universalFactory && universalFactory->gpu)
+    {
+        renderViaGpuRenderer(deviceContext, dirtyRects);
+        return;
+    }
+#endif
 #if SE_SOFTWARE_RENDERER_OPTION
     if (universalFactory && universalFactory->cpu)
     {
@@ -249,31 +256,7 @@ void DrawingFrameBase2::renderViaSoftwareRenderer(ID2D1DeviceContext* deviceCont
         return;
     }
 
-    {
-        // SDK3 modules reach the context through queryInterface(SE_IID_DEVICECONTEXT_MPGUI)
-        // and need an object whose vtable matches the legacy IMpDeviceContext. This
-        // is the backend-neutral equivalent of se::directx::UniversalGraphicsContext
-        // above, and is paired with cpu.sdk3Factory for the reason spelled out in
-        // GmpiCpuUniversalContext.h: context and factory must be the same bridge.
-        se::DeviceContextLegacyAdapter context(cpuTarget.get(), &cpu.sdk3Factory);
-        gmpi::drawing::Graphics graphics(&context);
-
-        graphics.beginDraw();
-
-        // Direct2D gets its DIP-to-pixel scale from the device context's DPI, which
-        // survives whatever transform the client sets. cpugfx has no DPI, so the
-        // scale has to ride in the transform instead — the same trade
-        // DrawingFrameWayland.h makes. Consequence: at a display scale other than
-        // 100%, a client that calls setTransform() with an absolute matrix (rather
-        // than composing onto the current one) will draw unscaled here but scaled
-        // under Direct2D. At 100% the two paths are identical, which is where the
-        // comparisons that motivate this option are normally made.
-        if (DipsToWindow._11 != 1.0f || DipsToWindow._22 != 1.0f)
-            graphics.setTransform(DipsToWindow);
-
-        paintLoop(&context, dirtyRects, drawingClient.get());
-        graphics.endDraw();
-    }
+    paintClientInto(cpuTarget.get(), cpu.sdk3Factory, dirtyRects);
 
     // Present. The CPU surface is fp16 premultiplied linear scRGB — the very
     // format the swap chain's back buffer uses (tempSharedD2DBase::bestFormat is
@@ -290,17 +273,106 @@ void DrawingFrameBase2::renderViaSoftwareRenderer(ID2D1DeviceContext* deviceCont
 
     const auto& surface = bitmap->surface;
 
+    // Rows are padded to a multiple of 8 pixels, so the pitch is stridePixels,
+    // NOT width. Confusing the two shears the image diagonally.
+    presentHalfFloatPixels(deviceContext, surface.pixels, surface.width, surface.height,
+        static_cast<uint32_t>(surface.stridePixels) * 4 * sizeof(uint16_t), dirtyRects);
+}
+#endif // SE_SOFTWARE_RENDERER_OPTION
+
+#if SE_GPU_RENDERER_OPTION
+void DrawingFrameBase2::renderViaGpuRenderer(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects)
+{
+    const auto pixelWidth  = swapChainSize.width;
+    const auto pixelHeight = swapChainSize.height;
+    if (pixelWidth <= 0 || pixelHeight <= 0)
+        return;
+
+    auto& gpu = *universalFactory->gpu;
+
+    const gmpi::drawing::SizeU size{ static_cast<uint32_t>(pixelWidth), static_cast<uint32_t>(pixelHeight) };
+    if (!gpu.target || gpu.targetSize.width != size.width || gpu.targetSize.height != size.height)
+    {
+        gpu.target = {};
+        if (gpu.gmpiFactory.createCpuRenderTarget(size, 0, gpu.target.put(), 96.0f) != gmpi::ReturnCode::Ok || !gpu.target)
+            return;
+        gpu.targetSize = size;
+    }
+
+    // The target outlives the frame, so what is about to be repainted is cleared first (see the CPU path's fresh target).
+    paintClientInto(gpu.target.get(), gpu.sdk3Factory, dirtyRects, true);
+
+    // Read back: fp16 premultiplied linear RGBA, tightly packed, the back buffer's format as on the CPU path.
+    gmpi::shared_ptr<gmpi::drawing::api::IBitmap> gpuBitmap;
+    if (gpu.target->getBitmap(gpuBitmap.put()) != gmpi::ReturnCode::Ok || !gpuBitmap)
+        return;
+
+    gmpi::shared_ptr<gmpi::drawing::api::IBitmapPixels> pixels;
+    if (gpuBitmap->lockPixels(pixels.put(), static_cast<int32_t>(gmpi::drawing::BitmapLockFlags::Read)) != gmpi::ReturnCode::Ok || !pixels)
+        return;
+
+    int32_t format{};
+    uint8_t* address{};
+    int32_t bytesPerRow{};
+    pixels->getPixelFormat(&format);
+    pixels->getAddress(&address);
+    pixels->getBytesPerRow(&bytesPerRow);
+    if (format != gmpi::drawing::api::IBitmapPixels::RGBA_16f || !address)
+        return;
+
+    presentHalfFloatPixels(deviceContext, address, pixelWidth, pixelHeight, static_cast<uint32_t>(bytesPerRow), dirtyRects);
+}
+#endif // SE_GPU_RENDERER_OPTION
+
+#if SE_SOFTWARE_RENDERER_OPTION || SE_GPU_RENDERER_OPTION
+void DrawingFrameBase2::paintClientInto(gmpi::drawing::api::IBitmapRenderTarget* target, se::GmpiToSDK3Factory& sdk3Factory, std::span<gmpi::drawing::RectL> dirtyRects, bool clearFirst)
+{
+    // SDK3 modules reach the context through queryInterface(SE_IID_DEVICECONTEXT_MPGUI)
+    // and need an object whose vtable matches the legacy IMpDeviceContext. This
+    // is the backend-neutral equivalent of se::directx::UniversalGraphicsContext
+    // above, and is paired with the stack's sdk3Factory for the reason spelled out in
+    // GmpiCpuUniversalContext.h: context and factory must be the same bridge.
+    se::DeviceContextLegacyAdapter context(target, &sdk3Factory);
+    gmpi::drawing::Graphics graphics(&context);
+
+    graphics.beginDraw();
+
+    if (clearFirst)
+    {
+        for (const auto& r : dirtyRects)
+        {
+            graphics.pushAxisAlignedClip({ static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right), static_cast<float>(r.bottom) });
+            graphics.clear(gmpi::drawing::Color{ 0.0f, 0.0f, 0.0f, 0.0f });
+            graphics.popAxisAlignedClip();
+        }
+    }
+
+    // Direct2D gets its DIP-to-pixel scale from the device context's DPI, which
+    // survives whatever transform the client sets. cpugfx has no DPI, so the
+    // scale has to ride in the transform instead — the same trade
+    // DrawingFrameWayland.h makes. Consequence: at a display scale other than
+    // 100%, a client that calls setTransform() with an absolute matrix (rather
+    // than composing onto the current one) will draw unscaled here but scaled
+    // under Direct2D. At 100% the two paths are identical, which is where the
+    // comparisons that motivate this option are normally made.
+    if (DipsToWindow._11 != 1.0f || DipsToWindow._22 != 1.0f)
+        graphics.setTransform(DipsToWindow);
+
+    paintLoop(&context, dirtyRects, drawingClient.get());
+    graphics.endDraw();
+}
+
+void DrawingFrameBase2::presentHalfFloatPixels(ID2D1DeviceContext* deviceContext, const void* pixels, int32_t width, int32_t height, uint32_t pitchBytes, std::span<gmpi::drawing::RectL> dirtyRects)
+{
     D2D1_BITMAP_PROPERTIES bitmapProperties{};
     bitmapProperties.pixelFormat = { DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED };
     bitmapProperties.dpiX = bitmapProperties.dpiY = 96.0f; // 96 => one bitmap DIP is one bitmap pixel
 
     gmpi::directx::ComPtr<ID2D1Bitmap> presentBitmap;
-    // Rows are padded to a multiple of 8 pixels, so the pitch is stridePixels,
-    // NOT width. Confusing the two shears the image diagonally.
     if (FAILED(deviceContext->CreateBitmap(
-            D2D1::SizeU(static_cast<UINT32>(surface.width), static_cast<UINT32>(surface.height)),
-            surface.pixels,
-            static_cast<UINT32>(surface.stridePixels) * 4 * sizeof(uint16_t),
+            D2D1::SizeU(static_cast<UINT32>(width), static_cast<UINT32>(height)),
+            pixels,
+            pitchBytes,
             bitmapProperties,
             presentBitmap.put())))
     {
@@ -334,7 +406,7 @@ void DrawingFrameBase2::renderViaSoftwareRenderer(ID2D1DeviceContext* deviceCont
         ReleaseDevice();
     }
 }
-#endif // SE_SOFTWARE_RENDERER_OPTION
+#endif // SE_SOFTWARE_RENDERER_OPTION || SE_GPU_RENDERER_OPTION
 
 void DrawingFrameBase2::sizeClientDips(float width, float height)
 {

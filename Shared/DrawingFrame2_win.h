@@ -14,7 +14,11 @@
 #include "backends/DrawingFrameWin.h"
 
 #include "SoftwareRendererOption.h"
-#if SE_SOFTWARE_RENDERER_OPTION
+#include "GpuRendererOption.h"
+#if SE_GPU_RENDERER_OPTION
+#include "backends/GpuGfx.h"
+#endif
+#if SE_SOFTWARE_RENDERER_OPTION || SE_GPU_RENDERER_OPTION
 #include <memory>
 #include "backends/CpuGfx.h"
 #include "helpers/CpuTextEngine.h"
@@ -86,10 +90,56 @@ struct UniversalFactory : public gmpi::api::IUnknown
     std::unique_ptr<CpuStack> cpu;
 #endif
 
+#if SE_GPU_RENDERER_OPTION
+    // Debug-only: gmpi_ui's GPU backend standing in for Direct2D, drawing into an
+    // offscreen target that is read back and presented like the CPU stack's.
+    // Its own text engine and decoders: the GPU backend rasterizes text and
+    // decodes images through its embedded cpugfx factory.
+    struct GpuStack
+    {
+        gmpi::gpugfx::Factory        gmpiFactory;
+        gmpi::drawing::CpuTextEngine textEngine{ gmpi::drawing::findFont };
+        se::GmpiToSDK3Factory        sdk3Factory;
+
+        // Kept between frames, so the GPU caches (text, images, paths) are exercised as in real use.
+        gmpi::shared_ptr<gmpi::drawing::api::IBitmapRenderTarget> target;
+        gmpi::drawing::SizeU targetSize{};
+
+        GpuStack() : sdk3Factory(&gmpiFactory)
+        {
+            textEngine.imageDecoder      = gmpi::drawing::decodeImageMemory;
+            gmpiFactory.cpu.imageDecoder = gmpi::drawing::decodeImageFile;
+            gmpiFactory.cpu.textEngine   = &textEngine;
+        }
+
+        // Null when this machine cannot run the renderer (no Direct3D 12, no fp16 targets): Direct2D then draws as usual.
+        static std::unique_ptr<GpuStack> create()
+        {
+            auto& renderer = gmpi::gpu::Renderer::instance();
+            renderer.initializeWindowless();
+            if (!renderer.supported() || !renderer.halfFloatFrameBuffers())
+            {
+                _RPT0(_CRT_WARN, "GPU renderer unavailable, drawing with Direct2D\n");
+                return {};
+            }
+            return std::make_unique<GpuStack>();
+        }
+    };
+
+    // Null unless the GPU preference (or GMPI_UI_GPU=1) was on when this frame was built. Takes precedence over cpu.
+    std::unique_ptr<GpuStack> gpu;
+#endif
+
 	UniversalFactory() : sdk3Factory(gmpiFactory.getInfo()) // SDK3 factory borrows the guts from the GMPI factory.
 	{
         se::registerBundledFonts();
 
+#if SE_GPU_RENDERER_OPTION
+        if (se::useGpuRenderer())
+            gpu = GpuStack::create();
+        if (gpu)
+            return;
+#endif
 #if SE_SOFTWARE_RENDERER_OPTION
         if (se::useSoftwareRenderer())
             cpu = std::make_unique<CpuStack>();
@@ -102,6 +152,16 @@ struct UniversalFactory : public gmpi::api::IUnknown
         const bool wantsSdk3 =
             *iid == *(const gmpi::api::Guid*)& GmpiDrawing_API::SE_IID_FACTORY2_MPGUI ||
             *iid == *(const gmpi::api::Guid*)& GmpiDrawing_API::SE_IID_FACTORY_MPGUI;
+
+#if SE_GPU_RENDERER_OPTION
+        if (gpu)
+        {
+            if (wantsSdk3)
+                return (gmpi::ReturnCode) gpu->sdk3Factory.queryInterface(*(const gmpi::MpGuid*)iid, returnInterface);
+
+            return gpu->gmpiFactory.queryInterface(iid, returnInterface);
+        }
+#endif
 
 #if SE_SOFTWARE_RENDERER_OPTION
         // Every resource a client creates has to come from the SAME backend that
@@ -241,6 +301,19 @@ private:
     // The software-renderer arm of renderInDeviceContext: rasterize the client
     // on the CPU, then blit the result into the swap chain's back buffer.
     void renderViaSoftwareRenderer(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects);
+public:
+#endif
+#if SE_GPU_RENDERER_OPTION
+private:
+    // The same for the GPU backend: draw offscreen, read back, blit.
+    void renderViaGpuRenderer(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects);
+public:
+#endif
+#if SE_SOFTWARE_RENDERER_OPTION || SE_GPU_RENDERER_OPTION
+private:
+    // Shared by both: paint the client into a gmpi_ui target, then copy fp16 premultiplied RGBA into the back buffer.
+    void paintClientInto(gmpi::drawing::api::IBitmapRenderTarget* target, se::GmpiToSDK3Factory& sdk3Factory, std::span<gmpi::drawing::RectL> dirtyRects, bool clearFirst = false);
+    void presentHalfFloatPixels(ID2D1DeviceContext* deviceContext, const void* pixels, int32_t width, int32_t height, uint32_t pitchBytes, std::span<gmpi::drawing::RectL> dirtyRects);
 public:
 #endif
 
