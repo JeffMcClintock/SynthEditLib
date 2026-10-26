@@ -539,9 +539,18 @@ inline SynthEditConfig ParseSynthEditArgs(std::vector<std::string_view>& args)
         }
         // Transport. Meaningful only in a host that owns an audio device; the
         // verbs say so themselves rather than pretending in the CLI.
+        // `--start-audio --null-driver` opts in to running on the silent
+        // driver anyway, for tests of the transport itself.
         if (flag == "start-audio" || flag == "stop-audio" || flag == "audio-state")
         {
-            pushCmd(std::string(flag));
+            std::vector<std::string> verbArgs;
+            if (flag == "start-audio" && i + 1 < args.size() && isFlag(args[i + 1])
+                && stripFlagDashes(args[i + 1]) == "null-driver")
+            {
+                ++i;
+                verbArgs.push_back("null-driver");
+            }
+            pushCmd(std::string(flag), std::move(verbArgs));
             cfg.jsonOutput = true;
             continue;
         }

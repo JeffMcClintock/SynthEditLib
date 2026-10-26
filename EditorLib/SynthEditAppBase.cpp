@@ -68,6 +68,7 @@ void CSynthEditAppBase::ExitInstance()
 {
 	delete timerhelper;
 	timerhelper = {};
+	synthRuntime.Stop(); // a still-running engine would outlive everything it uses.
 	synthRuntime.Clear(); // fix crash on exit by destroying stuff BEFORE the destructor.
 
 #if 0
@@ -267,6 +268,10 @@ void CSynthEditAppBase::WaitForRenderComplete()
 		OnTimer();
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
+
+	// "done" is the thread's last message, not its exit. Joining is what
+	// makes its teardown visible to this thread.
+	synthRuntime.joinRenderThread();
 }
 
 void CSynthEditAppBase::OnToggleRun() // only nesc in standalone !!

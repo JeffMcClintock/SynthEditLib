@@ -7,9 +7,18 @@
 #include "IO_base.h"
 #include "Hosting/message_queues.h"
 #include <vector>
+#include <atomic>
+#include <thread>
 #include "FeedbackTrace.h"
 
 // manages Processor on behalf of the app
+//
+// Threading: from StartBackgroundProcessing() until the render thread is
+// joined, `generator` and `io_manager` belong to the render thread alone - it
+// replaces the engine on every restart and deletes it on the way out. The UI
+// thread must not read or write either pointer in that window. It sees the
+// engine through the atomics below, asks for a stop or restart through
+// pendingRequests, and knows the engine is gone once it has joined renderThread.
 class SynthRuntime_editor : public SeShellDsp, public AudioDriverClient
 {
 protected:
@@ -30,8 +39,15 @@ protected:
 	int que_maximum_to_dsp = 0;
 	ElatencyContraintType latencyConstraint = ElatencyContraintType::Off;
 	std::wstring audioDeviceGuid;
-	bool done_flag = false; // processing completed and objects destroyed.
-	bool shutDownFailedAlready = false;
+	std::atomic<bool> done_flag = false; // processing completed and objects destroyed.
+
+	std::thread renderThread;
+	std::atomic<bool> renderThreadExited = false; // set as RunGenerator()'s last act, so joining cannot block.
+	std::atomic<bool> engineOpen = false; // written by the render thread only: the engine is open and processing.
+
+	// UI -> render thread. Taken at the top of a block while the engine is open.
+	enum : uint8_t { requestRestart = 1, requestShutdown = 2 };
+	std::atomic<uint8_t> pendingRequests = 0;
 
 public:
 	class IO_base* audio_driver = {};
@@ -45,6 +61,7 @@ public:
 	FeedbackTrace feedbackTrace;
 
 	SynthRuntime_editor(class CSynthEditAppBase* papp);
+	~SynthRuntime_editor();
 
 	void Clear() override
 	{
@@ -63,6 +80,9 @@ public:
 	bool prepareToPlay();
 	void StartBackgroundProcessing();
 	void Stop();
+	// Join a render thread that has finished on its own (after its "done"
+	// message). Does not ask it to stop - use Stop() for that.
+	void joinRenderThread();
 	void RunGenerator();
 	bool buildFailed();
 
@@ -161,7 +181,6 @@ public:
 	//
 	// Returns whole messages ready to ship, or false when there is nothing.
 	bool takeUiToDspMessages(std::vector<unsigned char>& out);
-	bool SynthBuilt() const;
 	bool SynthRunning() const;
 	bool ProcessingCompleted() const;
 	void OnSynthThreadExit();
@@ -173,7 +192,7 @@ public:
 	}
 	bool isProcessingComplete() override
 	{
-		return done_flag;
+		return done_flag.load();
 	}
 	int64_t SampleClock()
 	{

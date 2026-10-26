@@ -22,6 +22,17 @@ SynthRuntime_editor::SynthRuntime_editor(CSynthEditAppBase* papp) :
 	#endif
 }
 
+SynthRuntime_editor::~SynthRuntime_editor()
+{
+	// The app must Stop() first (ExitInstance does): a render thread still
+	// running here is using this object as it dies.
+	assert(!renderThread.joinable());
+
+	// Destroying a joinable std::thread calls std::terminate.
+	if (renderThread.joinable())
+		renderThread.detach();
+}
+
 // this should happen one-time-only in plugin.
 // in editor it should happen every time user hits 'play' but not on automatic resets (e.g. latency change)
 void SynthRuntime_editor::Init(
@@ -134,11 +145,13 @@ void SynthRuntime_editor::RunGenerator()
 	}
 
 	OpenGenerator();
+	engineOpen.store(true, std::memory_order_release);
 
 	// Run UG functions till one tells us we are done
 	io_manager->Render();
 
 //	_RPT0(0, "Exiting background thread...\n");
+	engineOpen.store(false, std::memory_order_release);
 
 	io_manager->Stop();
 	io_manager = {};
@@ -154,9 +167,14 @@ void SynthRuntime_editor::RunGenerator()
 	currentDspXml = {};
 
 	// Signal to GUI thread, that DSP has exited.
-	my_msg_que_output_stream strm(MessageQueToGui(), UniqueSnowflake::APPLICATION, "done");
-	strm << (int32_t)0; // message length.
-	strm.Send();
+	{
+		my_msg_que_output_stream strm(MessageQueToGui(), UniqueSnowflake::APPLICATION, "done");
+		strm << (int32_t)0; // message length.
+		strm.Send();
+	}
+
+	// Last: from here Stop() may join this thread.
+	renderThreadExited.store(true, std::memory_order_release);
 }
 
 #ifdef _WIN32
@@ -193,10 +211,14 @@ void SetThreadName( DWORD dwThreadID, char* threadName)
 
 void SynthRuntime_editor::StartBackgroundProcessing()
 {
-	message_que_dsp_to_ui.Reset(); // seems safest place to assume DSP is not running.
+	assert(!renderThread.joinable()); // the previous engine must have been stopped and joined.
+
+	message_que_dsp_to_ui.Reset(); // DSP is not running: no thread exists yet.
+	pendingRequests.store(0, std::memory_order_relaxed); // a stop that arrived after the last engine finished on its own.
+	renderThreadExited.store(false, std::memory_order_relaxed);
 
 	// Call RunGenerator() in new thread
-	std::thread backgroundThread(
+	renderThread = std::thread(
 		[this]
 		{
 			RunGenerator();
@@ -204,26 +226,17 @@ void SynthRuntime_editor::StartBackgroundProcessing()
 	);
 
 #ifdef _WIN32
-	SetThreadPriority((HANDLE)backgroundThread.native_handle(), THREAD_PRIORITY_ABOVE_NORMAL);
+	SetThreadPriority((HANDLE)renderThread.native_handle(), THREAD_PRIORITY_ABOVE_NORMAL);
 
 	// Set thread name for debugging
-	SetThreadDescription((HANDLE) backgroundThread.native_handle(), L"SynthEdit Audio Process");
+	SetThreadDescription((HANDLE) renderThread.native_handle(), L"SynthEdit Audio Process");
 #endif
+}
 
-	backgroundThread.detach();
-
-
-/*
-* NOPE: race condition. (on a fast run) generator can be null already
-	// Ensure flag is set (else toggle-run can get confused and crash (hold down space-bar to test)
-	// synth_thread_started PREVENTS hang on very fast runs...WHEN RENDERING DONE before this statement reached.
-	int timeout = 0;
-
-	while( !generator->synth_thread_started && timeout++ < 300 ) // 3 sec timeout
-		Sleep(10);
-*/
-
-	shutDownFailedAlready = false;
+void SynthRuntime_editor::joinRenderThread()
+{
+	if (renderThread.joinable())
+		renderThread.join();
 }
 
 void SynthRuntime_editor::Stop()
@@ -235,44 +248,47 @@ void SynthRuntime_editor::Stop()
 #endif
 
 	//_RPT0(_CRT_WARN, "SynthRuntime_editor::Stop()\n" );
-	// 3 Possible conditions:
-	// 1) synth completely stopped, no generator. Nothing to do
-	// 2) synth stopped, but generator not destroyed yet. Call Onthreadexit to destroy generator
-	// 3) Synth Running. Signal it to stop, then call synththreadexit.
-	if( !SynthBuilt() )
+	// Nothing running: never started, already joined, or an engine that would
+	// not stop and that we have already given up on.
+	if (!renderThread.joinable())
 	{
-		//_RPT0(_CRT_WARN, "CSynthEditAppBase::Stop(): not running\n" );
 		return;
 	}
 
-	if( !SynthRunning() )
-	{
-		//_RPT0(_CRT_WARN, "CSynthEditAppBase::Stop(): generator exists, but not running. Attempting shutdown.\n" );
-	}
+	// Ask the render thread to shut its engine down. It acts on this only once
+	// the engine is open, so a stop that lands while the engine is still
+	// starting (or rebuilding) waits for it rather than being lost.
+	pendingRequests.fetch_or(requestShutdown, std::memory_order_release);
 
-	// signal controller to shutdown
-	//	_RPT0(_CRT_WARN, "\ncontroller.stop(): Waiting synth thread shutdown...\n" );
-	generator->TriggerShutdown();
-
-	if (shutDownFailedAlready)
-		return;
+	// Pumping OnTimer can run a "done" handler that restarts the engine (ASIO
+	// immediate restart), which stops and joins THIS thread itself. Stop
+	// waiting then: the thread we were asked about is gone.
+	const auto stopping = renderThread.get_id();
 
 	int timeout = 1000; // 10 second
-	while( generator && timeout-- > 0)
+	while (renderThread.get_id() == stopping && !renderThreadExited.load(std::memory_order_acquire) && timeout-- > 0)
 	{
 		application->OnTimer();// empty the mesage que (in case ug blocking on full que)
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 
-	if( timeout < 1 )
+	if (renderThread.get_id() != stopping)
 	{
-//		_RPT0(_CRT_WARN, "\n!!!SYNTH THREAD WON'T STOP!!!!!\n" );
-		SeMessageBox( (L"Sound Engine not responding. Please Save and Exit"), L"", MB_ICONEXCLAMATION );
-		shutDownFailedAlready = true;
 		return;
 	}
 
-	OnSynthThreadExit(); // yes it will also be called indirectly, but not immediately, so if UI trys to restart, generator may not be deleted in time
+	if (!renderThreadExited.load(std::memory_order_acquire))
+	{
+//		_RPT0(_CRT_WARN, "\n!!!SYNTH THREAD WON'T STOP!!!!!\n" );
+		SeMessageBox( (L"Sound Engine not responding. Please Save and Exit"), L"", MB_ICONEXCLAMATION );
+		// It still owns generator and io_manager, so leave them to it.
+		renderThread.detach();
+		return;
+	}
+
+	renderThread.join();
+
+	OnSynthThreadExit(); // the render thread has gone, so its leftovers are ours to clear.
 }
 
 void rebuildDsp(
@@ -356,6 +372,7 @@ void SynthRuntime_editor::process(int sampleFrames, const float** inputs, float*
 		generator->SetHostControl(HC_PROCESS_RENDERMODE, runsRealtime ? 0 : 2); // from Waves. Mode 0 = "Live", 2 = "Preview" (Offline)
 
 		OpenGenerator();
+		engineOpen.store(true, std::memory_order_release);
 
 //		_RPT0(0, "eRuntimeState::running...\n");
 	}
@@ -363,6 +380,17 @@ void SynthRuntime_editor::process(int sampleFrames, const float** inputs, float*
 
 	case eRuntimeState::running:
 	{
+		// Requests from the UI thread, applied here where the engine is ours.
+		// Taken only in this state: an engine still being built is Stopped,
+		// and TriggerShutdown() ignores a Stopped engine.
+		if (const auto requests = pendingRequests.exchange(0, std::memory_order_acquire); requests)
+		{
+			if (requests & requestShutdown)
+				generator->TriggerShutdown();
+			else
+				generator->TriggerRestart();
+		}
+
 		generator->DoProcess_editor(sampleFrames, inputs, outputs, inChannelCount, outChannelCount);
 	}
 	break;
@@ -378,6 +406,9 @@ void SynthRuntime_editor::process(int sampleFrames, const float** inputs, float*
 		pendingControllerQueueClients.Reset();
 
 		const auto generatorStateWas = generator->processingState.load();
+
+		// Before Close(): the UI stops queuing to modules that are going away.
+		engineOpen.store(false, std::memory_order_release);
 
 		// start chain reaction of sound object destruction
 		generator->Close();
@@ -507,7 +538,10 @@ void SynthRuntime_editor::ServiceDspWaiters2(int sampleframes)
 int32_t SynthRuntime_editor::sendSdkMessageToAudio(int32_t handle, int32_t id, int32_t size, const void* messageData)
 {
 	// TODO:: All uses of m_message_que_ui_to_dsp should check AudioMaster()->done_flag, else extended delay results while que times out repeatedly
-	if (generator && !done_flag)
+	// UI thread: whether an engine exists is the render thread's business, so
+	// ask whether one is alive rather than reading `generator`.
+	const bool engineAlive = renderThread.joinable() && !renderThreadExited.load(std::memory_order_acquire);
+	if (engineAlive && !done_flag.load())
 	{
 		// discard any too-big message.
 		const auto totalMessageSize = 4 * static_cast<int>(sizeof(int)) + size;
@@ -611,9 +645,11 @@ void SynthRuntime_editor::DoAsyncRestart()
 	// however it's not nesc to stall GUI by polling for the audio fade-out to complete.
 	// Step one is to trigger the fadeout, step two is wait for signal from DSP to call OnFadeOutComplete();
 
+	// Called from the UI thread and from the engine itself (latency changes),
+	// so it posts rather than calling into a generator it may not own.
 	if( SynthRunning() )
 	{
-		generator->TriggerRestart();
+		pendingRequests.fetch_or(requestRestart, std::memory_order_release);
 	}
 }
 
@@ -633,14 +669,9 @@ void SynthRuntime_editor::DoImmediateRestart()
 	application->DoImmediateRestartAsync();
 }
 
-bool SynthRuntime_editor::SynthBuilt() const
-{
-	return generator.get() != nullptr;
-}
-
 bool SynthRuntime_editor::SynthRunning() const
 {
-	return generator && generator->synth_thread_running;
+	return engineOpen.load(std::memory_order_acquire);
 }
 
 bool SynthRuntime_editor::ProcessingCompleted() const
