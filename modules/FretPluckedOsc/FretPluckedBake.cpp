@@ -135,8 +135,8 @@ double renderNote(const Params& p, int midiNote, const std::vector<Partial>& par
 
 	for (const auto& part : parts)
 	{
-		const double hz = part.ratio * l.rootHz;
-		if (hz >= maxPartialFraction * sampleRate)
+		const double hz = part.hz(l.rootHz);
+		if (hz <= 0.0 || hz >= maxPartialFraction * sampleRate)
 			continue;
 
 		const double w = twoPi * hz / sampleRate;
@@ -227,6 +227,10 @@ std::vector<Partial> partials(const Params& p)
 	const int step = p.series == Series::All ? 1 : 2;
 	const int lowest = p.series == Series::Even ? 2 : 1;
 
+	// Stiffness sharpens every partial; dividing by the lowest partial's share keeps the note itself in tune.
+	const double b = (std::max)(0.0, static_cast<double>(p.stiffness)) * 1e-4;
+	const double lowestStretch = std::sqrt(1.0 + b * lowest * lowest);
+
 	std::vector<Partial> result;
 	result.reserve(count * (1 + std::clamp(p.unison, 0, maxUnison)));
 	for (int i = 0; i < count; ++i)
@@ -240,7 +244,8 @@ std::vector<Partial> partials(const Params& p)
 
 		Partial part;
 		part.number = n;
-		part.ratio = (1.0 + (n - 1) * static_cast<double>(p.spacing)) * std::exp2(p.detune * spread / 1200.0);
+		part.ratio = (1.0 + (n - 1) * static_cast<double>(p.spacing)) * std::sqrt(1.0 + b * n * n) / lowestStretch;
+		part.offsetHz = p.detune * spread;
 		part.amplitude = std::pow(relative, -static_cast<double>(p.spectrumTilt));
 		part.t60 = (std::max)(1e-3, p.decayTime / std::pow(relative, static_cast<double>(p.decayTilt)));
 
@@ -250,15 +255,15 @@ std::vector<Partial> partials(const Params& p)
 
 	const int unison = std::clamp(p.unison, 0, maxUnison);
 	const auto baseCount = result.size();
-	for (std::size_t b = 0; b < baseCount; ++b)
+	for (std::size_t i = 0; i < baseCount; ++i)
 	{
 		for (int u = 0; u < unison; ++u)
 		{
 			const int pair = 1 + u / 2;
 			const double cents = (u & 1 ? -unisonCents : unisonCents) * pair;
 
-			Partial copy = result[b];
-			copy.ratio *= std::exp2(cents / 1200.0);
+			Partial copy = result[i];
+			copy.scale *= std::exp2(cents / 1200.0);
 			copy.amplitude *= std::pow(unisonLevel, pair);
 			result.push_back(copy);
 		}

@@ -34,6 +34,7 @@ bool registered = Register<FretPluckedOsc>::withXml(R"XML(
 	  <Pin name="Pick Noise" datatype="float" default="0"/>
 	  <Pin name="Pick Tone" datatype="float" default="0.5"/>
 	  <Pin name="Body" datatype="float" default="0"/>
+	  <Pin name="Stiffness" datatype="float" default="0"/>
 	</Audio>
   </Plugin>
 </PluginList>
@@ -67,7 +68,8 @@ Params FretPluckedOsc::currentParams() const
 	p.spectrumTilt = pinSpectrumTilt;
 	p.decayTime = (std::max)(0.01f, pinDecayTime.getValue());
 	p.decayTilt = pinDecayTilt;
-	p.detune = std::clamp(pinDetune.getValue(), -1200.0f, 1200.0f);
+	p.detune = std::clamp(pinDetune.getValue(), -50.0f, 50.0f);
+	p.stiffness = std::clamp(pinStiffness.getValue(), 0.0f, 100.0f);
 	p.detunePattern = static_cast<DetunePattern>(std::clamp(pinDetunePattern.getValue(), 0, 1));
 	p.unison = std::clamp(pinUnison.getValue(), 0, maxUnison);
 	p.pickNoise = std::clamp(pinPickNoise.getValue(), 0.0f, 4.0f);
@@ -93,7 +95,7 @@ void FretPluckedOsc::onSetPins()
 
 	if (pinHarmonics.isUpdated() || pinSeries.isUpdated() || pinSpacing.isUpdated() || pinSpectrumTilt.isUpdated()
 		|| pinDecayTime.isUpdated() || pinDecayTilt.isUpdated() || pinDetune.isUpdated() || pinDetunePattern.isUpdated()
-		|| pinUnison.isUpdated() || pinPickNoise.isUpdated() || pinPickTone.isUpdated() || pinBody.isUpdated()
+		|| pinUnison.isUpdated() || pinPickNoise.isUpdated() || pinPickTone.isUpdated() || pinBody.isUpdated() || pinStiffness.isUpdated()
 		|| pinLowestNote.isUpdated() || pinHighestNote.isUpdated())
 	{
 		requestTable(currentParams());

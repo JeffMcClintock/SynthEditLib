@@ -16,17 +16,18 @@ cache and the offline-render path follow `WavetableOsc`; note-on sample selectio
 | Spectrum Tilt | float | Initial level `(n/lowest)^-tilt`. |
 | Decay Time | s | T60 of the lowest partial. |
 | Decay Tilt | float | T60 of partial n: `DecayTime / (n/lowest)^tilt`, so higher harmonics die faster. |
-| Detune | cents | Average detune per partial. The lowest partial is never detuned, so the note stays in tune. |
+| Detune | Hz | Average detune per partial, added after spacing and stiffness. In Hz, like the polarisation splitting of a real string, so every partial beats at a similar slow rate; cents made high partials beat roughly. The lowest partial is never detuned, so the note stays in tune. |
 | Detune Pattern | enum | Alternating (down, up, down..), or Random (fixed hash, magnitude 0.5..1.5 x Detune, random sign; identical on every bake). |
 | Release Time | s | T60 of the release fade. Playback-only, no re-bake. |
 | Lowest Note, Highest Note | int | MIDI range baked (default 24..96); notes outside play the nearest sample. |
 | VoiceActive | host | A re-activated voice resets to idle, so its next gate is accepted. |
 | RenderMode | host | Offline render bakes synchronously. |
 | Signal Out | audio | The finished note: sustain peaks at 5 V, the attack may reach 10 V. |
-| Unison | int | 0..8 extra copies of every partial at +6, -6, +12, -12.. cents; pair k at 0.7^k level. |
+| Unison | int | 0..8 extra copies of every partial at +6, -6, +12, -12.. cents; pair k at 0.7^k level. In cents, because a copy stands in for a whole second string. |
 | Pick Noise | float | Pick click level; 1 = RMS as loud as the string's first 50 ms. |
 | Pick Tone | float | 0..1 moves the click's band centre from 1 kHz to 8 kHz (band = centre / 2.5 .. centre x 2.5). |
 | Body | float | Body thump level, on the same scale as Pick Noise. |
+| Stiffness | float | String stiffness B in units of 1e-4 (guitar roughly 0.1..1, piano 1..10). Partial n is sharpened by `sqrt(1 + B n^2)`, divided by the lowest partial's share so the note stays in tune. Unlike Harmonic Spacing the stretch grows with n squared and only ever goes sharp. |
 
 Unison and later pins are appended after Signal Out so that patches saved earlier keep their pin indices.
 

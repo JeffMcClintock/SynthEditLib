@@ -97,6 +97,7 @@ private:
 	gmpi::FloatInPin pinPickNoise;
 	gmpi::FloatInPin pinPickTone;
 	gmpi::FloatInPin pinBody;
+	gmpi::FloatInPin pinStiffness;
 };
 
 template<bool pitchStreaming>

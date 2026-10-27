@@ -19,7 +19,8 @@ struct Params
 	float spectrumTilt = 1.0f; // initial level of partial n relative to the lowest: (n/lowest)^-tilt.
 	float decayTime = 4.0f;    // T60 of the lowest partial, seconds.
 	float decayTilt = 1.0f;    // T60 of partial n: decayTime / (n/lowest)^decayTilt.
-	float detune = 0.0f;       // average detune per partial, cents. The lowest partial is never detuned.
+	float detune = 0.0f;       // average detune per partial, Hz, so every partial beats at a similar rate. The lowest is never detuned.
+	float stiffness = 0.0f;    // string stiffness B, in units of 1e-4: partial n goes sharp by sqrt(1 + B n^2).
 	DetunePattern detunePattern = DetunePattern::Alternating;
 	int unison = 0;            // extra copies of every partial, alternately above and below it, each pair quieter.
 	float pickNoise = 0.0f;    // pick click level, relative to the string's attack: 1 = as loud.
@@ -47,10 +48,14 @@ constexpr float limitCeiling = 1.0f;        // ...to stay under 10 V.
 
 struct Partial
 {
-	int number;       // harmonic number n.
-	double ratio;     // frequency relative to f0, spacing and detune applied.
+	int number;            // harmonic number n.
+	double ratio;          // frequency relative to f0, spacing and stiffness applied.
+	double offsetHz = 0.0; // detune, added after the ratio.
+	double scale = 1.0;    // unison copies scale the whole partial, so they are detuned in cents.
 	double amplitude;
-	double t60;       // seconds.
+	double t60;            // seconds.
+
+	double hz(double f0) const { return (ratio * f0 + offsetHz) * scale; }
 };
 
 // The partial set for `p`, before per-note Nyquist culling.
