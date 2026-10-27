@@ -137,7 +137,8 @@ void FretPluckedOsc::subProcess(int sampleFrames)
 
 		if (gain_ < silence || (quietCount_ >= quietSamples && (inLoop_ || state_ == State::Released)))
 		{
-			for (int r = s + 1; r < sampleFrames; ++r)
+			// A non-streaming output must hold one value from the stop position on.
+			for (int r = s; r < sampleFrames; ++r)
 				out[r] = 0.0f;
 			endNote(s);
 			return;

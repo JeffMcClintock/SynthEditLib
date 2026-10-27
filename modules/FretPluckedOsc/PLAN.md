@@ -41,7 +41,10 @@ cache and the offline-render path follow `WavetableOsc`; note-on sample selectio
 - The note ends when the VCA gain is below -90 dB, or when the output has been below -100 dB for 2048 samples (in the loop or released). The output then stops streaming and the module sleeps.
 - A gate that rises before the first table exists starts the note as soon as the table lands.
 
+## Demo patch
+`FretPluckedOsc.synthedit`: MIDI In -> MIDI-CV 2 -> the oscillator -> a linear VCA as master volume -> Sound Out, with a scope and a knob or list for every parameter. Each voice peaks at 5 V, so the volume (default 4) keeps a four-note chord from clipping.
+
 ## Not done / possible next steps
-- GUI display of the partials, a demo `.synthedit` patch, and the Pluck Position, Seed and Detune Tilt pins.
+- GUI display of the partials, and the Pluck Position, Seed and Detune Tilt pins.
 - Switching to the neighbour sample during large bends (v1 keeps the note-on sample).
 - int16 storage (halves memory), or baking each note lazily on its first note-on.
