@@ -22,13 +22,20 @@ cache and the offline-render path follow `WavetableOsc`; note-on sample selectio
 | Lowest Note, Highest Note | int | MIDI range baked (default 24..96); notes outside play the nearest sample. |
 | VoiceActive | host | A re-activated voice resets to idle, so its next gate is accepted. |
 | RenderMode | host | Offline render bakes synchronously. |
-| Signal Out | audio | The finished note, peak 5 V. |
+| Signal Out | audio | The finished note: sustain peaks at 5 V, the attack may reach 10 V. |
+| Unison | int | 0..8 extra copies of every partial at +6, -6, +12, -12.. cents; pair k at 0.7^k level. |
+| Pick Noise | float | Pick click level; 1 = RMS as loud as the string's first 50 ms. |
+| Pick Tone | float | 0..1 moves the click's band centre from 1 kHz to 8 kHz (band = centre / 2.5 .. centre x 2.5). |
+| Body | float | Body thump level, on the same scale as Pick Noise. |
+
+Unison and later pins are appended after Signal Out so that patches saved earlier keep their pin indices.
 
 ## Bake (`FretPluckedBake.cpp`, no host types)
 - Additive synthesis per note in double precision with recursive-rotation oscillators. Partials above 0.45 x sample rate are dropped, and so is a partial once it falls below -100 dB.
 - Partial amplitudes decay until `freezeSeconds` (2 s), then hold, leaving a stationary tail. The loop is `[S, S+L)` with `S` = 2 s and `L` = the whole number of f0 periods just over 0.35 s. The note's `rootHz` is the f0 that makes the period exact (under 0.1 cent from nominal), so harmonic partials loop perfectly.
 - Detuned or spaced partials don't fit the loop exactly. The last 80 ms of the loop (at most half of it) is crossfaded into the frozen tail *before* `S`, so the wrap lands on a continuous waveform, and entry into the loop from the attack is untouched.
-- Guard samples: 1 before each note, 3 after the loop end. One gain normalises the whole table to 5 V peak, so the level relationship between notes survives.
+- Pick and body are short decaying sines with random phases, added to each note's first 0.5 s and gone long before the loop. The click is 48 of them, log-spread over its band with T60s of 5-40 ms. The body is 4 modes near 100, 205, 390 and 580 Hz with T60s of 60-150 ms. Their frequencies, decays and phases come from a hash of the note number: every semitone gets its own pick, yet each bake is identical. A 0.5 ms fade-in keeps the random starting phases from making a step. Each set is scaled to its level times the string's RMS over the first 50 ms.
+- Guard samples: 1 before each note, 3 after the loop end. One gain sets the whole table's level, so the level relationship between notes survives. It comes from the string's peak after its first 50 ms, measured before the pick and body go in. In-phase partials make a short spike at note-on, and normalising on that made bright settings 10-20 dB quieter. Anything above 5 V is then soft-limited (tanh) to stay under 10 V; that only affects the attack.
 - Multi-threaded across notes. A full 24..96 bake takes 21 ms (defaults) to 60 ms (64 slow partials) at 44.1 kHz, and 150 ms at 96 kHz. It is about 30 MB at 44.1 kHz and 66 MB at 96 kHz.
 
 ## Cache and loader (`FretPluckedCache.cpp`)
@@ -42,9 +49,11 @@ cache and the offline-render path follow `WavetableOsc`; note-on sample selectio
 - A gate that rises before the first table exists starts the note as soon as the table lands.
 
 ## Demo patch
-`FretPluckedOsc.synthedit`: MIDI In -> MIDI-CV 2 -> the oscillator -> a linear VCA as master volume -> Sound Out, with a scope and a knob or list for every parameter. Each voice peaks at 5 V, so the volume (default 4) keeps a four-note chord from clipping.
+`FretPluckedOsc.synthedit`: MIDI In -> MIDI-CV 2 -> the oscillator -> a linear VCA as master volume -> Sound Out, with a scope and a knob or list for most parameters. A voice's attack can reach 10 V, so the volume (default 3) keeps a four-note chord's pluck from clipping.
 
 ## Not done / possible next steps
 - GUI display of the partials, and the Pluck Position, Seed and Detune Tilt pins.
 - Switching to the neighbour sample during large bends (v1 keeps the note-on sample).
+- A different pick on every replay of the same note: bake two to four pick variants per note and cycle through them at note-on.
+- Starting the tonal partials at hashed phases (behind the same fade-in) would remove the note-on spike that the limiter now flattens.
 - int16 storage (halves memory), or baking each note lazily on its first note-on.

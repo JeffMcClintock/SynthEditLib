@@ -92,6 +92,11 @@ private:
 	gmpi::FloatInPin pinVoiceActive;
 	gmpi::IntInPin pinRenderMode; // Processor/OfflineRenderMode: 2 = offline render.
 	gmpi::AudioOutPin pinSignalOut;
+	// Added after the first release: kept last, so pin indices saved by earlier patches still line up.
+	gmpi::IntInPin pinUnison;
+	gmpi::FloatInPin pinPickNoise;
+	gmpi::FloatInPin pinPickTone;
+	gmpi::FloatInPin pinBody;
 };
 
 template<bool pitchStreaming>

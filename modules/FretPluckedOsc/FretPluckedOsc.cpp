@@ -11,7 +11,7 @@ namespace {
 bool registered = Register<FretPluckedOsc>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 <PluginList>
-  <Plugin id="SE Fret Plucked Osc" name="Fret Plucked Oscillator" category="Waveform">
+  <Plugin id="SE Fret Plucked Osc" name="Fret Plucked Oscillator" category="Debug">
 	<Audio>
 	  <Pin name="Pitch" datatype="float" rate="audio" default="0.5"/>
 	  <Pin name="Gate" datatype="bool"/>
@@ -30,6 +30,10 @@ bool registered = Register<FretPluckedOsc>::withXml(R"XML(
 	  <Pin name="VoiceActive" hostConnect="Voice/Active" datatype="float" isPolyphonic="true" default="1"/>
 	  <Pin name="RenderMode" datatype="int" hostConnect="Processor/OfflineRenderMode"/>
 	  <Pin name="Signal Out" direction="out" datatype="float" rate="audio"/>
+	  <Pin name="Unison" datatype="int" default="0"/>
+	  <Pin name="Pick Noise" datatype="float" default="0"/>
+	  <Pin name="Pick Tone" datatype="float" default="0.5"/>
+	  <Pin name="Body" datatype="float" default="0"/>
 	</Audio>
   </Plugin>
 </PluginList>
@@ -65,6 +69,10 @@ Params FretPluckedOsc::currentParams() const
 	p.decayTilt = pinDecayTilt;
 	p.detune = std::clamp(pinDetune.getValue(), -1200.0f, 1200.0f);
 	p.detunePattern = static_cast<DetunePattern>(std::clamp(pinDetunePattern.getValue(), 0, 1));
+	p.unison = std::clamp(pinUnison.getValue(), 0, maxUnison);
+	p.pickNoise = std::clamp(pinPickNoise.getValue(), 0.0f, 4.0f);
+	p.pickTone = std::clamp(pinPickTone.getValue(), 0.0f, 1.0f);
+	p.body = std::clamp(pinBody.getValue(), 0.0f, 4.0f);
 	p.lowNote = pinLowestNote;
 	p.highNote = pinHighestNote;
 	return p;
@@ -85,6 +93,7 @@ void FretPluckedOsc::onSetPins()
 
 	if (pinHarmonics.isUpdated() || pinSeries.isUpdated() || pinSpacing.isUpdated() || pinSpectrumTilt.isUpdated()
 		|| pinDecayTime.isUpdated() || pinDecayTilt.isUpdated() || pinDetune.isUpdated() || pinDetunePattern.isUpdated()
+		|| pinUnison.isUpdated() || pinPickNoise.isUpdated() || pinPickTone.isUpdated() || pinBody.isUpdated()
 		|| pinLowestNote.isUpdated() || pinHighestNote.isUpdated())
 	{
 		requestTable(currentParams());

@@ -21,6 +21,10 @@ struct Params
 	float decayTilt = 1.0f;    // T60 of partial n: decayTime / (n/lowest)^decayTilt.
 	float detune = 0.0f;       // average detune per partial, cents. The lowest partial is never detuned.
 	DetunePattern detunePattern = DetunePattern::Alternating;
+	int unison = 0;            // extra copies of every partial, alternately above and below it, each pair quieter.
+	float pickNoise = 0.0f;    // pick click level, relative to the string's attack: 1 = as loud.
+	float pickTone = 0.5f;     // 0..1 moves the click's band centre from 1 kHz to 8 kHz.
+	float body = 0.0f;         // body thump level, relative to the string's attack.
 	int lowNote = 24;
 	int highNote = 96;
 
@@ -33,6 +37,13 @@ constexpr double loopSeconds = 0.35;      // minimum; rounded up to whole period
 constexpr double crossfadeSeconds = 0.08; // clamped to half the loop.
 constexpr double maxPartialFraction = 0.45; // of the sample rate.
 constexpr float outputPeak = 0.5f;          // 5 V.
+constexpr int maxUnison = 8;
+constexpr double unisonCents = 6.0;         // detune of the first unison pair; pair k sits at k times this.
+constexpr double unisonLevel = 0.7;         // level of the first unison pair; pair k is this to the power k.
+constexpr int pickPartials = 48;
+constexpr double attackSeconds = 0.05;      // the table is normalised on what follows this, not on the attack peak.
+constexpr float limitKnee = 0.5f;           // the attack may exceed 5 V; it is soft-limited above here...
+constexpr float limitCeiling = 1.0f;        // ...to stay under 10 V.
 
 struct Partial
 {
@@ -44,6 +55,19 @@ struct Partial
 
 // The partial set for `p`, before per-note Nyquist culling.
 std::vector<Partial> partials(const Params& p);
+
+// A short decaying sine at a fixed frequency: one component of the pick click or the body thump.
+struct Burst
+{
+	double hz;
+	double amplitude; // relative; the renderer scales each set against the string's attack.
+	double t60;       // seconds.
+	double phase;     // radians; random, so the set sums to noise rather than a spike.
+};
+
+// Different for every note, so neighbouring samples never share a pick, but the same on every bake.
+std::vector<Burst> pickBursts(const Params& p, int midiNote);
+std::vector<Burst> bodyBursts(int midiNote);
 
 struct NoteSample
 {

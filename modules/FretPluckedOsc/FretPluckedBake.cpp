@@ -14,16 +14,81 @@ constexpr double ln1000 = 6.907755278982137; // T60: amplitude falls by 1000.
 constexpr double silentAmplitude = 1e-5;     // -100 dB; quieter partials are skipped from there on.
 constexpr double twoPi = 6.283185307179586;
 
-// Deterministic per-partial spread, so every bake and every voice agrees.
-double randomSpread(int index)
+uint64_t mix(uint64_t x)
 {
-	uint64_t x = static_cast<uint64_t>(index) + 0x9E3779B97F4A7C15ull;
+	x += 0x9E3779B97F4A7C15ull;
 	x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ull;
 	x = (x ^ (x >> 27)) * 0x94D049BB133111EBull;
-	x ^= x >> 31;
-	const double u = static_cast<double>(x >> 11) * (1.0 / 9007199254740992.0); // [0, 1)
-	const double magnitude = 0.5 + u;                                           // mean 1.
+	return x ^ (x >> 31);
+}
+
+// Deterministic [0, 1) from a key, so every bake and every voice agrees.
+double unit(uint64_t key)
+{
+	return static_cast<double>(mix(key) >> 11) * (1.0 / 9007199254740992.0);
+}
+
+uint64_t burstKey(int midiNote, int set, int index, int field)
+{
+	return (static_cast<uint64_t>(midiNote) << 40) ^ (static_cast<uint64_t>(set) << 32) ^ (static_cast<uint64_t>(index) << 8) ^ static_cast<uint64_t>(field);
+}
+
+// Deterministic per-partial spread with mean magnitude 1.
+double randomSpread(int index)
+{
+	const uint64_t x = mix(static_cast<uint64_t>(index));
+	const double magnitude = 0.5 + static_cast<double>(x >> 11) * (1.0 / 9007199254740992.0);
 	return (x & 1) ? magnitude : -magnitude;
+}
+
+// Renders a set of bursts into `out`, scaled so its RMS over the first `window` samples is `rms`.
+void renderBursts(const std::vector<Burst>& bursts, double sampleRate, double rms, int window, std::vector<double>& out, std::vector<double>& scratch)
+{
+	if (bursts.empty() || rms <= 0.0)
+		return;
+
+	scratch.assign(out.size(), 0.0);
+	int used = 0;
+	for (const auto& b : bursts)
+	{
+		if (b.hz >= maxPartialFraction * sampleRate)
+			continue;
+
+		const double w = twoPi * b.hz / sampleRate;
+		const double c = std::cos(w);
+		const double s = std::sin(w);
+		const double decay = std::exp(-ln1000 / (b.t60 * sampleRate));
+		double re = std::cos(b.phase), im = std::sin(b.phase);
+		double gain = b.amplitude;
+
+		int t = 0;
+		for (; t < static_cast<int>(scratch.size()) && gain > silentAmplitude * 1e-3; ++t)
+		{
+			scratch[t] += gain * im;
+			gain *= decay;
+			const double r = re * c - im * s;
+			im = re * s + im * c;
+			re = r;
+		}
+		used = (std::max)(used, t);
+	}
+
+	// Random phases start off zero; a 0.5 ms fade-in keeps that from being a step.
+	const int fade = (std::min)(used, static_cast<int>(0.0005 * sampleRate) + 1);
+	for (int t = 0; t < fade; ++t)
+		scratch[t] *= 0.5 - 0.5 * std::cos(3.141592653589793 * t / fade);
+
+	window = (std::min)(window, static_cast<int>(scratch.size()));
+	double sum = 0.0;
+	for (int t = 0; t < window; ++t)
+		sum += scratch[t] * scratch[t];
+	const double measured = std::sqrt(sum / (std::max)(1, window));
+	if (measured <= 0.0)
+		return;
+
+	const double scale = rms / measured;
+	for (int t = 0; t < used; ++t)
+		out[t] += scratch[t] * scale;
 }
 
 struct Layout
@@ -49,9 +114,18 @@ Layout layoutFor(int midiNote, double sampleRate)
 	return l;
 }
 
-// Renders one note into dest[0 .. loopEnd) and its guard samples.
-void renderNote(const std::vector<Partial>& parts, const Layout& l, double sampleRate, float* dest, std::vector<double>& work, std::vector<double>& frozenWork)
+struct Scratch
 {
+	std::vector<double> work, frozenWork, bursts, burstScratch;
+};
+
+// Renders one note into dest[0 .. loopEnd) and its guard samples. Returns the string's peak after the attack,
+// measured before the pick and body go in, so turning those up never changes the table's level.
+double renderNote(const Params& p, int midiNote, const std::vector<Partial>& parts, const Layout& l, double sampleRate, float* dest, Scratch& scratch)
+{
+	auto& work = scratch.work;
+	auto& frozenWork = scratch.frozenWork;
+
 	const int S = l.loopStart;
 	const int E = l.loopEnd;
 	const int X = l.crossfade;
@@ -116,11 +190,34 @@ void renderNote(const std::vector<Partial>& parts, const Layout& l, double sampl
 		y += fade * (frozenWork[i] - y);
 	}
 
+	const int attack = (std::min)(E, static_cast<int>(attackSeconds * sampleRate));
+	double sustainPeak = 0.0;
+	for (int t = attack; t < E; ++t)
+		sustainPeak = (std::max)(sustainPeak, std::abs(work[t]));
+
+	// Pick click and body thump, scaled against the string's own attack. Both are gone long before the loop.
+	if (p.pickNoise > 0.0f || p.body > 0.0f)
+	{
+		double sum = 0.0;
+		for (int t = 0; t < attack; ++t)
+			sum += work[t] * work[t];
+		const double attackRms = std::sqrt(sum / (std::max)(1, attack));
+
+		auto& bursts = scratch.bursts;
+		bursts.assign((std::min)(E, static_cast<int>(0.5 * sampleRate)), 0.0);
+		renderBursts(pickBursts(p, midiNote), sampleRate, p.pickNoise * attackRms, static_cast<int>(0.01 * sampleRate), bursts, scratch.burstScratch);
+		renderBursts(bodyBursts(midiNote), sampleRate, p.body * attackRms, static_cast<int>(0.1 * sampleRate), bursts, scratch.burstScratch);
+		for (std::size_t t = 0; t < bursts.size(); ++t)
+			work[t] += bursts[t];
+	}
+
 	dest[-1] = 0.0f;
 	for (int t = 0; t < E; ++t)
 		dest[t] = static_cast<float>(work[t]);
 	for (int g = 0; g < 3; ++g)
 		dest[E + g] = dest[S + g];
+
+	return sustainPeak;
 }
 } // namespace
 
@@ -131,7 +228,7 @@ std::vector<Partial> partials(const Params& p)
 	const int lowest = p.series == Series::Even ? 2 : 1;
 
 	std::vector<Partial> result;
-	result.reserve(count);
+	result.reserve(count * (1 + std::clamp(p.unison, 0, maxUnison)));
 	for (int i = 0; i < count; ++i)
 	{
 		const int n = lowest + i * step;
@@ -149,6 +246,60 @@ std::vector<Partial> partials(const Params& p)
 
 		if (part.ratio > 0.0)
 			result.push_back(part);
+	}
+
+	const int unison = std::clamp(p.unison, 0, maxUnison);
+	const auto baseCount = result.size();
+	for (std::size_t b = 0; b < baseCount; ++b)
+	{
+		for (int u = 0; u < unison; ++u)
+		{
+			const int pair = 1 + u / 2;
+			const double cents = (u & 1 ? -unisonCents : unisonCents) * pair;
+
+			Partial copy = result[b];
+			copy.ratio *= std::exp2(cents / 1200.0);
+			copy.amplitude *= std::pow(unisonLevel, pair);
+			result.push_back(copy);
+		}
+	}
+	return result;
+}
+
+std::vector<Burst> pickBursts(const Params& p, int midiNote)
+{
+	std::vector<Burst> result;
+	if (p.pickNoise <= 0.0f)
+		return result;
+
+	// A plastic pick sounds much the same on every string, so the band is fixed in Hz.
+	const double centre = 1000.0 * std::pow(8.0, std::clamp(static_cast<double>(p.pickTone), 0.0, 1.0));
+	result.reserve(pickPartials);
+	for (int i = 0; i < pickPartials; ++i)
+	{
+		Burst b;
+		b.hz = centre * std::pow(2.5, 2.0 * unit(burstKey(midiNote, 0, i, 0)) - 1.0); // log-uniform, centre/2.5 .. centre*2.5.
+		b.t60 = 0.005 * std::pow(8.0, unit(burstKey(midiNote, 0, i, 1)));            // 5 .. 40 ms.
+		b.amplitude = 0.5 + unit(burstKey(midiNote, 0, i, 2));
+		b.phase = twoPi * unit(burstKey(midiNote, 0, i, 3));
+		result.push_back(b);
+	}
+	return result;
+}
+
+std::vector<Burst> bodyBursts(int midiNote)
+{
+	// Approximate low body modes of an acoustic guitar; they don't follow the note.
+	constexpr double modes[] = {100.0, 205.0, 390.0, 580.0};
+	std::vector<Burst> result;
+	for (int i = 0; i < 4; ++i)
+	{
+		Burst b;
+		b.hz = modes[i] * (1.0 + 0.04 * (2.0 * unit(burstKey(midiNote, 1, i, 0)) - 1.0));
+		b.t60 = 0.06 + 0.09 * unit(burstKey(midiNote, 1, i, 1));
+		b.amplitude = 1.0 / (1 + i);
+		b.phase = twoPi * unit(burstKey(midiNote, 1, i, 3));
+		result.push_back(b);
 	}
 	return result;
 }
@@ -191,15 +342,16 @@ std::shared_ptr<Table> bake(const Params& requested, float sampleRate, const std
 	}
 	table->samples.resize(total);
 
+	std::vector<double> sustainPeaks(noteCount, 0.0);
 	std::atomic<int> nextNote{0};
 	auto worker = [&]
 	{
-		std::vector<double> work, frozenWork;
+		Scratch scratch;
 		for (int i = nextNote++; i < noteCount; i = nextNote++)
 		{
 			if (cancelled && cancelled->load(std::memory_order_relaxed))
 				return;
-			renderNote(parts, layouts[i], sampleRate, table->samples.data() + table->notes[i].offset, work, frozenWork);
+			sustainPeaks[i] = renderNote(p, p.lowNote + i, parts, layouts[i], sampleRate, table->samples.data() + table->notes[i].offset, scratch);
 		}
 	};
 
@@ -214,15 +366,19 @@ std::shared_ptr<Table> bake(const Params& requested, float sampleRate, const std
 	if (cancelled && cancelled->load(std::memory_order_relaxed))
 		return {};
 
-	// One gain for the whole table, so the level relationship between notes survives.
-	float peak = 0.0f;
-	for (const float s : table->samples)
-		peak = (std::max)(peak, std::abs(s));
-	if (peak > 0.0f)
+	// One gain for the whole table, so the level relationship between notes survives. It is set from the string after
+	// its attack: in-phase partials and the pick make a brief spike that would otherwise make every note quiet.
+	const double peak = *std::max_element(sustainPeaks.begin(), sustainPeaks.end());
+	if (peak > 0.0)
 	{
-		const float gain = outputPeak / peak;
+		const float gain = static_cast<float>(outputPeak / peak);
+		constexpr float range = limitCeiling - limitKnee;
 		for (auto& s : table->samples)
-			s *= gain;
+		{
+			const float y = s * gain;
+			const float a = std::abs(y);
+			s = a <= limitKnee ? y : std::copysign(limitKnee + range * std::tanh((a - limitKnee) / range), y);
+		}
 	}
 
 	return table;
