@@ -1156,6 +1156,7 @@ void CSynthEditAppBase::OnDspMsg(int p_msg_id, my_input_stream& p_stream)
 	case code_to_long('d', 'o', 'n', 'e'): // "done" background thread has exited.
 	{
 		dspThreadRunning = false;
+		synthRuntime.discardPendingDspUpdates();
 
 //		_RPT0(0, "CSynthEditApp::OnDspMsg - done\n");
 		// Step 2 - Rebuild DSP and re-engage processing.

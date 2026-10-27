@@ -159,6 +159,7 @@ public:
 	int32_t sendSdkMessageToAudio(int32_t handle, int32_t id, int32_t size, const void* messageData);
 
 	void serviceQueues();
+	void discardPendingDspUpdates();
 
 	// Feed DSP->GUI messages that came from OUTSIDE this runtime's own
 	// processor, and hand them to the app immediately.

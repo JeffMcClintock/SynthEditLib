@@ -216,6 +216,7 @@ void SynthRuntime_editor::StartBackgroundProcessing()
 	assert(!renderThread.joinable()); // the previous engine must have been stopped and joined.
 
 	message_que_dsp_to_ui.Reset(); // DSP is not running: no thread exists yet.
+	m_message_que_ui_to_dsp.Reset(); // unread messages are addressed to the previous engine's handles.
 	pendingRequests.store(0, std::memory_order_relaxed); // a stop that arrived after the last engine finished on its own.
 	renderThreadExited.store(false, std::memory_order_relaxed);
 
@@ -523,6 +524,16 @@ pendingControllerQueueClients.Reset();
 
 		application->CSynthEditAppBase::Run();
 	}
+}
+
+// UI thread, once the engine has closed. The next engine is built from the
+// document, so updates still waiting for this one are discarded while their
+// parameters are still alive; left queued, they outlive a document change.
+void SynthRuntime_editor::discardPendingDspUpdates()
+{
+	gmpi::hosting::WriteableQueSink sink;
+	while (pendingProcessorQueueClients.ServiceWaitersIncremental(&sink, 100000))
+		;
 }
 
 // Called from DSP thread!
