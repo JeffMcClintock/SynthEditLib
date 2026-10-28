@@ -76,11 +76,48 @@ int MfcDocPresenter::AddModule(const wchar_t* uniqueid, gmpi::drawing::Point poi
 	const auto containerHandle = container->Handle();
 	const auto handle = container->Document()->uniqueIdDatabase.GenerateUniqueHandleValue();
 	const auto lViewType = viewType;
+	const auto rack = getRackLayout();
 
-	auto redo = [containerHandle, moduleTypeId, handle, lViewType, point](CSynthEditDocBase* document)
+	auto redo = [containerHandle, moduleTypeId, handle, lViewType, point, rack](CSynthEditDocBase* document)
 		{
 			auto container = dynamic_cast<CContainer*>(document->uniqueIdDatabase.HandleToObjectWithNull(containerHandle));
+
+			std::set<CUG*> before;
+			if (rack.enabled)
+			{
+				it_doc_ob it(container);
+				for (it.First(); !it.IsDone(); it.Next())
+					if (auto m = dynamic_cast<CUG*>(it.CurrentItem()); m)
+						before.insert(m);
+			}
+
 			auto docob = container->OnNewUG(lViewType, moduleTypeId, handle, { static_cast<int>(point.x), static_cast<int>(point.y) });
+
+			// In a rack, a dragged module snaps its top-left onto the rack grid
+			// (ViewBase::snapToGrid); an inserted one has to land the same way, or it
+			// sits off the rails until the user nudges it. Prefabs insert as several
+			// modules and return no docob, hence the before/after diff.
+			if (rack.enabled)
+			{
+				auto snap = [](float p, float origin, float pitch)
+					{
+						return origin + floorf((pitch * 0.5f + p - origin) / pitch) * pitch;
+					};
+
+				it_doc_ob it(container);
+				for (it.First(); !it.IsDone(); it.Next())
+				{
+					auto m = dynamic_cast<CUG*>(it.CurrentItem());
+					if (!m || before.count(m))
+						continue;
+
+					const auto r = m->getViewObRect(CF_PANEL_VIEW);
+					const auto dx = static_cast<int>(snap(static_cast<float>(r.left), rack.origin.x, rack.snapWidth)) - r.left;
+					const auto dy = static_cast<int>(snap(static_cast<float>(r.top), rack.origin.y, rack.rowHeight)) - r.top;
+					if (dx || dy)
+						m->offsetViewObRect(CF_PANEL_VIEW, dx, dy);
+				}
+			}
 			if (docob) // Prefabs may be many modules so don't return any docob.
 			{
 				docob->OnProperty();
