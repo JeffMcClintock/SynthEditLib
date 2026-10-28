@@ -60,6 +60,7 @@ public:
 	CContainer( Module_Info* p_type = 0 );
 	static CDocOb* Make(Module_Info* p_type = 0);
 	~CContainer();
+	void OnDelete() override;
 	CSynthEditDocBase* Document() override;
 	int CountPlugs(EDirection p_direction);
 	void setSkin(SkinInfo* p_skin);

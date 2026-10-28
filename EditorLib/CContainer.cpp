@@ -29,6 +29,7 @@
 #include "it_plug_destinations.h"
 #include "it_doc_ob_recursive.h"
 #include "PatchManager.h"
+#include "UG2.h" // RemovePatchCablesTouching
 #include "PlugIO4.h"
 #include "tinyxml/tinyxml.h"
 #include "SerializationHelper_XML.h"
@@ -109,6 +110,33 @@ CContainer::~CContainer()
 	{
 		delete m_patch_manager;
 	}
+}
+
+void CContainer::OnDelete()
+{
+	// The children die in ~CContainer's DeleteAll(), never through their own OnDelete(), so
+	// CUG2::OnDelete never gets to remove a nested patch point's cables. Do it here for the
+	// whole subtree: a rack module's jacks are patch points inside it, cabled to OTHER modules,
+	// and a cable left behind reattaches to whatever later reuses the same handle (re-inserting
+	// the same prefab does).
+	std::set<int32_t> patchPointHandles;
+	auto collect = [&patchPointHandles](auto& self, CContainer* container) -> void
+	{
+		for (auto ob : container->BaseList)
+		{
+			if (ob->getType() && !ob->getType()->patchPoints.empty())
+				patchPointHandles.insert(ob->Handle());
+
+			if (auto child = dynamic_cast<CContainer*>(ob); child)
+				self(self, child);
+		}
+	};
+	collect(collect, this);
+
+	if (!patchPointHandles.empty())
+		RemovePatchCablesTouching(this, patchPointHandles);
+
+	CUG_with_patches::OnDelete(); // deletes this.
 }
 
 // adding patch select may require adding patch controls to top of panel view

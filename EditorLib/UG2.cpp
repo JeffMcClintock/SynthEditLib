@@ -1,4 +1,5 @@
 #include "./UG2.h"
+#include <algorithm>
 #include "tinyxml/tinyxml.h"
 #include "UgDatabase.h"
 #include "CContainer.h"
@@ -12,6 +13,48 @@
 
 using namespace gmpi::hosting;
 using namespace std;
+
+void RemovePatchCablesTouching(CDocOb* start, const std::set<int32_t>& moduleHandles)
+{
+	// get_patch_manager() answers "the nearest one at or above me", so walking up the
+	// containers visits every patch manager a cable could live in (some more than once).
+	std::vector<CPatchManager*> patchManagers;
+	auto add = [&patchManagers](CPatchManager* pm)
+	{
+		if (pm && std::find(patchManagers.begin(), patchManagers.end(), pm) == patchManagers.end())
+			patchManagers.push_back(pm);
+	};
+	add(start->get_patch_manager());
+	for (auto c = start->Container(); c; c = c->Container())
+		add(c->get_patch_manager());
+
+	for (auto pm : patchManagers)
+	{
+		// lookup only: don't add an empty cable list to a patch manager that has none.
+		auto param = pm->GetHostGeneratedParameter(HC_PATCH_CABLES, false, {});
+		if (!param)
+			continue;
+
+		// cables are stored per preset.
+		const auto patchCount = param->getPatchCount();
+		for (int patch = 0; patch < patchCount; ++patch)
+		{
+			SE2::PatchCables cableList(param->GetValue(FT_VALUE, 0, patch));
+
+			const auto before = cableList.cables.size();
+			std::erase_if(cableList.cables, [&moduleHandles](const auto& c)
+			{
+				return moduleHandles.count(c.fromUgHandle) || moduleHandles.count(c.toUgHandle);
+			});
+
+			if (cableList.cables.size() != before)
+			{
+				auto localToPreventTrashedReturnValue = cableList.Serialise();
+				param->SetValue(RawView(localToPreventTrashedReturnValue), FT_VALUE, 0, patch);
+			}
+		}
+	}
+}
 
 ControllerHostHelper::~ControllerHostHelper()
 {
@@ -101,32 +144,7 @@ void CUG2::OnDelete()
 
 	// Remove Patch Cables
 	if (!getType()->patchPoints.empty())
-	{
-		const int parameterIdx = -1 - HC_PATCH_CABLES;
-		auto parameterHandle = get_patch_manager()->getParameterHandle(-1, parameterIdx);
-		SE2::PatchCables cableList(get_patch_manager()->getParameterValue(parameterHandle));
-
-		bool updated = false;
-		for (auto it = cableList.cables.begin(); it != cableList.cables.end(); )
-		{
-			if ((*it).fromUgHandle == Handle() || (*it).toUgHandle == Handle())
-			{
-				it = cableList.cables.erase(it);
-				updated = true;
-			}
-			else
-			{
-				++it;
-			}
-		}
-
-		// update module parameter holding cable list.
-		if (updated)
-		{
-			auto localToPreventTrashedReturnValue = cableList.Serialise();
-			get_patch_manager()->setParameterValue(localToPreventTrashedReturnValue, parameterHandle);
-		}
-	}
+		RemovePatchCablesTouching(this, { Handle() });
 
 	if (controller_)
 		controller_->onDelete();

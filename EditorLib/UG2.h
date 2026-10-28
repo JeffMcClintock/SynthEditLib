@@ -1,4 +1,5 @@
 #pragma once
+#include <set>
 #include "CUG.h"
 #include "it_doc_ob_recursive.h"
 #include "SerializationHelper_XML.h"
@@ -6,6 +7,11 @@
 #include "Core/GmpiSdkCommon.h"
 #include "Core/GmpiApiEditor.h"
 #include "Extensions/ParameterIterator.h"
+
+// Remove every patch cable with an end on any of `moduleHandles`, from `start`'s patch manager
+// and every patch manager above it. A cable lives in the lowest patch manager common to both
+// ends, so one between two different containers (two rack modules) sits ABOVE either of them.
+void RemovePatchCablesTouching(CDocOb* start, const std::set<int32_t>& moduleHandles);
 
 class ControllerIterator_SE :
 	public gmpi::IMpControllerIterator, gmpi::IMpControllerIteratorItem
