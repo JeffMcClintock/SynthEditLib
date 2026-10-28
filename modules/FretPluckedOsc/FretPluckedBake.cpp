@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <thread>
 
 namespace fret_plucked
@@ -307,6 +308,31 @@ std::vector<Burst> bodyBursts(int midiNote)
 		result.push_back(b);
 	}
 	return result;
+}
+
+namespace
+{
+constexpr uint32_t envelopeBlobVersion = 1; // bump whenever Params changes layout.
+}
+
+std::vector<uint8_t> envelopeBlob(const Params& p)
+{
+	std::vector<uint8_t> blob(sizeof(envelopeBlobVersion) + sizeof(Params));
+	std::memcpy(blob.data(), &envelopeBlobVersion, sizeof(envelopeBlobVersion));
+	std::memcpy(blob.data() + sizeof(envelopeBlobVersion), &p, sizeof(Params));
+	return blob;
+}
+
+bool decodeEnvelopeBlob(const std::vector<uint8_t>& blob, Params& p)
+{
+	uint32_t version = 0;
+	if (blob.size() != sizeof(version) + sizeof(Params))
+		return false;
+	std::memcpy(&version, blob.data(), sizeof(version));
+	if (version != envelopeBlobVersion)
+		return false;
+	std::memcpy(&p, blob.data() + sizeof(version), sizeof(Params));
+	return true;
 }
 
 const NoteSample& Table::note(int midiNote) const

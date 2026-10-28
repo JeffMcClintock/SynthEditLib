@@ -4,7 +4,7 @@ project(FretPluckedOsc)
 
 synthedit_plugin(
 	PROJECT_NAME ${PROJECT_NAME}
-	HAS_DSP IS_OFFICIAL_MODULE
+	HAS_DSP HAS_GUI IS_OFFICIAL_MODULE
 	SOURCE_FILES
 	  FretPluckedOsc.h
 	  FretPluckedOsc.cpp
@@ -12,4 +12,6 @@ synthedit_plugin(
 	  FretPluckedBake.cpp
 	  FretPluckedCache.h
 	  FretPluckedCache.cpp
+	  FretPluckedOscGui.h
+	  FretPluckedOscGui.cpp
 )

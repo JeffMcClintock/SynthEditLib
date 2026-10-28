@@ -49,11 +49,16 @@ Unison and later pins are appended after Signal Out so that patches saved earlie
 - The note ends when the VCA gain is below -90 dB, or when the output has been below -100 dB for 2048 samples (in the loop or released). The output then stops streaming and the module sleeps.
 - A gate that rises before the first table exists starts the note as soon as the table lands.
 
+## GUI (`FretPluckedOscGui.cpp`)
+- The oscillator draws a waterfall of its A4 note on the panel, in oblique projection: time left to right along the front edge (ticked in seconds), frequency from the back (0 Hz) to the front (just above the highest partial, at most 20 kHz), loudness (amplitude^0.6, Stevens) bottom to top, so envelopes curve like a real decay while quiet harmonics stay visible; it reaches the floor at -60 dB. Each harmonic is one envelope at its true frequency, so spacing and stiffness show as uneven gaps; the fundamental is yellow, at the back. The shorter higher harmonics stand in front, so little is hidden. The floor marks the 2 s freeze where the loop starts, and the time span runs until the looped tail reaches the floor (at most 12 s).
+- Data path: the DSP sends its current `Params` (versioned, `envelopeBlob`) on a private blob output pin bound to parameter 0, and the GUI recomputes the partials with the bake's own `partials()`, so the display always matches the sound. SynthEdit marks a DSP-driven parameter `stateful="false"`, so nothing is saved with the patch; the display fills in once a voice has run (in a polyphonic patch, after the first note).
+- Adding GUI pins renumbers the plugs (SynthEdit puts GUI pins first); older patches load correctly because the editor remaps them by pin.
+
 ## Demo patch
 `FretPluckedOsc.synthedit`: MIDI In -> MIDI-CV 2 -> the oscillator -> a linear VCA as master volume -> Sound Out, with a scope and a knob or list for most parameters. A voice's attack can reach 10 V, so the volume (default 3) keeps a four-note chord's pluck from clipping.
 
 ## Not done / possible next steps
-- GUI display of the partials, and the Pluck Position, Seed and Detune Tilt pins.
+- The Pluck Position, Seed and Detune Tilt pins.
 - Switching to the neighbour sample during large bends (v1 keeps the note-on sample).
 - A different pick on every replay of the same note: bake two to four pick variants per note and cycle through them at note-on.
 - Starting the tonal partials at hashed phases (behind the same fade-in) would remove the note-on spike that the limiter now flattens.

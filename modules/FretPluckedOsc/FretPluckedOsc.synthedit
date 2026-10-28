@@ -11,7 +11,6 @@
         <PatchManager>
             <ProgramNames/>
             <Parameters>
-                <param type="10" handle="4224648" shortName="Capture Data A" ignorePC="true" private="true" stateful="false" isPolyphonic="true" module="1311285963" moduleParamId="0"/>
                 <param type="6" handle="27241617" shortName="Pick Noise" vstParameterNumber="11" module="158424961" moduleParamId="0" RangeMaximum="1">
                     <patch-list>
                         <s>0.998741</s>
@@ -20,8 +19,7 @@
                 </param>
                 <param type="6" handle="172612947" shortName="Harmonic Spacing" vstParameterNumber="5" module="1751584435" moduleParamId="0" RangeMinimum="0.25" RangeMaximum="3">
                     <patch-list>
-                        <s>2</s>
-                        <s repeat="127">1</s>
+                        <s repeat="128">1</s>
                     </patch-list>
                 </param>
                 <param type="6" handle="265008349" shortName="BenderRange" ignorePC="true" automation="50331648" private="true" module="94852515" hostControl="42" RangeMaximum="127.99219">
@@ -34,7 +32,6 @@
                         <s>0</s>
                     </patch-list>
                 </param>
-                <param type="4" handle="356931408" shortName="polyDetect" ignorePC="true" private="true" stateful="false" module="1311285963" moduleParamId="2"/>
                 <param type="10" handle="407755986" private="true" hostControl="49">
                     <patch-list>
                         <s repeat="128"></s>
@@ -47,13 +44,13 @@
                 </param>
                 <param type="6" handle="964664176" shortName="Body" vstParameterNumber="10" module="1785237729" moduleParamId="0" RangeMaximum="1">
                     <patch-list>
-                        <s>0.724705</s>
+                        <s>0.716924</s>
                         <s repeat="127">0.3</s>
                     </patch-list>
                 </param>
                 <param type="6" handle="1065270422" shortName="Unison" vstParameterNumber="13" module="13327" moduleParamId="0" RangeMaximum="8">
                     <patch-list>
-                        <s>1.15698</s>
+                        <s>1</s>
                         <s repeat="127">2</s>
                     </patch-list>
                 </param>
@@ -68,6 +65,7 @@
                         <s repeat="127">4</s>
                     </patch-list>
                 </param>
+                <param type="10" handle="1279799939" shortName="Envelope Data" ignorePC="true" private="true" stateful="false" module="1590000411" moduleParamId="0"/>
                 <param type="8" handle="1286988363" shortName="Polyphony" ignorePC="true" private="true" module="94852515" hostControl="21" RangeMinimum="1" RangeMaximum="128">
                     <patch-list>
                         <s>6</s>
@@ -76,7 +74,7 @@
                 <param type="8" handle="1412763883" stateful="false" module="190616161" moduleParamId="0"/>
                 <param type="6" handle="1510434463" shortName="Stiffness" vstParameterNumber="14" module="1829238748" moduleParamId="0">
                     <patch-list>
-                        <s>8.77719</s>
+                        <s>0.736452</s>
                         <s repeat="127">1</s>
                     </patch-list>
                 </param>
@@ -88,7 +86,7 @@
                 </param>
                 <param type="6" handle="1587543132" shortName="Pick Tone" vstParameterNumber="12" module="310007159" moduleParamId="0" RangeMaximum="1">
                     <patch-list>
-                        <s>0.669179</s>
+                        <s>0.848586</s>
                         <s repeat="127">0.5</s>
                     </patch-list>
                 </param>
@@ -104,7 +102,7 @@
                 </param>
                 <param type="6" handle="1805413047" shortName="Detune" vstParameterNumber="2" module="1820862943" moduleParamId="0" RangeMaximum="5">
                     <patch-list>
-                        <s>2</s>
+                        <s>0</s>
                         <s repeat="127">4</s>
                     </patch-list>
                 </param>
@@ -113,7 +111,6 @@
                         <s>3</s>
                     </patch-list>
                 </param>
-                <param type="10" handle="2064520790" shortName="Capture Data B" ignorePC="true" private="true" stateful="false" isPolyphonic="true" module="1311285963" moduleParamId="1"/>
                 <param type="6" handle="2075546121" shortName="Decay Tilt" vstParameterNumber="0" module="486605503" moduleParamId="0" RangeMaximum="2">
                     <patch-list>
                         <s>0.31232</s>
@@ -122,13 +119,19 @@
                 </param>
                 <param type="6" handle="2097328356" shortName="Spectrum Tilt" vstParameterNumber="8" module="1009423914" moduleParamId="0" RangeMaximum="3">
                     <patch-list>
-                        <s>0.232503</s>
-                        <s repeat="127">1</s>
+                        <s repeat="128">1</s>
                     </patch-list>
                 </param>
             </Parameters>
         </PatchManager>
         <modules>
+            <module type="SE Fret Plucked Osc" handle="1590000411">
+                <plugs>
+                    <plug default="30" idx="4"/>
+                </plugs>
+                <structRect l="488" r="812" t="31" b="659"/>
+                <panelRect l="3752" r="4192" t="4168" b="4368"/>
+            </module>
             <module type="Container" handle="69604974" name="Stiffness" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="256" m_locked="true" skin="default">
                 <plugs>
                     <plug default="1" idx="1"/>
@@ -205,12 +208,12 @@
                 </lines>
                 <PanelLocationCenter x="99" y="90.5"/>
                 <StructLocationCenter x="372" y="267.5"/>
-                <PanelWndPosition l="3880" r="3945" t="3768" b="3843"/>
+                <PanelWndPosition l="3752" r="3817" t="3808" b="3883"/>
                 <PanelLocation l="0" r="500" t="0" b="500"/>
                 <StructLocation l="0" r="500" t="0" b="500"/>
                 <PanelScroll x="-151" y="-159"/>
                 <StructScroll x="122" y="17"/>
-                <PanelWndOffset cx="3848" cy="3744"/>
+                <PanelWndOffset cx="3720" cy="3784"/>
                 <panel_rect l="0" r="180" t="0" b="163"/>
             </module>
             <module type="Container" handle="1416521795" name="Body" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="256" m_locked="true" skin="default">
@@ -289,12 +292,12 @@
                 </lines>
                 <PanelLocationCenter x="99" y="90.5"/>
                 <StructLocationCenter x="372" y="267.5"/>
-                <PanelWndPosition l="4136" r="4201" t="4072" b="4147"/>
+                <PanelWndPosition l="3848" r="3913" t="3808" b="3883"/>
                 <PanelLocation l="0" r="500" t="0" b="500"/>
                 <StructLocation l="0" r="500" t="0" b="500"/>
                 <PanelScroll x="-151" y="-159"/>
                 <StructScroll x="122" y="17"/>
-                <PanelWndOffset cx="4104" cy="4048"/>
+                <PanelWndOffset cx="3816" cy="3784"/>
                 <panel_rect l="0" r="180" t="0" b="163"/>
             </module>
             <module type="Container" handle="1488065224" name="Pick Tone" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="256" m_locked="true" skin="default">
@@ -551,7 +554,7 @@
             </module>
             <module type="SE List Entry4" handle="965336605">
                 <structRect l="1020" r="1128" t="696" b="828"/>
-                <panelRect l="4040" r="4140" t="3848" b="3874"/>
+                <panelRect l="4024" r="4124" t="3848" b="3874"/>
             </module>
             <module type="SE Polyphony Control2" handle="1141658353">
                 <structRect l="780" r="888" t="624" b="852"/>
@@ -563,7 +566,7 @@
                     <plug parameterId="-1"/>
                 </plugs>
                 <structRect l="456" r="564" t="552" b="606"/>
-                <panelRect l="4040" r="4140" t="3984" b="4022"/>
+                <panelRect l="4024" r="4124" t="3984" b="4022"/>
             </module>
             <module type="List Entry" handle="897405557" name="Series">
                 <plugs>
@@ -571,7 +574,7 @@
                     <plug parameterId="-1"/>
                 </plugs>
                 <structRect l="300" r="408" t="552" b="606"/>
-                <panelRect l="4040" r="4140" t="3888" b="3926"/>
+                <panelRect l="4024" r="4124" t="3888" b="3926"/>
             </module>
             <module type="Container" handle="79821405" name="Volume" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="256" m_locked="true" skin="default">
                 <plugs>
@@ -1161,10 +1164,6 @@
                 <PanelWndOffset cx="3816" cy="3856"/>
                 <panel_rect l="0" r="180" t="0" b="163"/>
             </module>
-            <module type="SE Scope3 XP" handle="1311285963">
-                <structRect l="852" r="960" t="252" b="352"/>
-                <panelRect l="3752" r="3852" t="3752" b="3852"/>
-            </module>
             <module type="Sound Out" handle="185720371">
                 <plugs>
                     <plug name="Output"/>
@@ -1179,13 +1178,6 @@
                 </plugs>
                 <structRect l="696" r="792" t="96" b="144"/>
             </module>
-            <module type="SE Fret Plucked Osc" handle="1590000411">
-                <plugs>
-                    <plug default="100" idx="3"/>
-                </plugs>
-                <structRect l="480" r="576" t="96" b="324"/>
-                <panelRect l="0" r="0" t="0" b="0"/>
-            </module>
             <module type="SE VoltsToBool" handle="70768971">
                 <structRect l="324" r="360" t="60" b="84"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
@@ -1198,6 +1190,14 @@
                 <structRect l="0" r="60" t="96" b="138"/>
                 <panelRect l="3980" r="3988" t="3977" b="3991"/>
             </module>
+            <module type="SE TiDE:Panel" handle="1105680368">
+                <plugs>
+                    <plug default="20" idx="2"/>
+                    <plug default="1" idx="4"/>
+                </plugs>
+                <structRect l="1260" r="1668" t="60" b="520"/>
+                <panelRect l="3752" r="4136" t="3776" b="4160"/>
+            </module>
         </modules>
         <lines>
             <line type="Line" handle="174695687" lineType="1" fMod="190616161" tMod="34702161" fPlg="1"/>
@@ -1207,24 +1207,23 @@
             <line type="Line" handle="262646745" lineType="1" fMod="79821405" tMod="1991779248" fPlg="7" tPlg="1"/>
             <line type="Line" handle="1663087349" lineType="1" fMod="1141658353" tMod="965336605" fPlg="9"/>
             <line type="Line" handle="451785476" lineType="1" fMod="1141658353" tMod="965336605" fPlg="10" tPlg="1"/>
-            <line type="Line" handle="258587584" lineType="1" fMod="34702161" tMod="1590000411" fPlg="4"/>
-            <line type="Line" handle="1106310900" lineType="1" fMod="70768971" tMod="1590000411" fPlg="1" tPlg="1"/>
-            <line type="Line" handle="1257603951" lineType="1" fMod="34702161" tMod="1590000411" fPlg="5" tPlg="2"/>
-            <line type="Line" handle="732585325" lineType="1" fMod="897405557" tMod="1590000411" fPlg="6" tPlg="4"/>
-            <line type="Line" handle="1730994779" lineType="1" fMod="2110497924" tMod="1590000411" fPlg="7" tPlg="5"/>
-            <line type="Line" handle="1989869658" lineType="1" fMod="1315501955" tMod="1590000411" fPlg="7" tPlg="6"/>
-            <line type="Line" handle="349698302" lineType="1" fMod="221724783" tMod="1590000411" fPlg="7" tPlg="7"/>
-            <line type="Line" handle="824396382" lineType="1" fMod="2132223300" tMod="1590000411" fPlg="7" tPlg="8"/>
-            <line type="Line" handle="915881687" lineType="1" fMod="2059312830" tMod="1590000411" fPlg="7" tPlg="9"/>
-            <line type="Line" handle="279072388" lineType="1" fMod="830402234" tMod="1590000411" fPlg="6" tPlg="10"/>
-            <line type="Line" handle="2085807164" lineType="1" fMod="912725776" tMod="1590000411" fPlg="7" tPlg="11"/>
-            <line type="Line" handle="1374307496" lineType="1" fMod="1590000411" tMod="1991779248" fPlg="16"/>
-            <line type="Line" handle="1279799939" lineType="1" fMod="1590000411" tMod="1311285963" fPlg="16" tPlg="6"/>
-            <line type="Line" handle="560782220" lineType="1" fMod="17954" tMod="1590000411" fPlg="7" tPlg="17"/>
-            <line type="Line" handle="457370252" lineType="1" fMod="720102243" tMod="1590000411" fPlg="7" tPlg="18"/>
-            <line type="Line" handle="354645700" lineType="1" fMod="1488065224" tMod="1590000411" fPlg="7" tPlg="19"/>
-            <line type="Line" handle="1665959558" lineType="1" fMod="1416521795" tMod="1590000411" fPlg="7" tPlg="20"/>
-            <line type="Line" handle="839114265" lineType="1" fMod="69604974" tMod="1590000411" fPlg="7" tPlg="3"/>
+            <line type="Line" handle="1311285963" lineType="1" fMod="34702161" tMod="1590000411" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="4224648" lineType="1" fMod="70768971" tMod="1590000411" fPlg="1" tPlg="2"/>
+            <line type="Line" handle="2064520790" lineType="1" fMod="34702161" tMod="1590000411" fPlg="5" tPlg="3"/>
+            <line type="Line" handle="1101575451" lineType="1" fMod="897405557" tMod="1590000411" fPlg="6" tPlg="5"/>
+            <line type="Line" handle="306011854" lineType="1" fMod="2110497924" tMod="1590000411" fPlg="7" tPlg="6"/>
+            <line type="Line" handle="885964837" lineType="1" fMod="1315501955" tMod="1590000411" fPlg="7" tPlg="7"/>
+            <line type="Line" handle="1419300469" lineType="1" fMod="221724783" tMod="1590000411" fPlg="7" tPlg="8"/>
+            <line type="Line" handle="2029632505" lineType="1" fMod="2132223300" tMod="1590000411" fPlg="7" tPlg="9"/>
+            <line type="Line" handle="2039189068" lineType="1" fMod="2059312830" tMod="1590000411" fPlg="7" tPlg="10"/>
+            <line type="Line" handle="1635057536" lineType="1" fMod="830402234" tMod="1590000411" fPlg="6" tPlg="11"/>
+            <line type="Line" handle="1543325712" lineType="1" fMod="912725776" tMod="1590000411" fPlg="7" tPlg="12"/>
+            <line type="Line" handle="1667729522" lineType="1" fMod="1590000411" tMod="1991779248" fPlg="17"/>
+            <line type="Line" handle="252281373" lineType="1" fMod="17954" tMod="1590000411" fPlg="7" tPlg="18"/>
+            <line type="Line" handle="1641877593" lineType="1" fMod="720102243" tMod="1590000411" fPlg="7" tPlg="19"/>
+            <line type="Line" handle="41815521" lineType="1" fMod="1488065224" tMod="1590000411" fPlg="7" tPlg="20"/>
+            <line type="Line" handle="1565776612" lineType="1" fMod="1416521795" tMod="1590000411" fPlg="7" tPlg="21"/>
+            <line type="Line" handle="1257603951" lineType="1" fMod="69604974" tMod="1590000411" fPlg="7" tPlg="22"/>
         </lines>
         <PanelLocationCenter x="3984" y="3984"/>
         <StructLocationCenter x="885.49219" y="371.74792"/>
@@ -1234,7 +1233,7 @@
         <PanelScroll x="3734" y="3734"/>
         <StructScroll x="635" y="121"/>
         <PanelWndOffset cx="-99999" cy="-99999"/>
-        <panel_rect l="3732" r="4212" t="3732" b="4212"/>
+        <panel_rect l="3732" r="4212" t="3732" b="4392"/>
     </master_container>
     <PluginList>
         <Plugin id="Container" class="1" name="Container" flags="384" category="">
@@ -1311,7 +1310,10 @@
                 <Pin name="Activity" datatype="int" private="true" parameterId="0"/>
             </GUI>
         </Plugin>
-        <Plugin id="SE Fret Plucked Osc" name="Fret Plucked Oscillator" flags="256" category="Debug" deprecated="true">
+        <Plugin id="SE Fret Plucked Osc" name="Fret Plucked Oscillator" flags="384" category="Debug" deprecated="true">
+            <Parameters>
+                <Parameter id="0" datatype="blob" name="Envelope Data" private="true" ignorePatchChange="true" persistant="false"/>
+            </Parameters>
             <Audio>
                 <Pin name="Pitch" datatype="float" rate="audio" default="0.5"/>
                 <Pin name="Gate" datatype="bool"/>
@@ -1334,7 +1336,12 @@
                 <Pin name="Pick Noise" datatype="float"/>
                 <Pin name="Pick Tone" datatype="float" default="0.5"/>
                 <Pin name="Body" datatype="float"/>
+                <Pin name="Stiffness" datatype="float"/>
+                <Pin name="Envelope Data" datatype="blob" direction="out" private="true" parameterId="0"/>
             </Audio>
+            <GUI graphicsApi="GmpiGui">
+                <Pin name="Envelope Data" datatype="blob" private="true" parameterId="0"/>
+            </GUI>
         </Plugin>
         <Plugin id="SE ImageTinted XP" name="Image Tinted (XP)" flags="384" category="Debug/DirectX" deprecated="true">
             <GUI graphicsApi="GmpiGui">
@@ -1448,27 +1455,6 @@
                 <Pin name="Item List" datatype="string" direction="out"/>
             </GUI>
         </Plugin>
-        <Plugin id="SE Scope3 XP" name="Scope3" flags="384" category="Controls">
-            <Parameters>
-                <Parameter id="0" datatype="blob" name="Capture Data A" private="true" ignorePatchChange="true" isPolyphonic="true" persistant="false"/>
-                <Parameter id="1" datatype="blob" name="Capture Data B" private="true" ignorePatchChange="true" isPolyphonic="true" persistant="false"/>
-                <Parameter id="2" datatype="bool" name="polyDetect" private="true" ignorePatchChange="true" persistant="false"/>
-            </Parameters>
-            <Audio>
-                <Pin name="Capture Data A" datatype="blob" direction="out" private="true" isPolyphonic="true" parameterId="0"/>
-                <Pin name="Capture Data B" datatype="blob" direction="out" private="true" isPolyphonic="true" parameterId="1"/>
-                <Pin name="Signal A" datatype="float" rate="audio"/>
-                <Pin name="Signal B" datatype="float" rate="audio"/>
-                <Pin name="VoiceActive" datatype="float" private="true" isPolyphonic="true" hostConnect="Voice/Active"/>
-                <Pin name="polydetect" datatype="bool" direction="out" private="true" parameterId="2"/>
-            </Audio>
-            <GUI graphicsApi="GmpiGui">
-                <Pin name="Capture Data A" datatype="blob" private="true" isPolyphonic="true" parameterId="0"/>
-                <Pin name="Capture Data B" datatype="blob" private="true" isPolyphonic="true" parameterId="1"/>
-                <Pin id="3" name="VoiceGate" datatype="float" private="true" isPolyphonic="true" hostConnect="Voice/Gate"/>
-                <Pin name="polydetect" datatype="bool" private="true" parameterId="2"/>
-            </GUI>
-        </Plugin>
         <Plugin id="SE Text Entry4" name="Text Entry4" flags="384" category="Sub-Controls">
             <GUI graphicsApi="GmpiGui">
                 <Pin name="Text" datatype="string"/>
@@ -1481,6 +1467,16 @@
                 <Pin name="Menu Selection" datatype="int"/>
                 <Pin name="Mouse Down" datatype="bool" direction="out" private="true"/>
                 <Pin name="Mouse Down" datatype="bool"/>
+            </GUI>
+        </Plugin>
+        <Plugin id="SE TiDE:Panel" name="Panel" flags="384" category="TiDE">
+            <GUI graphicsApi="GmpiGui">
+                <Pin name="Text" datatype="string_utf8"/>
+                <Pin name="Text Color" datatype="string_utf8" default="FF101010"/>
+                <Pin name="Rack Units" datatype="int" default="1"/>
+                <Pin name="Layout" datatype="string_utf8" default="grill 24 20; knob big 24 163; knob small 24 216; switch 24 247; led 14 272; led 34 272; jack 24 297; jack 24 337; slots 24 371"/>
+                <Pin name="Material" datatype="enum" metadata="Brushed Aluminium, Flat Aluminium, Powder-coated Steel"/>
+                <Pin name="Panel Color" datatype="string_utf8" default="FF2E3238"/>
             </GUI>
         </Plugin>
         <Plugin id="SE VoltsToBool" name="Volts to Bool" flags="33554688" category="Conversion" helpUrl="converters.htm">

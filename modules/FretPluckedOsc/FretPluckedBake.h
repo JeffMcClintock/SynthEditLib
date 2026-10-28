@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -94,6 +95,10 @@ struct Table
 	const NoteSample& note(int midiNote) const;
 	const float* data(const NoteSample& n) const { return samples.data() + n.offset; }
 };
+
+// The DSP-to-GUI form of Params, versioned so a blob from another build decodes to nothing rather than garbage.
+std::vector<uint8_t> envelopeBlob(const Params& p);
+bool decodeEnvelopeBlob(const std::vector<uint8_t>& blob, Params& p);
 
 // Returns null if `cancelled` is set part way through.
 std::shared_ptr<Table> bake(const Params& p, float sampleRate, const std::atomic<bool>* cancelled = nullptr);

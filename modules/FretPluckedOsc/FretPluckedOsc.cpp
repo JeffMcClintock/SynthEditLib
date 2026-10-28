@@ -12,6 +12,9 @@ bool registered = Register<FretPluckedOsc>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 <PluginList>
   <Plugin id="SE Fret Plucked Osc" name="Fret Plucked Oscillator" category="Debug">
+	<Parameters>
+	  <Parameter id="0" name="Envelope Data" datatype="blob" private="true" ignorePatchChange="true" persistant="false"/>
+	</Parameters>
 	<Audio>
 	  <Pin name="Pitch" datatype="float" rate="audio" default="0.5"/>
 	  <Pin name="Gate" datatype="bool"/>
@@ -35,7 +38,11 @@ bool registered = Register<FretPluckedOsc>::withXml(R"XML(
 	  <Pin name="Pick Tone" datatype="float" default="0.5"/>
 	  <Pin name="Body" datatype="float" default="0"/>
 	  <Pin name="Stiffness" datatype="float" default="0"/>
+	  <Pin name="Envelope Data" direction="out" datatype="blob" parameterId="0" private="true"/>
 	</Audio>
+	<GUI graphicsApi="GmpiGui">
+	  <Pin name="Envelope Data" datatype="blob" parameterId="0" private="true"/>
+	</GUI>
   </Plugin>
 </PluginList>
 )XML");
@@ -98,7 +105,11 @@ void FretPluckedOsc::onSetPins()
 		|| pinUnison.isUpdated() || pinPickNoise.isUpdated() || pinPickTone.isUpdated() || pinBody.isUpdated() || pinStiffness.isUpdated()
 		|| pinLowestNote.isUpdated() || pinHighestNote.isUpdated())
 	{
-		requestTable(currentParams());
+		const auto params = currentParams();
+		requestTable(params);
+
+		// The GUI recomputes the partials from the same Params, so the display always matches the sound.
+		pinEnvelopeData = envelopeBlob(params);
 	}
 
 	if (pinGate.isUpdated())

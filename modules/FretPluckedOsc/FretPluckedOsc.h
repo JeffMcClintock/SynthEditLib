@@ -98,6 +98,7 @@ private:
 	gmpi::FloatInPin pinPickTone;
 	gmpi::FloatInPin pinBody;
 	gmpi::FloatInPin pinStiffness;
+	gmpi::BlobOutPin pinEnvelopeData; // the current Params, for the GUI's envelope display.
 };
 
 template<bool pitchStreaming>
