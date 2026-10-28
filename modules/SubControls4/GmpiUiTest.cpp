@@ -2208,7 +2208,20 @@ struct SvgGeometry final : public GraphicsProcessor
 
             auto sink = geometry.open();
 
-            SvgParser::parseToGeometry(pinFilename.value, AccessPtr::get(sink));
+            // Resolve through the host like Image4 does, so a bare name finds the
+            // skin folders (and a plugin's own bundle), not just the working directory.
+            std::string fullUri = pinFilename.value;
+            if (auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>(); synthEdit && !pinFilename.value.empty())
+            {
+                ReturnString resolved;
+                if (synthEdit->findResourceUri(pinFilename.value.c_str(), &resolved) == ReturnCode::Ok)
+                {
+                    fullUri = resolved.str();
+                    synthEdit->registerResourceUri(fullUri.c_str());
+                }
+            }
+
+            SvgParser::parseToGeometry(fullUri, AccessPtr::get(sink));
 
             //// make a circle from two half-circle arcs
             //const Point center{ 20.0f, 20.0f };

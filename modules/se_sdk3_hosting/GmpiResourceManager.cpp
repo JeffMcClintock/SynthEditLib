@@ -238,6 +238,11 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 				searchFolders.push_back(stdFolder / bareName);
 			}
 
+			// Last resort: the app's or plugin's own resource folder, so a product can
+			// ship a file loose beside its other resources (TIDE does).
+			if (const auto rf = BundleInfo::instance()->getResourceFolder(); !rf.empty())
+				searchFolders.push_back(fs::path(rf) / bareName);
+
 			for (const auto& candidate : searchFolders)
 			{
 				if (tryPath(candidate))
