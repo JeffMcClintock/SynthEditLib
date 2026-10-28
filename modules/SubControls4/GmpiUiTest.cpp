@@ -2199,11 +2199,15 @@ struct SvgGeometry final : public GraphicsProcessor
     ObjectOut<drawing::api::IPathGeometry> pinOutput;
 
     gmpi::drawing::PathGeometry geometry;
+    std::string builtFilename;
 
     ReturnCode process() override
     {
-        if (!pinOutput)
+        // Rebuild whenever the filename changes, like CircleGeometry with its radius;
+        // building only once ignored any later change to the filename.
+        if (!geometry || pinFilename.value != builtFilename)
         {
+            builtFilename = pinFilename.value;
             geometry = drawingFactory.createPathGeometry();
 
             auto sink = geometry.open();
@@ -2220,7 +2224,6 @@ struct SvgGeometry final : public GraphicsProcessor
                     synthEdit->registerResourceUri(fullUri.c_str());
                 }
             }
-
             SvgParser::parseToGeometry(fullUri, AccessPtr::get(sink));
 
             //// make a circle from two half-circle arcs
@@ -2520,9 +2523,12 @@ struct RenderGeometry final : public PluginEditor
     }
 
     // in a panel sub-view the Panel Rect (parent coords, mapped to local) stands in for our bounds.
+    // An unset (empty) Panel Rect means "just use our own bounds": otherwise a Render dropped
+    // into a sub-view without wiring that pin draws into a zero-size area and shows nothing
+    // (TIDE's rack modules, all of which are sub-views).
     gmpi::drawing::Rect drawingBounds()
     {
-        if (!drawsInParent)
+        if (!drawsInParent || empty(pinPanelRect.value))
             return bounds;
 
         float x{}, y{};
