@@ -157,6 +157,7 @@ modules_internal/PatchPointsGui.h
 modules_internal/PatchPointsGui.cpp
 modules_internal/PrefabBrowser/PrefabBrowserGui.cpp
 modules_internal/CpuMeter/CpuMeterGui.cpp
+modules_internal/RendererReport/RendererReportGui.cpp
 modules/SubControls4/half.hpp
 modules/SubControls4/NumberEditClient.h
 )

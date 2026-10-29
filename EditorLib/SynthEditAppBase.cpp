@@ -13,6 +13,7 @@
 #include <chrono>
 #include <filesystem>
 #include "SynthEditAppBase.h"
+#include "CpuConsumption.h"
 #include "SynthEditDocBase.h"
 #include "ISEAppManaged.h"
 #include "UgDatabase.h"
@@ -63,10 +64,12 @@ CSynthEditAppBase::CSynthEditAppBase() :
 	}
 #endif
 	TiXmlBase::SetCondenseWhiteSpace(false); // ensure text parameters preserve multiple spaces. e.g. "A     B" (else it collapses to "A B")
+	editorCpuLoad = [this] { return GetCpuLoad(); };
 }
 
 void CSynthEditAppBase::ExitInstance()
 {
+	editorCpuLoad = {};
 	delete timerhelper;
 	timerhelper = {};
 	synthRuntime.Stop(); // a still-running engine would outlive everything it uses.

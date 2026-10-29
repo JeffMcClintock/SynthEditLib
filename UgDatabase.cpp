@@ -1188,6 +1188,7 @@ void CModuleFactory::initialise_synthedit_modules(bool passFalse)
 #if SE_GRAPHICS_SUPPORT
 	INIT_STATIC_FILE(PatchPointsGui)
 	INIT_STATIC_FILE(CpuMeterGui);
+	INIT_STATIC_FILE(RendererReportGui);
 	INIT_STATIC_FILE(PatchPoints);
 #endif
 

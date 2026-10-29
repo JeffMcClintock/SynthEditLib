@@ -1,15 +1,7 @@
 #include "mp_sdk_gui2.h"
 #include "Drawing.h"
 #include "TimerManager.h"
-
-// should probly use a host control rather than direct access
-#ifdef SE_EDIT_SUPPORT
-#include "../se_sdk3_hosting/ModuleView.h"
-#include "../se_sdk3_hosting/ViewBase.h"
-#include "EditorLib/MfcDocPresenter.h"
-#include "EditorLib/SynthEditDocBase.h"
-#include "EditorLib/SynthEditAppBase.h"
-#endif
+#include "CpuConsumption.h"
 
 SE_DECLARE_INIT_STATIC_FILE(CpuMeterGui);
 
@@ -42,25 +34,7 @@ public:
 		auto textFormat = GetGraphicsFactory().CreateTextFormat();
 		auto brush = g.CreateSolidColorBrush(Color::Green);
 
-#ifdef SE_EDIT_SUPPORT
-		// Access SynthEdit internals.
-		CSynthEditAppBase* application = nullptr;
-		auto modview = dynamic_cast<SE2::ModuleView*>(getHost());
-		assert(modview != nullptr);
-		{
-			auto view = modview->parent;
-			if (view == nullptr)
-			{
-				return gmpi::MP_OK;
-			}
-			auto container = dynamic_cast<MfcDocPresenter*>(view->Presenter())->getContainer();
-			application = dynamic_cast<CSynthEditAppBase*>(container->Document()->Application());
-		}
-		auto cpu = application->GetCpuLoad();
-#else
-		auto cpu = std::make_pair(0.0f, 0.0f); // not supported in plugin
-		const int CPU_BATCH_SIZE = 1;
-#endif
+		const auto cpu = editorCpuLoad ? editorCpuLoad() : std::tuple<float, float>{}; // no editor in a plugin
 		auto median = std::get<0>(cpu);
 		auto peak = std::get<1>(cpu);
 		peakCpu = (std::min)(peakCpu, 2.0f); // limit time required to fall from startup peak.

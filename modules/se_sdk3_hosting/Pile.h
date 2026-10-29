@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "SDK3Adaptor.h"
+#include "Shared/RendererInfo.h"
 
 // see also GmpiUiHelper (gmpi->moduleView)  SDK3Adaptor (wraps an SKD3 plugin in a GMPI API)
 
@@ -41,6 +42,7 @@ struct GmpiUiLayerHost :
 	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
 	void invalidateMeasure() override;
 	float getRasterizationScale() override;
+	gmpi::ReturnCode forwardToParent(const gmpi::api::Guid* iid, void** returnInterface);
 
 	// IInputHost
 	gmpi::ReturnCode setCapture() override;
@@ -60,6 +62,8 @@ struct GmpiUiLayerHost :
 		GMPI_QUERYINTERFACE(IDrawingHost);
 		GMPI_QUERYINTERFACE(IDialogHost);
 		GMPI_QUERYINTERFACE(IInputHost);
+		if (*iid == synthedit::IRendererInfo::guid)
+			return forwardToParent(iid, returnInterface);
 		return gmpi::ReturnCode::NoSupport;
 	}
 
@@ -370,6 +374,10 @@ inline gmpi::ReturnCode GmpiUiLayerHost::getDrawingFactory(gmpi::api::IUnknown**
 {
 	return owner->drawingHost->getDrawingFactory(returnFactory);
 }
+inline gmpi::ReturnCode GmpiUiLayerHost::forwardToParent(const gmpi::api::Guid* iid, void** returnInterface)
+{
+	return owner->drawingHost ? owner->drawingHost->queryInterface(iid, returnInterface) : gmpi::ReturnCode::NoSupport;
+}
 
 inline void GmpiUiLayerHost::invalidateRect(const gmpi::drawing::Rect* invalidRect)
 {
@@ -440,6 +448,7 @@ struct PileChildHost2 :
 
 	// IDrawingHost
 	gmpi::ReturnCode getDrawingFactory(gmpi::api::IUnknown** returnFactory) override;
+	gmpi::ReturnCode forwardToParent(const gmpi::api::Guid* iid, void** returnInterface);
 	void invalidateRect(const gmpi::drawing::Rect* invalidRect) override;
 	void invalidateMeasure() override;
 	float getRasterizationScale() override;
@@ -462,6 +471,8 @@ struct PileChildHost2 :
 		GMPI_QUERYINTERFACE(IInputHost);
 		GMPI_QUERYINTERFACE(IDialogHost);
 		GMPI_QUERYINTERFACE(IDrawingHost);
+		if (*iid == synthedit::IRendererInfo::guid)
+			return forwardToParent(iid, returnInterface);
 		return gmpi::ReturnCode::NoSupport;
 	}
 
@@ -765,6 +776,10 @@ inline float PileChildHost2::getRasterizationScale()
 inline gmpi::ReturnCode PileChildHost2::getDrawingFactory(gmpi::api::IUnknown** returnFactory)
 {
 	return parent->drawingHost->getDrawingFactory(returnFactory);
+}
+inline gmpi::ReturnCode PileChildHost2::forwardToParent(const gmpi::api::Guid* iid, void** returnInterface)
+{
+	return parent->drawingHost ? parent->drawingHost->queryInterface(iid, returnInterface) : gmpi::ReturnCode::NoSupport;
 }
 inline void PileChildHost2::invalidateRect(const gmpi::drawing::Rect* invalidRect) { parent->drawingHost->invalidateRect(invalidRect); }
 inline void PileChildHost2::invalidateMeasure() { parent->drawingHost->invalidateMeasure(); };

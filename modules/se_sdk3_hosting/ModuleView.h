@@ -198,6 +198,7 @@ namespace SE2
 		// that includes this header.
 		explicit Sdk3Helper(ModuleView& pmoduleview);
 		virtual ~Sdk3Helper();
+		ModuleView& getModuleView() { return moduleview; } // for internal modules that read editor state
 
 		void OnPatchCablesUpdate(RawView patchCablesRaw); // from PatchCableChangeNotifier
 

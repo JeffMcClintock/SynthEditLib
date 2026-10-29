@@ -15,6 +15,7 @@
 
 #include "SoftwareRendererOption.h"
 #include "GpuRendererOption.h"
+#include "RendererInfo.h"
 #if SE_GPU_RENDERER_OPTION
 #include "backends/GpuGfx.h"
 #endif
@@ -207,6 +208,7 @@ struct UniversalFactory : public gmpi::api::IUnknown
 // State collapse comes in Phase 4b.
 struct DrawingFrameBase2 :
       public virtual gmpi::hosting::DxDrawingFrameBase
+    , public synthedit::IRendererInfo
     // IDialogHost reaches us via DxDrawingFrameBase. Listing it again here would
     // create a duplicate base subobject (warning C4584).
 {
@@ -349,9 +351,33 @@ public:
     //              all inherited from DxDrawingFrameBase — same body (delegate
     //              to gmpi::hosting::win32::createPlatform*). HostedView still
     //              overrides for SwapChainPanel-native widgets.
-    // queryInterface: inherited from DxDrawingFrameBase (handles IDrawingHost,
-    //                 IInputHost, IDialogHost, parameterHost fallback).
     // GMPI_REFCOUNT_NO_DELETE: inherited.
+
+    std::string rendererReport() override
+    {
+        std::string report = gmpi::hosting::tempSharedD2DBase::rendererReport;
+        if (report.empty())
+            return {}; // swap chain not created yet
+#if SE_GPU_RENDERER_OPTION
+        if (universalFactory && universalFactory->gpu)
+            report += "Drawing: gmpi GPU backend (bgfx), presented through the swap chain above\n";
+#endif
+#if SE_SOFTWARE_RENDERER_OPTION
+        if (universalFactory && universalFactory->cpu)
+            report += "Drawing: gmpi software renderer (CPU), presented through the swap chain above\n";
+#endif
+        return report;
+    }
+
+    gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
+    {
+        if (*iid == synthedit::IRendererInfo::guid)
+        {
+            *returnInterface = static_cast<synthedit::IRendererInfo*>(this);
+            return gmpi::ReturnCode::Ok;
+        }
+        return gmpi::hosting::DxDrawingFrameBase::queryInterface(iid, returnInterface);
+    }
 };
 
 // HWND-coupled SE editor frame. Diamond: inherits HWND machinery from

@@ -21,6 +21,7 @@
 #include "Drawing.h"
 #include "GraphicsRedrawClient.h"
 #include "helpers/NativeUi.h"
+#include "Shared/RendererInfo.h"
 
 namespace SE2
 {
@@ -102,6 +103,8 @@ struct TopStripLayout :
             GMPI_QUERYINTERFACE(gmpi::api::IDrawingHost);
             GMPI_QUERYINTERFACE(gmpi::api::IInputHost);
             GMPI_QUERYINTERFACE(gmpi::api::IDialogHost);
+            if (*iid == synthedit::IRendererInfo::guid && owner->drawingHost)
+                return owner->drawingHost->queryInterface(iid, returnInterface);
             return gmpi::ReturnCode::NoSupport;
         }
         GMPI_REFCOUNT_NO_DELETE;
