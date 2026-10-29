@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="1137850896" SelectedViewType="256" vst_preset_count="64">
-    <master_container type="Container" handle="1137850896" name="Main" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="256" skin="default3">
+<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="1137850896" SelectedViewType="128" vst_preset_count="64">
+    <WindowLayout>
+        <MainWindow l="114" t="114" r="2994" b="1651" monitor="\\.\DISPLAY1" ml="0" mt="0" mr="3840" mb="2160"/>
+    </WindowLayout>
+    <master_container type="Container" handle="1137850896" name="Main" PanelLocationZoom="1.8189894" StructLocationZoom="1" ViewOpenFlags="384" skin="default3">
         <plugs>
             <plug idx="7"/>
         </plugs>
@@ -10,7 +13,7 @@
             <Parameters>
                 <param type="6" handle="1073254275" shortName="Slider" module="795310972" moduleParamId="0" RangeMaximum="1000">
                     <patch-list>
-                        <s>300</s>
+                        <s>397.402</s>
                         <s repeat="127">0</s>
                     </patch-list>
                 </param>
@@ -116,10 +119,11 @@
             </module>
             <module type="SE: StyleBuilder" handle="1213143340">
                 <plugs>
-                    <plug default="60202030"/>
+                    <plug default="00000000"/>
                     <plug default="00000000"/>
                     <plug default="0"/>
-                    <plug default="4" idx="5"/>
+                    <plug default="5" idx="5"/>
+                    <plug default="A0202030"/>
                 </plugs>
                 <structRect l="520" r="592" t="480" b="552"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
@@ -312,36 +316,24 @@
             <line type="Line" handle="1407871144" lineType="1" fMod="705425564" tMod="857876999" fPlg="2" tPlg="1"/>
             <line type="Line" handle="113694312" lineType="1" fMod="333946139" tMod="857876999" fPlg="2" tPlg="2"/>
             <line type="Line" handle="1160797845" lineType="1" fMod="857876999" tMod="1773673106"/>
-            <line type="Line" handle="212142728" lineType="1" fMod="165555737" tMod="1773673106" fPlg="4" tPlg="1"/>
             <line type="Line" handle="1099709946" lineType="1" fMod="1261527726" tMod="1963574602" fPlg="2" tPlg="1"/>
             <line type="Line" handle="471060838" lineType="1" fMod="134551738" tMod="1963574602" fPlg="2" tPlg="2"/>
             <line type="Line" handle="941247021" lineType="1" fMod="1963574602" tMod="194570285"/>
-            <line type="Line" handle="908017869" lineType="1" fMod="90521324" tMod="194570285" fPlg="4" tPlg="1"/>
             <line type="Line" handle="204804716" lineType="1" fMod="1963574602" tMod="526819858"/>
-            <line type="Line" handle="1193364967" lineType="1" fMod="160013383" tMod="526819858" fPlg="4" tPlg="1"/>
             <line type="Line" handle="1785651415" lineType="1" fMod="795310972" tMod="921648019" fPlg="4"/>
             <line type="Line" handle="1224302567" lineType="1" fMod="921648019" tMod="136938843" fPlg="2"/>
             <line type="Line" handle="489402028" lineType="1" fMod="136938843" tMod="275862673" fPlg="2"/>
             <line type="Line" handle="1261976312" lineType="1" fMod="1364258844" tMod="1357402586" fPlg="2" tPlg="1"/>
             <line type="Line" handle="142847736" lineType="1" fMod="275862673" tMod="1357402586" fPlg="2" tPlg="2"/>
             <line type="Line" handle="861864842" lineType="1" fMod="1357402586" tMod="1267440634"/>
-            <line type="Line" handle="116492238" lineType="1" fMod="1249319143" tMod="1267440634" fPlg="4" tPlg="1"/>
             <line type="Line" handle="1853546981" lineType="1" fMod="484769608" tMod="1205428767" fPlg="6"/>
-            <line type="Line" handle="295990742" lineType="1" fMod="110035544" tMod="1205428767" fPlg="4" tPlg="1"/>
             <line type="Line" handle="319785426" lineType="1" fMod="136938843" tMod="910094241" fPlg="2"/>
             <line type="Line" handle="262956896" lineType="1" fMod="136938843" tMod="1171114102" fPlg="2"/>
             <line type="Line" handle="672459676" lineType="1" fMod="1171114102" tMod="1236027820" fPlg="2"/>
             <line type="Line" handle="1474589642" lineType="1" fMod="631931211" tMod="1762618007" fPlg="1"/>
-            <line type="Line" handle="398106949" lineType="1" fMod="1213143340" tMod="1762618007" fPlg="4" tPlg="1"/>
             <line type="Line" handle="231310449" lineType="1" fMod="1236027820" tMod="1762618007" fPlg="2" tPlg="3"/>
             <line type="Line" handle="1382056227" lineType="1" fMod="631931211" tMod="1236652084" fPlg="1"/>
-            <line type="Line" handle="413449954" lineType="1" fMod="1258976840" tMod="1236652084" fPlg="4" tPlg="1"/>
             <line type="Line" handle="809717633" lineType="1" fMod="910094241" tMod="1236652084" fPlg="2" tPlg="3"/>
-            <line type="Line" handle="1539246225" lineType="1" fMod="219230569" tMod="1186272276" fPlg="4" tPlg="1"/>
-            <line type="Line" handle="1221971681" lineType="1" fMod="219230569" tMod="144838299" fPlg="4" tPlg="1"/>
-            <line type="Line" handle="1339312984" lineType="1" fMod="219230569" tMod="137992538" fPlg="4" tPlg="1"/>
-            <line type="Line" handle="1076042002" lineType="1" fMod="219230569" tMod="452292975" fPlg="4" tPlg="1"/>
-            <line type="Line" handle="1151860529" lineType="1" fMod="219230569" tMod="1471147818" fPlg="4" tPlg="1"/>
             <line type="Line" handle="684625911" lineType="1" fMod="928247487" tMod="1679086092" fPlg="1"/>
             <line type="Line" handle="1009872392" lineType="1" fMod="928247487" tMod="1679086092" fPlg="7" tPlg="1"/>
             <line type="Line" handle="1993075267" lineType="1" fMod="1679086092" tMod="1267484520" fPlg="2"/>
@@ -353,14 +345,26 @@
             <line type="Line" handle="185782303" lineType="1" fMod="795310972" tMod="534193277" fPlg="3"/>
             <line type="Line" handle="1243565527" lineType="1" fMod="396046157" tMod="534193277" fPlg="2" tPlg="1"/>
             <line type="Line" handle="654780074" lineType="1" fMod="928247487" tMod="534193277" fPlg="1" tPlg="2"/>
+            <line type="Line" handle="94852515" lineType="1" fMod="165555737" tMod="1773673106" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="190616161" lineType="1" fMod="90521324" tMod="194570285" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="1412763883" lineType="1" fMod="160013383" tMod="526819858" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="34702161" lineType="1" fMod="1249319143" tMod="1267440634" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="70768971" lineType="1" fMod="110035544" tMod="1205428767" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="1590000411" lineType="1" fMod="1213143340" tMod="1762618007" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="1991779248" lineType="1" fMod="1258976840" tMod="1236652084" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="185720371" lineType="1" fMod="219230569" tMod="1471147818" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="1311285963" lineType="1" fMod="219230569" tMod="452292975" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="4224648" lineType="1" fMod="219230569" tMod="137992538" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="2064520790" lineType="1" fMod="219230569" tMod="144838299" fPlg="4" tPlg="1"/>
+            <line type="Line" handle="356931408" lineType="1" fMod="219230569" tMod="1186272276" fPlg="4" tPlg="1"/>
         </lines>
-        <PanelLocationCenter x="0" y="0"/>
-        <StructLocationCenter x="0" y="0"/>
+        <PanelLocationCenter x="4100.3076" y="3824.2236"/>
+        <StructLocationCenter x="450" y="450"/>
         <PanelWndPosition l="0" r="0" t="0" b="0"/>
         <PanelLocation l="0" r="500" t="0" b="500"/>
         <StructLocation l="0" r="500" t="0" b="500"/>
-        <PanelScroll x="-250" y="-250"/>
-        <StructScroll x="-250" y="-250"/>
+        <PanelScroll x="3850" y="3574"/>
+        <StructScroll x="200" y="200"/>
         <PanelWndOffset cx="-99999" cy="-99999"/>
         <panel_rect l="3800" r="4280" t="3800" b="3890"/>
     </master_container>
@@ -467,6 +471,7 @@
                 <Pin name="Cap" datatype="enum" metadata="Flat,Square,Round"/>
                 <Pin name="Style" datatype="object:style" direction="out"/>
                 <Pin name="Glow Radius" datatype="float"/>
+                <Pin name="Glow Color" datatype="struct:color"/>
             </GUI>
         </Plugin>
         <Plugin id="SE: TextRender" name="Text Render" flags="384" category="Experimental/Cadmium">

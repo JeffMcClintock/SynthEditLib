@@ -710,6 +710,7 @@ struct DECLSPEC_NOVTABLE IStyle : gmpi::api::IUnknown
     virtual gmpi::ReturnCode getStrokeWidth(float* returnWidth) = 0;
     virtual int32_t getStrokeCap() = 0; // gmpi::drawing::CapStyle as int (Flat / Square / Round)
     virtual gmpi::ReturnCode getGlowRadius(float* returnRadius) = 0; // DIPs, 0 = no glow
+    virtual gmpi::ReturnCode getGlowColor(gmpi::drawing::Color* returnColor) = 0; // alpha 0 = the shape's own colour
 
     // {5D4686F8-97A7-4A55-AFFC-6B7CB6BA4505}
     inline static const gmpi::api::Guid guid =
@@ -789,7 +790,17 @@ static GlowImage makeGlowImage(Factory factory, Rect area, float radius, gmpi::d
     return glow;
 }
 
-// A path's glow: the shape the Style draws, tinted with the stroke colour (or the fill's when there's no stroke).
+// The Style's Glow Color, or 'shapeColor' when it has none.
+static gmpi::drawing::Color glowTint(IStyle* style, gmpi::drawing::Color shapeColor)
+{
+    gmpi::drawing::Color glowColor{};
+    if (style)
+        style->getGlowColor(&glowColor);
+    return glowColor.a > 0.0f ? glowColor : shapeColor;
+}
+
+// A path's glow: the shape the Style draws, tinted with the Glow Color, else the stroke's (or the fill's when there's
+// no stroke). A Style that draws nothing but has a Glow Color glows from the filled shape: a soft shadow.
 static GlowImage makeGlow(Factory factory, PathGeometry& geometry, IStyle* style, float scale)
 {
     float radius{};
@@ -802,8 +813,9 @@ static GlowImage makeGlow(Factory factory, PathGeometry& geometry, IStyle* style
     style->getFillColor(&fill);
     style->getStrokeColor(&stroke);
     style->getStrokeWidth(&strokeWidth);
-    const bool doFill = fill.a > 0.0f;
     const bool doStroke = stroke.a > 0.0f && strokeWidth > 0.0f;
+    const auto tint = glowTint(style, doStroke ? stroke : fill);
+    const bool doFill = fill.a > 0.0f || (!doStroke && tint.a > 0.0f);
     if (!doFill && !doStroke)
         return {};
 
@@ -812,7 +824,7 @@ static GlowImage makeGlow(Factory factory, PathGeometry& geometry, IStyle* style
     if (!std::isfinite(extent.left) || !std::isfinite(extent.right) || !std::isfinite(extent.top) || !std::isfinite(extent.bottom))
         return {};
 
-    return makeGlowImage(factory, extent, radius, doStroke ? stroke : fill, scale,
+    return makeGlowImage(factory, extent, radius, tint, scale,
         [&](Graphics& g, const IHasBrush& brush)
         {
             if (doFill)
@@ -1068,7 +1080,7 @@ public:
             float radius{};
             if (auto* style = pinStyle.value.get(); style && ReturnCode::Ok == style->getGlowRadius(&radius) && radius > 0.0f && textColor.a > 0.0f)
             {
-                glow = makeGlowImage(g.getFactory(), textRect, radius, textColor, drawingHost ? drawingHost->getRasterizationScale() : 1.0f,
+                glow = makeGlowImage(g.getFactory(), textRect, radius, glowTint(style, textColor), drawingHost ? drawingHost->getRasterizationScale() : 1.0f,
                     [&](Graphics& mask, const IHasBrush& brush) { mask.drawTextU(pinText.value, textFormat, textRect, brush); });
             }
             glowDirty = false;
@@ -1246,7 +1258,7 @@ public:
                 float radius{};
                 if (!style || ReturnCode::Ok != style->getGlowRadius(&radius) || radius <= 0.0f || color.a <= 0.0f)
                     return {};
-                return makeGlowImage(g.getFactory(), bounds, radius, color, scale, drawText);
+                return makeGlowImage(g.getFactory(), bounds, radius, glowTint(style, color), scale, drawText);
             };
 
             numberGlow = glowOf(numberStyle, textColor,
@@ -2493,12 +2505,14 @@ struct StyleObject final : public IStyle
     float strokeWidth = 1.0f;
     int32_t strokeCap = 0;                            // CapStyle::Flat
     float glowRadius = 0.0f;                          // no glow
+    gmpi::drawing::Color glowColor{};                 // alpha 0 = the shape's own colour
 
     gmpi::ReturnCode getFillColor(gmpi::drawing::Color* c) override { *c = fillColor; return gmpi::ReturnCode::Ok; }
     gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* c) override { *c = strokeColor; return gmpi::ReturnCode::Ok; }
     gmpi::ReturnCode getStrokeWidth(float* w) override { *w = strokeWidth; return gmpi::ReturnCode::Ok; }
     int32_t getStrokeCap() override { return strokeCap; }
     gmpi::ReturnCode getGlowRadius(float* r) override { *r = glowRadius; return gmpi::ReturnCode::Ok; }
+    gmpi::ReturnCode getGlowColor(gmpi::drawing::Color* c) override { *c = glowColor; return gmpi::ReturnCode::Ok; }
 
     GMPI_QUERYINTERFACE_METHOD(IStyle);
     GMPI_REFCOUNT
@@ -2514,6 +2528,7 @@ struct StyleBuilder final : public PluginEditorNoGui
     In<int32_t>              pinCap;
     ObjectOut<IStyle>         pinStyle;
     In<float>                pinGlowRadius; // after the output, so saved wires to Style keep their pin
+    In<gmpi::drawing::Color> pinGlowColor;
 
     StyleBuilder()
     {
@@ -2534,6 +2549,7 @@ struct StyleBuilder final : public PluginEditorNoGui
         s->strokeWidth = pinStrokeWidth.value;
         s->strokeCap   = pinCap.value;
         s->glowRadius  = (std::max)(0.0f, pinGlowRadius.value);
+        s->glowColor   = pinGlowColor.value;
 
         pinStyle.send();
         return ReturnCode::Ok;
@@ -2554,6 +2570,7 @@ auto r26 = gmpi::Register<StyleBuilder>::withXml(R"XML(
       <Pin name="Cap" datatype="enum" default="0" metadata="Flat,Square,Round"/>
       <Pin name="Style" datatype="object:style" direction="out"/>
       <Pin name="Glow Radius" datatype="float"/>
+      <Pin name="Glow Color" datatype="struct:color"/>
     </GUI>
   </Plugin>
 </PluginList>
