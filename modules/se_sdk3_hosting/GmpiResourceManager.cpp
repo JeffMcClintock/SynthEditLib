@@ -98,10 +98,11 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 			searchExtensions.push_back(L".txt");
 			searchWithSkin = true;
 		}
-		else if (strcmp(resourceType, "Image") == 0 || strcmp(resourceType, "png") == 0 || strcmp(resourceType, "svg") == 0)
+		else if (strcmp(resourceType, "Image") == 0 || strcmp(resourceType, "png") == 0 || strcmp(resourceType, "svg") == 0
+			|| strcmp(resourceType, "bmp") == 0 || strcmp(resourceType, "jpg") == 0 || strcmp(resourceType, "jpeg") == 0)
 		{
 			// see also: isSkinImageFile()
-			searchExtensions = { L".png", L".bmp", L".jpg", L".svg" };
+			searchExtensions = { L".png", L".bmp", L".jpg", L".jpeg", L".svg" };
 			searchWithSkin = true;
 		}
 		else if (strcmp(resourceType, "Audio") == 0 || strcmp(resourceType, "wav") == 0)
