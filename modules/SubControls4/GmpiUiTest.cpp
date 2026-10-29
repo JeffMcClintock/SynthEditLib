@@ -2090,6 +2090,64 @@ auto r43 = gmpi::Register<Multiline>::withXml(R"XML(
 )XML");
 }
 
+// A row of tick marks as one path: Count ticks spread evenly across Width (centred on the origin), each running
+// down from Offset; every Major Every'th tick, counting from the first, is Major Length long instead.
+struct TicksGeometry final : public GraphicsProcessor
+{
+    In<int32_t> pinCount;
+    In<float>   pinWidth;
+    In<float>   pinOffset;
+    In<float>   pinLength;
+    In<int32_t> pinMajorEvery;
+    In<float>   pinMajorLength;
+    ObjectOut<drawing::api::IPathGeometry> pinPath;
+
+    gmpi::drawing::PathGeometry geometry;
+
+    ReturnCode process() override
+    {
+        geometry = drawingFactory.createPathGeometry();
+        auto sink = geometry.open();
+
+        const int count = (std::max)(0, pinCount.value);
+        const float step = count > 1 ? pinWidth.value / (count - 1) : 0.0f;
+        const float left = count > 1 ? -0.5f * pinWidth.value : 0.0f;
+        for (int i = 0; i < count; ++i)
+        {
+            const bool major = pinMajorEvery.value > 0 && i % pinMajorEvery.value == 0;
+            const float x = left + step * i;
+            sink.beginFigure({ x, pinOffset.value }, FigureBegin::Hollow);
+            sink.addLine({ x, pinOffset.value + (major ? pinMajorLength.value : pinLength.value) });
+            sink.endFigure(FigureEnd::Open);
+        }
+
+        sink.close();
+        pinPath = AccessPtr::get(geometry);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r60 = gmpi::Register<TicksGeometry>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: TicksGeometry" name="Ticks Geometry" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Count" datatype="int" default="11"/>
+      <Pin name="Width" datatype="float" default="100"/>
+      <Pin name="Offset" datatype="float"/>
+      <Pin name="Length" datatype="float" default="4"/>
+      <Pin name="Major Every" datatype="int" default="5"/>
+      <Pin name="Major Length" datatype="float" default="8"/>
+      <Pin name="Path" datatype="object:path" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 // Bools to an integer, one bit each: the first input is bit 0. Inputs past bit 31 are ignored.
 struct BitsToInt final : public PluginEditorNoGui
 {
@@ -2507,6 +2565,7 @@ struct RenderGeometry final : public PluginEditor
     ObjectIn<drawing::api::IPathGeometry> pinInput;
     ObjectIn<IStyle>                      pinStyle;
     In<gmpi::drawing::Rect>               pinPanelRect; // where to render on the parent panel (panel sub-view only).
+    In<gmpi::drawing::Matrix3x2>          pinTransform; // applied to the geometry before it's centred; identity when unconnected.
 
     GlowImage glow;
     bool glowDirty = true;
@@ -2520,6 +2579,7 @@ struct RenderGeometry final : public PluginEditor
         pinInput.onUpdate = invalidate;
         pinStyle.onUpdate = invalidate;
         pinPanelRect.onUpdate = [this](PinBase*) { invalidateDrawing(); };
+        pinTransform.onUpdate = [this](PinBase*) { invalidateDrawing(); };
     }
 
     // in a panel sub-view the Panel Rect (parent coords, mapped to local) stands in for our bounds.
@@ -2605,7 +2665,7 @@ struct RenderGeometry final : public PluginEditor
         }
 
         // origin at the widget centre (geometry is authored centred on origin).
-        TempTransform tt(g, makeTranslation((area.left + area.right) * 0.5f, (area.top + area.bottom) * 0.5f));
+        TempTransform tt(g, pinTransform.value * makeTranslation((area.left + area.right) * 0.5f, (area.top + area.bottom) * 0.5f));
 
         glow.draw(g); // behind the shape
 
@@ -2637,6 +2697,7 @@ auto r18 = gmpi::Register<RenderGeometry>::withXml(R"XML(
       <Pin name="Path" datatype="object:path"/>
       <Pin name="Style" datatype="object:style"/>
       <Pin name="Panel Rect" datatype="struct:rect"/>
+      <Pin name="Transform" datatype="struct:transform"/>
     </GUI>
   </Plugin>
 </PluginList>
