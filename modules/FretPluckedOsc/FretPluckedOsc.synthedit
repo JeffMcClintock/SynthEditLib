@@ -13,7 +13,7 @@
             <Parameters>
                 <param type="6" handle="27241617" shortName="Pick Noise" vstParameterNumber="11" module="158424961" moduleParamId="0" RangeMaximum="1">
                     <patch-list>
-                        <s>0.998741</s>
+                        <s>0.760001</s>
                         <s repeat="127">0.3</s>
                     </patch-list>
                 </param>
@@ -50,13 +50,14 @@
                 </param>
                 <param type="6" handle="1065270422" shortName="Unison" vstParameterNumber="13" module="13327" moduleParamId="0" RangeMaximum="8">
                     <patch-list>
-                        <s>1</s>
+                        <s>3</s>
                         <s repeat="127">2</s>
                     </patch-list>
                 </param>
                 <param type="6" handle="1098945969" shortName="Volume" vstParameterNumber="9" module="1773995034" moduleParamId="0">
                     <patch-list>
-                        <s repeat="128">3</s>
+                        <s>8.0235</s>
+                        <s repeat="127">3</s>
                     </patch-list>
                 </param>
                 <param type="6" handle="1127554738" shortName="Decay Time" vstParameterNumber="1" module="1854952469" moduleParamId="0" RangeMinimum="0.2">
@@ -72,9 +73,9 @@
                     </patch-list>
                 </param>
                 <param type="8" handle="1412763883" stateful="false" module="190616161" moduleParamId="0"/>
-                <param type="6" handle="1510434463" shortName="Stiffness" vstParameterNumber="14" module="1829238748" moduleParamId="0">
+                <param type="6" handle="1510434463" shortName="Stiffness" vstParameterNumber="14" module="1829238748" moduleParamId="0" RangeMaximum="100">
                     <patch-list>
-                        <s>0.736452</s>
+                        <s>7.2794</s>
                         <s repeat="127">1</s>
                     </patch-list>
                 </param>
@@ -102,7 +103,7 @@
                 </param>
                 <param type="6" handle="1805413047" shortName="Detune" vstParameterNumber="2" module="1820862943" moduleParamId="0" RangeMaximum="5">
                     <patch-list>
-                        <s>0</s>
+                        <s>3.15058</s>
                         <s repeat="127">4</s>
                     </patch-list>
                 </param>
@@ -127,9 +128,9 @@
         <modules>
             <module type="SE Fret Plucked Osc" handle="1590000411">
                 <plugs>
-                    <plug default="30" idx="4"/>
+                    <plug default="500" idx="4"/>
                 </plugs>
-                <structRect l="488" r="812" t="31" b="659"/>
+                <structRect l="489" r="813" t="30" b="506"/>
                 <panelRect l="3752" r="4192" t="4168" b="4368"/>
             </module>
             <module type="Container" handle="69604974" name="Stiffness" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="256" m_locked="true" skin="default">
@@ -142,7 +143,7 @@
                     <plug name="Output" direction="1"/>
                     <plug direction="1"/>
                 </plugs>
-                <structRect l="1488" r="1572" t="405" b="520"/>
+                <structRect l="1489" r="1573" t="405" b="520"/>
                 <modules>
                     <module type="SE Text Entry4" handle="1098491009">
                         <plugs>
@@ -1090,7 +1091,7 @@
                     <plug name="Output" direction="1"/>
                     <plug direction="1"/>
                 </plugs>
-                <structRect l="408" r="492" t="400" b="515"/>
+                <structRect l="408" r="492" t="399" b="514"/>
                 <modules>
                     <module type="SE Text Entry4" handle="6112201">
                         <plugs>
