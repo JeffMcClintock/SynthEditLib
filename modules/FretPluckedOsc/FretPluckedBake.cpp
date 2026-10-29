@@ -34,12 +34,9 @@ uint64_t burstKey(int midiNote, int set, int index, int field)
 	return (static_cast<uint64_t>(midiNote) << 40) ^ (static_cast<uint64_t>(set) << 32) ^ (static_cast<uint64_t>(index) << 8) ^ static_cast<uint64_t>(field);
 }
 
-// Deterministic per-partial spread with mean magnitude 1.
-double randomSpread(int index)
+bool beats(const Params& p)
 {
-	const uint64_t x = mix(static_cast<uint64_t>(index));
-	const double magnitude = 0.5 + static_cast<double>(x >> 11) * (1.0 / 9007199254740992.0);
-	return (x & 1) ? magnitude : -magnitude;
+	return p.beating > 0.0f && p.beatRate > 0.0f;
 }
 
 // Renders a set of bursts into `out`, scaled so its RMS over the first `window` samples is `rms`.
@@ -100,11 +97,11 @@ struct Layout
 	double rootHz;
 };
 
-Layout layoutFor(int midiNote, double sampleRate)
+Layout layoutFor(const Params& p, int midiNote, double sampleRate)
 {
 	const double f0 = 440.0 * std::exp2((midiNote - 69) / 12.0);
 	const double period = sampleRate / f0;
-	const int periods = (std::max)(1, static_cast<int>(std::ceil(loopSeconds * f0)));
+	const int periods = loopPeriods(p, f0);
 	const int loopLength = (std::max)(4, static_cast<int>(std::lround(periods * period)));
 
 	Layout l;
@@ -134,20 +131,19 @@ double renderNote(const Params& p, int midiNote, const std::vector<Partial>& par
 	work.assign(E, 0.0);
 	frozenWork.assign(X, 0.0); // the tail as it would sound over [S-X, S) with amplitudes already frozen.
 
-	for (const auto& part : parts)
+	auto addSine = [&](double hz, double amplitude, double t60)
 	{
-		const double hz = part.hz(l.rootHz);
-		if (hz <= 0.0 || hz >= maxPartialFraction * sampleRate)
-			continue;
+		if (hz <= 0.0 || hz >= maxPartialFraction * sampleRate || amplitude <= 0.0)
+			return;
 
 		const double w = twoPi * hz / sampleRate;
 		const double c = std::cos(w);
 		const double s = std::sin(w);
-		const double decay = std::exp(-ln1000 / (part.t60 * sampleRate));
-		const double frozenGain = part.amplitude * std::exp(-ln1000 * S / (part.t60 * sampleRate));
+		const double decay = std::exp(-ln1000 / (t60 * sampleRate));
+		const double frozenGain = amplitude * std::exp(-ln1000 * S / (t60 * sampleRate));
 
-		double re = 1.0, im = 0.0; // phase 0: sin starts at zero, so no click at note-on.
-		double gain = part.amplitude;
+		double re = 1.0, im = 0.0; // phase 0: sin starts at zero, so no click at note-on, and every twin starts in step.
+		double gain = amplitude;
 		int t = 0;
 
 		for (; t < S; ++t)
@@ -172,7 +168,7 @@ double renderNote(const Params& p, int midiNote, const std::vector<Partial>& par
 		}
 
 		if (t < S) // fell silent before the freeze.
-			continue;
+			return;
 
 		for (; t < E; ++t)
 		{
@@ -181,6 +177,16 @@ double renderNote(const Params& p, int midiNote, const std::vector<Partial>& par
 			im = re * s + im * c;
 			re = r;
 		}
+	};
+
+	const double loopLength = (E - S) / sampleRate;
+	for (const auto& part : parts)
+	{
+		const double hz = part.hz(l.rootHz);
+		const double share = 1.0 / (1.0 + part.twinLevel);
+		addSine(hz, part.amplitude * share, part.t60);
+		if (part.twinLevel > 0.0)
+			addSine(hz + beatHz(part, hz, loopLength), part.amplitude * part.twinLevel * share, part.t60);
 	}
 
 	// Crossfade the end of the loop into the frozen tail leading up to the loop start, so the wrap E -> S is continuous.
@@ -232,6 +238,8 @@ std::vector<Partial> partials(const Params& p)
 	const double b = (std::max)(0.0, static_cast<double>(p.stiffness)) * 1e-4;
 	const double lowestStretch = std::sqrt(1.0 + b * lowest * lowest);
 
+	const double twinLevel = beats(p) ? maxTwinLevel * std::clamp(static_cast<double>(p.beating), 0.0, 1.0) : 0.0;
+
 	std::vector<Partial> result;
 	result.reserve(count * (1 + std::clamp(p.unison, 0, maxUnison)));
 	for (int i = 0; i < count; ++i)
@@ -239,16 +247,13 @@ std::vector<Partial> partials(const Params& p)
 		const int n = lowest + i * step;
 		const double relative = static_cast<double>(n) / lowest;
 
-		double spread = 0.0;
-		if (i > 0)
-			spread = p.detunePattern == DetunePattern::Alternating ? ((i & 1) ? -1.0 : 1.0) : randomSpread(i);
-
 		Partial part;
 		part.number = n;
 		part.ratio = (1.0 + (n - 1) * static_cast<double>(p.spacing)) * std::sqrt(1.0 + b * n * n) / lowestStretch;
-		part.offsetHz = p.detune * spread;
 		part.amplitude = std::pow(relative, -static_cast<double>(p.spectrumTilt));
 		part.t60 = (std::max)(1e-3, p.decayTime / std::pow(relative, static_cast<double>(p.decayTilt)));
+		part.twinLevel = twinLevel;
+		part.beatsPerHz = p.beatRate / 440.0 * (1.0 + beatSpread * (2.0 * unit(0xBEA7000000000000ull ^ static_cast<uint64_t>(n)) - 1.0));
 
 		if (part.ratio > 0.0)
 			result.push_back(part);
@@ -270,6 +275,19 @@ std::vector<Partial> partials(const Params& p)
 		}
 	}
 	return result;
+}
+
+int loopPeriods(const Params& p, double f0)
+{
+	return (std::max)(1, static_cast<int>(std::ceil((beats(p) ? beatLoopSeconds : loopSeconds) * f0)));
+}
+
+double beatHz(const Partial& part, double hz, double loopSeconds)
+{
+	if (part.twinLevel <= 0.0 || part.beatsPerHz <= 0.0)
+		return 0.0;
+	const double wholeBeats = (std::max)(1.0, std::round(part.beatsPerHz * hz * loopSeconds));
+	return wholeBeats / loopSeconds;
 }
 
 std::vector<Burst> pickBursts(const Params& p, int midiNote)
@@ -312,7 +330,7 @@ std::vector<Burst> bodyBursts(int midiNote)
 
 namespace
 {
-constexpr uint32_t envelopeBlobVersion = 1; // bump whenever Params changes layout.
+constexpr uint32_t envelopeBlobVersion = 2; // bump whenever Params changes layout.
 }
 
 std::vector<uint8_t> envelopeBlob(const Params& p)
@@ -363,7 +381,7 @@ std::shared_ptr<Table> bake(const Params& requested, float sampleRate, const std
 	table->notes.resize(noteCount);
 	for (int i = 0; i < noteCount; ++i)
 	{
-		layouts[i] = layoutFor(p.lowNote + i, sampleRate);
+		layouts[i] = layoutFor(p, p.lowNote + i, sampleRate);
 		auto& n = table->notes[i];
 		n.offset = total + 1;
 		n.loopStart = layouts[i].loopStart;

@@ -102,11 +102,6 @@
                         <s repeat="127">1</s>
                     </patch-list>
                 </param>
-                <param type="0" handle="1563966159" shortName="Fret Plucked Oscillator Detune Pattern" vstParameterNumber="3" module="830402234" moduleParamId="0" MetaData="Alternating,Random">
-                    <patch-list>
-                        <s repeat="128">0</s>
-                    </patch-list>
-                </param>
                 <param type="6" handle="1587543132" shortName="Pick Tone" vstParameterNumber="12" module="291249669" moduleParamId="0" RangeMaximum="1">
                     <patch-list>
                         <s>0.848586</s>
@@ -123,10 +118,15 @@
                         <s repeat="128">0</s>
                     </patch-list>
                 </param>
-                <param type="6" handle="1805413047" shortName="Detune" vstParameterNumber="2" module="1159744657" moduleParamId="0" RangeMaximum="5">
+                <param type="6" handle="1456048211" shortName="Beating" vstParameterNumber="3" module="919990628" moduleParamId="0" RangeMaximum="1">
                     <patch-list>
-                        <s>3.15058</s>
-                        <s repeat="127">4</s>
+                        <s repeat="128">0.5</s>
+                    </patch-list>
+                </param>
+                <param type="6" handle="1805413047" shortName="Beat Rate" vstParameterNumber="2" module="1159744657" moduleParamId="0" RangeMaximum="5">
+                    <patch-list>
+                        <s>1</s>
+                        <s repeat="127">1</s>
                     </patch-list>
                 </param>
                 <param type="8" handle="1808329957" shortName="ReserveVoices" ignorePC="true" private="true" module="94852515" hostControl="22" RangeMaximum="128">
@@ -1676,14 +1676,6 @@
                 <structRect l="832" r="940" t="800" b="1028"/>
                 <panelRect l="0" r="0" t="0" b="0"/>
             </module>
-            <module type="List Entry" handle="830402234" name="Detune Pattern">
-                <plugs>
-                    <plug parameterId="-1" idx="10"/>
-                    <plug parameterId="-1"/>
-                </plugs>
-                <structRect l="508" r="616" t="728" b="782"/>
-                <panelRect l="3575" r="3675" t="3909" b="3947"/>
-            </module>
             <module type="List Entry" handle="897405557" name="Series">
                 <plugs>
                     <plug parameterId="-1" idx="10"/>
@@ -2294,7 +2286,7 @@
                 <PanelWndOffset cx="3704" cy="3979"/>
                 <panel_rect l="0" r="180" t="0" b="163"/>
             </module>
-            <module type="Container" handle="2059312830" name="Detune" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="256" m_locked="true" skin="default">
+            <module type="Container" handle="2059312830" name="Beat Rate" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="256" m_locked="true" skin="default">
                 <plugs>
                     <plug default="1" idx="1"/>
                     <plug default="1"/>
@@ -2308,7 +2300,7 @@
                 <modules>
                     <module type="SE Text Entry4" handle="516933490">
                         <plugs>
-                            <plug default="Detune"/>
+                            <plug default="Beat Rate"/>
                             <plug default="heading 3"/>
                             <plug default="0"/>
                             <plug default="0"/>
@@ -2348,7 +2340,7 @@
                     </module>
                     <module type="SE: MouseTarget" handle="24445203">
                         <plugs>
-                            <plug default="Detunes the harmonics so they beat slowly against each other" idx="10"/>
+                            <plug default="How fast the harmonics beat, per second at 440 Hz; higher harmonics beat faster" idx="10"/>
                         </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
@@ -2593,6 +2585,307 @@
                 <PanelScroll x="-151" y="-159"/>
                 <StructScroll x="122" y="17"/>
                 <PanelWndOffset cx="3896" cy="3883"/>
+                <panel_rect l="0" r="180" t="0" b="163"/>
+            </module>
+            <module type="Container" handle="473953709" name="Beating" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="256" m_locked="true" skin="default">
+                <plugs>
+                    <plug default="1" idx="1"/>
+                    <plug default="1"/>
+                    <plug default="0"/>
+                    <plug default="0" idx="5"/>
+                    <plug default="2"/>
+                    <plug name="Output" direction="1"/>
+                    <plug direction="1"/>
+                </plugs>
+                <structRect l="1012" r="1096" t="576" b="691"/>
+                <modules>
+                    <module type="SE Text Entry4" handle="391461256">
+                        <plugs>
+                            <plug default="Beating"/>
+                            <plug default="heading 3"/>
+                            <plug default="0"/>
+                            <plug default="0"/>
+                        </plugs>
+                        <structRect l="572" r="680" t="276" b="436"/>
+                        <panelRect l="32" r="97" t="76" b="99"/>
+                    </module>
+                    <module type="SE: PatchMemSet" handle="789090998">
+                        <structRect l="1040" r="1136" t="640" b="712"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Add" handle="1278324660">
+                        <structRect l="910" r="1006" t="640" b="712"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Add" handle="780938807">
+                        <structRect l="780" r="876" t="640" b="712"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Multiply" handle="46671725">
+                        <plugs>
+                            <plug default="0.01" idx="1"/>
+                        </plugs>
+                        <structRect l="1300" r="1396" t="540" b="612"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Multiply" handle="964714481">
+                        <plugs>
+                            <plug default="0.015625" idx="1"/>
+                        </plugs>
+                        <structRect l="1170" r="1266" t="540" b="612"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Multiply" handle="1389497263">
+                        <structRect l="1040" r="1136" t="540" b="612"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: MouseTarget" handle="1224465865">
+                        <plugs>
+                            <plug default="How strongly the harmonics beat" idx="10"/>
+                        </plugs>
+                        <structRect l="910" r="1006" t="540" b="612"/>
+                        <panelRect l="24" r="105" t="40" b="72"/>
+                    </module>
+                    <module type="SE: StyleBuilder" handle="1568975055">
+                        <plugs>
+                            <plug default="FFFFFFFF" idx="0"/>
+                            <plug default="FFD0D0DA" idx="1"/>
+                            <plug default="1" idx="2"/>
+                        </plugs>
+                        <structRect l="780" r="876" t="540" b="612"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: RenderGeometry" handle="704522732">
+                        <structRect l="1300" r="1396" t="440" b="512"/>
+                        <panelRect l="24" r="105" t="40" b="72"/>
+                    </module>
+                    <module type="SE: StyleBuilder" handle="361295738">
+                        <plugs>
+                            <plug default="00000000" idx="0"/>
+                            <plug default="00000000" idx="1"/>
+                            <plug default="0" idx="2"/>
+                            <plug default="3" idx="5"/>
+                            <plug default="C0000000" idx="6"/>
+                        </plugs>
+                        <structRect l="1170" r="1266" t="440" b="512"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: RenderGeometry" handle="802648344">
+                        <structRect l="1040" r="1136" t="440" b="512"/>
+                        <panelRect l="24" r="105" t="40" b="72"/>
+                    </module>
+                    <module type="SE: Translation" handle="1343569005">
+                        <plugs>
+                            <plug default="1.5" idx="1"/>
+                        </plugs>
+                        <structRect l="910" r="1006" t="440" b="512"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Add" handle="1422856794">
+                        <plugs>
+                            <plug default="1.5" idx="1"/>
+                        </plugs>
+                        <structRect l="780" r="876" t="440" b="512"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Translation" handle="52046783">
+                        <structRect l="1300" r="1396" t="340" b="412"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: CircleGeometry" handle="451580072">
+                        <plugs>
+                            <plug default="7" idx="0"/>
+                        </plugs>
+                        <structRect l="1170" r="1266" t="340" b="412"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: StyleBuilder" handle="801742452">
+                        <plugs>
+                            <plug default="00000000" idx="0"/>
+                            <plug default="FF9090A0" idx="1"/>
+                            <plug default="1" idx="2"/>
+                        </plugs>
+                        <structRect l="1040" r="1136" t="340" b="412"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: RenderGeometry" handle="289823433">
+                        <structRect l="910" r="1006" t="340" b="412"/>
+                        <panelRect l="24" r="105" t="40" b="72"/>
+                    </module>
+                    <module type="SE: TicksGeometry" handle="189423724">
+                        <plugs>
+                            <plug default="9" idx="0"/>
+                            <plug default="64" idx="1"/>
+                            <plug default="6" idx="2"/>
+                            <plug default="2" idx="3"/>
+                            <plug default="4" idx="4"/>
+                            <plug default="4" idx="5"/>
+                        </plugs>
+                        <structRect l="780" r="876" t="340" b="412"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: StyleBuilder" handle="1341784635">
+                        <plugs>
+                            <plug default="00000000" idx="0"/>
+                            <plug default="FFE04040" idx="1"/>
+                            <plug default="4" idx="2"/>
+                            <plug default="2" idx="3"/>
+                        </plugs>
+                        <structRect l="1300" r="1396" t="240" b="312"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: RenderGeometry" handle="970894909">
+                        <structRect l="1170" r="1266" t="240" b="312"/>
+                        <panelRect l="24" r="105" t="40" b="72"/>
+                    </module>
+                    <module type="SE: Multiline" handle="1028049897">
+                        <plugs>
+                            <plug id="2" idx="2"/>
+                            <plug id="3" idx="3"/>
+                        </plugs>
+                        <structRect l="1040" r="1136" t="240" b="312"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Point" handle="614031239">
+                        <plugs>
+                            <plug default="-32" idx="0"/>
+                            <plug default="0" idx="1"/>
+                        </plugs>
+                        <structRect l="910" r="1006" t="240" b="312"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Point" handle="1946295813">
+                        <structRect l="780" r="876" t="240" b="312"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Add" handle="1534730996">
+                        <plugs>
+                            <plug default="-32" idx="1"/>
+                        </plugs>
+                        <structRect l="1300" r="1396" t="140" b="212"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Multiply" handle="1857144574">
+                        <plugs>
+                            <plug default="64" idx="1"/>
+                        </plugs>
+                        <structRect l="1170" r="1266" t="140" b="212"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: StyleBuilder" handle="1238461111">
+                        <plugs>
+                            <plug default="00000000" idx="0"/>
+                            <plug default="FF4A4A56" idx="1"/>
+                            <plug default="4" idx="2"/>
+                            <plug default="2" idx="3"/>
+                        </plugs>
+                        <structRect l="1040" r="1136" t="140" b="212"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: RenderGeometry" handle="632591254">
+                        <structRect l="910" r="1006" t="140" b="212"/>
+                        <panelRect l="24" r="105" t="40" b="72"/>
+                    </module>
+                    <module type="SE: StyleBuilder" handle="1240477185">
+                        <plugs>
+                            <plug default="00000000" idx="0"/>
+                            <plug default="FF8A8A98" idx="1"/>
+                            <plug default="6" idx="2"/>
+                            <plug default="2" idx="3"/>
+                        </plugs>
+                        <structRect l="780" r="876" t="140" b="212"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: RenderGeometry" handle="484678015">
+                        <structRect l="1300" r="1396" t="40" b="112"/>
+                        <panelRect l="24" r="105" t="40" b="72"/>
+                    </module>
+                    <module type="SE: Multiline" handle="1586701989">
+                        <plugs>
+                            <plug id="2" idx="2"/>
+                            <plug id="3" idx="3"/>
+                        </plugs>
+                        <structRect l="1170" r="1266" t="40" b="112"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Point" handle="422310753">
+                        <plugs>
+                            <plug default="32" idx="0"/>
+                            <plug default="0" idx="1"/>
+                        </plugs>
+                        <structRect l="1040" r="1136" t="40" b="112"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: Point" handle="40227908">
+                        <plugs>
+                            <plug default="-32" idx="0"/>
+                            <plug default="0" idx="1"/>
+                        </plugs>
+                        <structRect l="910" r="1006" t="40" b="112"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="SE: PatchMemGet" handle="919990628">
+                        <structRect l="780" r="876" t="40" b="112"/>
+                        <panelRect l="0" r="0" t="0" b="0"/>
+                    </module>
+                    <module type="FloatToVolts" handle="1926486003">
+                        <structRect l="176" r="236" t="264" b="300"/>
+                    </module>
+                    <module type="IO Mod" handle="1791644014">
+                        <plugs>
+                            <plug name="Output" tiedtomod="473953709" tiedtopin="7"/>
+                            <plug direction="1"/>
+                        </plugs>
+                        <structRect l="296" r="344" t="288" b="312"/>
+                    </module>
+                </modules>
+                <lines>
+                    <line type="Line" handle="1588852683" lineType="1" fMod="1926486003" tMod="1791644014" fPlg="2"/>
+                    <line type="Line" handle="1461106817" lineType="1" fMod="40227908" tMod="1586701989" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1665225194" lineType="1" fMod="422310753" tMod="1586701989" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="685149770" lineType="1" fMod="1586701989" tMod="484678015"/>
+                    <line type="Line" handle="133597416" lineType="1" fMod="1240477185" tMod="484678015" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="1551708576" lineType="1" fMod="1586701989" tMod="632591254"/>
+                    <line type="Line" handle="63186663" lineType="1" fMod="1238461111" tMod="632591254" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="1683711575" lineType="1" fMod="919990628" tMod="1857144574" fPlg="4"/>
+                    <line type="Line" handle="668727549" lineType="1" fMod="1857144574" tMod="1534730996" fPlg="2"/>
+                    <line type="Line" handle="1725851761" lineType="1" fMod="1534730996" tMod="1946295813" fPlg="2"/>
+                    <line type="Line" handle="1047415390" lineType="1" fMod="614031239" tMod="1028049897" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="914623979" lineType="1" fMod="1946295813" tMod="1028049897" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="824293600" lineType="1" fMod="1028049897" tMod="970894909"/>
+                    <line type="Line" handle="1281368787" lineType="1" fMod="1341784635" tMod="970894909" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="1079964136" lineType="1" fMod="189423724" tMod="289823433" fPlg="6"/>
+                    <line type="Line" handle="400904767" lineType="1" fMod="801742452" tMod="289823433" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="987175829" lineType="1" fMod="1534730996" tMod="52046783" fPlg="2"/>
+                    <line type="Line" handle="1758643424" lineType="1" fMod="1534730996" tMod="1422856794" fPlg="2"/>
+                    <line type="Line" handle="393411619" lineType="1" fMod="1422856794" tMod="1343569005" fPlg="2"/>
+                    <line type="Line" handle="194198446" lineType="1" fMod="451580072" tMod="802648344" fPlg="1"/>
+                    <line type="Line" handle="1641629323" lineType="1" fMod="361295738" tMod="802648344" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="1155868677" lineType="1" fMod="1343569005" tMod="802648344" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="1428481902" lineType="1" fMod="451580072" tMod="704522732" fPlg="1"/>
+                    <line type="Line" handle="1275133055" lineType="1" fMod="1568975055" tMod="704522732" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="379218185" lineType="1" fMod="52046783" tMod="704522732" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="1148355335" lineType="1" fMod="1224465865" tMod="1389497263" fPlg="1"/>
+                    <line type="Line" handle="778970614" lineType="1" fMod="1224465865" tMod="1389497263" fPlg="7" tPlg="1"/>
+                    <line type="Line" handle="85826944" lineType="1" fMod="1389497263" tMod="964714481" fPlg="2"/>
+                    <line type="Line" handle="1110872961" lineType="1" fMod="1224465865" tMod="46671725" fPlg="9"/>
+                    <line type="Line" handle="1709713167" lineType="1" fMod="964714481" tMod="780938807" fPlg="2"/>
+                    <line type="Line" handle="1996132998" lineType="1" fMod="46671725" tMod="780938807" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="584198346" lineType="1" fMod="919990628" tMod="1278324660" fPlg="4"/>
+                    <line type="Line" handle="194116920" lineType="1" fMod="780938807" tMod="1278324660" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="237418003" lineType="1" fMod="919990628" tMod="789090998" fPlg="3"/>
+                    <line type="Line" handle="1691699512" lineType="1" fMod="1278324660" tMod="789090998" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="936196329" lineType="1" fMod="1224465865" tMod="789090998" fPlg="1" tPlg="2"/>
+                    <line type="Line" handle="1357902066" lineType="1" fMod="919990628" tMod="1926486003" fPlg="8" tPlg="1"/>
+                </lines>
+                <PanelLocationCenter x="99" y="90.5"/>
+                <StructLocationCenter x="372" y="267.5"/>
+                <PanelWndPosition l="4024" r="4089" t="3907" b="3982"/>
+                <PanelLocation l="0" r="500" t="0" b="500"/>
+                <StructLocation l="0" r="500" t="0" b="500"/>
+                <PanelScroll x="-151" y="-159"/>
+                <StructScroll x="122" y="17"/>
+                <PanelWndOffset cx="3992" cy="3883"/>
                 <panel_rect l="0" r="180" t="0" b="163"/>
             </module>
             <module type="Container" handle="2132223300" name="Decay Tilt" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="256" m_locked="true" skin="default">
@@ -5049,8 +5342,8 @@
             <line type="Line" handle="885964837" lineType="1" fMod="1315501955" tMod="1590000411" fPlg="7" tPlg="7"/>
             <line type="Line" handle="1419300469" lineType="1" fMod="221724783" tMod="1590000411" fPlg="7" tPlg="8"/>
             <line type="Line" handle="2029632505" lineType="1" fMod="2132223300" tMod="1590000411" fPlg="7" tPlg="9"/>
+            <line type="Line" handle="1762074987" lineType="1" fMod="473953709" tMod="1590000411" fPlg="7" tPlg="11"/>
             <line type="Line" handle="2039189068" lineType="1" fMod="2059312830" tMod="1590000411" fPlg="7" tPlg="10"/>
-            <line type="Line" handle="1635057536" lineType="1" fMod="830402234" tMod="1590000411" fPlg="6" tPlg="11"/>
             <line type="Line" handle="1543325712" lineType="1" fMod="912725776" tMod="1590000411" fPlg="7" tPlg="12"/>
             <line type="Line" handle="1667729522" lineType="1" fMod="1590000411" tMod="1991779248" fPlg="17"/>
             <line type="Line" handle="252281373" lineType="1" fMod="17954" tMod="1590000411" fPlg="7" tPlg="18"/>
@@ -5166,8 +5459,8 @@
                 <Pin name="Spectrum Tilt" datatype="float" default="1"/>
                 <Pin name="Decay Time" datatype="float" default="4"/>
                 <Pin name="Decay Tilt" datatype="float" default="1"/>
-                <Pin name="Detune" datatype="float"/>
-                <Pin name="Detune Pattern" datatype="enum" metadata="Alternating,Random"/>
+                <Pin name="Beat Rate" datatype="float" default="1"/>
+                <Pin name="Beating" datatype="float" default="0.5"/>
                 <Pin name="Release Time" datatype="float" default="0.2"/>
                 <Pin name="Lowest Note" datatype="int" default="24"/>
                 <Pin name="Highest Note" datatype="int" default="96"/>

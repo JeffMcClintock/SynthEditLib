@@ -16,8 +16,8 @@ cache and the offline-render path follow `WavetableOsc`; note-on sample selectio
 | Spectrum Tilt | float | Initial level `(n/lowest)^-tilt`. |
 | Decay Time | s | T60 of the lowest partial. |
 | Decay Tilt | float | T60 of partial n: `DecayTime / (n/lowest)^tilt`, so higher harmonics die faster. |
-| Detune | Hz | Average detune per partial, added after spacing and stiffness. In Hz, like the polarisation splitting of a real string, so every partial beats at a similar slow rate; cents made high partials beat roughly. The lowest partial is never detuned, so the note stays in tune. |
-| Detune Pattern | enum | Alternating (down, up, down..), or Random (fixed hash, magnitude 0.5..1.5 x Detune, random sign; identical on every bake). |
+| Beat Rate | Hz | Beats per second of a partial at 440 Hz. Each partial beats in proportion to its own frequency, so higher harmonics and higher notes beat faster, times a fixed per-harmonic factor of 0.75..1.25 so no two harmonics share a rate. Takes Detune's old pin slot. |
+| Beating | 0..1 | Level of each partial's twin, up to 0.8 of the partial at 1, so a beat dips by about 19 dB but never cancels. Takes Detune Pattern's old pin slot. |
 | Release Time | s | T60 of the release fade. Playback-only, no re-bake. |
 | Lowest Note, Highest Note | int | MIDI range baked (default 24..96); notes outside play the nearest sample. |
 | VoiceActive | host | A re-activated voice resets to idle, so its next gate is accepted. |
@@ -34,7 +34,8 @@ Unison and later pins are appended after Signal Out so that patches saved earlie
 ## Bake (`FretPluckedBake.cpp`, no host types)
 - Additive synthesis per note in double precision with recursive-rotation oscillators. Partials above 0.45 x sample rate are dropped, and so is a partial once it falls below -100 dB.
 - Partial amplitudes decay until `freezeSeconds` (2 s), then hold, leaving a stationary tail. The loop is `[S, S+L)` with `S` = 2 s and `L` = the whole number of f0 periods just over 0.35 s. The note's `rootHz` is the f0 that makes the period exact (under 0.1 cent from nominal), so harmonic partials loop perfectly.
-- Detuned or spaced partials don't fit the loop exactly. The last 80 ms of the loop (at most half of it) is crossfaded into the frozen tail *before* `S`, so the wrap lands on a continuous waveform, and entry into the loop from the attack is untouched.
+- Beating: every partial has a twin a little above it, both starting at phase 0, so all the beating starts in step and then drifts apart. With beating on, the loop is at least 2 s instead of 0.35 s, and each twin's offset is rounded to a whole number of beats per loop (0.5 Hz steps at 2 s, at least one), so the beating carries on through the loop unbroken. That makes the table about 1.7 times larger.
+- Spaced, stretched or unison partials don't fit the loop exactly. The last 80 ms of the loop (at most half of it) is crossfaded into the frozen tail *before* `S`, so the wrap lands on a continuous waveform, and entry into the loop from the attack is untouched.
 - Pick and body are short decaying sines with random phases, added to each note's first 0.5 s and gone long before the loop. The click is 48 of them, log-spread over its band with T60s of 5-40 ms. The body is 4 modes near 100, 205, 390 and 580 Hz with T60s of 60-150 ms. Their frequencies, decays and phases come from a hash of the note number: every semitone gets its own pick, yet each bake is identical. A 0.5 ms fade-in keeps the random starting phases from making a step. Each set is scaled to its level times the string's RMS over the first 50 ms.
 - Guard samples: 1 before each note, 3 after the loop end. One gain sets the whole table's level, so the level relationship between notes survives. It comes from the string's peak after its first 50 ms, measured before the pick and body go in. In-phase partials make a short spike at note-on, and normalising on that made bright settings 10-20 dB quieter. Anything above 5 V is then soft-limited (tanh) to stay under 10 V; that only affects the attack.
 - Multi-threaded across notes. A full 24..96 bake takes 21 ms (defaults) to 60 ms (64 slow partials) at 44.1 kHz, and 150 ms at 96 kHz. It is about 30 MB at 44.1 kHz and 66 MB at 96 kHz.
@@ -50,7 +51,7 @@ Unison and later pins are appended after Signal Out so that patches saved earlie
 - A gate that rises before the first table exists starts the note as soon as the table lands.
 
 ## GUI (`FretPluckedOscGui.cpp`)
-- The oscillator draws a waterfall of its A4 note on the panel, in oblique projection: time left to right along the front edge (ticked in seconds), frequency from the back (0 Hz) to the front (just above the highest partial, at most 20 kHz), loudness (amplitude^0.6, Stevens) bottom to top, so envelopes curve like a real decay while quiet harmonics stay visible; it reaches the floor at -60 dB. Each harmonic is one envelope at its true frequency, so spacing and stiffness show as uneven gaps; the fundamental is yellow, at the back. The shorter higher harmonics stand in front, so little is hidden. The floor marks the 2 s freeze where the loop starts, and the time span runs until the looped tail reaches the floor (at most 12 s).
+- The oscillator draws a waterfall of its A4 note on the panel, in oblique projection: time left to right along the front edge (ticked in seconds), frequency from the back (0 Hz) to the front (just above the highest partial, at most 20 kHz), loudness (amplitude^0.6, Stevens) bottom to top, so envelopes curve like a real decay while quiet harmonics stay visible; it reaches the floor at -60 dB. Each harmonic is one envelope at its true frequency, so spacing and stiffness show as uneven gaps, and its beating with its twin shows as ripples; the fundamental is yellow, at the back. The shorter higher harmonics stand in front, so little is hidden. The floor marks the 2 s freeze where the loop starts, and the time span runs until the looped tail reaches the floor (at most 12 s).
 - Data path: the DSP sends its current `Params` (versioned, `envelopeBlob`) on a private blob output pin bound to parameter 0, and the GUI recomputes the partials with the bake's own `partials()`, so the display always matches the sound. SynthEdit marks a DSP-driven parameter `stateful="false"`, so nothing is saved with the patch; the display fills in once a voice has run (in a polyphonic patch, after the first note).
 - Adding GUI pins renumbers the plugs (SynthEdit puts GUI pins first); older patches load correctly because the editor remaps them by pin.
 
@@ -58,7 +59,7 @@ Unison and later pins are appended after Signal Out so that patches saved earlie
 `FretPluckedOsc.synthedit`: MIDI In -> MIDI-CV 2 -> the oscillator -> a linear VCA as master volume -> Sound Out, with a scope and a knob or list for most parameters. A voice's attack can reach 10 V, so the volume (default 3) keeps a four-note chord's pluck from clipping.
 
 ## Not done / possible next steps
-- The Pluck Position, Seed and Detune Tilt pins.
+- The Pluck Position and Seed pins.
 - Switching to the neighbour sample during large bends (v1 keeps the note-on sample).
 - A different pick on every replay of the same note: bake two to four pick variants per note and cycle through them at note-on.
 - Starting the tonal partials at hashed phases (behind the same fade-in) would remove the note-on spike that the limiter now flattens.

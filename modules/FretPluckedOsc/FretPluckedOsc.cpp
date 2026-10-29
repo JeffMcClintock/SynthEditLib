@@ -25,8 +25,8 @@ bool registered = Register<FretPluckedOsc>::withXml(R"XML(
 	  <Pin name="Spectrum Tilt" datatype="float" default="1"/>
 	  <Pin name="Decay Time" datatype="float" default="4"/>
 	  <Pin name="Decay Tilt" datatype="float" default="1"/>
-	  <Pin name="Detune" datatype="float" default="0"/>
-	  <Pin name="Detune Pattern" datatype="enum" metadata="Alternating,Random"/>
+	  <Pin name="Beat Rate" datatype="float" default="1"/>
+	  <Pin name="Beating" datatype="float" default="0.5"/>
 	  <Pin name="Release Time" datatype="float" default="0.2"/>
 	  <Pin name="Lowest Note" datatype="int" default="24"/>
 	  <Pin name="Highest Note" datatype="int" default="96"/>
@@ -75,9 +75,9 @@ Params FretPluckedOsc::currentParams() const
 	p.spectrumTilt = pinSpectrumTilt;
 	p.decayTime = (std::max)(0.01f, pinDecayTime.getValue());
 	p.decayTilt = pinDecayTilt;
-	p.detune = std::clamp(pinDetune.getValue(), -50.0f, 50.0f);
+	p.beatRate = std::clamp(pinBeatRate.getValue(), 0.0f, 20.0f);
+	p.beating = std::clamp(pinBeating.getValue(), 0.0f, 1.0f);
 	p.stiffness = std::clamp(pinStiffness.getValue(), 0.0f, 100.0f);
-	p.detunePattern = static_cast<DetunePattern>(std::clamp(pinDetunePattern.getValue(), 0, 1));
 	p.unison = std::clamp(pinUnison.getValue(), 0, maxUnison);
 	p.pickNoise = std::clamp(pinPickNoise.getValue(), 0.0f, 4.0f);
 	p.pickTone = std::clamp(pinPickTone.getValue(), 0.0f, 1.0f);
@@ -101,7 +101,7 @@ void FretPluckedOsc::onSetPins()
 		releaseMul_ = t60Multiplier(pinReleaseTime);
 
 	if (pinHarmonics.isUpdated() || pinSeries.isUpdated() || pinSpacing.isUpdated() || pinSpectrumTilt.isUpdated()
-		|| pinDecayTime.isUpdated() || pinDecayTilt.isUpdated() || pinDetune.isUpdated() || pinDetunePattern.isUpdated()
+		|| pinDecayTime.isUpdated() || pinDecayTilt.isUpdated() || pinBeatRate.isUpdated() || pinBeating.isUpdated()
 		|| pinUnison.isUpdated() || pinPickNoise.isUpdated() || pinPickTone.isUpdated() || pinBody.isUpdated() || pinStiffness.isUpdated()
 		|| pinLowestNote.isUpdated() || pinHighestNote.isUpdated())
 	{

@@ -10,7 +10,6 @@
 namespace fret_plucked
 {
 enum class Series { All, Odd, Even };
-enum class DetunePattern { Alternating, Random };
 
 struct Params
 {
@@ -20,9 +19,9 @@ struct Params
 	float spectrumTilt = 1.0f; // initial level of partial n relative to the lowest: (n/lowest)^-tilt.
 	float decayTime = 4.0f;    // T60 of the lowest partial, seconds.
 	float decayTilt = 1.0f;    // T60 of partial n: decayTime / (n/lowest)^decayTilt.
-	float detune = 0.0f;       // average detune per partial, Hz, so every partial beats at a similar rate. The lowest is never detuned.
+	float beatRate = 1.0f;     // beats per second of a partial at 440 Hz; others beat in proportion to their frequency.
+	float beating = 0.5f;      // 0..1: level of each partial's beating twin.
 	float stiffness = 0.0f;    // string stiffness B, in units of 1e-4: partial n goes sharp by sqrt(1 + B n^2).
-	DetunePattern detunePattern = DetunePattern::Alternating;
 	int unison = 0;            // extra copies of every partial, alternately above and below it, each pair quieter.
 	float pickNoise = 0.0f;    // pick click level, relative to the string's attack: 1 = as loud.
 	float pickTone = 0.5f;     // 0..1 moves the click's band centre from 1 kHz to 8 kHz.
@@ -36,6 +35,9 @@ struct Params
 // Partials stop decaying here, leaving a stationary tail that can loop.
 constexpr double freezeSeconds = 2.0;
 constexpr double loopSeconds = 0.35;      // minimum; rounded up to whole periods of f0.
+constexpr double beatLoopSeconds = 2.0;   // the minimum with beating on: beat rates round to whole beats per loop.
+constexpr double maxTwinLevel = 0.8;      // of its partial, at full Beating, so a beat dips (to -19 dB) but never cancels.
+constexpr double beatSpread = 0.25;       // each partial's beat rate varies by up to this fraction, so no two partials share one.
 constexpr double crossfadeSeconds = 0.08; // clamped to half the loop.
 constexpr double maxPartialFraction = 0.45; // of the sample rate.
 constexpr float outputPeak = 0.5f;          // 5 V.
@@ -49,18 +51,25 @@ constexpr float limitCeiling = 1.0f;        // ...to stay under 10 V.
 
 struct Partial
 {
-	int number;            // harmonic number n.
-	double ratio;          // frequency relative to f0, spacing and stiffness applied.
-	double offsetHz = 0.0; // detune, added after the ratio.
-	double scale = 1.0;    // unison copies scale the whole partial, so they are detuned in cents.
-	double amplitude;
-	double t60;            // seconds.
+	int number;              // harmonic number n.
+	double ratio;            // frequency relative to f0, spacing and stiffness applied.
+	double scale = 1.0;      // unison copies scale the whole partial, so they are detuned in cents.
+	double amplitude;        // of the partial and its twin together, at their peak.
+	double t60;              // seconds.
+	double beatsPerHz = 0.0; // the twin sits this many Hz above, per Hz of the partial's frequency.
+	double twinLevel = 0.0;  // of the twin, relative to the partial.
 
-	double hz(double f0) const { return (ratio * f0 + offsetHz) * scale; }
+	double hz(double f0) const { return ratio * f0 * scale; }
 };
 
 // The partial set for `p`, before per-note Nyquist culling.
 std::vector<Partial> partials(const Params& p);
+
+// Whole periods of f0 in a note's loop.
+int loopPeriods(const Params& p, double f0);
+
+// The twin's offset from `hz`, rounded to whole beats per loop so the beating carries on through it unbroken.
+double beatHz(const Partial& part, double hz, double loopSeconds);
 
 // A short decaying sine at a fixed frequency: one component of the pick click or the body thump.
 struct Burst

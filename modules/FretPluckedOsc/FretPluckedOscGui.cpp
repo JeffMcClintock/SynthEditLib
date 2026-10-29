@@ -11,7 +11,8 @@ using namespace fret_plucked;
 namespace {
 bool registeredGui = gmpi::Register<FretPluckedOscGui>::withId("SE Fret Plucked Osc");
 
-constexpr int pointsPerRidge = 64;
+constexpr int pointsPerRidge = 64; // at least.
+constexpr double twoPi = 6.283185307179586;
 constexpr float floorDb = -60.0f;
 constexpr float loudnessExponent = 0.6f; // Stevens: loudness grows as amplitude^0.6.
 
@@ -95,11 +96,20 @@ ReturnCode FretPluckedOscGui::render(drawing::api::IDeviceContext* dc)
 	for (const auto& part : parts)
 		maxAmplitude = (std::max)(maxAmplitude, part.amplitude);
 
+	// Each partial and its twin start in step, so the pair's envelope swings between their sum and their difference.
+	const double loopLength = loopPeriods(p, f0) / f0;
+	double fastestBeat = 0.0;
+	for (const auto& part : parts)
+		fastestBeat = (std::max)(fastestBeat, beatHz(part, part.hz(f0), loopLength));
+
 	auto levelDb = [&](const Partial& part, double t)
 	{
 		const double decayed = (std::min)(t, freeze);
 		const double tail = (std::max)(0.0, t - freeze);
-		return static_cast<float>(20.0 * std::log10(part.amplitude / maxAmplitude) + floorDb * (decayed / part.t60 + tail / tailT60));
+		const double share = 1.0 / (1.0 + part.twinLevel);
+		const double twin = part.twinLevel * share;
+		const double beat = std::sqrt(share * share + twin * twin + 2.0 * share * twin * std::cos(twoPi * beatHz(part, part.hz(f0), loopLength) * t));
+		return static_cast<float>(20.0 * std::log10(part.amplitude * beat / maxAmplitude) + floorDb * (decayed / part.t60 + tail / tailT60));
 	};
 
 	// Oblique projection: time left to right, frequency receding from the front (highest) to the back (lowest).
@@ -127,10 +137,12 @@ ReturnCode FretPluckedOscGui::render(drawing::api::IDeviceContext* dc)
 	g.drawLine(project(0.0, freeze, floorDb), project(topHz, freeze, floorDb), floorBrush, 1.0f);
 	g.drawLine(project(topHz, 0.0, floorDb), project(topHz, span, floorDb), floorBrush, 1.0f);
 
+	// Enough points to follow the fastest beat, within reason.
+	const int points = std::clamp(static_cast<int>(span * fastestBeat * 12.0), pointsPerRidge, 1200);
 	std::vector<double> times;
-	times.reserve(pointsPerRidge + 2);
-	for (int i = 0; i <= pointsPerRidge; ++i)
-		times.push_back(span * i / pointsPerRidge);
+	times.reserve(points + 2);
+	for (int i = 0; i <= points; ++i)
+		times.push_back(span * i / points);
 	times.push_back(freeze);
 	std::sort(times.begin(), times.end());
 

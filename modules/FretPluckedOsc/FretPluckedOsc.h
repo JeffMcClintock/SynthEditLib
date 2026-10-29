@@ -84,8 +84,8 @@ private:
 	gmpi::FloatInPin pinSpectrumTilt;
 	gmpi::FloatInPin pinDecayTime;
 	gmpi::FloatInPin pinDecayTilt;
-	gmpi::FloatInPin pinDetune;
-	gmpi::EnumInPin pinDetunePattern;
+	gmpi::FloatInPin pinBeatRate; // in Detune's old slot, so later pins keep their indices.
+	gmpi::FloatInPin pinBeating;  // in Detune Pattern's old slot.
 	gmpi::FloatInPin pinReleaseTime;
 	gmpi::IntInPin pinLowestNote;
 	gmpi::IntInPin pinHighestNote;
