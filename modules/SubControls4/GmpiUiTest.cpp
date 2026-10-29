@@ -1385,6 +1385,7 @@ protected:
     Out<float> pinDx;                // 7  movement delta since the last move (returns to zero next pass)
     Out<float> pinDy;                // 8
     Out<float> pinWheel;             // 9  wheel movement in notches (returns to zero next pass, like dX)
+    In<std::string> pinHint;         // 10 tooltip
 
     float pendingWheel = 0.0f;        // notches since the last process()
 
@@ -1482,6 +1483,16 @@ public:
         return gmpi::ReturnCode::Unhandled;
     }
 
+    gmpi::ReturnCode getToolTip(gmpi::drawing::Point, gmpi::api::IString* returnString) override
+    {
+        const auto& hint = pinHint.value;
+        if (hint.empty())
+            return gmpi::ReturnCode::Unhandled;
+
+        returnString->setData(hint.data(), static_cast<int32_t>(hint.size()));
+        return gmpi::ReturnCode::Ok;
+    }
+
     // Layer 4 = editor guide: a dotted outline shows where this invisible target is, in the editor only.
     ReturnCode renderLayer(gmpi::drawing::api::IDeviceContext* drawingContext, int32_t layer) override
     {
@@ -1546,6 +1557,7 @@ auto r9 = gmpi::Register<MouseTarget>::withXml(R"XML(
         <Pin name="dX" datatype="float" direction="out"/>
         <Pin name="dY" datatype="float" direction="out"/>
         <Pin name="Wheel" datatype="float" direction="out"/>
+        <Pin name="Hint" datatype="string_utf8"/>
 	</GUI>
   </Plugin>
 </PluginList>

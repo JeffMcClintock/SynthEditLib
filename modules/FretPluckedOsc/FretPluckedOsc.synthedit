@@ -216,6 +216,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="74601866">
+                        <plugs>
+                            <plug default="String stiffness: sharpens the higher harmonics, like a piano string" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -514,6 +517,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="263385208">
+                        <plugs>
+                            <plug default="Level of the body thump in the pluck" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -812,6 +818,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="1271155440">
+                        <plugs>
+                            <plug default="Brightness of the pick click" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -1110,6 +1119,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="893531812">
+                        <plugs>
+                            <plug default="Level of the pick click" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -1408,6 +1420,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="1864293450">
+                        <plugs>
+                            <plug default="Extra detuned copies of every harmonic, like doubled strings" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -1730,6 +1745,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="879209392">
+                        <plugs>
+                            <plug default="Output level" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -2028,6 +2046,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="1386505983">
+                        <plugs>
+                            <plug default="How long a note fades after the key is released" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -2326,6 +2347,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="24445203">
+                        <plugs>
+                            <plug default="Detunes the harmonics so they beat slowly against each other" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -2624,6 +2648,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="1122852729">
+                        <plugs>
+                            <plug default="How much faster the higher harmonics die away" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -2922,6 +2949,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="1987366385">
+                        <plugs>
+                            <plug default="How long the lowest harmonic takes to fade, in seconds" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -3220,6 +3250,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="1156766481">
+                        <plugs>
+                            <plug default="How much quieter the higher harmonics start" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -3518,6 +3551,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="415890063">
+                        <plugs>
+                            <plug default="Spreads the harmonics apart; above 1 sounds bell-like" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -3816,6 +3852,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="1523270616">
+                        <plugs>
+                            <plug default="Guitar body size: larger lowers the body resonances" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -4114,6 +4153,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="1515924402">
+                        <plugs>
+                            <plug default="How long the guitar body resonances ring" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -4412,6 +4454,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="589296177">
+                        <plugs>
+                            <plug default="Level of the upper guitar body resonances" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
@@ -4710,6 +4755,9 @@
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: MouseTarget" handle="1300747159">
+                        <plugs>
+                            <plug default="Dry string versus guitar body sound" idx="10"/>
+                        </plugs>
                         <structRect l="910" r="1006" t="540" b="612"/>
                         <panelRect l="24" r="105" t="40" b="72"/>
                     </module>
