@@ -722,11 +722,44 @@ namespace SE2
 		}
 	}
 
+	// A GUI pin's saved default, or "" when it has none. Pins without an "Id" follow on from the one before.
+	static std::string guiPinDefault(const Json::Value& module_element, int wantedPinId)
+	{
+		int pinId = 0;
+		for (auto& pin_element : module_element["Pins"])
+		{
+			if (!pin_element["Idx"].isNull()) // a DSP pin.
+				continue;
+			if (!pin_element["Id"].isNull())
+				pinId = pin_element["Id"].asInt();
+			if (pinId == wantedPinId)
+				return pin_element["default"].asString();
+			++pinId;
+		}
+		return {};
+	}
+
 	void ViewBase::ConnectModules(const Json::Value& context, std::map<int, class ModuleView*>& guiObjectMap)//, ModuleView* patchAutomatorWrapper)
 	{
 		const int32_t containerHandle = context["handle"].asInt();
 
 		std::vector< std::pair< SE2::ModuleView*, int> > connectedInputs;
+
+		// Publish Style and Use Style pins, by GUI pin id.
+		constexpr int styleNamePin = 0;
+		constexpr int publishedStyleOutPin = 2;
+		constexpr int useStylePublishedPin = 2;
+
+		// This container's published styles, visible here and in every container nested within it. The first of a name wins.
+		publishedStyles_.emplace_back();
+		for (auto& module_element : context["modules"])
+		{
+			if (module_element["type"].asString() != "SE: PublishStyle")
+				continue;
+			const auto name = guiPinDefault(module_element, styleNamePin);
+			if (auto publisher = Presenter()->HandleToObject(module_element["handle"].asInt()); publisher && !name.empty())
+				publishedStyles_.back().try_emplace(name, publisher);
+		}
 
 		// Step 1: Passively connect wires (no notification).
 		// Doing this first allows defaults to be set strictly on only pins without wires.
@@ -825,6 +858,30 @@ namespace SE2
 			}
 		}
 
+		// Wire each Use Style to the nearest Publish Style of its name: this container's, else an enclosing one's.
+		std::vector<std::pair<SE2::ModuleView*, int>> styleWired;
+		for (auto& module_element : context["modules"])
+		{
+			if (module_element["type"].asString() != "SE: UseStyle")
+				continue;
+			auto user = Presenter()->HandleToObject(module_element["handle"].asInt());
+			const auto name = guiPinDefault(module_element, styleNamePin);
+			if (!user || name.empty())
+				continue;
+
+			for (auto scope = publishedStyles_.rbegin(); scope != publishedStyles_.rend(); ++scope)
+			{
+				if (auto it = scope->find(name); it != scope->end())
+				{
+					it->second->AddConnection(publishedStyleOutPin, user, useStylePublishedPin);
+					user->AddConnection(useStylePublishedPin, it->second, publishedStyleOutPin);
+					connectedInputs.push_back({ user, useStylePublishedPin });
+					styleWired.push_back({ user, useStylePublishedPin });
+					break;
+				}
+			}
+		}
+
 		// STEP 2: Set pin defaults.
 
 		// Iterate GUI modules.
@@ -896,7 +953,8 @@ namespace SE2
 										}
 									}
 
-									if (pinInfo)
+									// A pin given a style wire above has no saved wire, so the editor still exports its (empty) default.
+									if (pinInfo && std::find(styleWired.begin(), styleWired.end(), std::make_pair(wrapper, pinId)) == styleWired.end())
 									{
 										assert(pinInfo->GetDirection() == DR_OUT || !wrapper->isPinConnected(pinId) || !wrapper->isPinConnectionActive(pinId)); // can be connected to muted/unavailable module.
 
@@ -1093,6 +1151,8 @@ namespace SE2
 				}
 			}
 		}
+
+		publishedStyles_.pop_back();
 	}
 
 	int32_t ViewBase::setCapture(IViewChild* module)

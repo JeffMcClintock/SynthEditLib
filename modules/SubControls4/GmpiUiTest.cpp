@@ -2275,6 +2275,69 @@ auto r49 = gmpi::Register<StyleSwitch>::withXml(R"XML(
 )XML");
 }
 
+// Shares a Style by name. Every Use Style of that Name in this container, or in any container nested within it, is
+// wired to the (private) Style output behind the scenes (ViewBase::ConnectModules).
+// Names are private: they are read once when the view is built, so they're set in the editor, never wired.
+struct PublishStyle final : public PluginEditorNoGui
+{
+    In<std::string>   pinName;
+    ObjectIn<IStyle>  pinStyleIn;
+    ObjectOut<IStyle> pinStyle;
+
+    ReturnCode process() override
+    {
+        // re-send even when unchanged: a Style object can change in place.
+        pinStyle = pinStyleIn.value.get();
+        return ReturnCode::Ok;
+    }
+};
+
+// The Style published under Name by the nearest Publish Style in this container or one enclosing it, within the same
+// view. Its Published input is wired behind the scenes; with no match the output stays empty.
+struct UseStyle final : public PluginEditorNoGui
+{
+    In<std::string>   pinName;
+    ObjectOut<IStyle> pinStyle;
+    ObjectIn<IStyle>  pinPublished;
+
+    ReturnCode process() override
+    {
+        pinStyle = pinPublished.value.get();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r61 = gmpi::Register<PublishStyle>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: PublishStyle" name="Publish Style" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Name" datatype="string_utf8" private="true"/>
+      <Pin name="Style" datatype="object:style"/>
+      <Pin name="Style" datatype="object:style" direction="out" private="true"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+
+auto r62 = gmpi::Register<UseStyle>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: UseStyle" name="Use Style" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Name" datatype="string_utf8" private="true"/>
+      <Pin name="Style" datatype="object:style" direction="out"/>
+      <Pin name="Published" datatype="object:style" private="true"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
 struct SvgGeometry final : public GraphicsProcessor
 {
     In<std::string> pinFilename;

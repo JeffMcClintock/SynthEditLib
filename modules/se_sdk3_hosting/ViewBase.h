@@ -118,6 +118,7 @@ bool isIteratingChildren = false;
 
 		void initializeGmpiModulePins(const Json::Value& element);
 		void ConnectModules(const Json::Value& element, std::map<int, class ModuleView*>& guiObjectMap);// , ModuleView* patchAutomatorWrapper);
+		std::vector<std::map<std::string, class ModuleView*>> publishedStyles_; // Publish Style modules by name, one map per container being connected.
 		class ModuleViewPanel* getPatchAutomator(std::map<int, class ModuleView*>& guiObjectMap);
 		void preGraphicsRedraw() override;
 		void processUnidirectionalModules();
