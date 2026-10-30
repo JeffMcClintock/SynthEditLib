@@ -2050,6 +2050,42 @@ namespace SE2
 		cpuMeter.setCpuInfo(pCpuInfo);
 	}
 
+	void ModuleViewStructBase::measure(gmpi::drawing::Size availableSize, gmpi::drawing::Size* returnDesiredSize)
+	{
+		constexpr float minSize = sharedGraphicResources_struct::plugDiameter;
+
+		// No graphics to size it: ModuleViewPanel would just echo the available size back.
+		if (!pluginGraphics && !pluginGraphics_GMPI)
+		{
+			*returnDesiredSize = { minSize, minSize };
+			return;
+		}
+
+		ModuleViewPanel::measure(availableSize, returnDesiredSize);
+
+		// Pin-less modules have no chrome, so keep them big enough to see and select.
+		returnDesiredSize->width  = (std::max)(returnDesiredSize->width,  minSize);
+		returnDesiredSize->height = (std::max)(returnDesiredSize->height, minSize);
+	}
+
+	void ModuleViewStructBase::arrange(gmpi::drawing::Rect finalRect)
+	{
+		ModuleViewPanel::arrange(finalRect);
+
+		// The selection adorner surrounds pluginGraphicsPos, which only a module with graphics sets.
+		if (!pluginGraphics && !pluginGraphics_GMPI)
+			pluginGraphicsPos = { 0, 0, getWidth(finalRect), getHeight(finalRect) };
+	}
+
+	void ModuleViewStructBase::render(Graphics& g)
+	{
+		// Grey backing so a module that draws little or nothing is still visible.
+		const Rect r(0, 0, getWidth(bounds_), getHeight(bounds_));
+		g.fillRoundedRectangle({ r, 2.f, 2.f }, g.createSolidColorBrush(Colors::Gray));
+
+		ModuleViewPanel::render(g);
+	}
+
 	Rect ModuleViewStructBase::getClipArea()
 	{
 		auto r = ModuleViewPanel::getClipArea();
