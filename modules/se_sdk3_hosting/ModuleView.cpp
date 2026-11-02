@@ -1361,6 +1361,7 @@ if(pluginGraphics)
 
 		// update any parent subview
 		parent->OnChildMoved();
+		parent->invalidateTraceSpecs();
 	}
 #if 0 // TODO
 

@@ -10,6 +10,7 @@
 #include "helpers/NativeUi.h"
 #include "../se_sdk3/Drawing_API.h"
 #include "Extensions/ParentSize.h"
+#include "Extensions/TraceSpec.h"
 
 namespace GmpiGuiHosting
 {
@@ -77,6 +78,14 @@ bool isIteratingChildren = false;
 		std::vector<synthedit::IParentSizeClient*> parentSizeClients;
 
 		void registerParentSizeClient(synthedit::IParentSizeClient* client);
+
+		// Hardware painted on a faceplate (ITraceSink) has to sit exactly under the widget
+		// drawn over it (ITraceSource), and only the view knows where both are. Anything
+		// that moves a child sets this; the next render pushes the sources over each sink
+		// to it, once. Starts dirty so the first render after a rebuild does the push.
+		bool traceSpecsDirty = true;
+		void invalidateTraceSpecs() { traceSpecsDirty = true; }
+		void updateTraceSpecs();
 
 		// size reported to parentSizeClients. Only a panel sub-view's size means anything to a control; other views give a nominal one.
 		virtual gmpi::drawing::Size sizeForParentSizeClients(const gmpi::drawing::Rect& finalRect) const { return { 100.0f, 100.0f }; }

@@ -354,6 +354,7 @@ public:
 
 				const auto dirtyRect = unionRect(originalRect, newRect);
 				module->parent->ChildInvalidateRect(dirtyRect);
+				module->parent->invalidateTraceSpecs();
 			}
 		}
 

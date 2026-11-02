@@ -103,6 +103,11 @@ namespace SE2
 
 	void ViewBase::renderChildrenLayer(Graphics& g, int32_t layer)
 	{
+		// Here rather than in render() so that sub-views, which are only ever drawn
+		// through this recursion, get the push too.
+		if (traceSpecsDirty)
+			updateTraceSpecs();
+
 		// Editor guide: marks where an otherwise-invisible object sits (a patch point draws
 		// an orange outline around itself) so it can be seen and clicked while laying out a
 		// panel. Guides draw only when the modules in this view are editable, and that is
@@ -2780,8 +2785,71 @@ namespace SE2
 		}
 
 		isArranged = true;
+		traceSpecsDirty = true;
 
 		return gmpi::ReturnCode::Ok;
+	}
+
+	void ViewBase::updateTraceSpecs()
+	{
+		traceSpecsDirty = false;
+
+		struct Source { ModuleView* view; gmpi::shared_ptr<synthedit::ITraceSource> source; };
+		struct Sink   { ModuleView* view; gmpi::shared_ptr<synthedit::ITraceSink> sink; };
+		std::vector<Source> sources;
+		std::vector<Sink> sinks;
+
+		for (auto& c : children)
+		{
+			auto m = dynamic_cast<ModuleView*>(c.get());
+			if (!m || !m->pluginGraphics_GMPI)
+				continue;
+
+			gmpi::shared_ptr<synthedit::ITraceSource> source;
+			m->pluginGraphics_GMPI->queryInterface(&synthedit::ITraceSource::guid, source.put_void());
+			if (source)
+				sources.push_back({ m, source });
+
+			gmpi::shared_ptr<synthedit::ITraceSink> sink;
+			m->pluginGraphics_GMPI->queryInterface(&synthedit::ITraceSink::guid, sink.put_void());
+			if (sink)
+				sinks.push_back({ m, sink });
+		}
+
+		for (auto& [sinkView, sink] : sinks)
+		{
+			// A source belongs to the sink its centre is over. Both rects are in this
+			// view's space, so the pan cancels and the offset is a plain subtraction.
+			const auto sinkRect = sinkView->getLayoutRect();
+			const gmpi::drawing::Point sinkOrigin{ sinkRect.left + sinkView->pluginGraphicsPos.left, sinkRect.top + sinkView->pluginGraphicsPos.top };
+
+			std::vector<std::string> specs;
+			std::vector<synthedit::TraceSpecEntry> entries;
+			for (auto& [sourceView, source] : sources)
+			{
+				if (sourceView == sinkView)
+					continue;
+
+				const auto r = sourceView->getLayoutRect();
+				if (!pointInRect({ (r.left + r.right) * 0.5f, (r.top + r.bottom) * 0.5f }, sinkRect))
+					continue;
+
+				gmpi::ReturnString spec;
+				if (source->getTraceSpec(&spec) != gmpi::ReturnCode::Ok || spec.cppString.empty())
+					continue;
+
+				specs.push_back(std::move(spec.cppString));
+				entries.push_back({ nullptr,
+					r.left + sourceView->pluginGraphicsPos.left - sinkOrigin.x,
+					r.top + sourceView->pluginGraphicsPos.top - sinkOrigin.y });
+			}
+
+			// Pointers only once `specs` has stopped growing.
+			for (size_t i = 0; i < entries.size(); ++i)
+				entries[i].spec = specs[i].c_str();
+
+			sink->setTraceSpecs(entries.data(), static_cast<int32_t>(entries.size()));
+		}
 	}
 
 	void ViewBase::OnPatchCablesVisibilityUpdate()
