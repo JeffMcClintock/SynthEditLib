@@ -2719,6 +2719,45 @@ struct RenderGeometry final : public PluginEditor
         return ReturnCode::Ok;
     }
 
+    // A decoration should not own every click in its rectangle: only the shape itself
+    // is a hit. The stroke counts over at least kHitStrokeWidth DIPs so a hairline can
+    // still be picked; the interior counts only when it is actually painted (a
+    // transparent fill is empty space, and the click falls through to whatever is
+    // beneath). Tested under the same transform render() draws with.
+    static constexpr float kHitStrokeWidth = 3.0f;
+
+    ReturnCode hitTest(gmpi::drawing::Point point, int32_t /*flags*/) override
+    {
+        if (!pinInput)
+            return ReturnCode::Fail;
+
+        PathGeometry geometry;
+        if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
+            return ReturnCode::Fail;
+
+        gmpi::drawing::Color fill{};
+        gmpi::drawing::Color stroke = Colors::White;
+        float strokeWidth = 1.0f;
+        if (auto* style = pinStyle.value.get())
+        {
+            style->getFillColor(&fill);
+            style->getStrokeColor(&stroke);
+            style->getStrokeWidth(&strokeWidth);
+        }
+
+        const auto area = drawingBounds();
+        const auto world = pinTransform.value * makeTranslation((area.left + area.right) * 0.5f, (area.top + area.bottom) * 0.5f);
+
+        bool hit{};
+        if (fill.a > 0.0f)
+            AccessPtr::get(geometry)->fillContainsPoint(point, &world, &hit);
+
+        if (!hit && stroke.a > 0.0f && strokeWidth > 0.0f)
+            AccessPtr::get(geometry)->strokeContainsPoint(point, (std::max)(strokeWidth, kHitStrokeWidth), nullptr, &world, &hit);
+
+        return hit ? ReturnCode::Ok : ReturnCode::Fail;
+    }
+
     ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override
     {
 		if (!pinInput)
