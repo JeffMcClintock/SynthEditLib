@@ -1559,12 +1559,7 @@ SE2::RackLayout MfcDocPresenter::getRackLayout()
 
 int MfcDocPresenterBase::GetSnapSize()
 {
-	auto snapsize = container->Document()->Application()->SnapPixels(); // returns only panel snap setting.
-
-	if (snapsize != 1 && view->getViewType() == CF_STRUCTURE_VIEW)
-		return 12;
-
-	return snapsize;
+	return container->Document()->Application()->SnapPixels();
 }
 
 void MfcDocPresenterBase::OnFrameGotFocus()

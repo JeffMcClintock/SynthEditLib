@@ -457,12 +457,7 @@ void CSynthEditAppBase::reportFeedbackErrorUi(std::list< std::pair<SE2::feedback
 
 int CSynthEditAppBase::SnapPixels()
 {
-	if( snapToGrid() )
-	{
-		return 8;
-	}
-
-	return 1;
+	return snapToGrid() ? 12 : 1; // matches the drawn 12-DIP grid in both views
 }
 
 int CSynthEditAppBase::Run()

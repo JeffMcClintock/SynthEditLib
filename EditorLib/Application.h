@@ -78,7 +78,7 @@ public:
 	virtual void setVendorWebsite(const std::wstring& /*p_url*/) {}
 	virtual std::wstring getVendorCopyright() { return {}; }
 	virtual void setVendorCopyright(const std::wstring& /*p_text*/) {}
-	virtual int SnapPixels() { return 8; }
+	virtual int SnapPixels() { return 12; }
 	virtual void OnRunStop() {}
 	virtual bool IsRegisteredVersion() { return true; }
 	virtual void OpenDocumentFile2(const wchar_t* /*lpszFileName*/) {}
