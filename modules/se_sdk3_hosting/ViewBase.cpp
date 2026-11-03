@@ -5,11 +5,13 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
 #include "ViewBase.h"
 #include "ConnectorView.h"
 #include "modules/se_sdk3_hosting/Presenter.h"
 #include "modules/se_sdk3_hosting/gmpi_drawing_conversions.h"
 #include "ResizeAdorner.h"
+#include "SubViewPanel.h"
 #include "GuiPatchAutomator3.h"
 #include "UgDatabase.h"
 #include "modules/shared/unicode_conversion.h"
@@ -2794,61 +2796,93 @@ namespace SE2
 	{
 		traceSpecsDirty = false;
 
-		struct Source { ModuleView* view; gmpi::shared_ptr<synthedit::ITraceSource> source; };
-		struct Sink   { ModuleView* view; gmpi::shared_ptr<synthedit::ITraceSink> sink; };
-		std::vector<Source> sources;
-		std::vector<Sink> sinks;
+		// Only the top view pairs, over every nested sub-view at once: a source in a
+		// container sits over a sink in the enclosing view (or the other way round),
+		// and the two are never children of the same view. A sub-view's flag was
+		// forwarded here by SubView::invalidateTraceSpecs, so nothing is missed.
+		if (dynamic_cast<SubView*>(this))
+			return;
 
-		for (auto& c : children)
+		// Every module's plugin origin and size in THIS view's document space (the
+		// space before this view's own pan/zoom), accumulated down through each
+		// sub-view's pan and its container's position -- the same chain as
+		// SubView::GetTransformToTopView, minus the top view's transform.
+		struct Found
 		{
-			auto m = dynamic_cast<ModuleView*>(c.get());
-			if (!m || !m->pluginGraphics_GMPI)
+			ModuleView* view;
+			gmpi::drawing::Rect rect; // the plugin's graphics area, in document space
+			gmpi::shared_ptr<synthedit::ITraceSource> source;
+			gmpi::shared_ptr<synthedit::ITraceSink> sink;
+		};
+		std::vector<Found> found;
+
+		const std::function<void(ViewBase*, const gmpi::drawing::Matrix3x2&)> gather =
+			[&](ViewBase* view, const gmpi::drawing::Matrix3x2& toDoc)
+		{
+			for (auto& c : view->children)
+			{
+				auto m = dynamic_cast<ModuleView*>(c.get());
+				if (!m)
+					continue;
+
+				// Module-local -> this view's child space -> document.
+				const auto moduleToDoc = gmpi::drawing::makeTranslation(m->bounds_.left, m->bounds_.top) * toDoc;
+
+				if (auto sub = dynamic_cast<SubView*>(m->subView.get()); sub && sub->isShown())
+				{
+					// Child-local * pan -> container plugin-local, + pluginGraphicsPos -> module-local.
+					const auto childToDoc = sub->viewTransform
+						* gmpi::drawing::makeTranslation(m->pluginGraphicsPos.left, m->pluginGraphicsPos.top)
+						* moduleToDoc;
+					gather(sub, childToDoc);
+					continue;
+				}
+
+				if (!m->pluginGraphics_GMPI)
+					continue;
+
+				Found f{ m, transformRect(moduleToDoc, m->pluginGraphicsPos) };
+				m->pluginGraphics_GMPI->queryInterface(&synthedit::ITraceSource::guid, f.source.put_void());
+				m->pluginGraphics_GMPI->queryInterface(&synthedit::ITraceSink::guid, f.sink.put_void());
+				if (f.source || f.sink)
+					found.push_back(std::move(f));
+			}
+		};
+		gather(this, gmpi::drawing::Matrix3x2{});
+
+		for (auto& s : found)
+		{
+			if (!s.sink)
 				continue;
 
-			gmpi::shared_ptr<synthedit::ITraceSource> source;
-			m->pluginGraphics_GMPI->queryInterface(&synthedit::ITraceSource::guid, source.put_void());
-			if (source)
-				sources.push_back({ m, source });
-
-			gmpi::shared_ptr<synthedit::ITraceSink> sink;
-			m->pluginGraphics_GMPI->queryInterface(&synthedit::ITraceSink::guid, sink.put_void());
-			if (sink)
-				sinks.push_back({ m, sink });
-		}
-
-		for (auto& [sinkView, sink] : sinks)
-		{
-			// A source belongs to the sink its centre is over. Both rects are in this
-			// view's space, so the pan cancels and the offset is a plain subtraction.
-			const auto sinkRect = sinkView->getLayoutRect();
-			const gmpi::drawing::Point sinkOrigin{ sinkRect.left + sinkView->pluginGraphicsPos.left, sinkRect.top + sinkView->pluginGraphicsPos.top };
+			// A source belongs to the sink its centre is over. Both rects are in
+			// document space, so the offset is a plain subtraction.
+			const auto& sinkRect = s.rect;
 
 			std::vector<std::string> specs;
 			std::vector<synthedit::TraceSpecEntry> entries;
-			for (auto& [sourceView, source] : sources)
+			for (auto& o : found)
 			{
-				if (sourceView == sinkView)
+				if (!o.source || o.view == s.view)
 					continue;
 
-				const auto r = sourceView->getLayoutRect();
+				const auto& r = o.rect;
 				if (!pointInRect({ (r.left + r.right) * 0.5f, (r.top + r.bottom) * 0.5f }, sinkRect))
 					continue;
 
 				gmpi::ReturnString spec;
-				if (source->getTraceSpec(&spec) != gmpi::ReturnCode::Ok || spec.cppString.empty())
+				if (o.source->getTraceSpec(&spec) != gmpi::ReturnCode::Ok || spec.cppString.empty())
 					continue;
 
 				specs.push_back(std::move(spec.cppString));
-				entries.push_back({ nullptr,
-					r.left + sourceView->pluginGraphicsPos.left - sinkOrigin.x,
-					r.top + sourceView->pluginGraphicsPos.top - sinkOrigin.y });
+				entries.push_back({ nullptr, r.left - sinkRect.left, r.top - sinkRect.top });
 			}
 
 			// Pointers only once `specs` has stopped growing.
 			for (size_t i = 0; i < entries.size(); ++i)
 				entries[i].spec = specs[i].c_str();
 
-			sink->setTraceSpecs(entries.data(), static_cast<int32_t>(entries.size()));
+			s.sink->setTraceSpecs(entries.data(), static_cast<int32_t>(entries.size()));
 		}
 	}
 

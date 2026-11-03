@@ -83,8 +83,11 @@ bool isIteratingChildren = false;
 		// drawn over it (ITraceSource), and only the view knows where both are. Anything
 		// that moves a child sets this; the next render pushes the sources over each sink
 		// to it, once. Starts dirty so the first render after a rebuild does the push.
+		// The pairing is done by the TOP view over the whole tree, because a knob inside
+		// a container ("Controls on Parent") sits over a panel in the enclosing view; a
+		// sub-view therefore forwards the flag up rather than pairing its own children.
 		bool traceSpecsDirty = true;
-		void invalidateTraceSpecs() { traceSpecsDirty = true; }
+		virtual void invalidateTraceSpecs() { traceSpecsDirty = true; }
 		void updateTraceSpecs();
 
 		// size reported to parentSizeClients. Only a panel sub-view's size means anything to a control; other views give a nominal one.

@@ -173,6 +173,7 @@ public:
 
 	void OnPatchCablesVisibilityUpdate() override;
 	void markDirtyChild(SE2::IViewChild* child) override;
+	void invalidateTraceSpecs() override;
 	SE2::ConnectorViewBase* createCable(SE2::CableType type, int32_t handleFrom, int32_t fromPin) override;
 
 	gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override

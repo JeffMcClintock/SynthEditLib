@@ -154,6 +154,15 @@ void SubView::markDirtyChild(SE2::IViewChild* child)
 	parent->parent->markDirtyChild(parent);
 }
 
+// The top view pairs trace sources with sinks over the whole tree (see
+// ViewBase::updateTraceSpecs), so a move inside this sub-view has to reach it.
+void SubView::invalidateTraceSpecs()
+{
+	SE2::ViewBase::invalidateTraceSpecs();
+	if (parent && parent->parent)
+		parent->parent->invalidateTraceSpecs();
+}
+
 int32_t SubView::setCapture(SE2::IViewChild* module)
 {
 	// Avoid situation where some module turns off panel then captures mouse (ensuring it never can un-capture it).
