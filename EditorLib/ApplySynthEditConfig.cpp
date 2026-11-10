@@ -2,6 +2,21 @@
 #include "SynthEditAppBase.h"
 #include "BundleInfo.h"
 #include "ModuleFactory_Editor.h"
+#include <filesystem>
+
+namespace
+{
+// A relative folder on the command line means relative to where the tool was started.
+// Resolve it once, here: later code reads a relative module path as a bare filename and
+// prefixes the sem folder again ("./modules/./modules/Controls.gmpi"), so every .gmpi
+// failed to load and exports silently lost the modules they need.
+std::wstring absoluteFolder(const std::string& folder)
+{
+    std::error_code ec;
+    const auto absolute = std::filesystem::absolute(std::filesystem::path(Utf8ToWstring(folder)), ec);
+    return ec ? Utf8ToWstring(folder) : absolute.lexically_normal().wstring();
+}
+}
 
 void ApplyConfigPreInit(CSynthEditAppBase& app, const SynthEditConfig& cfg)
 {
@@ -17,7 +32,7 @@ void ApplyConfigPreInit(CSynthEditAppBase& app, const SynthEditConfig& cfg)
     // is the user's installed-app cache, not the override.
     if (!cfg.overrideFactorySemsFolder.empty())
     {
-        BundleInfo::instance()->semFolder             = Utf8ToWstring(cfg.overrideFactorySemsFolder);
+        BundleInfo::instance()->semFolder             = absoluteFolder(cfg.overrideFactorySemsFolder);
         BundleInfo::instance()->isSemFolderOverridden = true;
     }
 
@@ -28,7 +43,7 @@ void ApplyConfigPreInit(CSynthEditAppBase& app, const SynthEditConfig& cfg)
 #endif // SE_NO_EXTERNAL_MODULES
 
     if (!cfg.overrideSamplesFolder.empty())
-        app.overrideSamplesFolder = Utf8ToWstring(cfg.overrideSamplesFolder);
+        app.overrideSamplesFolder = absoluteFolder(cfg.overrideSamplesFolder);
 }
 
 void ApplyConfigPostInit(CSynthEditAppBase& app, const SynthEditConfig& cfg, bool rescanAlreadyHandled)
