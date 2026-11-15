@@ -122,13 +122,6 @@ public:
 //		auto brushDiag = g.CreateSolidColorBrush(Color::FromArgb(0x0A00ffff));
 		auto brushDiag = g.CreateSolidColorBrush(Color::Gray);
 		auto brush = g.CreateSolidColorBrush(Color::Black);
-		const auto grad1 = Point(0.f, 0.f);
-		const auto grad2 = Point(0.f, (float)blackKeyHeight);
-
-		//auto gradientBrush = g.CreateLinearGradientBrush( grad1, grad2, Color::Black, Color::Gray);
-		auto gradientBrush = g.CreateLinearGradientBrush(Color::Black, Color::Gray, grad1, grad2);
-		//auto gradientBrush3 = g.CreateLinearGradientBrush( grad1, Point(0.f, (float)blackKeyHeight / 2.0f), Color::Gray, Color::Black);
-		auto gradientBrush3 = g.CreateLinearGradientBrush(Color::Gray, Color::Black, grad1, Point(0.f, (float)blackKeyHeight / 2.0f));
 
 		auto whiteBrush = g.CreateSolidColorBrush(Color::White);
 
@@ -167,6 +160,24 @@ public:
 
 			int kn = 0;
 
+			// One ramp per side, shared by every black key (a ramp per key was most of the draw time).
+			GradientStop leftSideStops[]
+			{
+				{ 0.0f, backgroundGrey },
+				{ 0.2f, highlightGrey },
+				{ 0.8f, highlightGrey },
+				{ 1.0f, backgroundGrey },
+			};
+			GradientStop rightSideStops[]
+			{
+				{ 0.0f, backgroundGrey },
+				{ 0.2f, shadowGrey },
+				{ 0.8f, shadowGrey },
+				{ 1.0f, backgroundGrey },
+			};
+			auto leftSideGradient = g.CreateGradientStopCollection(leftSideStops);
+			auto rightSideGradient = g.CreateGradientStopCollection(rightSideStops);
+
 			for (float wx = 0; wx < usableWidth - keySpacing; wx += keySpacing) // wx = key-center
 			{
 				int t = kn++ % 7;
@@ -186,16 +197,8 @@ public:
 								{ x1, keyUnit * 7.0f },
 						};
 
-						GradientStop gradientStops[]
-						{
-							{ 0.0f, backgroundGrey },
-							{ 0.2f, highlightGrey },
-							{ 0.8f, highlightGrey },
-							{ 1.0f, backgroundGrey },
-						};
-
 						auto gradientBrush2 = g.CreateLinearGradientBrush(
-							gradientStops,
+							leftSideGradient,
 							{ x1, 0.f },
 							{ x2, 0.f }
 						);
@@ -216,16 +219,8 @@ public:
 								{ x1, keyUnit * 6.0f },
 						};
 
-						GradientStop gradientStops[]
-						{
-							{ 0.0f, backgroundGrey },
-							{ 0.2f, shadowGrey },
-							{ 0.8f, shadowGrey },
-							{ 1.0f, backgroundGrey },
-						};
-
 						auto gradientBrush2 = g.CreateLinearGradientBrush(
-							gradientStops,
+							rightSideGradient,
 							{ x1, 0.f },
 							{ x2, 0.f }
 						);
