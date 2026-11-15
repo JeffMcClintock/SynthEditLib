@@ -91,7 +91,15 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 		returnUri = BundleInfo::instance()->getPresetFolder();
 	}
 
-	if (returnUri.empty())  // not the short-circuit case
+	// A view rebuild asks for the same few skin files over and over; search the disk once per lifetime.
+	const std::string cacheKey = skinName + '\n' + resourceName + '\n' + resourceType;
+	const auto now = std::chrono::steady_clock::now();
+	const auto cached = lookupCache_.find(cacheKey);
+	const bool cacheHit = cached != lookupCache_.end() && now - cached->second.resolved < lookupCacheLifetime;
+	if (cacheHit)
+		returnUri = cached->second.uri;
+
+	if (!cacheHit && returnUri.empty())  // not the short-circuit case
 	{
 		if (strcmp(resourceType, "ImageMeta") == 0)
 		{
@@ -254,6 +262,9 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 		}
 	}
 
+	if (!cacheHit)
+		lookupCache_[cacheKey] = { returnUri, now };
+
 	const std::string fullUri = JmUnicodeConversions::WStringToUtf8(returnUri);
 
 	// NOTE: Had to disable whole-program-optimisation to prevent compiler inlining this(which corrupted std::string). Not sure how it figured out to inline it.
@@ -289,6 +300,7 @@ void GmpiResourceManager::ClearResourceUris(int32_t moduleHandle)
 void GmpiResourceManager::ClearAllResourceUris()
 {
 	resourceUris_.clear();
+	lookupCache_.clear();
 }
 
 int32_t GmpiResourceManager::OpenUri(const char* fullUri, gmpi::IProtectedFile2** returnStream)

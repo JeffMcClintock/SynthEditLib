@@ -1,6 +1,8 @@
 #pragma once
 #include "se_filesystem.h"
+#include <chrono>
 #include <map>
+#include <string>
 #include <unordered_map>
 #include "mp_sdk_common.h"
 
@@ -37,6 +39,8 @@ public:
 
 	void setProjectFile(const se_fs::path& fullPath)
 	{
+		lookupCache_.clear(); // the project skin/resources folders are about to move
+
 		if (fullPath.empty())
 		{
 			projectFile.clear();
@@ -64,5 +68,16 @@ public:
 	std::string ShortenResourceUri(const std::string& fullPath);
 	se_fs::path ResolveResourceUri(const se_fs::path& filename, std::wstring_view skinName);
 	virtual int32_t OpenUri(const char* fullUri, gmpi::IProtectedFile2** returnStream);
+
+	// How long a resolved (or not-found) lookup is reused before the disk is searched again.
+	std::chrono::milliseconds lookupCacheLifetime{ 1000 };
+
+private:
+	struct CachedLookup
+	{
+		std::wstring uri; // empty = not found
+		std::chrono::steady_clock::time_point resolved;
+	};
+	std::unordered_map< std::string, CachedLookup > lookupCache_;
 };
 
