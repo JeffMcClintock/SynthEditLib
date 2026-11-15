@@ -138,11 +138,13 @@ int32_t GmpiResourceManager::RegisterResourceUri(int32_t moduleHandle, const std
 					returnUri = JmUnicodeConversions::Utf8ToWstring(BundleInfo::resourceTypeScheme) + ws;
 					return true;
 				}
+#if !defined(_WIN32) && !defined(__APPLE__) // a miss is already conclusive on a case-insensitive filesystem
 				if (auto found = FindCaseInsensitive(ws); !found.empty())
 				{
 					returnUri = found;
 					return true;
 				}
+#endif
 				return false;
 			};
 			if (check(candidate.wstring())) return true;
