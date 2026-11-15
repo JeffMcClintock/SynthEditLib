@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include "Drawing.h"
 
 using namespace GmpiDrawing;
@@ -136,7 +137,12 @@ inline static int32_t Render(GmpiDrawing_API::IMpDeviceContext* drawingContext, 
 	grad1 = Point(0.f, (float)keyHeight);
 	grad2 = Point(0.f, (float)keyHeight / 2);
 
-	auto wkgradientBrush = g.CreateLinearGradientBrush(keyGRadColor, keyColor, grad1, grad2);
+	// Each distinct gradient costs a ramp texture, so the pressed-key ones are made only while a key is down.
+	const bool anyKeyDown = std::find(keyStates.begin(), keyStates.end(), true) != keyStates.end();
+
+	LinearGradientBrush wkgradientBrush;
+	if (anyKeyDown)
+		wkgradientBrush = g.CreateLinearGradientBrush(keyGRadColor, keyColor, grad1, grad2);
 
 	int key = lBaseKey;
 	for (float x = 0; x < usableWidth; x += keyWidth)
@@ -340,10 +346,17 @@ inline static int32_t Render(GmpiDrawing_API::IMpDeviceContext* drawingContext, 
 	auto brush = g.CreateSolidColorBrush(Color::Black);
 	grad1 = Point(0.f, 0.f);
 	grad2 = Point(0.f, (float)blackKeyHeight);
-	//auto gradientBrush = g.CreateLinearGradientBrush( grad1, grad2, Color::Black, Color::Gray);
-	auto gradientBrush = g.CreateLinearGradientBrush(Color::Black, Color::Gray, grad1, grad2);
-	//auto gradientBrush3 = g.CreateLinearGradientBrush( grad1, Point(0.f, (float)blackKeyHeight / 2.0f), Color::Gray, Color::Black);
-	auto gradientBrush3 = g.CreateLinearGradientBrush(Color::Gray, Color::Black, grad1, Point(0.f, (float)blackKeyHeight / 2.0f));
+	// One black-to-gray ramp shared by every black key (a ramp per key was most of the draw time).
+	GradientStop blackToGrayStops[] = {
+		{ 0.0f, Color::Black },
+		{ 1.0f, Color::Gray }
+	};
+	auto blackToGray = g.CreateGradientStopCollection(blackToGrayStops);
+	auto gradientBrush = g.CreateLinearGradientBrush(blackToGray, grad1, grad2);
+
+	LinearGradientBrush gradientBrush3;
+	if (anyKeyDown)
+		gradientBrush3 = g.CreateLinearGradientBrush(Color::Gray, Color::Black, grad1, Point(0.f, (float)blackKeyHeight / 2.0f));
 
 	// trapezoid on left of black keys
 	for (int wx = 0; wx < usableWidth; wx += keyWidth)
@@ -404,7 +417,7 @@ inline static int32_t Render(GmpiDrawing_API::IMpDeviceContext* drawingContext, 
 			}
 
 			// gradient
-			auto gradientBrush2 = g.CreateLinearGradientBrush(Color::Black, Color::Gray, Point(x, 0.f), Point(x + blackKeyTopIndent, 0.f));
+			auto gradientBrush2 = g.CreateLinearGradientBrush(blackToGray, Point(x, 0.f), Point(x + blackKeyTopIndent, 0.f));
 
 			// draw it.
 			g.FillPolygon(points, gradientBrush2);
