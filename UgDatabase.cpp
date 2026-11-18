@@ -770,7 +770,8 @@ CModuleFactory::~CModuleFactory()
 	module_list.clear();
 
 	// Check for modules which we forgot to static init in UgDatabase.cpp
-#if defined(_DEBUG)
+	// Not in JUCE plugins: their list names one entry per .cpp, and ExtraModules.cpp doesn't record names.
+#if defined(_DEBUG) && GMPI_IS_PLATFORM_JUCE != 1
 
 	for (auto& s : staticInitCheck2)
 	{
