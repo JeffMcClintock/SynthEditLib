@@ -27,7 +27,10 @@ std::string FileDialogGui::getDefaultFolder(std::wstring extension)
 {
 	const std::wstring searchFilename = L"dummy." + extension;
 	const auto fullFileName = uiHost.resolveFilename(searchFilename.c_str());
-	return JmUnicodeConversions::WStringToUtf8(fullFileName.substr(0, fullFileName.find(L"dummy") - 1));
+	const auto p = fullFileName.rfind(L"dummy");
+	if (p == std::wstring::npos || p == 0) // unresolved (e.g. no extension): no folder.
+		return {};
+	return JmUnicodeConversions::WStringToUtf8(fullFileName.substr(0, p - 1));
 }
 
 void FileDialogGui::onSetTrigger()
