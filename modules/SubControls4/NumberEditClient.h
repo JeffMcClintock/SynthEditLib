@@ -279,11 +279,12 @@ public:
 		break;
 
         case 0x08: // <BACKSPACE>
-        case 0x7F: // <DEL>
+        case 0x7F: // ASCII DEL: the macOS backspace key, Windows Ctrl+Backspace
+        case gmpi::api::keys::Delete:
         {
             if (selectedFrom == selectedTo)
             {
-                if (key == 0x08)
+                if (key != gmpi::api::keys::Delete)
                 {
                     // remove prev character
                     if (cursorPos > 0)
@@ -310,7 +311,7 @@ public:
         }
         break;
 
-        case 0x25: // <LEFT>
+        case gmpi::api::keys::Left:
         {
 			const auto prevCursor = cursorPos;
             cursorPos = (std::max)(cursorPos - 1, 0);
@@ -330,7 +331,7 @@ public:
         }
         break;
 
-        case 0x27: // <RIGHT>
+        case gmpi::api::keys::Right:
         {
             const auto prevCursor = cursorPos;
             cursorPos = (std::min)(cursorPos + 1, (int) text.size());

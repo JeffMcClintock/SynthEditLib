@@ -33,7 +33,7 @@ inline State processKey(const State& inState, int32_t key, int32_t flags)
 	case 0:
 		break;
 
-	case 0x25: // <LEFT>
+	case gmpi::api::keys::Left:
 		outState.cursorPos = (std::max)(outState.cursorPos - 1, 0);
 		outState.selectedFrom = outState.cursorPos;
 
@@ -41,7 +41,7 @@ inline State processKey(const State& inState, int32_t key, int32_t flags)
 			outState.selectedTo = outState.cursorPos;
 		break;
 
-	case 0x27: // <RIGHT>
+	case gmpi::api::keys::Right:
 		outState.cursorPos = (std::min)(outState.cursorPos + 1, (int)outState.text.size());
 		outState.selectedTo = outState.cursorPos;
 
@@ -49,7 +49,7 @@ inline State processKey(const State& inState, int32_t key, int32_t flags)
 			outState.selectedFrom = outState.cursorPos;
 		break;
 
-	case 0x2E: // <DEL>
+	case gmpi::api::keys::Delete:
 		if (outState.selectedFrom == outState.selectedTo)
 		{
 			if (outState.cursorPos < outState.text.size())
@@ -65,7 +65,12 @@ inline State processKey(const State& inState, int32_t key, int32_t flags)
 		}
 		break;
 
+	case gmpi::api::keys::Up: // nothing to move to in one line
+	case gmpi::api::keys::Down:
+		break;
+
 	case 0x08: // <BACKSPACE>
+	case 0x7F: // ASCII DEL: the macOS backspace key, Windows Ctrl+Backspace
 		if (outState.selectedFrom == outState.selectedTo)
 		{
 			if (outState.cursorPos > 0)

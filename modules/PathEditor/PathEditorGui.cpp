@@ -967,7 +967,8 @@ public:
 	{
 		switch(c)
 		{
-		case 0x7F: // DEL
+		case gmpi::api::keys::Delete:
+		case 0x7F: // ASCII DEL, the macOS backspace key
 		case 0x08: // Backspace
 			if(selectedIdx >= 0)
 			{

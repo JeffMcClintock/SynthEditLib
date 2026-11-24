@@ -3108,10 +3108,10 @@ namespace SE2
 	{
 		switch (key)
 		{
-		case 0x25: // left
-		case 0x27: // right
-		case 0x26: // up
-		case 0x28: // down
+		case gmpi::api::keys::Left:
+		case gmpi::api::keys::Right:
+		case gmpi::api::keys::Up:
+		case gmpi::api::keys::Down:
 			break;
 
 		default:
@@ -3121,19 +3121,19 @@ namespace SE2
 
 		switch (key)
 		{
-		case 0x25: // left
+		case gmpi::api::keys::Left:
 			Presenter()->DragSelection({ -1, 0 });
 			break;
 
-		case 0x27: // right
+		case gmpi::api::keys::Right:
 			Presenter()->DragSelection({ 1, 0 });
 			break;
 
-		case 0x26: // up
+		case gmpi::api::keys::Up:
 			Presenter()->DragSelection({ 0, -1 });
 			break;
 
-		case 0x28: // down
+		case gmpi::api::keys::Down:
 			Presenter()->DragSelection({ 0, 1 });
 			break;
 
@@ -3151,19 +3151,11 @@ namespace SE2
 			}
 			break;
 
-		// TIDE BACKLOG E57 -- delete the selection.
-		//
-		// THREE codes, because three producers reach here and all three were
-		// observed arriving: macOS sends 0x08 for the key labelled "delete" and
-		// 0x7F for fn+delete; the mac backend maps NSDeleteFunctionKey (a PC
-		// keyboard's forward-delete) to 0x2E; and SynthEdit's own HostedView
-		// translates VK_DELETE to 0x7F before passing it down.
-		//
-		// Unhandled when the presenter declines -- a locked panel -- so the key is
-		// not silently swallowed and the system can still beep for it.
-		case 0x08: // backspace, the macOS "delete" key
-		case 0x2E: // VK_DELETE
-		case 0x7F: // forward delete
+		// TIDE BACKLOG E57 -- delete the selection: Delete, Backspace, or ASCII DEL (the macOS
+		// backspace key). Unhandled when the presenter declines (a locked panel), so the system can beep.
+		case 0x08:
+		case 0x7F:
+		case gmpi::api::keys::Delete:
 			if (Presenter()->DeleteSelection())
 				return gmpi::ReturnCode::Handled;
 			break;
