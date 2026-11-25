@@ -115,8 +115,6 @@ struct PropertiesViewModel : public gmpi_forms::IObservableObject, public Notifi
 {
 	CDocOb* currentModule = {};
 	class CPatchManager* currentPatchManager = {};
-	bool formIsDirty = true;
-	gmpi::ui::ThemeMode lastRenderedTheme = gmpi::ui::ThemeMode::Dark;
 	std::map<int64_t, std::unique_ptr<ParamObserver> > more_converters;
 
 	// Layout section: one-way (model -> UI) States mirroring the current module's panel rect
@@ -144,7 +142,6 @@ struct PropertiesViewModel : public gmpi_forms::IObservableObject, public Notifi
 	// invalidate the entire properties browser and repaint ('ObjectWillChange') to trigger the re-render.
 	void invalidateView()
 	{
-		formIsDirty = true;
 		ObjectWillChange();
 	}
 
@@ -197,8 +194,6 @@ class PropertiesBrowser : public gmpi::ui::Form, public gmpi_forms::IObserver
 	{
 		return captured && static_cast<const void*>(viewModel.currentModule) == captured;
 	}
-
-	gmpi::drawing::Rect bounds = {};
 
 	// Tracks which module was last rendered, so OnModelWillChange can reset
 	// the scroll position only when the displayed module actually changes
@@ -272,14 +267,7 @@ public:
 	gmpi::ReturnCode onPointerMove(gmpi::drawing::Point point, int32_t flags) override;
 	gmpi::ReturnCode setHover(bool isMouseOverMe) override;
 
-	gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override { return gmpi::ReturnCode::Ok; }
-	gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
+	void renderVisuals() override;
+	void renderBackground(gmpi::drawing::Graphics& g) override;
 	gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
-
-	// IMpGraphics4 interface
-	gmpi::ReturnCode getClipArea(gmpi::drawing::Rect* returnRect) override
-	{
-		*returnRect = bounds;
-		return gmpi::ReturnCode::Ok;
-	}
 };

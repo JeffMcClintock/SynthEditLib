@@ -158,16 +158,12 @@ struct MbFormState
 
     MbTreeViewModel moduleGroups;
     MbListViewModel moduleNames;
-
-    bool formIsDirty = true;
-    gmpi::ui::ThemeMode lastRenderedTheme = gmpi::ui::ThemeMode::Dark;
 };
 
 class ModuleBrowser : public gmpi::ui::Form, public Notifiable, public gmpi_forms::IObserver
 {
     MbFormState state;
     std::list< std::wstring > moduleList;
-    gmpi::drawing::Rect bounds = {};
     std::function<void(gmpi::drawing::Size)> pointerDragCallback;
 
 public:
@@ -184,9 +180,6 @@ public:
     void renderVisuals() override;
     void updateFilter(std::string filterText);
 
-    gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override;
-    gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
-    gmpi::ReturnCode render(gmpi::drawing::api::IDeviceContext* drawingContext) override;
     gmpi::ReturnCode onPointerMove(gmpi::drawing::Point, int32_t flags) override;
     gmpi::ReturnCode onPointerUp(gmpi::drawing::Point, int32_t flags) override;
 

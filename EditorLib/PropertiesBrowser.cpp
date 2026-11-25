@@ -550,8 +550,8 @@ void PropertiesBrowser::OnModelWillChange()
 		lastRenderedModule = viewModel.currentModule;
 	}
 
-	redraw(); // just repaints.
-} // TODO
+	invalidateView();
+}
 
 // handle parameter update by dirtying relevant view.
 gmpi::ReturnCode PropertiesViewModel::setParameter(int32_t handle, gmpi::Field pfield, int32_t voice, int32_t size, const uint8_t* data)
@@ -1519,20 +1519,6 @@ void PropertiesBrowser::Body()
 	}
 }
 
-gmpi::ReturnCode PropertiesBrowser::arrange(const gmpi::drawing::Rect* finalRect)
-{
-	if (bounds.right - bounds.left != finalRect->right - finalRect->left ||
-		bounds.bottom - bounds.top != finalRect->bottom - finalRect->top)
-	{
-		// Size changed, need to recalculate layout (column widths, etc.)
-		viewModel.invalidateView();
-	}
-
-	bounds = *finalRect;
-
-	return gmpi::ReturnCode::Ok;
-}
-
 float PropertiesBrowser::dividerLineX() const
 {
 	// Must match Body(): textArea.left = bounds.left + outerMargin; the label column is a
@@ -1633,9 +1619,8 @@ void PropertiesBrowser::updateRowHighlight(gmpi::drawing::Point point)
 
 	if (point.x >= bounds.left && point.x < contentRight)
 	{
-		// Rows are stored in the portal's content coords; the portal draws them offset by
-		// (bounds.left, bounds.top + scroll), so undo that to map the mouse back to a row.
-		const float unscrolledY = point.y - bounds.top - scroll;
+		// Rows are stored unscrolled; the portal draws them moved by the scroll, so undo that.
+		const float unscrolledY = point.y - scroll;
 		for (const auto& r : contentRowRects)
 		{
 			if (unscrolledY >= r.top && unscrolledY < r.bottom)
@@ -1673,57 +1658,27 @@ gmpi::ReturnCode PropertiesBrowser::setHover(bool isMouseOverMe)
 	return Form::setHover(isMouseOverMe);
 }
 
-gmpi::ReturnCode PropertiesBrowser::render(gmpi::drawing::api::IDeviceContext* drawingContext)
+void PropertiesBrowser::renderVisuals()
 {
-	// Theme change requires full visual rebuild (new colors for backgrounds, text, etc.)
-	// The mode comparison below is what decides that, and always was.
-	//
-	// consumeThemeChanged() used to be called here as well, to beat Form::DoUpdates
-	// to the flag. It no longer has to: DoUpdates consumes against its own counter
-	// through the versioned overload, so it cannot take anything this view needed.
-	// The no-argument overload it used keeps ONE static shared by every caller in
-	// the process, so two views watching through it would race in any case.
-	const auto currentMode = gmpi::ui::themeModeStorage();
-	if (currentMode != viewModel.lastRenderedTheme)
-		viewModel.formIsDirty = true;
+	Form::renderVisuals();
+	collectContentRowRects(); // the tree was rebuilt — recapture row bounds for the hover highlight
+}
 
-	// Switching structure <-> panel view for the same module doesn't re-fire OM_SHOW_PROPERTIES,
-	// so rebuild when the active view changes — the Layout section is shown only in panel view.
-	if (app && app->Document())
-	{
-		const int32_t viewType = app->Document()->SelectedViewType;
-		if (viewType != lastRenderedViewType)
-		{
-			lastRenderedViewType = viewType;
-			viewModel.formIsDirty = true;
-		}
-	}
-
-	if (viewModel.formIsDirty)
-	{
-		viewModel.formIsDirty = false;
-		viewModel.lastRenderedTheme = currentMode;
-		renderVisuals();
-		collectContentRowRects(); // the tree was rebuilt — recapture row bounds for the hover highlight
-	}
-
-	gmpi::drawing::Graphics g(drawingContext);
-
-	// background color of the properties browser
-	g.clear(currentTheme().panelBackground);
+void PropertiesBrowser::renderBackground(gmpi::drawing::Graphics& g)
+{
+	Form::renderBackground(g);
 
 	// Row-hover highlight, drawn behind the content: a subtle translucent band over the row
-	// under the mouse (content rows only). Blends with the panel background just cleared above.
+	// under the mouse (content rows only).
 	if (rowHighlightActive)
 	{
 		const float scroll = currentScrollOffset();
-		// Match the portal's content transform (bounds.left, bounds.top + scroll) so the band
-		// lines up with the rows.
+		// moved by the scroll, as the portal moves the rows
 		gmpi::drawing::Rect hr{
-			hoveredRowRect.left + bounds.left,
-			hoveredRowRect.top + bounds.top + scroll,
-			hoveredRowRect.right + bounds.left,
-			hoveredRowRect.bottom + bounds.top + scroll
+			hoveredRowRect.left,
+			hoveredRowRect.top + scroll,
+			hoveredRowRect.right,
+			hoveredRowRect.bottom + scroll
 		};
 
 		// keep it inside the visible content area (not over the top/bottom margins or scrollbar)
@@ -1740,8 +1695,25 @@ gmpi::ReturnCode PropertiesBrowser::render(gmpi::drawing::api::IDeviceContext* d
 			g.fillRectangle(hr, brush);
 		}
 	}
+}
+
+gmpi::ReturnCode PropertiesBrowser::render(gmpi::drawing::api::IDeviceContext* drawingContext)
+{
+	// Switching structure <-> panel view for the same module doesn't re-fire OM_SHOW_PROPERTIES,
+	// so rebuild when the active view changes — the Layout section is shown only in panel view.
+	if (app && app->Document())
+	{
+		const int32_t viewType = app->Document()->SelectedViewType;
+		if (viewType != lastRenderedViewType)
+		{
+			lastRenderedViewType = viewType;
+			invalidateView();
+		}
+	}
 
 	Form::render(drawingContext);
+
+	gmpi::drawing::Graphics g(drawingContext);
 
 	// Column divider: a fixed full-height line over the content, marking the shared
 	// label|value boundary. Invisible when idle, a light grey while the mouse is over it

@@ -20,6 +20,7 @@ using namespace gmpi::drawing;
 ModuleBrowser::ModuleBrowser(CSynthEditAppBase* p_app)
 {
     app = p_app;
+    background = &gmpi::ui::ColorTheme::controlBackground;
 
     // manually hook up category tree so that expanding a node recreates entire UI
     // eventually this relationship should be automatic, and the rebuild should be restricted to the one view
@@ -58,9 +59,7 @@ void ModuleBrowser::OnNotify(Notifier* sender, int lHint, void* pHint)
         app->ExportModules(moduleList, includePrefabs, app->browserScope());
 
         state.moduleGroups.moduleGroups.clear();
-        state.formIsDirty = true;
-
-        renderVisuals();
+        invalidateView();
     }
 
     if (OM_BROWSER_FONT_SIZE_CHANGED == lHint)
@@ -891,43 +890,6 @@ void MbTreeView::Render(gmpi_forms::Environment* env, gmpi::forms::primitive::Ca
     }
 }
 
-gmpi::ReturnCode ModuleBrowser::arrange(const gmpi::drawing::Rect* finalRect)
-{
-    bounds = *finalRect;
-
-    state.formIsDirty = true;
-    Invalidate({});
-
-    return gmpi::ReturnCode::Ok;
-}
-
-gmpi::ReturnCode ModuleBrowser::render(gmpi::drawing::api::IDeviceContext* drawingContext)
-{
-    // Theme change requires full visual rebuild (new colors for backgrounds, text, etc.)
-    // The mode comparison below is what decides that, and always was.
-    //
-    // consumeThemeChanged() used to be called here as well, to beat Form::DoUpdates
-    // to the flag. It no longer has to: DoUpdates consumes against its own counter
-    // through the versioned overload, so it cannot take anything this view needed.
-    // The no-argument overload it used keeps ONE static shared by every caller in
-    // the process, so two views watching through it would race in any case.
-    const auto currentMode = gmpi::ui::themeModeStorage();
-    if (currentMode != state.lastRenderedTheme)
-        state.formIsDirty = true;
-
-    if (state.formIsDirty)
-    {
-        state.formIsDirty = false;
-        state.lastRenderedTheme = currentMode;
-        renderVisuals();
-    }
-
-    gmpi::drawing::Graphics g(drawingContext);
-    g.clear(gmpi::ui::currentTheme().controlBackground);
-
-    return Form::render(drawingContext);
-}
-
 gmpi::ReturnCode ModuleBrowser::onPointerMove(gmpi::drawing::Point point, int32_t flags)
 {
     if (pointerDragCallback)
@@ -975,5 +937,4 @@ void ModuleBrowser::captureMouse(std::function<void(gmpi::drawing::Size)> callba
 // IMpGraphics2
 //gmpi::ReturnCode ModuleBrowser::getToolTip(MP1_POINT point, gmpi::IString* returnString) { return gmpi::ReturnCode::Ok; }
 
-gmpi::ReturnCode ModuleBrowser::measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) { return gmpi::ReturnCode::Ok; }
 
