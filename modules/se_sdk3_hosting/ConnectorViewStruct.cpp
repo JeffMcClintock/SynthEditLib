@@ -709,6 +709,8 @@ namespace SE2
 			{
 				if (highlightFlags != 0)
 				{
+					seInputTrace("line-paint: line=%d flags=%d", getModuleHandle(), highlightFlags);
+
 					if ((highlightFlags & 3) != 0) // error
 						brush3 = &resources->errorBrush;
 					else

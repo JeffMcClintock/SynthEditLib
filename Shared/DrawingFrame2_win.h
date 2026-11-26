@@ -298,6 +298,10 @@ public:
     // (which dispatches both GMPI and SDK3 IIDs) instead of gmpi_ui's plain
     // GraphicsContext, then run the shared paintLoop.
     void renderInDeviceContext(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects) override;
+
+    // Draw into a new bitmap on this frame's own device context, so the client's cached device
+    // resources stay valid. The bitmap dies with the device. Null mid-paint, or when not on Direct2D.
+    gmpi::drawing::Bitmap renderToBitmap(gmpi::drawing::Size sizeDips, const std::function<void(gmpi::drawing::Graphics&)>& paint);
 #if SE_SOFTWARE_RENDERER_OPTION
 private:
     // The software-renderer arm of renderInDeviceContext: rasterize the client

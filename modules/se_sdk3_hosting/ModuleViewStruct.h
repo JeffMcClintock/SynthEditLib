@@ -107,6 +107,7 @@ class ModuleViewStruct : public ModuleView, public gmpi::TimerClient
 	int movingPeaksIdx = 0;
 	gmpi::drawing::Point lastMousePos;
 	const static int hoveredCounterInit = 2;
+	const static int hoverTimerPeriodMs = 25; // runs only while hovered
 	int hoveredCounter = hoveredCounterInit;
 
 	std::shared_ptr<sharedGraphicResources_struct> drawingResources;

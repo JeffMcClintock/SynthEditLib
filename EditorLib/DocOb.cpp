@@ -390,7 +390,11 @@ void CDocOb::Highlight(int highlightType)
 	if(before == m_error_flags) // avoid expensive redraws.
 		return; // no change
 
-	Container()->VO_Notify(OM_ONCHANGE_CHILD_COLOUR, (void*)this);
+	// Pin-trace emphasis is transient; only the error highlights are a content change.
+	constexpr int emphasisFlags = PinHighlightFlag_Emphasise | PinHighlightFlag_EmphasiseMomentary;
+	const bool emphasisOnly = ((before ^ m_error_flags) & ~emphasisFlags) == 0;
+
+	Container()->VO_Notify(emphasisOnly ? OM_ONCHANGE_CHILD_EMPHASIS : OM_ONCHANGE_CHILD_COLOUR, (void*)this);
 }
 
 void CDocOb::MoveFront()

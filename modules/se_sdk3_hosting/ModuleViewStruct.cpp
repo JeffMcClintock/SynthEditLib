@@ -1867,6 +1867,7 @@ namespace SE2
 			if(hoveredPinInstant_.pinIndex != newHoveredPin.pinIndex || hoveredPinInstant_.hitCircle != newHoveredPin.hitCircle)
 			{
 				hoveredPinInstant_ = newHoveredPin;
+				seInputTrace("  pin: module=%d pin=%d circle=%d", handle, newHoveredPin.pinIndex, newHoveredPin.hitCircle ? 1 : 0);
 				parent->ChildInvalidateRect(getClipArea());
 			}
 		}
@@ -1883,7 +1884,7 @@ namespace SE2
 		if(mouseIsOverMe)
 		{
 			hoveredCounter = hoveredCounterInit;
-			startTimer();
+			startTimer(hoverTimerPeriodMs);
 		}
 		else
 		{
@@ -1936,8 +1937,12 @@ namespace SE2
 				invalidateMyRect(calcScopeRect(hoveredPin_.pinIndex));
 			}
 
+			seInputTrace("paused: module=%d pin=%d circle=%d", handle, newHoveredPin.pinIndex, newHoveredPin.hitCircle ? 1 : 0);
+
 			if(newHoveredPin.pinIndex > -1 && !newHoveredPin.hitCircle)
 				Presenter()->HighlightConnector(this->handle, newHoveredPin.pinIndex, PinHighlightFlag_EmphasiseMomentary);
+
+			seInputTrace("  highlight-done: module=%d", handle);
 
 			hoveredPin_ = newHoveredPin;
 			hoverScopeWaveform = {};
