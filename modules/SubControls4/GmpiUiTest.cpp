@@ -9,6 +9,8 @@
 #include <format>
 #include "se_filesystem.h"
 #include <charconv>
+#include <fstream>
+#include <iterator>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "helpers/GmpiPluginEditor.h"
@@ -2402,6 +2404,97 @@ auto r17b = gmpi::Register<SvgGeometry>::withXml(R"XML(
     <GUI>
 	  <Pin name="SVG File" datatype="string_utf8" isFilename="true" metadata="svg"/>
       <Pin name="Path" datatype="object:path" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Svg Geometry split in two: File To String reads a file, Svg String Geometry parses the text.
+struct SvgStringGeometry final : public GraphicsProcessor
+{
+    In<std::string> pinSvg;
+    ObjectOut<drawing::api::IPathGeometry> pinOutput;
+
+    gmpi::drawing::PathGeometry geometry;
+    std::string builtSvg;
+
+    ReturnCode process() override
+    {
+        if (!geometry || pinSvg.value != builtSvg)
+        {
+            builtSvg = pinSvg.value;
+            geometry = drawingFactory.createPathGeometry();
+
+            auto sink = geometry.open();
+
+            tinyxml2::XMLDocument doc;
+            if (doc.Parse(builtSvg.data(), builtSvg.size()) == tinyxml2::XML_SUCCESS)
+                SvgParser::parseToGeometry(doc.FirstChildElement("svg"), AccessPtr::get(sink));
+
+            sink.close();
+
+            pinOutput = AccessPtr::get(geometry);
+        }
+
+        return ReturnCode::Ok;
+    }
+};
+
+// Outputs the contents of a file as a string. The name is resolved through the host like Svg Geometry does.
+struct FileToString final : public GraphicsProcessor
+{
+    In<std::string> pinFilename;
+    Out<std::string> pinText;
+
+    ReturnCode process() override
+    {
+        std::string fullUri = pinFilename.value;
+        if (auto synthEdit = drawingHost.as<synthedit::IEmbeddedFileSupport>(); synthEdit && !pinFilename.value.empty())
+        {
+            ReturnString resolved;
+            if (synthEdit->findResourceUri(pinFilename.value.c_str(), &resolved) == ReturnCode::Ok)
+            {
+                fullUri = resolved.str();
+                synthEdit->registerResourceUri(fullUri.c_str());
+            }
+        }
+
+        std::string text;
+        if (!fullUri.empty())
+        {
+            std::ifstream file(se_fs::path(fullUri), std::ios::binary);
+            text.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+        }
+        pinText = text;
+
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r17c = gmpi::Register<SvgStringGeometry>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: SvgStringGeometry" name="Svg String Geometry" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="SVG Text" datatype="string_utf8"/>
+      <Pin name="Path" datatype="object:path" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+
+auto r17d = gmpi::Register<FileToString>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: FileToString" name="File To String" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="File" datatype="string_utf8" isFilename="true"/>
+      <Pin name="Text" datatype="string_utf8" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
