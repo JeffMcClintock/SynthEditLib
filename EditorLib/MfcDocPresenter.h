@@ -425,6 +425,7 @@ public:
 			break;
 
 		case OM_ONCHANGE_CHILD_COLOUR:
+		case OM_ONCHANGE_CHILD_EMPHASIS:
 			OnConnectorColorChanged((CDocOb*)pHint);
 			break;
 

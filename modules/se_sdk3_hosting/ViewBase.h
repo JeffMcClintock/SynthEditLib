@@ -12,6 +12,11 @@
 #include "Extensions/ParentSize.h"
 #include "Extensions/TraceSpec.h"
 
+// Pointer-path trace, on when SE_TRACE_INPUT names a file.
+void seInputTrace(const char* fmt, ...);
+bool seInputTraceEnabled();
+double seInputTraceNowMs();
+
 namespace GmpiGuiHosting
 {
 	class ConnectorViewBase;
@@ -165,6 +170,11 @@ bool isIteratingChildren = false;
 		// a sub-view recurses here, so an enclosing view can pull e.g. every shadow ahead
 		// of every normal body across nested sub-views (global layer ordering).
 		void renderChildrenLayer(gmpi::drawing::Graphics& g, int32_t layer);
+
+		// Children overlapping the clip rect, in Z-order. Valid only during a render.
+		std::vector<IViewChild*> visibleChildren;
+		void findVisibleChildren(gmpi::drawing::Graphics& g);
+		void renderVisibleChildrenLayer(gmpi::drawing::Graphics& g, int32_t layer);
 		gmpi::ReturnCode measure(const gmpi::drawing::Size* availableSize, gmpi::drawing::Size* returnDesiredSize) override;
 		gmpi::ReturnCode arrange(const gmpi::drawing::Rect* finalRect) override;
 
@@ -392,6 +402,9 @@ bool isIteratingChildren = false;
 		std::function<void(const scrollBarSpec&)> hscrollBar;
 		std::function<void(const scrollBarSpec&)> vscrollBar;
 
+		// Pan or zoom changed (e.g. so a thumbnail of the visible area can follow).
+		std::function<void()> onViewTransformChanged;
+
 		// Pan/zoom API. All four funnel through calcViewTransform() + updateScrollBars().
 		void setZoomFactor(float newZoomFactor)
 		{
@@ -432,6 +445,9 @@ bool isIteratingChildren = false;
 		// drilled mounting rail along the top and bottom edge of every row. Modules
 		// render afterwards, so a filled slot hides its own stretch of rail.
 		void renderRack(gmpi::drawing::Graphics& g, const RackLayout& rack);
+
+		// Draw what this view currently shows, scaled into tileRect of g. False until the view is built.
+		bool renderThumbnail(gmpi::drawing::Graphics& g, gmpi::drawing::Rect tileRect);
 	};
 
 	class SelectionDragBox : public ViewChild

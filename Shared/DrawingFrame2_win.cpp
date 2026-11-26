@@ -230,6 +230,84 @@ void DrawingFrameBase2::renderInDeviceContext(ID2D1DeviceContext* deviceContext,
     }
 }
 
+gmpi::drawing::Bitmap DrawingFrameBase2::renderToBitmap(gmpi::drawing::Size sizeDips, const std::function<void(gmpi::drawing::Graphics&)>& paint)
+{
+    gmpi::drawing::Bitmap result;
+
+    auto* dc = d2dDeviceContext.get();
+    if (!dc || reentrant || !universalFactory)
+        return result;
+
+#if SE_GPU_RENDERER_OPTION
+    if (universalFactory->gpu)
+        return result;
+#endif
+#if SE_SOFTWARE_RENDERER_OPTION
+    if (universalFactory->cpu)
+        return result;
+#endif
+
+    float dpiX = 96.0f, dpiY = 96.0f;
+    dc->GetDpi(&dpiX, &dpiY);
+    const D2D1_SIZE_U pixelSize{
+        static_cast<UINT32>(std::ceil(sizeDips.width * dpiX / 96.0f)),
+        static_cast<UINT32>(std::ceil(sizeDips.height * dpiY / 96.0f)) };
+    if (pixelSize.width == 0 || pixelSize.height == 0)
+        return result;
+
+    gmpi::directx::ComPtr<ID2D1Image> previousTarget;
+    dc->GetTarget(previousTarget.put());
+
+    // Same pixel format as the back buffer. 96 DPI, so its size reads in pixels like any other bitmap.
+    auto format = D2D1::PixelFormat(DXGI_FORMAT_R16G16B16A16_FLOAT, D2D1_ALPHA_MODE_PREMULTIPLIED);
+    if (auto backBuffer = previousTarget.as<ID2D1Bitmap>(); backBuffer.get())
+        format = backBuffer->GetPixelFormat();
+
+    const auto props = D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET, format, 96.0f, 96.0f);
+
+    gmpi::directx::ComPtr<ID2D1Bitmap1> bitmap;
+    if (FAILED(dc->CreateBitmap(pixelSize, nullptr, 0, &props, bitmap.put())))
+        return result;
+
+    D2D1_MATRIX_3X2_F previousTransform{};
+    dc->GetTransform(&previousTransform);
+    dc->SetTarget(bitmap.get());
+
+    reentrant = true; // no frame may start inside this
+
+    bool ok = false;
+    {
+        se::directx::UniversalGraphicsContext context(universalFactory.get(), dc);
+        gmpi::drawing::Graphics g(&context);
+
+        g.beginDraw();
+        g.setTransform(gmpi::drawing::Matrix3x2{});
+        try
+        {
+            paint(g);
+            ok = true;
+        }
+        catch (...)
+        {
+        }
+        ok = (g.endDraw() == gmpi::ReturnCode::Ok) && ok;
+    }
+
+    reentrant = false;
+
+    dc->SetTarget(previousTarget.get());
+    dc->SetTransform(&previousTransform);
+
+    if (!ok)
+        return result;
+
+    gmpi::shared_ptr<gmpi::api::IUnknown> wrapper;
+    wrapper.attach(new gmpi::directx::Bitmap(&universalFactory->gmpiFactory, dc, bitmap.get()));
+    wrapper->queryInterface(&gmpi::drawing::api::IBitmap::guid, gmpi::drawing::AccessPtr::put_void(result));
+
+    return result;
+}
+
 #if SE_SOFTWARE_RENDERER_OPTION
 void DrawingFrameBase2::renderViaSoftwareRenderer(ID2D1DeviceContext* deviceContext, std::span<gmpi::drawing::RectL> dirtyRects)
 {

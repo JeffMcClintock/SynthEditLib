@@ -57,6 +57,12 @@ namespace SE2
 //		_RPTN(0, "ConnectorViewBase::setHighlightFlags %d\n", flags);
 		highlightFlags = flags;
 
+		if (seInputTraceEnabled())
+		{
+			const auto r = getClipArea();
+			seInputTrace("  line-flags: line=%d flags=%d clip=[%.0f,%.0f,%.0f,%.0f]", getModuleHandle(), flags, r.left, r.top, r.right, r.bottom);
+		}
+
 		if (flags == 0)
 			parent->MoveToBack(this);
 		else

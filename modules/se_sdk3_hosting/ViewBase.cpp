@@ -1,4 +1,5 @@
 #include <cmath>
+#include <chrono>
 #include <random>
 #include <sstream>
 #include <iostream>
@@ -73,7 +74,22 @@ void seInputTrace(const char* fmt, ...)
     va_start(args, fmt);
     vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
-    *out << buf << std::endl;   // flushed: a crash mid-gesture must not lose it
+
+    char stamp[24];
+    snprintf(stamp, sizeof(stamp), "%10.3f ", seInputTraceNowMs());
+    *out << stamp << buf << std::endl;   // flushed: a crash mid-gesture must not lose it
+}
+
+bool seInputTraceEnabled()
+{
+    return inputTraceFile() != nullptr;
+}
+
+// ms since the first call.
+double seInputTraceNowMs()
+{
+    static const auto start = std::chrono::steady_clock::now();
+    return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 }
 
 namespace SE2
@@ -91,25 +107,54 @@ namespace SE2
 	{
 		Graphics g(drawingContext);
 
+		const bool tracing = seInputTraceEnabled();
+		const auto renderStartMs = tracing ? seInputTraceNowMs() : 0.0;
+
 		// Composite one layer at a time so that, e.g., every shadow paints before any
 		// normal content. renderChildrenLayer recurses into sub-views, so this ordering
 		// holds across nested views, not just among this view's direct children.
-		renderChildrenLayer(g, -2); // background
-		renderChildrenLayer(g, -1); // shadows
-		renderChildrenLayer(g,  0); // normal
-		renderChildrenLayer(g,  1); // glow
-		renderChildrenLayer(g,  4); // editor guides (self-gating, see renderChildrenLayer)
+		findVisibleChildren(g); // one cull serves all five layers
+		renderVisibleChildrenLayer(g, -2); // background
+		renderVisibleChildrenLayer(g, -1); // shadows
+		renderVisibleChildrenLayer(g,  0); // normal
+		renderVisibleChildrenLayer(g,  1); // glow
+		renderVisibleChildrenLayer(g,  4); // editor guides (self-gating, see renderVisibleChildrenLayer)
+
+		if (tracing)
+		{
+			const auto clip = g.getAxisAlignedClip();
+			seInputTrace("render: %.3f ms clip=[%.0f,%.0f,%.0f,%.0f] children=%d visible=%d",
+				seInputTraceNowMs() - renderStartMs, clip.left, clip.top, clip.right, clip.bottom, (int)children.size(), (int)visibleChildren.size());
+		}
 
 		return gmpi::ReturnCode::Ok;
 	}
 
 	void ViewBase::renderChildrenLayer(Graphics& g, int32_t layer)
 	{
+		findVisibleChildren(g);
+		renderVisibleChildrenLayer(g, layer);
+	}
+
+	void ViewBase::findVisibleChildren(Graphics& g)
+	{
 		// Here rather than in render() so that sub-views, which are only ever drawn
 		// through this recursion, get the push too.
 		if (traceSpecsDirty)
 			updateTraceSpecs();
 
+		const auto cliprect = g.getAxisAlignedClip();
+
+		visibleChildren.clear();
+		for (auto& m : children)
+		{
+			if (overlaps(m->getClipArea(), cliprect))
+				visibleChildren.push_back(m.get());
+		}
+	}
+
+	void ViewBase::renderVisibleChildrenLayer(Graphics& g, int32_t layer)
+	{
 		// Editor guide: marks where an otherwise-invisible object sits (a patch point draws
 		// an orange outline around itself) so it can be seen and clicked while laying out a
 		// panel. Guides draw only when the modules in this view are editable, and that is
@@ -137,22 +182,17 @@ namespace SE2
 		if(layer == 4 && !(Presenter() && Presenter()->editEnabled()))
 			return;
 
-		// Restrict drawing to the overall clip-rect.
-		const auto cliprect = g.getAxisAlignedClip();
 		const Matrix3x2 originalTransform = g.getTransform();
 
 		bool isOriginal = true; // is the context transform currently == originalTransform?
-		for (auto& m : children)
+		for (auto m : visibleChildren)
 		{
-			if (!overlaps(m->getClipArea(), cliprect))
-				continue;
-
 			if (layer == 0)
 			{
 				// Normal pass: draw every child's whole body (layer-supporting plugins
 				// render their layer 0 inside render(); others render normally).
 				// Wires use absolute view coords; modules are translated to their layoutRect.
-				if (dynamic_cast<ConnectorViewBase*>(m.get()))
+				if (dynamic_cast<ConnectorViewBase*>(m))
 				{
 					if (!isOriginal) // avoid repeated set of original transform if not needed.
 					{
@@ -1291,6 +1331,9 @@ namespace SE2
 		IViewChild* frontMost{};
 		float frontMostScore = bestScore;
 
+		const bool tracing = seInputTraceEnabled();
+		const auto hitTestStartMs = tracing ? seInputTraceNowMs() : 0.0;
+
 		isIteratingChildren = true;
 		for(auto it = children.rbegin(); it != children.rend(); ++it) // iterate in reverse for correct Z-Order.
 		{
@@ -1341,6 +1384,11 @@ namespace SE2
 			}
 		}
 		isIteratingChildren = false;
+
+		if (tracing)
+			seInputTrace("  hittest: %.3f ms children=%d hit=%d changed=%d",
+				seInputTraceNowMs() - hitTestStartMs, (int)children.size(),
+				hitObject ? hitObject->getModuleHandle() : -1, hitObject != mouseOverObject ? 1 : 0);
 
 		frontMostHitObject = frontMost;
 
@@ -1599,6 +1647,47 @@ namespace SE2
 		inv_viewTransform = invert(viewTransformPrecise);
 
 		invalidateRect();
+
+		if (onViewTransformChanged)
+			onViewTransformChanged();
+	}
+
+	bool TopView::renderThumbnail(gmpi::drawing::Graphics& g, gmpi::drawing::Rect tileRect)
+	{
+		const float paneW = drawingBounds.right - drawingBounds.left;
+		const float paneH = drawingBounds.bottom - drawingBounds.top;
+		if (!Presenter() || paneW <= 0.0f || paneH <= 0.0f)
+			return false;
+
+		// Nothing to do unless the tile is being repainted.
+		if (!overlaps(tileRect, g.getAxisAlignedClip()))
+			return true;
+
+		const bool tracing = seInputTraceEnabled();
+		const auto startMs = tracing ? seInputTraceNowMs() : 0.0;
+
+		// Scale the pane to cover the tile, centred.
+		const float scale = (std::max)((tileRect.right - tileRect.left) / paneW, (tileRect.bottom - tileRect.top) / paneH);
+		const auto paneCenter = canvasCenter();
+
+		auto paneToTile = gmpi::drawing::makeTranslation({ -paneCenter.x, -paneCenter.y });
+		paneToTile *= gmpi::drawing::makeScale({ scale, scale });
+		paneToTile *= gmpi::drawing::makeTranslation({ (tileRect.left + tileRect.right) * 0.5f, (tileRect.top + tileRect.bottom) * 0.5f });
+
+		const auto originalTransform = g.getTransform();
+
+		g.pushAxisAlignedClip(tileRect);
+		g.setTransform(paneToTile * originalTransform);
+
+		render(gmpi::drawing::AccessPtr::get(g)); // applies viewTransform, so the tile shows what the pane shows
+
+		g.setTransform(originalTransform);
+		g.popAxisAlignedClip();
+
+		if (tracing)
+			seInputTrace("thumbnail-live: %.3f ms scale=%.4f visible=%d", seInputTraceNowMs() - startMs, scale, (int)visibleChildren.size());
+
+		return true;
 	}
 
 	gmpi::ReturnCode TopView::setHost(gmpi::api::IUnknown* phost)

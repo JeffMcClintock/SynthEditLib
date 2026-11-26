@@ -35,7 +35,9 @@ struct BreadcrumbBar :
     static constexpr float kPadX          = 8.0f;
     static constexpr float kChevronW      = 14.0f;
     static constexpr float kThumbPad      = 7.0f;   // vertical inset of thumbnail
-    static constexpr float kThumbAspect   = 160.0f / 96.0f;
+    static constexpr float kThumbLogicalW = 160.0f; // size a snapshot tile is rendered at
+    static constexpr float kThumbLogicalH = 96.0f;
+    static constexpr float kThumbAspect   = kThumbLogicalW / kThumbLogicalH;
     static constexpr float kThumbRadius   = 4.0f;   // rounded-corner radius of the thumbnail clip
     static constexpr float kNameW         = 96.0f;
     static constexpr float kFontHeight    = 8.67f;  // ~2/3 of the previous 13
@@ -43,6 +45,10 @@ struct BreadcrumbBar :
     // ---- wiring (platform supplies these) ----
     std::function<void(CContainer*)> onNavigate;
     std::function<gmpi::drawing::Bitmap(CContainer*, int /*view_flag*/)> renderThumbnail;
+
+    // Optional, current container only: draw its on-screen view into `tile` (no second view is built).
+    // False = not ready yet.
+    std::function<bool(gmpi::drawing::Graphics&, CContainer*, int /*view_flag*/, const gmpi::drawing::Rect& /*tile*/)> drawLiveThumbnail;
 
     // ---- state ----
     // Raw (not shared_ptr): hosts are GMPI_REFCOUNT_NO_DELETE and owned elsewhere
@@ -83,7 +89,7 @@ struct BreadcrumbBar :
         // Render thumbnails now (off the paint path) so render() only draws cached
         // bitmaps and the heavier offscreen render stays out of the paint loop.
         for (int h : trail)
-            if (auto* c = resolveHandle(h))
+            if (auto* c = resolveHandle(h); c && !isLive(h))
                 thumbnailFor(c);
         invalidate();
     }
@@ -98,12 +104,27 @@ struct BreadcrumbBar :
         invalidate();
     }
 
+    // Supply a thumbnail made elsewhere, e.g. a snapshot of the live view to show once it is no longer current.
+    void setThumbnail(CContainer* container, int view_flag, gmpi::drawing::Bitmap bitmap)
+    {
+        if (!container || !bitmap)
+            return;
+        thumbnailCache[{ container->Handle(), view_flag }] = bitmap;
+        invalidate();
+    }
+
     void clearThumbnails() { thumbnailCache.clear(); }
 
     // Repaint (e.g. after a container rename — the label is read live in render()).
     void refresh() { invalidate(); }
 
 private:
+    // The current container's tile is drawn from its on-screen view, not a cached bitmap.
+    bool isLive(int handle) const
+    {
+        return drawLiveThumbnail && handle == currentHandle;
+    }
+
     void invalidate()
     {
         if (drawingHost)
@@ -285,19 +306,20 @@ public:
 
             const float x0 = x;
             const std::string name = toUtf8(c->GetName());
-            auto thumb = thumbnailFor(c);
+            const bool live = isLive(trail[i]);
+            gmpi::drawing::Bitmap thumb;
+            if (!live)
+                thumb = thumbnailFor(c);
+            const bool hasTile = live || thumb;
 
             // With a thumbnail: a compact tile with the title overlaid on its bottom
             // edge — packs more crumbs in. Without one (e.g. macOS today): a wider
             // name-only tile so the label stays readable.
-            const float tileW = thumb ? thumbW : kNameW;
+            const float tileW = hasTile ? thumbW : kNameW;
             const gmpi::drawing::Rect tile{ x, midY - 0.5f * thumbH, x + tileW, midY + 0.5f * thumbH };
 
-            if (thumb)
+            if (hasTile)
             {
-                const auto sz = thumb.getSize();
-                const gmpi::drawing::Rect src{ 0.0f, 0.0f, static_cast<float>(sz.width), static_cast<float>(sz.height) };
-
                 // Soften the corners by clipping the thumbnail + caption to a rounded rect.
                 auto thumbClip = g.getFactory().createPathGeometry();
                 {
@@ -307,7 +329,16 @@ public:
                 }
                 {
                     gmpi::drawing::ClipDrawingToGeometry clip(g, thumbClip);
-                    g.drawBitmap(thumb, tile, src);
+                    if (live)
+                    {
+                        drawLiveThumbnail(g, c, viewFlag, tile);
+                    }
+                    else
+                    {
+                        const auto sz = thumb.getSize();
+                        const gmpi::drawing::Rect src{ 0.0f, 0.0f, static_cast<float>(sz.width), static_cast<float>(sz.height) };
+                        g.drawBitmap(thumb, tile, src);
+                    }
 
                     const gmpi::drawing::Rect caption{ tile.left, tile.bottom - captionH, tile.right, tile.bottom };
                     g.fillRectangle(caption, bandBrush);
