@@ -224,6 +224,11 @@ namespace SE2
 		return dynamic_cast<SubView*>(moduleview.parent) != nullptr;
 	}
 
+	void GmpiHelper::noteDrawsInParent()
+	{
+		moduleview.drawsInParent = true;
+	}
+
 	gmpi::ReturnCode GmpiHelper::getPositionInParent(float* returnX, float* returnY)
 	{
 		// through the sub-view's pan, into the same space as the sub-view's size (as reported by IParentSize).
@@ -997,6 +1002,7 @@ if(pluginGraphics)
 			// if size remains the same, just arrange and redraw.
 			arrange(bounds_);
 			InvalidatePluginRect(nullptr);
+			parent->OnChildClipAreaChanged();
 		}
 	}
 
@@ -1047,7 +1053,7 @@ if(pluginGraphics)
 			(flags & gmpi_gui_api::GG_POINTER_FLAG_SECONDBUTTON) != 0 && editEnabled();
 
 		// Mouse over client area?
-		if(!rightClickInEditor && (pluginGraphics_GMPI || pluginGraphics) && pointInRect(moduleLocal, pluginGraphicsPos))
+		if(!rightClickInEditor && (pluginGraphics_GMPI || pluginGraphics) && (drawsInParent || pointInRect(moduleLocal, pluginGraphicsPos)))
 		{
 			auto local = PointToPlugin(point);
 
@@ -1595,14 +1601,14 @@ if(pluginGraphics)
 
 	gmpi::ReturnCode ModuleViewPanel::hitTest(gmpi::drawing::Point point, int32_t flags)
 	{
-		if (ModuleView::hitTest(point, flags) != gmpi::ReturnCode::Ok)
+		if (drawsInParent ? !isVisable() : ModuleView::hitTest(point, flags) != gmpi::ReturnCode::Ok)
 			return gmpi::ReturnCode::Unhandled;
 
 		if (!pluginInput_GMPI && !pluginGraphics2)
 			return gmpi::ReturnCode::Unhandled;
 
 		auto local = PointToPlugin(point);
-		if(!pointInRect(local, pluginGraphicsPos))
+		if(!drawsInParent && !pointInRect(local, pluginGraphicsPos))
 			return gmpi::ReturnCode::Unhandled;
 
 		if (pluginInput_GMPI)
@@ -1792,7 +1798,7 @@ if(pluginGraphics)
 		if(!isVisable() || ignoreMouse || (!pluginInput_GMPI && !pluginGraphics2))
 			return totalMiss;
 
-		if(pointInRect(point, getLayoutRect()))
+		if(drawsInParent || pointInRect(point, getLayoutRect()))
 		{
 			auto local = PointToPlugin(point);
 

@@ -101,6 +101,7 @@ public:
 	// viewTransform which SubView keeps synced via setPan().
 
 	void OnChildMoved() override;
+	void OnChildClipAreaChanged() override;
 
 	void calcBounds(gmpi::drawing::Rect & returnLayoutRect, gmpi::drawing::Rect & returnClipRect);
 

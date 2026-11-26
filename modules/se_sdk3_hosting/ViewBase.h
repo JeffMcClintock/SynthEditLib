@@ -273,6 +273,7 @@ bool isIteratingChildren = false;
 		}
 		void invalidateRect(const gmpi::drawing::Rect* invalidRect = {});
 		virtual void OnChildMoved() {}
+		virtual void OnChildClipAreaChanged() {} // a child now paints somewhere new, without having moved.
 
 		// Native handle (HWND) of the window hosting this view. Null when not attached.
 		void* getNativeWindowHandle();

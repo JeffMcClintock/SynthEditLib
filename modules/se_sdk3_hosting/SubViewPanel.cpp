@@ -602,6 +602,30 @@ void SubView::OnChildMoved()
 	parent->parent->OnChangedChildPosition(parent->handle, parentLayoutRect);
 }
 
+// e.g. a shadow that follows a pin, which arrives after measure() totalled the children's clip areas.
+void SubView::OnChildClipAreaChanged()
+{
+	if (viewBounds.right < viewBounds.left) // not measured yet
+		return;
+
+	viewClipBounds = viewBounds;
+	for (auto& m : children)
+	{
+		if (m->isVisable() && dynamic_cast<SE2::ConnectorViewBase*>(m.get()) == nullptr)
+		{
+			const auto childClipArea = m->getClipArea();
+			viewClipBounds.left = (std::min)(viewClipBounds.left, childClipArea.left);
+			viewClipBounds.right = (std::max)(viewClipBounds.right, childClipArea.right);
+			viewClipBounds.top = (std::min)(viewClipBounds.top, childClipArea.top);
+			viewClipBounds.bottom = (std::max)(viewClipBounds.bottom, childClipArea.bottom);
+		}
+	}
+
+	// we may be nested in another sub-view, which totals ours.
+	if (parent && parent->parent)
+		parent->parent->OnChildClipAreaChanged();
+}
+
 void SubView::calcBounds(gmpi::drawing::Rect& returnLayoutRect, gmpi::drawing::Rect& returnClipRect)
 {
 	// calc my bounds.

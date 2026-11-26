@@ -148,6 +148,7 @@ namespace SE2
 		// IDrawsInParent
 		gmpi::ReturnCode getPositionInParent(float* returnX, float* returnY) override;
 		bool isInPanelSubView() const;
+		void noteDrawsInParent();
 
 		gmpi::ReturnCode queryInterface(const gmpi::api::Guid* iid, void** returnInterface) override
 		{
@@ -155,6 +156,7 @@ namespace SE2
 			// only offered inside a panel sub-view; fixed for our lifetime because the module's parent never changes.
 			if (*iid == synthedit::IDrawsInParent::guid && isInPanelSubView())
 			{
+				noteDrawsInParent();
 				*returnInterface = static_cast<synthedit::IDrawsInParent*>(this);
 				addRef();
 				return gmpi::ReturnCode::Ok;
@@ -262,6 +264,7 @@ namespace SE2
 		bool initialised_;
 		std::vector<int> inputPinIds;
 		bool ignoreMouse;
+		bool drawsInParent = false; // draws at its 'Panel Rect', which can lie outside its layout rect: its own hit-test decides.
 		int SortOrder = -1;
 		bool isHovered_ = false;
 

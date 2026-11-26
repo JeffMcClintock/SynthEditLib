@@ -699,6 +699,19 @@ auto r8 = gmpi::Register<Image4Gui>::withXml(R"XML(
 )XML");
 }
 
+// A gradient a Style paints with. Its points are fractions of the painted area's bounds (0,0 = top-left, 1,1 = bottom-right).
+struct DECLSPEC_NOVTABLE IGradient : gmpi::api::IUnknown
+{
+    virtual int32_t getType() = 0; // 0 = linear (start to end), 1 = radial (start = centre, end = a point on the rim)
+    virtual gmpi::ReturnCode getPoints(gmpi::drawing::Point* returnStart, gmpi::drawing::Point* returnEnd) = 0;
+    virtual int32_t getStopCount() = 0;
+    virtual gmpi::ReturnCode getStop(int32_t index, gmpi::drawing::Gradientstop* returnStop) = 0;
+
+    // {86866DE8-1D4C-45FD-87AA-27EE161B8F13}
+    inline static const gmpi::api::Guid guid =
+    { 0x86866de8, 0x1d4c, 0x45fd, { 0x87, 0xaa, 0x27, 0xee, 0x16, 0x1b, 0x8f, 0x13 } };
+};
+
 // A bundle of drawing-style properties (fill, stroke, stroke width) passed as a single
 // reference-counted object - the CSS idea of a 'class' applied to many elements with one wire.
 // It's an interface (not a value struct) so it can grow new properties (dashes, gradients,
@@ -713,11 +726,76 @@ struct DECLSPEC_NOVTABLE IStyle : gmpi::api::IUnknown
     virtual int32_t getStrokeCap() = 0; // gmpi::drawing::CapStyle as int (Flat / Square / Round)
     virtual gmpi::ReturnCode getGlowRadius(float* returnRadius) = 0; // DIPs, 0 = no glow
     virtual gmpi::ReturnCode getGlowColor(gmpi::drawing::Color* returnColor) = 0; // alpha 0 = the shape's own colour
+    virtual IGradient* getFillGradient() = 0;   // null = the solid fill colour
+    virtual IGradient* getStrokeGradient() = 0; // null = the solid stroke colour
 
     // {5D4686F8-97A7-4A55-AFFC-6B7CB6BA4505}
     inline static const gmpi::api::Guid guid =
     { 0x5d4686f8, 0x97a7, 0x4a55, { 0xaf, 0xfc, 0x6b, 0x7c, 0xb6, 0xba, 0x45, 0x05 } };
 };
+
+// What a Style paints a shape with. With no Style: a white 1px stroke, no fill.
+struct StylePaint
+{
+    gmpi::drawing::Color fill{};                 // alpha 0 = no fill
+    gmpi::drawing::Color stroke = Colors::White;
+    float strokeWidth = 1.0f;
+    int32_t cap = 0;
+    IGradient* fillGradient{};
+    IGradient* strokeGradient{};
+
+    explicit StylePaint(IStyle* style)
+    {
+        if (!style)
+            return;
+
+        style->getFillColor(&fill);
+        style->getStrokeColor(&stroke);
+        style->getStrokeWidth(&strokeWidth);
+        cap = style->getStrokeCap();
+        fillGradient = style->getFillGradient();
+        strokeGradient = style->getStrokeGradient();
+    }
+
+    bool fills() const { return fillGradient || fill.a > 0.0f; }
+    bool strokes() const { return strokeWidth > 0.0f && (strokeGradient || stroke.a > 0.0f); }
+};
+
+// The brush for a path's fill (strokeWidth 0) or its stroke: the gradient laid over that part's bounds, else the solid colour.
+static Brush makeBrush(Graphics& g, IGradient* gradient, gmpi::drawing::Color color, PathGeometry& geometry, float strokeWidth, StrokeStyle strokeStyle)
+{
+    Brush brush;
+
+    const int stopCount = gradient ? gradient->getStopCount() : 0;
+    if (stopCount < 1)
+    {
+        brush = g.createSolidColorBrush(color);
+        return brush;
+    }
+
+    std::vector<Gradientstop> stops(stopCount);
+    for (int i = 0; i < stopCount; ++i)
+        gradient->getStop(i, &stops[i]);
+
+    Point start{}, end{};
+    gradient->getPoints(&start, &end);
+    const Rect area = geometry.getWidenedBounds(strokeWidth, strokeStyle);
+    const float w = getWidth(area);
+    const float h = getHeight(area);
+    const Point p1{ area.left + start.x * w, area.top + start.y * h };
+
+    if (gradient->getType() == 1)
+    {
+        const float radius = std::hypot(end.x - start.x, end.y - start.y);
+        brush = g.createRadialGradientBrush({ p1, {}, radius * w, radius * h }, {}, g.createGradientstopCollection(stops));
+    }
+    else
+    {
+        brush = g.createLinearGradientBrush(stops, p1, { area.left + end.x * w, area.top + end.y * h });
+    }
+
+    return brush;
+}
 
 // A soft glow, drawn behind whatever it was made from.
 struct GlowImage
@@ -801,38 +879,57 @@ static gmpi::drawing::Color glowTint(IStyle* style, gmpi::drawing::Color shapeCo
     return glowColor.a > 0.0f ? glowColor : shapeColor;
 }
 
-// A path's glow: the shape the Style draws, tinted with the Glow Color, else the stroke's (or the fill's when there's
-// no stroke). A Style that draws nothing but has a Glow Color glows from the filled shape: a soft shadow.
-static GlowImage makeGlow(Factory factory, PathGeometry& geometry, IStyle* style, float scale)
+// The shape a path's glow is made from: what the Style draws, tinted with the Glow Color, else the stroke's (or the
+// fill's when there's no stroke). A Style that draws nothing but has a Glow Color glows from the filled shape: a soft shadow.
+struct GlowShape
 {
     float radius{};
-    if (!style || ReturnCode::Ok != style->getGlowRadius(&radius) || radius <= 0.0f)
+    gmpi::drawing::Color tint{};
+    bool doFill{};
+    bool doStroke{};
+    float strokeWidth{};
+    StrokeStyle strokeStyle;
+    Rect extent{}; // of the shape, before the blur spreads it
+
+    GlowShape(Factory factory, PathGeometry& geometry, IStyle* style)
+    {
+        if (!style || ReturnCode::Ok != style->getGlowRadius(&radius) || radius <= 0.0f)
+            return;
+
+        const StylePaint paint(style);
+        strokeWidth = paint.strokeWidth;
+        const bool strokes = paint.strokes();
+        tint = glowTint(style, strokes ? paint.stroke : paint.fill);
+        const bool fills = paint.fills() || (!strokes && tint.a > 0.0f);
+
+        strokeStyle = factory.createStrokeStyle(static_cast<CapStyle>(paint.cap));
+        extent = geometry.getWidenedBounds(strokes ? strokeWidth : 0.0f, strokeStyle);
+        if (!std::isfinite(extent.left) || !std::isfinite(extent.right) || !std::isfinite(extent.top) || !std::isfinite(extent.bottom))
+            return;
+
+        doFill = fills;
+        doStroke = strokes;
+    }
+
+    explicit operator bool() const { return doFill || doStroke; }
+
+    // where the glow reaches, in the path's coordinates.
+    Rect reach() const { return inflateRect(extent, radius + 1.0f); }
+};
+
+static GlowImage makeGlow(Factory factory, PathGeometry& geometry, IStyle* style, float scale)
+{
+    const GlowShape shape(factory, geometry, style);
+    if (!shape)
         return {};
 
-    gmpi::drawing::Color fill{};
-    gmpi::drawing::Color stroke = Colors::White;
-    float strokeWidth = 1.0f;
-    style->getFillColor(&fill);
-    style->getStrokeColor(&stroke);
-    style->getStrokeWidth(&strokeWidth);
-    const bool doStroke = stroke.a > 0.0f && strokeWidth > 0.0f;
-    const auto tint = glowTint(style, doStroke ? stroke : fill);
-    const bool doFill = fill.a > 0.0f || (!doStroke && tint.a > 0.0f);
-    if (!doFill && !doStroke)
-        return {};
-
-    auto strokeStyle = factory.createStrokeStyle(static_cast<CapStyle>(style->getStrokeCap()));
-    const Rect extent = geometry.getWidenedBounds(doStroke ? strokeWidth : 0.0f, strokeStyle);
-    if (!std::isfinite(extent.left) || !std::isfinite(extent.right) || !std::isfinite(extent.top) || !std::isfinite(extent.bottom))
-        return {};
-
-    return makeGlowImage(factory, extent, radius, tint, scale,
+    return makeGlowImage(factory, shape.extent, shape.radius, shape.tint, scale,
         [&](Graphics& g, const IHasBrush& brush)
         {
-            if (doFill)
+            if (shape.doFill)
                 g.fillGeometry(geometry, brush);
-            if (doStroke)
-                g.drawGeometry(geometry, brush, strokeWidth, strokeStyle);
+            if (shape.doStroke)
+                g.drawGeometry(geometry, brush, shape.strokeWidth, shape.strokeStyle);
         });
 }
 
@@ -1388,7 +1485,9 @@ protected:
     Out<float> pinDy;                // 8
     Out<float> pinWheel;             // 9  wheel movement in notches (returns to zero next pass, like dX)
     In<std::string> pinHint;         // 10 tooltip
+    In<gmpi::drawing::Rect> pinPanelRect; // 11 where the target is on the parent panel (panel sub-view only), like Render's.
 
+    gmpi::shared_ptr<synthedit::IDrawsInParent> drawsInParent;
     float pendingWheel = 0.0f;        // notches since the last process()
 
     // Movement deltas. We emit them from process() (not onPointerMove) so they behave exactly like
@@ -1404,7 +1503,38 @@ protected:
     static constexpr int32_t kThird  = static_cast<int32_t>(gmpi::api::PointerFlags::ThirdButton);
     static constexpr int32_t kDouble = static_cast<int32_t>(gmpi::api::PointerFlags::Double);
 
+    // in a panel sub-view a set Panel Rect (parent coords, mapped to local) stands in for our bounds.
+    gmpi::drawing::Rect targetBounds()
+    {
+        if (!drawsInParent || empty(pinPanelRect.value))
+            return bounds;
+
+        float x{}, y{};
+        drawsInParent->getPositionInParent(&x, &y);
+        return offsetRect(pinPanelRect.value, { -x, -y });
+    }
+
 public:
+    ReturnCode setHost(gmpi::api::IUnknown* phost) override
+    {
+        drawsInParent = nullptr;
+        if (phost)
+            phost->queryInterface(&synthedit::IDrawsInParent::guid, drawsInParent.put_void());
+
+        return PluginEditor::setHost(phost);
+    }
+
+    ReturnCode getClipArea(drawing::Rect* returnRect) override
+    {
+        *returnRect = targetBounds();
+        return ReturnCode::Ok;
+    }
+
+    ReturnCode hitTest(gmpi::drawing::Point point, int32_t /*flags*/) override
+    {
+        return pointInRect(point, targetBounds()) ? ReturnCode::Ok : ReturnCode::Unhandled;
+    }
+
     gmpi::ReturnCode onPointerDown(gmpi::drawing::Point point, int32_t flags) override
     {
         inputHost->setCapture();
@@ -1508,7 +1638,8 @@ public:
         strokeStyleProperties.dashStyle = DashStyle::Dot;
         auto dottedStroke = g.getFactory().createStrokeStyle(strokeStyleProperties);
 
-        const Rect outline{ bounds.left + 0.5f, bounds.top + 0.5f, bounds.right - 0.5f, bounds.bottom - 0.5f };
+        const auto target = targetBounds();
+        const Rect outline{ target.left + 0.5f, target.top + 0.5f, target.right - 0.5f, target.bottom - 0.5f };
         g.drawRectangle(outline, g.createSolidColorBrush(Colors::Orange), 1.0f, dottedStroke);
 
         return ReturnCode::Ok;
@@ -1560,6 +1691,7 @@ auto r9 = gmpi::Register<MouseTarget>::withXml(R"XML(
         <Pin name="dY" datatype="float" direction="out"/>
         <Pin name="Wheel" datatype="float" direction="out"/>
         <Pin name="Hint" datatype="string_utf8"/>
+        <Pin name="Panel Rect" datatype="struct:rect"/>
 	</GUI>
   </Plugin>
 </PluginList>
@@ -2674,6 +2806,8 @@ struct StyleObject final : public IStyle
     int32_t strokeCap = 0;                            // CapStyle::Flat
     float glowRadius = 0.0f;                          // no glow
     gmpi::drawing::Color glowColor{};                 // alpha 0 = the shape's own colour
+    gmpi::shared_ptr<IGradient> fillGradient;         // null = fillColor
+    gmpi::shared_ptr<IGradient> strokeGradient;       // null = strokeColor
 
     gmpi::ReturnCode getFillColor(gmpi::drawing::Color* c) override { *c = fillColor; return gmpi::ReturnCode::Ok; }
     gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* c) override { *c = strokeColor; return gmpi::ReturnCode::Ok; }
@@ -2681,6 +2815,8 @@ struct StyleObject final : public IStyle
     int32_t getStrokeCap() override { return strokeCap; }
     gmpi::ReturnCode getGlowRadius(float* r) override { *r = glowRadius; return gmpi::ReturnCode::Ok; }
     gmpi::ReturnCode getGlowColor(gmpi::drawing::Color* c) override { *c = glowColor; return gmpi::ReturnCode::Ok; }
+    IGradient* getFillGradient() override { return fillGradient.get(); }
+    IGradient* getStrokeGradient() override { return strokeGradient.get(); }
 
     GMPI_QUERYINTERFACE_METHOD(IStyle);
     GMPI_REFCOUNT
@@ -2697,6 +2833,8 @@ struct StyleBuilder final : public PluginEditorNoGui
     ObjectOut<IStyle>         pinStyle;
     In<float>                pinGlowRadius; // after the output, so saved wires to Style keep their pin
     In<gmpi::drawing::Color> pinGlowColor;
+    ObjectIn<IGradient>      pinFillGradient;   // paints in place of Fill
+    ObjectIn<IGradient>      pinStrokeGradient; // paints in place of Stroke
 
     StyleBuilder()
     {
@@ -2718,6 +2856,8 @@ struct StyleBuilder final : public PluginEditorNoGui
         s->strokeCap   = pinCap.value;
         s->glowRadius  = (std::max)(0.0f, pinGlowRadius.value);
         s->glowColor   = pinGlowColor.value;
+        s->fillGradient   = pinFillGradient.value;
+        s->strokeGradient = pinStrokeGradient.value;
 
         pinStyle.send();
         return ReturnCode::Ok;
@@ -2739,6 +2879,165 @@ auto r26 = gmpi::Register<StyleBuilder>::withXml(R"XML(
       <Pin name="Style" datatype="object:style" direction="out"/>
       <Pin name="Glow Radius" datatype="float"/>
       <Pin name="Glow Color" datatype="struct:color"/>
+      <Pin name="Fill Gradient" datatype="object:gradient"/>
+      <Pin name="Stroke Gradient" datatype="object:gradient"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Concrete gradient. Reference counted; the producing module owns it.
+struct GradientObject final : public IGradient
+{
+    int32_t type{};
+    Point start{};
+    Point end{ 1.0f, 1.0f };
+    std::vector<Gradientstop> stops;
+
+    int32_t getType() override { return type; }
+    gmpi::ReturnCode getPoints(Point* returnStart, Point* returnEnd) override { *returnStart = start; *returnEnd = end; return gmpi::ReturnCode::Ok; }
+    int32_t getStopCount() override { return static_cast<int32_t>(stops.size()); }
+    gmpi::ReturnCode getStop(int32_t index, Gradientstop* returnStop) override
+    {
+        if (index < 0 || index >= getStopCount())
+            return gmpi::ReturnCode::Fail;
+
+        *returnStop = stops[index];
+        return gmpi::ReturnCode::Ok;
+    }
+
+    GMPI_QUERYINTERFACE_METHOD(IGradient);
+    GMPI_REFCOUNT
+};
+
+// A gradient for a Style: one auto-duplicated Color per stop, spread evenly. Linear runs from Start to End; Radial is
+// centred on Start and reaches End. Both are fractions of the shape's bounds, so the gradient follows it at any size.
+struct GradientBuilder final : public PluginEditorNoGui
+{
+    In<int32_t> pinType;
+    In<float>   pinStartX;
+    In<float>   pinStartY;
+    In<float>   pinEndX;
+    In<float>   pinEndY;
+    ObjectOut<IGradient> pinGradient;
+    std::vector<std::unique_ptr<In<gmpi::drawing::Color>>> pinColors;
+
+    ReturnCode initialize() override
+    {
+        synthedit::PinInformation info(editorHost.get());
+        const auto colorCount = static_cast<int>(info.pins.size()) - 6;
+
+        // a pin registers with the editor under construction, which is no longer this one.
+        constructingInstance = this;
+        for (int i = 0; i < colorCount; ++i)
+            pinColors.push_back(std::make_unique<In<gmpi::drawing::Color>>());
+        constructingInstance = nullptr;
+
+        return PluginEditorNoGui::initialize();
+    }
+
+    ReturnCode process() override
+    {
+        // a new object each time, so a Style holding the old one sees a change.
+        gmpi::shared_ptr<GradientObject> gradient;
+        gradient.attach(new GradientObject());
+
+        gradient->type = pinType.value;
+        gradient->start = { pinStartX.value, pinStartY.value };
+        gradient->end = { pinEndX.value, pinEndY.value };
+
+        // Stops blend colour and alpha separately, so fading to a transparent stop would drag its (unseen) colour
+        // in. A fully transparent stop takes its neighbours' colours instead: one stop for each side.
+        const auto count = pinColors.size();
+        for (size_t i = 0; i < count; ++i)
+        {
+            const float position = count > 1 ? static_cast<float>(i) / (count - 1) : 0.0f;
+            const auto color = pinColors[i]->value;
+
+            if (color.a > 0.0f)
+            {
+                gradient->stops.push_back({ position, color });
+                continue;
+            }
+
+            if (i > 0)
+            {
+                auto before = pinColors[i - 1]->value;
+                before.a = 0.0f;
+                gradient->stops.push_back({ position, before });
+            }
+            if (i + 1 < count)
+            {
+                auto after = pinColors[i + 1]->value;
+                after.a = 0.0f;
+                gradient->stops.push_back({ position, after });
+            }
+        }
+
+        pinGradient = gradient.get();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r63 = gmpi::Register<GradientBuilder>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Gradient" name="Gradient" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Type" datatype="enum" default="0" metadata="Linear,Radial"/>
+      <Pin name="Start X" datatype="float"/>
+      <Pin name="Start Y" datatype="float"/>
+      <Pin name="End X" datatype="float" default="1"/>
+      <Pin name="End Y" datatype="float" default="1"/>
+      <Pin name="Gradient" datatype="object:gradient" direction="out"/>
+      <Pin name="Color" datatype="struct:color" autoDuplicate="true" autoRename="true"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// The uniform scale that fits a drawing made for Design Width x Design Height into Width x Height (wire those from
+// Control Size). Fed to every Render's Transform, it makes a fixed-size drawing resize with its control.
+struct FitTransform final : public PluginEditorNoGui
+{
+    In<float> pinWidth;
+    In<float> pinHeight;
+    In<float> pinDesignWidth;
+    In<float> pinDesignHeight;
+    Out<gmpi::drawing::Matrix3x2> pinTransform;
+    Out<float> pinScale;
+
+    ReturnCode process() override
+    {
+        const float scale = (std::max)(0.0f, (std::min)(
+            pinWidth.value / (std::max)(pinDesignWidth.value, 0.001f),
+            pinHeight.value / (std::max)(pinDesignHeight.value, 0.001f)));
+
+        pinTransform = makeScale(scale, scale);
+        pinScale = scale;
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r64 = gmpi::Register<FitTransform>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: FitTransform" name="Fit" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Width" datatype="float" default="100"/>
+      <Pin name="Height" datatype="float" default="100"/>
+      <Pin name="Design Width" datatype="float" default="100"/>
+      <Pin name="Design Height" datatype="float" default="100"/>
+      <Pin name="Transform" datatype="struct:transform" direction="out"/>
+      <Pin name="Scale" datatype="float" direction="out"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -2751,20 +3050,23 @@ struct RenderGeometry final : public PluginEditor
     ObjectIn<IStyle>                      pinStyle;
     In<gmpi::drawing::Rect>               pinPanelRect; // where to render on the parent panel (panel sub-view only).
     In<gmpi::drawing::Matrix3x2>          pinTransform; // applied to the geometry before it's centred; identity when unconnected.
+    ObjectIn<drawing::api::IPathGeometry> pinClip;      // drawing is kept inside this path, which the Transform moves too.
 
     GlowImage glow;
     bool glowDirty = true;
+    gmpi::drawing::Rect glowReach{}; // where the glow reaches, in the path's coordinates. Empty = no glow.
     gmpi::shared_ptr<synthedit::IDrawsInParent> drawsInParent;
     gmpi::drawing::Rect drawnRect{}; // last area drawn, so a moved Panel Rect also erases the old spot.
 
     RenderGeometry()
     {
         // redraw whenever the geometry or its style changes.
-        auto invalidate = [this](PinBase*) { glowDirty = true; invalidateDrawing(); };
+        auto invalidate = [this](PinBase*) { glowDirty = true; updateGlowReach(); invalidateDrawing(); };
         pinInput.onUpdate = invalidate;
         pinStyle.onUpdate = invalidate;
         pinPanelRect.onUpdate = [this](PinBase*) { invalidateDrawing(); };
         pinTransform.onUpdate = [this](PinBase*) { invalidateDrawing(); };
+        pinClip.onUpdate = [this](PinBase*) { invalidateDrawing(); };
     }
 
     // in a panel sub-view the Panel Rect (parent coords, mapped to local) stands in for our bounds.
@@ -2781,20 +3083,58 @@ struct RenderGeometry final : public PluginEditor
         return offsetRect(pinPanelRect.value, { -x, -y });
     }
 
+    // the path's own origin sits at the centre of our area.
+    gmpi::drawing::Matrix3x2 pathTransform(const gmpi::drawing::Rect& area)
+    {
+        return pinTransform.value * makeTranslation((area.left + area.right) * 0.5f, (area.top + area.bottom) * 0.5f);
+    }
+
+    // everywhere we paint: our area, plus any glow that spills past it (a shadow, say).
+    gmpi::drawing::Rect paintedArea()
+    {
+        const auto area = drawingBounds();
+        if (empty(glowReach))
+            return area;
+
+        return unionRect(area, transformBounds(pathTransform(area), glowReach));
+    }
+
+    void updateGlowReach()
+    {
+        glowReach = {};
+
+        PathGeometry geometry;
+        if (!drawingHost || !pinInput || ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
+            return;
+
+        gmpi::shared_ptr<gmpi::api::IUnknown> unknown;
+        drawingHost->getDrawingFactory(unknown.put());
+        Factory factory;
+        if (!unknown || ReturnCode::Ok != unknown->queryInterface(&drawing::api::IFactory::guid, AccessPtr::put_void(factory)))
+            return;
+
+        if (const GlowShape shape(factory, geometry, pinStyle.value.get()); shape)
+            glowReach = shape.reach();
+    }
+
     void invalidateDrawing()
     {
         if (!drawingHost)
             return;
 
+        const auto painted = paintedArea();
+        const bool moved = painted.left != drawnRect.left || painted.top != drawnRect.top || painted.right != drawnRect.right || painted.bottom != drawnRect.bottom;
+
         if (!drawsInParent)
-        {
             drawingHost->invalidateRect({});
-            return;
-        }
 
         drawingHost->invalidateRect(&drawnRect);
-        drawnRect = drawingBounds();
+        drawnRect = painted;
         drawingHost->invalidateRect(&drawnRect);
+
+        // painting somewhere new can change our clip area, which the host caches.
+        if (moved)
+            drawingHost->invalidateMeasure();
     }
 
     ReturnCode setHost(gmpi::api::IUnknown* phost) override
@@ -2808,7 +3148,7 @@ struct RenderGeometry final : public PluginEditor
 
     ReturnCode getClipArea(drawing::Rect* returnRect) override
     {
-        *returnRect = drawingBounds();
+        *returnRect = paintedArea();
         return ReturnCode::Ok;
     }
 
@@ -2828,25 +3168,15 @@ struct RenderGeometry final : public PluginEditor
         if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
             return ReturnCode::Fail;
 
-        gmpi::drawing::Color fill{};
-        gmpi::drawing::Color stroke = Colors::White;
-        float strokeWidth = 1.0f;
-        if (auto* style = pinStyle.value.get())
-        {
-            style->getFillColor(&fill);
-            style->getStrokeColor(&stroke);
-            style->getStrokeWidth(&strokeWidth);
-        }
-
-        const auto area = drawingBounds();
-        const auto world = pinTransform.value * makeTranslation((area.left + area.right) * 0.5f, (area.top + area.bottom) * 0.5f);
+        const StylePaint paint(pinStyle.value.get());
+        const auto world = pathTransform(drawingBounds());
 
         bool hit{};
-        if (fill.a > 0.0f)
+        if (paint.fills())
             AccessPtr::get(geometry)->fillContainsPoint(point, &world, &hit);
 
-        if (!hit && stroke.a > 0.0f && strokeWidth > 0.0f)
-            AccessPtr::get(geometry)->strokeContainsPoint(point, (std::max)(strokeWidth, kHitStrokeWidth), nullptr, &world, &hit);
+        if (!hit && paint.strokes())
+            AccessPtr::get(geometry)->strokeContainsPoint(point, (std::max)(paint.strokeWidth, kHitStrokeWidth), nullptr, &world, &hit);
 
         return hit ? ReturnCode::Ok : ReturnCode::Fail;
     }
@@ -2857,30 +3187,17 @@ struct RenderGeometry final : public PluginEditor
 			return ReturnCode::Ok;
 
         const auto area = drawingBounds();
-        drawnRect = area;
+        drawnRect = paintedArea();
 
         Graphics g(drawingContext);
-        ClipDrawingToBounds _(g, area);
+        ClipDrawingToBounds _(g, drawnRect);
 
         // wrap the incoming interface so we can draw it.
         PathGeometry geometry;
         if (ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
             return ReturnCode::Fail;
 
-        // resolve the style, falling back to a built-in default (white 1px stroke, no fill)
-        // when nothing is connected.
-        gmpi::drawing::Color fill{};                  // alpha 0 = no fill
-        gmpi::drawing::Color stroke = Colors::White;
-        float strokeWidth = 1.0f;
-        int32_t cap = 0;
-        if (auto* style = pinStyle.value.get())
-        {
-            style->getFillColor(&fill);
-            style->getStrokeColor(&stroke);
-            style->getStrokeWidth(&strokeWidth);
-            cap = style->getStrokeCap();
-        }
-
+        const StylePaint paint(pinStyle.value.get());
 
         if (glowDirty)
         {
@@ -2889,21 +3206,29 @@ struct RenderGeometry final : public PluginEditor
         }
 
         // origin at the widget centre (geometry is authored centred on origin).
-        TempTransform tt(g, pinTransform.value * makeTranslation((area.left + area.right) * 0.5f, (area.top + area.bottom) * 0.5f));
+        TempTransform tt(g, pathTransform(area));
+
+        PathGeometry clipGeometry;
+        std::optional<ClipDrawingToGeometry> clip;
+        if (pinClip && ReturnCode::Ok == pinClip.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(clipGeometry)))
+            clip.emplace(g, clipGeometry);
 
         glow.draw(g); // behind the shape
 
-        // fill the interior, then stroke the outline (alpha 0 / zero width = skip).
-        if (fill.a > 0.0f)
+        StrokeStyle strokeStyle;
+        if (paint.strokes() || paint.fillGradient)
+            strokeStyle = g.getFactory().createStrokeStyle(static_cast<CapStyle>(paint.cap));
+
+        // fill the interior, then stroke the outline.
+        if (paint.fills())
         {
-            auto fillBrush = g.createSolidColorBrush(fill);
+            auto fillBrush = makeBrush(g, paint.fillGradient, paint.fill, geometry, 0.0f, strokeStyle);
             g.fillGeometry(geometry, fillBrush);
         }
-        if (stroke.a > 0.0f && strokeWidth > 0.0f)
+        if (paint.strokes())
         {
-            auto strokeBrush = g.createSolidColorBrush(stroke);
-            auto strokeStyle = g.getFactory().createStrokeStyle(static_cast<CapStyle>(cap));
-            g.drawGeometry(geometry, strokeBrush, strokeWidth, strokeStyle);
+            auto strokeBrush = makeBrush(g, paint.strokeGradient, paint.stroke, geometry, paint.strokeWidth, strokeStyle);
+            g.drawGeometry(geometry, strokeBrush, paint.strokeWidth, strokeStyle);
         }
 
         return ReturnCode::Ok;
@@ -2922,6 +3247,7 @@ auto r18 = gmpi::Register<RenderGeometry>::withXml(R"XML(
       <Pin name="Style" datatype="object:style"/>
       <Pin name="Panel Rect" datatype="struct:rect"/>
       <Pin name="Transform" datatype="struct:transform"/>
+      <Pin name="Clip" datatype="object:path"/>
     </GUI>
   </Plugin>
 </PluginList>
