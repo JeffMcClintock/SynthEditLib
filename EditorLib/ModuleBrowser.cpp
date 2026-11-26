@@ -580,8 +580,7 @@ void ListView::Render(gmpi_forms::Environment* env, gmpi::forms::primitive::Canv
         }
     }
 
-    textBoxArea = offsetRect(textBoxArea, { -textBoxArea.left, -textBoxArea .top}); // get local bounds
-    auto chunkArea = textBoxArea;
+    auto chunkArea = textBoxArea; // parent coordinates, the portal moves content by the scroll only
 
     {
         std::string currentGroup;
