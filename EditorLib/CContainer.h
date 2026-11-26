@@ -117,8 +117,12 @@ public:
 	// True when SetPinDefaults is actually on offer for this pair.
 	bool canSetPinDefaultsInstead(CUG* old_module, const std::wstring& replacementModuleType);
 
+	// A prefab ("*P=" id) can stand in only if its top level is one module or container;
+	// otherwise returns null and says why.
 	CUG* ReplaceModule( CUG* old_module, const std::wstring& replacementModuleType,
-	                    ReplaceModuleAction action = ReplaceModuleAction::Replace );
+	                    ReplaceModuleAction action = ReplaceModuleAction::Replace,
+	                    std::wstring* returnFailureReason = nullptr );
+	CUG* replaceWithPrefab( CUG* old_module, const std::wstring& prefabId, std::wstring* returnFailureReason );
 
 	// Offers the choice (asynchronously) when it applies, then replaces. onComplete
 	// receives the new module, or null if the pin defaults were set instead.

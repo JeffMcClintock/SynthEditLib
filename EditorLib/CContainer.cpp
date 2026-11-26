@@ -3037,9 +3037,12 @@ void CContainer::addToContainer(CDocOb* o)
 	o->OnAdded(this);
 }
 
-void CContainer::LoadPrefab(int p_view_type, std::wstring filename, gmpi::drawing::PointL p)
+namespace
 {
-	filename = GetApp()->ResolveFilename(filename, L"syntheditprefab");
+// Reads a prefab file, upgrading SE 1.5 formats first. Returns the error, empty on success.
+std::wstring readPrefabFile(ApplicationBase* app, std::wstring filename, tinyxml2::XMLDocument& doc)
+{
+	filename = app->ResolveFilename(filename, L"syntheditprefab");
 
 	const auto ext = GetExtension(filename);
 	if(ext != L"synthedit" && ext != L"syntheditprefab")
@@ -3058,27 +3061,87 @@ void CContainer::LoadPrefab(int p_view_type, std::wstring filename, gmpi::drawin
 				const std::wstring newExt = L".synthedit";
 				const auto newPathName = combinePathAndFile(path, file + newExt);
 
-				LoadPrefab(p_view_type, newPathName, p);
-				return;
+				return readPrefabFile(app, newPathName, doc);
 			}
 		}
 #endif
 
-		const wstring errmsg = L"Unsupported prefab file format ( ." + ext + L" ) .You may be able to upgrade using SynthEdit 1.5";
-		Application()->SeMessageBox(errmsg.c_str(), L"", MB_OK);
-		return;
+		return L"Unsupported prefab file format ( ." + ext + L" ) .You may be able to upgrade using SynthEdit 1.5";
 	}
 
-	tinyxml2::XMLDocument doc;
 	doc.LoadFile(WStringToUtf8(filename).c_str());
 
 	if (doc.Error())
 	{
 		std::wostringstream oss;
 		oss << L"Can't open file " << filename << L", error = " << doc.ErrorName() << L"\n";
-		GetApp()->SeMessageBox(oss.str().c_str(), L"", MB_OK | MB_ICONSTOP);
+		return oss.str();
+	}
 
-		assert(false);
+	return {};
+}
+
+// "*P=\Controls\Knob2.syntheditprefab" -> the prefab's filename.
+std::wstring prefabIdToFilename(const std::wstring& prefabId)
+{
+	auto filename = prefabId.substr(3);
+
+	// a lone leading slash means no sub-folder.
+	if( !filename.empty() && (filename.front() == L'\\' || filename.front() == L'/') )
+		filename.erase(0, 1);
+
+	return filename;
+}
+
+int countTopLevelModules(tinyxml2::XMLDocument& doc)
+{
+	auto topLevel = doc.FirstChildElement("Document");
+	if( !topLevel )
+		return 0;
+
+	// a .synthedit project keeps its modules inside the master container.
+	if( auto masterContainer = topLevel->FirstChildElement("master_container") )
+		topLevel = masterContainer;
+
+	int count = 0;
+	if( auto modules = topLevel->FirstChildElement("modules") )
+	{
+		for( auto m = modules->FirstChildElement("module"); m; m = m->NextSiblingElement("module") )
+			++count;
+	}
+
+	return count;
+}
+
+// The stateful parameters owned by a module, or by everything inside a container.
+std::vector<PatchParameter_base*> statefulParameters(CPatchManager* patchManager, CUG* module)
+{
+	std::vector<PatchParameter_base*> parameters;
+
+	if( auto container = dynamic_cast<CContainer*>(module) )
+	{
+		const auto sub = patchManager->GetSubParameters(container);
+		parameters.assign(sub.begin(), sub.end());
+	}
+	else
+	{
+		for( int idx = 0; auto p = patchManager->GetParameter(module, idx); ++idx )
+		{
+			if( p->is_stateful() )
+				parameters.push_back(p);
+		}
+	}
+
+	return parameters;
+}
+} // namespace
+
+void CContainer::LoadPrefab(int p_view_type, std::wstring filename, gmpi::drawing::PointL p)
+{
+	tinyxml2::XMLDocument doc;
+	if (const auto error = readPrefabFile(GetApp(), filename, doc); !error.empty())
+	{
+		Application()->SeMessageBox(error.c_str(), L"", MB_OK | MB_ICONSTOP);
 		return;
 	}
 
@@ -4046,8 +4109,197 @@ void CContainer::ReplaceModuleAsync( CUG* old_module, const wstring& replacement
 		});
 }
 
+// Copies a parameter's metadata, range and presets to its replacement. False if the datatypes differ.
+static bool copyParameterForReplace( PatchParameter_base* fromParameter, PatchParameter_base* toParameter )
+{
+	int fromDt, toDt;
+	fromParameter->GetDatatype(FT_VALUE, &fromDt);
+	toParameter->GetDatatype(FT_VALUE, &toDt);
+
+	if( fromDt != toDt )
+		return false;
+
+	const int voice = 0;
+
+	// Metadata.
+	const ParameterFieldType ft[] = { FT_SHORT_NAME, FT_IGNORE_PROGRAM_CHANGE, FT_PRIVATE, FT_AUTOMATION, FT_AUTOMATION_SYSEX, FT_DEFAULT, FT_VST_PARAMETER_INDEX, FT_VST_DISPLAY_TYPE, FT_VST_DISPLAY_MIN, FT_VST_DISPLAY_MAX };
+	for (auto field : ft)
+	{
+		const int patch = 0;
+		toParameter->SetValue(fromParameter->GetValue(field, voice, patch), field, voice, patch);
+	}
+
+	switch (fromDt)
+	{
+	case DT_ENUM:
+	{
+		assert(false); // they are INT now.
+		const ParameterFieldType field = FT_ENUM_LIST;
+		const int patch = 0;
+		toParameter->SetValue(fromParameter->GetValue(field, voice, patch), field, voice, patch);
+	}
+		break;
+
+	case DT_TEXT:
+	{
+		const ParameterFieldType field = FT_FILE_EXTENSION;
+		const int patch = 0;
+		toParameter->SetValue(fromParameter->GetValue(field, voice, patch), field, voice, patch);
+	}
+		break;
+
+	case DT_INT:
+	{
+		int metadatatype;
+		fromParameter->GetDatatype(FT_ENUM_LIST, &metadatatype);
+		// Can identify ENUM parameters by checking what type of metadata they have.
+		if( metadatatype == DT_TEXT )
+		{
+			const ParameterFieldType field = FT_ENUM_LIST;
+			const int patch = 0;
+			toParameter->SetValue(fromParameter->GetValue(field, voice, patch), field, voice, patch);
+			break; // non need to fall though to Max and Min settings.
+		}
+
+	}
+	// deliberate fall-through.
+	[[fallthrough]];
+
+	case DT_DOUBLE:
+	case DT_FLOAT:
+	case DT_INT64:
+	{
+		const int patch = 0;
+		toParameter->SetValue(fromParameter->GetValue(FT_RANGE_LO, voice, patch), FT_RANGE_LO, voice, patch);
+		toParameter->SetValue(fromParameter->GetValue(FT_RANGE_HI, voice, patch), FT_RANGE_HI, voice, patch);
+	}
+	}
+
+	// Presets
+	if (toParameter->is_stateful())
+	{
+		int fromPatch = 0;
+		int fromPatchInc = 0;
+		if (fromParameter->getPatchCount() != 1)
+		{
+			fromPatchInc = 1;
+		}
+
+		for (int toPatch = 0; toPatch < toParameter->getPatchCount(); ++toPatch)
+		{
+			toParameter->SetValue(fromParameter->GetValue(FT_VALUE, voice, fromPatch), FT_VALUE, voice, toPatch);
+
+			fromPatch += fromPatchInc;
+		}
+	}
+
+	return true;
+}
+
+CUG* CContainer::replaceWithPrefab( CUG* old_module, const wstring& prefabId, wstring* returnFailureReason )
+{
+	auto fail = [returnFailureReason](const wstring& reason) -> CUG*
+	{
+		if( returnFailureReason )
+			*returnFailureReason = reason;
+		return nullptr;
+	};
+
+	tinyxml2::XMLDocument doc;
+	if( const auto error = readPrefabFile( GetApp(), prefabIdToFilename(prefabId), doc ); !error.empty() )
+		return fail(error);
+
+	// one module replaced by several has no sensible home for its wires.
+	if( countTopLevelModules(doc) != 1 )
+		return fail(L"Only a prefab with a single top-level module or container can replace a module.");
+
+	const auto oldStructRect = old_module->getViewObRect(CF_STRUCTURE_VIEW);
+	const auto oldPanelRect = old_module->getViewObRect(CF_PANEL_VIEW);
+	const bool wasSelected = old_module->GetSelected(); // paste clears the selection.
+
+	const std::set<CDocOb*> before(BaseList.begin(), BaseList.end());
+	OnEditPaste({oldStructRect.left, oldStructRect.top}, CF_STRUCTURE_VIEW, &doc);
+
+	CUG* new_module = nullptr;
+	for( auto ob : BaseList )
+	{
+		if( before.find(ob) == before.end() )
+		{
+			if( auto m = dynamic_cast<CUG*>(ob); m && !new_module )
+				new_module = m;
+		}
+	}
+
+	if( !new_module )
+		return fail(L"The prefab is empty.");
+
+	// A container's parameters have no index to match on, so only an unambiguous single one carries over.
+	vector< pair<PatchParameter_base*, PatchParameter_base*> > parameterPairs;
+	{
+		auto patchManager = get_patch_manager();
+		const auto from = statefulParameters(patchManager, old_module);
+
+		if( dynamic_cast<CContainer*>(old_module) || dynamic_cast<CContainer*>(new_module) )
+		{
+			const auto to = statefulParameters(patchManager, new_module);
+			if( from.size() == 1 && to.size() == 1 )
+				parameterPairs.push_back({ from[0], to[0] });
+		}
+		else
+		{
+			for( auto p : from )
+			{
+				if( auto to = patchManager->GetParameter(new_module, p->ModuleParameterId()) )
+					parameterPairs.push_back({ p, to });
+			}
+		}
+	}
+
+	vector< pair<int, PatchParameter_base*> > parameterHandles;
+	for( auto& [from, to] : parameterPairs )
+	{
+		if( copyParameterForReplace(from, to) )
+			parameterHandles.push_back({ from->Handle(), to });
+	}
+
+	// retain Z-Order.
+	BaseList.remove(new_module);
+	BaseList.insert( find(BaseList.begin(), BaseList.end(), old_module), new_module );
+
+	const auto pastedStructRect = new_module->getViewObRect(CF_STRUCTURE_VIEW);
+	const auto pastedPanelRect = new_module->getViewObRect(CF_PANEL_VIEW);
+
+	// OnReplace takes over the old module's handle, wires, pin defaults and name.
+	old_module->SetSelected(wasSelected);
+	Document()->uniqueIdDatabase.Unregister(new_module);
+	new_module->OnReplace(old_module);
+
+	// old position, but the prefab's own size.
+	auto place = [new_module](int viewType, const gmpi::drawing::RectL& oldRect, const gmpi::drawing::RectL& pastedRect)
+	{
+		gmpi::drawing::RectL r{ oldRect.left, oldRect.top, oldRect.left + gmpi::drawing::getWidth(pastedRect), oldRect.top + gmpi::drawing::getHeight(pastedRect) };
+		new_module->setViewObRect(viewType, r);
+	};
+	place(CF_STRUCTURE_VIEW, oldStructRect, pastedStructRect);
+	place(CF_PANEL_VIEW, oldPanelRect, pastedPanelRect);
+
+	old_module->OnDelete();
+
+	for( auto& pp : parameterHandles )
+	{
+		Document()->uniqueIdDatabase.Unregister(pp.second);
+		pp.second->setHandle(pp.first);
+		Document()->uniqueIdDatabase.Register(pp.second);
+	}
+
+	SetModifiedFlag();
+	NotifyFast(OM_REFRESH_PRESENTERS);
+
+	return new_module;
+}
+
 CUG* CContainer::ReplaceModule( CUG* old_module, const wstring& replacementModuleType,
-                                ReplaceModuleAction action )
+                                ReplaceModuleAction action, wstring* returnFailureReason )
 {
 	SuspendDSP x( Document()->Application() );
 
@@ -4092,29 +4344,9 @@ CUG* CContainer::ReplaceModule( CUG* old_module, const wstring& replacementModul
 	// create new module.
 	CUG* new_module = 0;
 
-	if( Left( replacementModuleType, 3) == (L"*P=") ) // indicates a prefab or vst plugin
+	if( Left( replacementModuleType, 3) == (L"*P=") ) // indicates a prefab
 	{
-/* possible enhancement, would need to return 'main' module in prefab for hooking up wires.
-
-		// !!!!this is all crap. should be..
-		// ModuleFactory()->Create DisplayObj(p_unique_id)
-		// ...thats it. Prefabs should not be handled differently.
-		std::wstring FileName = Right( replacementModuleType,  replacementModuleType.size() - 3 );
-
-		// remove lone leading slash (if no sub dir specified)
-		if( Left( FileName,  1 ) == L"\ \" )
-		{
-			FileName = Right( FileName,  FileName.size() - 1 );
-		}
-
-		std::wstring FileExtension = GetExtension(FileName);
-
-		if( FileExtension == L"se1" )
-		{
-			new_module = LoadPrefab( CF_STRUCTURE_VIEW, FileName, {} );
-//			return 0;
-		}
-		*/
+		return replaceWithPrefab( old_module, replacementModuleType, returnFailureReason );
 	}
 	else
 	{
@@ -4176,90 +4408,8 @@ CUG* CContainer::ReplaceModule( CUG* old_module, const wstring& replacementModul
 			}
 #endif
 
-			if( toParameter )
-			{
-				int fromDt, toDt;
-				fromParameter->GetDatatype(FT_VALUE, &fromDt);
-				toParameter->GetDatatype(FT_VALUE, &toDt);
-				
-				if( fromDt == toDt /* && fromParameter->GetName() == toParameter->GetName() && fromParameter->getPatchCount() == toParameter->getPatchCount()*/ )
-				{
-					parameterHandles.push_back( pair<int, PatchParameter_base*>(fromParameter->Handle(), toParameter));
-					const int voice = 0;
-
-					// Metadata.
-					const ParameterFieldType ft[] = { FT_SHORT_NAME, FT_IGNORE_PROGRAM_CHANGE, FT_PRIVATE, FT_AUTOMATION, FT_AUTOMATION_SYSEX, FT_DEFAULT, FT_VST_PARAMETER_INDEX, FT_VST_DISPLAY_TYPE, FT_VST_DISPLAY_MIN, FT_VST_DISPLAY_MAX };
-					for (auto field : ft)
-					{
-						const int patch = 0;
-						toParameter->SetValue(fromParameter->GetValue(field, voice, patch), field, voice, patch);
-					}
-
-					switch (fromDt)
-					{
-					case DT_ENUM:
-					{
-						assert(false); // they are INT now.
-						const ParameterFieldType field = FT_ENUM_LIST;
-						const int patch = 0;
-						toParameter->SetValue(fromParameter->GetValue(field, voice, patch), field, voice, patch);
-					}
-						break;
-
-					case DT_TEXT:
-					{
-						const ParameterFieldType field = FT_FILE_EXTENSION;
-						const int patch = 0;
-						toParameter->SetValue(fromParameter->GetValue(field, voice, patch), field, voice, patch);
-					}
-						break;
-
-					case DT_INT:
-					{
-						int metadatatype;
-						fromParameter->GetDatatype(FT_ENUM_LIST, &metadatatype);
-						// Can identify ENUM parameters by checking what type of metadata they have.
-						if( metadatatype == DT_TEXT )
-						{
-							const ParameterFieldType field = FT_ENUM_LIST;
-							const int patch = 0;
-							toParameter->SetValue(fromParameter->GetValue(field, voice, patch), field, voice, patch);
-							break; // non need to fall though to Max and Min settings.
-						}
-
-					}
-					// deliberate fall-through.
-					[[fallthrough]];
-
-					case DT_DOUBLE:
-					case DT_FLOAT:
-					case DT_INT64:
-					{
-						const int patch = 0;
-						toParameter->SetValue(fromParameter->GetValue(FT_RANGE_LO, voice, patch), FT_RANGE_LO, voice, patch);
-						toParameter->SetValue(fromParameter->GetValue(FT_RANGE_HI, voice, patch), FT_RANGE_HI, voice, patch);
-					}
-					}
-
-					// Presets
-					if (toParameter->is_stateful())
-					{
-						int fromPatch = 0;
-						int fromPatchInc = 0;
-						if (fromParameter->getPatchCount() != 1)
-						{
-							fromPatchInc = 1;
-						}
-
-						for (int toPatch = 0; toPatch < toParameter->getPatchCount(); ++toPatch)
-						{
-							toParameter->SetValue(fromParameter->GetValue(FT_VALUE, voice, fromPatch), FT_VALUE, voice, toPatch);
-
-							fromPatch += fromPatchInc;
-						}
-					}
-				}
-			}
+			if( toParameter && copyParameterForReplace( fromParameter, toParameter ) )
+				parameterHandles.push_back( pair<int, PatchParameter_base*>(fromParameter->Handle(), toParameter));
 		}
 		else
 		{
