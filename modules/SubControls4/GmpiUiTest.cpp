@@ -11,6 +11,7 @@
 #include <charconv>
 #include <fstream>
 #include <iterator>
+#include <sstream>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "helpers/GmpiPluginEditor.h"
@@ -699,102 +700,151 @@ auto r8 = gmpi::Register<Image4Gui>::withXml(R"XML(
 )XML");
 }
 
-// A gradient a Style paints with. Its points are fractions of the painted area's bounds (0,0 = top-left, 1,1 = bottom-right).
-struct DECLSPEC_NOVTABLE IGradient : gmpi::api::IUnknown
+// A paint for a fill or a stroke: a solid colour, a gradient... The wire carries the recipe; the device brush is made when a shape is drawn.
+struct DECLSPEC_NOVTABLE IBrushSource : gmpi::api::IUnknown
 {
-    virtual int32_t getType() = 0; // 0 = linear (start to end), 1 = radial (start = centre, end = a point on the rim)
-    virtual gmpi::ReturnCode getPoints(gmpi::drawing::Point* returnStart, gmpi::drawing::Point* returnEnd) = 0;
-    virtual int32_t getStopCount() = 0;
-    virtual gmpi::ReturnCode getStop(int32_t index, gmpi::drawing::Gradientstop* returnStop) = 0;
+    // the brush for painting 'area': the bounds of the fill, of the stroke at its width, or of the text.
+    virtual gmpi::ReturnCode createBrush(drawing::api::IDeviceContext* context, const gmpi::drawing::Rect* area, drawing::api::IBrush** returnBrush) = 0;
+    virtual bool usesArea() = 0; // false = one brush suits every area (a solid colour)
+    // one colour to stand in for it where a brush can't go (a glow's tint, a text editor). Alpha 0 = it paints nothing.
+    virtual gmpi::ReturnCode getColor(gmpi::drawing::Color* returnColor) = 0;
 
-    // {86866DE8-1D4C-45FD-87AA-27EE161B8F13}
+    // {757E93E2-BE43-4801-BAE5-64EEAD749240}
     inline static const gmpi::api::Guid guid =
-    { 0x86866de8, 0x1d4c, 0x45fd, { 0x87, 0xaa, 0x27, 0xee, 0x16, 0x1b, 0x8f, 0x13 } };
+    { 0x757e93e2, 0xbe43, 0x4801, { 0xba, 0xe5, 0x64, 0xee, 0xad, 0x74, 0x92, 0x40 } };
 };
+
+static gmpi::ReturnCode giveBrush(const Brush& brush, drawing::api::IBrush** returnBrush)
+{
+    *returnBrush = brush.get();
+    if (!*returnBrush)
+        return gmpi::ReturnCode::Fail;
+
+    (*returnBrush)->addRef();
+    return gmpi::ReturnCode::Ok;
+}
+
+struct SolidBrushObject final : public IBrushSource
+{
+    gmpi::drawing::Color color{};
+
+    explicit SolidBrushObject(gmpi::drawing::Color c) : color(c) {}
+
+    gmpi::ReturnCode createBrush(drawing::api::IDeviceContext* context, const gmpi::drawing::Rect*, drawing::api::IBrush** returnBrush) override
+    {
+        Graphics g(context);
+        Brush brush;
+        brush = g.createSolidColorBrush(color);
+        return giveBrush(brush, returnBrush);
+    }
+    bool usesArea() override { return false; }
+    gmpi::ReturnCode getColor(gmpi::drawing::Color* c) override { *c = color; return gmpi::ReturnCode::Ok; }
+
+    GMPI_QUERYINTERFACE_METHOD(IBrushSource);
+    GMPI_REFCOUNT
+};
+
+// A solid brush, or none for a fully transparent colour.
+static gmpi::shared_ptr<IBrushSource> solidBrush(gmpi::drawing::Color color)
+{
+    gmpi::shared_ptr<IBrushSource> brush;
+    if (color.a > 0.0f)
+        brush.attach(new SolidBrushObject(color));
+    return brush;
+}
+
+static gmpi::drawing::Color colorOf(IBrushSource* brush)
+{
+    gmpi::drawing::Color color{};
+    if (brush)
+        brush->getColor(&color);
+    return color;
+}
+
+// What's painted when there is no Style.
+static IBrushSource* whiteBrush()
+{
+    static auto white = solidBrush(Colors::White);
+    return white.get();
+}
 
 // A bundle of drawing-style properties (fill, stroke, stroke width) passed as a single
 // reference-counted object - the CSS idea of a 'class' applied to many elements with one wire.
-// It's an interface (not a value struct) so it can grow new properties (dashes, gradients,
-// caps, ...) via an IStyle2 without breaking existing modules or saved patches.
+// It's an interface (not a value struct) so it can grow new properties (dashes, joins, ...)
+// via an IStyle2 without breaking existing modules or saved patches.
 struct DECLSPEC_NOVTABLE IStyle : gmpi::api::IUnknown
 {
-    // Each getter returns Ok when the property is supplied. (Future: Fail could mean 'inherit',
-    // for CSS-like cascading/merging.) A colour with alpha 0 means 'don't paint this part'.
-    virtual gmpi::ReturnCode getFillColor(gmpi::drawing::Color* returnColor) = 0;
-    virtual gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* returnColor) = 0;
+    virtual IBrushSource* getFill() = 0;   // null = not filled
+    virtual IBrushSource* getStroke() = 0; // null = not stroked
     virtual gmpi::ReturnCode getStrokeWidth(float* returnWidth) = 0;
     virtual int32_t getStrokeCap() = 0; // gmpi::drawing::CapStyle as int (Flat / Square / Round)
     virtual gmpi::ReturnCode getGlowRadius(float* returnRadius) = 0; // DIPs, 0 = no glow
     virtual gmpi::ReturnCode getGlowColor(gmpi::drawing::Color* returnColor) = 0; // alpha 0 = the shape's own colour
-    virtual IGradient* getFillGradient() = 0;   // null = the solid fill colour
-    virtual IGradient* getStrokeGradient() = 0; // null = the solid stroke colour
 
-    // {5D4686F8-97A7-4A55-AFFC-6B7CB6BA4505}
+    // {A11C2CB4-1F2B-4392-940B-AC67E0484929}
     inline static const gmpi::api::Guid guid =
-    { 0x5d4686f8, 0x97a7, 0x4a55, { 0xaf, 0xfc, 0x6b, 0x7c, 0xb6, 0xba, 0x45, 0x05 } };
+    { 0xa11c2cb4, 0x1f2b, 0x4392, { 0x94, 0x0b, 0xac, 0x67, 0xe0, 0x48, 0x49, 0x29 } };
 };
 
 // What a Style paints a shape with. With no Style: a white 1px stroke, no fill.
 struct StylePaint
 {
-    gmpi::drawing::Color fill{};                 // alpha 0 = no fill
-    gmpi::drawing::Color stroke = Colors::White;
+    IBrushSource* fill{};
+    IBrushSource* stroke = whiteBrush();
+    gmpi::drawing::Color fillColor{};   // each brush as one colour. Alpha 0 = that part isn't painted.
+    gmpi::drawing::Color strokeColor{};
     float strokeWidth = 1.0f;
     int32_t cap = 0;
-    IGradient* fillGradient{};
-    IGradient* strokeGradient{};
 
     explicit StylePaint(IStyle* style)
     {
-        if (!style)
-            return;
+        if (style)
+        {
+            fill = style->getFill();
+            stroke = style->getStroke();
+            style->getStrokeWidth(&strokeWidth);
+            cap = style->getStrokeCap();
+        }
 
-        style->getFillColor(&fill);
-        style->getStrokeColor(&stroke);
-        style->getStrokeWidth(&strokeWidth);
-        cap = style->getStrokeCap();
-        fillGradient = style->getFillGradient();
-        strokeGradient = style->getStrokeGradient();
+        fillColor = colorOf(fill);
+        strokeColor = colorOf(stroke);
     }
 
-    bool fills() const { return fillGradient || fill.a > 0.0f; }
-    bool strokes() const { return strokeWidth > 0.0f && (strokeGradient || stroke.a > 0.0f); }
+    bool fills() const { return fillColor.a > 0.0f; }
+    bool strokes() const { return strokeWidth > 0.0f && strokeColor.a > 0.0f; }
 };
 
-// The brush for a path's fill (strokeWidth 0) or its stroke: the gradient laid over that part's bounds, else the solid colour.
-static Brush makeBrush(Graphics& g, IGradient* gradient, gmpi::drawing::Color color, PathGeometry& geometry, float strokeWidth, StrokeStyle strokeStyle)
+// What a Style paints text with: its fill. With no Style: white.
+static IBrushSource* textPaint(IStyle* style)
 {
-    Brush brush;
+    return style ? style->getFill() : whiteBrush();
+}
 
-    const int stopCount = gradient ? gradient->getStopCount() : 0;
-    if (stopCount < 1)
+// A device brush made from a Style's paint.
+struct PaintBrush : IHasBrush
+{
+    gmpi::shared_ptr<drawing::api::IBrush> native;
+
+    PaintBrush() = default;
+    PaintBrush(Graphics& g, IBrushSource* source, const Rect& area) { make(g, source, area); }
+
+    void make(Graphics& g, IBrushSource* source, const Rect& area)
     {
-        brush = g.createSolidColorBrush(color);
-        return brush;
+        native = {};
+        if (source)
+            source->createBrush(AccessPtr::get(g), &area, native.put());
     }
 
-    std::vector<Gradientstop> stops(stopCount);
-    for (int i = 0; i < stopCount; ++i)
-        gradient->getStop(i, &stops[i]);
+    drawing::api::IBrush* getBrush() const override { return native.get(); }
+    explicit operator bool() const { return native != nullptr; }
+};
 
-    Point start{}, end{};
-    gradient->getPoints(&start, &end);
-    const Rect area = geometry.getWidenedBounds(strokeWidth, strokeStyle);
-    const float w = getWidth(area);
-    const float h = getHeight(area);
-    const Point p1{ area.left + start.x * w, area.top + start.y * h };
-
-    if (gradient->getType() == 1)
-    {
-        const float radius = std::hypot(end.x - start.x, end.y - start.y);
-        brush = g.createRadialGradientBrush({ p1, {}, radius * w, radius * h }, {}, g.createGradientstopCollection(stops));
-    }
-    else
-    {
-        brush = g.createLinearGradientBrush(stops, p1, { area.left + end.x * w, area.top + end.y * h });
-    }
-
-    return brush;
+// The brush for a path's fill (strokeWidth 0) or its stroke. One that suits every area is made once and kept.
+static void makePathBrush(PaintBrush& brush, Graphics& g, IBrushSource* source, PathGeometry& geometry, float strokeWidth, StrokeStyle strokeStyle)
+{
+    const bool sized = source->usesArea();
+    if (sized || !brush)
+        brush.make(g, source, sized ? geometry.getWidenedBounds(strokeWidth, strokeStyle) : Rect{});
 }
 
 // A soft glow, drawn behind whatever it was made from.
@@ -899,7 +949,7 @@ struct GlowShape
         const StylePaint paint(style);
         strokeWidth = paint.strokeWidth;
         const bool strokes = paint.strokes();
-        tint = glowTint(style, strokes ? paint.stroke : paint.fill);
+        tint = glowTint(style, strokes ? paint.strokeColor : paint.fillColor);
         const bool fills = paint.fills() || (!strokes && tint.a > 0.0f);
 
         strokeStyle = factory.createStrokeStyle(static_cast<CapStyle>(paint.cap));
@@ -962,9 +1012,7 @@ public:
 
         // text colour from the Style's fill (default white); transparent background so the
         // editable readout sits over the artwork like the rendered text it replaces.
-        gmpi::drawing::Color textColor = Colors::White;
-        if (auto* style = pinStyle.value.get())
-            style->getFillColor(&textColor);
+        gmpi::drawing::Color textColor = colorOf(textPaint(pinStyle.value.get()));
 
         auto textRect = bounds;
         textRect.left += 2;
@@ -1159,9 +1207,7 @@ public:
         Graphics g(drawingContext);
         ClipDrawingToBounds _(g, bounds);
 
-        gmpi::drawing::Color textColor = Colors::White;
-        if (auto* style = pinStyle.value.get())
-            style->getFillColor(&textColor);
+        gmpi::drawing::Color textColor = colorOf(textPaint(pinStyle.value.get()));
 
         auto textRect = bounds;
         textRect.left += 2;
@@ -1186,7 +1232,8 @@ public:
         }
         glow.draw(g); // behind the text
 
-        g.drawTextU(pinText.value, textFormat, textRect, g.createSolidColorBrush(textColor));
+        if (PaintBrush brush(g, textPaint(pinStyle.value.get()), textRect); brush)
+            g.drawTextU(pinText.value, textFormat, textRect, brush);
         return ReturnCode::Ok;
     }
 };
@@ -1307,21 +1354,19 @@ public:
             numberEdit.setText(formatNumber(pinValueIn.value));
 
         // number colour from the Style's fill (default white); transparent background.
-        gmpi::drawing::Color textColor = Colors::White;
-        if (auto* style = pinStyle.value.get())
-            style->getFillColor(&textColor);
+        gmpi::drawing::Color textColor = colorOf(textPaint(pinStyle.value.get()));
 
         // units get their own (optional) Style; default to matching the number.
         gmpi::drawing::Color unitColor = textColor;
         if (auto* us = pinUnitStyle.value.get())
-            us->getFillColor(&unitColor);
+            unitColor = colorOf(us->getFill());
 
         // while editing, the number takes the Edit Style (if any).
         IStyle* numberStyle = pinStyle.value.get();
         if (editing && pinEditStyle.value)
         {
             numberStyle = pinEditStyle.value.get();
-            numberStyle->getFillColor(&textColor);
+            textColor = colorOf(numberStyle->getFill());
         }
 
         // top-left text formats - NumberEdit does its own centring (and draws the cursor/selection).
@@ -2800,31 +2845,84 @@ auto r30 = gmpi::Register<CombineTransforms>::withXml(R"XML(
 // Concrete, mutable style. Reference counted; the producing module owns it.
 struct StyleObject final : public IStyle
 {
-    gmpi::drawing::Color fillColor{};                 // alpha 0 = no fill
-    gmpi::drawing::Color strokeColor{ 0, 0, 0, 1 };   // opaque black
+    gmpi::shared_ptr<IBrushSource> fill;   // null = not filled
+    gmpi::shared_ptr<IBrushSource> stroke; // null = not stroked
     float strokeWidth = 1.0f;
-    int32_t strokeCap = 0;                            // CapStyle::Flat
-    float glowRadius = 0.0f;                          // no glow
-    gmpi::drawing::Color glowColor{};                 // alpha 0 = the shape's own colour
-    gmpi::shared_ptr<IGradient> fillGradient;         // null = fillColor
-    gmpi::shared_ptr<IGradient> strokeGradient;       // null = strokeColor
+    int32_t strokeCap = 0;                 // CapStyle::Flat
+    float glowRadius = 0.0f;               // no glow
+    gmpi::drawing::Color glowColor{};      // alpha 0 = the shape's own colour
 
-    gmpi::ReturnCode getFillColor(gmpi::drawing::Color* c) override { *c = fillColor; return gmpi::ReturnCode::Ok; }
-    gmpi::ReturnCode getStrokeColor(gmpi::drawing::Color* c) override { *c = strokeColor; return gmpi::ReturnCode::Ok; }
+    IBrushSource* getFill() override { return fill.get(); }
+    IBrushSource* getStroke() override { return stroke.get(); }
     gmpi::ReturnCode getStrokeWidth(float* w) override { *w = strokeWidth; return gmpi::ReturnCode::Ok; }
     int32_t getStrokeCap() override { return strokeCap; }
     gmpi::ReturnCode getGlowRadius(float* r) override { *r = glowRadius; return gmpi::ReturnCode::Ok; }
     gmpi::ReturnCode getGlowColor(gmpi::drawing::Color* c) override { *c = glowColor; return gmpi::ReturnCode::Ok; }
-    IGradient* getFillGradient() override { return fillGradient.get(); }
-    IGradient* getStrokeGradient() override { return strokeGradient.get(); }
 
     GMPI_QUERYINTERFACE_METHOD(IStyle);
     GMPI_REFCOUNT
 };
 
-// Bundles fill colour, stroke colour and stroke width into a single 'object:style' output.
+// Bundles how a shape is painted into a single 'object:style' output.
 // Build the style once and fan the one wire out to as many renderers as you like.
+// Fill and Stroke each take any brush (Solid Brush, Linear Gradient, Radial Gradient); a part with no brush isn't painted.
 struct StyleBuilder final : public PluginEditorNoGui
+{
+    ObjectIn<IBrushSource>   pinFill;
+    ObjectIn<IBrushSource>   pinStroke;
+    In<float>                pinStrokeWidth;
+    In<int32_t>              pinCap;
+    In<float>                pinGlowRadius;
+    In<gmpi::drawing::Color> pinGlowColor;
+    ObjectOut<IStyle>        pinStyle;
+
+    StyleBuilder()
+    {
+        pinStrokeWidth.value = 1.0f;
+    }
+
+    ReturnCode process() override
+    {
+        // create the style object once, then keep mutating it in place and re-sending.
+        if (!pinStyle)
+            pinStyle.value.attach(new StyleObject());
+
+        auto* s = static_cast<StyleObject*>(pinStyle.value.get());
+        s->fill        = pinFill.value;
+        s->stroke      = pinStroke.value;
+        s->strokeWidth = pinStrokeWidth.value;
+        s->strokeCap   = pinCap.value;
+        s->glowRadius  = (std::max)(0.0f, pinGlowRadius.value);
+        s->glowColor   = pinGlowColor.value;
+
+        pinStyle.send();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r65 = gmpi::Register<StyleBuilder>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Style" name="Style" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Fill" datatype="object:brush"/>
+      <Pin name="Stroke" datatype="object:brush"/>
+      <Pin name="Stroke Width" datatype="float" default="1"/>
+      <Pin name="Cap" datatype="enum" default="0" metadata="Flat,Square,Round"/>
+      <Pin name="Glow Radius" datatype="float"/>
+      <Pin name="Glow Color" datatype="struct:color"/>
+      <Pin name="Style" datatype="object:style" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// The Style that takes colours in place of brushes, kept for the projects saved with it.
+struct ColorStyleBuilder final : public PluginEditorNoGui
 {
     In<gmpi::drawing::Color> pinFill;
     In<gmpi::drawing::Color> pinStroke;
@@ -2833,10 +2931,8 @@ struct StyleBuilder final : public PluginEditorNoGui
     ObjectOut<IStyle>         pinStyle;
     In<float>                pinGlowRadius; // after the output, so saved wires to Style keep their pin
     In<gmpi::drawing::Color> pinGlowColor;
-    ObjectIn<IGradient>      pinFillGradient;   // paints in place of Fill
-    ObjectIn<IGradient>      pinStrokeGradient; // paints in place of Stroke
 
-    StyleBuilder()
+    ColorStyleBuilder()
     {
         // visible defaults: opaque-black 1px stroke, no fill (fill alpha stays 0).
         pinStroke.value = gmpi::drawing::Color{ 0, 0, 0, 1 };
@@ -2850,14 +2946,12 @@ struct StyleBuilder final : public PluginEditorNoGui
             pinStyle.value.attach(new StyleObject());
 
         auto* s = static_cast<StyleObject*>(pinStyle.value.get());
-        s->fillColor   = pinFill.value;
-        s->strokeColor = pinStroke.value;
+        s->fill        = solidBrush(pinFill.value);
+        s->stroke      = solidBrush(pinStroke.value);
         s->strokeWidth = pinStrokeWidth.value;
         s->strokeCap   = pinCap.value;
         s->glowRadius  = (std::max)(0.0f, pinGlowRadius.value);
         s->glowColor   = pinGlowColor.value;
-        s->fillGradient   = pinFillGradient.value;
-        s->strokeGradient = pinStrokeGradient.value;
 
         pinStyle.send();
         return ReturnCode::Ok;
@@ -2866,11 +2960,11 @@ struct StyleBuilder final : public PluginEditorNoGui
 
 namespace
 {
-auto r26 = gmpi::Register<StyleBuilder>::withXml(R"XML(
+auto r26 = gmpi::Register<ColorStyleBuilder>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: StyleBuilder" name="Style" category="Experimental/Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: StyleBuilder" name="Style (old)" category="Debug/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Fill" datatype="struct:color"/>
       <Pin name="Stroke" datatype="struct:color"/>
@@ -2879,54 +2973,233 @@ auto r26 = gmpi::Register<StyleBuilder>::withXml(R"XML(
       <Pin name="Style" datatype="object:style" direction="out"/>
       <Pin name="Glow Radius" datatype="float"/>
       <Pin name="Glow Color" datatype="struct:color"/>
-      <Pin name="Fill Gradient" datatype="object:gradient"/>
-      <Pin name="Stroke Gradient" datatype="object:gradient"/>
     </GUI>
   </Plugin>
 </PluginList>
 )XML");
 }
 
-// Concrete gradient. Reference counted; the producing module owns it.
-struct GradientObject final : public IGradient
+// A brush of one colour, for a Style's Fill or Stroke.
+struct SolidBrush final : public PluginEditorNoGui
 {
-    int32_t type{};
-    Point start{};
-    Point end{ 1.0f, 1.0f };
+    In<gmpi::drawing::Color> pinColor;
+    ObjectOut<IBrushSource>  pinBrush;
+
+    SolidBrush()
+    {
+        pinColor.value = Colors::White;
+    }
+
+    ReturnCode process() override
+    {
+        // a new object each time, so a Style holding the old one sees a change.
+        gmpi::shared_ptr<IBrushSource> brush;
+        brush.attach(new SolidBrushObject(pinColor.value));
+
+        pinBrush = brush.get();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r66 = gmpi::Register<SolidBrush>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: SolidBrush" name="Solid Brush" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Color" datatype="struct:color" default="FFFFFFFF"/>
+      <Pin name="Brush" datatype="object:brush" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// Concrete gradient brush, laid over the painted area by CSS's rules. Reference counted; the producing module owns it.
+struct GradientObject final : public IBrushSource
+{
+    bool radial{};
+    float angle = 180.0f;       // linear: CSS degrees, clockwise from straight up
+    Point center{ 0.5f, 0.5f }; // radial: both are fractions of the area's width and height
+    Point radius{ 0.5f, 0.5f };
     std::vector<Gradientstop> stops;
 
-    int32_t getType() override { return type; }
-    gmpi::ReturnCode getPoints(Point* returnStart, Point* returnEnd) override { *returnStart = start; *returnEnd = end; return gmpi::ReturnCode::Ok; }
-    int32_t getStopCount() override { return static_cast<int32_t>(stops.size()); }
-    gmpi::ReturnCode getStop(int32_t index, Gradientstop* returnStop) override
+    gmpi::ReturnCode createBrush(drawing::api::IDeviceContext* context, const gmpi::drawing::Rect* area, drawing::api::IBrush** returnBrush) override
     {
-        if (index < 0 || index >= getStopCount())
+        *returnBrush = {};
+        if (stops.empty())
             return gmpi::ReturnCode::Fail;
 
-        *returnStop = stops[index];
+        Graphics g(context);
+        Brush brush;
+
+        const float w = getWidth(*area);
+        const float h = getHeight(*area);
+
+        if (radial)
+        {
+            const Point c{ area->left + center.x * w, area->top + center.y * h };
+            brush = g.createRadialGradientBrush({ c, {}, radius.x * w, radius.y * h }, {}, g.createGradientstopCollection(stops));
+        }
+        else
+        {
+            // CSS: the line crosses the centre, just long enough that the end colours reach the corners.
+            const double radians = angle * (3.14159265358979323846 / 180.0);
+            const double dx = std::sin(radians);
+            const double dy = -std::cos(radians);
+            const double half = 0.5 * (std::fabs(w * dx) + std::fabs(h * dy));
+            const double cx = 0.5 * (area->left + area->right);
+            const double cy = 0.5 * (area->top + area->bottom);
+
+            brush = g.createLinearGradientBrush(stops,
+                { static_cast<float>(cx - dx * half), static_cast<float>(cy - dy * half) },
+                { static_cast<float>(cx + dx * half), static_cast<float>(cy + dy * half) });
+        }
+
+        return giveBrush(brush, returnBrush);
+    }
+    bool usesArea() override { return true; }
+
+    // its most opaque stop.
+    gmpi::ReturnCode getColor(gmpi::drawing::Color* returnColor) override
+    {
+        *returnColor = {};
+        for (const auto& stop : stops)
+        {
+            if (stop.color.a > returnColor->a)
+                *returnColor = stop.color;
+        }
         return gmpi::ReturnCode::Ok;
     }
 
-    GMPI_QUERYINTERFACE_METHOD(IGradient);
+    GMPI_QUERYINTERFACE_METHOD(IBrushSource);
     GMPI_REFCOUNT
 };
 
-// A gradient for a Style: one auto-duplicated Color per stop, spread evenly. Linear runs from Start to End; Radial is
-// centred on Start and reaches End. Both are fractions of the shape's bounds, so the gradient follows it at any size.
-struct GradientBuilder final : public PluginEditorNoGui
+// A gradient's stops, placed as CSS places them. 'positions' lists percentages along the gradient, one per colour
+// ("0, 35, 100"). A colour without one sits evenly between its neighbours, the first at 0 and the last at 100.
+static std::vector<Gradientstop> makeGradientStops(const std::vector<gmpi::drawing::Color>& colors, std::string positions)
 {
-    In<int32_t> pinType;
-    In<float>   pinStartX;
-    In<float>   pinStartY;
-    In<float>   pinEndX;
-    In<float>   pinEndY;
-    ObjectOut<IGradient> pinGradient;
+    const auto count = colors.size();
+    std::vector<float> at(count, -1.0f); // -1 = not given
+    if (count == 0)
+        return {};
+
+    const char separator = positions.find(',') != std::string::npos ? ',' : ' ';
+    std::replace(positions.begin(), positions.end(), '%', ' ');
+    {
+        std::istringstream list(positions);
+        std::string item;
+        for (size_t i = 0; i < count && std::getline(list, item, separator); )
+        {
+            char* numberEnd{};
+            const float percent = std::strtof(item.c_str(), &numberEnd);
+            if (numberEnd != item.c_str())
+                at[i] = std::clamp(percent * 0.01f, 0.0f, 1.0f);
+            else if (separator == ' ')
+                continue; // a run of spaces
+
+            ++i;
+        }
+    }
+
+    if (at.front() < 0.0f)
+        at.front() = 0.0f;
+    if (at.back() < 0.0f)
+        at.back() = count > 1 ? 1.0f : at.front();
+
+    // none before the one ahead of it, then the gaps spread evenly.
+    float furthest = 0.0f;
+    for (auto& position : at)
+    {
+        if (position >= 0.0f)
+            position = furthest = (std::max)(position, furthest);
+    }
+    for (size_t i = 1; i < count; ++i)
+    {
+        if (at[i] >= 0.0f)
+            continue;
+
+        size_t next = i;
+        while (at[next] < 0.0f)
+            ++next;
+
+        const float step = (at[next] - at[i - 1]) / static_cast<float>(next - i + 1);
+        for (size_t j = i; j < next; ++j)
+            at[j] = at[j - 1] + step;
+    }
+
+    if (count == 1)
+        return { { at[0], colors[0] } };
+
+    // CSS blends two stops as sRGB values weighted by their alpha; a brush blends them in linear light, alpha apart.
+    // In-between stops, coloured as CSS would colour them, make up the difference.
+    constexpr int steps = 16;
+
+    auto encode = [](const gmpi::drawing::Color& c) { return gmpi::drawing::Color{ linearToSRGB01(c.r), linearToSRGB01(c.g), linearToSRGB01(c.b), c.a }; };
+    auto decode = [](float c) { return c <= 0.04045f ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f); };
+
+    std::vector<Gradientstop> stops;
+    auto add = [&stops](float position, const gmpi::drawing::Color& c)
+    {
+        if (!stops.empty())
+        {
+            const auto& last = stops.back();
+            if (last.position == position && last.color.r == c.r && last.color.g == c.g && last.color.b == c.b && last.color.a == c.a)
+                return;
+        }
+        stops.push_back({ position, c });
+    };
+
+    for (size_t i = 0; i + 1 < count; ++i)
+    {
+        const auto& from = colors[i];
+        const auto& to = colors[i + 1];
+        const auto e0 = encode(from);
+        const auto e1 = encode(to);
+
+        // one colour all the way (the other end is transparent, or the same colour) needs nothing in between.
+        const bool oneColor = from.a <= 0.0f || to.a <= 0.0f || (from.r == to.r && from.g == to.g && from.b == to.b);
+        const int n = (oneColor || at[i + 1] <= at[i]) ? 1 : steps;
+
+        for (int k = 0; k <= n; ++k)
+        {
+            const float f = static_cast<float>(k) / n;
+            const float fromWeight = from.a * (1.0f - f);
+            const float toWeight = to.a * f;
+            const float weight = fromWeight + toWeight;
+            const float mix = weight > 0.0f ? toWeight / weight : (from.a > 0.0f ? 0.0f : 1.0f); // nothing shows: the colour of the visible end
+
+            gmpi::drawing::Color c;
+            if (mix <= 0.0f)
+                c = from;
+            else if (mix >= 1.0f)
+                c = to;
+            else
+                c = { decode(e0.r + (e1.r - e0.r) * mix), decode(e0.g + (e1.g - e0.g) * mix), decode(e0.b + (e1.b - e0.b) * mix), 0.0f };
+
+            c.a = from.a + (to.a - from.a) * f;
+            add(at[i] + (at[i + 1] - at[i]) * f, c);
+        }
+    }
+
+    return stops;
+}
+
+// What the gradient brushes share: one auto-duplicated Color per stop, after the module's own pins.
+struct GradientBuilder : public PluginEditorNoGui
+{
+    int ownPinCount{};
     std::vector<std::unique_ptr<In<gmpi::drawing::Color>>> pinColors;
+
+    explicit GradientBuilder(int ownPins) : ownPinCount(ownPins) {}
 
     ReturnCode initialize() override
     {
         synthedit::PinInformation info(editorHost.get());
-        const auto colorCount = static_cast<int>(info.pins.size()) - 6;
+        const auto colorCount = static_cast<int>(info.pins.size()) - ownPinCount;
 
         // a pin registers with the editor under construction, which is no longer this one.
         constructingInstance = this;
@@ -2937,63 +3210,101 @@ struct GradientBuilder final : public PluginEditorNoGui
         return PluginEditorNoGui::initialize();
     }
 
-    ReturnCode process() override
+    // a new object each time, so a Style holding the old one sees a change.
+    gmpi::shared_ptr<GradientObject> makeGradient(const std::string& positions)
     {
-        // a new object each time, so a Style holding the old one sees a change.
+        std::vector<gmpi::drawing::Color> colors;
+        for (auto& pin : pinColors)
+            colors.push_back(pin->value);
+
         gmpi::shared_ptr<GradientObject> gradient;
         gradient.attach(new GradientObject());
+        gradient->stops = makeGradientStops(colors, positions);
+        return gradient;
+    }
+};
 
-        gradient->type = pinType.value;
-        gradient->start = { pinStartX.value, pinStartY.value };
-        gradient->end = { pinEndX.value, pinEndY.value };
+// CSS's linear-gradient(): Angle in degrees (0 = upward, 90 = to the right, 180 = downward), sized to the shape it paints.
+struct LinearGradient final : public GradientBuilder
+{
+    In<float>               pinAngle;
+    In<std::string>         pinPositions;
+    ObjectOut<IBrushSource> pinBrush;
 
-        // Stops blend colour and alpha separately, so fading to a transparent stop would drag its (unseen) colour
-        // in. A fully transparent stop takes its neighbours' colours instead: one stop for each side.
-        const auto count = pinColors.size();
-        for (size_t i = 0; i < count; ++i)
-        {
-            const float position = count > 1 ? static_cast<float>(i) / (count - 1) : 0.0f;
-            const auto color = pinColors[i]->value;
+    LinearGradient() : GradientBuilder(3)
+    {
+        pinAngle.value = 180.0f;
+    }
 
-            if (color.a > 0.0f)
-            {
-                gradient->stops.push_back({ position, color });
-                continue;
-            }
+    ReturnCode process() override
+    {
+        auto gradient = makeGradient(pinPositions.value);
+        gradient->angle = pinAngle.value;
 
-            if (i > 0)
-            {
-                auto before = pinColors[i - 1]->value;
-                before.a = 0.0f;
-                gradient->stops.push_back({ position, before });
-            }
-            if (i + 1 < count)
-            {
-                auto after = pinColors[i + 1]->value;
-                after.a = 0.0f;
-                gradient->stops.push_back({ position, after });
-            }
-        }
-
-        pinGradient = gradient.get();
+        pinBrush = gradient.get();
         return ReturnCode::Ok;
     }
 };
 
 namespace
 {
-auto r63 = gmpi::Register<GradientBuilder>::withXml(R"XML(
+auto r63 = gmpi::Register<LinearGradient>::withXml(R"XML(
 <?xml version="1.0" encoding="utf-8" ?>
 
 <PluginList>
-  <Plugin id="SE: Gradient" name="Gradient" category="Experimental/Cadmium" vendor="Jeff McClintock">
+  <Plugin id="SE: LinearGradient" name="Linear Gradient" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
-      <Pin name="Type" datatype="enum" default="0" metadata="Linear,Radial"/>
-      <Pin name="Start X" datatype="float"/>
-      <Pin name="Start Y" datatype="float"/>
-      <Pin name="End X" datatype="float" default="1"/>
-      <Pin name="End Y" datatype="float" default="1"/>
-      <Pin name="Gradient" datatype="object:gradient" direction="out"/>
+      <Pin name="Angle" datatype="float" default="180"/>
+      <Pin name="Positions" datatype="string_utf8"/>
+      <Pin name="Brush" datatype="object:brush" direction="out"/>
+      <Pin name="Color" datatype="struct:color" autoDuplicate="true" autoRename="true"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// CSS's radial-gradient(Radius X% Radius Y% at Center X% Center Y%, ...): all four are percentages of the shape it paints.
+struct RadialGradient final : public GradientBuilder
+{
+    In<float>               pinRadiusX;
+    In<float>               pinRadiusY;
+    In<float>               pinCenterX;
+    In<float>               pinCenterY;
+    In<std::string>         pinPositions;
+    ObjectOut<IBrushSource> pinBrush;
+
+    RadialGradient() : GradientBuilder(6)
+    {
+        pinRadiusX.value = pinRadiusY.value = pinCenterX.value = pinCenterY.value = 50.0f;
+    }
+
+    ReturnCode process() override
+    {
+        auto gradient = makeGradient(pinPositions.value);
+        gradient->radial = true;
+        gradient->radius = { pinRadiusX.value * 0.01f, pinRadiusY.value * 0.01f };
+        gradient->center = { pinCenterX.value * 0.01f, pinCenterY.value * 0.01f };
+
+        pinBrush = gradient.get();
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r67 = gmpi::Register<RadialGradient>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: RadialGradient" name="Radial Gradient" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Radius X" datatype="float" default="50"/>
+      <Pin name="Radius Y" datatype="float" default="50"/>
+      <Pin name="Center X" datatype="float" default="50"/>
+      <Pin name="Center Y" datatype="float" default="50"/>
+      <Pin name="Positions" datatype="string_utf8"/>
+      <Pin name="Brush" datatype="object:brush" direction="out"/>
       <Pin name="Color" datatype="struct:color" autoDuplicate="true" autoRename="true"/>
     </GUI>
   </Plugin>
@@ -3216,19 +3527,23 @@ struct RenderGeometry final : public PluginEditor
         glow.draw(g); // behind the shape
 
         StrokeStyle strokeStyle;
-        if (paint.strokes() || paint.fillGradient)
+        if (paint.strokes() || (paint.fills() && paint.fill->usesArea()))
             strokeStyle = g.getFactory().createStrokeStyle(static_cast<CapStyle>(paint.cap));
 
         // fill the interior, then stroke the outline.
+        PaintBrush brush;
         if (paint.fills())
         {
-            auto fillBrush = makeBrush(g, paint.fillGradient, paint.fill, geometry, 0.0f, strokeStyle);
-            g.fillGeometry(geometry, fillBrush);
+            makePathBrush(brush, g, paint.fill, geometry, 0.0f, strokeStyle);
+            if (brush)
+                g.fillGeometry(geometry, brush);
         }
         if (paint.strokes())
         {
-            auto strokeBrush = makeBrush(g, paint.strokeGradient, paint.stroke, geometry, paint.strokeWidth, strokeStyle);
-            g.drawGeometry(geometry, strokeBrush, paint.strokeWidth, strokeStyle);
+            brush = {};
+            makePathBrush(brush, g, paint.stroke, geometry, paint.strokeWidth, strokeStyle);
+            if (brush)
+                g.drawGeometry(geometry, brush, paint.strokeWidth, strokeStyle);
         }
 
         return ReturnCode::Ok;
@@ -3720,22 +4035,16 @@ struct RenderInstances final : public PluginEditor
             return ReturnCode::Fail;
 
         // resolve the style (default white 1px stroke, no fill).
-        gmpi::drawing::Color fill{};
-        gmpi::drawing::Color stroke = Colors::White;
-        float strokeWidth = 1.0f;
-        int32_t cap = 0;
-        if (auto* style = pinStyle.value.get())
-        {
-            style->getFillColor(&fill);
-            style->getStrokeColor(&stroke);
-            style->getStrokeWidth(&strokeWidth);
-            cap = style->getStrokeCap();
-        }
+        const StylePaint paint(pinStyle.value.get());
+        const float strokeWidth = paint.strokeWidth;
 
         // brushes/stroke-style are transform-independent, so create once and reuse for every instance.
-        auto fillBrush = g.createSolidColorBrush(fill);
-        auto strokeBrush = g.createSolidColorBrush(stroke);
-        auto strokeStyle = g.getFactory().createStrokeStyle(static_cast<CapStyle>(cap));
+        auto strokeStyle = g.getFactory().createStrokeStyle(static_cast<CapStyle>(paint.cap));
+        PaintBrush fillBrush, strokeBrush;
+        if (paint.fills())
+            makePathBrush(fillBrush, g, paint.fill, geometry, 0.0f, strokeStyle);
+        if (paint.strokes())
+            makePathBrush(strokeBrush, g, paint.stroke, geometry, strokeWidth, strokeStyle);
 
         auto* list = pinTransforms.value.get();
 
@@ -3772,9 +4081,9 @@ struct RenderInstances final : public PluginEditor
 
             g.setTransform(t * base);  // place this instance, relative to the widget centre.
 
-            if (fill.a > 0.0f)
+            if (fillBrush)
                 g.fillGeometry(geometry, fillBrush);
-            if (stroke.a > 0.0f && strokeWidth > 0.0f)
+            if (strokeBrush)
                 g.drawGeometry(geometry, strokeBrush, strokeWidth, strokeStyle);
         }
         g.setTransform(originalTransform);
@@ -3929,22 +4238,12 @@ struct RenderEach final : public PluginEditor
         auto* paths = pinPaths.value.get();
         auto* xforms = pinTransforms.value.get();
 
-        gmpi::drawing::Color fill{};
-        gmpi::drawing::Color stroke = Colors::White;
-        float strokeWidth = 1.0f;
-        int32_t cap = 0;
-        if (auto* style = pinStyle.value.get())
-        {
-            style->getFillColor(&fill);
-            style->getStrokeColor(&stroke);
-            style->getStrokeWidth(&strokeWidth);
-            cap = style->getStrokeCap();
-        }
+        const StylePaint paint(pinStyle.value.get());
+        const float strokeWidth = paint.strokeWidth;
 
 
-        auto fillBrush = g.createSolidColorBrush(fill);
-        auto strokeBrush = g.createSolidColorBrush(stroke);
-        auto strokeStyle = g.getFactory().createStrokeStyle(static_cast<CapStyle>(cap));
+        auto strokeStyle = g.getFactory().createStrokeStyle(static_cast<CapStyle>(paint.cap));
+        PaintBrush fillBrush, strokeBrush; // remade per path only when laid over the shape (a gradient)
 
 		const auto originalTransform = g.getTransform();
         const auto base = makeTranslation(getWidth(bounds) * 0.5f, getHeight(bounds) * 0.5f) * originalTransform;
@@ -3992,10 +4291,18 @@ struct RenderEach final : public PluginEditor
             xforms->getTransform(i, &t);
             g.setTransform(t * base); // placement only -> stroke width stays at 1:1 (constant)
 
-            if (fill.a > 0.0f)
-                g.fillGeometry(geometry, fillBrush);
-            if (stroke.a > 0.0f && strokeWidth > 0.0f)
-                g.drawGeometry(geometry, strokeBrush, strokeWidth, strokeStyle);
+            if (paint.fills())
+            {
+                makePathBrush(fillBrush, g, paint.fill, geometry, 0.0f, strokeStyle);
+                if (fillBrush)
+                    g.fillGeometry(geometry, fillBrush);
+            }
+            if (paint.strokes())
+            {
+                makePathBrush(strokeBrush, g, paint.stroke, geometry, strokeWidth, strokeStyle);
+                if (strokeBrush)
+                    g.drawGeometry(geometry, strokeBrush, strokeWidth, strokeStyle);
+            }
         }
         g.setTransform(originalTransform);
 
@@ -4312,7 +4619,7 @@ struct BlurBitmap final : public GraphicsProcessor
         float strokeWidthRaw = 4.0f;
         if (auto* style = pinStyle.value.get())
         {
-            style->getStrokeColor(&tint);
+            tint = colorOf(style->getStroke());
             style->getStrokeWidth(&strokeWidthRaw);
         }
 
@@ -4522,7 +4829,7 @@ struct RenderText2Bitmap final : public GraphicsProcessor
         // text colour comes from the Style's fill (text is a filled shape). Default white.
         gmpi::drawing::Color tint = Colors::White;
         if (auto* style = pinStyle.value.get())
-            style->getFillColor(&tint);
+            tint = colorOf(style->getFill());
 
         const float scale = drawingHost ? drawingHost->getRasterizationScale() : 1.0f;
 
@@ -4689,25 +4996,16 @@ struct PathToMask final : public GraphicsProcessor
         if (ReturnCode::Ok != pinPath.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
             return ReturnCode::Fail;
 
-        gmpi::drawing::Color fill{};
-        gmpi::drawing::Color stroke = Colors::White;
-        float strokeWidth = 1.0f;
-        int32_t cap = 0;
-        if (auto* style = pinStyle.value.get())
-        {
-            style->getFillColor(&fill);
-            style->getStrokeColor(&stroke);
-            style->getStrokeWidth(&strokeWidth);
-            cap = style->getStrokeCap();
-        }
-        const bool doFill = fill.a > 0.0f;
-        const bool doStroke = stroke.a > 0.0f && strokeWidth > 0.0f;
+        const StylePaint paint(pinStyle.value.get());
+        const float strokeWidth = paint.strokeWidth;
+        const bool doFill = paint.fills();
+        const bool doStroke = paint.strokes();
         if (!doFill && !doStroke)
             return ReturnCode::Ok;
 
         const float scale = (drawingHost ? drawingHost->getRasterizationScale() : 1.0f) * (pinX2.value ? 2.0f : 1.0f);
 
-        auto strokeStyle = drawingFactory.createStrokeStyle(static_cast<CapStyle>(cap));
+        auto strokeStyle = drawingFactory.createStrokeStyle(static_cast<CapStyle>(paint.cap));
         const Rect extent = geometry.getWidenedBounds(doStroke ? strokeWidth : 0.0f, strokeStyle);
         if (!std::isfinite(extent.left) || !std::isfinite(extent.right) || !std::isfinite(extent.top) || !std::isfinite(extent.bottom))
             return ReturnCode::Ok; // empty path
