@@ -1515,6 +1515,61 @@ auto r8C = gmpi::Register<NumberEntry>::withXml(R"XML(
 )XML");
 }
 
+// The control a module is part of (the panel sub-view it sits in), for a module that can size itself to it.
+struct ControlArea final : public synthedit::IParentSizeClient
+{
+    gmpi::shared_ptr<synthedit::IDrawsInParent> drawsInParent; // null unless in a panel sub-view
+    gmpi::shared_ptr<synthedit::IParentSize> parentSize;
+    gmpi::drawing::Size size{};
+    bool watching{};
+    std::function<void()> onChange;
+
+    void setHost(gmpi::api::IUnknown* host)
+    {
+        drawsInParent = nullptr;
+        parentSize = nullptr;
+        watching = false;
+        size = {};
+
+        if (host)
+        {
+            host->queryInterface(&synthedit::IDrawsInParent::guid, drawsInParent.put_void());
+            host->queryInterface(&synthedit::IParentSize::guid, parentSize.put_void());
+        }
+    }
+
+    // Start following the control's size. Asking makes the sub-view resizable, so only once it's wanted.
+    void watch()
+    {
+        if (watching || !drawsInParent || !parentSize)
+            return;
+
+        watching = true;
+        parentSize->relayParentSize(this);
+    }
+
+    explicit operator bool() const { return watching && size.width > 0.0f && size.height > 0.0f; }
+
+    // the whole control, in the module's own coordinates.
+    gmpi::drawing::Rect rect()
+    {
+        float x{}, y{};
+        drawsInParent->getPositionInParent(&x, &y);
+        return { -x, -y, size.width - x, size.height - y };
+    }
+
+    gmpi::ReturnCode onParentSize(float width, float height) override
+    {
+        size = { width, height };
+        if (onChange)
+            onChange();
+        return gmpi::ReturnCode::Ok;
+    }
+
+    GMPI_QUERYINTERFACE_METHOD(synthedit::IParentSizeClient);
+    GMPI_REFCOUNT_NO_DELETE
+};
+
 class MouseTarget : public PluginEditor, public gmpi::api::IDrawingLayer
 {
 protected:
@@ -1529,9 +1584,9 @@ protected:
     Out<float> pinDy;                // 8
     Out<float> pinWheel;             // 9  wheel movement in notches (returns to zero next pass, like dX)
     In<std::string> pinHint;         // 10 tooltip
-    In<gmpi::drawing::Rect> pinPanelRect; // 11 where the target is on the parent panel (panel sub-view only), like Render's.
+    In<bool> pinAutoSize;            // 11 the target is the whole control (panel sub-view only), not our panel rectangle.
 
-    gmpi::shared_ptr<synthedit::IDrawsInParent> drawsInParent;
+    ControlArea control;
     float pendingWheel = 0.0f;        // notches since the last process()
 
     // Movement deltas. We emit them from process() (not onPointerMove) so they behave exactly like
@@ -1547,24 +1602,21 @@ protected:
     static constexpr int32_t kThird  = static_cast<int32_t>(gmpi::api::PointerFlags::ThirdButton);
     static constexpr int32_t kDouble = static_cast<int32_t>(gmpi::api::PointerFlags::Double);
 
-    // in a panel sub-view a set Panel Rect (parent coords, mapped to local) stands in for our bounds.
+    // with Auto Size, in a panel sub-view, the whole control stands in for our bounds.
     gmpi::drawing::Rect targetBounds()
     {
-        if (!drawsInParent || empty(pinPanelRect.value))
-            return bounds;
-
-        float x{}, y{};
-        drawsInParent->getPositionInParent(&x, &y);
-        return offsetRect(pinPanelRect.value, { -x, -y });
+        return (pinAutoSize.value && control) ? control.rect() : bounds;
     }
 
 public:
+    MouseTarget()
+    {
+        pinAutoSize.onUpdate = [this](PinBase*) { if (pinAutoSize.value) control.watch(); };
+    }
+
     ReturnCode setHost(gmpi::api::IUnknown* phost) override
     {
-        drawsInParent = nullptr;
-        if (phost)
-            phost->queryInterface(&synthedit::IDrawsInParent::guid, drawsInParent.put_void());
-
+        control.setHost(phost);
         return PluginEditor::setHost(phost);
     }
 
@@ -1735,7 +1787,7 @@ auto r9 = gmpi::Register<MouseTarget>::withXml(R"XML(
         <Pin name="dY" datatype="float" direction="out"/>
         <Pin name="Wheel" datatype="float" direction="out"/>
         <Pin name="Hint" datatype="string_utf8"/>
-        <Pin name="Panel Rect" datatype="struct:rect"/>
+        <Pin name="Auto Size" datatype="bool" isMinimised="true"/>
 	</GUI>
   </Plugin>
 </PluginList>
@@ -1831,6 +1883,37 @@ auto r12 = gmpi::Register<Multiply>::withXml(R"XML(
 
 <PluginList>
   <Plugin id="SE: Multiply" name="Multiply" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Value" datatype="float"/>
+      <Pin name="Value" datatype="float"/>
+      <Pin name="Value" datatype="float" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// The smaller of two values.
+struct Min final : public PluginEditorNoGui
+{
+    In<float> pinValue_inA;
+    In<float> pinValue_inB;
+    Out<float> pinValue;
+
+    ReturnCode process() override
+    {
+        pinValue = (std::min)(pinValue_inA.value, pinValue_inB.value);
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r69 = gmpi::Register<Min>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: Min" name="Min" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Value" datatype="float"/>
       <Pin name="Value" datatype="float"/>
@@ -3389,38 +3472,43 @@ struct RenderGeometry final : public PluginEditor
 {
     ObjectIn<drawing::api::IPathGeometry> pinInput;
     ObjectIn<IStyle>                      pinStyle;
-    In<gmpi::drawing::Rect>               pinPanelRect; // where to render on the parent panel (panel sub-view only).
+    In<gmpi::drawing::Rect>               pinPanelRect; // hidden, superseded by Auto Size: where to render on the parent panel. For patches saved with it wired.
     In<gmpi::drawing::Matrix3x2>          pinTransform; // applied to the geometry before it's centred; identity when unconnected.
     ObjectIn<drawing::api::IPathGeometry> pinClip;      // drawing is kept inside this path, which the Transform moves too.
+    In<bool>                              pinAutoSize;  // sized and placed by the path and Transform, not by our panel rectangle.
 
     GlowImage glow;
     bool glowDirty = true;
-    gmpi::drawing::Rect glowReach{}; // where the glow reaches, in the path's coordinates. Empty = no glow.
-    gmpi::shared_ptr<synthedit::IDrawsInParent> drawsInParent;
-    gmpi::drawing::Rect drawnRect{}; // last area drawn, so a moved Panel Rect also erases the old spot.
+    gmpi::drawing::Rect glowReach{};  // where the glow reaches, in the path's coordinates. Empty = no glow.
+    gmpi::drawing::Rect shapeReach{}; // where the fill and stroke reach, likewise. Empty = nothing drawn.
+    ControlArea control;
+    gmpi::drawing::Rect drawnRect{};  // last area drawn, so a drawing that moves also erases the old spot.
 
     RenderGeometry()
     {
         // redraw whenever the geometry or its style changes.
-        auto invalidate = [this](PinBase*) { glowDirty = true; updateGlowReach(); invalidateDrawing(); };
+        auto invalidate = [this](PinBase*) { glowDirty = true; updateReach(); invalidateDrawing(); };
         pinInput.onUpdate = invalidate;
         pinStyle.onUpdate = invalidate;
+        pinAutoSize.onUpdate = [this](PinBase*) { if (pinAutoSize.value) control.watch(); invalidateDrawing(); };
         pinPanelRect.onUpdate = [this](PinBase*) { invalidateDrawing(); };
+        control.onChange = [this] { invalidateDrawing(); };
         pinTransform.onUpdate = [this](PinBase*) { invalidateDrawing(); };
         pinClip.onUpdate = [this](PinBase*) { invalidateDrawing(); };
     }
 
-    // in a panel sub-view the Panel Rect (parent coords, mapped to local) stands in for our bounds.
-    // An unset (empty) Panel Rect means "just use our own bounds": otherwise a Render dropped
-    // into a sub-view without wiring that pin draws into a zero-size area and shows nothing
-    // (TIDE's rack modules, all of which are sub-views).
+    // The area whose centre the path is drawn about: our panel rectangle or, with Auto Size in a panel
+    // sub-view, the whole control.
     gmpi::drawing::Rect drawingBounds()
     {
-        if (!drawsInParent || empty(pinPanelRect.value))
+        if (pinAutoSize.value && control)
+            return control.rect();
+
+        if (!control.drawsInParent || empty(pinPanelRect.value))
             return bounds;
 
         float x{}, y{};
-        drawsInParent->getPositionInParent(&x, &y);
+        control.drawsInParent->getPositionInParent(&x, &y);
         return offsetRect(pinPanelRect.value, { -x, -y });
     }
 
@@ -3430,19 +3518,27 @@ struct RenderGeometry final : public PluginEditor
         return pinTransform.value * makeTranslation((area.left + area.right) * 0.5f, (area.top + area.bottom) * 0.5f);
     }
 
-    // everywhere we paint: our area, plus any glow that spills past it (a shadow, say).
+    // Everywhere we paint. With Auto Size that is the drawing itself, wherever the Transform puts it;
+    // without, our panel rectangle plus any glow that spills past it (a shadow, say).
     gmpi::drawing::Rect paintedArea()
     {
         const auto area = drawingBounds();
+
+        if (pinAutoSize.value)
+        {
+            const auto reach = empty(shapeReach) ? glowReach : (empty(glowReach) ? shapeReach : unionRect(shapeReach, glowReach));
+            return empty(reach) ? area : inflateRect(transformBounds(pathTransform(area), reach), 1.0f); // room for the antialiased edge
+        }
+
         if (empty(glowReach))
             return area;
 
         return unionRect(area, transformBounds(pathTransform(area), glowReach));
     }
 
-    void updateGlowReach()
+    void updateReach()
     {
-        glowReach = {};
+        glowReach = shapeReach = {};
 
         PathGeometry geometry;
         if (!drawingHost || !pinInput || ReturnCode::Ok != pinInput.value->queryInterface(&drawing::api::IPathGeometry::guid, AccessPtr::put_void(geometry)))
@@ -3456,6 +3552,14 @@ struct RenderGeometry final : public PluginEditor
 
         if (const GlowShape shape(factory, geometry, pinStyle.value.get()); shape)
             glowReach = shape.reach();
+
+        if (const StylePaint paint(pinStyle.value.get()); paint.fills() || paint.strokes())
+        {
+            auto strokeStyle = factory.createStrokeStyle(static_cast<CapStyle>(paint.cap));
+            const auto extent = geometry.getWidenedBounds(paint.strokes() ? paint.strokeWidth : 0.0f, strokeStyle);
+            if (std::isfinite(extent.left) && std::isfinite(extent.right) && std::isfinite(extent.top) && std::isfinite(extent.bottom))
+                shapeReach = extent;
+        }
     }
 
     void invalidateDrawing()
@@ -3466,7 +3570,7 @@ struct RenderGeometry final : public PluginEditor
         const auto painted = paintedArea();
         const bool moved = painted.left != drawnRect.left || painted.top != drawnRect.top || painted.right != drawnRect.right || painted.bottom != drawnRect.bottom;
 
-        if (!drawsInParent)
+        if (!control.drawsInParent)
             drawingHost->invalidateRect({});
 
         drawingHost->invalidateRect(&drawnRect);
@@ -3480,10 +3584,7 @@ struct RenderGeometry final : public PluginEditor
 
     ReturnCode setHost(gmpi::api::IUnknown* phost) override
     {
-        drawsInParent = nullptr;
-        if (phost)
-            phost->queryInterface(&synthedit::IDrawsInParent::guid, drawsInParent.put_void());
-
+        control.setHost(phost);
 		return PluginEditor::setHost(phost);
     }
 
@@ -3590,9 +3691,10 @@ auto r18 = gmpi::Register<RenderGeometry>::withXml(R"XML(
     <GUI>
       <Pin name="Path" datatype="object:path"/>
       <Pin name="Style" datatype="object:style"/>
-      <Pin name="Panel Rect" datatype="struct:rect"/>
+      <Pin name="Panel Rect" datatype="struct:rect" private="true"/>
       <Pin name="Transform" datatype="struct:transform"/>
       <Pin name="Clip" datatype="object:path"/>
+      <Pin name="Auto Size" datatype="bool" isMinimised="true"/>
     </GUI>
   </Plugin>
 </PluginList>

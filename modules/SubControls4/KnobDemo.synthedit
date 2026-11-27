@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="447207536" SelectedViewType="128" vst_preset_count="64">
-    <master_container type="Container" handle="447207536" name="Main" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="384" skin="default3">
+<Document file_format="150000" vst_latencyCompensation="1" SelectedViewHandle="372764858" SelectedViewType="128" vst_preset_count="64">
+    <master_container type="Container" handle="372764858" name="Main" PanelLocationZoom="1" StructLocationZoom="1" ViewOpenFlags="384" skin="default3">
         <plugs>
             <plug idx="7"/>
         </plugs>
@@ -13,33 +13,21 @@
                         <s repeat="128"></s>
                     </patch-list>
                 </param>
-                <param type="6" handle="221346029" shortName="Drawn Knob 192" module="34179653" moduleParamId="0">
-                    <patch-list>
-                        <s>3.3</s>
-                        <s repeat="127">0</s>
-                    </patch-list>
-                </param>
                 <param type="6" handle="359492940" shortName="Knob 24" module="562805008" moduleParamId="0">
                     <patch-list>
                         <s>2</s>
                         <s repeat="127">0</s>
                     </patch-list>
                 </param>
-                <param type="6" handle="418685219" shortName="Thin Line" module="1237096754" moduleParamId="0">
+                <param type="6" handle="870755927" shortName="Drawn Knob 192" module="1951585640" moduleParamId="0">
                     <patch-list>
                         <s>3.3</s>
                         <s repeat="127">0</s>
                     </patch-list>
                 </param>
-                <param type="6" handle="589803852" shortName="Drawn Knob 24" module="1607150598" moduleParamId="0">
+                <param type="6" handle="918496602" shortName="Thin Line" module="1328647931" moduleParamId="0">
                     <patch-list>
-                        <s>2</s>
-                        <s repeat="127">0</s>
-                    </patch-list>
-                </param>
-                <param type="6" handle="926010294" shortName="Drawn Knob 96" module="1635050887" moduleParamId="0">
-                    <patch-list>
-                        <s>7.5</s>
+                        <s>3.3</s>
                         <s repeat="127">0</s>
                     </patch-list>
                 </param>
@@ -55,13 +43,25 @@
                         <s repeat="127">0</s>
                     </patch-list>
                 </param>
-                <param type="6" handle="1229404949" shortName="Drawn Knob 48" module="478784451" moduleParamId="0">
+                <param type="6" handle="1395506492" shortName="Knob 96" module="352668806" moduleParamId="0">
+                    <patch-list>
+                        <s>7.5</s>
+                        <s repeat="127">0</s>
+                    </patch-list>
+                </param>
+                <param type="6" handle="1457229688" shortName="Drawn Knob 24" module="1388358270" moduleParamId="0">
+                    <patch-list>
+                        <s>2</s>
+                        <s repeat="127">0</s>
+                    </patch-list>
+                </param>
+                <param type="6" handle="1528424019" shortName="Drawn Knob 48" module="1488554323" moduleParamId="0">
                     <patch-list>
                         <s>5</s>
                         <s repeat="127">0</s>
                     </patch-list>
                 </param>
-                <param type="6" handle="1395506492" shortName="Knob 96" module="352668806" moduleParamId="0">
+                <param type="6" handle="1705115647" shortName="Drawn Knob 96" module="583792704" moduleParamId="0">
                     <patch-list>
                         <s>7.5</s>
                         <s repeat="127">0</s>
@@ -87,7 +87,7 @@
                         <structRect l="300" r="396" t="48" b="192"/>
                         <panelRect l="3934" r="3958" t="3934" b="3958"/>
                     </module>
-                    <module type="IO Mod" handle="149315541">
+                    <module type="IO Mod" handle="307031734">
                         <plugs>
                             <plug name="Value Out" datatype="6" tiedtomod="80223778" tiedtopin="7"/>
                             <plug/>
@@ -101,7 +101,7 @@
                     <line type="Line" handle="1162923595" lineType="1" fMod="562805008" tMod="1273482607" fPlg="10" tPlg="2"/>
                     <line type="Line" handle="1800300809" lineType="1" fMod="562805008" tMod="1273482607" fPlg="11" tPlg="3"/>
                     <line type="Line" handle="317009549" lineType="1" fMod="562805008" tMod="1273482607" fPlg="13" tPlg="4"/>
-                    <line type="Line" handle="523011937" lineType="1" fMod="562805008" tMod="149315541" fPlg="15"/>
+                    <line type="Line" handle="1854421313" lineType="1" fMod="562805008" tMod="307031734" fPlg="15"/>
                 </lines>
                 <PanelLocationCenter x="3984" y="3984"/>
                 <StructLocationCenter x="700" y="500"/>
@@ -130,7 +130,7 @@
                         <structRect l="300" r="396" t="48" b="192"/>
                         <panelRect l="3934" r="3982" t="3934" b="3982"/>
                     </module>
-                    <module type="IO Mod" handle="163747963">
+                    <module type="IO Mod" handle="273356596">
                         <plugs>
                             <plug name="Value Out" datatype="6" tiedtomod="610477650" tiedtopin="7"/>
                             <plug/>
@@ -144,7 +144,7 @@
                     <line type="Line" handle="186846367" lineType="1" fMod="510460181" tMod="846202045" fPlg="10" tPlg="2"/>
                     <line type="Line" handle="1710225856" lineType="1" fMod="510460181" tMod="846202045" fPlg="11" tPlg="3"/>
                     <line type="Line" handle="348284638" lineType="1" fMod="510460181" tMod="846202045" fPlg="13" tPlg="4"/>
-                    <line type="Line" handle="519320697" lineType="1" fMod="510460181" tMod="163747963" fPlg="15"/>
+                    <line type="Line" handle="1090942235" lineType="1" fMod="510460181" tMod="273356596" fPlg="15"/>
                 </lines>
                 <PanelLocationCenter x="3984" y="3984"/>
                 <StructLocationCenter x="700" y="500"/>
@@ -173,7 +173,7 @@
                         <structRect l="300" r="396" t="48" b="192"/>
                         <panelRect l="3934" r="4030" t="3934" b="4030"/>
                     </module>
-                    <module type="IO Mod" handle="1192334039">
+                    <module type="IO Mod" handle="370950373">
                         <plugs>
                             <plug name="Value Out" datatype="6" tiedtomod="74322187" tiedtopin="7"/>
                             <plug/>
@@ -187,7 +187,7 @@
                     <line type="Line" handle="88664257" lineType="1" fMod="352668806" tMod="1970914161" fPlg="10" tPlg="2"/>
                     <line type="Line" handle="1255800127" lineType="1" fMod="352668806" tMod="1970914161" fPlg="11" tPlg="3"/>
                     <line type="Line" handle="1593189196" lineType="1" fMod="352668806" tMod="1970914161" fPlg="13" tPlg="4"/>
-                    <line type="Line" handle="581796518" lineType="1" fMod="352668806" tMod="1192334039" fPlg="15"/>
+                    <line type="Line" handle="260898631" lineType="1" fMod="352668806" tMod="370950373" fPlg="15"/>
                 </lines>
                 <PanelLocationCenter x="3984" y="3984"/>
                 <StructLocationCenter x="700" y="500"/>
@@ -216,7 +216,7 @@
                         <structRect l="300" r="396" t="48" b="192"/>
                         <panelRect l="3934" r="4126" t="3934" b="4126"/>
                     </module>
-                    <module type="IO Mod" handle="762901561">
+                    <module type="IO Mod" handle="618900733">
                         <plugs>
                             <plug name="Value Out" datatype="6" tiedtomod="1053544286" tiedtopin="7"/>
                             <plug/>
@@ -230,7 +230,7 @@
                     <line type="Line" handle="1822433802" lineType="1" fMod="1541282991" tMod="324645691" fPlg="10" tPlg="2"/>
                     <line type="Line" handle="61025453" lineType="1" fMod="1541282991" tMod="324645691" fPlg="11" tPlg="3"/>
                     <line type="Line" handle="118276444" lineType="1" fMod="1541282991" tMod="324645691" fPlg="13" tPlg="4"/>
-                    <line type="Line" handle="1563081673" lineType="1" fMod="1541282991" tMod="762901561" fPlg="15"/>
+                    <line type="Line" handle="685428256" lineType="1" fMod="1541282991" tMod="618900733" fPlg="15"/>
                 </lines>
                 <PanelLocationCenter x="3984" y="3984"/>
                 <StructLocationCenter x="700" y="500"/>
@@ -251,59 +251,65 @@
                 </plugs>
                 <structRect l="48" r="120" t="144" b="204"/>
                 <modules>
-                    <module type="SE: PatchMemSet" handle="1885744710">
+                    <module type="SE: PatchMemSet" handle="1142718918">
                         <structRect l="1500" r="1584" t="336" b="396"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="489215374">
+                    <module type="SE: Add" handle="1676337193">
                         <structRect l="1368" r="1440" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="916661967" name="Sensitivity">
+                    <module type="SE: Multiply" handle="1627125965" name="Sensitivity">
                         <plugs>
                             <plug default="0.005" idx="1"/>
                         </plugs>
                         <structRect l="1236" r="1308" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="371437995" name="While Held">
+                    <module type="SE: Multiply" handle="1047828160" name="While Held">
                         <structRect l="1104" r="1176" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="637612980">
+                    <module type="SE: Add" handle="1662963031">
                         <structRect l="972" r="1044" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="1495980603" name="Up">
+                    <module type="SE: Multiply" handle="1646283145" name="Up">
                         <plugs>
                             <plug default="-1" idx="1"/>
                         </plugs>
                         <structRect l="840" r="912" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: MouseTarget" handle="1008279531">
+                    <module type="SE: MouseTarget" handle="240801476">
+                        <plugs>
+                            <plug default="1" idx="11"/>
+                        </plugs>
                         <structRect l="708" r="816" t="336" b="504"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1047828160" name="Bevel">
+                    <module type="SE: RenderGeometry" handle="26745880" name="Bevel">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="864" b="936"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="1646283145" name="Bevel Style">
+                    <module type="SE: Style" handle="545273995" name="Bevel Style">
                         <plugs>
                             <plug default="6" idx="2"/>
                         </plugs>
                         <structRect l="312" r="408" t="864" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="672414662" name="Bevel Dark">
+                    <module type="SE: GradientStop" handle="954141513" name="Bevel Dark">
                         <plugs>
                             <plug default="26000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="1104" b="1152"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="200379950" name="Bevel 3">
+                    <module type="SE: GradientStop" handle="596951957" name="Bevel 3">
                         <plugs>
                             <plug default="267C7C7C"/>
                             <plug default="80"/>
@@ -311,7 +317,7 @@
                         <structRect l="48" r="144" t="1044" b="1092"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="526099643" name="Bevel 2">
+                    <module type="SE: GradientStop" handle="638247881" name="Bevel 2">
                         <plugs>
                             <plug default="26BCBCBC"/>
                             <plug default="50"/>
@@ -319,14 +325,14 @@
                         <structRect l="48" r="144" t="984" b="1032"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1335725786" name="Bevel Light">
+                    <module type="SE: GradientStop" handle="88422976" name="Bevel Light">
                         <plugs>
                             <plug default="26FFFFFF"/>
                         </plugs>
                         <structRect l="48" r="144" t="924" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: LinearGradient" handle="954141513" name="Bevel">
+                    <module type="SE: LinearGradient" handle="1506329379" name="Bevel">
                         <plugs>
                             <plug default="135"/>
                             <plug id="3" idx="3"/>
@@ -337,54 +343,57 @@
                         <structRect l="180" r="276" t="924" b="1020"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="714024852" name="Bevel Shape">
+                    <module type="SE: CircleGeometry" handle="1288683550" name="Bevel Shape">
                         <plugs>
                             <plug default="47"/>
                         </plugs>
                         <structRect l="48" r="144" t="864" b="900"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1506329379" name="Line">
+                    <module type="SE: RenderGeometry" handle="153787013" name="Line">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="708" b="780"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: CombineTransforms" handle="153787013">
+                    <module type="SE: CombineTransforms" handle="1457822625">
                         <structRect l="444" r="540" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Rotation" handle="179086056">
+                    <module type="SE: Rotation" handle="674583916">
                         <structRect l="444" r="528" t="708" b="744"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="1236001209" name="Start (turns)">
+                    <module type="SE: Add" handle="297213905" name="Start (turns)">
                         <plugs>
                             <plug default="0.375" idx="1"/>
                         </plugs>
                         <structRect l="840" r="912" t="48" b="96"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="362395477" name="Sweep (turns)">
+                    <module type="SE: Multiply" handle="1854656600" name="Sweep (turns)">
                         <plugs>
                             <plug default="0.75" idx="1"/>
                         </plugs>
                         <structRect l="708" r="780" t="48" b="96"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Style" handle="172038902" name="Line Style">
+                    <module type="SE: Style" handle="573215495" name="Line Style">
                         <plugs>
                             <plug default="16" idx="2"/>
                         </plugs>
                         <structRect l="312" r="408" t="708" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: SolidBrush" handle="1457822625" name="Line Color">
+                    <module type="SE: SolidBrush" handle="1445737786" name="Line Color">
                         <plugs>
                             <plug default="FFEEEEEE"/>
                         </plugs>
                         <structRect l="180" r="276" t="780" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiline" handle="1854656600">
+                    <module type="SE: Multiline" handle="1434134164">
                         <plugs>
                             <plug id="2" idx="2"/>
                             <plug id="3"/>
@@ -392,29 +401,32 @@
                         <structRect l="180" r="252" t="708" b="768"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Point" handle="207598553" name="Line End">
+                    <module type="SE: Point" handle="230540479" name="Line End">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
                         <structRect l="48" r="108" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Point" handle="573215495" name="Line Start">
+                    <module type="SE: Point" handle="1132332897" name="Line Start">
                         <plugs>
                             <plug default="5"/>
                         </plugs>
                         <structRect l="48" r="108" t="708" b="756"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="230540479" name="Shading">
+                    <module type="SE: RenderGeometry" handle="506992810" name="Shading">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="480" b="552"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="1094591338" name="Shading Style">
+                    <module type="SE: Style" handle="1346709823" name="Shading Style">
                         <structRect l="312" r="408" t="480" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RadialGradient" handle="1915948169" name="Shading">
+                    <module type="SE: RadialGradient" handle="879332826" name="Shading">
                         <plugs>
                             <plug default="65.5"/>
                             <plug default="65.5"/>
@@ -427,58 +439,64 @@
                         <structRect l="180" r="276" t="480" b="600"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1346709823" name="Shade">
+                    <module type="SE: GradientStop" handle="1536561757" name="Shade">
                         <plugs>
                             <plug default="E6000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="600" b="648"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="984146622" name="Clear">
+                    <module type="SE: GradientStop" handle="591716244" name="Clear">
                         <plugs>
                             <plug default="00000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="540" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="296471328" name="Highlight">
+                    <module type="SE: GradientStop" handle="333398789" name="Highlight">
                         <plugs>
                             <plug default="26FFFFFF"/>
                         </plugs>
                         <structRect l="48" r="144" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="333398789" name="Body">
+                    <module type="SE: RenderGeometry" handle="827227939" name="Body">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="336" b="408"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="1775138276" name="Body Style">
+                    <module type="SE: Style" handle="1098953592" name="Body Style">
                         <structRect l="312" r="408" t="336" b="444"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: SolidBrush" handle="542320201" name="Body Color">
+                    <module type="SE: SolidBrush" handle="1689137927" name="Body Color">
                         <plugs>
                             <plug default="FF2E79C7"/>
                         </plugs>
                         <structRect l="180" r="276" t="336" b="372"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="827227939" name="Body Shape">
+                    <module type="SE: CircleGeometry" handle="518968428" name="Body Shape">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
                         <structRect l="48" r="144" t="336" b="372"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1688427184" name="Shadow">
+                    <module type="SE: RenderGeometry" handle="1130760896" name="Shadow">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="192" b="264"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: CombineTransforms" handle="1130760896">
+                    <module type="SE: CombineTransforms" handle="1019589300">
                         <structRect l="444" r="540" t="192" b="240"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Translation" handle="74992667" name="Shadow Offset">
+                    <module type="SE: Translation" handle="589803852" name="Shadow Offset">
                         <plugs>
                             <plug default="20"/>
                             <plug default="20"/>
@@ -486,7 +504,7 @@
                         <structRect l="312" r="396" t="192" b="240"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Style" handle="1497132346" name="Shadow Style">
+                    <module type="SE: Style" handle="1607150598" name="Shadow Style">
                         <plugs>
                             <plug default="0" idx="2"/>
                             <plug default="5" idx="4"/>
@@ -495,30 +513,26 @@
                         <structRect l="180" r="276" t="192" b="300"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="1019589300" name="Shadow Shape">
+                    <module type="SE: CircleGeometry" handle="1172111543" name="Shadow Shape">
                         <plugs>
                             <plug default="45"/>
                         </plugs>
                         <structRect l="48" r="144" t="192" b="228"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: PatchMemGet" handle="1607150598">
+                    <module type="SE: PatchMemGet" handle="1388358270">
                         <structRect l="576" r="660" t="48" b="120"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: FitTransform" handle="1239887594">
-                        <structRect l="312" r="408" t="48" b="132"/>
-                        <panelRect l="0" r="0" t="0" b="0"/>
-                    </module>
-                    <module type="SE: Rect" handle="1890930943">
-                        <structRect l="180" r="240" t="48" b="120"/>
+                    <module type="SE: FitTransform" handle="1890930943">
+                        <structRect l="180" r="276" t="48" b="132"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: ControlSize" handle="1110672836">
                         <structRect l="48" r="132" t="48" b="84"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="IO Mod" handle="926215092">
+                    <module type="IO Mod" handle="148271631">
                         <plugs>
                             <plug name="Value Out" datatype="6" tiedtomod="1860284623" tiedtopin="7"/>
                             <plug/>
@@ -527,64 +541,56 @@
                     </module>
                 </modules>
                 <lines>
-                    <line type="Line" handle="1579518303" lineType="1" fMod="1110672836" tMod="1890930943" tPlg="2"/>
-                    <line type="Line" handle="1388358270" lineType="1" fMod="1110672836" tMod="1890930943" fPlg="1" tPlg="3"/>
-                    <line type="Line" handle="1457229688" lineType="1" fMod="1110672836" tMod="1239887594"/>
-                    <line type="Line" handle="1172111543" lineType="1" fMod="1110672836" tMod="1239887594" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="68274023" lineType="1" fMod="74992667" tMod="1130760896" fPlg="2"/>
-                    <line type="Line" handle="1022611232" lineType="1" fMod="1239887594" tMod="1130760896" fPlg="4" tPlg="1"/>
-                    <line type="Line" handle="518968428" lineType="1" fMod="1019589300" tMod="1688427184" fPlg="1"/>
-                    <line type="Line" handle="1689137927" lineType="1" fMod="1497132346" tMod="1688427184" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1098953592" lineType="1" fMod="1890930943" tMod="1688427184" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="363874604" lineType="1" fMod="1130760896" tMod="1688427184" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="1959341224" lineType="1" fMod="542320201" tMod="1775138276" fPlg="1"/>
-                    <line type="Line" handle="591716244" lineType="1" fMod="827227939" tMod="333398789" fPlg="1"/>
-                    <line type="Line" handle="1536561757" lineType="1" fMod="1775138276" tMod="333398789" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="879332826" lineType="1" fMod="1890930943" tMod="333398789" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1099576302" lineType="1" fMod="1239887594" tMod="333398789" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="506992810" lineType="1" fMod="296471328" tMod="1915948169" fPlg="2" tPlg="5"/>
-                    <line type="Line" handle="608781698" lineType="1" fMod="984146622" tMod="1915948169" fPlg="2" tPlg="6"/>
-                    <line type="Line" handle="1655542314" lineType="1" fMod="1346709823" tMod="1915948169" fPlg="2" tPlg="7"/>
-                    <line type="Line" handle="1132332897" lineType="1" fMod="1915948169" tMod="1094591338" fPlg="4"/>
-                    <line type="Line" handle="1434134164" lineType="1" fMod="827227939" tMod="230540479" fPlg="1"/>
-                    <line type="Line" handle="1512508930" lineType="1" fMod="1094591338" tMod="230540479" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1902139323" lineType="1" fMod="1890930943" tMod="230540479" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1445737786" lineType="1" fMod="1239887594" tMod="230540479" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="297213905" lineType="1" fMod="573215495" tMod="1854656600" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="674583916" lineType="1" fMod="207598553" tMod="1854656600" fPlg="2" tPlg="2"/>
-                    <line type="Line" handle="1047408299" lineType="1" fMod="1457822625" tMod="172038902" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="53840140" lineType="1" fMod="1607150598" tMod="362395477" fPlg="4"/>
-                    <line type="Line" handle="1857247279" lineType="1" fMod="362395477" tMod="1236001209" fPlg="2"/>
-                    <line type="Line" handle="1441372710" lineType="1" fMod="1236001209" tMod="179086056" fPlg="2"/>
-                    <line type="Line" handle="1803363856" lineType="1" fMod="179086056" tMod="153787013" fPlg="1"/>
-                    <line type="Line" handle="1288683550" lineType="1" fMod="1239887594" tMod="153787013" fPlg="4" tPlg="1"/>
-                    <line type="Line" handle="88422976" lineType="1" fMod="1854656600" tMod="1506329379"/>
-                    <line type="Line" handle="1766951668" lineType="1" fMod="172038902" tMod="1506329379" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="638247881" lineType="1" fMod="1890930943" tMod="1506329379" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="471327134" lineType="1" fMod="153787013" tMod="1506329379" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="596951957" lineType="1" fMod="827227939" tMod="1506329379" fPlg="1" tPlg="4"/>
-                    <line type="Line" handle="545273995" lineType="1" fMod="1335725786" tMod="954141513" fPlg="2" tPlg="2"/>
-                    <line type="Line" handle="26745880" lineType="1" fMod="526099643" tMod="954141513" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="1306747150" lineType="1" fMod="200379950" tMod="954141513" fPlg="2" tPlg="4"/>
-                    <line type="Line" handle="240801476" lineType="1" fMod="672414662" tMod="954141513" fPlg="2" tPlg="5"/>
-                    <line type="Line" handle="1662963031" lineType="1" fMod="954141513" tMod="1646283145" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="1627125965" lineType="1" fMod="714024852" tMod="1047828160" fPlg="1"/>
-                    <line type="Line" handle="1676337193" lineType="1" fMod="1646283145" tMod="1047828160" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1142718918" lineType="1" fMod="1890930943" tMod="1047828160" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1106125563" lineType="1" fMod="1239887594" tMod="1047828160" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1706021493" lineType="1" fMod="1890930943" tMod="1008279531" fPlg="4" tPlg="11"/>
-                    <line type="Line" handle="1860089231" lineType="1" fMod="1008279531" tMod="1495980603" fPlg="8"/>
-                    <line type="Line" handle="552605087" lineType="1" fMod="1008279531" tMod="637612980" fPlg="7"/>
-                    <line type="Line" handle="215332554" lineType="1" fMod="1495980603" tMod="637612980" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="213815280" lineType="1" fMod="637612980" tMod="371437995" fPlg="2"/>
-                    <line type="Line" handle="699348342" lineType="1" fMod="1008279531" tMod="371437995" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="87587038" lineType="1" fMod="371437995" tMod="916661967" fPlg="2"/>
-                    <line type="Line" handle="1950938310" lineType="1" fMod="1607150598" tMod="489215374" fPlg="4"/>
-                    <line type="Line" handle="1488554323" lineType="1" fMod="916661967" tMod="489215374" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="1528424019" lineType="1" fMod="1607150598" tMod="1885744710" fPlg="3"/>
-                    <line type="Line" handle="1317183053" lineType="1" fMod="489215374" tMod="1885744710" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="616324776" lineType="1" fMod="1008279531" tMod="1885744710" fPlg="1" tPlg="2"/>
-                    <line type="Line" handle="1278567861" lineType="1" fMod="1607150598" tMod="926215092" fPlg="8"/>
+                    <line type="Line" handle="1239887594" lineType="1" fMod="1110672836" tMod="1890930943"/>
+                    <line type="Line" handle="1579518303" lineType="1" fMod="1110672836" tMod="1890930943" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="1497132346" lineType="1" fMod="589803852" tMod="1019589300" fPlg="2"/>
+                    <line type="Line" handle="74992667" lineType="1" fMod="1890930943" tMod="1019589300" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="68274023" lineType="1" fMod="1172111543" tMod="1130760896" fPlg="1"/>
+                    <line type="Line" handle="1022611232" lineType="1" fMod="1607150598" tMod="1130760896" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1688427184" lineType="1" fMod="1019589300" tMod="1130760896" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="363874604" lineType="1" fMod="1689137927" tMod="1098953592" fPlg="1"/>
+                    <line type="Line" handle="542320201" lineType="1" fMod="518968428" tMod="827227939" fPlg="1"/>
+                    <line type="Line" handle="1775138276" lineType="1" fMod="1098953592" tMod="827227939" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1959341224" lineType="1" fMod="1890930943" tMod="827227939" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="1099576302" lineType="1" fMod="333398789" tMod="879332826" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="296471328" lineType="1" fMod="591716244" tMod="879332826" fPlg="2" tPlg="6"/>
+                    <line type="Line" handle="984146622" lineType="1" fMod="1536561757" tMod="879332826" fPlg="2" tPlg="7"/>
+                    <line type="Line" handle="1915948169" lineType="1" fMod="879332826" tMod="1346709823" fPlg="4"/>
+                    <line type="Line" handle="608781698" lineType="1" fMod="518968428" tMod="506992810" fPlg="1"/>
+                    <line type="Line" handle="1655542314" lineType="1" fMod="1346709823" tMod="506992810" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1094591338" lineType="1" fMod="1890930943" tMod="506992810" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="1512508930" lineType="1" fMod="1132332897" tMod="1434134164" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1902139323" lineType="1" fMod="230540479" tMod="1434134164" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="207598553" lineType="1" fMod="1445737786" tMod="573215495" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="172038902" lineType="1" fMod="1388358270" tMod="1854656600" fPlg="4"/>
+                    <line type="Line" handle="1047408299" lineType="1" fMod="1854656600" tMod="297213905" fPlg="2"/>
+                    <line type="Line" handle="362395477" lineType="1" fMod="297213905" tMod="674583916" fPlg="2"/>
+                    <line type="Line" handle="1236001209" lineType="1" fMod="674583916" tMod="1457822625" fPlg="1"/>
+                    <line type="Line" handle="179086056" lineType="1" fMod="1890930943" tMod="1457822625" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="53840140" lineType="1" fMod="1434134164" tMod="153787013"/>
+                    <line type="Line" handle="1857247279" lineType="1" fMod="573215495" tMod="153787013" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1441372710" lineType="1" fMod="1457822625" tMod="153787013" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="1803363856" lineType="1" fMod="518968428" tMod="153787013" fPlg="1" tPlg="4"/>
+                    <line type="Line" handle="1766951668" lineType="1" fMod="88422976" tMod="1506329379" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="471327134" lineType="1" fMod="638247881" tMod="1506329379" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="714024852" lineType="1" fMod="596951957" tMod="1506329379" fPlg="2" tPlg="4"/>
+                    <line type="Line" handle="1335725786" lineType="1" fMod="954141513" tMod="1506329379" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="526099643" lineType="1" fMod="1506329379" tMod="545273995" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="200379950" lineType="1" fMod="1288683550" tMod="26745880" fPlg="1"/>
+                    <line type="Line" handle="1306747150" lineType="1" fMod="545273995" tMod="26745880" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="672414662" lineType="1" fMod="1890930943" tMod="26745880" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="1106125563" lineType="1" fMod="240801476" tMod="1646283145" fPlg="8"/>
+                    <line type="Line" handle="1008279531" lineType="1" fMod="240801476" tMod="1662963031" fPlg="7"/>
+                    <line type="Line" handle="1706021493" lineType="1" fMod="1646283145" tMod="1662963031" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1495980603" lineType="1" fMod="1662963031" tMod="1047828160" fPlg="2"/>
+                    <line type="Line" handle="637612980" lineType="1" fMod="240801476" tMod="1047828160" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="371437995" lineType="1" fMod="1047828160" tMod="1627125965" fPlg="2"/>
+                    <line type="Line" handle="916661967" lineType="1" fMod="1388358270" tMod="1676337193" fPlg="4"/>
+                    <line type="Line" handle="489215374" lineType="1" fMod="1627125965" tMod="1676337193" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1885744710" lineType="1" fMod="1388358270" tMod="1142718918" fPlg="3"/>
+                    <line type="Line" handle="1860089231" lineType="1" fMod="1676337193" tMod="1142718918" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="552605087" lineType="1" fMod="240801476" tMod="1142718918" fPlg="1" tPlg="2"/>
+                    <line type="Line" handle="1326761620" lineType="1" fMod="1388358270" tMod="148271631" fPlg="8"/>
                 </lines>
                 <PanelLocationCenter x="3984" y="3984"/>
                 <StructLocationCenter x="700" y="500"/>
@@ -596,7 +602,7 @@
                 <PanelWndOffset cx="-134" cy="154"/>
                 <panel_rect l="3732" r="4212" t="3732" b="4212"/>
             </module>
-            <module type="Container" handle="90506705" name="Drawn Knob 48" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
+            <module type="Container" handle="215332554" name="Drawn Knob 48" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
                 <plugs>
                     <plug default="1" idx="1"/>
                     <plug default="1"/>
@@ -605,59 +611,65 @@
                 </plugs>
                 <structRect l="144" r="216" t="144" b="204"/>
                 <modules>
-                    <module type="SE: PatchMemSet" handle="1705115647">
+                    <module type="SE: PatchMemSet" handle="494198505">
                         <structRect l="1500" r="1584" t="336" b="396"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="583792704">
+                    <module type="SE: Add" handle="1878520312">
                         <structRect l="1368" r="1440" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="1524716198" name="Sensitivity">
+                    <module type="SE: Multiply" handle="535117957" name="Sensitivity">
                         <plugs>
                             <plug default="0.005" idx="1"/>
                         </plugs>
                         <structRect l="1236" r="1308" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="1885642765" name="While Held">
+                    <module type="SE: Multiply" handle="1761058214" name="While Held">
                         <structRect l="1104" r="1176" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="1865811529">
+                    <module type="SE: Add" handle="614944255">
                         <structRect l="972" r="1044" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="1515350569" name="Up">
+                    <module type="SE: Multiply" handle="1734466735" name="Up">
                         <plugs>
                             <plug default="-1" idx="1"/>
                         </plugs>
                         <structRect l="840" r="912" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: MouseTarget" handle="309895438">
+                    <module type="SE: MouseTarget" handle="1929325786">
+                        <plugs>
+                            <plug default="1" idx="11"/>
+                        </plugs>
                         <structRect l="708" r="816" t="336" b="504"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1767557580" name="Bevel">
+                    <module type="SE: RenderGeometry" handle="1058647010" name="Bevel">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="864" b="936"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="190626249" name="Bevel Style">
+                    <module type="SE: Style" handle="64950591" name="Bevel Style">
                         <plugs>
                             <plug default="6" idx="2"/>
                         </plugs>
                         <structRect l="312" r="408" t="864" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="998561586" name="Bevel Dark">
+                    <module type="SE: GradientStop" handle="806851154" name="Bevel Dark">
                         <plugs>
                             <plug default="26000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="1104" b="1152"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="494198505" name="Bevel 3">
+                    <module type="SE: GradientStop" handle="658104393" name="Bevel 3">
                         <plugs>
                             <plug default="267C7C7C"/>
                             <plug default="80"/>
@@ -665,7 +677,7 @@
                         <structRect l="48" r="144" t="1044" b="1092"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="535117957" name="Bevel 2">
+                    <module type="SE: GradientStop" handle="1460858440" name="Bevel 2">
                         <plugs>
                             <plug default="26BCBCBC"/>
                             <plug default="50"/>
@@ -673,14 +685,14 @@
                         <structRect l="48" r="144" t="984" b="1032"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="614944255" name="Bevel Light">
+                    <module type="SE: GradientStop" handle="1145883395" name="Bevel Light">
                         <plugs>
                             <plug default="26FFFFFF"/>
                         </plugs>
                         <structRect l="48" r="144" t="924" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: LinearGradient" handle="1734466735" name="Bevel">
+                    <module type="SE: LinearGradient" handle="1624810995" name="Bevel">
                         <plugs>
                             <plug default="135"/>
                             <plug id="3" idx="3"/>
@@ -691,54 +703,57 @@
                         <structRect l="180" r="276" t="924" b="1020"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="1929325786" name="Bevel Shape">
+                    <module type="SE: CircleGeometry" handle="1181809759" name="Bevel Shape">
                         <plugs>
                             <plug default="47"/>
                         </plugs>
                         <structRect l="48" r="144" t="864" b="900"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="64950591" name="Line">
+                    <module type="SE: RenderGeometry" handle="1623278472" name="Line">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="708" b="780"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: CombineTransforms" handle="1460858440">
+                    <module type="SE: CombineTransforms" handle="1574337363">
                         <structRect l="444" r="540" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Rotation" handle="1654848285">
+                    <module type="SE: Rotation" handle="1945073742">
                         <structRect l="444" r="528" t="708" b="744"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="1145883395" name="Start (turns)">
+                    <module type="SE: Add" handle="358587133" name="Start (turns)">
                         <plugs>
                             <plug default="0.375" idx="1"/>
                         </plugs>
                         <structRect l="840" r="912" t="48" b="96"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="1624810995" name="Sweep (turns)">
+                    <module type="SE: Multiply" handle="679870904" name="Sweep (turns)">
                         <plugs>
                             <plug default="0.75" idx="1"/>
                         </plugs>
                         <structRect l="708" r="780" t="48" b="96"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Style" handle="960293299" name="Line Style">
+                    <module type="SE: Style" handle="214604837" name="Line Style">
                         <plugs>
                             <plug default="16" idx="2"/>
                         </plugs>
                         <structRect l="312" r="408" t="708" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: SolidBrush" handle="1033810477" name="Line Color">
+                    <module type="SE: SolidBrush" handle="895959176" name="Line Color">
                         <plugs>
                             <plug default="FFEEEEEE"/>
                         </plugs>
                         <structRect l="180" r="276" t="780" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiline" handle="1623278472">
+                    <module type="SE: Multiline" handle="1233090160">
                         <plugs>
                             <plug id="2" idx="2"/>
                             <plug id="3"/>
@@ -746,29 +761,32 @@
                         <structRect l="180" r="252" t="708" b="768"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Point" handle="326220999" name="Line End">
+                    <module type="SE: Point" handle="1003550521" name="Line End">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
                         <structRect l="48" r="108" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Point" handle="781680426" name="Line Start">
+                    <module type="SE: Point" handle="642194907" name="Line Start">
                         <plugs>
                             <plug default="5"/>
                         </plugs>
                         <structRect l="48" r="108" t="708" b="756"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1945073742" name="Shading">
+                    <module type="SE: RenderGeometry" handle="843959723" name="Shading">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="480" b="552"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="679870904" name="Shading Style">
+                    <module type="SE: Style" handle="315570328" name="Shading Style">
                         <structRect l="312" r="408" t="480" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RadialGradient" handle="69173546" name="Shading">
+                    <module type="SE: RadialGradient" handle="1732156966" name="Shading">
                         <plugs>
                             <plug default="65.5"/>
                             <plug default="65.5"/>
@@ -781,58 +799,64 @@
                         <structRect l="180" r="276" t="480" b="600"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1392166921" name="Shade">
+                    <module type="SE: GradientStop" handle="1490103802" name="Shade">
                         <plugs>
                             <plug default="E6000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="600" b="648"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1233090160" name="Clear">
+                    <module type="SE: GradientStop" handle="592251447" name="Clear">
                         <plugs>
                             <plug default="00000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="540" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1003550521" name="Highlight">
+                    <module type="SE: GradientStop" handle="123777472" name="Highlight">
                         <plugs>
                             <plug default="26FFFFFF"/>
                         </plugs>
                         <structRect l="48" r="144" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="843959723" name="Body">
+                    <module type="SE: RenderGeometry" handle="863386037" name="Body">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="336" b="408"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="315570328" name="Body Style">
+                    <module type="SE: Style" handle="168430145" name="Body Style">
                         <structRect l="312" r="408" t="336" b="444"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: SolidBrush" handle="1273100717" name="Body Color">
+                    <module type="SE: SolidBrush" handle="1229404949" name="Body Color">
                         <plugs>
                             <plug default="FF2E79C7"/>
                         </plugs>
                         <structRect l="180" r="276" t="336" b="372"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="1869132973" name="Body Shape">
+                    <module type="SE: CircleGeometry" handle="478784451" name="Body Shape">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
                         <structRect l="48" r="144" t="336" b="372"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="123777472" name="Shadow">
+                    <module type="SE: RenderGeometry" handle="1410354253" name="Shadow">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="192" b="264"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: CombineTransforms" handle="632456348">
+                    <module type="SE: CombineTransforms" handle="1268384822">
                         <structRect l="444" r="540" t="192" b="240"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Translation" handle="863386037" name="Shadow Offset">
+                    <module type="SE: Translation" handle="90506705" name="Shadow Offset">
                         <plugs>
                             <plug default="20"/>
                             <plug default="20"/>
@@ -840,7 +864,7 @@
                         <structRect l="312" r="396" t="192" b="240"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Style" handle="576235241" name="Shadow Style">
+                    <module type="SE: Style" handle="616324776" name="Shadow Style">
                         <plugs>
                             <plug default="0" idx="2"/>
                             <plug default="5" idx="4"/>
@@ -849,96 +873,84 @@
                         <structRect l="180" r="276" t="192" b="300"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="168430145" name="Shadow Shape">
+                    <module type="SE: CircleGeometry" handle="1317183053" name="Shadow Shape">
                         <plugs>
                             <plug default="45"/>
                         </plugs>
                         <structRect l="48" r="144" t="192" b="228"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: PatchMemGet" handle="478784451">
+                    <module type="SE: PatchMemGet" handle="1488554323">
                         <structRect l="576" r="660" t="48" b="120"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: FitTransform" handle="387797328">
-                        <structRect l="312" r="408" t="48" b="132"/>
+                    <module type="SE: FitTransform" handle="699348342">
+                        <structRect l="180" r="276" t="48" b="132"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Rect" handle="165517294">
-                        <structRect l="180" r="240" t="48" b="120"/>
-                        <panelRect l="0" r="0" t="0" b="0"/>
-                    </module>
-                    <module type="SE: ControlSize" handle="1268384822">
+                    <module type="SE: ControlSize" handle="213815280">
                         <structRect l="48" r="132" t="48" b="84"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="IO Mod" handle="1299408243">
+                    <module type="IO Mod" handle="961049259">
                         <plugs>
-                            <plug name="Value Out" datatype="6" tiedtomod="90506705" tiedtopin="7"/>
+                            <plug name="Value Out" datatype="6" tiedtomod="215332554" tiedtopin="7"/>
                             <plug/>
                         </plugs>
                         <structRect l="1320" r="1380" t="48" b="72"/>
                     </module>
                 </modules>
                 <lines>
-                    <line type="Line" handle="1410354253" lineType="1" fMod="1268384822" tMod="165517294" tPlg="2"/>
-                    <line type="Line" handle="120309529" lineType="1" fMod="1268384822" tMod="165517294" fPlg="1" tPlg="3"/>
-                    <line type="Line" handle="1581923637" lineType="1" fMod="1268384822" tMod="387797328"/>
-                    <line type="Line" handle="1196917660" lineType="1" fMod="1268384822" tMod="387797328" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="112408686" lineType="1" fMod="863386037" tMod="632456348" fPlg="2"/>
-                    <line type="Line" handle="1018900943" lineType="1" fMod="387797328" tMod="632456348" fPlg="4" tPlg="1"/>
-                    <line type="Line" handle="592251447" lineType="1" fMod="168430145" tMod="123777472" fPlg="1"/>
-                    <line type="Line" handle="1490103802" lineType="1" fMod="576235241" tMod="123777472" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1732156966" lineType="1" fMod="165517294" tMod="123777472" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="576375622" lineType="1" fMod="632456348" tMod="123777472" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="832479507" lineType="1" fMod="1273100717" tMod="315570328" fPlg="1"/>
-                    <line type="Line" handle="644037129" lineType="1" fMod="1869132973" tMod="843959723" fPlg="1"/>
+                    <line type="Line" handle="87587038" lineType="1" fMod="213815280" tMod="699348342"/>
+                    <line type="Line" handle="1950938310" lineType="1" fMod="213815280" tMod="699348342" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="165517294" lineType="1" fMod="90506705" tMod="1268384822" fPlg="2"/>
+                    <line type="Line" handle="387797328" lineType="1" fMod="699348342" tMod="1268384822" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="120309529" lineType="1" fMod="1317183053" tMod="1410354253" fPlg="1"/>
+                    <line type="Line" handle="1581923637" lineType="1" fMod="616324776" tMod="1410354253" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1196917660" lineType="1" fMod="1268384822" tMod="1410354253" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="576235241" lineType="1" fMod="1229404949" tMod="168430145" fPlg="1"/>
+                    <line type="Line" handle="632456348" lineType="1" fMod="478784451" tMod="863386037" fPlg="1"/>
+                    <line type="Line" handle="112408686" lineType="1" fMod="168430145" tMod="863386037" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1018900943" lineType="1" fMod="699348342" tMod="863386037" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="576375622" lineType="1" fMod="123777472" tMod="1732156966" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="1869132973" lineType="1" fMod="592251447" tMod="1732156966" fPlg="2" tPlg="6"/>
+                    <line type="Line" handle="1273100717" lineType="1" fMod="1490103802" tMod="1732156966" fPlg="2" tPlg="7"/>
+                    <line type="Line" handle="832479507" lineType="1" fMod="1732156966" tMod="315570328" fPlg="4"/>
+                    <line type="Line" handle="644037129" lineType="1" fMod="478784451" tMod="843959723" fPlg="1"/>
                     <line type="Line" handle="140950382" lineType="1" fMod="315570328" tMod="843959723" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1158521523" lineType="1" fMod="165517294" tMod="843959723" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="642194907" lineType="1" fMod="387797328" tMod="843959723" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="895959176" lineType="1" fMod="1003550521" tMod="69173546" fPlg="2" tPlg="5"/>
-                    <line type="Line" handle="214604837" lineType="1" fMod="1233090160" tMod="69173546" fPlg="2" tPlg="6"/>
-                    <line type="Line" handle="356133920" lineType="1" fMod="1392166921" tMod="69173546" fPlg="2" tPlg="7"/>
-                    <line type="Line" handle="358587133" lineType="1" fMod="69173546" tMod="679870904" fPlg="4"/>
-                    <line type="Line" handle="1574337363" lineType="1" fMod="1869132973" tMod="1945073742" fPlg="1"/>
-                    <line type="Line" handle="1229536910" lineType="1" fMod="679870904" tMod="1945073742" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1679611980" lineType="1" fMod="165517294" tMod="1945073742" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1476086803" lineType="1" fMod="387797328" tMod="1945073742" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1003502680" lineType="1" fMod="781680426" tMod="1623278472" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="945751354" lineType="1" fMod="326220999" tMod="1623278472" fPlg="2" tPlg="2"/>
-                    <line type="Line" handle="1181809759" lineType="1" fMod="1033810477" tMod="960293299" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="944044817" lineType="1" fMod="478784451" tMod="1624810995" fPlg="4"/>
-                    <line type="Line" handle="658104393" lineType="1" fMod="1624810995" tMod="1145883395" fPlg="2"/>
-                    <line type="Line" handle="1517850197" lineType="1" fMod="1145883395" tMod="1654848285" fPlg="2"/>
-                    <line type="Line" handle="806851154" lineType="1" fMod="1654848285" tMod="1460858440" fPlg="1"/>
-                    <line type="Line" handle="287933917" lineType="1" fMod="387797328" tMod="1460858440" fPlg="4" tPlg="1"/>
-                    <line type="Line" handle="1636352887" lineType="1" fMod="1623278472" tMod="64950591"/>
-                    <line type="Line" handle="1058647010" lineType="1" fMod="960293299" tMod="64950591" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1905433853" lineType="1" fMod="165517294" tMod="64950591" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="397234760" lineType="1" fMod="1460858440" tMod="64950591" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="1116734420" lineType="1" fMod="1869132973" tMod="64950591" fPlg="1" tPlg="4"/>
-                    <line type="Line" handle="1761058214" lineType="1" fMod="614944255" tMod="1734466735" fPlg="2" tPlg="2"/>
-                    <line type="Line" handle="1878520312" lineType="1" fMod="535117957" tMod="1734466735" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="1092722420" lineType="1" fMod="494198505" tMod="1734466735" fPlg="2" tPlg="4"/>
-                    <line type="Line" handle="199184946" lineType="1" fMod="998561586" tMod="1734466735" fPlg="2" tPlg="5"/>
-                    <line type="Line" handle="319773181" lineType="1" fMod="1734466735" tMod="190626249" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="1121429367" lineType="1" fMod="1929325786" tMod="1767557580" fPlg="1"/>
-                    <line type="Line" handle="144487386" lineType="1" fMod="190626249" tMod="1767557580" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1012072137" lineType="1" fMod="165517294" tMod="1767557580" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1735516992" lineType="1" fMod="387797328" tMod="1767557580" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1258739762" lineType="1" fMod="165517294" tMod="309895438" fPlg="4" tPlg="11"/>
-                    <line type="Line" handle="598451926" lineType="1" fMod="309895438" tMod="1515350569" fPlg="8"/>
-                    <line type="Line" handle="235691783" lineType="1" fMod="309895438" tMod="1865811529" fPlg="7"/>
-                    <line type="Line" handle="1783896605" lineType="1" fMod="1515350569" tMod="1865811529" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="1757763843" lineType="1" fMod="1865811529" tMod="1885642765" fPlg="2"/>
-                    <line type="Line" handle="491301026" lineType="1" fMod="309895438" tMod="1885642765" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="1916032599" lineType="1" fMod="1885642765" tMod="1524716198" fPlg="2"/>
-                    <line type="Line" handle="1248961613" lineType="1" fMod="478784451" tMod="583792704" fPlg="4"/>
-                    <line type="Line" handle="1647521213" lineType="1" fMod="1524716198" tMod="583792704" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="1259080836" lineType="1" fMod="478784451" tMod="1705115647" fPlg="3"/>
-                    <line type="Line" handle="1561462824" lineType="1" fMod="583792704" tMod="1705115647" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="776778744" lineType="1" fMod="309895438" tMod="1705115647" fPlg="1" tPlg="2"/>
-                    <line type="Line" handle="44238530" lineType="1" fMod="478784451" tMod="1299408243" fPlg="8"/>
+                    <line type="Line" handle="1158521523" lineType="1" fMod="699348342" tMod="843959723" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="1392166921" lineType="1" fMod="642194907" tMod="1233090160" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="69173546" lineType="1" fMod="1003550521" tMod="1233090160" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="356133920" lineType="1" fMod="895959176" tMod="214604837" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="1229536910" lineType="1" fMod="1488554323" tMod="679870904" fPlg="4"/>
+                    <line type="Line" handle="1679611980" lineType="1" fMod="679870904" tMod="358587133" fPlg="2"/>
+                    <line type="Line" handle="1476086803" lineType="1" fMod="358587133" tMod="1945073742" fPlg="2"/>
+                    <line type="Line" handle="781680426" lineType="1" fMod="1945073742" tMod="1574337363" fPlg="1"/>
+                    <line type="Line" handle="326220999" lineType="1" fMod="699348342" tMod="1574337363" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="1003502680" lineType="1" fMod="1233090160" tMod="1623278472"/>
+                    <line type="Line" handle="945751354" lineType="1" fMod="214604837" tMod="1623278472" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1033810477" lineType="1" fMod="1574337363" tMod="1623278472" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="960293299" lineType="1" fMod="478784451" tMod="1623278472" fPlg="1" tPlg="4"/>
+                    <line type="Line" handle="1654848285" lineType="1" fMod="1145883395" tMod="1624810995" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="944044817" lineType="1" fMod="1460858440" tMod="1624810995" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="1517850197" lineType="1" fMod="658104393" tMod="1624810995" fPlg="2" tPlg="4"/>
+                    <line type="Line" handle="287933917" lineType="1" fMod="806851154" tMod="1624810995" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="1636352887" lineType="1" fMod="1624810995" tMod="64950591" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="1905433853" lineType="1" fMod="1181809759" tMod="1058647010" fPlg="1"/>
+                    <line type="Line" handle="397234760" lineType="1" fMod="64950591" tMod="1058647010" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1116734420" lineType="1" fMod="699348342" tMod="1058647010" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="1092722420" lineType="1" fMod="1929325786" tMod="1734466735" fPlg="8"/>
+                    <line type="Line" handle="998561586" lineType="1" fMod="1929325786" tMod="614944255" fPlg="7"/>
+                    <line type="Line" handle="199184946" lineType="1" fMod="1734466735" tMod="614944255" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="190626249" lineType="1" fMod="614944255" tMod="1761058214" fPlg="2"/>
+                    <line type="Line" handle="319773181" lineType="1" fMod="1929325786" tMod="1761058214" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="1767557580" lineType="1" fMod="1761058214" tMod="535117957" fPlg="2"/>
+                    <line type="Line" handle="1121429367" lineType="1" fMod="1488554323" tMod="1878520312" fPlg="4"/>
+                    <line type="Line" handle="144487386" lineType="1" fMod="535117957" tMod="1878520312" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1012072137" lineType="1" fMod="1488554323" tMod="494198505" fPlg="3"/>
+                    <line type="Line" handle="1735516992" lineType="1" fMod="1878520312" tMod="494198505" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="309895438" lineType="1" fMod="1929325786" tMod="494198505" fPlg="1" tPlg="2"/>
+                    <line type="Line" handle="1517812488" lineType="1" fMod="1488554323" tMod="961049259" fPlg="8"/>
                 </lines>
                 <PanelLocationCenter x="3984" y="3984"/>
                 <StructLocationCenter x="700" y="500"/>
@@ -950,7 +962,7 @@
                 <PanelWndOffset cx="-62" cy="154"/>
                 <panel_rect l="3732" r="4212" t="3732" b="4212"/>
             </module>
-            <module type="Container" handle="969276437" name="Drawn Knob 96" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
+            <module type="Container" handle="1258739762" name="Drawn Knob 96" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
                 <plugs>
                     <plug default="1" idx="1"/>
                     <plug default="1"/>
@@ -959,59 +971,65 @@
                 </plugs>
                 <structRect l="240" r="312" t="144" b="204"/>
                 <modules>
-                    <module type="SE: PatchMemSet" handle="42787069">
+                    <module type="SE: PatchMemSet" handle="1642408686">
                         <structRect l="1500" r="1584" t="336" b="396"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="1871665576">
+                    <module type="SE: Add" handle="1154713955">
                         <structRect l="1368" r="1440" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="664048422" name="Sensitivity">
+                    <module type="SE: Multiply" handle="479424492" name="Sensitivity">
                         <plugs>
                             <plug default="0.005" idx="1"/>
                         </plugs>
                         <structRect l="1236" r="1308" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="1160886925" name="While Held">
+                    <module type="SE: Multiply" handle="1708010991" name="While Held">
                         <structRect l="1104" r="1176" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="1816766529">
+                    <module type="SE: Add" handle="1031402107">
                         <structRect l="972" r="1044" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="1523292513" name="Up">
+                    <module type="SE: Multiply" handle="928339369" name="Up">
                         <plugs>
                             <plug default="-1" idx="1"/>
                         </plugs>
                         <structRect l="840" r="912" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: MouseTarget" handle="1419455185">
+                    <module type="SE: MouseTarget" handle="919868484">
+                        <plugs>
+                            <plug default="1" idx="11"/>
+                        </plugs>
                         <structRect l="708" r="816" t="336" b="504"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="517946655" name="Bevel">
+                    <module type="SE: RenderGeometry" handle="941515161" name="Bevel">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="864" b="936"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="1433051220" name="Bevel Style">
+                    <module type="SE: Style" handle="120685570" name="Bevel Style">
                         <plugs>
                             <plug default="6" idx="2"/>
                         </plugs>
                         <structRect l="312" r="408" t="864" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1443147488" name="Bevel Dark">
+                    <module type="SE: GradientStop" handle="1523276526" name="Bevel Dark">
                         <plugs>
                             <plug default="26000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="1104" b="1152"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1001934093" name="Bevel 3">
+                    <module type="SE: GradientStop" handle="1996377180" name="Bevel 3">
                         <plugs>
                             <plug default="267C7C7C"/>
                             <plug default="80"/>
@@ -1019,7 +1037,7 @@
                         <structRect l="48" r="144" t="1044" b="1092"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1029702525" name="Bevel 2">
+                    <module type="SE: GradientStop" handle="1743504651" name="Bevel 2">
                         <plugs>
                             <plug default="26BCBCBC"/>
                             <plug default="50"/>
@@ -1027,14 +1045,14 @@
                         <structRect l="48" r="144" t="984" b="1032"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1360597728" name="Bevel Light">
+                    <module type="SE: GradientStop" handle="1501780005" name="Bevel Light">
                         <plugs>
                             <plug default="26FFFFFF"/>
                         </plugs>
                         <structRect l="48" r="144" t="924" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: LinearGradient" handle="1670264017" name="Bevel">
+                    <module type="SE: LinearGradient" handle="757795903" name="Bevel">
                         <plugs>
                             <plug default="135"/>
                             <plug id="3" idx="3"/>
@@ -1045,54 +1063,57 @@
                         <structRect l="180" r="276" t="924" b="1020"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="142841257" name="Bevel Shape">
+                    <module type="SE: CircleGeometry" handle="1535879797" name="Bevel Shape">
                         <plugs>
                             <plug default="47"/>
                         </plugs>
                         <structRect l="48" r="144" t="864" b="900"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1708010991" name="Line">
+                    <module type="SE: RenderGeometry" handle="1974735963" name="Line">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="708" b="780"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: CombineTransforms" handle="50394695">
+                    <module type="SE: CombineTransforms" handle="987826074">
                         <structRect l="444" r="540" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Rotation" handle="941515161">
+                    <module type="SE: Rotation" handle="146757614">
                         <structRect l="444" r="528" t="708" b="744"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="78763149" name="Start (turns)">
+                    <module type="SE: Add" handle="1703937657" name="Start (turns)">
                         <plugs>
                             <plug default="0.375" idx="1"/>
                         </plugs>
                         <structRect l="840" r="912" t="48" b="96"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="120685570" name="Sweep (turns)">
+                    <module type="SE: Multiply" handle="1179336613" name="Sweep (turns)">
                         <plugs>
                             <plug default="0.75" idx="1"/>
                         </plugs>
                         <structRect l="708" r="780" t="48" b="96"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Style" handle="1523276526" name="Line Style">
+                    <module type="SE: Style" handle="318072732" name="Line Style">
                         <plugs>
                             <plug default="16" idx="2"/>
                         </plugs>
                         <structRect l="312" r="408" t="708" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: SolidBrush" handle="12199605" name="Line Color">
+                    <module type="SE: SolidBrush" handle="283410948" name="Line Color">
                         <plugs>
                             <plug default="FFEEEEEE"/>
                         </plugs>
                         <structRect l="180" r="276" t="780" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiline" handle="1743504651">
+                    <module type="SE: Multiline" handle="292893456">
                         <plugs>
                             <plug id="2" idx="2"/>
                             <plug id="3"/>
@@ -1100,29 +1121,32 @@
                         <structRect l="180" r="252" t="708" b="768"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Point" handle="345295999" name="Line End">
+                    <module type="SE: Point" handle="489641278" name="Line End">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
                         <structRect l="48" r="108" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Point" handle="1501780005" name="Line Start">
+                    <module type="SE: Point" handle="1287647344" name="Line Start">
                         <plugs>
                             <plug default="5"/>
                         </plugs>
                         <structRect l="48" r="108" t="708" b="756"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1431762509" name="Shading">
+                    <module type="SE: RenderGeometry" handle="213717086" name="Shading">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="480" b="552"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="1974735963" name="Shading Style">
+                    <module type="SE: Style" handle="1080538031" name="Shading Style">
                         <structRect l="312" r="408" t="480" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RadialGradient" handle="1750593282" name="Shading">
+                    <module type="SE: RadialGradient" handle="48447972" name="Shading">
                         <plugs>
                             <plug default="65.5"/>
                             <plug default="65.5"/>
@@ -1135,58 +1159,64 @@
                         <structRect l="180" r="276" t="480" b="600"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="994157933" name="Shade">
+                    <module type="SE: GradientStop" handle="926010294" name="Shade">
                         <plugs>
                             <plug default="E6000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="600" b="648"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="987826074" name="Clear">
+                    <module type="SE: GradientStop" handle="1635050887" name="Clear">
                         <plugs>
                             <plug default="00000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="540" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="146757614" name="Highlight">
+                    <module type="SE: GradientStop" handle="1110753392" name="Highlight">
                         <plugs>
                             <plug default="26FFFFFF"/>
                         </plugs>
                         <structRect l="48" r="144" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="283410948" name="Body">
+                    <module type="SE: RenderGeometry" handle="664377467" name="Body">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="336" b="408"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="99807016" name="Body Style">
+                    <module type="SE: Style" handle="1162991555" name="Body Style">
                         <structRect l="312" r="408" t="336" b="444"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: SolidBrush" handle="292893456" name="Body Color">
+                    <module type="SE: SolidBrush" handle="969276437" name="Body Color">
                         <plugs>
                             <plug default="FF2E79C7"/>
                         </plugs>
                         <structRect l="180" r="276" t="336" b="372"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="489641278" name="Body Shape">
+                    <module type="SE: CircleGeometry" handle="776778744" name="Body Shape">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
                         <structRect l="48" r="144" t="336" b="372"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="213717086" name="Shadow">
+                    <module type="SE: RenderGeometry" handle="1248961613" name="Shadow">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="192" b="264"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: CombineTransforms" handle="1624258476">
+                    <module type="SE: CombineTransforms" handle="1757763843">
                         <structRect l="444" r="540" t="192" b="240"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Translation" handle="1758391018" name="Shadow Offset">
+                    <module type="SE: Translation" handle="1783896605" name="Shadow Offset">
                         <plugs>
                             <plug default="20"/>
                             <plug default="20"/>
@@ -1194,7 +1224,7 @@
                         <structRect l="312" r="396" t="192" b="240"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Style" handle="396167129" name="Shadow Style">
+                    <module type="SE: Style" handle="235691783" name="Shadow Style">
                         <plugs>
                             <plug default="0" idx="2"/>
                             <plug default="5" idx="4"/>
@@ -1203,96 +1233,84 @@
                         <structRect l="180" r="276" t="192" b="300"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="48447972" name="Shadow Shape">
+                    <module type="SE: CircleGeometry" handle="598451926" name="Shadow Shape">
                         <plugs>
                             <plug default="45"/>
                         </plugs>
                         <structRect l="48" r="144" t="192" b="228"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: PatchMemGet" handle="1635050887">
+                    <module type="SE: PatchMemGet" handle="583792704">
                         <structRect l="576" r="660" t="48" b="120"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: FitTransform" handle="664377467">
-                        <structRect l="312" r="408" t="48" b="132"/>
+                    <module type="SE: FitTransform" handle="1865811529">
+                        <structRect l="180" r="276" t="48" b="132"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Rect" handle="1200017250">
-                        <structRect l="180" r="240" t="48" b="120"/>
-                        <panelRect l="0" r="0" t="0" b="0"/>
-                    </module>
-                    <module type="SE: ControlSize" handle="1162991555">
+                    <module type="SE: ControlSize" handle="1515350569">
                         <structRect l="48" r="132" t="48" b="84"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="IO Mod" handle="1260861046">
+                    <module type="IO Mod" handle="274433050">
                         <plugs>
-                            <plug name="Value Out" datatype="6" tiedtomod="969276437" tiedtopin="7"/>
+                            <plug name="Value Out" datatype="6" tiedtomod="1258739762" tiedtopin="7"/>
                             <plug/>
                         </plugs>
                         <structRect l="1320" r="1380" t="48" b="72"/>
                     </module>
                 </modules>
                 <lines>
-                    <line type="Line" handle="1373769839" lineType="1" fMod="1162991555" tMod="1200017250" tPlg="2"/>
-                    <line type="Line" handle="692876563" lineType="1" fMod="1162991555" tMod="1200017250" fPlg="1" tPlg="3"/>
-                    <line type="Line" handle="1202298914" lineType="1" fMod="1162991555" tMod="664377467"/>
-                    <line type="Line" handle="1110753392" lineType="1" fMod="1162991555" tMod="664377467" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="1080538031" lineType="1" fMod="1758391018" tMod="1624258476" fPlg="2"/>
-                    <line type="Line" handle="1128359385" lineType="1" fMod="664377467" tMod="1624258476" fPlg="4" tPlg="1"/>
-                    <line type="Line" handle="454181280" lineType="1" fMod="48447972" tMod="213717086" fPlg="1"/>
-                    <line type="Line" handle="1374701670" lineType="1" fMod="396167129" tMod="213717086" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1225797290" lineType="1" fMod="1200017250" tMod="213717086" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1287647344" lineType="1" fMod="1624258476" tMod="213717086" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="321614974" lineType="1" fMod="292893456" tMod="99807016" fPlg="1"/>
-                    <line type="Line" handle="318072732" lineType="1" fMod="489641278" tMod="283410948" fPlg="1"/>
-                    <line type="Line" handle="169804897" lineType="1" fMod="99807016" tMod="283410948" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1179336613" lineType="1" fMod="1200017250" tMod="283410948" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1703937657" lineType="1" fMod="664377467" tMod="283410948" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1609986707" lineType="1" fMod="146757614" tMod="1750593282" fPlg="2" tPlg="5"/>
-                    <line type="Line" handle="1604665567" lineType="1" fMod="987826074" tMod="1750593282" fPlg="2" tPlg="6"/>
-                    <line type="Line" handle="358321683" lineType="1" fMod="994157933" tMod="1750593282" fPlg="2" tPlg="7"/>
-                    <line type="Line" handle="705851932" lineType="1" fMod="1750593282" tMod="1974735963" fPlg="4"/>
-                    <line type="Line" handle="1994475818" lineType="1" fMod="489641278" tMod="1431762509" fPlg="1"/>
-                    <line type="Line" handle="610968925" lineType="1" fMod="1974735963" tMod="1431762509" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1535879797" lineType="1" fMod="1200017250" tMod="1431762509" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="757795903" lineType="1" fMod="664377467" tMod="1431762509" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1937810430" lineType="1" fMod="1501780005" tMod="1743504651" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="1996377180" lineType="1" fMod="345295999" tMod="1743504651" fPlg="2" tPlg="2"/>
-                    <line type="Line" handle="307767407" lineType="1" fMod="12199605" tMod="1523276526" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="907018335" lineType="1" fMod="1635050887" tMod="120685570" fPlg="4"/>
-                    <line type="Line" handle="600018999" lineType="1" fMod="120685570" tMod="78763149" fPlg="2"/>
-                    <line type="Line" handle="919868484" lineType="1" fMod="78763149" tMod="941515161" fPlg="2"/>
-                    <line type="Line" handle="928339369" lineType="1" fMod="941515161" tMod="50394695" fPlg="1"/>
-                    <line type="Line" handle="1031402107" lineType="1" fMod="664377467" tMod="50394695" fPlg="4" tPlg="1"/>
-                    <line type="Line" handle="479424492" lineType="1" fMod="1743504651" tMod="1708010991"/>
-                    <line type="Line" handle="1154713955" lineType="1" fMod="1523276526" tMod="1708010991" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1642408686" lineType="1" fMod="1200017250" tMod="1708010991" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1821177931" lineType="1" fMod="50394695" tMod="1708010991" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="594379020" lineType="1" fMod="489641278" tMod="1708010991" fPlg="1" tPlg="4"/>
-                    <line type="Line" handle="867299274" lineType="1" fMod="1360597728" tMod="1670264017" fPlg="2" tPlg="2"/>
-                    <line type="Line" handle="92232664" lineType="1" fMod="1029702525" tMod="1670264017" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="1885589391" lineType="1" fMod="1001934093" tMod="1670264017" fPlg="2" tPlg="4"/>
-                    <line type="Line" handle="4566477" lineType="1" fMod="1443147488" tMod="1670264017" fPlg="2" tPlg="5"/>
-                    <line type="Line" handle="440260291" lineType="1" fMod="1670264017" tMod="1433051220" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="1837159447" lineType="1" fMod="142841257" tMod="517946655" fPlg="1"/>
-                    <line type="Line" handle="1951585640" lineType="1" fMod="1433051220" tMod="517946655" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="870755927" lineType="1" fMod="1200017250" tMod="517946655" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1846711165" lineType="1" fMod="664377467" tMod="517946655" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="791325925" lineType="1" fMod="1200017250" tMod="1419455185" fPlg="4" tPlg="11"/>
-                    <line type="Line" handle="1076067531" lineType="1" fMod="1419455185" tMod="1523292513" fPlg="8"/>
-                    <line type="Line" handle="1245910594" lineType="1" fMod="1419455185" tMod="1816766529" fPlg="7"/>
-                    <line type="Line" handle="268899473" lineType="1" fMod="1523292513" tMod="1816766529" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="126171919" lineType="1" fMod="1816766529" tMod="1160886925" fPlg="2"/>
-                    <line type="Line" handle="186761530" lineType="1" fMod="1419455185" tMod="1160886925" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="1690516902" lineType="1" fMod="1160886925" tMod="664048422" fPlg="2"/>
-                    <line type="Line" handle="1032081999" lineType="1" fMod="1635050887" tMod="1871665576" fPlg="4"/>
-                    <line type="Line" handle="1747568523" lineType="1" fMod="664048422" tMod="1871665576" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="964112815" lineType="1" fMod="1635050887" tMod="42787069" fPlg="3"/>
-                    <line type="Line" handle="818791058" lineType="1" fMod="1871665576" tMod="42787069" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="1189314811" lineType="1" fMod="1419455185" tMod="42787069" fPlg="1" tPlg="2"/>
-                    <line type="Line" handle="1968734782" lineType="1" fMod="1635050887" tMod="1260861046" fPlg="8"/>
+                    <line type="Line" handle="1885642765" lineType="1" fMod="1515350569" tMod="1865811529"/>
+                    <line type="Line" handle="1524716198" lineType="1" fMod="1515350569" tMod="1865811529" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="491301026" lineType="1" fMod="1783896605" tMod="1757763843" fPlg="2"/>
+                    <line type="Line" handle="1916032599" lineType="1" fMod="1865811529" tMod="1757763843" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="1647521213" lineType="1" fMod="598451926" tMod="1248961613" fPlg="1"/>
+                    <line type="Line" handle="1259080836" lineType="1" fMod="235691783" tMod="1248961613" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1561462824" lineType="1" fMod="1757763843" tMod="1248961613" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="1200017250" lineType="1" fMod="969276437" tMod="1162991555" fPlg="1"/>
+                    <line type="Line" handle="1373769839" lineType="1" fMod="776778744" tMod="664377467" fPlg="1"/>
+                    <line type="Line" handle="692876563" lineType="1" fMod="1162991555" tMod="664377467" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1202298914" lineType="1" fMod="1865811529" tMod="664377467" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="396167129" lineType="1" fMod="1110753392" tMod="48447972" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="1758391018" lineType="1" fMod="1635050887" tMod="48447972" fPlg="2" tPlg="6"/>
+                    <line type="Line" handle="1624258476" lineType="1" fMod="926010294" tMod="48447972" fPlg="2" tPlg="7"/>
+                    <line type="Line" handle="1128359385" lineType="1" fMod="48447972" tMod="1080538031" fPlg="4"/>
+                    <line type="Line" handle="454181280" lineType="1" fMod="776778744" tMod="213717086" fPlg="1"/>
+                    <line type="Line" handle="1374701670" lineType="1" fMod="1080538031" tMod="213717086" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1225797290" lineType="1" fMod="1865811529" tMod="213717086" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="99807016" lineType="1" fMod="1287647344" tMod="292893456" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="321614974" lineType="1" fMod="489641278" tMod="292893456" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="169804897" lineType="1" fMod="283410948" tMod="318072732" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="994157933" lineType="1" fMod="583792704" tMod="1179336613" fPlg="4"/>
+                    <line type="Line" handle="1750593282" lineType="1" fMod="1179336613" tMod="1703937657" fPlg="2"/>
+                    <line type="Line" handle="1609986707" lineType="1" fMod="1703937657" tMod="146757614" fPlg="2"/>
+                    <line type="Line" handle="1604665567" lineType="1" fMod="146757614" tMod="987826074" fPlg="1"/>
+                    <line type="Line" handle="358321683" lineType="1" fMod="1865811529" tMod="987826074" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="705851932" lineType="1" fMod="292893456" tMod="1974735963"/>
+                    <line type="Line" handle="1431762509" lineType="1" fMod="318072732" tMod="1974735963" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1994475818" lineType="1" fMod="987826074" tMod="1974735963" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="610968925" lineType="1" fMod="776778744" tMod="1974735963" fPlg="1" tPlg="4"/>
+                    <line type="Line" handle="345295999" lineType="1" fMod="1501780005" tMod="757795903" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="1937810430" lineType="1" fMod="1743504651" tMod="757795903" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="12199605" lineType="1" fMod="1996377180" tMod="757795903" fPlg="2" tPlg="4"/>
+                    <line type="Line" handle="307767407" lineType="1" fMod="1523276526" tMod="757795903" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="78763149" lineType="1" fMod="757795903" tMod="120685570" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="50394695" lineType="1" fMod="1535879797" tMod="941515161" fPlg="1"/>
+                    <line type="Line" handle="907018335" lineType="1" fMod="120685570" tMod="941515161" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="600018999" lineType="1" fMod="1865811529" tMod="941515161" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="1821177931" lineType="1" fMod="919868484" tMod="928339369" fPlg="8"/>
+                    <line type="Line" handle="594379020" lineType="1" fMod="919868484" tMod="1031402107" fPlg="7"/>
+                    <line type="Line" handle="142841257" lineType="1" fMod="928339369" tMod="1031402107" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1670264017" lineType="1" fMod="1031402107" tMod="1708010991" fPlg="2"/>
+                    <line type="Line" handle="1360597728" lineType="1" fMod="919868484" tMod="1708010991" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="867299274" lineType="1" fMod="1708010991" tMod="479424492" fPlg="2"/>
+                    <line type="Line" handle="1029702525" lineType="1" fMod="583792704" tMod="1154713955" fPlg="4"/>
+                    <line type="Line" handle="92232664" lineType="1" fMod="479424492" tMod="1154713955" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1001934093" lineType="1" fMod="583792704" tMod="1642408686" fPlg="3"/>
+                    <line type="Line" handle="1885589391" lineType="1" fMod="1154713955" tMod="1642408686" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1443147488" lineType="1" fMod="919868484" tMod="1642408686" fPlg="1" tPlg="2"/>
+                    <line type="Line" handle="1575814003" lineType="1" fMod="583792704" tMod="274433050" fPlg="8"/>
                 </lines>
                 <PanelLocationCenter x="3984" y="3984"/>
                 <StructLocationCenter x="700" y="500"/>
@@ -1304,7 +1322,7 @@
                 <PanelWndOffset cx="34" cy="154"/>
                 <panel_rect l="3732" r="4212" t="3732" b="4212"/>
             </module>
-            <module type="Container" handle="431798043" name="Drawn Knob 192" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
+            <module type="Container" handle="4566477" name="Drawn Knob 192" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
                 <plugs>
                     <plug default="1" idx="1"/>
                     <plug default="1"/>
@@ -1313,59 +1331,65 @@
                 </plugs>
                 <structRect l="336" r="408" t="144" b="204"/>
                 <modules>
-                    <module type="SE: PatchMemSet" handle="1349657081">
+                    <module type="SE: PatchMemSet" handle="862971135">
                         <structRect l="1500" r="1584" t="336" b="396"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="1240866628">
+                    <module type="SE: Add" handle="517160195">
                         <structRect l="1368" r="1440" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="1744966712" name="Sensitivity">
+                    <module type="SE: Multiply" handle="1291916015" name="Sensitivity">
                         <plugs>
                             <plug default="0.005" idx="1"/>
                         </plugs>
                         <structRect l="1236" r="1308" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="850274005" name="While Held">
+                    <module type="SE: Multiply" handle="229194911" name="While Held">
                         <structRect l="1104" r="1176" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="1214761604">
+                    <module type="SE: Add" handle="1010568069">
                         <structRect l="972" r="1044" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="1905912588" name="Up">
+                    <module type="SE: Multiply" handle="1495940175" name="Up">
                         <plugs>
                             <plug default="-1" idx="1"/>
                         </plugs>
                         <structRect l="840" r="912" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: MouseTarget" handle="206771242">
+                    <module type="SE: MouseTarget" handle="410677668">
+                        <plugs>
+                            <plug default="1" idx="11"/>
+                        </plugs>
                         <structRect l="708" r="816" t="336" b="504"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1547742872" name="Bevel">
+                    <module type="SE: RenderGeometry" handle="822054470" name="Bevel">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="864" b="936"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="1396223795" name="Bevel Style">
+                    <module type="SE: Style" handle="578151812" name="Bevel Style">
                         <plugs>
                             <plug default="6" idx="2"/>
                         </plugs>
                         <structRect l="312" r="408" t="864" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1066043920" name="Bevel Dark">
+                    <module type="SE: GradientStop" handle="1391899726" name="Bevel Dark">
                         <plugs>
                             <plug default="26000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="1104" b="1152"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="918496602" name="Bevel 3">
+                    <module type="SE: GradientStop" handle="1330603013" name="Bevel 3">
                         <plugs>
                             <plug default="267C7C7C"/>
                             <plug default="80"/>
@@ -1373,7 +1397,7 @@
                         <structRect l="48" r="144" t="1044" b="1092"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="510081789" name="Bevel 2">
+                    <module type="SE: GradientStop" handle="432113840" name="Bevel 2">
                         <plugs>
                             <plug default="26BCBCBC"/>
                             <plug default="50"/>
@@ -1381,14 +1405,14 @@
                         <structRect l="48" r="144" t="984" b="1032"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1202044404" name="Bevel Light">
+                    <module type="SE: GradientStop" handle="1543733906" name="Bevel Light">
                         <plugs>
                             <plug default="26FFFFFF"/>
                         </plugs>
                         <structRect l="48" r="144" t="924" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: LinearGradient" handle="1015640928" name="Bevel">
+                    <module type="SE: LinearGradient" handle="389551239" name="Bevel">
                         <plugs>
                             <plug default="135"/>
                             <plug id="3" idx="3"/>
@@ -1399,54 +1423,57 @@
                         <structRect l="180" r="276" t="924" b="1020"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="163490786" name="Bevel Shape">
+                    <module type="SE: CircleGeometry" handle="1320806938" name="Bevel Shape">
                         <plugs>
                             <plug default="47"/>
                         </plugs>
                         <structRect l="48" r="144" t="864" b="900"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="844867450" name="Line">
+                    <module type="SE: RenderGeometry" handle="506210228" name="Line">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="708" b="780"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: CombineTransforms" handle="862971135">
+                    <module type="SE: CombineTransforms" handle="868450049">
                         <structRect l="444" r="540" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Rotation" handle="517160195">
+                    <module type="SE: Rotation" handle="485378798">
                         <structRect l="444" r="528" t="708" b="744"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="1291916015" name="Start (turns)">
+                    <module type="SE: Add" handle="1531850931" name="Start (turns)">
                         <plugs>
                             <plug default="0.375" idx="1"/>
                         </plugs>
                         <structRect l="840" r="912" t="48" b="96"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="229194911" name="Sweep (turns)">
+                    <module type="SE: Multiply" handle="274243543" name="Sweep (turns)">
                         <plugs>
                             <plug default="0.75" idx="1"/>
                         </plugs>
                         <structRect l="708" r="780" t="48" b="96"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Style" handle="1495940175" name="Line Style">
+                    <module type="SE: Style" handle="1316103865" name="Line Style">
                         <plugs>
                             <plug default="16" idx="2"/>
                         </plugs>
                         <structRect l="312" r="408" t="708" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: SolidBrush" handle="410677668" name="Line Color">
+                    <module type="SE: SolidBrush" handle="910513655" name="Line Color">
                         <plugs>
                             <plug default="FFEEEEEE"/>
                         </plugs>
                         <structRect l="180" r="276" t="780" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiline" handle="1358674541">
+                    <module type="SE: Multiline" handle="131829950">
                         <plugs>
                             <plug id="2" idx="2"/>
                             <plug id="3"/>
@@ -1454,29 +1481,32 @@
                         <structRect l="180" r="252" t="708" b="768"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Point" handle="822054470" name="Line End">
+                    <module type="SE: Point" handle="1157993370" name="Line End">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
                         <structRect l="48" r="108" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Point" handle="514722284" name="Line Start">
+                    <module type="SE: Point" handle="835348648" name="Line Start">
                         <plugs>
                             <plug default="5"/>
                         </plugs>
                         <structRect l="48" r="108" t="708" b="756"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1330603013" name="Shading">
+                    <module type="SE: RenderGeometry" handle="1881610105" name="Shading">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="480" b="552"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="432113840" name="Shading Style">
+                    <module type="SE: Style" handle="241324088" name="Shading Style">
                         <structRect l="312" r="408" t="480" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RadialGradient" handle="1320806938" name="Shading">
+                    <module type="SE: RadialGradient" handle="1249014072" name="Shading">
                         <plugs>
                             <plug default="65.5"/>
                             <plug default="65.5"/>
@@ -1489,58 +1519,64 @@
                         <structRect l="180" r="276" t="480" b="600"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="168640433" name="Shade">
+                    <module type="SE: GradientStop" handle="431798043" name="Shade">
                         <plugs>
                             <plug default="E6000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="600" b="648"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1325194477" name="Clear">
+                    <module type="SE: GradientStop" handle="1189314811" name="Clear">
                         <plugs>
                             <plug default="00000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="540" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="565819744" name="Highlight">
+                    <module type="SE: GradientStop" handle="818791058" name="Highlight">
                         <plugs>
                             <plug default="26FFFFFF"/>
                         </plugs>
                         <structRect l="48" r="144" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="30745503" name="Body">
+                    <module type="SE: RenderGeometry" handle="1690516902" name="Body">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="336" b="408"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="554468117" name="Body Style">
+                    <module type="SE: Style" handle="126171919" name="Body Style">
                         <structRect l="312" r="408" t="336" b="444"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: SolidBrush" handle="868450049" name="Body Color">
+                    <module type="SE: SolidBrush" handle="268899473" name="Body Color">
                         <plugs>
                             <plug default="FF2E79C7"/>
                         </plugs>
                         <structRect l="180" r="276" t="336" b="372"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="485378798" name="Body Shape">
+                    <module type="SE: CircleGeometry" handle="1245910594" name="Body Shape">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
                         <structRect l="48" r="144" t="336" b="372"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="910513655" name="Shadow">
+                    <module type="SE: RenderGeometry" handle="664048422" name="Shadow">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="192" b="264"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: CombineTransforms" handle="131829950">
+                    <module type="SE: CombineTransforms" handle="1523292513">
                         <structRect l="444" r="540" t="192" b="240"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Translation" handle="1157993370" name="Shadow Offset">
+                    <module type="SE: Translation" handle="791325925" name="Shadow Offset">
                         <plugs>
                             <plug default="20"/>
                             <plug default="20"/>
@@ -1548,7 +1584,7 @@
                         <structRect l="312" r="396" t="192" b="240"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Style" handle="835348648" name="Shadow Style">
+                    <module type="SE: Style" handle="1419455185" name="Shadow Style">
                         <plugs>
                             <plug default="0" idx="2"/>
                             <plug default="5" idx="4"/>
@@ -1557,96 +1593,84 @@
                         <structRect l="180" r="276" t="192" b="300"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="347937432" name="Shadow Shape">
+                    <module type="SE: CircleGeometry" handle="1846711165" name="Shadow Shape">
                         <plugs>
                             <plug default="45"/>
                         </plugs>
                         <structRect l="48" r="144" t="192" b="228"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: PatchMemGet" handle="34179653">
+                    <module type="SE: PatchMemGet" handle="1951585640">
                         <structRect l="576" r="660" t="48" b="120"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: FitTransform" handle="179206671">
-                        <structRect l="312" r="408" t="48" b="132"/>
+                    <module type="SE: FitTransform" handle="440260291">
+                        <structRect l="180" r="276" t="48" b="132"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Rect" handle="307361269">
-                        <structRect l="180" r="240" t="48" b="120"/>
-                        <panelRect l="0" r="0" t="0" b="0"/>
-                    </module>
-                    <module type="SE: ControlSize" handle="1249014072">
+                    <module type="SE: ControlSize" handle="1433051220">
                         <structRect l="48" r="132" t="48" b="84"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="IO Mod" handle="776970850">
+                    <module type="IO Mod" handle="1560548723">
                         <plugs>
-                            <plug name="Value Out" datatype="6" tiedtomod="431798043" tiedtopin="7"/>
+                            <plug name="Value Out" datatype="6" tiedtomod="4566477" tiedtopin="7"/>
                             <plug/>
                         </plugs>
                         <structRect l="1320" r="1380" t="48" b="72"/>
                     </module>
                 </modules>
                 <lines>
-                    <line type="Line" handle="245285273" lineType="1" fMod="1249014072" tMod="307361269" tPlg="2"/>
-                    <line type="Line" handle="241324088" lineType="1" fMod="1249014072" tMod="307361269" fPlg="1" tPlg="3"/>
-                    <line type="Line" handle="1448995999" lineType="1" fMod="1249014072" tMod="179206671"/>
-                    <line type="Line" handle="1881610105" lineType="1" fMod="1249014072" tMod="179206671" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="1271981077" lineType="1" fMod="1157993370" tMod="131829950" fPlg="2"/>
-                    <line type="Line" handle="1070730428" lineType="1" fMod="179206671" tMod="131829950" fPlg="4" tPlg="1"/>
-                    <line type="Line" handle="1316103865" lineType="1" fMod="347937432" tMod="910513655" fPlg="1"/>
-                    <line type="Line" handle="1023042500" lineType="1" fMod="835348648" tMod="910513655" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="274243543" lineType="1" fMod="307361269" tMod="910513655" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1531850931" lineType="1" fMod="131829950" tMod="910513655" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="1063891170" lineType="1" fMod="868450049" tMod="554468117" fPlg="1"/>
-                    <line type="Line" handle="201189919" lineType="1" fMod="485378798" tMod="30745503" fPlg="1"/>
-                    <line type="Line" handle="422626826" lineType="1" fMod="554468117" tMod="30745503" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="506210228" lineType="1" fMod="307361269" tMod="30745503" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1187408949" lineType="1" fMod="179206671" tMod="30745503" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="389551239" lineType="1" fMod="565819744" tMod="1320806938" fPlg="2" tPlg="5"/>
-                    <line type="Line" handle="1543733906" lineType="1" fMod="1325194477" tMod="1320806938" fPlg="2" tPlg="6"/>
-                    <line type="Line" handle="1737562527" lineType="1" fMod="168640433" tMod="1320806938" fPlg="2" tPlg="7"/>
-                    <line type="Line" handle="92599387" lineType="1" fMod="1320806938" tMod="432113840" fPlg="4"/>
-                    <line type="Line" handle="389107029" lineType="1" fMod="485378798" tMod="1330603013" fPlg="1"/>
-                    <line type="Line" handle="1391899726" lineType="1" fMod="432113840" tMod="1330603013" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1751774122" lineType="1" fMod="307361269" tMod="1330603013" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="578151812" lineType="1" fMod="179206671" tMod="1330603013" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1293796252" lineType="1" fMod="514722284" tMod="1358674541" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="1090839163" lineType="1" fMod="822054470" tMod="1358674541" fPlg="2" tPlg="2"/>
-                    <line type="Line" handle="1010568069" lineType="1" fMod="410677668" tMod="1495940175" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="426453625" lineType="1" fMod="34179653" tMod="229194911" fPlg="4"/>
-                    <line type="Line" handle="1600385291" lineType="1" fMod="229194911" tMod="1291916015" fPlg="2"/>
-                    <line type="Line" handle="864637172" lineType="1" fMod="1291916015" tMod="517160195" fPlg="2"/>
-                    <line type="Line" handle="1289777730" lineType="1" fMod="517160195" tMod="862971135" fPlg="1"/>
-                    <line type="Line" handle="1369814556" lineType="1" fMod="179206671" tMod="862971135" fPlg="4" tPlg="1"/>
-                    <line type="Line" handle="312628739" lineType="1" fMod="1358674541" tMod="844867450"/>
-                    <line type="Line" handle="749297095" lineType="1" fMod="1495940175" tMod="844867450" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1303027267" lineType="1" fMod="307361269" tMod="844867450" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="599741042" lineType="1" fMod="862971135" tMod="844867450" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="245199361" lineType="1" fMod="485378798" tMod="844867450" fPlg="1" tPlg="4"/>
-                    <line type="Line" handle="1788698465" lineType="1" fMod="1202044404" tMod="1015640928" fPlg="2" tPlg="2"/>
-                    <line type="Line" handle="1328647931" lineType="1" fMod="510081789" tMod="1015640928" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="1004255372" lineType="1" fMod="918496602" tMod="1015640928" fPlg="2" tPlg="4"/>
-                    <line type="Line" handle="1010830422" lineType="1" fMod="1066043920" tMod="1015640928" fPlg="2" tPlg="5"/>
-                    <line type="Line" handle="1487533010" lineType="1" fMod="1015640928" tMod="1396223795" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="376718623" lineType="1" fMod="163490786" tMod="1547742872" fPlg="1"/>
-                    <line type="Line" handle="1341031736" lineType="1" fMod="1396223795" tMod="1547742872" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="53870421" lineType="1" fMod="307361269" tMod="1547742872" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="553124434" lineType="1" fMod="179206671" tMod="1547742872" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1279077992" lineType="1" fMod="307361269" tMod="206771242" fPlg="4" tPlg="11"/>
-                    <line type="Line" handle="53276013" lineType="1" fMod="206771242" tMod="1905912588" fPlg="8"/>
-                    <line type="Line" handle="1580918505" lineType="1" fMod="206771242" tMod="1214761604" fPlg="7"/>
-                    <line type="Line" handle="139430610" lineType="1" fMod="1905912588" tMod="1214761604" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="1265056669" lineType="1" fMod="1214761604" tMod="850274005" fPlg="2"/>
-                    <line type="Line" handle="514301132" lineType="1" fMod="206771242" tMod="850274005" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="829063018" lineType="1" fMod="850274005" tMod="1744966712" fPlg="2"/>
-                    <line type="Line" handle="1900362260" lineType="1" fMod="34179653" tMod="1240866628" fPlg="4"/>
-                    <line type="Line" handle="1576983028" lineType="1" fMod="1744966712" tMod="1240866628" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="1111080019" lineType="1" fMod="34179653" tMod="1349657081" fPlg="3"/>
-                    <line type="Line" handle="188393150" lineType="1" fMod="1240866628" tMod="1349657081" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="1726357639" lineType="1" fMod="206771242" tMod="1349657081" fPlg="1" tPlg="2"/>
-                    <line type="Line" handle="1029835584" lineType="1" fMod="34179653" tMod="776970850" fPlg="8"/>
+                    <line type="Line" handle="517946655" lineType="1" fMod="1433051220" tMod="440260291"/>
+                    <line type="Line" handle="1837159447" lineType="1" fMod="1433051220" tMod="440260291" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="1816766529" lineType="1" fMod="791325925" tMod="1523292513" fPlg="2"/>
+                    <line type="Line" handle="1160886925" lineType="1" fMod="440260291" tMod="1523292513" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="1871665576" lineType="1" fMod="1846711165" tMod="664048422" fPlg="1"/>
+                    <line type="Line" handle="42787069" lineType="1" fMod="1419455185" tMod="664048422" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1076067531" lineType="1" fMod="1523292513" tMod="664048422" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="186761530" lineType="1" fMod="268899473" tMod="126171919" fPlg="1"/>
+                    <line type="Line" handle="1032081999" lineType="1" fMod="1245910594" tMod="1690516902" fPlg="1"/>
+                    <line type="Line" handle="1747568523" lineType="1" fMod="126171919" tMod="1690516902" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="964112815" lineType="1" fMod="440260291" tMod="1690516902" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="307361269" lineType="1" fMod="818791058" tMod="1249014072" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="179206671" lineType="1" fMod="1189314811" tMod="1249014072" fPlg="2" tPlg="6"/>
+                    <line type="Line" handle="245285273" lineType="1" fMod="431798043" tMod="1249014072" fPlg="2" tPlg="7"/>
+                    <line type="Line" handle="1448995999" lineType="1" fMod="1249014072" tMod="241324088" fPlg="4"/>
+                    <line type="Line" handle="34179653" lineType="1" fMod="1245910594" tMod="1881610105" fPlg="1"/>
+                    <line type="Line" handle="221346029" lineType="1" fMod="241324088" tMod="1881610105" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="347937432" lineType="1" fMod="440260291" tMod="1881610105" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="1271981077" lineType="1" fMod="835348648" tMod="131829950" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1070730428" lineType="1" fMod="1157993370" tMod="131829950" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="1023042500" lineType="1" fMod="910513655" tMod="1316103865" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="554468117" lineType="1" fMod="1951585640" tMod="274243543" fPlg="4"/>
+                    <line type="Line" handle="1063891170" lineType="1" fMod="274243543" tMod="1531850931" fPlg="2"/>
+                    <line type="Line" handle="30745503" lineType="1" fMod="1531850931" tMod="485378798" fPlg="2"/>
+                    <line type="Line" handle="201189919" lineType="1" fMod="485378798" tMod="868450049" fPlg="1"/>
+                    <line type="Line" handle="422626826" lineType="1" fMod="440260291" tMod="868450049" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="1187408949" lineType="1" fMod="131829950" tMod="506210228"/>
+                    <line type="Line" handle="565819744" lineType="1" fMod="1316103865" tMod="506210228" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1325194477" lineType="1" fMod="868450049" tMod="506210228" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="168640433" lineType="1" fMod="1245910594" tMod="506210228" fPlg="1" tPlg="4"/>
+                    <line type="Line" handle="1737562527" lineType="1" fMod="1543733906" tMod="389551239" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="92599387" lineType="1" fMod="432113840" tMod="389551239" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="389107029" lineType="1" fMod="1330603013" tMod="389551239" fPlg="2" tPlg="4"/>
+                    <line type="Line" handle="1751774122" lineType="1" fMod="1391899726" tMod="389551239" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="514722284" lineType="1" fMod="389551239" tMod="578151812" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="1358674541" lineType="1" fMod="1320806938" tMod="822054470" fPlg="1"/>
+                    <line type="Line" handle="1293796252" lineType="1" fMod="578151812" tMod="822054470" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1090839163" lineType="1" fMod="440260291" tMod="822054470" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="426453625" lineType="1" fMod="410677668" tMod="1495940175" fPlg="8"/>
+                    <line type="Line" handle="1600385291" lineType="1" fMod="410677668" tMod="1010568069" fPlg="7"/>
+                    <line type="Line" handle="864637172" lineType="1" fMod="1495940175" tMod="1010568069" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1289777730" lineType="1" fMod="1010568069" tMod="229194911" fPlg="2"/>
+                    <line type="Line" handle="1369814556" lineType="1" fMod="410677668" tMod="229194911" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="844867450" lineType="1" fMod="229194911" tMod="1291916015" fPlg="2"/>
+                    <line type="Line" handle="312628739" lineType="1" fMod="1951585640" tMod="517160195" fPlg="4"/>
+                    <line type="Line" handle="749297095" lineType="1" fMod="1291916015" tMod="517160195" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1303027267" lineType="1" fMod="1951585640" tMod="862971135" fPlg="3"/>
+                    <line type="Line" handle="599741042" lineType="1" fMod="517160195" tMod="862971135" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="245199361" lineType="1" fMod="410677668" tMod="862971135" fPlg="1" tPlg="2"/>
+                    <line type="Line" handle="226007908" lineType="1" fMod="1951585640" tMod="1560548723" fPlg="8"/>
                 </lines>
                 <PanelLocationCenter x="3984" y="3984"/>
                 <StructLocationCenter x="700" y="500"/>
@@ -1658,7 +1682,7 @@
                 <PanelWndOffset cx="178" cy="154"/>
                 <panel_rect l="3732" r="4212" t="3732" b="4212"/>
             </module>
-            <module type="Container" handle="1424425216" name="Thin Line" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
+            <module type="Container" handle="163490786" name="Thin Line" PanelLocationZoom="1" StructLocationZoom="1" skin="default3">
                 <plugs>
                     <plug default="1" idx="1"/>
                     <plug default="1"/>
@@ -1667,59 +1691,65 @@
                 </plugs>
                 <structRect l="48" r="120" t="240" b="300"/>
                 <modules>
-                    <module type="SE: PatchMemSet" handle="586082031">
+                    <module type="SE: PatchMemSet" handle="623901155">
                         <structRect l="1500" r="1584" t="336" b="396"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="282546537">
+                    <module type="SE: Add" handle="365483610">
                         <structRect l="1368" r="1440" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="930045920" name="Sensitivity">
+                    <module type="SE: Multiply" handle="1298542686" name="Sensitivity">
                         <plugs>
                             <plug default="0.005" idx="1"/>
                         </plugs>
                         <structRect l="1236" r="1308" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="1466100500" name="While Held">
+                    <module type="SE: Multiply" handle="1886323582" name="While Held">
                         <structRect l="1104" r="1176" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="1250399130">
+                    <module type="SE: Add" handle="500977145">
                         <structRect l="972" r="1044" t="336" b="384"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="711592485" name="Up">
+                    <module type="SE: Multiply" handle="1229338311" name="Up">
                         <plugs>
                             <plug default="-1" idx="1"/>
                         </plugs>
                         <structRect l="840" r="912" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: MouseTarget" handle="1244471676">
+                    <module type="SE: MouseTarget" handle="657324080">
+                        <plugs>
+                            <plug default="1" idx="11"/>
+                        </plugs>
                         <structRect l="708" r="816" t="336" b="504"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="736812629" name="Bevel">
+                    <module type="SE: RenderGeometry" handle="75844285" name="Bevel">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="864" b="936"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="152364090" name="Bevel Style">
+                    <module type="SE: Style" handle="400095600" name="Bevel Style">
                         <plugs>
                             <plug default="6" idx="2"/>
                         </plugs>
                         <structRect l="312" r="408" t="864" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="239186776" name="Bevel Dark">
+                    <module type="SE: GradientStop" handle="348035509" name="Bevel Dark">
                         <plugs>
                             <plug default="26000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="1104" b="1152"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="1560548723" name="Bevel 3">
+                    <module type="SE: GradientStop" handle="715414444" name="Bevel 3">
                         <plugs>
                             <plug default="267C7C7C"/>
                             <plug default="80"/>
@@ -1727,7 +1757,7 @@
                         <structRect l="48" r="144" t="1044" b="1092"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="274433050" name="Bevel 2">
+                    <module type="SE: GradientStop" handle="1208140560" name="Bevel 2">
                         <plugs>
                             <plug default="26BCBCBC"/>
                             <plug default="50"/>
@@ -1735,14 +1765,14 @@
                         <structRect l="48" r="144" t="984" b="1032"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="961049259" name="Bevel Light">
+                    <module type="SE: GradientStop" handle="692805532" name="Bevel Light">
                         <plugs>
                             <plug default="26FFFFFF"/>
                         </plugs>
                         <structRect l="48" r="144" t="924" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: LinearGradient" handle="1326761620" name="Bevel">
+                    <module type="SE: LinearGradient" handle="1408594536" name="Bevel">
                         <plugs>
                             <plug default="135"/>
                             <plug id="3" idx="3"/>
@@ -1753,54 +1783,57 @@
                         <structRect l="180" r="276" t="924" b="1020"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="148271631" name="Bevel Shape">
+                    <module type="SE: CircleGeometry" handle="258575196" name="Bevel Shape">
                         <plugs>
                             <plug default="47"/>
                         </plugs>
                         <structRect l="48" r="144" t="864" b="900"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="273356596" name="Line">
+                    <module type="SE: RenderGeometry" handle="528896260" name="Line">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="708" b="780"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: CombineTransforms" handle="1925098998">
+                    <module type="SE: CombineTransforms" handle="584304205">
                         <structRect l="444" r="540" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Rotation" handle="158369766">
+                    <module type="SE: Rotation" handle="235712658">
                         <structRect l="444" r="528" t="708" b="744"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Add" handle="650145714" name="Start (turns)">
+                    <module type="SE: Add" handle="81884674" name="Start (turns)">
                         <plugs>
                             <plug default="0.375" idx="1"/>
                         </plugs>
                         <structRect l="840" r="912" t="48" b="96"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiply" handle="436590525" name="Sweep (turns)">
+                    <module type="SE: Multiply" handle="726678575" name="Sweep (turns)">
                         <plugs>
                             <plug default="0.75" idx="1"/>
                         </plugs>
                         <structRect l="708" r="780" t="48" b="96"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Style" handle="255183390" name="Line Style">
+                    <module type="SE: Style" handle="1237096754" name="Line Style">
                         <plugs>
                             <plug default="5" idx="2"/>
                         </plugs>
                         <structRect l="312" r="408" t="708" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: SolidBrush" handle="693323816" name="Line Color">
+                    <module type="SE: SolidBrush" handle="622377584" name="Line Color">
                         <plugs>
                             <plug default="FFEEEEEE"/>
                         </plugs>
                         <structRect l="180" r="276" t="780" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Multiline" handle="623901155">
+                    <module type="SE: Multiline" handle="73182166">
                         <plugs>
                             <plug id="2" idx="2"/>
                             <plug id="3"/>
@@ -1808,29 +1841,32 @@
                         <structRect l="180" r="252" t="708" b="768"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Point" handle="365483610" name="Line End">
+                    <module type="SE: Point" handle="955160244" name="Line End">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
                         <structRect l="48" r="108" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Point" handle="1298542686" name="Line Start">
+                    <module type="SE: Point" handle="176942755" name="Line Start">
                         <plugs>
                             <plug default="5"/>
                         </plugs>
                         <structRect l="48" r="108" t="708" b="756"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1891607924" name="Shading">
+                    <module type="SE: RenderGeometry" handle="188393150" name="Shading">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="480" b="552"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="1060510657" name="Shading Style">
+                    <module type="SE: Style" handle="1576983028" name="Shading Style">
                         <structRect l="312" r="408" t="480" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RadialGradient" handle="1510591173" name="Shading">
+                    <module type="SE: RadialGradient" handle="1265056669" name="Shading">
                         <plugs>
                             <plug default="65.5"/>
                             <plug default="65.5"/>
@@ -1843,58 +1879,64 @@
                         <structRect l="180" r="276" t="480" b="600"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="348035509" name="Shade">
+                    <module type="SE: GradientStop" handle="139430610" name="Shade">
                         <plugs>
                             <plug default="E6000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="600" b="648"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="638490331" name="Clear">
+                    <module type="SE: GradientStop" handle="1580918505" name="Clear">
                         <plugs>
                             <plug default="00000000"/>
                         </plugs>
                         <structRect l="48" r="144" t="540" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: GradientStop" handle="715414444" name="Highlight">
+                    <module type="SE: GradientStop" handle="53276013" name="Highlight">
                         <plugs>
                             <plug default="26FFFFFF"/>
                         </plugs>
                         <structRect l="48" r="144" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1408594536" name="Body">
+                    <module type="SE: RenderGeometry" handle="850274005" name="Body">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="336" b="408"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: Style" handle="1660089075" name="Body Style">
+                    <module type="SE: Style" handle="1905912588" name="Body Style">
                         <structRect l="312" r="408" t="336" b="444"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: SolidBrush" handle="369532916" name="Body Color">
+                    <module type="SE: SolidBrush" handle="1279077992" name="Body Color">
                         <plugs>
                             <plug default="FF2E79C7"/>
                         </plugs>
                         <structRect l="180" r="276" t="336" b="372"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="909782520" name="Body Shape">
+                    <module type="SE: CircleGeometry" handle="206771242" name="Body Shape">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
                         <structRect l="48" r="144" t="336" b="372"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: RenderGeometry" handle="1963071378" name="Shadow">
+                    <module type="SE: RenderGeometry" handle="376718623" name="Shadow">
+                        <plugs>
+                            <plug default="1" idx="5"/>
+                        </plugs>
                         <structRect l="576" r="672" t="192" b="264"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
-                    <module type="SE: CombineTransforms" handle="584304205">
+                    <module type="SE: CombineTransforms" handle="1396223795">
                         <structRect l="444" r="540" t="192" b="240"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Translation" handle="235712658" name="Shadow Offset">
+                    <module type="SE: Translation" handle="1010830422" name="Shadow Offset">
                         <plugs>
                             <plug default="20"/>
                             <plug default="20"/>
@@ -1902,7 +1944,7 @@
                         <structRect l="312" r="396" t="192" b="240"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Style" handle="81884674" name="Shadow Style">
+                    <module type="SE: Style" handle="1066043920" name="Shadow Style">
                         <plugs>
                             <plug default="0" idx="2"/>
                             <plug default="5" idx="4"/>
@@ -1911,96 +1953,84 @@
                         <structRect l="180" r="276" t="192" b="300"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: CircleGeometry" handle="726678575" name="Shadow Shape">
+                    <module type="SE: CircleGeometry" handle="1004255372" name="Shadow Shape">
                         <plugs>
                             <plug default="45"/>
                         </plugs>
                         <structRect l="48" r="144" t="192" b="228"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: PatchMemGet" handle="1237096754">
+                    <module type="SE: PatchMemGet" handle="1328647931">
                         <structRect l="576" r="660" t="48" b="120"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: FitTransform" handle="955160244">
-                        <structRect l="312" r="408" t="48" b="132"/>
+                    <module type="SE: FitTransform" handle="1202044404">
+                        <structRect l="180" r="276" t="48" b="132"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: Rect" handle="176942755">
-                        <structRect l="180" r="240" t="48" b="120"/>
-                        <panelRect l="0" r="0" t="0" b="0"/>
-                    </module>
-                    <module type="SE: ControlSize" handle="1399085158">
+                    <module type="SE: ControlSize" handle="1015640928">
                         <structRect l="48" r="132" t="48" b="84"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="IO Mod" handle="1944981654">
+                    <module type="IO Mod" handle="239186776">
                         <plugs>
-                            <plug name="Value Out" datatype="6" tiedtomod="1424425216" tiedtopin="7"/>
+                            <plug name="Value Out" datatype="6" tiedtomod="163490786" tiedtopin="7"/>
                             <plug/>
                         </plugs>
                         <structRect l="1320" r="1380" t="48" b="72"/>
                     </module>
                 </modules>
                 <lines>
-                    <line type="Line" handle="73182166" lineType="1" fMod="1399085158" tMod="176942755" tPlg="2"/>
-                    <line type="Line" handle="909235578" lineType="1" fMod="1399085158" tMod="176942755" fPlg="1" tPlg="3"/>
-                    <line type="Line" handle="109463008" lineType="1" fMod="1399085158" tMod="955160244"/>
-                    <line type="Line" handle="622377584" lineType="1" fMod="1399085158" tMod="955160244" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="1882734354" lineType="1" fMod="235712658" tMod="584304205" fPlg="2"/>
-                    <line type="Line" handle="966883537" lineType="1" fMod="955160244" tMod="584304205" fPlg="4" tPlg="1"/>
-                    <line type="Line" handle="1916762843" lineType="1" fMod="726678575" tMod="1963071378" fPlg="1"/>
-                    <line type="Line" handle="885294252" lineType="1" fMod="81884674" tMod="1963071378" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="528896260" lineType="1" fMod="176942755" tMod="1963071378" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="273478669" lineType="1" fMod="584304205" tMod="1963071378" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="258575196" lineType="1" fMod="369532916" tMod="1660089075" fPlg="1"/>
-                    <line type="Line" handle="692805532" lineType="1" fMod="909782520" tMod="1408594536" fPlg="1"/>
-                    <line type="Line" handle="1412121810" lineType="1" fMod="1660089075" tMod="1408594536" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1208140560" lineType="1" fMod="176942755" tMod="1408594536" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="475579354" lineType="1" fMod="955160244" tMod="1408594536" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="400095600" lineType="1" fMod="715414444" tMod="1510591173" fPlg="2" tPlg="5"/>
-                    <line type="Line" handle="1642709380" lineType="1" fMod="638490331" tMod="1510591173" fPlg="2" tPlg="6"/>
-                    <line type="Line" handle="75844285" lineType="1" fMod="348035509" tMod="1510591173" fPlg="2" tPlg="7"/>
-                    <line type="Line" handle="899527435" lineType="1" fMod="1510591173" tMod="1060510657" fPlg="4"/>
-                    <line type="Line" handle="657324080" lineType="1" fMod="909782520" tMod="1891607924" fPlg="1"/>
-                    <line type="Line" handle="1229338311" lineType="1" fMod="1060510657" tMod="1891607924" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="500977145" lineType="1" fMod="176942755" tMod="1891607924" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1886323582" lineType="1" fMod="955160244" tMod="1891607924" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1726510718" lineType="1" fMod="1298542686" tMod="623901155" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="231941459" lineType="1" fMod="365483610" tMod="623901155" fPlg="2" tPlg="2"/>
-                    <line type="Line" handle="1823975364" lineType="1" fMod="693323816" tMod="255183390" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="761206472" lineType="1" fMod="1237096754" tMod="436590525" fPlg="4"/>
-                    <line type="Line" handle="130388792" lineType="1" fMod="436590525" tMod="650145714" fPlg="2"/>
-                    <line type="Line" handle="372764858" lineType="1" fMod="650145714" tMod="158369766" fPlg="2"/>
-                    <line type="Line" handle="307031734" lineType="1" fMod="158369766" tMod="1925098998" fPlg="1"/>
-                    <line type="Line" handle="1854421313" lineType="1" fMod="955160244" tMod="1925098998" fPlg="4" tPlg="1"/>
-                    <line type="Line" handle="1090942235" lineType="1" fMod="623901155" tMod="273356596"/>
-                    <line type="Line" handle="370950373" lineType="1" fMod="255183390" tMod="273356596" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="260898631" lineType="1" fMod="176942755" tMod="273356596" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="618900733" lineType="1" fMod="1925098998" tMod="273356596" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="685428256" lineType="1" fMod="909782520" tMod="273356596" fPlg="1" tPlg="4"/>
-                    <line type="Line" handle="1517812488" lineType="1" fMod="961049259" tMod="1326761620" fPlg="2" tPlg="2"/>
-                    <line type="Line" handle="1575814003" lineType="1" fMod="274433050" tMod="1326761620" fPlg="2" tPlg="3"/>
-                    <line type="Line" handle="226007908" lineType="1" fMod="1560548723" tMod="1326761620" fPlg="2" tPlg="4"/>
-                    <line type="Line" handle="1489400147" lineType="1" fMod="239186776" tMod="1326761620" fPlg="2" tPlg="5"/>
-                    <line type="Line" handle="410154602" lineType="1" fMod="1326761620" tMod="152364090" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="631506136" lineType="1" fMod="148271631" tMod="736812629" fPlg="1"/>
-                    <line type="Line" handle="425482447" lineType="1" fMod="152364090" tMod="736812629" fPlg="6" tPlg="1"/>
-                    <line type="Line" handle="1025556807" lineType="1" fMod="176942755" tMod="736812629" fPlg="4" tPlg="2"/>
-                    <line type="Line" handle="1504372391" lineType="1" fMod="955160244" tMod="736812629" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1832533289" lineType="1" fMod="176942755" tMod="1244471676" fPlg="4" tPlg="11"/>
-                    <line type="Line" handle="905122710" lineType="1" fMod="1244471676" tMod="711592485" fPlg="8"/>
-                    <line type="Line" handle="1018568256" lineType="1" fMod="1244471676" tMod="1250399130" fPlg="7"/>
-                    <line type="Line" handle="1167493719" lineType="1" fMod="711592485" tMod="1250399130" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="1153630183" lineType="1" fMod="1250399130" tMod="1466100500" fPlg="2"/>
-                    <line type="Line" handle="499235632" lineType="1" fMod="1244471676" tMod="1466100500" fPlg="1" tPlg="1"/>
-                    <line type="Line" handle="608589064" lineType="1" fMod="1466100500" tMod="930045920" fPlg="2"/>
-                    <line type="Line" handle="1893941970" lineType="1" fMod="1237096754" tMod="282546537" fPlg="4"/>
-                    <line type="Line" handle="19708948" lineType="1" fMod="930045920" tMod="282546537" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="1105227457" lineType="1" fMod="1237096754" tMod="586082031" fPlg="3"/>
-                    <line type="Line" handle="720646274" lineType="1" fMod="282546537" tMod="586082031" fPlg="2" tPlg="1"/>
-                    <line type="Line" handle="360952616" lineType="1" fMod="1244471676" tMod="586082031" fPlg="1" tPlg="2"/>
-                    <line type="Line" handle="683896697" lineType="1" fMod="1237096754" tMod="1944981654" fPlg="8"/>
+                    <line type="Line" handle="1788698465" lineType="1" fMod="1015640928" tMod="1202044404"/>
+                    <line type="Line" handle="510081789" lineType="1" fMod="1015640928" tMod="1202044404" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="1487533010" lineType="1" fMod="1010830422" tMod="1396223795" fPlg="2"/>
+                    <line type="Line" handle="1547742872" lineType="1" fMod="1202044404" tMod="1396223795" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="1341031736" lineType="1" fMod="1004255372" tMod="376718623" fPlg="1"/>
+                    <line type="Line" handle="53870421" lineType="1" fMod="1066043920" tMod="376718623" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="553124434" lineType="1" fMod="1396223795" tMod="376718623" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="1214761604" lineType="1" fMod="1279077992" tMod="1905912588" fPlg="1"/>
+                    <line type="Line" handle="1744966712" lineType="1" fMod="206771242" tMod="850274005" fPlg="1"/>
+                    <line type="Line" handle="1240866628" lineType="1" fMod="1905912588" tMod="850274005" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1349657081" lineType="1" fMod="1202044404" tMod="850274005" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="514301132" lineType="1" fMod="53276013" tMod="1265056669" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="829063018" lineType="1" fMod="1580918505" tMod="1265056669" fPlg="2" tPlg="6"/>
+                    <line type="Line" handle="1900362260" lineType="1" fMod="139430610" tMod="1265056669" fPlg="2" tPlg="7"/>
+                    <line type="Line" handle="1111080019" lineType="1" fMod="1265056669" tMod="1576983028" fPlg="4"/>
+                    <line type="Line" handle="1726357639" lineType="1" fMod="206771242" tMod="188393150" fPlg="1"/>
+                    <line type="Line" handle="1424425216" lineType="1" fMod="1576983028" tMod="188393150" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1399085158" lineType="1" fMod="1202044404" tMod="188393150" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="909235578" lineType="1" fMod="176942755" tMod="73182166" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="109463008" lineType="1" fMod="955160244" tMod="73182166" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="418685219" lineType="1" fMod="622377584" tMod="1237096754" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="1882734354" lineType="1" fMod="1328647931" tMod="726678575" fPlg="4"/>
+                    <line type="Line" handle="966883537" lineType="1" fMod="726678575" tMod="81884674" fPlg="2"/>
+                    <line type="Line" handle="1963071378" lineType="1" fMod="81884674" tMod="235712658" fPlg="2"/>
+                    <line type="Line" handle="1916762843" lineType="1" fMod="235712658" tMod="584304205" fPlg="1"/>
+                    <line type="Line" handle="885294252" lineType="1" fMod="1202044404" tMod="584304205" fPlg="4" tPlg="1"/>
+                    <line type="Line" handle="273478669" lineType="1" fMod="73182166" tMod="528896260"/>
+                    <line type="Line" handle="909782520" lineType="1" fMod="1237096754" tMod="528896260" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="369532916" lineType="1" fMod="584304205" tMod="528896260" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="1660089075" lineType="1" fMod="206771242" tMod="528896260" fPlg="1" tPlg="4"/>
+                    <line type="Line" handle="1412121810" lineType="1" fMod="692805532" tMod="1408594536" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="475579354" lineType="1" fMod="1208140560" tMod="1408594536" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="638490331" lineType="1" fMod="715414444" tMod="1408594536" fPlg="2" tPlg="4"/>
+                    <line type="Line" handle="1510591173" lineType="1" fMod="348035509" tMod="1408594536" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="1642709380" lineType="1" fMod="1408594536" tMod="400095600" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="1060510657" lineType="1" fMod="258575196" tMod="75844285" fPlg="1"/>
+                    <line type="Line" handle="899527435" lineType="1" fMod="400095600" tMod="75844285" fPlg="6" tPlg="1"/>
+                    <line type="Line" handle="1891607924" lineType="1" fMod="1202044404" tMod="75844285" fPlg="4" tPlg="3"/>
+                    <line type="Line" handle="1726510718" lineType="1" fMod="657324080" tMod="1229338311" fPlg="8"/>
+                    <line type="Line" handle="231941459" lineType="1" fMod="657324080" tMod="500977145" fPlg="7"/>
+                    <line type="Line" handle="693323816" lineType="1" fMod="1229338311" tMod="500977145" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="255183390" lineType="1" fMod="500977145" tMod="1886323582" fPlg="2"/>
+                    <line type="Line" handle="1823975364" lineType="1" fMod="657324080" tMod="1886323582" fPlg="1" tPlg="1"/>
+                    <line type="Line" handle="436590525" lineType="1" fMod="1886323582" tMod="1298542686" fPlg="2"/>
+                    <line type="Line" handle="650145714" lineType="1" fMod="1328647931" tMod="365483610" fPlg="4"/>
+                    <line type="Line" handle="158369766" lineType="1" fMod="1298542686" tMod="365483610" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1925098998" lineType="1" fMod="1328647931" tMod="623901155" fPlg="3"/>
+                    <line type="Line" handle="761206472" lineType="1" fMod="365483610" tMod="623901155" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="130388792" lineType="1" fMod="657324080" tMod="623901155" fPlg="1" tPlg="2"/>
+                    <line type="Line" handle="1489400147" lineType="1" fMod="1328647931" tMod="239186776" fPlg="8"/>
                 </lines>
                 <PanelLocationCenter x="3984" y="3984"/>
                 <StructLocationCenter x="700" y="500"/>
@@ -2143,7 +2173,7 @@
                 <Pin name="dY" datatype="float" direction="out"/>
                 <Pin name="Wheel" datatype="float" direction="out"/>
                 <Pin name="Hint" datatype="string_utf8"/>
-                <Pin name="Panel Rect" datatype="struct:rect"/>
+                <Pin name="Auto Size" datatype="bool" isMinimised="true"/>
             </GUI>
         </Plugin>
         <Plugin id="SE: Multiline" name="Multiline" flags="384" category="Experimental/Cadmium">
@@ -2201,22 +2231,14 @@
                 <Pin name="Stop" datatype="struct:gradientstop" autoRename="true" autoDuplicate="true"/>
             </GUI>
         </Plugin>
-        <Plugin id="SE: Rect" name="Rect" flags="384" category="Experimental/Cadmium">
-            <GUI>
-                <Pin name="Top" datatype="float"/>
-                <Pin name="Left" datatype="float"/>
-                <Pin name="Width" datatype="float"/>
-                <Pin name="Height" datatype="float"/>
-                <Pin name="Rect" datatype="struct:rect" direction="out"/>
-            </GUI>
-        </Plugin>
         <Plugin id="SE: RenderGeometry" name="Render" flags="384" category="Experimental/Cadmium">
             <GUI>
                 <Pin name="Path" datatype="object:path"/>
                 <Pin name="Style" datatype="object:style"/>
-                <Pin name="Panel Rect" datatype="struct:rect"/>
+                <Pin name="Panel Rect" datatype="struct:rect" private="true"/>
                 <Pin name="Transform" datatype="struct:transform"/>
                 <Pin name="Clip" datatype="object:path"/>
+                <Pin name="Auto Size" datatype="bool" isMinimised="true"/>
             </GUI>
         </Plugin>
         <Plugin id="SE: Rotation" name="Rotation" flags="384" category="Experimental/Cadmium">
