@@ -286,82 +286,74 @@
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="1047828160" name="Bevel">
-                        <structRect l="576" r="672" t="912" b="984"/>
+                        <structRect l="576" r="672" t="864" b="936"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: Style" handle="1646283145" name="Bevel Style">
                         <plugs>
                             <plug default="6" idx="2"/>
                         </plugs>
-                        <structRect l="312" r="408" t="912" b="1020"/>
+                        <structRect l="312" r="408" t="864" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="672414662" name="Bevel Dark">
+                    <module type="SE: GradientStop" handle="672414662" name="Bevel Dark">
                         <plugs>
-                            <plug default="0.15" idx="3"/>
+                            <plug default="26000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1224" b="1296"/>
+                        <structRect l="48" r="144" t="1104" b="1152"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="200379950" name="Bevel 3">
+                    <module type="SE: GradientStop" handle="200379950" name="Bevel 3">
                         <plugs>
-                            <plug default="0.2"/>
-                            <plug default="0.2"/>
-                            <plug default="0.2"/>
-                            <plug default="0.15"/>
+                            <plug default="267C7C7C"/>
+                            <plug default="80"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1140" b="1212"/>
+                        <structRect l="48" r="144" t="1044" b="1092"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="526099643" name="Bevel 2">
+                    <module type="SE: GradientStop" handle="526099643" name="Bevel 2">
                         <plugs>
-                            <plug default="0.5"/>
-                            <plug default="0.5"/>
-                            <plug default="0.5"/>
-                            <plug default="0.15"/>
+                            <plug default="26BCBCBC"/>
+                            <plug default="50"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1056" b="1128"/>
+                        <structRect l="48" r="144" t="984" b="1032"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1335725786" name="Bevel Light">
+                    <module type="SE: GradientStop" handle="1335725786" name="Bevel Light">
                         <plugs>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="0.15"/>
+                            <plug default="26FFFFFF"/>
                         </plugs>
-                        <structRect l="48" r="132" t="972" b="1044"/>
+                        <structRect l="48" r="144" t="924" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: LinearGradient" handle="954141513" name="Bevel">
                         <plugs>
                             <plug default="135"/>
-                            <plug default="0, 50, 80, 100"/>
-                            <plug id="4" idx="4"/>
+                            <plug id="3" idx="3"/>
+                            <plug id="4"/>
                             <plug id="5"/>
                             <plug id="6"/>
-                            <plug id="7"/>
                         </plugs>
-                        <structRect l="180" r="276" t="972" b="1092"/>
+                        <structRect l="180" r="276" t="924" b="1020"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: CircleGeometry" handle="714024852" name="Bevel Shape">
                         <plugs>
                             <plug default="47"/>
                         </plugs>
-                        <structRect l="48" r="144" t="912" b="948"/>
+                        <structRect l="48" r="144" t="864" b="900"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="1506329379" name="Line">
-                        <structRect l="576" r="672" t="756" b="828"/>
+                        <structRect l="576" r="672" t="708" b="780"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: CombineTransforms" handle="153787013">
-                        <structRect l="444" r="540" t="828" b="876"/>
+                        <structRect l="444" r="540" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Rotation" handle="179086056">
-                        <structRect l="444" r="528" t="756" b="792"/>
+                        <structRect l="444" r="528" t="708" b="744"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Add" handle="1236001209" name="Start (turns)">
@@ -382,14 +374,14 @@
                         <plugs>
                             <plug default="16" idx="2"/>
                         </plugs>
-                        <structRect l="312" r="408" t="756" b="864"/>
+                        <structRect l="312" r="408" t="708" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: SolidBrush" handle="1457822625" name="Line Color">
                         <plugs>
                             <plug default="FFEEEEEE"/>
                         </plugs>
-                        <structRect l="180" r="276" t="828" b="864"/>
+                        <structRect l="180" r="276" t="780" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Multiline" handle="1854656600">
@@ -397,21 +389,21 @@
                             <plug id="2" idx="2"/>
                             <plug id="3"/>
                         </plugs>
-                        <structRect l="180" r="252" t="756" b="816"/>
+                        <structRect l="180" r="252" t="708" b="768"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Point" handle="207598553" name="Line End">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
-                        <structRect l="48" r="108" t="828" b="876"/>
+                        <structRect l="48" r="108" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Point" handle="573215495" name="Line Start">
                         <plugs>
                             <plug default="5"/>
                         </plugs>
-                        <structRect l="48" r="108" t="756" b="804"/>
+                        <structRect l="48" r="108" t="708" b="756"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="230540479" name="Shading">
@@ -428,35 +420,32 @@
                             <plug default="65.5"/>
                             <plug default="35"/>
                             <plug default="35"/>
-                            <plug id="7" idx="7"/>
+                            <plug id="6" idx="6"/>
+                            <plug id="7"/>
                             <plug id="8"/>
-                            <plug id="9"/>
                         </plugs>
-                        <structRect l="180" r="276" t="480" b="612"/>
+                        <structRect l="180" r="276" t="480" b="600"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1346709823" name="Shade">
+                    <module type="SE: GradientStop" handle="1346709823" name="Shade">
                         <plugs>
-                            <plug default="0.9" idx="3"/>
+                            <plug default="E6000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="648" b="720"/>
+                        <structRect l="48" r="144" t="600" b="648"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="984146622" name="Clear">
+                    <module type="SE: GradientStop" handle="984146622" name="Clear">
                         <plugs>
-                            <plug default="0" idx="3"/>
+                            <plug default="00000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="564" b="636"/>
+                        <structRect l="48" r="144" t="540" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="296471328" name="Highlight">
+                    <module type="SE: GradientStop" handle="296471328" name="Highlight">
                         <plugs>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="0.15"/>
+                            <plug default="26FFFFFF"/>
                         </plugs>
-                        <structRect l="48" r="132" t="480" b="552"/>
+                        <structRect l="48" r="144" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="333398789" name="Body">
@@ -553,10 +542,10 @@
                     <line type="Line" handle="1536561757" lineType="1" fMod="1775138276" tMod="333398789" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="879332826" lineType="1" fMod="1890930943" tMod="333398789" fPlg="4" tPlg="2"/>
                     <line type="Line" handle="1099576302" lineType="1" fMod="1239887594" tMod="333398789" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="506992810" lineType="1" fMod="296471328" tMod="1915948169" fPlg="4" tPlg="6"/>
-                    <line type="Line" handle="608781698" lineType="1" fMod="984146622" tMod="1915948169" fPlg="4" tPlg="7"/>
-                    <line type="Line" handle="1655542314" lineType="1" fMod="1346709823" tMod="1915948169" fPlg="4" tPlg="8"/>
-                    <line type="Line" handle="1132332897" lineType="1" fMod="1915948169" tMod="1094591338" fPlg="5"/>
+                    <line type="Line" handle="506992810" lineType="1" fMod="296471328" tMod="1915948169" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="608781698" lineType="1" fMod="984146622" tMod="1915948169" fPlg="2" tPlg="6"/>
+                    <line type="Line" handle="1655542314" lineType="1" fMod="1346709823" tMod="1915948169" fPlg="2" tPlg="7"/>
+                    <line type="Line" handle="1132332897" lineType="1" fMod="1915948169" tMod="1094591338" fPlg="4"/>
                     <line type="Line" handle="1434134164" lineType="1" fMod="827227939" tMod="230540479" fPlg="1"/>
                     <line type="Line" handle="1512508930" lineType="1" fMod="1094591338" tMod="230540479" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="1902139323" lineType="1" fMod="1890930943" tMod="230540479" fPlg="4" tPlg="2"/>
@@ -574,11 +563,11 @@
                     <line type="Line" handle="638247881" lineType="1" fMod="1890930943" tMod="1506329379" fPlg="4" tPlg="2"/>
                     <line type="Line" handle="471327134" lineType="1" fMod="153787013" tMod="1506329379" fPlg="2" tPlg="3"/>
                     <line type="Line" handle="596951957" lineType="1" fMod="827227939" tMod="1506329379" fPlg="1" tPlg="4"/>
-                    <line type="Line" handle="545273995" lineType="1" fMod="1335725786" tMod="954141513" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="26745880" lineType="1" fMod="526099643" tMod="954141513" fPlg="4" tPlg="4"/>
-                    <line type="Line" handle="1306747150" lineType="1" fMod="200379950" tMod="954141513" fPlg="4" tPlg="5"/>
-                    <line type="Line" handle="240801476" lineType="1" fMod="672414662" tMod="954141513" fPlg="4" tPlg="6"/>
-                    <line type="Line" handle="1662963031" lineType="1" fMod="954141513" tMod="1646283145" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="545273995" lineType="1" fMod="1335725786" tMod="954141513" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="26745880" lineType="1" fMod="526099643" tMod="954141513" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="1306747150" lineType="1" fMod="200379950" tMod="954141513" fPlg="2" tPlg="4"/>
+                    <line type="Line" handle="240801476" lineType="1" fMod="672414662" tMod="954141513" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="1662963031" lineType="1" fMod="954141513" tMod="1646283145" fPlg="1" tPlg="1"/>
                     <line type="Line" handle="1627125965" lineType="1" fMod="714024852" tMod="1047828160" fPlg="1"/>
                     <line type="Line" handle="1676337193" lineType="1" fMod="1646283145" tMod="1047828160" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="1142718918" lineType="1" fMod="1890930943" tMod="1047828160" fPlg="4" tPlg="2"/>
@@ -651,82 +640,74 @@
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="1767557580" name="Bevel">
-                        <structRect l="576" r="672" t="912" b="984"/>
+                        <structRect l="576" r="672" t="864" b="936"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: Style" handle="190626249" name="Bevel Style">
                         <plugs>
                             <plug default="6" idx="2"/>
                         </plugs>
-                        <structRect l="312" r="408" t="912" b="1020"/>
+                        <structRect l="312" r="408" t="864" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="998561586" name="Bevel Dark">
+                    <module type="SE: GradientStop" handle="998561586" name="Bevel Dark">
                         <plugs>
-                            <plug default="0.15" idx="3"/>
+                            <plug default="26000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1224" b="1296"/>
+                        <structRect l="48" r="144" t="1104" b="1152"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="494198505" name="Bevel 3">
+                    <module type="SE: GradientStop" handle="494198505" name="Bevel 3">
                         <plugs>
-                            <plug default="0.2"/>
-                            <plug default="0.2"/>
-                            <plug default="0.2"/>
-                            <plug default="0.15"/>
+                            <plug default="267C7C7C"/>
+                            <plug default="80"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1140" b="1212"/>
+                        <structRect l="48" r="144" t="1044" b="1092"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="535117957" name="Bevel 2">
+                    <module type="SE: GradientStop" handle="535117957" name="Bevel 2">
                         <plugs>
-                            <plug default="0.5"/>
-                            <plug default="0.5"/>
-                            <plug default="0.5"/>
-                            <plug default="0.15"/>
+                            <plug default="26BCBCBC"/>
+                            <plug default="50"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1056" b="1128"/>
+                        <structRect l="48" r="144" t="984" b="1032"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="614944255" name="Bevel Light">
+                    <module type="SE: GradientStop" handle="614944255" name="Bevel Light">
                         <plugs>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="0.15"/>
+                            <plug default="26FFFFFF"/>
                         </plugs>
-                        <structRect l="48" r="132" t="972" b="1044"/>
+                        <structRect l="48" r="144" t="924" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: LinearGradient" handle="1734466735" name="Bevel">
                         <plugs>
                             <plug default="135"/>
-                            <plug default="0, 50, 80, 100"/>
-                            <plug id="4" idx="4"/>
+                            <plug id="3" idx="3"/>
+                            <plug id="4"/>
                             <plug id="5"/>
                             <plug id="6"/>
-                            <plug id="7"/>
                         </plugs>
-                        <structRect l="180" r="276" t="972" b="1092"/>
+                        <structRect l="180" r="276" t="924" b="1020"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: CircleGeometry" handle="1929325786" name="Bevel Shape">
                         <plugs>
                             <plug default="47"/>
                         </plugs>
-                        <structRect l="48" r="144" t="912" b="948"/>
+                        <structRect l="48" r="144" t="864" b="900"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="64950591" name="Line">
-                        <structRect l="576" r="672" t="756" b="828"/>
+                        <structRect l="576" r="672" t="708" b="780"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: CombineTransforms" handle="1460858440">
-                        <structRect l="444" r="540" t="828" b="876"/>
+                        <structRect l="444" r="540" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Rotation" handle="1654848285">
-                        <structRect l="444" r="528" t="756" b="792"/>
+                        <structRect l="444" r="528" t="708" b="744"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Add" handle="1145883395" name="Start (turns)">
@@ -747,14 +728,14 @@
                         <plugs>
                             <plug default="16" idx="2"/>
                         </plugs>
-                        <structRect l="312" r="408" t="756" b="864"/>
+                        <structRect l="312" r="408" t="708" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: SolidBrush" handle="1033810477" name="Line Color">
                         <plugs>
                             <plug default="FFEEEEEE"/>
                         </plugs>
-                        <structRect l="180" r="276" t="828" b="864"/>
+                        <structRect l="180" r="276" t="780" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Multiline" handle="1623278472">
@@ -762,21 +743,21 @@
                             <plug id="2" idx="2"/>
                             <plug id="3"/>
                         </plugs>
-                        <structRect l="180" r="252" t="756" b="816"/>
+                        <structRect l="180" r="252" t="708" b="768"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Point" handle="326220999" name="Line End">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
-                        <structRect l="48" r="108" t="828" b="876"/>
+                        <structRect l="48" r="108" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Point" handle="781680426" name="Line Start">
                         <plugs>
                             <plug default="5"/>
                         </plugs>
-                        <structRect l="48" r="108" t="756" b="804"/>
+                        <structRect l="48" r="108" t="708" b="756"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="1945073742" name="Shading">
@@ -793,35 +774,32 @@
                             <plug default="65.5"/>
                             <plug default="35"/>
                             <plug default="35"/>
-                            <plug id="7" idx="7"/>
+                            <plug id="6" idx="6"/>
+                            <plug id="7"/>
                             <plug id="8"/>
-                            <plug id="9"/>
                         </plugs>
-                        <structRect l="180" r="276" t="480" b="612"/>
+                        <structRect l="180" r="276" t="480" b="600"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1392166921" name="Shade">
+                    <module type="SE: GradientStop" handle="1392166921" name="Shade">
                         <plugs>
-                            <plug default="0.9" idx="3"/>
+                            <plug default="E6000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="648" b="720"/>
+                        <structRect l="48" r="144" t="600" b="648"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1233090160" name="Clear">
+                    <module type="SE: GradientStop" handle="1233090160" name="Clear">
                         <plugs>
-                            <plug default="0" idx="3"/>
+                            <plug default="00000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="564" b="636"/>
+                        <structRect l="48" r="144" t="540" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1003550521" name="Highlight">
+                    <module type="SE: GradientStop" handle="1003550521" name="Highlight">
                         <plugs>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="0.15"/>
+                            <plug default="26FFFFFF"/>
                         </plugs>
-                        <structRect l="48" r="132" t="480" b="552"/>
+                        <structRect l="48" r="144" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="843959723" name="Body">
@@ -918,10 +896,10 @@
                     <line type="Line" handle="140950382" lineType="1" fMod="315570328" tMod="843959723" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="1158521523" lineType="1" fMod="165517294" tMod="843959723" fPlg="4" tPlg="2"/>
                     <line type="Line" handle="642194907" lineType="1" fMod="387797328" tMod="843959723" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="895959176" lineType="1" fMod="1003550521" tMod="69173546" fPlg="4" tPlg="6"/>
-                    <line type="Line" handle="214604837" lineType="1" fMod="1233090160" tMod="69173546" fPlg="4" tPlg="7"/>
-                    <line type="Line" handle="356133920" lineType="1" fMod="1392166921" tMod="69173546" fPlg="4" tPlg="8"/>
-                    <line type="Line" handle="358587133" lineType="1" fMod="69173546" tMod="679870904" fPlg="5"/>
+                    <line type="Line" handle="895959176" lineType="1" fMod="1003550521" tMod="69173546" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="214604837" lineType="1" fMod="1233090160" tMod="69173546" fPlg="2" tPlg="6"/>
+                    <line type="Line" handle="356133920" lineType="1" fMod="1392166921" tMod="69173546" fPlg="2" tPlg="7"/>
+                    <line type="Line" handle="358587133" lineType="1" fMod="69173546" tMod="679870904" fPlg="4"/>
                     <line type="Line" handle="1574337363" lineType="1" fMod="1869132973" tMod="1945073742" fPlg="1"/>
                     <line type="Line" handle="1229536910" lineType="1" fMod="679870904" tMod="1945073742" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="1679611980" lineType="1" fMod="165517294" tMod="1945073742" fPlg="4" tPlg="2"/>
@@ -939,11 +917,11 @@
                     <line type="Line" handle="1905433853" lineType="1" fMod="165517294" tMod="64950591" fPlg="4" tPlg="2"/>
                     <line type="Line" handle="397234760" lineType="1" fMod="1460858440" tMod="64950591" fPlg="2" tPlg="3"/>
                     <line type="Line" handle="1116734420" lineType="1" fMod="1869132973" tMod="64950591" fPlg="1" tPlg="4"/>
-                    <line type="Line" handle="1761058214" lineType="1" fMod="614944255" tMod="1734466735" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1878520312" lineType="1" fMod="535117957" tMod="1734466735" fPlg="4" tPlg="4"/>
-                    <line type="Line" handle="1092722420" lineType="1" fMod="494198505" tMod="1734466735" fPlg="4" tPlg="5"/>
-                    <line type="Line" handle="199184946" lineType="1" fMod="998561586" tMod="1734466735" fPlg="4" tPlg="6"/>
-                    <line type="Line" handle="319773181" lineType="1" fMod="1734466735" tMod="190626249" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1761058214" lineType="1" fMod="614944255" tMod="1734466735" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="1878520312" lineType="1" fMod="535117957" tMod="1734466735" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="1092722420" lineType="1" fMod="494198505" tMod="1734466735" fPlg="2" tPlg="4"/>
+                    <line type="Line" handle="199184946" lineType="1" fMod="998561586" tMod="1734466735" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="319773181" lineType="1" fMod="1734466735" tMod="190626249" fPlg="1" tPlg="1"/>
                     <line type="Line" handle="1121429367" lineType="1" fMod="1929325786" tMod="1767557580" fPlg="1"/>
                     <line type="Line" handle="144487386" lineType="1" fMod="190626249" tMod="1767557580" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="1012072137" lineType="1" fMod="165517294" tMod="1767557580" fPlg="4" tPlg="2"/>
@@ -1016,82 +994,74 @@
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="517946655" name="Bevel">
-                        <structRect l="576" r="672" t="912" b="984"/>
+                        <structRect l="576" r="672" t="864" b="936"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: Style" handle="1433051220" name="Bevel Style">
                         <plugs>
                             <plug default="6" idx="2"/>
                         </plugs>
-                        <structRect l="312" r="408" t="912" b="1020"/>
+                        <structRect l="312" r="408" t="864" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1443147488" name="Bevel Dark">
+                    <module type="SE: GradientStop" handle="1443147488" name="Bevel Dark">
                         <plugs>
-                            <plug default="0.15" idx="3"/>
+                            <plug default="26000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1224" b="1296"/>
+                        <structRect l="48" r="144" t="1104" b="1152"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1001934093" name="Bevel 3">
+                    <module type="SE: GradientStop" handle="1001934093" name="Bevel 3">
                         <plugs>
-                            <plug default="0.2"/>
-                            <plug default="0.2"/>
-                            <plug default="0.2"/>
-                            <plug default="0.15"/>
+                            <plug default="267C7C7C"/>
+                            <plug default="80"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1140" b="1212"/>
+                        <structRect l="48" r="144" t="1044" b="1092"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1029702525" name="Bevel 2">
+                    <module type="SE: GradientStop" handle="1029702525" name="Bevel 2">
                         <plugs>
-                            <plug default="0.5"/>
-                            <plug default="0.5"/>
-                            <plug default="0.5"/>
-                            <plug default="0.15"/>
+                            <plug default="26BCBCBC"/>
+                            <plug default="50"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1056" b="1128"/>
+                        <structRect l="48" r="144" t="984" b="1032"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1360597728" name="Bevel Light">
+                    <module type="SE: GradientStop" handle="1360597728" name="Bevel Light">
                         <plugs>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="0.15"/>
+                            <plug default="26FFFFFF"/>
                         </plugs>
-                        <structRect l="48" r="132" t="972" b="1044"/>
+                        <structRect l="48" r="144" t="924" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: LinearGradient" handle="1670264017" name="Bevel">
                         <plugs>
                             <plug default="135"/>
-                            <plug default="0, 50, 80, 100"/>
-                            <plug id="4" idx="4"/>
+                            <plug id="3" idx="3"/>
+                            <plug id="4"/>
                             <plug id="5"/>
                             <plug id="6"/>
-                            <plug id="7"/>
                         </plugs>
-                        <structRect l="180" r="276" t="972" b="1092"/>
+                        <structRect l="180" r="276" t="924" b="1020"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: CircleGeometry" handle="142841257" name="Bevel Shape">
                         <plugs>
                             <plug default="47"/>
                         </plugs>
-                        <structRect l="48" r="144" t="912" b="948"/>
+                        <structRect l="48" r="144" t="864" b="900"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="1708010991" name="Line">
-                        <structRect l="576" r="672" t="756" b="828"/>
+                        <structRect l="576" r="672" t="708" b="780"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: CombineTransforms" handle="50394695">
-                        <structRect l="444" r="540" t="828" b="876"/>
+                        <structRect l="444" r="540" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Rotation" handle="941515161">
-                        <structRect l="444" r="528" t="756" b="792"/>
+                        <structRect l="444" r="528" t="708" b="744"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Add" handle="78763149" name="Start (turns)">
@@ -1112,14 +1082,14 @@
                         <plugs>
                             <plug default="16" idx="2"/>
                         </plugs>
-                        <structRect l="312" r="408" t="756" b="864"/>
+                        <structRect l="312" r="408" t="708" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: SolidBrush" handle="12199605" name="Line Color">
                         <plugs>
                             <plug default="FFEEEEEE"/>
                         </plugs>
-                        <structRect l="180" r="276" t="828" b="864"/>
+                        <structRect l="180" r="276" t="780" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Multiline" handle="1743504651">
@@ -1127,21 +1097,21 @@
                             <plug id="2" idx="2"/>
                             <plug id="3"/>
                         </plugs>
-                        <structRect l="180" r="252" t="756" b="816"/>
+                        <structRect l="180" r="252" t="708" b="768"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Point" handle="345295999" name="Line End">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
-                        <structRect l="48" r="108" t="828" b="876"/>
+                        <structRect l="48" r="108" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Point" handle="1501780005" name="Line Start">
                         <plugs>
                             <plug default="5"/>
                         </plugs>
-                        <structRect l="48" r="108" t="756" b="804"/>
+                        <structRect l="48" r="108" t="708" b="756"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="1431762509" name="Shading">
@@ -1158,35 +1128,32 @@
                             <plug default="65.5"/>
                             <plug default="35"/>
                             <plug default="35"/>
-                            <plug id="7" idx="7"/>
+                            <plug id="6" idx="6"/>
+                            <plug id="7"/>
                             <plug id="8"/>
-                            <plug id="9"/>
                         </plugs>
-                        <structRect l="180" r="276" t="480" b="612"/>
+                        <structRect l="180" r="276" t="480" b="600"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="994157933" name="Shade">
+                    <module type="SE: GradientStop" handle="994157933" name="Shade">
                         <plugs>
-                            <plug default="0.9" idx="3"/>
+                            <plug default="E6000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="648" b="720"/>
+                        <structRect l="48" r="144" t="600" b="648"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="987826074" name="Clear">
+                    <module type="SE: GradientStop" handle="987826074" name="Clear">
                         <plugs>
-                            <plug default="0" idx="3"/>
+                            <plug default="00000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="564" b="636"/>
+                        <structRect l="48" r="144" t="540" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="146757614" name="Highlight">
+                    <module type="SE: GradientStop" handle="146757614" name="Highlight">
                         <plugs>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="0.15"/>
+                            <plug default="26FFFFFF"/>
                         </plugs>
-                        <structRect l="48" r="132" t="480" b="552"/>
+                        <structRect l="48" r="144" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="283410948" name="Body">
@@ -1283,10 +1250,10 @@
                     <line type="Line" handle="169804897" lineType="1" fMod="99807016" tMod="283410948" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="1179336613" lineType="1" fMod="1200017250" tMod="283410948" fPlg="4" tPlg="2"/>
                     <line type="Line" handle="1703937657" lineType="1" fMod="664377467" tMod="283410948" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1609986707" lineType="1" fMod="146757614" tMod="1750593282" fPlg="4" tPlg="6"/>
-                    <line type="Line" handle="1604665567" lineType="1" fMod="987826074" tMod="1750593282" fPlg="4" tPlg="7"/>
-                    <line type="Line" handle="358321683" lineType="1" fMod="994157933" tMod="1750593282" fPlg="4" tPlg="8"/>
-                    <line type="Line" handle="705851932" lineType="1" fMod="1750593282" tMod="1974735963" fPlg="5"/>
+                    <line type="Line" handle="1609986707" lineType="1" fMod="146757614" tMod="1750593282" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="1604665567" lineType="1" fMod="987826074" tMod="1750593282" fPlg="2" tPlg="6"/>
+                    <line type="Line" handle="358321683" lineType="1" fMod="994157933" tMod="1750593282" fPlg="2" tPlg="7"/>
+                    <line type="Line" handle="705851932" lineType="1" fMod="1750593282" tMod="1974735963" fPlg="4"/>
                     <line type="Line" handle="1994475818" lineType="1" fMod="489641278" tMod="1431762509" fPlg="1"/>
                     <line type="Line" handle="610968925" lineType="1" fMod="1974735963" tMod="1431762509" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="1535879797" lineType="1" fMod="1200017250" tMod="1431762509" fPlg="4" tPlg="2"/>
@@ -1304,11 +1271,11 @@
                     <line type="Line" handle="1642408686" lineType="1" fMod="1200017250" tMod="1708010991" fPlg="4" tPlg="2"/>
                     <line type="Line" handle="1821177931" lineType="1" fMod="50394695" tMod="1708010991" fPlg="2" tPlg="3"/>
                     <line type="Line" handle="594379020" lineType="1" fMod="489641278" tMod="1708010991" fPlg="1" tPlg="4"/>
-                    <line type="Line" handle="867299274" lineType="1" fMod="1360597728" tMod="1670264017" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="92232664" lineType="1" fMod="1029702525" tMod="1670264017" fPlg="4" tPlg="4"/>
-                    <line type="Line" handle="1885589391" lineType="1" fMod="1001934093" tMod="1670264017" fPlg="4" tPlg="5"/>
-                    <line type="Line" handle="4566477" lineType="1" fMod="1443147488" tMod="1670264017" fPlg="4" tPlg="6"/>
-                    <line type="Line" handle="440260291" lineType="1" fMod="1670264017" tMod="1433051220" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="867299274" lineType="1" fMod="1360597728" tMod="1670264017" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="92232664" lineType="1" fMod="1029702525" tMod="1670264017" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="1885589391" lineType="1" fMod="1001934093" tMod="1670264017" fPlg="2" tPlg="4"/>
+                    <line type="Line" handle="4566477" lineType="1" fMod="1443147488" tMod="1670264017" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="440260291" lineType="1" fMod="1670264017" tMod="1433051220" fPlg="1" tPlg="1"/>
                     <line type="Line" handle="1837159447" lineType="1" fMod="142841257" tMod="517946655" fPlg="1"/>
                     <line type="Line" handle="1951585640" lineType="1" fMod="1433051220" tMod="517946655" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="870755927" lineType="1" fMod="1200017250" tMod="517946655" fPlg="4" tPlg="2"/>
@@ -1381,82 +1348,74 @@
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="1547742872" name="Bevel">
-                        <structRect l="576" r="672" t="912" b="984"/>
+                        <structRect l="576" r="672" t="864" b="936"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: Style" handle="1396223795" name="Bevel Style">
                         <plugs>
                             <plug default="6" idx="2"/>
                         </plugs>
-                        <structRect l="312" r="408" t="912" b="1020"/>
+                        <structRect l="312" r="408" t="864" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1066043920" name="Bevel Dark">
+                    <module type="SE: GradientStop" handle="1066043920" name="Bevel Dark">
                         <plugs>
-                            <plug default="0.15" idx="3"/>
+                            <plug default="26000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1224" b="1296"/>
+                        <structRect l="48" r="144" t="1104" b="1152"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="918496602" name="Bevel 3">
+                    <module type="SE: GradientStop" handle="918496602" name="Bevel 3">
                         <plugs>
-                            <plug default="0.2"/>
-                            <plug default="0.2"/>
-                            <plug default="0.2"/>
-                            <plug default="0.15"/>
+                            <plug default="267C7C7C"/>
+                            <plug default="80"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1140" b="1212"/>
+                        <structRect l="48" r="144" t="1044" b="1092"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="510081789" name="Bevel 2">
+                    <module type="SE: GradientStop" handle="510081789" name="Bevel 2">
                         <plugs>
-                            <plug default="0.5"/>
-                            <plug default="0.5"/>
-                            <plug default="0.5"/>
-                            <plug default="0.15"/>
+                            <plug default="26BCBCBC"/>
+                            <plug default="50"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1056" b="1128"/>
+                        <structRect l="48" r="144" t="984" b="1032"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1202044404" name="Bevel Light">
+                    <module type="SE: GradientStop" handle="1202044404" name="Bevel Light">
                         <plugs>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="0.15"/>
+                            <plug default="26FFFFFF"/>
                         </plugs>
-                        <structRect l="48" r="132" t="972" b="1044"/>
+                        <structRect l="48" r="144" t="924" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: LinearGradient" handle="1015640928" name="Bevel">
                         <plugs>
                             <plug default="135"/>
-                            <plug default="0, 50, 80, 100"/>
-                            <plug id="4" idx="4"/>
+                            <plug id="3" idx="3"/>
+                            <plug id="4"/>
                             <plug id="5"/>
                             <plug id="6"/>
-                            <plug id="7"/>
                         </plugs>
-                        <structRect l="180" r="276" t="972" b="1092"/>
+                        <structRect l="180" r="276" t="924" b="1020"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: CircleGeometry" handle="163490786" name="Bevel Shape">
                         <plugs>
                             <plug default="47"/>
                         </plugs>
-                        <structRect l="48" r="144" t="912" b="948"/>
+                        <structRect l="48" r="144" t="864" b="900"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="844867450" name="Line">
-                        <structRect l="576" r="672" t="756" b="828"/>
+                        <structRect l="576" r="672" t="708" b="780"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: CombineTransforms" handle="862971135">
-                        <structRect l="444" r="540" t="828" b="876"/>
+                        <structRect l="444" r="540" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Rotation" handle="517160195">
-                        <structRect l="444" r="528" t="756" b="792"/>
+                        <structRect l="444" r="528" t="708" b="744"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Add" handle="1291916015" name="Start (turns)">
@@ -1477,14 +1436,14 @@
                         <plugs>
                             <plug default="16" idx="2"/>
                         </plugs>
-                        <structRect l="312" r="408" t="756" b="864"/>
+                        <structRect l="312" r="408" t="708" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: SolidBrush" handle="410677668" name="Line Color">
                         <plugs>
                             <plug default="FFEEEEEE"/>
                         </plugs>
-                        <structRect l="180" r="276" t="828" b="864"/>
+                        <structRect l="180" r="276" t="780" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Multiline" handle="1358674541">
@@ -1492,21 +1451,21 @@
                             <plug id="2" idx="2"/>
                             <plug id="3"/>
                         </plugs>
-                        <structRect l="180" r="252" t="756" b="816"/>
+                        <structRect l="180" r="252" t="708" b="768"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Point" handle="822054470" name="Line End">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
-                        <structRect l="48" r="108" t="828" b="876"/>
+                        <structRect l="48" r="108" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Point" handle="514722284" name="Line Start">
                         <plugs>
                             <plug default="5"/>
                         </plugs>
-                        <structRect l="48" r="108" t="756" b="804"/>
+                        <structRect l="48" r="108" t="708" b="756"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="1330603013" name="Shading">
@@ -1523,35 +1482,32 @@
                             <plug default="65.5"/>
                             <plug default="35"/>
                             <plug default="35"/>
-                            <plug id="7" idx="7"/>
+                            <plug id="6" idx="6"/>
+                            <plug id="7"/>
                             <plug id="8"/>
-                            <plug id="9"/>
                         </plugs>
-                        <structRect l="180" r="276" t="480" b="612"/>
+                        <structRect l="180" r="276" t="480" b="600"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="168640433" name="Shade">
+                    <module type="SE: GradientStop" handle="168640433" name="Shade">
                         <plugs>
-                            <plug default="0.9" idx="3"/>
+                            <plug default="E6000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="648" b="720"/>
+                        <structRect l="48" r="144" t="600" b="648"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1325194477" name="Clear">
+                    <module type="SE: GradientStop" handle="1325194477" name="Clear">
                         <plugs>
-                            <plug default="0" idx="3"/>
+                            <plug default="00000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="564" b="636"/>
+                        <structRect l="48" r="144" t="540" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="565819744" name="Highlight">
+                    <module type="SE: GradientStop" handle="565819744" name="Highlight">
                         <plugs>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="0.15"/>
+                            <plug default="26FFFFFF"/>
                         </plugs>
-                        <structRect l="48" r="132" t="480" b="552"/>
+                        <structRect l="48" r="144" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="30745503" name="Body">
@@ -1648,10 +1604,10 @@
                     <line type="Line" handle="422626826" lineType="1" fMod="554468117" tMod="30745503" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="506210228" lineType="1" fMod="307361269" tMod="30745503" fPlg="4" tPlg="2"/>
                     <line type="Line" handle="1187408949" lineType="1" fMod="179206671" tMod="30745503" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="389551239" lineType="1" fMod="565819744" tMod="1320806938" fPlg="4" tPlg="6"/>
-                    <line type="Line" handle="1543733906" lineType="1" fMod="1325194477" tMod="1320806938" fPlg="4" tPlg="7"/>
-                    <line type="Line" handle="1737562527" lineType="1" fMod="168640433" tMod="1320806938" fPlg="4" tPlg="8"/>
-                    <line type="Line" handle="92599387" lineType="1" fMod="1320806938" tMod="432113840" fPlg="5"/>
+                    <line type="Line" handle="389551239" lineType="1" fMod="565819744" tMod="1320806938" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="1543733906" lineType="1" fMod="1325194477" tMod="1320806938" fPlg="2" tPlg="6"/>
+                    <line type="Line" handle="1737562527" lineType="1" fMod="168640433" tMod="1320806938" fPlg="2" tPlg="7"/>
+                    <line type="Line" handle="92599387" lineType="1" fMod="1320806938" tMod="432113840" fPlg="4"/>
                     <line type="Line" handle="389107029" lineType="1" fMod="485378798" tMod="1330603013" fPlg="1"/>
                     <line type="Line" handle="1391899726" lineType="1" fMod="432113840" tMod="1330603013" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="1751774122" lineType="1" fMod="307361269" tMod="1330603013" fPlg="4" tPlg="2"/>
@@ -1669,11 +1625,11 @@
                     <line type="Line" handle="1303027267" lineType="1" fMod="307361269" tMod="844867450" fPlg="4" tPlg="2"/>
                     <line type="Line" handle="599741042" lineType="1" fMod="862971135" tMod="844867450" fPlg="2" tPlg="3"/>
                     <line type="Line" handle="245199361" lineType="1" fMod="485378798" tMod="844867450" fPlg="1" tPlg="4"/>
-                    <line type="Line" handle="1788698465" lineType="1" fMod="1202044404" tMod="1015640928" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1328647931" lineType="1" fMod="510081789" tMod="1015640928" fPlg="4" tPlg="4"/>
-                    <line type="Line" handle="1004255372" lineType="1" fMod="918496602" tMod="1015640928" fPlg="4" tPlg="5"/>
-                    <line type="Line" handle="1010830422" lineType="1" fMod="1066043920" tMod="1015640928" fPlg="4" tPlg="6"/>
-                    <line type="Line" handle="1487533010" lineType="1" fMod="1015640928" tMod="1396223795" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1788698465" lineType="1" fMod="1202044404" tMod="1015640928" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="1328647931" lineType="1" fMod="510081789" tMod="1015640928" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="1004255372" lineType="1" fMod="918496602" tMod="1015640928" fPlg="2" tPlg="4"/>
+                    <line type="Line" handle="1010830422" lineType="1" fMod="1066043920" tMod="1015640928" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="1487533010" lineType="1" fMod="1015640928" tMod="1396223795" fPlg="1" tPlg="1"/>
                     <line type="Line" handle="376718623" lineType="1" fMod="163490786" tMod="1547742872" fPlg="1"/>
                     <line type="Line" handle="1341031736" lineType="1" fMod="1396223795" tMod="1547742872" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="53870421" lineType="1" fMod="307361269" tMod="1547742872" fPlg="4" tPlg="2"/>
@@ -1746,82 +1702,74 @@
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="736812629" name="Bevel">
-                        <structRect l="576" r="672" t="912" b="984"/>
+                        <structRect l="576" r="672" t="864" b="936"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: Style" handle="152364090" name="Bevel Style">
                         <plugs>
                             <plug default="6" idx="2"/>
                         </plugs>
-                        <structRect l="312" r="408" t="912" b="1020"/>
+                        <structRect l="312" r="408" t="864" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="239186776" name="Bevel Dark">
+                    <module type="SE: GradientStop" handle="239186776" name="Bevel Dark">
                         <plugs>
-                            <plug default="0.15" idx="3"/>
+                            <plug default="26000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1224" b="1296"/>
+                        <structRect l="48" r="144" t="1104" b="1152"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="1560548723" name="Bevel 3">
+                    <module type="SE: GradientStop" handle="1560548723" name="Bevel 3">
                         <plugs>
-                            <plug default="0.2"/>
-                            <plug default="0.2"/>
-                            <plug default="0.2"/>
-                            <plug default="0.15"/>
+                            <plug default="267C7C7C"/>
+                            <plug default="80"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1140" b="1212"/>
+                        <structRect l="48" r="144" t="1044" b="1092"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="274433050" name="Bevel 2">
+                    <module type="SE: GradientStop" handle="274433050" name="Bevel 2">
                         <plugs>
-                            <plug default="0.5"/>
-                            <plug default="0.5"/>
-                            <plug default="0.5"/>
-                            <plug default="0.15"/>
+                            <plug default="26BCBCBC"/>
+                            <plug default="50"/>
                         </plugs>
-                        <structRect l="48" r="132" t="1056" b="1128"/>
+                        <structRect l="48" r="144" t="984" b="1032"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="961049259" name="Bevel Light">
+                    <module type="SE: GradientStop" handle="961049259" name="Bevel Light">
                         <plugs>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="0.15"/>
+                            <plug default="26FFFFFF"/>
                         </plugs>
-                        <structRect l="48" r="132" t="972" b="1044"/>
+                        <structRect l="48" r="144" t="924" b="972"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: LinearGradient" handle="1326761620" name="Bevel">
                         <plugs>
                             <plug default="135"/>
-                            <plug default="0, 50, 80, 100"/>
-                            <plug id="4" idx="4"/>
+                            <plug id="3" idx="3"/>
+                            <plug id="4"/>
                             <plug id="5"/>
                             <plug id="6"/>
-                            <plug id="7"/>
                         </plugs>
-                        <structRect l="180" r="276" t="972" b="1092"/>
+                        <structRect l="180" r="276" t="924" b="1020"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: CircleGeometry" handle="148271631" name="Bevel Shape">
                         <plugs>
                             <plug default="47"/>
                         </plugs>
-                        <structRect l="48" r="144" t="912" b="948"/>
+                        <structRect l="48" r="144" t="864" b="900"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="273356596" name="Line">
-                        <structRect l="576" r="672" t="756" b="828"/>
+                        <structRect l="576" r="672" t="708" b="780"/>
                         <panelRect l="3934" r="4034" t="3934" b="4034"/>
                     </module>
                     <module type="SE: CombineTransforms" handle="1925098998">
-                        <structRect l="444" r="540" t="828" b="876"/>
+                        <structRect l="444" r="540" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Rotation" handle="158369766">
-                        <structRect l="444" r="528" t="756" b="792"/>
+                        <structRect l="444" r="528" t="708" b="744"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Add" handle="650145714" name="Start (turns)">
@@ -1842,14 +1790,14 @@
                         <plugs>
                             <plug default="5" idx="2"/>
                         </plugs>
-                        <structRect l="312" r="408" t="756" b="864"/>
+                        <structRect l="312" r="408" t="708" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: SolidBrush" handle="693323816" name="Line Color">
                         <plugs>
                             <plug default="FFEEEEEE"/>
                         </plugs>
-                        <structRect l="180" r="276" t="828" b="864"/>
+                        <structRect l="180" r="276" t="780" b="816"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Multiline" handle="623901155">
@@ -1857,21 +1805,21 @@
                             <plug id="2" idx="2"/>
                             <plug id="3"/>
                         </plugs>
-                        <structRect l="180" r="252" t="756" b="816"/>
+                        <structRect l="180" r="252" t="708" b="768"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Point" handle="365483610" name="Line End">
                         <plugs>
                             <plug default="50"/>
                         </plugs>
-                        <structRect l="48" r="108" t="828" b="876"/>
+                        <structRect l="48" r="108" t="780" b="828"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: Point" handle="1298542686" name="Line Start">
                         <plugs>
                             <plug default="5"/>
                         </plugs>
-                        <structRect l="48" r="108" t="756" b="804"/>
+                        <structRect l="48" r="108" t="708" b="756"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="1891607924" name="Shading">
@@ -1888,35 +1836,32 @@
                             <plug default="65.5"/>
                             <plug default="35"/>
                             <plug default="35"/>
-                            <plug id="7" idx="7"/>
+                            <plug id="6" idx="6"/>
+                            <plug id="7"/>
                             <plug id="8"/>
-                            <plug id="9"/>
                         </plugs>
-                        <structRect l="180" r="276" t="480" b="612"/>
+                        <structRect l="180" r="276" t="480" b="600"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="348035509" name="Shade">
+                    <module type="SE: GradientStop" handle="348035509" name="Shade">
                         <plugs>
-                            <plug default="0.9" idx="3"/>
+                            <plug default="E6000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="648" b="720"/>
+                        <structRect l="48" r="144" t="600" b="648"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="638490331" name="Clear">
+                    <module type="SE: GradientStop" handle="638490331" name="Clear">
                         <plugs>
-                            <plug default="0" idx="3"/>
+                            <plug default="00000000"/>
                         </plugs>
-                        <structRect l="48" r="132" t="564" b="636"/>
+                        <structRect l="48" r="144" t="540" b="588"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
-                    <module type="SE: ColorFromRGBA" handle="715414444" name="Highlight">
+                    <module type="SE: GradientStop" handle="715414444" name="Highlight">
                         <plugs>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="1"/>
-                            <plug default="0.15"/>
+                            <plug default="26FFFFFF"/>
                         </plugs>
-                        <structRect l="48" r="132" t="480" b="552"/>
+                        <structRect l="48" r="144" t="480" b="528"/>
                         <panelRect l="0" r="0" t="0" b="0"/>
                     </module>
                     <module type="SE: RenderGeometry" handle="1408594536" name="Body">
@@ -2013,10 +1958,10 @@
                     <line type="Line" handle="1412121810" lineType="1" fMod="1660089075" tMod="1408594536" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="1208140560" lineType="1" fMod="176942755" tMod="1408594536" fPlg="4" tPlg="2"/>
                     <line type="Line" handle="475579354" lineType="1" fMod="955160244" tMod="1408594536" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="400095600" lineType="1" fMod="715414444" tMod="1510591173" fPlg="4" tPlg="6"/>
-                    <line type="Line" handle="1642709380" lineType="1" fMod="638490331" tMod="1510591173" fPlg="4" tPlg="7"/>
-                    <line type="Line" handle="75844285" lineType="1" fMod="348035509" tMod="1510591173" fPlg="4" tPlg="8"/>
-                    <line type="Line" handle="899527435" lineType="1" fMod="1510591173" tMod="1060510657" fPlg="5"/>
+                    <line type="Line" handle="400095600" lineType="1" fMod="715414444" tMod="1510591173" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="1642709380" lineType="1" fMod="638490331" tMod="1510591173" fPlg="2" tPlg="6"/>
+                    <line type="Line" handle="75844285" lineType="1" fMod="348035509" tMod="1510591173" fPlg="2" tPlg="7"/>
+                    <line type="Line" handle="899527435" lineType="1" fMod="1510591173" tMod="1060510657" fPlg="4"/>
                     <line type="Line" handle="657324080" lineType="1" fMod="909782520" tMod="1891607924" fPlg="1"/>
                     <line type="Line" handle="1229338311" lineType="1" fMod="1060510657" tMod="1891607924" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="500977145" lineType="1" fMod="176942755" tMod="1891607924" fPlg="4" tPlg="2"/>
@@ -2034,11 +1979,11 @@
                     <line type="Line" handle="260898631" lineType="1" fMod="176942755" tMod="273356596" fPlg="4" tPlg="2"/>
                     <line type="Line" handle="618900733" lineType="1" fMod="1925098998" tMod="273356596" fPlg="2" tPlg="3"/>
                     <line type="Line" handle="685428256" lineType="1" fMod="909782520" tMod="273356596" fPlg="1" tPlg="4"/>
-                    <line type="Line" handle="1517812488" lineType="1" fMod="961049259" tMod="1326761620" fPlg="4" tPlg="3"/>
-                    <line type="Line" handle="1575814003" lineType="1" fMod="274433050" tMod="1326761620" fPlg="4" tPlg="4"/>
-                    <line type="Line" handle="226007908" lineType="1" fMod="1560548723" tMod="1326761620" fPlg="4" tPlg="5"/>
-                    <line type="Line" handle="1489400147" lineType="1" fMod="239186776" tMod="1326761620" fPlg="4" tPlg="6"/>
-                    <line type="Line" handle="410154602" lineType="1" fMod="1326761620" tMod="152364090" fPlg="2" tPlg="1"/>
+                    <line type="Line" handle="1517812488" lineType="1" fMod="961049259" tMod="1326761620" fPlg="2" tPlg="2"/>
+                    <line type="Line" handle="1575814003" lineType="1" fMod="274433050" tMod="1326761620" fPlg="2" tPlg="3"/>
+                    <line type="Line" handle="226007908" lineType="1" fMod="1560548723" tMod="1326761620" fPlg="2" tPlg="4"/>
+                    <line type="Line" handle="1489400147" lineType="1" fMod="239186776" tMod="1326761620" fPlg="2" tPlg="5"/>
+                    <line type="Line" handle="410154602" lineType="1" fMod="1326761620" tMod="152364090" fPlg="1" tPlg="1"/>
                     <line type="Line" handle="631506136" lineType="1" fMod="148271631" tMod="736812629" fPlg="1"/>
                     <line type="Line" handle="425482447" lineType="1" fMod="152364090" tMod="736812629" fPlg="6" tPlg="1"/>
                     <line type="Line" handle="1025556807" lineType="1" fMod="176942755" tMod="736812629" fPlg="4" tPlg="2"/>
@@ -2148,15 +2093,6 @@
                 <Pin name="Path" datatype="object:path" direction="out"/>
             </GUI>
         </Plugin>
-        <Plugin id="SE: ColorFromRGBA" name="Color (RGBA)" flags="384" category="Experimental/Cadmium">
-            <GUI>
-                <Pin name="Red" datatype="float"/>
-                <Pin name="Green" datatype="float"/>
-                <Pin name="Blue" datatype="float"/>
-                <Pin name="Alpha" datatype="float" default="1"/>
-                <Pin name="Color" datatype="struct:color" direction="out"/>
-            </GUI>
-        </Plugin>
         <Plugin id="SE: CombineTransforms" name="Combine Transforms" flags="384" category="Experimental/Cadmium">
             <GUI>
                 <Pin name="A" datatype="struct:transform"/>
@@ -2180,12 +2116,18 @@
                 <Pin name="Scale" datatype="float" direction="out"/>
             </GUI>
         </Plugin>
+        <Plugin id="SE: GradientStop" name="Gradient Stop" flags="384" category="Experimental/Cadmium">
+            <GUI>
+                <Pin name="Color" datatype="struct:color" default="FFFFFFFF"/>
+                <Pin name="Position" datatype="float" default="-1"/>
+                <Pin name="Stop" datatype="struct:gradientstop" direction="out"/>
+            </GUI>
+        </Plugin>
         <Plugin id="SE: LinearGradient" name="Linear Gradient" flags="384" category="Experimental/Cadmium">
             <GUI>
                 <Pin name="Angle" datatype="float" default="180"/>
-                <Pin name="Positions" datatype="string_utf8"/>
                 <Pin name="Brush" datatype="object:brush" direction="out"/>
-                <Pin name="Color" datatype="struct:color" autoRename="true" autoDuplicate="true"/>
+                <Pin name="Stop" datatype="struct:gradientstop" autoRename="true" autoDuplicate="true"/>
             </GUI>
         </Plugin>
         <Plugin id="SE: MouseTarget" name="MouseTarget" flags="384" category="Experimental/Cadmium">
@@ -2255,9 +2197,8 @@
                 <Pin name="Radius Y" datatype="float" default="50"/>
                 <Pin name="Center X" datatype="float" default="50"/>
                 <Pin name="Center Y" datatype="float" default="50"/>
-                <Pin name="Positions" datatype="string_utf8"/>
                 <Pin name="Brush" datatype="object:brush" direction="out"/>
-                <Pin name="Color" datatype="struct:color" autoRename="true" autoDuplicate="true"/>
+                <Pin name="Stop" datatype="struct:gradientstop" autoRename="true" autoDuplicate="true"/>
             </GUI>
         </Plugin>
         <Plugin id="SE: Rect" name="Rect" flags="384" category="Experimental/Cadmium">

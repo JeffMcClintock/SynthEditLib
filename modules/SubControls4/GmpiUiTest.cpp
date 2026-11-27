@@ -11,7 +11,6 @@
 #include <charconv>
 #include <fstream>
 #include <iterator>
-#include <sstream>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "helpers/GmpiPluginEditor.h"
@@ -3078,32 +3077,29 @@ struct GradientObject final : public IBrushSource
     GMPI_REFCOUNT
 };
 
-// A gradient's stops, placed as CSS places them. 'positions' lists percentages along the gradient, one per colour
-// ("0, 35, 100"). A colour without one sits evenly between its neighbours, the first at 0 and the last at 100.
-static std::vector<Gradientstop> makeGradientStops(const std::vector<gmpi::drawing::Color>& colors, std::string positions)
+// One colour of a gradient and where it sits: what a 'struct:gradientstop' wire carries.
+struct ColorStop
 {
-    const auto count = colors.size();
-    std::vector<float> at(count, -1.0f); // -1 = not given
+    float position = -1.0f; // percent along the gradient. Below zero = evenly between its neighbours.
+    gmpi::drawing::Color color{};
+
+    bool operator!=(const ColorStop& other) const
+    {
+        return position != other.position || color.r != other.color.r || color.g != other.color.g || color.b != other.color.b || color.a != other.color.a;
+    }
+};
+
+// A gradient's stops, placed and blended as CSS does. A stop without a position sits evenly between its neighbours,
+// the first at 0% and the last at 100%.
+static std::vector<Gradientstop> makeGradientStops(const std::vector<ColorStop>& colorStops)
+{
+    const auto count = colorStops.size();
     if (count == 0)
         return {};
 
-    const char separator = positions.find(',') != std::string::npos ? ',' : ' ';
-    std::replace(positions.begin(), positions.end(), '%', ' ');
-    {
-        std::istringstream list(positions);
-        std::string item;
-        for (size_t i = 0; i < count && std::getline(list, item, separator); )
-        {
-            char* numberEnd{};
-            const float percent = std::strtof(item.c_str(), &numberEnd);
-            if (numberEnd != item.c_str())
-                at[i] = std::clamp(percent * 0.01f, 0.0f, 1.0f);
-            else if (separator == ' ')
-                continue; // a run of spaces
-
-            ++i;
-        }
-    }
+    std::vector<float> at(count); // 0..1, -1 = not given
+    for (size_t i = 0; i < count; ++i)
+        at[i] = colorStops[i].position < 0.0f ? -1.0f : (std::min)(colorStops[i].position * 0.01f, 1.0f);
 
     if (at.front() < 0.0f)
         at.front() = 0.0f;
@@ -3132,7 +3128,7 @@ static std::vector<Gradientstop> makeGradientStops(const std::vector<gmpi::drawi
     }
 
     if (count == 1)
-        return { { at[0], colors[0] } };
+        return { { at[0], colorStops[0].color } };
 
     // CSS blends two stops as sRGB values weighted by their alpha; a brush blends them in linear light, alpha apart.
     // In-between stops, coloured as CSS would colour them, make up the difference.
@@ -3155,8 +3151,8 @@ static std::vector<Gradientstop> makeGradientStops(const std::vector<gmpi::drawi
 
     for (size_t i = 0; i + 1 < count; ++i)
     {
-        const auto& from = colors[i];
-        const auto& to = colors[i + 1];
+        const auto& from = colorStops[i].color;
+        const auto& to = colorStops[i + 1].color;
         const auto e0 = encode(from);
         const auto e1 = encode(to);
 
@@ -3188,38 +3184,76 @@ static std::vector<Gradientstop> makeGradientStops(const std::vector<gmpi::drawi
     return stops;
 }
 
-// What the gradient brushes share: one auto-duplicated Color per stop, after the module's own pins.
+// One colour of a gradient and where it sits, in percent along it. With Position below zero it sits evenly between
+// its neighbours, the first at 0 and the last at 100.
+struct GradientStopBuilder final : public PluginEditorNoGui
+{
+    In<gmpi::drawing::Color> pinColor;
+    In<float>                pinPosition;
+    Out<ColorStop>           pinStop;
+
+    GradientStopBuilder()
+    {
+        pinColor.value = Colors::White;
+        pinPosition.value = -1.0f;
+    }
+
+    ReturnCode process() override
+    {
+        pinStop = ColorStop{ pinPosition.value, pinColor.value };
+        return ReturnCode::Ok;
+    }
+};
+
+namespace
+{
+auto r68 = gmpi::Register<GradientStopBuilder>::withXml(R"XML(
+<?xml version="1.0" encoding="utf-8" ?>
+
+<PluginList>
+  <Plugin id="SE: GradientStop" name="Gradient Stop" category="Experimental/Cadmium" vendor="Jeff McClintock">
+    <GUI>
+      <Pin name="Color" datatype="struct:color" default="FFFFFFFF"/>
+      <Pin name="Position" datatype="float" default="-1"/>
+      <Pin name="Stop" datatype="struct:gradientstop" direction="out"/>
+    </GUI>
+  </Plugin>
+</PluginList>
+)XML");
+}
+
+// What the gradient brushes share: one auto-duplicated Stop per colour, after the module's own pins.
 struct GradientBuilder : public PluginEditorNoGui
 {
     int ownPinCount{};
-    std::vector<std::unique_ptr<In<gmpi::drawing::Color>>> pinColors;
+    std::vector<std::unique_ptr<In<ColorStop>>> pinStops;
 
     explicit GradientBuilder(int ownPins) : ownPinCount(ownPins) {}
 
     ReturnCode initialize() override
     {
         synthedit::PinInformation info(editorHost.get());
-        const auto colorCount = static_cast<int>(info.pins.size()) - ownPinCount;
+        const auto stopCount = static_cast<int>(info.pins.size()) - ownPinCount;
 
         // a pin registers with the editor under construction, which is no longer this one.
         constructingInstance = this;
-        for (int i = 0; i < colorCount; ++i)
-            pinColors.push_back(std::make_unique<In<gmpi::drawing::Color>>());
+        for (int i = 0; i < stopCount; ++i)
+            pinStops.push_back(std::make_unique<In<ColorStop>>());
         constructingInstance = nullptr;
 
         return PluginEditorNoGui::initialize();
     }
 
     // a new object each time, so a Style holding the old one sees a change.
-    gmpi::shared_ptr<GradientObject> makeGradient(const std::string& positions)
+    gmpi::shared_ptr<GradientObject> makeGradient()
     {
-        std::vector<gmpi::drawing::Color> colors;
-        for (auto& pin : pinColors)
-            colors.push_back(pin->value);
+        std::vector<ColorStop> colorStops;
+        for (auto& pin : pinStops)
+            colorStops.push_back(pin->value);
 
         gmpi::shared_ptr<GradientObject> gradient;
         gradient.attach(new GradientObject());
-        gradient->stops = makeGradientStops(colors, positions);
+        gradient->stops = makeGradientStops(colorStops);
         return gradient;
     }
 };
@@ -3228,17 +3262,16 @@ struct GradientBuilder : public PluginEditorNoGui
 struct LinearGradient final : public GradientBuilder
 {
     In<float>               pinAngle;
-    In<std::string>         pinPositions;
     ObjectOut<IBrushSource> pinBrush;
 
-    LinearGradient() : GradientBuilder(3)
+    LinearGradient() : GradientBuilder(2)
     {
         pinAngle.value = 180.0f;
     }
 
     ReturnCode process() override
     {
-        auto gradient = makeGradient(pinPositions.value);
+        auto gradient = makeGradient();
         gradient->angle = pinAngle.value;
 
         pinBrush = gradient.get();
@@ -3255,9 +3288,8 @@ auto r63 = gmpi::Register<LinearGradient>::withXml(R"XML(
   <Plugin id="SE: LinearGradient" name="Linear Gradient" category="Experimental/Cadmium" vendor="Jeff McClintock">
     <GUI>
       <Pin name="Angle" datatype="float" default="180"/>
-      <Pin name="Positions" datatype="string_utf8"/>
       <Pin name="Brush" datatype="object:brush" direction="out"/>
-      <Pin name="Color" datatype="struct:color" autoDuplicate="true" autoRename="true"/>
+      <Pin name="Stop" datatype="struct:gradientstop" autoDuplicate="true" autoRename="true"/>
     </GUI>
   </Plugin>
 </PluginList>
@@ -3271,17 +3303,16 @@ struct RadialGradient final : public GradientBuilder
     In<float>               pinRadiusY;
     In<float>               pinCenterX;
     In<float>               pinCenterY;
-    In<std::string>         pinPositions;
     ObjectOut<IBrushSource> pinBrush;
 
-    RadialGradient() : GradientBuilder(6)
+    RadialGradient() : GradientBuilder(5)
     {
         pinRadiusX.value = pinRadiusY.value = pinCenterX.value = pinCenterY.value = 50.0f;
     }
 
     ReturnCode process() override
     {
-        auto gradient = makeGradient(pinPositions.value);
+        auto gradient = makeGradient();
         gradient->radial = true;
         gradient->radius = { pinRadiusX.value * 0.01f, pinRadiusY.value * 0.01f };
         gradient->center = { pinCenterX.value * 0.01f, pinCenterY.value * 0.01f };
@@ -3303,9 +3334,8 @@ auto r67 = gmpi::Register<RadialGradient>::withXml(R"XML(
       <Pin name="Radius Y" datatype="float" default="50"/>
       <Pin name="Center X" datatype="float" default="50"/>
       <Pin name="Center Y" datatype="float" default="50"/>
-      <Pin name="Positions" datatype="string_utf8"/>
       <Pin name="Brush" datatype="object:brush" direction="out"/>
-      <Pin name="Color" datatype="struct:color" autoDuplicate="true" autoRename="true"/>
+      <Pin name="Stop" datatype="struct:gradientstop" autoDuplicate="true" autoRename="true"/>
     </GUI>
   </Plugin>
 </PluginList>
